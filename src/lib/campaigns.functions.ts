@@ -641,7 +641,9 @@ export const launchCampaign = createServerFn({ method: "POST" })
       endHour: c.send_end_hour,
     }).toISOString();
 
-    const fresh = leads.filter((l) => !already.has(String(l["id"]))) as never[];
+    const fresh = leads.filter((l) => !already.has(String(l["id"]))) as Array<
+      Record<string, unknown> & { id: string; email: string }
+    >;
     if (fresh.length) {
       const accountById = new Map(
         (accounts ?? []).map((a) => [a.id, a as { id: string }] as const),
