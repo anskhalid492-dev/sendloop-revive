@@ -16,6 +16,7 @@ import {
 
 import { AppShell } from "@/components/app/AppShell";
 import { CampaignDetailDialog } from "@/components/analytics/CampaignDetailDialog";
+import { ConversionFunnel } from "@/components/analytics/ConversionFunnel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,6 +330,15 @@ function AnalyticsPage() {
             )}
           </div>
         </div>
+
+        <ConversionFunnel
+          data={{
+            sent: current?.sent ?? 0,
+            delivered: current?.delivered ?? 0,
+            opens: current?.opens ?? 0,
+            replies: current?.replies ?? 0,
+          }}
+        />
 
         {/* campaign table */}
         <div className="surface-card p-4">

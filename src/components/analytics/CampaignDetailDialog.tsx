@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConversionFunnel } from "@/components/analytics/ConversionFunnel";
 import {
   bounceRate,
   clickRate,
@@ -26,7 +27,7 @@ export function CampaignDetailDialog({
 }) {
   return (
     <Dialog open={!!row} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{row?.name ?? "Campaign"}</DialogTitle>
           <DialogDescription>
@@ -55,6 +56,19 @@ export function CampaignDetailDialog({
               </div>
             ))}
           </div>
+        ) : null}
+
+        {row ? (
+          <ConversionFunnel
+            className="mt-1"
+            title="Conversion funnel"
+            data={{
+              sent: row.sent,
+              delivered: row.delivered,
+              opens: row.opens,
+              replies: row.replies,
+            }}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
