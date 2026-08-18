@@ -69,6 +69,13 @@ export function AccountDetailSheet({
     enabled: Boolean(accountId),
   });
 
+  const fetchAudit = useServerFn(listSendingAccountAudit);
+  const audit = useQuery({
+    queryKey: ["email-account-audit", accountId],
+    queryFn: () => fetchAudit({ data: { accountId: accountId!, limit: 25 } }),
+    enabled: Boolean(accountId),
+  });
+
   const account = (detail.data?.account as EmailAccountRow | undefined) ?? fallback;
   const stats = detail.data?.stats ?? account?.stats ?? null;
   const campaigns = detail.data?.campaigns ?? [];
