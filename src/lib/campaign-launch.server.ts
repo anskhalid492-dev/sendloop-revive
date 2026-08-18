@@ -11,26 +11,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
-export type LaunchIssue = { code: string; message: string };
-
-export type LaunchReadiness = {
-  ready: boolean;
-  issues: LaunchIssue[];
-  campaignId: string;
-  workspaceId: string | null;
-  listId: string | null;
-  listName: string | null;
-  /** Leads in the saved list that can still be queued. */
-  eligible: number;
-  /** Recipients already queued for this campaign. */
-  alreadyQueued: number;
-  /** Total people this launch will be sending to. */
-  audience: number;
-  /** Leads in the workspace that are not in any list yet. */
-  unassignedLeads: number;
-  activeMailboxes: number;
-  eligibleLeadIds: string[];
-};
+import type { LaunchIssue, LaunchReadiness } from "@/lib/campaign-launch-model";
 
 const LEAD_ELIGIBLE_STATUSES = ["new"] as const;
 
