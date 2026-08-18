@@ -362,7 +362,18 @@ function BlogPage() {
               <ArrowRight className="size-4" />
             </Button>
           </form>
+          {subscribeState ? (
+            <p
+              role="status"
+              className={`text-xs font-medium ${
+                subscribeState.kind === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+              }`}
+            >
+              {subscribeState.message}
+            </p>
+          ) : null}
           <p className="text-xs text-muted-foreground">No spam. Unsubscribe anytime.</p>
+
         </div>
       </Section>
 
