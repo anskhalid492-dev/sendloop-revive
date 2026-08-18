@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import {
   getCampaign,
+  getCampaignLaunchReadiness,
   getCampaignLeads,
   launchCampaign,
   saveCampaignSteps,
@@ -116,6 +117,7 @@ export function useCampaignBuilder(campaignId: string) {
   const fetchCampaign = useServerFn(getCampaign);
   const fetchLeads = useServerFn(getCampaignLeads);
   const fetchLists = useServerFn(listLeadLists);
+  const fetchReadiness = useServerFn(getCampaignLaunchReadiness);
   const fetchAccounts = useServerFn(listMySendingAccounts);
   const updateFn = useServerFn(updateCampaign);
   const saveStepsFn = useServerFn(saveCampaignSteps);
@@ -131,6 +133,11 @@ export function useCampaignBuilder(campaignId: string) {
     queryFn: () => fetchLeads({ data: { campaignId } }),
   });
   const listsQuery = useQuery({ queryKey: ["lead-lists"], queryFn: () => fetchLists() });
+  // Launch validation always comes from the saved campaign in the database.
+  const readinessQuery = useQuery({
+    queryKey: ["campaign-readiness", campaignId],
+    queryFn: () => fetchReadiness({ data: { id: campaignId } }),
+  });
   const accountsQuery = useQuery({
     queryKey: ["sending-accounts"],
     queryFn: () => fetchAccounts(),
@@ -255,6 +262,7 @@ export function useCampaignBuilder(campaignId: string) {
       setSavedAt(new Date());
       hydratedFor.current = null;
       await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -292,6 +300,7 @@ export function useCampaignBuilder(campaignId: string) {
       hydratedFor.current = null;
       await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -329,6 +338,10 @@ export function useCampaignBuilder(campaignId: string) {
     toggleStatus,
     accounts,
     lists: listsQuery.data ?? [],
+    readiness: readinessQuery.data ?? null,
+    readinessLoading: readinessQuery.isLoading,
+    refetchReadiness: () =>
+      queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] }),
     leads: leadsQuery.data ?? [],
     leadsLoading: leadsQuery.isLoading,
     refetchLeads: () => queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] }),
