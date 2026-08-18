@@ -2142,6 +2142,62 @@ export type Database = {
         }
         Relationships: []
       }
+      sending_account_requests: {
+        Row: {
+          account_ids: string[]
+          admin_note: string | null
+          created_at: string
+          handled_at: string | null
+          id: string
+          kind: string
+          note: string | null
+          preferred_domain: string | null
+          quantity: number
+          requested_by: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_ids?: string[]
+          admin_note?: string | null
+          created_at?: string
+          handled_at?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          preferred_domain?: string | null
+          quantity?: number
+          requested_by: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_ids?: string[]
+          admin_note?: string | null
+          created_at?: string
+          handled_at?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          preferred_domain?: string | null
+          quantity?: number
+          requested_by?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sending_account_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sending_account_secrets: {
         Row: {
           created_at: string
@@ -2179,6 +2235,8 @@ export type Database = {
           created_by: string | null
           customer_enabled: boolean
           daily_limit: number
+          dkim_status: string
+          dmarc_status: string
           from_email: string
           from_name: string
           health_score: number
@@ -2186,16 +2244,22 @@ export type Database = {
           id: string
           label: string
           last_error: string | null
+          last_reply_at: string | null
+          last_sent_at: string | null
           last_tested_at: string | null
+          mx_status: string
           paused: boolean
           provider: Database["public"]["Enums"]["sending_provider"]
           provider_id: string | null
           reply_to: string | null
           sent_today: number
+          spf_status: string
           status: Database["public"]["Enums"]["connection_status"]
           updated_at: string
           warmup_daily_target: number
+          warmup_started_at: string | null
           warmup_status: string
+          warmup_target_days: number
           workspace_id: string | null
         }
         Insert: {
@@ -2205,6 +2269,8 @@ export type Database = {
           created_by?: string | null
           customer_enabled?: boolean
           daily_limit?: number
+          dkim_status?: string
+          dmarc_status?: string
           from_email: string
           from_name: string
           health_score?: number
@@ -2212,16 +2278,22 @@ export type Database = {
           id?: string
           label: string
           last_error?: string | null
+          last_reply_at?: string | null
+          last_sent_at?: string | null
           last_tested_at?: string | null
+          mx_status?: string
           paused?: boolean
           provider: Database["public"]["Enums"]["sending_provider"]
           provider_id?: string | null
           reply_to?: string | null
           sent_today?: number
+          spf_status?: string
           status?: Database["public"]["Enums"]["connection_status"]
           updated_at?: string
           warmup_daily_target?: number
+          warmup_started_at?: string | null
           warmup_status?: string
+          warmup_target_days?: number
           workspace_id?: string | null
         }
         Update: {
@@ -2231,6 +2303,8 @@ export type Database = {
           created_by?: string | null
           customer_enabled?: boolean
           daily_limit?: number
+          dkim_status?: string
+          dmarc_status?: string
           from_email?: string
           from_name?: string
           health_score?: number
@@ -2238,16 +2312,22 @@ export type Database = {
           id?: string
           label?: string
           last_error?: string | null
+          last_reply_at?: string | null
+          last_sent_at?: string | null
           last_tested_at?: string | null
+          mx_status?: string
           paused?: boolean
           provider?: Database["public"]["Enums"]["sending_provider"]
           provider_id?: string | null
           reply_to?: string | null
           sent_today?: number
+          spf_status?: string
           status?: Database["public"]["Enums"]["connection_status"]
           updated_at?: string
           warmup_daily_target?: number
+          warmup_started_at?: string | null
           warmup_status?: string
+          warmup_target_days?: number
           workspace_id?: string | null
         }
         Relationships: [
@@ -2485,11 +2565,19 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      request_sending_account_release: {
+        Args: { _account_ids: string[]; _note?: string }
+        Returns: string
+      }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
       set_sending_account_enabled: {
         Args: { _account_id: string; _enabled: boolean }
         Returns: undefined
+      }
+      set_sending_accounts_paused: {
+        Args: { _account_ids: string[]; _paused: boolean }
+        Returns: number
       }
     }
     Enums: {
