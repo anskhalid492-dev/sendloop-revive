@@ -13,13 +13,10 @@ import {
   GraduationCap,
   Inbox,
   LifeBuoy,
-  Mail,
   Mailbox,
   Menu,
-  MessageSquare,
   Send,
   ShieldCheck,
-  Sparkles,
   Users,
   X,
   type LucideIcon,
@@ -61,19 +58,19 @@ const featuredProducts: Card[] = [
     cta: "View Email Accounts",
   },
   {
-    label: "CRM",
-    to: "/product/crm",
-    text: "Organize contacts, track conversations and manage your sales pipeline.",
-    icon: Users,
-    cta: "Explore CRM",
+    label: "Warmup",
+    to: "/product/warmup",
+    text: "Monitor sender warmup and email health.",
+    icon: Flame,
+    cta: "Explore Warmup",
   },
 ];
 
 const secondaryProducts: Card[] = [
-  { label: "Warmup", to: "/product/warmup", text: "Build sender reputation and improve deliverability.", icon: Flame },
-  { label: "Analytics", to: "/product/analytics", text: "Track sends, replies, meetings and campaign performance.", icon: BarChart3 },
-  { label: "Templates", to: "/product/templates", text: "Launch faster with proven outreach templates.", icon: FileText },
-  { label: "Workspaces", to: "/product/workspaces", text: "Manage your teams, campaigns and outreach from one workspace.", icon: Building2 },
+  { label: "CRM", to: "/product/crm", text: "Manage contacts and sales conversations.", icon: Users },
+  { label: "Analytics", to: "/product/analytics", text: "Track campaign performance and replies.", icon: BarChart3 },
+  { label: "Templates", to: "/product/templates", text: "Use proven cold email templates.", icon: FileText },
+  { label: "Workspaces", to: "/product/workspaces", text: "Manage teams and outreach.", icon: Building2 },
 ];
 
 const resourceCards: Card[] = [
@@ -84,13 +81,7 @@ const resourceCards: Card[] = [
   { label: "Help Center", to: "/help-center", text: "Get answers and support.", icon: LifeBuoy },
 ];
 
-const companyCards: Card[] = [
-  { label: "About Sendloop", to: "/about", text: "Learn about Sendloop and what we're building.", icon: Sparkles },
-  { label: "Contact", to: "/contact", text: "Get in touch with our team.", icon: Mail },
-  { label: "Support", to: "/help-center", text: "Need help? We're here.", icon: MessageSquare },
-];
-
-type MenuKey = "products" | "resources" | "company";
+type MenuKey = "products" | "resources";
 
 const panelMotion = {
   initial: { opacity: 0, y: -8, scale: 0.99 },
@@ -175,7 +166,6 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-1 md:flex">
           <Trigger label="Products" active={menu === "products"} onOpen={() => openMenu("products")} />
           <Trigger label="Resources" active={menu === "resources"} onOpen={() => openMenu("resources")} />
-          <Trigger label="Company" active={menu === "company"} onOpen={() => openMenu("company")} />
           <TopLink to="/pricing" label="Pricing" onHover={() => setMenu(null)} />
           <TopLink to="/blog" label="Blog" onHover={() => setMenu(null)} />
         </nav>
@@ -218,7 +208,6 @@ export function SiteHeader() {
             <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-border/70 bg-background/98 shadow-[0_36px_80px_-40px_rgba(15,23,42,0.55)] backdrop-blur-xl">
               {menu === "products" ? <ProductsPanel /> : null}
               {menu === "resources" ? <ResourcesPanel /> : null}
-              {menu === "company" ? <CompanyPanel /> : null}
             </div>
           </motion.div>
         ) : null}
@@ -237,7 +226,6 @@ export function SiteHeader() {
             <div className="mx-auto flex max-h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-1 overflow-y-auto px-4 py-4">
               <MobileGroup label="Products" cards={[...featuredProducts, ...secondaryProducts]} onNavigate={() => setOpen(false)} />
               <MobileGroup label="Resources" cards={resourceCards} onNavigate={() => setOpen(false)} />
-              <MobileGroup label="Company" cards={companyCards} onNavigate={() => setOpen(false)} />
               <MobileGroup
                 label="By use case"
                 cards={solutionNavLinks.map((l) => ({
@@ -452,16 +440,6 @@ function ResourcesPanel() {
           </Link>
         </Button>
       </div>
-    </div>
-  );
-}
-
-function CompanyPanel() {
-  return (
-    <div className="grid gap-1 p-6 sm:grid-cols-3">
-      {companyCards.map((card) => (
-        <CompactCard key={card.label} card={card} />
-      ))}
     </div>
   );
 }
