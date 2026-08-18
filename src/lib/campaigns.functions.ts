@@ -965,7 +965,64 @@ export const getCampaignLaunchReadiness = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { evaluateLaunchReadiness } = await import("@/lib/campaign-launch.server");
-    const readiness = await evaluateLaunchReadiness(context.supabase, data.id);
-    return readiness;
+    const { refreshReadiness } = await import("@/lib/campaign-launch.server");
+    return await refreshReadiness(context.supabase, data.id);
   });
+
+export type CampaignLaunchEvent = {
+  id: string;
+  created_at: string;
+  outcome: string;
+  ready: boolean;
+  issues: { code: string; message: string }[];
+  list_name: string | null;
+  eligible: number;
+  already_queued: number;
+  audience: number;
+  active_mailboxes: number;
+  queued_messages: number;
+  total_recipients: number;
+  first_send_at: string | null;
+  error_message: string | null;
+  actor_email: string | null;
+};
+
+/** Launch audit trail: readiness checks, blocking reasons and queued counts. */
+export const getCampaignLaunchEvents = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ campaignId: z.string().uuid(), limit: z.number().int().min(1).max(100).default(25) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("campaign_launch_events")
+      .select(
+        "id, created_at, outcome, ready, issues, list_name, eligible, already_queued, audience, active_mailboxes, queued_messages, total_recipients, first_send_at, error_message, actor_id",
+      )
+      .eq("campaign_id", data.campaignId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+
+    const events = (rows ?? []) as unknown as Array<
+      Omit<CampaignLaunchEvent, "actor_email"> & { actor_id: string | null }
+    >;
+    const actorIds = [...new Set(events.map((e) => e.actor_id).filter(Boolean))] as string[];
+    const emailById = new Map<string, string>();
+    if (actorIds.length) {
+      const { data: people } = await context.supabase
+        .from("profiles")
+        .select("id, email")
+        .in("id", actorIds);
+      for (const p of (people ?? []) as Array<{ id: string; email: string | null }>) {
+        if (p.email) emailById.set(p.id, p.email);
+      }
+    }
+
+    return events.map(({ actor_id, ...rest }) => ({
+      ...rest,
+      issues: Array.isArray(rest.issues) ? rest.issues : [],
+      actor_email: actor_id ? emailById.get(actor_id) ?? null : null,
+    })) as CampaignLaunchEvent[];
+  });
+
