@@ -15,7 +15,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as BlogRouteImport } from './routes/blog'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
@@ -45,6 +44,8 @@ import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated/warmup'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
 import { Route as ProductCrmRouteImport } from './routes/product.crm'
@@ -71,6 +72,8 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
+import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
+import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
@@ -103,11 +106,6 @@ const ApiDocsRoute = ApiDocsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
@@ -255,6 +253,16 @@ const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductAnalyticsRoute = ProductAnalyticsRouteImport.update({
   id: '/product/analytics',
   path: '/product/analytics',
@@ -397,6 +405,16 @@ const AuthenticatedCampaignsCampaignIdRoute =
     path: '/campaigns/$campaignId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const BlogAuthorSlugRoute = BlogAuthorSlugRouteImport.update({
+  id: '/blog/author/$slug',
+  path: '/blog/author/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogCategorySlugRoute = BlogCategorySlugRouteImport.update({
+  id: '/blog/category/$slug',
+  path: '/blog/category/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminInboundEventsEventIdRoute =
   AuthenticatedAdminInboundEventsEventIdRouteImport.update({
     id: '/$eventId',
@@ -427,7 +445,6 @@ export interface FileRoutesByFullPath {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
@@ -457,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -467,6 +485,7 @@ export interface FileRoutesByFullPath {
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -481,6 +500,8 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/blog/author/$slug': typeof BlogAuthorSlugRoute
+  '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
@@ -494,7 +515,6 @@ export interface FileRoutesByTo {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
@@ -523,6 +543,7 @@ export interface FileRoutesByTo {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -533,6 +554,7 @@ export interface FileRoutesByTo {
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
+  '/blog': typeof BlogIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -547,6 +569,8 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/blog/author/$slug': typeof BlogAuthorSlugRoute
+  '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
@@ -562,7 +586,6 @@ export interface FileRoutesById {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
@@ -592,6 +615,7 @@ export interface FileRoutesById {
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -602,6 +626,7 @@ export interface FileRoutesById {
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -616,6 +641,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/blog/author/$slug': typeof BlogAuthorSlugRoute
+  '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
@@ -631,7 +658,6 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
-    | '/blog'
     | '/cold-email-templates'
     | '/contact'
     | '/deliverability-guide'
@@ -661,6 +687,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/warmup'
     | '/workspace'
+    | '/blog/$slug'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -671,6 +698,7 @@ export interface FileRouteTypes {
     | '/product/warmup'
     | '/product/workspaces'
     | '/solutions/$slug'
+    | '/blog/'
     | '/admin/analytics'
     | '/admin/billing'
     | '/admin/campaigns'
@@ -685,6 +713,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/workspaces'
     | '/campaigns/$campaignId'
+    | '/blog/author/$slug'
+    | '/blog/category/$slug'
     | '/admin/'
     | '/campaigns/'
     | '/admin/inbound-events/$eventId'
@@ -698,7 +728,6 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
-    | '/blog'
     | '/cold-email-templates'
     | '/contact'
     | '/deliverability-guide'
@@ -727,6 +756,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/warmup'
     | '/workspace'
+    | '/blog/$slug'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -737,6 +767,7 @@ export interface FileRouteTypes {
     | '/product/warmup'
     | '/product/workspaces'
     | '/solutions/$slug'
+    | '/blog'
     | '/admin/analytics'
     | '/admin/billing'
     | '/admin/campaigns'
@@ -751,6 +782,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/workspaces'
     | '/campaigns/$campaignId'
+    | '/blog/author/$slug'
+    | '/blog/category/$slug'
     | '/admin'
     | '/campaigns'
     | '/admin/inbound-events/$eventId'
@@ -765,7 +798,6 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
-    | '/blog'
     | '/cold-email-templates'
     | '/contact'
     | '/deliverability-guide'
@@ -795,6 +827,7 @@ export interface FileRouteTypes {
     | '/_authenticated/templates'
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
+    | '/blog/$slug'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -805,6 +838,7 @@ export interface FileRouteTypes {
     | '/product/warmup'
     | '/product/workspaces'
     | '/solutions/$slug'
+    | '/blog/'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/campaigns'
@@ -819,6 +853,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/workspaces'
     | '/_authenticated/campaigns/$campaignId'
+    | '/blog/author/$slug'
+    | '/blog/category/$slug'
     | '/_authenticated/admin/'
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/inbound-events/$eventId'
@@ -834,7 +870,6 @@ export interface RootRouteChildren {
   AcceptableUseRoute: typeof AcceptableUseRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
-  BlogRoute: typeof BlogRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
@@ -850,6 +885,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
   ProductCampaignsRoute: typeof ProductCampaignsRoute
   ProductCrmRoute: typeof ProductCrmRoute
@@ -860,6 +896,9 @@ export interface RootRouteChildren {
   ProductWarmupRoute: typeof ProductWarmupRoute
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+  BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
+  BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
@@ -907,13 +946,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cold-email-templates': {
@@ -1119,6 +1151,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/product/analytics': {
       id: '/product/analytics'
       path: '/product/analytics'
@@ -1301,6 +1347,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCampaignsCampaignIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/blog/author/$slug': {
+      id: '/blog/author/$slug'
+      path: '/blog/author/$slug'
+      fullPath: '/blog/author/$slug'
+      preLoaderRoute: typeof BlogAuthorSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/category/$slug': {
+      id: '/blog/category/$slug'
+      path: '/blog/category/$slug'
+      fullPath: '/blog/category/$slug'
+      preLoaderRoute: typeof BlogCategorySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/inbound-events/$eventId': {
       id: '/_authenticated/admin/inbound-events/$eventId'
       path: '/$eventId'
@@ -1437,7 +1497,6 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptableUseRoute: AcceptableUseRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
-  BlogRoute: BlogRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
@@ -1453,6 +1512,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  BlogSlugRoute: BlogSlugRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,
   ProductCampaignsRoute: ProductCampaignsRoute,
   ProductCrmRoute: ProductCrmRoute,
@@ -1463,6 +1523,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProductWarmupRoute: ProductWarmupRoute,
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+  BlogAuthorSlugRoute: BlogAuthorSlugRoute,
+  BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
