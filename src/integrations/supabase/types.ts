@@ -2571,6 +2571,19 @@ export type Database = {
       }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
+      sending_account_stats: {
+        Args: { _account_ids: string[] }
+        Returns: {
+          account_id: string
+          bounced: number
+          complained: number
+          delivered: number
+          last_reply_at: string
+          last_sent_at: string
+          replies: number
+          sent: number
+        }[]
+      }
       set_sending_account_enabled: {
         Args: { _account_id: string; _enabled: boolean }
         Returns: undefined
