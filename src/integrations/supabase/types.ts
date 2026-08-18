@@ -206,6 +206,84 @@ export type Database = {
           },
         ]
       }
+      campaign_launch_events: {
+        Row: {
+          active_mailboxes: number
+          actor_id: string | null
+          already_queued: number
+          audience: number
+          campaign_id: string
+          created_at: string
+          eligible: number
+          error_message: string | null
+          first_send_at: string | null
+          id: string
+          issues: Json
+          list_id: string | null
+          list_name: string | null
+          outcome: string
+          queued_messages: number
+          ready: boolean
+          total_recipients: number
+          workspace_id: string
+        }
+        Insert: {
+          active_mailboxes?: number
+          actor_id?: string | null
+          already_queued?: number
+          audience?: number
+          campaign_id: string
+          created_at?: string
+          eligible?: number
+          error_message?: string | null
+          first_send_at?: string | null
+          id?: string
+          issues?: Json
+          list_id?: string | null
+          list_name?: string | null
+          outcome?: string
+          queued_messages?: number
+          ready?: boolean
+          total_recipients?: number
+          workspace_id: string
+        }
+        Update: {
+          active_mailboxes?: number
+          actor_id?: string | null
+          already_queued?: number
+          audience?: number
+          campaign_id?: string
+          created_at?: string
+          eligible?: number
+          error_message?: string | null
+          first_send_at?: string | null
+          id?: string
+          issues?: Json
+          list_id?: string | null
+          list_name?: string | null
+          outcome?: string
+          queued_messages?: number
+          ready?: boolean
+          total_recipients?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_launch_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_launch_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_messages: {
         Row: {
           attempts: number
@@ -621,6 +699,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          audience_count: number
           business_days_only: boolean
           click_tracking: boolean
           created_at: string
@@ -628,6 +707,7 @@ export type Database = {
           custom_variables: Json
           daily_cap: number
           description: string | null
+          eligible_count: number
           end_at: string | null
           id: string
           inbox_rotation_enabled: boolean
@@ -640,6 +720,9 @@ export type Database = {
           name: string
           open_tracking: boolean
           random_delay_minutes: number
+          readiness_checked_at: string | null
+          readiness_issues: Json
+          readiness_ready: boolean
           rotation_daily_cap_per_inbox: number
           send_days: number[]
           send_end_hour: number
@@ -657,6 +740,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          audience_count?: number
           business_days_only?: boolean
           click_tracking?: boolean
           created_at?: string
@@ -664,6 +748,7 @@ export type Database = {
           custom_variables?: Json
           daily_cap?: number
           description?: string | null
+          eligible_count?: number
           end_at?: string | null
           id?: string
           inbox_rotation_enabled?: boolean
@@ -676,6 +761,9 @@ export type Database = {
           name: string
           open_tracking?: boolean
           random_delay_minutes?: number
+          readiness_checked_at?: string | null
+          readiness_issues?: Json
+          readiness_ready?: boolean
           rotation_daily_cap_per_inbox?: number
           send_days?: number[]
           send_end_hour?: number
@@ -693,6 +781,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          audience_count?: number
           business_days_only?: boolean
           click_tracking?: boolean
           created_at?: string
@@ -700,6 +789,7 @@ export type Database = {
           custom_variables?: Json
           daily_cap?: number
           description?: string | null
+          eligible_count?: number
           end_at?: string | null
           id?: string
           inbox_rotation_enabled?: boolean
@@ -712,6 +802,9 @@ export type Database = {
           name?: string
           open_tracking?: boolean
           random_delay_minutes?: number
+          readiness_checked_at?: string | null
+          readiness_issues?: Json
+          readiness_ready?: boolean
           rotation_daily_cap_per_inbox?: number
           send_days?: number[]
           send_end_hour?: number
@@ -3282,10 +3375,67 @@ export type Database = {
           },
         ]
       }
+      workspace_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          message: string | null
+          role: Database["public"]["Enums"]["workspace_role"]
+          status: string
+          token: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          message?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          status?: string
+          token: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          message?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
           id: string
+          last_active_at: string | null
           role: Database["public"]["Enums"]["workspace_role"]
           user_id: string
           workspace_id: string
@@ -3293,6 +3443,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_active_at?: string | null
           role?: Database["public"]["Enums"]["workspace_role"]
           user_id: string
           workspace_id: string
@@ -3300,6 +3451,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_active_at?: string | null
           role?: Database["public"]["Enums"]["workspace_role"]
           user_id?: string
           workspace_id?: string
@@ -3327,8 +3479,13 @@ export type Database = {
           outreach_type: string | null
           owner_id: string
           persona: string | null
+          send_days: number[]
+          send_end_hour: number
+          send_start_hour: number
+          sending_timezone: string | null
           slug: string
           team_size: string | null
+          timezone: string
           updated_at: string
         }
         Insert: {
@@ -3343,8 +3500,13 @@ export type Database = {
           outreach_type?: string | null
           owner_id: string
           persona?: string | null
+          send_days?: number[]
+          send_end_hour?: number
+          send_start_hour?: number
+          sending_timezone?: string | null
           slug: string
           team_size?: string | null
+          timezone?: string
           updated_at?: string
         }
         Update: {
@@ -3359,8 +3521,13 @@ export type Database = {
           outreach_type?: string | null
           owner_id?: string
           persona?: string | null
+          send_days?: number[]
+          send_end_hour?: number
+          send_start_hour?: number
+          sending_timezone?: string | null
           slug?: string
           team_size?: string | null
+          timezone?: string
           updated_at?: string
         }
         Relationships: []
@@ -3370,6 +3537,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_workspace_invitation: { Args: { _token: string }; Returns: string }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
         Returns: {
@@ -3469,6 +3637,10 @@ export type Database = {
         Args: { _move_to: string; _stage_id: string }
         Returns: undefined
       }
+      delete_workspace: {
+        Args: { _confirm: string; _workspace_id: string }
+        Returns: undefined
+      }
       ensure_crm_stages: { Args: { _workspace_id: string }; Returns: undefined }
       has_role: {
         Args: {
@@ -3485,6 +3657,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      invite_workspace_member: {
+        Args: {
+          _email: string
+          _message?: string
+          _role: Database["public"]["Enums"]["workspace_role"]
+          _workspace_id: string
+        }
+        Returns: {
+          id: string
+          token: string
+        }[]
+      }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -3492,6 +3676,21 @@ export type Database = {
       move_crm_contacts: {
         Args: { _lead_ids: string[]; _stage_id: string }
         Returns: number
+      }
+      remove_workspace_member: {
+        Args: { _member_id: string }
+        Returns: undefined
+      }
+      resend_workspace_invitation: {
+        Args: { _invitation_id: string }
+        Returns: {
+          id: string
+          token: string
+        }[]
+      }
+      revoke_workspace_invitation: {
+        Args: { _invitation_id: string }
+        Returns: undefined
       }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
@@ -3516,6 +3715,49 @@ export type Database = {
       set_sending_accounts_paused: {
         Args: { _account_ids: string[]; _paused: boolean }
         Returns: number
+      }
+      touch_workspace_activity: {
+        Args: { _workspace_id: string }
+        Returns: undefined
+      }
+      update_workspace_member_role: {
+        Args: {
+          _member_id: string
+          _role: Database["public"]["Enums"]["workspace_role"]
+        }
+        Returns: undefined
+      }
+      update_workspace_settings: {
+        Args: {
+          _logo_url: string
+          _name: string
+          _send_days: number[]
+          _send_end_hour: number
+          _send_start_hour: number
+          _sending_timezone: string
+          _slug: string
+          _timezone: string
+          _workspace_id: string
+        }
+        Returns: undefined
+      }
+      workspace_team: {
+        Args: { _workspace_id: string }
+        Returns: {
+          avatar_url: string
+          email: string
+          expires_at: string
+          full_name: string
+          invited_by_email: string
+          joined_at: string
+          kind: string
+          last_active_at: string
+          message: string
+          role: string
+          row_id: string
+          status: string
+          user_id: string
+        }[]
       }
     }
     Enums: {
@@ -3570,6 +3812,7 @@ export type Database = {
         | "inbox_manager"
         | "analyst"
         | "client_viewer"
+        | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3753,6 +3996,7 @@ export const Constants = {
         "inbox_manager",
         "analyst",
         "client_viewer",
+        "member",
       ],
     },
   },

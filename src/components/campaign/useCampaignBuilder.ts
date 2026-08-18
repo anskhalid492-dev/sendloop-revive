@@ -302,8 +302,14 @@ export function useCampaignBuilder(campaignId: string) {
       await queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: async (e: Error) => {
+      toast.error(e.message);
+      // A blocked attempt is recorded server-side; refresh the trail.
+      await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
+    },
+
   });
 
   const toggleStatus = useMutation({
