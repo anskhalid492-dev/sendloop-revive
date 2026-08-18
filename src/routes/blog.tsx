@@ -1,235 +1,371 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Mail } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowRight, FileText, Mail, Search } from "lucide-react";
+import { toast } from "sonner";
 
-import {
-  MarketingLayout,
-  PageHero,
-  Section,
-  CtaBlock,
-  ResourceList,
-  StatStrip,
-  QuoteBlock,
-  FaqBlock,
-  metaFor,
-} from "@/components/site/MarketingPage";
-import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { HorizontalPostCard, PostCard, CoverImage, AuthorLine } from "@/components/blog/BlogCards";
+import { CtaBlock, FaqBlock, MarketingLayout, Section, metaFor } from "@/components/site/MarketingPage";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CONTENT_TYPE_LABELS, initials, type BlogPost } from "@/lib/blog-model";
+import { getBlogIndex, listBlogPosts, subscribeToNewsletter } from "@/lib/blog.functions";
 
 const faqs = [
   {
-    q: "How often do you publish new posts?",
-    a: "New long-form posts land every week, with shorter tactical notes and benchmark updates in between. Subscribe below to get them by email.",
+    q: "How often do you publish new articles?",
+    a: "New long-form guides and articles are published regularly, with shorter tactical notes in between. Subscribe to the newsletter to get them by email.",
   },
   {
-    q: "Do you cover tools other than Sendloop?",
-    a: "Yes — most posts are platform-agnostic. When we reference specific features they are called out so the underlying tactic still applies elsewhere.",
+    q: "Do these tactics only work with Sendloop?",
+    a: "No. Almost everything here is platform-agnostic. Where a Sendloop feature is referenced it is called out, so the underlying tactic still applies elsewhere.",
   },
   {
-    q: "Can I contribute a guest post?",
-    a: "We occasionally run practitioner interviews and case studies from agencies and in-house teams. Reach out through the contact page with a short pitch.",
+    q: "Can I contribute a guest article or case study?",
+    a: "We occasionally publish practitioner interviews and case studies from agencies and in-house teams. Send a short pitch through the contact page.",
   },
   {
-    q: "Where do the benchmark numbers come from?",
-    a: "Aggregated, anonymized send data across Sendloop workspaces, refreshed quarterly and broken out by industry and list size where sample size allows.",
-  },
-  {
-    q: "Is there an RSS feed?",
-    a: "Yes, every category has its own feed alongside the main blog feed, linked from the footer.",
+    q: "Are the templates free to use?",
+    a: "Yes. Every template published on the blog and in the template library can be copied and adapted for your own outreach.",
   },
 ];
 
+const PAGE_SIZE = 12;
+
 export const Route = createFileRoute("/blog")({
+  loader: () => getBlogIndex(),
   head: () =>
     metaFor(
-      "Cold Email Blog — Tactics, Deliverability & Outbound Playbooks",
-      "Practical guides on cold email copywriting, deliverability, sequence design, list building and outbound team operations.",
+      "Sendloop Blog — Cold Email, Deliverability & Outbound Growth",
+      "Practical strategies, guides, templates and insights to help you send better cold emails, improve deliverability and generate more conversations.",
       "/blog",
       faqs,
     ),
-  component: Blog,
+  errorComponent: () => (
+    <MarketingLayout>
+      <Section title="Blog unavailable" description="We could not load articles right now. Please try again shortly.">
+        <div />
+      </Section>
+    </MarketingLayout>
+  ),
+  component: BlogPage,
 });
 
-const categories = ["All", "Deliverability", "Copywriting", "Lead Data", "Sequences", "Agency Ops", "Analytics"];
+function BlogPage() {
+  const data = Route.useLoaderData();
+  const search = useServerFn(listBlogPosts);
+  const subscribe = useServerFn(subscribeToNewsletter);
 
-const featured = {
-  title: "We Analyzed 1.2M Cold Emails. Here Is What Actually Drives Replies.",
-  category: "Analytics",
-  date: "August 11, 2026",
-  read: "12 min read",
-  excerpt:
-    "Subject line length, send time, thread structure and personalization depth — we isolated each variable across a year of anonymized send data and ranked them by real impact on reply rate. Word count mattered less than we expected; the number of questions asked in the body mattered more.",
-};
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
 
-const posts = [
-  {
-    title: "The 3-Email Sequence That Books Meetings",
-    text: "A short, specific opener, a value bump, and a graceful breakup. We break down each message line by line and show the reply rates from 1.2M sends.",
-    meta: "Sequences · 7 min read",
-  },
-  {
-    title: "SPF, DKIM and DMARC Explained for Sales Teams",
-    text: "What each record actually does, the exact DNS entries to publish, and how to verify alignment before you send a single cold email.",
-    meta: "Deliverability · 9 min read",
-  },
-  {
-    title: "How Long Should You Warm Up a New Domain?",
-    text: "Two to four weeks is the common answer, but the right ramp depends on domain age, provider and how aggressive your volume plans are.",
-    meta: "Deliverability · 6 min read",
-  },
-  {
-    title: "Writing Cold Emails That Do Not Sound Like Templates",
-    text: "Personalization is not a first name token. Here are five research angles that take 30 seconds per prospect and lift replies substantially.",
-    meta: "Copywriting · 8 min read",
-  },
-  {
-    title: "Building a Clean Lead List From Scratch",
-    text: "Sourcing, enrichment, verification and suppression — the full workflow for a list that will not burn your sending reputation.",
-    meta: "Lead Data · 10 min read",
-  },
-  {
-    title: "Reply Rate Benchmarks by Industry in 2026",
-    text: "Median reply rates across SaaS, recruiting, agencies and local services, plus what separates the top decile from everyone else.",
-    meta: "Analytics · 5 min read",
-  },
-  {
-    title: "How Agencies Run 40 Client Workspaces Without Chaos",
-    text: "Workspace structure, role design, reporting cadence and the automations that keep an outbound agency profitable at scale.",
-    meta: "Agency Ops · 7 min read",
-  },
-  {
-    title: "Why Your Follow-Ups Are Hurting Your Reply Rate",
-    text: "Sending more is not sending better. Cadence, thread behaviour and stop rules matter more than the number of touches.",
-    meta: "Sequences · 6 min read",
-  },
-  {
-    title: "Open Tracking Is Broken — Measure This Instead",
-    text: "Privacy proxies inflate opens by up to 40%. Here is how to build a reporting stack around replies, meetings and pipeline instead.",
-    meta: "Analytics · 5 min read",
-  },
-  {
-    title: "The Anatomy of a Subject Line That Gets Opened",
-    text: "Lowercase, specific, and under 45 characters wins consistently in our data. We show the ten patterns that outperform generic hooks.",
-    meta: "Copywriting · 6 min read",
-  },
-  {
-    title: "When to Fire a Client (Agency Edition)",
-    text: "Unrealistic volume expectations and refusal to fix a broken domain are the two biggest predictors of a doomed outbound engagement.",
-    meta: "Agency Ops · 8 min read",
-  },
-  {
-    title: "Mailbox Rotation: The Math Behind Safe Daily Volume",
-    text: "How many mailboxes you actually need for a given list size, and the formula we use internally to keep bounce rate under 2%.",
-    meta: "Deliverability · 7 min read",
-  },
-];
+  const trimmed = query.trim();
 
-const stats = [
-  { value: "1.2M+", label: "Emails analyzed for benchmarks" },
-  { value: "180+", label: "Published guides and teardowns" },
-  { value: "42K", label: "Newsletter subscribers" },
-  { value: "Weekly", label: "New long-form posts" },
-];
+  const searchQuery = useQuery({
+    queryKey: ["blog-search", trimmed, category],
+    queryFn: () => search({ data: { search: trimmed, category, limit: 24, offset: 0 } }),
+    enabled: trimmed.length > 1,
+  });
 
-function Blog() {
+  const filtered = useMemo(() => {
+    if (trimmed.length > 1) return (searchQuery.data?.posts ?? []) as BlogPost[];
+    if (category === "all") return data.posts;
+    return data.posts.filter((p) => p.category?.slug === category);
+  }, [trimmed, searchQuery.data, category, data.posts]);
+
+  const shown = trimmed.length > 1 ? filtered : filtered.slice(0, visible);
+
+  const onSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubscribing(true);
+    try {
+      const res = await subscribe({ data: { email: email.trim(), source: "blog" } });
+      if (res.ok) {
+        toast.success(res.message);
+        setEmail("");
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Could not subscribe right now. Please try again.");
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const featured = data.featured;
+
   return (
     <MarketingLayout>
-      <PageHero
-        eyebrow="Blog"
-        title="Outbound tactics that"
-        highlight="actually get replies"
-        description="Deliverability deep dives, copywriting teardowns and operational playbooks from teams sending millions of cold emails."
-        primaryCta="Start for Free"
-      />
-
-
-      <Section title="Browse by category">
-        <div className="flex flex-wrap gap-2">
-          {categories.map((c, i) => (
-            <span
-              key={c}
-              className={
-                i === 0
-                  ? "rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground"
-                  : "rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-              }
-            >
-              {c}
-            </span>
-          ))}
+      {/* Hero + search */}
+      <section className="border-b border-border/60 bg-secondary/30 py-16">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase">
+            Sendloop Blog
+          </span>
+          <h1 className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+            Cold Email, Deliverability &amp; Outbound Growth
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+            Practical strategies, guides, templates and insights to help you send better cold emails, improve
+            deliverability, and generate more conversations.
+          </p>
+          <div className="relative mx-auto mt-8 max-w-xl">
+            <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search articles..."
+              aria-label="Search articles"
+              className="h-12 rounded-full pl-11"
+            />
+          </div>
         </div>
+      </section>
 
-        <article className="surface-card mt-8 grid gap-6 p-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
-          <div>
-            <span className="text-xs font-semibold tracking-wide text-primary uppercase">
-              Featured · {featured.category}
-            </span>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{featured.title}</h2>
-            <p className="mt-3 text-sm text-muted-foreground">{featured.excerpt}</p>
-            <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>{featured.date}</span>
-              <span>·</span>
-              <span>{featured.read}</span>
+      {/* Featured article */}
+      {featured && trimmed.length < 2 ? (
+        <Section>
+          <article className="group grid overflow-hidden rounded-3xl border border-border bg-card lg:grid-cols-2">
+            <Link
+              to="/blog/$slug"
+              params={{ slug: featured.slug }}
+              className="aspect-[16/10] overflow-hidden lg:aspect-auto lg:h-full"
+            >
+              <CoverImage post={featured} />
+            </Link>
+            <div className="flex flex-col justify-center gap-4 p-8 lg:p-12">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="uppercase">Featured</Badge>
+                {featured.category ? (
+                  <span className="text-xs font-semibold tracking-wide text-primary uppercase">
+                    {featured.category.name}
+                  </span>
+                ) : null}
+                <Badge variant="secondary" className="text-[10px]">
+                  {CONTENT_TYPE_LABELS[featured.content_type]}
+                </Badge>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                <Link to="/blog/$slug" params={{ slug: featured.slug }} className="hover:text-primary">
+                  {featured.title}
+                </Link>
+              </h2>
+              <p className="text-muted-foreground">{featured.excerpt || featured.subtitle}</p>
+              <AuthorLine
+                author={featured.author}
+                date={featured.published_at}
+                minutes={featured.reading_minutes}
+              />
+              <div>
+                <Button asChild size="lg" className="mt-2">
+                  <Link to="/blog/$slug" params={{ slug: featured.slug }}>
+                    Read Article
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </div>
             </div>
+          </article>
+        </Section>
+      ) : null}
+
+      {/* Categories + latest articles */}
+      <Section muted>
+        <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+          <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
+            {[{ slug: "all", name: "All" }, ...data.categories].map((c) => (
+              <button
+                key={c.slug}
+                type="button"
+                onClick={() => {
+                  setCategory(c.slug);
+                  setVisible(PAGE_SIZE);
+                }}
+                className={
+                  category === c.slug
+                    ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                    : "rounded-full border border-border bg-card px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                }
+              >
+                {c.name}
+              </button>
+            ))}
           </div>
-          <div className="rounded-2xl border border-border bg-secondary/40 p-6">
-            <StatStrip stats={stats} />
-          </div>
-        </article>
+        </div>
 
         <div className="mt-10">
-          <ResourceList items={posts} />
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            {trimmed.length > 1 ? `Search results for "${trimmed}"` : "Latest from Sendloop"}
+          </h2>
+
+          {shown.length === 0 ? (
+            <div className="surface-card mt-8 p-10 text-center">
+              <h3 className="text-lg font-semibold">No results found</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                Nothing matched that search. Try a broader term such as “deliverability”, “follow-up” or
+                “templates”, or clear the search to browse every article.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-5"
+                onClick={() => {
+                  setQuery("");
+                  setCategory("all");
+                }}
+              >
+                Clear search
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+
+          {trimmed.length < 2 && filtered.length > 0 ? (
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                Showing {shown.length} of {filtered.length} articles
+              </p>
+              {visible < filtered.length ? (
+                <Button variant="outline" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                  Load More
+                  <ArrowRight className="size-4" />
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-
-        <p className="mt-8 text-sm text-muted-foreground">
-          Looking for step-by-step product instructions instead?{" "}
-          <Link to="/docs" className="text-primary underline-offset-4 hover:underline">
-            Read the documentation
-          </Link>
-          .
-        </p>
       </Section>
 
+      {/* Popular guides */}
+      {data.guides.length ? (
+        <Section title="Popular Guides" description="Long-form playbooks covering an entire topic end to end.">
+          <div className="grid gap-5 lg:grid-cols-2">
+            {data.guides.map((guide) => (
+              <HorizontalPostCard key={guide.id} post={guide} />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {/* Templates */}
+      <Section
+        muted
+        title="Cold Email Templates"
+        description="Ready-to-use cold email templates for different industries, offers and outreach situations."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            "Cold Email Templates",
+            "Follow-Up Templates",
+            "Breakup Email Templates",
+            "Agency Outreach Templates",
+            "SaaS Outreach Templates",
+            "Recruiting Templates",
+          ].map((name) => (
+            <Link
+              key={name}
+              to="/cold-email-templates"
+              className="group surface-card flex items-center gap-3 p-5 transition-colors hover:border-primary/40"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                <FileText className="size-5" />
+              </span>
+              <span className="text-sm font-medium">{name}</span>
+              <ArrowRight className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+            </Link>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <Button asChild size="lg" variant="outline">
+            <Link to="/cold-email-templates">
+              Browse Templates
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </Section>
+
+      {/* Authors */}
+      {data.authors.length ? (
+        <Section title="Authors / Contributors" description="The people writing about outbound at Sendloop.">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {data.authors.map((author) => (
+              <Link
+                key={author.id}
+                to="/blog/author/$slug"
+                params={{ slug: author.slug }}
+                className="surface-card flex flex-col gap-3 p-6 transition-colors hover:border-primary/40"
+              >
+                <span className="flex size-12 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                  {author.avatar_url ? (
+                    <img src={author.avatar_url} alt={author.name} className="size-12 rounded-full object-cover" />
+                  ) : (
+                    initials(author.name)
+                  )}
+                </span>
+                <div>
+                  <p className="font-semibold">{author.name}</p>
+                  <p className="text-xs text-muted-foreground">{author.role}</p>
+                </div>
+                <p className="text-sm text-muted-foreground">{author.bio}</p>
+                <p className="mt-auto text-xs text-muted-foreground">
+                  {author.post_count} {author.post_count === 1 ? "article" : "articles"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {/* Newsletter */}
       <Section muted>
-        <QuoteBlock
-          quote="Sendloop's blog is the only outbound content I actually trust — every claim comes with a number attached."
-          name="Priya Nair"
-          role="Head of Growth, Fintech scale-up"
-        />
-      </Section>
-
-      <Section>
-        <div className="surface-card flex flex-col items-center gap-4 p-10 text-center">
+        <div className="surface-card mx-auto flex max-w-2xl flex-col items-center gap-4 p-10 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-primary/12 text-primary">
             <Mail className="size-6" />
           </span>
-          <h2 className="text-2xl font-bold tracking-tight">Get new posts in your inbox</h2>
-          <p className="max-w-md text-sm text-muted-foreground">
-            One email a week. No fluff, just tactics and benchmarks from real sends. Unsubscribe anytime.
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Get Better at Cold Email</h2>
+          <p className="max-w-lg text-sm text-muted-foreground">
+            Get practical cold email strategies, deliverability tips and proven outreach ideas delivered to your
+            inbox.
           </p>
-          <form className="mt-2 flex w-full max-w-sm flex-col gap-2 sm:flex-row" onSubmit={(e) => e.preventDefault()}>
-            <input
+          <form className="mt-2 flex w-full max-w-md flex-col gap-2 sm:flex-row" onSubmit={onSubscribe}>
+            <Input
               type="email"
-              placeholder="you@company.com"
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email address"
+              aria-label="Your email address"
+              className="h-11"
             />
-            <button
-              type="submit"
-              className="h-10 shrink-0 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-            >
-              Subscribe
-            </button>
+            <Button type="submit" className="h-11 shrink-0" disabled={subscribing}>
+              {subscribing ? "Subscribing…" : "Subscribe"}
+              <ArrowRight className="size-4" />
+            </Button>
           </form>
+          <p className="text-xs text-muted-foreground">No spam. Unsubscribe anytime.</p>
         </div>
       </Section>
 
-      <Section muted>
-        <FaqBlock faqs={faqs}  />
+      <Section>
+        <FaqBlock faqs={faqs} />
       </Section>
-
-      <TestimonialCarousel page="blog" />
 
       <CtaBlock
         title="Put these tactics to work"
         description="Create a workspace, connect your provider and launch a campaign built on what already works."
+        primaryCta="Start for Free"
       />
     </MarketingLayout>
   );
