@@ -63,6 +63,8 @@ function BlogPage() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [email, setEmail] = useState("");
   const [subscribing, setSubscribing] = useState(false);
+  const [subscribeState, setSubscribeState] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+
 
   const trimmed = query.trim();
 
