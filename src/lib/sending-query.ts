@@ -266,7 +266,7 @@ function emptyPage(filters: Filters, facets: AccountFacets): AccountPageResult {
 export async function createAccountRequest(
   client: Client,
   userId: string,
-  input: { quantity: number; preferredDomain?: string; note?: string },
+  input: { quantity: number; preferredDomain?: string | undefined; note?: string | undefined },
 ) {
   const { data: membership, error: membershipError } = await client
     .from("workspace_members")
