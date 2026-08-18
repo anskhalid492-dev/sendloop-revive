@@ -35,7 +35,15 @@ export const Route = createFileRoute("/_authenticated/warmup")({
   component: WarmupPage,
 });
 
-function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone?: string | undefined;
+}) {
   return (
     <div className="surface-card p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
