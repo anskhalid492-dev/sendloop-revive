@@ -255,20 +255,18 @@ export const subscribeToNewsletter = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: existing } = await (supabaseAdmin as any)
+    // Single atomic upsert against the unique constraint on email: concurrent
+    // requests for the same address can never create a second row.
+    const { data: upserted, error } = await (supabaseAdmin as any)
       .from("newsletter_subscribers")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-    if (existing) {
-      return { ok: true, duplicate: true, message: "You are already subscribed." };
-    }
-    const { error } = await (supabaseAdmin as any)
-      .from("newsletter_subscribers")
-      .insert({ email, source: data.source });
+      .upsert({ email, source: data.source }, { onConflict: "email", ignoreDuplicates: true })
+      .select("id");
     if (error) {
       if (error.code === "23505") return { ok: true, duplicate: true, message: "You are already subscribed." };
       return { ok: false, duplicate: false, message: "Could not subscribe right now. Please try again." };
+    }
+    if (!upserted || upserted.length === 0) {
+      return { ok: true, duplicate: true, message: "You are already subscribed." };
     }
     return { ok: true, duplicate: false, message: "You are subscribed. Check your inbox soon." };
   });
