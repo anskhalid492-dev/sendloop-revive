@@ -25,19 +25,31 @@ function secretMatches(provided: string, expected: string): boolean {
 }
 
 async function run(request: Request) {
-  const secret = process.env["WARMUP_CRON_SECRET"] ?? process.env["INBOUND_EMAIL_SECRET"];
-  if (!secret) return json({ error: "Warmup runner is not configured" }, 503);
-
   const url = new URL(request.url);
   const provided =
     request.headers.get("x-sendloop-signature") ??
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     url.searchParams.get("token") ??
     "";
-  if (!secretMatches(provided, secret)) return json({ error: "Unauthorized" }, 401);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { runWarmupCycle } = await import("@/lib/warmup-engine.server");
+
+  // The scheduler token lives in platform_settings (written by the cron
+  // migration, readable only with the service role); env secrets stay
+  // supported so an external scheduler can be used instead.
+  const { data: settings } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "warmup_runner")
+    .maybeSingle();
+  const dbToken = (settings?.value as { token?: string } | null)?.token ?? null;
+  const secrets = [dbToken, process.env["WARMUP_CRON_SECRET"], process.env["INBOUND_EMAIL_SECRET"]]
+    .filter((value): value is string => Boolean(value));
+  if (secrets.length === 0) return json({ error: "Warmup runner is not configured" }, 503);
+  if (!secrets.some((secret) => secretMatches(provided, secret))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
 
   const limitParam = Number(url.searchParams.get("limit") ?? "");
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 40) : undefined;
