@@ -199,7 +199,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
           status: "failed",
           auth_status: "failed",
           last_tested_at: new Date().toISOString(),
-          last_error: "No stored credentials — reconnect this mailbox.",
+          last_error: "Sending infrastructure is not configured yet. Please contact support.",
         })
         .eq("id", data.id);
       await recordCheck(client, {
@@ -208,16 +208,16 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
         actorId: context.userId,
         kind: "test",
         ok: false,
-        provider: (account.connection_method as string) ?? (account.provider as string),
-        message: "No stored credentials — reconnect this mailbox.",
+        provider: account.provider as string,
+        message: "Sending infrastructure is not configured yet. Please contact support.",
       });
-      return { ok: false, message: "No stored credentials — reconnect this mailbox." };
+      return { ok: false, message: "Sending infrastructure is not configured yet. Please contact support." };
     }
 
     const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
     const startedAt = Date.now();
     const test = await testProviderCredentials(
-      (account.connection_method as string) || (account.provider as string),
+      account.provider as string,
       credentials,
     );
     const { error: updateError } = await client
@@ -237,7 +237,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       actorId: context.userId,
       kind: "test",
       ok: test.ok,
-      provider: (account.connection_method as string) ?? (account.provider as string),
+      provider: account.provider as string,
       message: test.message,
       durationMs: Date.now() - startedAt,
       detail: { verified: test.verified },
@@ -338,7 +338,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
     // Sequential on purpose: providers rate-limit credential checks.
     for (const account of (accounts ?? []) as Array<Record<string, unknown>>) {
       const id = account["id"] as string;
-      const method = (account["connection_method"] as string) || (account["provider"] as string);
+      const method = account["provider"] as string;
       const startedAt = Date.now();
       const credentials = await loadAccountCredentials(supabaseAdmin, {
         id,
@@ -346,7 +346,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
       });
       const test = credentials
         ? await testProviderCredentials(method, credentials)
-        : { ok: false, verified: false, message: "No stored credentials — reconnect this mailbox." };
+        : { ok: false, verified: false, message: "Sending infrastructure is not configured yet. Please contact support." };
 
       await client
         .from("sending_accounts")
