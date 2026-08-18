@@ -151,12 +151,33 @@ export async function processEventPayload(
     if (kind === "delivered" || kind === "bounced" || kind === "complained" || kind === "unsubscribed") {
       const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
       const delivery = normalizeDelivery(payload);
+
+      // Warmup traffic is tracked separately from campaign traffic. The warmup
+      // handler is idempotent and claims the event only when the provider
+      // message id belongs to a warmup job.
+      if (kind !== "unsubscribed") {
+        const { applyWarmupDeliveryEvent } = await import("@/lib/warmup-engine.server");
+        const claimed = await applyWarmupDeliveryEvent({
+          kind,
+          providerMessageId: delivery.providerMessageId,
+          email: delivery.email,
+          reason: delivery.reason,
+          externalId: `warmup:${kind}:${delivery.providerMessageId ?? ""}:${externalIdOf(payload, kind) ?? ""}`,
+          payload,
+        });
+        if (claimed) {
+          await finish(eventId, { status: "processed", error: null });
+          return { status: "applied", eventId };
+        }
+      }
+
       const outcome = await applyDeliveryEvent({
         kind,
         email: delivery.email,
         providerMessageId: delivery.providerMessageId,
         reason: delivery.reason,
       });
+
       await finish(eventId, {
         status: outcome.status === "applied" ? "processed" : "failed",
         error: outcome.reason ?? null,

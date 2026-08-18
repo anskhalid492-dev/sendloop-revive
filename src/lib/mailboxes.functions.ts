@@ -55,6 +55,38 @@ function assertEmailOnDomain(email: string, domain: string) {
   }
 }
 
+/** Appends a row to the mailbox connection/test history (best effort). */
+async function recordCheck(
+  client: Client,
+  entry: {
+    workspaceId: string;
+    accountId: string;
+    actorId?: string | null;
+    kind: "connect" | "reconnect" | "test" | "send";
+    ok: boolean;
+    provider?: string | null;
+    message?: string | null;
+    durationMs?: number | null;
+    detail?: Record<string, unknown>;
+  },
+) {
+  try {
+    await client.from("sending_account_checks").insert({
+      workspace_id: entry.workspaceId,
+      sending_account_id: entry.accountId,
+      actor_id: entry.actorId ?? null,
+      kind: entry.kind,
+      ok: entry.ok,
+      provider: entry.provider ?? null,
+      message: entry.message ?? null,
+      duration_ms: entry.durationMs ?? null,
+      detail: entry.detail ?? {},
+    });
+  } catch {
+    // History is diagnostic only — never fail the user's action because of it.
+  }
+}
+
 export const connectMailbox = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -83,6 +115,7 @@ export const connectMailbox = createServerFn({ method: "POST" })
     const { testProviderCredentials, encryptCredentials } = await import(
       "@/lib/provider-credentials.server"
     );
+    const startedAt = Date.now();
     const test = await testProviderCredentials(data.method, data.credentials);
     if (!test.ok) throw new Error(test.message);
 
@@ -138,6 +171,18 @@ export const connectMailbox = createServerFn({ method: "POST" })
       throw new Error("Could not store the mailbox credentials securely.");
     }
 
+    await recordCheck(client, {
+      workspaceId: domain.workspace_id as string,
+      accountId: created.id as string,
+      actorId: context.userId,
+      kind: "connect",
+      ok: test.ok,
+      provider: data.method,
+      message: test.message,
+      durationMs: Date.now() - startedAt,
+      detail: { verified: test.verified, domain: domain.domain },
+    });
+
     return { id: created.id as string, verified: test.verified, message: test.message };
   });
 
@@ -168,6 +213,7 @@ export const reconnectMailbox = createServerFn({ method: "POST" })
     const { testProviderCredentials, encryptCredentials } = await import(
       "@/lib/provider-credentials.server"
     );
+    const startedAt = Date.now();
     const test = await testProviderCredentials(data.method, data.credentials);
     if (!test.ok) throw new Error(test.message);
 
@@ -196,6 +242,18 @@ export const reconnectMailbox = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
 
+    await recordCheck(client, {
+      workspaceId: account.workspace_id as string,
+      accountId: data.id,
+      actorId: context.userId,
+      kind: "reconnect",
+      ok: test.ok,
+      provider: data.method,
+      message: test.message,
+      durationMs: Date.now() - startedAt,
+      detail: { verified: test.verified },
+    });
+
     return { ok: true, verified: test.verified, message: test.message };
   });
 
@@ -207,7 +265,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
     const client = context.supabase as Client;
     const { data: account, error } = await client
       .from("sending_accounts")
-      .select("id, provider, provider_id, connection_method")
+      .select("id, workspace_id, provider, provider_id, connection_method")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -229,10 +287,20 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
           last_error: "No stored credentials — reconnect this mailbox.",
         })
         .eq("id", data.id);
+      await recordCheck(client, {
+        workspaceId: account.workspace_id as string,
+        accountId: data.id,
+        actorId: context.userId,
+        kind: "test",
+        ok: false,
+        provider: (account.connection_method as string) ?? (account.provider as string),
+        message: "No stored credentials — reconnect this mailbox.",
+      });
       return { ok: false, message: "No stored credentials — reconnect this mailbox." };
     }
 
     const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
+    const startedAt = Date.now();
     const test = await testProviderCredentials(
       (account.connection_method as string) || (account.provider as string),
       credentials,
@@ -247,6 +315,18 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
+
+    await recordCheck(client, {
+      workspaceId: account.workspace_id as string,
+      accountId: data.id,
+      actorId: context.userId,
+      kind: "test",
+      ok: test.ok,
+      provider: (account.connection_method as string) ?? (account.provider as string),
+      message: test.message,
+      durationMs: Date.now() - startedAt,
+      detail: { verified: test.verified },
+    });
     return { ok: test.ok, message: test.message };
   });
 
@@ -319,6 +399,66 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
     const { error } = await client.from("sending_accounts").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true, enabled: data.enabled };
+  });
+
+/** Tests several mailboxes in one action (bulk onboarding/maintenance). */
+export const bulkTestMailboxes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(25) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const { data: accounts, error } = await client
+      .from("sending_accounts")
+      .select("id, workspace_id, from_email, provider, provider_id, connection_method")
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
+    const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
+
+    const results: Array<{ id: string; email: string; ok: boolean; message: string }> = [];
+    // Sequential on purpose: providers rate-limit credential checks.
+    for (const account of (accounts ?? []) as Array<Record<string, unknown>>) {
+      const id = account["id"] as string;
+      const method = (account["connection_method"] as string) || (account["provider"] as string);
+      const startedAt = Date.now();
+      const credentials = await loadAccountCredentials(supabaseAdmin, {
+        id,
+        provider_id: (account["provider_id"] as string | null) ?? null,
+      });
+      const test = credentials
+        ? await testProviderCredentials(method, credentials)
+        : { ok: false, verified: false, message: "No stored credentials — reconnect this mailbox." };
+
+      await client
+        .from("sending_accounts")
+        .update({
+          status: test.verified ? "verified" : test.ok ? "untested" : "failed",
+          auth_status: test.verified ? "verified" : test.ok ? "untested" : "failed",
+          last_tested_at: new Date().toISOString(),
+          last_error: test.ok ? null : test.message,
+        })
+        .eq("id", id);
+
+      await recordCheck(client, {
+        workspaceId: account["workspace_id"] as string,
+        accountId: id,
+        actorId: context.userId,
+        kind: "test",
+        ok: test.ok,
+        provider: method,
+        message: test.message,
+        durationMs: Date.now() - startedAt,
+        detail: { verified: test.verified, bulk: true },
+      });
+
+      results.push({ id, email: account["from_email"] as string, ok: test.ok, message: test.message });
+    }
+
+    return { results, passed: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length };
   });
 
 /** Disconnects a customer-owned mailbox and destroys its stored credentials. */

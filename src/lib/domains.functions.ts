@@ -163,7 +163,7 @@ export const verifySendingDomain = createServerFn({ method: "POST" })
       const client = context.supabase as Client;
       const { data: row, error } = await client
         .from("sending_domains")
-        .select("id, domain, dkim_selector")
+        .select("id, domain, dkim_selector, workspace_id, dns_status, spf_status, dkim_status, dmarc_status, verified_at")
         .eq("id", data.id)
         .maybeSingle();
       if (error) throw new Error(error.message);
@@ -201,6 +201,40 @@ export const verifySendingDomain = createServerFn({ method: "POST" })
         })
         .eq("id", data.id);
       if (updateError) throw new Error(updateError.message);
+
+      // Regression alert: authentication that was verified before and is now
+      // failing needs the customer's attention with a remediation checklist.
+      const wasVerified = row.dns_status === "verified" || !!row.verified_at;
+      const brokenNow = (["spf", "dkim", "dmarc"] as const).filter(
+        (kind) => row[`${kind}_status`] === "verified" && status(kind) === "failed",
+      );
+      if (wasVerified && brokenNow.length > 0) {
+        const { data: openAlert } = await client
+          .from("domain_alerts")
+          .select("id")
+          .eq("domain_id", data.id)
+          .eq("kind", "auth_regression")
+          .is("resolved_at", null)
+          .maybeSingle();
+        if (!openAlert) {
+          await client.from("domain_alerts").insert({
+            workspace_id: row.workspace_id,
+            domain_id: data.id,
+            kind: "auth_regression",
+            severity: "critical",
+            title: `${brokenNow.map((k) => k.toUpperCase()).join(", ")} verification failed on ${row.domain}`,
+            detail: failures.join(" · ") || "The records are no longer resolvable in DNS.",
+            records: brokenNow,
+          });
+        }
+      } else if (coreVerified) {
+        await client
+          .from("domain_alerts")
+          .update({ resolved_at: new Date().toISOString() })
+          .eq("domain_id", data.id)
+          .eq("kind", "auth_regression")
+          .is("resolved_at", null);
+      }
 
       return {
         dnsStatus,

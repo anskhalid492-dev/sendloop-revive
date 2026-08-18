@@ -60,7 +60,13 @@ import {
   listEmailAccounts,
 } from "@/lib/sending.functions";
 import { listSendingDomains } from "@/lib/domains.functions";
-import { removeMailbox, setMailboxWarmup, testMailboxConnection } from "@/lib/mailboxes.functions";
+import {
+  bulkTestMailboxes,
+  removeMailbox,
+  setMailboxWarmup,
+  testMailboxConnection,
+} from "@/lib/mailboxes.functions";
+import { bulkSetWarmup } from "@/lib/warmup.functions";
 import {
   ACCOUNT_STATUS_LABEL,
   ACCOUNT_STATUS_STYLE,
@@ -130,6 +136,8 @@ function EmailAccountsPage() {
   const testFn = useServerFn(testMailboxConnection);
   const warmupFn = useServerFn(setMailboxWarmup);
   const fetchDomains = useServerFn(listSendingDomains);
+  const bulkTestFn = useServerFn(bulkTestMailboxes);
+  const bulkWarmupFn = useServerFn(bulkSetWarmup);
 
   const [filters, setFilters] = useState<EmailAccountFilters>(defaultFilters);
   const [searchInput, setSearchInput] = useState("");
@@ -245,6 +253,30 @@ function EmailAccountsPage() {
     onSuccess: async (result) => {
       toast.success(result.enabled ? "Warmup started" : "Warmup stopped");
       await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const bulkTestMutation = useMutation({
+    mutationFn: (ids: string[]) => bulkTestFn({ data: { ids } }),
+    onSuccess: async (result) => {
+      const failures = result.results.filter((r) => !r.ok);
+      if (failures.length === 0) toast.success(`All ${result.passed} connections passed`);
+      else
+        toast.error(
+          `${result.failed} of ${result.results.length} failed — ${failures[0]?.email}: ${failures[0]?.message}`,
+        );
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const bulkWarmupMutation = useMutation({
+    mutationFn: (vars: { ids: string[]; enabled: boolean }) => bulkWarmupFn({ data: vars }),
+    onSuccess: async (_result, vars) => {
+      toast.success(vars.enabled ? "Warmup started for selected mailboxes" : "Warmup stopped");
+      await invalidate();
+      await queryClient.invalidateQueries({ queryKey: ["warmup-accounts"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -531,6 +563,31 @@ function EmailAccountsPage() {
                   onClick={() => bulkMutation.mutate({ ids: selected, paused: false })}
                 >
                   <Play className="size-4" /> Resume
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={bulkTestMutation.isPending}
+                  onClick={() => bulkTestMutation.mutate(selected)}
+                >
+                  <PlugZap className="size-4" />
+                  {bulkTestMutation.isPending ? "Testing…" : "Test connections"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={bulkWarmupMutation.isPending}
+                  onClick={() => bulkWarmupMutation.mutate({ ids: selected, enabled: true })}
+                >
+                  <Flame className="size-4" /> Start warmup
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={bulkWarmupMutation.isPending}
+                  onClick={() => bulkWarmupMutation.mutate({ ids: selected, enabled: false })}
+                >
+                  <Flame className="size-4" /> Stop warmup
                 </Button>
                 <Button
                   size="sm"

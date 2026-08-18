@@ -1058,6 +1058,60 @@ export type Database = {
           },
         ]
       }
+      domain_alerts: {
+        Row: {
+          created_at: string
+          detail: string | null
+          domain_id: string
+          id: string
+          kind: string
+          records: string[]
+          resolved_at: string | null
+          severity: string
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          domain_id: string
+          id?: string
+          kind: string
+          records?: string[]
+          resolved_at?: string | null
+          severity?: string
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          domain_id?: string
+          id?: string
+          kind?: string
+          records?: string[]
+          resolved_at?: string | null
+          severity?: string
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_alerts_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "sending_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domain_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_drafts: {
         Row: {
           attachments: Json
@@ -2187,6 +2241,66 @@ export type Database = {
           },
         ]
       }
+      sending_account_checks: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          duration_ms: number | null
+          id: string
+          kind: string
+          message: string | null
+          ok: boolean
+          provider: string | null
+          sending_account_id: string
+          status_code: number | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          duration_ms?: number | null
+          id?: string
+          kind: string
+          message?: string | null
+          ok: boolean
+          provider?: string | null
+          sending_account_id: string
+          status_code?: number | null
+          workspace_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          duration_ms?: number | null
+          id?: string
+          kind?: string
+          message?: string | null
+          ok?: boolean
+          provider?: string | null
+          sending_account_id?: string
+          status_code?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sending_account_checks_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sending_account_checks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sending_account_secrets: {
         Row: {
           created_at: string
@@ -2534,6 +2648,481 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          message_count: number
+          recipient_account_id: string
+          sender_account_id: string
+          status: string
+          subject: string
+          thread_key: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number
+          recipient_account_id: string
+          sender_account_id: string
+          status?: string
+          subject: string
+          thread_key: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number
+          recipient_account_id?: string
+          sender_account_id?: string
+          status?: string
+          subject?: string
+          thread_key?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_conversations_recipient_account_id_fkey"
+            columns: ["recipient_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_conversations_sender_account_id_fkey"
+            columns: ["sender_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_daily_stats: {
+        Row: {
+          bounced: number
+          complained: number
+          created_at: string
+          day: string
+          delivered: number
+          failed: number
+          health_score: number | null
+          id: string
+          replied: number
+          scheduled: number
+          sending_account_id: string
+          sent: number
+          target: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bounced?: number
+          complained?: number
+          created_at?: string
+          day: string
+          delivered?: number
+          failed?: number
+          health_score?: number | null
+          id?: string
+          replied?: number
+          scheduled?: number
+          sending_account_id: string
+          sent?: number
+          target?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bounced?: number
+          complained?: number
+          created_at?: string
+          day?: string
+          delivered?: number
+          failed?: number
+          health_score?: number | null
+          id?: string
+          replied?: number
+          scheduled?: number
+          sending_account_id?: string
+          sent?: number
+          target?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_daily_stats_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_daily_stats_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_events: {
+        Row: {
+          detail: string | null
+          external_id: string | null
+          id: string
+          job_id: string | null
+          occurred_at: string
+          payload: Json
+          provider: string | null
+          provider_message_id: string | null
+          sending_account_id: string
+          type: string
+          workspace_id: string
+        }
+        Insert: {
+          detail?: string | null
+          external_id?: string | null
+          id?: string
+          job_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          sending_account_id: string
+          type: string
+          workspace_id: string
+        }
+        Update: {
+          detail?: string | null
+          external_id?: string | null
+          id?: string
+          job_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          sending_account_id?: string
+          type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_events_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_health: {
+        Row: {
+          computed_at: string
+          factors: Json
+          id: string
+          recommendation: string | null
+          score: number
+          sending_account_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          computed_at?: string
+          factors?: Json
+          id?: string
+          recommendation?: string | null
+          score: number
+          sending_account_id: string
+          status: string
+          workspace_id: string
+        }
+        Update: {
+          computed_at?: string
+          factors?: Json
+          id?: string
+          recommendation?: string | null
+          score?: number
+          sending_account_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_health_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_health_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_jobs: {
+        Row: {
+          attempts: number
+          body: string
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          from_email: string
+          id: string
+          idempotency_key: string
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          processed_at: string | null
+          provider: string | null
+          provider_message_id: string | null
+          recipient_account_id: string | null
+          role: string
+          scheduled_at: string
+          sending_account_id: string
+          status: string
+          subject: string
+          to_email: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          from_email: string
+          id?: string
+          idempotency_key: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          processed_at?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_account_id?: string | null
+          role?: string
+          scheduled_at?: string
+          sending_account_id: string
+          status?: string
+          subject: string
+          to_email: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          from_email?: string
+          id?: string
+          idempotency_key?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          processed_at?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_account_id?: string | null
+          role?: string
+          scheduled_at?: string
+          sending_account_id?: string
+          status?: string
+          subject?: string
+          to_email?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_jobs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_jobs_recipient_account_id_fkey"
+            columns: ["recipient_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_jobs_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_runner_state: {
+        Row: {
+          id: string
+          last_result: Json
+          last_run_at: string | null
+          lease_owner: string | null
+          lease_until: string | null
+          pause_reason: string | null
+          paused: boolean
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          last_result?: Json
+          last_run_at?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          last_result?: Json
+          last_run_at?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      warmup_settings: {
+        Row: {
+          auto_pause: boolean
+          created_at: string
+          daily_increase: number
+          enabled: boolean
+          id: string
+          max_bounce_rate: number
+          max_volume: number
+          min_health_score: number
+          mode: string
+          pause_reason: string | null
+          paused_at: string | null
+          paused_by_system: boolean
+          ramp_days: number
+          reply_rate: number
+          send_days: number[]
+          send_end_hour: number
+          send_start_hour: number
+          sending_account_id: string
+          start_volume: number
+          started_at: string | null
+          timezone: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_pause?: boolean
+          created_at?: string
+          daily_increase?: number
+          enabled?: boolean
+          id?: string
+          max_bounce_rate?: number
+          max_volume?: number
+          min_health_score?: number
+          mode?: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_by_system?: boolean
+          ramp_days?: number
+          reply_rate?: number
+          send_days?: number[]
+          send_end_hour?: number
+          send_start_hour?: number
+          sending_account_id: string
+          start_volume?: number
+          started_at?: string | null
+          timezone?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_pause?: boolean
+          created_at?: string
+          daily_increase?: number
+          enabled?: boolean
+          id?: string
+          max_bounce_rate?: number
+          max_volume?: number
+          min_health_score?: number
+          mode?: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_by_system?: boolean
+          ramp_days?: number
+          reply_rate?: number
+          send_days?: number[]
+          send_end_hour?: number
+          send_start_hour?: number
+          sending_account_id?: string
+          start_volume?: number
+          started_at?: string | null
+          timezone?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_settings_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: true
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
@@ -2622,6 +3211,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_warmup_jobs: {
+        Args: { _limit: number; _worker: string }
+        Returns: {
+          attempts: number
+          body: string
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          from_email: string
+          id: string
+          idempotency_key: string
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          processed_at: string | null
+          provider: string | null
+          provider_message_id: string | null
+          recipient_account_id: string | null
+          role: string
+          scheduled_at: string
+          sending_account_id: string
+          status: string
+          subject: string
+          to_email: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "warmup_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

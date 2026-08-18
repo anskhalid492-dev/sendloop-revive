@@ -77,6 +77,7 @@ import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$sl
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
+import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 
 const IndexRoute = IndexRouteImport.update({
@@ -433,6 +434,11 @@ const ApiPublicCronRunCampaignsRoute =
     path: '/api/public/cron/run-campaigns',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronRunWarmupRoute = ApiPublicCronRunWarmupRouteImport.update({
+  id: '/api/public/cron/run-warmup',
+  path: '/api/public/cron/run-warmup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   id: '/api/public/inbound/email',
   path: '/api/public/inbound/email',
@@ -507,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
 }
 export interface FileRoutesByTo {
@@ -576,6 +583,7 @@ export interface FileRoutesByTo {
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
 }
 export interface FileRoutesById {
@@ -648,6 +656,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
 }
 export interface FileRouteTypes {
@@ -720,6 +729,7 @@ export interface FileRouteTypes {
     | '/admin/inbound-events/$eventId'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -789,6 +799,7 @@ export interface FileRouteTypes {
     | '/admin/inbound-events/$eventId'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
   id:
     | '__root__'
@@ -860,6 +871,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/inbound-events/$eventId'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
   fileRoutesById: FileRoutesById
 }
@@ -901,6 +913,7 @@ export interface RootRouteChildren {
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
+  ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
 }
 
@@ -1382,6 +1395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRunCampaignsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/run-warmup': {
+      id: '/api/public/cron/run-warmup'
+      path: '/api/public/cron/run-warmup'
+      fullPath: '/api/public/cron/run-warmup'
+      preLoaderRoute: typeof ApiPublicCronRunWarmupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/inbound/email': {
       id: '/api/public/inbound/email'
       path: '/api/public/inbound/email'
@@ -1528,6 +1548,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
+  ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
 }
 export const routeTree = rootRouteImport
