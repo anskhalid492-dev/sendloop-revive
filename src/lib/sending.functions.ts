@@ -166,3 +166,56 @@ export const listMyAccountRequests = createServerFn({ method: "GET" })
     const { loadAccountRequests } = await import("@/lib/sending-query");
     return loadAccountRequests(context.supabase);
   });
+
+export type SendingAccountAuditEntry = {
+  id: string;
+  action: string;
+  detail: string | null;
+  createdAt: string;
+  actorName: string;
+};
+
+/**
+ * Audit trail for one email account: who paused, resumed or requested removal,
+ * and when. RLS limits rows to the caller's workspaces.
+ */
+export const listSendingAccountAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ accountId: z.string().uuid(), limit: z.number().int().min(1).max(100).default(25) }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<SendingAccountAuditEntry[]> => {
+    const db = context.supabase as never as { from: (t: string) => any };
+    const { data: rows, error } = await db
+      .from("sending_account_audit")
+      .select("id, action, detail, actor_id, created_at")
+      .eq("sending_account_id", data.accountId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    const entries = (rows ?? []) as Array<{
+      id: string;
+      action: string;
+      detail: string | null;
+      actor_id: string | null;
+      created_at: string;
+    }>;
+    const actorIds = [...new Set(entries.map((e) => e.actor_id).filter(Boolean))] as string[];
+    const names = new Map<string, string>();
+    if (actorIds.length > 0) {
+      const { data: profiles } = await db
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", actorIds);
+      for (const p of (profiles ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>) {
+        names.set(p.id, p.full_name || p.email || "Workspace member");
+      }
+    }
+    return entries.map((e) => ({
+      id: e.id,
+      action: e.action,
+      detail: e.detail,
+      createdAt: e.created_at,
+      actorName: (e.actor_id && names.get(e.actor_id)) || "Sendloop system",
+    }));
+  });

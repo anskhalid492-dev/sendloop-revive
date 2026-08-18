@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Flame, LineChart, Send } from "lucide-react";
+import { Flame, History, LineChart, Send } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AuthBadgeRow } from "@/components/sending/AuthBadges";
-import { getEmailAccountDetail } from "@/lib/sending.functions";
+import { getEmailAccountDetail, listSendingAccountAudit } from "@/lib/sending.functions";
 import {
   ACCOUNT_STATUS_LABEL,
   ACCOUNT_STATUS_STYLE,
@@ -26,6 +26,12 @@ import {
   type EmailAccountRow,
 } from "@/lib/sending-model";
 import { cn } from "@/lib/utils";
+
+const AUDIT_ACTION_LABEL: Record<string, string> = {
+  pause: "Sending paused",
+  resume: "Sending resumed",
+  remove_requested: "Removal requested",
+};
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -60,6 +66,13 @@ export function AccountDetailSheet({
   const detail = useQuery({
     queryKey: ["email-account-detail", accountId],
     queryFn: () => fetchDetail({ data: { id: accountId! } }),
+    enabled: Boolean(accountId),
+  });
+
+  const fetchAudit = useServerFn(listSendingAccountAudit);
+  const audit = useQuery({
+    queryKey: ["email-account-audit", accountId],
+    queryFn: () => fetchAudit({ data: { accountId: accountId!, limit: 25 } }),
     enabled: Boolean(accountId),
   });
 
@@ -215,6 +228,33 @@ export function AccountDetailSheet({
                   label="Last error"
                   value={account.accountStatus === "error" ? "Delivery failure reported" : "None"}
                 />
+              </Block>
+
+              <Block title="Audit trail">
+                {audit.isLoading ? (
+                  <p className="py-2 text-sm text-muted-foreground">Loading history…</p>
+                ) : (audit.data ?? []).length === 0 ? (
+                  <p className="py-2 text-sm text-muted-foreground">
+                    No pause, resume or removal activity yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-2 py-2 text-sm">
+                    {(audit.data ?? []).map((entry) => (
+                      <li key={entry.id} className="flex items-start gap-2">
+                        <History className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="font-medium">{AUDIT_ACTION_LABEL[entry.action] ?? entry.action}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.actorName} · {formatDateTime(entry.createdAt)}
+                          </p>
+                          {entry.detail ? (
+                            <p className="text-xs text-muted-foreground">{entry.detail}</p>
+                          ) : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Block>
             </div>
           </>

@@ -128,6 +128,10 @@ function EmailAccountsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [confirmRelease, setConfirmRelease] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "failed">(
+    "connecting",
+  );
+  const [realtimeAttempt, setRealtimeAttempt] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,9 +148,11 @@ function EmailAccountsPage() {
   });
 
   // Live updates: refresh when Sendloop assigns, pauses or updates an account.
+  // A failed/closed subscription is surfaced in the UI with an in-place retry
+  // (no page reload) instead of silently going stale.
   useEffect(() => {
     const channel = supabase
-      .channel("sending-accounts-live")
+      .channel(`sending-accounts-live-${realtimeAttempt}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sending_accounts" },
@@ -155,11 +161,21 @@ function EmailAccountsPage() {
           void queryClient.invalidateQueries({ queryKey: ["email-account-detail"] });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setRealtimeStatus("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")
+          setRealtimeStatus("failed");
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeAttempt]);
+
+  const retryRealtime = () => {
+    setRealtimeStatus("connecting");
+    setRealtimeAttempt((n) => n + 1);
+    void queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+  };
 
   const accounts: EmailAccountRow[] = accountsQuery.data?.accounts ?? [];
   const summary = accountsQuery.data?.summary;
@@ -217,6 +233,17 @@ function EmailAccountsPage() {
       }
     >
       <div className="space-y-5">
+        {realtimeStatus === "failed" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+            <span className="text-destructive">
+              Live updates disconnected — account status, warmup and usage may be out of date.
+            </span>
+            <Button size="sm" variant="outline" onClick={retryRealtime}>
+              Retry live updates
+            </Button>
+          </div>
+        )}
+
         <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <SummaryCard label="Total Accounts" value={summary?.totalAccounts ?? 0} />
           <SummaryCard label="Total Domains" value={summary?.totalDomains ?? 0} />

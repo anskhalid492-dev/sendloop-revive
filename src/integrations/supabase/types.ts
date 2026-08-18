@@ -2142,6 +2142,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sending_account_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          sending_account_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          sending_account_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          sending_account_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sending_account_audit_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sending_account_audit_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sending_account_requests: {
         Row: {
           account_ids: string[]
