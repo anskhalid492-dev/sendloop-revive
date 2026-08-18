@@ -216,6 +216,33 @@ export function AccountDetailSheet({
                   value={account.accountStatus === "error" ? "Delivery failure reported" : "None"}
                 />
               </Block>
+
+              <Block title="Audit trail">
+                {audit.isLoading ? (
+                  <p className="py-2 text-sm text-muted-foreground">Loading history…</p>
+                ) : (audit.data ?? []).length === 0 ? (
+                  <p className="py-2 text-sm text-muted-foreground">
+                    No pause, resume or removal activity yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-2 py-2 text-sm">
+                    {(audit.data ?? []).map((entry) => (
+                      <li key={entry.id} className="flex items-start gap-2">
+                        <History className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="font-medium">{AUDIT_ACTION_LABEL[entry.action] ?? entry.action}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.actorName} · {formatDateTime(entry.createdAt)}
+                          </p>
+                          {entry.detail ? (
+                            <p className="text-xs text-muted-foreground">{entry.detail}</p>
+                          ) : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Block>
             </div>
           </>
         )}
