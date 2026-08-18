@@ -31,7 +31,7 @@ export function ConversionFunnel({
   data: FunnelInput;
   className?: string;
   title?: string;
-  onStepClick?: (step: FunnelStepKey) => void;
+  onStepClick?: ((step: FunnelStepKey) => void) | undefined;
 }) {
   const steps = [
     { key: "sent" as const, label: "Sent", value: data.sent, prev: null as number | null },
