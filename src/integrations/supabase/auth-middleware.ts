@@ -34,7 +34,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     
-    // Pinned to the existing external Sendloop Supabase project.
+    // Resolved from environment variables (connected Supabase project).
     const SUPABASE_URL = PINNED_URL;
     const SUPABASE_PUBLISHABLE_KEY = PINNED_ANON;
 

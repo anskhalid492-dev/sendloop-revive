@@ -1,23 +1,42 @@
-// Connection settings for the EXISTING (external) Sendloop Supabase project.
+// Supabase connection settings.
 //
-// This app is intentionally pinned to the pre-existing production project
-// `pmvxktppiynubpjyvbyd` rather than any newly provisioned backend, so the URL
-// and the publishable (anon) key are hardcoded here. Both values are public by
-// design and shipped in the previous deployment's client bundle.
+// NOTHING is hard-coded here: the URL, project id and publishable (anon) key are
+// read from environment variables, so the app always follows whichever Supabase
+// project is currently connected to this Lovable project.
+//
+// Browser build: import.meta.env.VITE_SUPABASE_*
+// Server runtime: process.env.SUPABASE_*
 //
 // Secrets (service role key, provider keys, webhook secrets) are NEVER stored
 // here - they are read from environment variables inside server-only code.
 
-export const SUPABASE_PROJECT_ID = "pmvxktppiynubpjyvbyd";
+function fromProcessEnv(name: string): string | undefined {
+  if (typeof process === "undefined") return undefined;
+  const value = process.env?.[name];
+  return value && value.length > 0 ? value : undefined;
+}
 
-export const SUPABASE_URL = "https://pmvxktppiynubpjyvbyd.supabase.co";
+function fromViteEnv(name: string): string | undefined {
+  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+  const value = env?.[name];
+  return value && value.length > 0 ? value : undefined;
+}
+
+export const SUPABASE_URL =
+  fromViteEnv("VITE_SUPABASE_URL") ?? fromProcessEnv("SUPABASE_URL") ?? "";
+
+export const SUPABASE_PROJECT_ID =
+  fromViteEnv("VITE_SUPABASE_PROJECT_ID") ?? fromProcessEnv("SUPABASE_PROJECT_ID") ?? "";
 
 export const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_vU9IGeY9KHaUy2AYwDFp5Q_6js5_im3";
+  fromViteEnv("VITE_SUPABASE_PUBLISHABLE_KEY") ??
+  fromViteEnv("VITE_SUPABASE_ANON_KEY") ??
+  fromProcessEnv("SUPABASE_PUBLISHABLE_KEY") ??
+  fromProcessEnv("SUPABASE_ANON_KEY") ??
+  "";
 
-// Service-role key for the SAME external project. Stored as SB_SERVICE_ROLE_KEY
-// so it is never confused with a platform-managed key for another project.
+// Server-only service role key. Accepts either the platform-managed name or the
+// custom SB_SERVICE_ROLE_KEY secret, whichever is configured.
 export function getServiceRoleKey(): string | undefined {
-  if (typeof process === "undefined") return undefined;
-  return process.env?.["SB_SERVICE_ROLE_KEY"];
+  return fromProcessEnv("SUPABASE_SERVICE_ROLE_KEY") ?? fromProcessEnv("SB_SERVICE_ROLE_KEY");
 }
