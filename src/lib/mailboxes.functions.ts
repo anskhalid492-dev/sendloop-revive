@@ -1,37 +1,33 @@
 /**
- * Customer-owned mailboxes.
+ * Customer-owned mailboxes on Sendloop's managed sending infrastructure.
  *
- * The customer owns the domain and the mailbox; Sendloop only stores the
- * connection. Credentials are validated against the provider before a mailbox
- * is ever marked active, are encrypted server-side and are never returned to
- * the browser.
+ * The customer owns the domain and the mailbox. The sending provider and its
+ * credentials are chosen and stored by Sendloop (admin-side) — customers can
+ * never select a provider or submit credentials, and nothing provider-specific
+ * is ever returned to the browser.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { MAILBOX_METHODS } from "@/lib/domains-model";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
-const methodEnum = z.enum([
-  "resend",
-  "sendgrid",
-  "postmark",
-  "mailgun",
-  "brevo",
-  "zeptomail",
-]);
-
-const credentialsSchema = z.record(z.string(), z.string().trim().min(1).max(500));
-
-function assertRequiredFields(method: string, credentials: Record<string, string>) {
-  const definition = MAILBOX_METHODS.find((m) => m.id === method);
-  if (!definition) throw new Error("Unsupported connection method");
-  for (const field of definition.fields) {
-    if (!credentials[field.name]?.trim()) throw new Error(`${field.label} is required`);
-  }
+/**
+ * Picks the sending infrastructure Sendloop routes this mailbox through.
+ * Admin-configured pool only; never influenced by customer input.
+ */
+async function selectManagedProvider(admin: Client) {
+  const { data, error } = await admin
+    .from("email_providers")
+    .select("id, provider, name")
+    .eq("is_enabled", true)
+    .order("priority", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as { id: string; provider: string; name: string } | null) ?? null;
 }
 
 async function loadVerifiedDomain(client: Client, domainId: string) {
