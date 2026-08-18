@@ -168,3 +168,70 @@ export async function evaluateLaunchReadiness(
     eligibleLeadIds,
   };
 }
+
+/**
+ * Persist the readiness snapshot on the campaign row so the readiness bar is
+ * correct immediately after a refresh, before the live check resolves.
+ */
+export async function persistReadiness(
+  supabase: Client,
+  readiness: LaunchReadiness,
+): Promise<void> {
+  await supabase
+    .from("campaigns")
+    .update({
+      eligible_count: readiness.eligible,
+      audience_count: readiness.audience,
+      readiness_ready: readiness.ready,
+      readiness_issues: readiness.issues,
+      readiness_checked_at: new Date().toISOString(),
+    })
+    .eq("id", readiness.campaignId);
+}
+
+/** Recompute + persist. Used after any edit that can change the audience. */
+export async function refreshReadiness(
+  supabase: Client,
+  campaignId: string,
+): Promise<LaunchReadiness> {
+  const readiness = await evaluateLaunchReadiness(supabase, campaignId);
+  await persistReadiness(supabase, readiness);
+  return readiness;
+}
+
+export type LaunchAuditInput = {
+  readiness: LaunchReadiness;
+  actorId: string;
+  outcome: "checked" | "blocked" | "launched" | "failed";
+  queuedMessages?: number;
+  totalRecipients?: number;
+  firstSendAt?: string | null;
+  errorMessage?: string | null;
+};
+
+/** Append an entry to the campaign launch audit trail. */
+export async function recordLaunchEvent(
+  supabase: Client,
+  input: LaunchAuditInput,
+): Promise<void> {
+  const r = input.readiness;
+  if (!r.workspaceId) return;
+  await supabase.from("campaign_launch_events").insert({
+    workspace_id: r.workspaceId,
+    campaign_id: r.campaignId,
+    actor_id: input.actorId,
+    outcome: input.outcome,
+    ready: r.ready,
+    issues: r.issues,
+    list_id: r.listId,
+    list_name: r.listName,
+    eligible: r.eligible,
+    already_queued: r.alreadyQueued,
+    audience: r.audience,
+    active_mailboxes: r.activeMailboxes,
+    queued_messages: input.queuedMessages ?? 0,
+    total_recipients: input.totalRecipients ?? 0,
+    first_send_at: input.firstSendAt ?? null,
+    error_message: input.errorMessage ?? null,
+  });
+}
