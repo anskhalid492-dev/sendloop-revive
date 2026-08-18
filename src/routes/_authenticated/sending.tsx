@@ -233,6 +233,17 @@ function EmailAccountsPage() {
       }
     >
       <div className="space-y-5">
+        {realtimeStatus === "failed" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+            <span className="text-destructive">
+              Live updates disconnected — account status, warmup and usage may be out of date.
+            </span>
+            <Button size="sm" variant="outline" onClick={retryRealtime}>
+              Retry live updates
+            </Button>
+          </div>
+        )}
+
         <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <SummaryCard label="Total Accounts" value={summary?.totalAccounts ?? 0} />
           <SummaryCard label="Total Domains" value={summary?.totalDomains ?? 0} />
