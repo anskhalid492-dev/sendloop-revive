@@ -471,5 +471,3 @@ function EmptyState({ label }: { label: string }) {
     </div>
   );
 }
-
-export default AnalyticsPage;
