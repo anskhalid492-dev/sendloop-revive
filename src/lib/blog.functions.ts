@@ -248,8 +248,13 @@ export const subscribeToNewsletter = createServerFn({ method: "POST" })
   )
 
   .handler(async ({ data }): Promise<{ ok: boolean; duplicate: boolean; message: string }> => {
+    const email = data.email.trim().toLowerCase();
+    const valid = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email) && email.length <= 200;
+    if (!valid) {
+      return { ok: false, duplicate: false, message: "Enter a valid email address." };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const email = data.email.toLowerCase();
+
     const { data: existing } = await (supabaseAdmin as any)
       .from("newsletter_subscribers")
       .select("id")
