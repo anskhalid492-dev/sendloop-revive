@@ -162,3 +162,160 @@ export const getAnalyticsByAccount = createServerFn({ method: "POST" })
       unsubscribed: Number(r["unsubscribed"] ?? 0),
     })) as AnalyticsAccountRow[];
   });
+
+export type FunnelStep = "sent" | "delivered" | "opens" | "replies";
+
+export type FunnelDrilldownRow = {
+  key: string;
+  email: string;
+  leadId: string | null;
+  leadName: string | null;
+  company: string | null;
+  campaignId: string | null;
+  campaignName: string | null;
+  occurredAt: string;
+};
+
+/**
+ * Underlying deduplicated events behind one funnel step, with the related
+ * leads. RLS scopes every table to the caller's workspaces; the explicit
+ * workspace filter keeps the result to the selected workspace.
+ */
+export const getFunnelDrilldown = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    rangeInput
+      .extend({
+        step: z.enum(["sent", "delivered", "opens", "replies"]),
+        campaignId: z.string().uuid().nullable().optional(),
+        limit: z.number().int().min(1).max(500).default(200),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const from = new Date(data.from).toISOString();
+    const to = new Date(data.to).toISOString();
+
+    const campaignNames = new Map<string, string>();
+    const { data: campaigns } = await client
+      .from("campaigns")
+      .select("id, name")
+      .eq("workspace_id", data.workspaceId);
+    for (const c of (campaigns ?? []) as Array<{ id: string; name: string }>) {
+      campaignNames.set(c.id, c.name);
+    }
+
+    const leadIds = new Set<string>();
+    let rows: FunnelDrilldownRow[] = [];
+
+    if (data.step === "sent") {
+      let q = client
+        .from("campaign_messages")
+        .select("id, lead_id, campaign_id, to_email, sent_at")
+        .eq("workspace_id", data.workspaceId)
+        .eq("status", "sent")
+        .gte("sent_at", from)
+        .lt("sent_at", to)
+        .order("sent_at", { ascending: false })
+        .limit(data.limit);
+      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+      const { data: msgs, error } = await q;
+      if (error) throw new Error(error.message);
+      rows = ((msgs ?? []) as Record<string, unknown>[]).map((m) => ({
+        key: String(m["id"]),
+        email: String(m["to_email"] ?? ""),
+        leadId: (m["lead_id"] as string | null) ?? null,
+        leadName: null,
+        company: null,
+        campaignId: (m["campaign_id"] as string | null) ?? null,
+        campaignName: campaignNames.get(String(m["campaign_id"])) ?? null,
+        occurredAt: String(m["sent_at"]),
+      }));
+    } else if (data.step === "replies") {
+      let q = client
+        .from("campaign_replies")
+        .select("id, lead_id, campaign_id, from_email, received_at")
+        .eq("workspace_id", data.workspaceId)
+        .gte("received_at", from)
+        .lt("received_at", to)
+        .order("received_at", { ascending: false })
+        .limit(data.limit);
+      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+      const { data: reps, error } = await q;
+      if (error) throw new Error(error.message);
+      const seen = new Set<string>();
+      for (const r of (reps ?? []) as Record<string, unknown>[]) {
+        const dedupe = String(r["lead_id"] ?? r["from_email"] ?? r["id"]);
+        if (seen.has(dedupe)) continue;
+        seen.add(dedupe);
+        rows.push({
+          key: String(r["id"]),
+          email: String(r["from_email"] ?? ""),
+          leadId: (r["lead_id"] as string | null) ?? null,
+          leadName: null,
+          company: null,
+          campaignId: (r["campaign_id"] as string | null) ?? null,
+          campaignName: campaignNames.get(String(r["campaign_id"])) ?? null,
+          occurredAt: String(r["received_at"]),
+        });
+      }
+    } else {
+      const eventType = data.step === "delivered" ? "delivered" : "opened";
+      let q = client
+        .from("email_engagement_events")
+        .select("id, lead_id, campaign_id, message_id, recipient_email, occurred_at")
+        .eq("workspace_id", data.workspaceId)
+        .eq("event_type", eventType)
+        .gte("occurred_at", from)
+        .lt("occurred_at", to)
+        .order("occurred_at", { ascending: false })
+        .limit(data.limit * 3);
+      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+      const { data: evs, error } = await q;
+      if (error) throw new Error(error.message);
+      // Same dedupe key the aggregation RPCs use: message_id, else recipient.
+      const seen = new Set<string>();
+      for (const e of (evs ?? []) as Record<string, unknown>[]) {
+        const dedupe = String(e["message_id"] ?? e["recipient_email"] ?? e["id"]);
+        if (seen.has(dedupe)) continue;
+        seen.add(dedupe);
+        rows.push({
+          key: String(e["id"]),
+          email: String(e["recipient_email"] ?? ""),
+          leadId: (e["lead_id"] as string | null) ?? null,
+          leadName: null,
+          company: null,
+          campaignId: (e["campaign_id"] as string | null) ?? null,
+          campaignName: campaignNames.get(String(e["campaign_id"])) ?? null,
+          occurredAt: String(e["occurred_at"]),
+        });
+        if (rows.length >= data.limit) break;
+      }
+    }
+
+    for (const r of rows) if (r.leadId) leadIds.add(r.leadId);
+    if (leadIds.size) {
+      const { data: leads } = await client
+        .from("leads")
+        .select("id, email, first_name, last_name, company")
+        .in("id", [...leadIds]);
+      const byId = new Map<string, Record<string, unknown>>();
+      for (const l of (leads ?? []) as Record<string, unknown>[]) {
+        byId.set(String(l["id"]), l);
+      }
+      rows = rows.map((r) => {
+        const lead = r.leadId ? byId.get(r.leadId) : undefined;
+        if (!lead) return r;
+        const name = [lead["first_name"], lead["last_name"]].filter(Boolean).join(" ").trim();
+        return {
+          ...r,
+          email: r.email || String(lead["email"] ?? ""),
+          leadName: name || null,
+          company: (lead["company"] as string | null) ?? null,
+        };
+      });
+    }
+
+    return { step: data.step, total: rows.length, rows };
+  });
