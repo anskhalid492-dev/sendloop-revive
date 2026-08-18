@@ -1,6 +1,8 @@
 import { formatCount, formatPct, rate } from "@/lib/analytics-model";
 import { cn } from "@/lib/utils";
 
+export type FunnelStepKey = "sent" | "delivered" | "opens" | "replies";
+
 export type FunnelInput = {
   sent: number;
   delivered: number;
@@ -24,16 +26,18 @@ export function ConversionFunnel({
   data,
   className,
   title = "Conversion funnel",
+  onStepClick,
 }: {
   data: FunnelInput;
   className?: string;
   title?: string;
+  onStepClick?: (step: FunnelStepKey) => void;
 }) {
   const steps = [
-    { label: "Sent", value: data.sent, prev: null as number | null },
-    { label: "Delivered", value: data.delivered, prev: data.sent },
-    { label: "Opened", value: data.opens, prev: data.delivered },
-    { label: "Replied", value: data.replies, prev: data.opens },
+    { key: "sent" as const, label: "Sent", value: data.sent, prev: null as number | null },
+    { key: "delivered" as const, label: "Delivered", value: data.delivered, prev: data.sent },
+    { key: "opens" as const, label: "Opened", value: data.opens, prev: data.delivered },
+    { key: "replies" as const, label: "Replied", value: data.replies, prev: data.opens },
   ];
   const top = Math.max(data.sent, 1);
   const empty = data.sent === 0 && data.delivered === 0;
@@ -43,6 +47,7 @@ export function ConversionFunnel({
       <h3 className="font-semibold">{title}</h3>
       <p className="text-sm text-muted-foreground">
         Step-by-step conversion from real delivery, open and reply events.
+        {onStepClick ? " Click a step to see the underlying events." : ""}
       </p>
 
       {empty ? (
@@ -52,7 +57,23 @@ export function ConversionFunnel({
       ) : (
         <div className="mt-4 space-y-3">
           {steps.map((step, index) => (
-            <div key={step.label}>
+            <div
+              key={step.label}
+              role={onStepClick ? "button" : undefined}
+              tabIndex={onStepClick ? 0 : undefined}
+              onClick={onStepClick ? () => onStepClick(step.key) : undefined}
+              onKeyDown={
+                onStepClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") onStepClick(step.key);
+                    }
+                  : undefined
+              }
+              className={cn(
+                onStepClick &&
+                  "-mx-2 cursor-pointer rounded-lg px-2 py-1 transition-colors hover:bg-muted/60",
+              )}
+            >
               <div className="flex items-baseline justify-between text-sm">
                 <span className="font-medium">{step.label}</span>
                 <span className="tabular-nums text-muted-foreground">

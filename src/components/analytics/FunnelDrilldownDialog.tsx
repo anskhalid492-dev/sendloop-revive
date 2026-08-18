@@ -87,11 +87,7 @@ export function FunnelDrilldownDialog({
                   <tr key={row.key} className="border-t border-border/60">
                     <td className="px-3 py-2">
                       {row.leadId ? (
-                        <Link
-                          to="/crm"
-                          search={{ lead: row.leadId }}
-                          className="font-medium text-primary hover:underline"
-                        >
+                        <Link to="/crm" className="font-medium text-primary hover:underline">
                           {row.leadName ?? row.email}
                         </Link>
                       ) : (
