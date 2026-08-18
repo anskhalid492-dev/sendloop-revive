@@ -1239,6 +1239,96 @@ export type Database = {
           },
         ]
       }
+      email_engagement_events: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          detail: string | null
+          event_type: string
+          external_id: string | null
+          id: string
+          lead_id: string | null
+          message_id: string | null
+          occurred_at: string
+          provider: string | null
+          provider_message_id: string | null
+          recipient_email: string | null
+          sending_account_id: string | null
+          url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          detail?: string | null
+          event_type: string
+          external_id?: string | null
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          occurred_at?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          sending_account_id?: string | null
+          url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          detail?: string | null
+          event_type?: string
+          external_id?: string | null
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          occurred_at?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          sending_account_id?: string | null
+          url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_engagement_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_engagement_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_engagement_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_engagement_events_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_engagement_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_events: {
         Row: {
           attempts: number
@@ -3280,6 +3370,67 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      analytics_by_account: {
+        Args: { _from: string; _to: string; _workspace_id: string }
+        Returns: {
+          account_id: string
+          bounced: number
+          clicks: number
+          delivered: number
+          from_email: string
+          opens: number
+          replies: number
+          sent: number
+          unsubscribed: number
+        }[]
+      }
+      analytics_by_campaign: {
+        Args: { _from: string; _to: string; _workspace_id: string }
+        Returns: {
+          bounced: number
+          campaign_id: string
+          campaign_name: string
+          clicks: number
+          delivered: number
+          opens: number
+          replies: number
+          sent: number
+          status: string
+          unsubscribed: number
+        }[]
+      }
+      analytics_summary: {
+        Args: { _from: string; _to: string; _workspace_id: string }
+        Returns: {
+          bounced: number
+          clicks: number
+          complained: number
+          delivered: number
+          failed: number
+          opens: number
+          replies: number
+          sent: number
+          unsubscribed: number
+        }[]
+      }
+      analytics_timeseries: {
+        Args: {
+          _bucket?: string
+          _from: string
+          _to: string
+          _workspace_id: string
+        }
+        Returns: {
+          bounced: number
+          bucket: string
+          clicks: number
+          delivered: number
+          opens: number
+          replies: number
+          sent: number
+          unsubscribed: number
+        }[]
+      }
       claim_warmup_jobs: {
         Args: { _limit: number; _worker: string }
         Returns: {
@@ -3337,6 +3488,10 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      move_crm_contacts: {
+        Args: { _lead_ids: string[]; _stage_id: string }
+        Returns: number
       }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
