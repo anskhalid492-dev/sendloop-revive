@@ -63,6 +63,8 @@ function BlogPage() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [email, setEmail] = useState("");
   const [subscribing, setSubscribing] = useState(false);
+  const [subscribeState, setSubscribeState] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+
 
   const trimmed = query.trim();
 
@@ -84,20 +86,26 @@ function BlogPage() {
     e.preventDefault();
     if (!email.trim()) return;
     setSubscribing(true);
+    setSubscribeState(null);
     try {
       const res = await subscribe({ data: { email: email.trim(), source: "blog" } });
       if (res.ok) {
         toast.success(res.message);
+        setSubscribeState({ kind: "success", message: res.message });
         setEmail("");
       } else {
         toast.error(res.message);
+        setSubscribeState({ kind: "error", message: res.message });
       }
     } catch {
-      toast.error("Could not subscribe right now. Please try again.");
+      const message = "Could not subscribe right now. Please try again.";
+      toast.error(message);
+      setSubscribeState({ kind: "error", message });
     } finally {
       setSubscribing(false);
     }
   };
+
 
   const featured = data.featured;
 
@@ -354,7 +362,18 @@ function BlogPage() {
               <ArrowRight className="size-4" />
             </Button>
           </form>
+          {subscribeState ? (
+            <p
+              role="status"
+              className={`text-xs font-medium ${
+                subscribeState.kind === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+              }`}
+            >
+              {subscribeState.message}
+            </p>
+          ) : null}
           <p className="text-xs text-muted-foreground">No spam. Unsubscribe anytime.</p>
+
         </div>
       </Section>
 

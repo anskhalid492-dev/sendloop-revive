@@ -234,16 +234,27 @@ export const getBlogCategory = createServerFn({ method: "GET" })
     return { category: category as BlogCategory, posts: (posts ?? []) as BlogPost[] };
   });
 
-/** Public: newsletter signup. Duplicate addresses resolve to the same row. */
+/**
+ * Public: newsletter signup. Duplicate addresses resolve to the same row.
+ *
+ * Validation failures are returned as data (never thrown) so the form can show
+ * an accurate message instead of a generic network error.
+ */
 export const subscribeToNewsletter = createServerFn({ method: "POST" })
   .inputValidator((input: { email: string; source?: string }) =>
     z
-      .object({ email: z.string().trim().email().max(200), source: z.string().max(40).default("blog") })
+      .object({ email: z.string().max(320).default(""), source: z.string().max(40).default("blog") })
       .parse(input),
   )
+
   .handler(async ({ data }): Promise<{ ok: boolean; duplicate: boolean; message: string }> => {
+    const email = data.email.trim().toLowerCase();
+    const valid = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email) && email.length <= 200;
+    if (!valid) {
+      return { ok: false, duplicate: false, message: "Enter a valid email address." };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const email = data.email.toLowerCase();
+
     const { data: existing } = await (supabaseAdmin as any)
       .from("newsletter_subscribers")
       .select("id")
