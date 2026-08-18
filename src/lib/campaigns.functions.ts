@@ -704,6 +704,95 @@ export const launchCampaign = createServerFn({ method: "POST" })
     }
 
 
+    // Recipients attached before launch (e.g. from the Leads tab) may not have a
+    // first message yet — materialise those too so the campaign actually sends.
+    const { data: pendingRows, error: pErr } = await context.supabase
+      .from("campaign_recipients")
+      .select("id, lead_id, sending_account_id")
+      .eq("campaign_id", c.id)
+      .eq("status", "pending")
+      .eq("current_step", 0);
+    if (pErr) throw new Error(pErr.message);
+    const pendingRecipients = (pendingRows ?? []) as Array<{
+      id: string;
+      lead_id: string;
+      sending_account_id: string | null;
+    }>;
+
+    if (pendingRecipients.length) {
+      const { data: existingMsgs, error: mListErr } = await context.supabase
+        .from("campaign_messages")
+        .select("recipient_id")
+        .eq("campaign_id", c.id)
+        .eq("step_order", 1);
+      if (mListErr) throw new Error(mListErr.message);
+      const hasMessage = new Set(
+        ((existingMsgs ?? []) as Array<{ recipient_id: string | null }>).map((m) => m.recipient_id),
+      );
+      const missing = pendingRecipients.filter((r) => !hasMessage.has(r.id));
+
+      if (missing.length) {
+        const { data: leadRows, error: lErr2 } = await context.supabase
+          .from("leads")
+          .select(
+            "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+          )
+          .in("id", missing.map((r) => r.lead_id));
+        if (lErr2) throw new Error(lErr2.message);
+        const leadById = new Map(
+          ((leadRows ?? []) as unknown as Array<{ id: string; email: string }>).map((l) => [
+            l.id,
+            l,
+          ] as const),
+        );
+        const backfill = missing
+          .map((recipient) => {
+            const lead = leadById.get(recipient.lead_id);
+            if (!lead) return null;
+            const accountId = recipient.sending_account_id ?? pickAccount();
+            return {
+              workspace_id: c.workspace_id,
+              campaign_id: c.id,
+              recipient_id: recipient.id,
+              lead_id: recipient.lead_id,
+              step_id: firstStep.id,
+              sending_account_id: accountId,
+              step_order: 1,
+              status: "scheduled" as const,
+              to_email: lead.email,
+              subject: renderTemplate(
+                resolveSpintax(firstStep.subject),
+                lead as never,
+                campaignVariables,
+              ),
+              body: renderTemplate(
+                resolveSpintax(firstStep.body),
+                lead as never,
+                campaignVariables,
+              ),
+              scheduled_at: firstSlot,
+              provider:
+                (accounts ?? []).find((a) => a.id === accountId)?.provider ?? null,
+            };
+          })
+          .filter(Boolean) as Array<Record<string, unknown>>;
+
+        for (let i = 0; i < backfill.length; i += 500) {
+          const { error: bErr } = await context.supabase
+            .from("campaign_messages")
+            .insert(backfill.slice(i, i + 500) as never);
+          if (bErr) throw new Error(bErr.message);
+        }
+        // Recipients without a mailbox get one assigned on launch.
+        for (const recipient of missing.filter((r) => !r.sending_account_id)) {
+          await context.supabase
+            .from("campaign_recipients")
+            .update({ next_send_at: firstSlot })
+            .eq("id", recipient.id);
+        }
+      }
+    }
+
     const { error: uErr } = await context.supabase
       .from("campaigns")
       .update({ status: "active", launched_at: new Date().toISOString() })
