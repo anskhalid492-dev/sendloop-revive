@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Flame, History, LineChart, Send } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Flame, History, LineChart, Send, XCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { AuthBadgeRow } from "@/components/sending/AuthBadges";
 import { getEmailAccountDetail, listSendingAccountAudit } from "@/lib/sending.functions";
+import { getMailboxInsights, listMailboxChecks } from "@/lib/warmup.functions";
 import {
   ACCOUNT_STATUS_LABEL,
   ACCOUNT_STATUS_STYLE,
@@ -26,6 +27,31 @@ import {
   type EmailAccountRow,
 } from "@/lib/sending-model";
 import { cn } from "@/lib/utils";
+
+const CHECK_KIND_LABEL: Record<string, string> = {
+  connect: "Mailbox connected",
+  reconnect: "Credentials replaced",
+  test: "Connection test",
+  send: "Send attempt",
+  warmup_send: "Warmup send",
+};
+
+/** Compact bar chart for a daily series — no external chart dependency. */
+function MiniBars({ values, tone }: { values: number[]; tone: string }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="flex h-12 items-end gap-0.5">
+      {values.map((value, index) => (
+        <div
+          key={index}
+          className={cn("flex-1 rounded-sm", tone)}
+          style={{ height: `${Math.max(4, (value / max) * 100)}%` }}
+          title={`${value}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 const AUDIT_ACTION_LABEL: Record<string, string> = {
   pause: "Sending paused",
@@ -73,6 +99,20 @@ export function AccountDetailSheet({
   const audit = useQuery({
     queryKey: ["email-account-audit", accountId],
     queryFn: () => fetchAudit({ data: { accountId: accountId!, limit: 25 } }),
+    enabled: Boolean(accountId),
+  });
+
+  const fetchChecks = useServerFn(listMailboxChecks);
+  const checks = useQuery({
+    queryKey: ["mailbox-checks", accountId],
+    queryFn: () => fetchChecks({ data: { id: accountId!, limit: 25 } }),
+    enabled: Boolean(accountId),
+  });
+
+  const fetchInsights = useServerFn(getMailboxInsights);
+  const insights = useQuery({
+    queryKey: ["mailbox-insights", accountId],
+    queryFn: () => fetchInsights({ data: { id: accountId!, days: 30 } }),
     enabled: Boolean(accountId),
   });
 
@@ -228,6 +268,77 @@ export function AccountDetailSheet({
                   label="Last error"
                   value={account.accountStatus === "error" ? "Delivery failure reported" : "None"}
                 />
+              </Block>
+
+              <Block title="Deliverability insights (30 days)">
+                {insights.isLoading ? (
+                  <p className="py-2 text-sm text-muted-foreground">Loading insights…</p>
+                ) : (insights.data?.series ?? []).length === 0 &&
+                  (insights.data?.campaign.sent ?? 0) === 0 ? (
+                  <p className="py-2 text-sm text-muted-foreground">
+                    No sending activity recorded in the last 30 days.
+                  </p>
+                ) : (
+                  <div className="space-y-3 py-2">
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">Warmup emails sent per day</p>
+                      <MiniBars
+                        values={(insights.data?.series ?? []).map((d) => d.sent)}
+                        tone="bg-primary/70"
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">Health score trend</p>
+                      <MiniBars
+                        values={(insights.data?.series ?? []).map((d) => d.health_score ?? 0)}
+                        tone="bg-emerald-500/70"
+                      />
+                    </div>
+                    <Row label="Provider deliveries" value={insights.data?.providerEvents.delivered ?? 0} />
+                    <Row label="Bounces" value={insights.data?.providerEvents.bounced ?? 0} />
+                    <Row label="Spam complaints" value={insights.data?.providerEvents.complained ?? 0} />
+                    <Row label="Campaign emails sent" value={insights.data?.campaign.sent ?? 0} />
+                    <Row label="Campaign send failures" value={insights.data?.campaign.failed ?? 0} />
+                  </div>
+                )}
+              </Block>
+
+              <Block title="Connection & test history">
+                {checks.isLoading ? (
+                  <p className="py-2 text-sm text-muted-foreground">Loading history…</p>
+                ) : (checks.data?.checks ?? []).length === 0 ? (
+                  <p className="py-2 text-sm text-muted-foreground">
+                    No connection tests recorded yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-2 py-2 text-sm">
+                    {(checks.data?.checks ?? []).map((check) => (
+                      <li key={check.id} className="flex items-start gap-2">
+                        {check.ok ? (
+                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                        ) : (
+                          <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium">
+                            {CHECK_KIND_LABEL[check.kind] ?? check.kind}
+                            {check.provider ? ` · ${check.provider}` : ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateTime(check.created_at)}
+                            {check.duration_ms ? ` · ${check.duration_ms}ms` : ""}
+                            {check.status_code ? ` · HTTP ${check.status_code}` : ""}
+                          </p>
+                          {check.message ? (
+                            <p className="break-words text-xs text-muted-foreground">
+                              {check.message}
+                            </p>
+                          ) : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Block>
 
               <Block title="Audit trail">
