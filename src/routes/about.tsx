@@ -127,8 +127,8 @@ function About() {
         />
       </Section>
 
-      <Section title="Frequently Asked Questions">
-        <FaqBlock faqs={faqs} />
+      <Section>
+        <FaqBlock faqs={faqs}  />
       </Section>
 
       <TestimonialCarousel page="about" />

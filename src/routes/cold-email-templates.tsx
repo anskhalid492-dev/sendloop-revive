@@ -183,8 +183,8 @@ function Templates() {
         </div>
       </Section>
 
-      <Section title="Questions about templates" muted>
-        <FaqBlock faqs={faqs} />
+      <Section muted>
+        <FaqBlock faqs={faqs} title="Questions about templates" />
       </Section>
 
       <TestimonialCarousel page="cold-email-templates" />
