@@ -123,50 +123,6 @@ export const bulkSetSendingAccountsPaused = createServerFn({ method: "POST" })
     return { ok: true, affected: affected ?? 0 };
   });
 
-export const requestSendingAccountRelease = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        ids: z.array(z.string().uuid()).min(1).max(200),
-        note: z.string().max(1000).optional(),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { error } = await (context.supabase as never as {
-      rpc: (fn: string, args: unknown) => Promise<{ error: { message: string } | null }>;
-    }).rpc("request_sending_account_release", {
-      _account_ids: data.ids,
-      _note: data.note ?? null,
-    });
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const requestEmailAccounts = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        quantity: z.number().int().min(1).max(100),
-        preferredDomain: z.string().max(200).optional(),
-        note: z.string().max(2000).optional(),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { createAccountRequest } = await import("@/lib/sending-query");
-    return createAccountRequest(context.supabase, context.userId, data);
-  });
-
-export const listMyAccountRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { loadAccountRequests } = await import("@/lib/sending-query");
-    return loadAccountRequests(context.supabase);
-  });
-
 export type SendingAccountAuditEntry = {
   id: string;
   action: string;

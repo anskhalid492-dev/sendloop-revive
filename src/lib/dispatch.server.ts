@@ -280,6 +280,21 @@ export async function dispatchDueMessages(
     ...new Set((accounts ?? []).map((a: { provider_id: string | null }) => a.provider_id).filter(Boolean)),
   ] as string[];
   const credentialsByProvider = new Map<string, Record<string, string>>();
+  // Customer-owned mailboxes carry their own encrypted credentials.
+  const credentialsByAccount = new Map<string, Record<string, string>>();
+  if (accountIds.length) {
+    const { data: ownSecrets } = await supabaseAdmin
+      .from("sending_account_secrets")
+      .select("sending_account_id, credentials_ciphertext")
+      .in("sending_account_id", accountIds);
+    for (const row of ownSecrets ?? []) {
+      try {
+        credentialsByAccount.set(row.sending_account_id, readCredentials(row.credentials_ciphertext));
+      } catch {
+        /* unreadable credentials surface as a per-message failure below */
+      }
+    }
+  }
   if (providerIds.length) {
     const { data: secrets } = await supabaseAdmin
       .from("email_provider_secrets")
@@ -333,9 +348,9 @@ export async function dispatchDueMessages(
       result.skipped += 1;
       continue;
     }
-    const credentials = account.provider_id
-      ? (credentialsByProvider.get(account.provider_id) ?? null)
-      : null;
+    const credentials =
+      credentialsByAccount.get(account.id) ??
+      (account.provider_id ? (credentialsByProvider.get(account.provider_id) ?? null) : null);
     const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
     if (!credentials && !envFallback) {
       await fail("The mailbox provider has no credentials configured.");

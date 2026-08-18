@@ -2187,62 +2187,6 @@ export type Database = {
           },
         ]
       }
-      sending_account_requests: {
-        Row: {
-          account_ids: string[]
-          admin_note: string | null
-          created_at: string
-          handled_at: string | null
-          id: string
-          kind: string
-          note: string | null
-          preferred_domain: string | null
-          quantity: number
-          requested_by: string
-          status: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          account_ids?: string[]
-          admin_note?: string | null
-          created_at?: string
-          handled_at?: string | null
-          id?: string
-          kind?: string
-          note?: string | null
-          preferred_domain?: string | null
-          quantity?: number
-          requested_by: string
-          status?: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          account_ids?: string[]
-          admin_note?: string | null
-          created_at?: string
-          handled_at?: string | null
-          id?: string
-          kind?: string
-          note?: string | null
-          preferred_domain?: string | null
-          quantity?: number
-          requested_by?: string
-          status?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sending_account_requests_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       sending_account_secrets: {
         Row: {
           created_at: string
@@ -2276,12 +2220,15 @@ export type Database = {
         Row: {
           admin_notes: string | null
           assigned_at: string | null
+          auth_status: string
+          connection_method: string | null
           created_at: string
           created_by: string | null
           customer_enabled: boolean
           daily_limit: number
           dkim_status: string
           dmarc_status: string
+          domain_id: string | null
           from_email: string
           from_name: string
           health_score: number
@@ -2310,12 +2257,15 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           assigned_at?: string | null
+          auth_status?: string
+          connection_method?: string | null
           created_at?: string
           created_by?: string | null
           customer_enabled?: boolean
           daily_limit?: number
           dkim_status?: string
           dmarc_status?: string
+          domain_id?: string | null
           from_email: string
           from_name: string
           health_score?: number
@@ -2344,12 +2294,15 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           assigned_at?: string | null
+          auth_status?: string
+          connection_method?: string | null
           created_at?: string
           created_by?: string | null
           customer_enabled?: boolean
           daily_limit?: number
           dkim_status?: string
           dmarc_status?: string
+          domain_id?: string | null
           from_email?: string
           from_name?: string
           health_score?: number
@@ -2377,6 +2330,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sending_accounts_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "sending_domains"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sending_accounts_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
@@ -2385,6 +2345,77 @@ export type Database = {
           },
           {
             foreignKeyName: "sending_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sending_domains: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dkim_selector: string
+          dkim_status: string
+          dmarc_status: string
+          dns_status: string
+          domain: string
+          id: string
+          last_checked_at: string | null
+          last_error: string | null
+          mx_status: string
+          registrar: string | null
+          spf_status: string
+          tracking_host: string | null
+          tracking_status: string
+          updated_at: string
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dkim_selector: string
+          dkim_status?: string
+          dmarc_status?: string
+          dns_status?: string
+          domain: string
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          mx_status?: string
+          registrar?: string | null
+          spf_status?: string
+          tracking_host?: string | null
+          tracking_status?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dkim_selector?: string
+          dkim_status?: string
+          dmarc_status?: string
+          dns_status?: string
+          domain?: string
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          mx_status?: string
+          registrar?: string | null
+          spf_status?: string
+          tracking_host?: string | null
+          tracking_status?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sending_domains_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2609,10 +2640,6 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
-      }
-      request_sending_account_release: {
-        Args: { _account_ids: string[]; _note?: string }
-        Returns: string
       }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
