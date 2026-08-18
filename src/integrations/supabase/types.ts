@@ -1058,6 +1058,53 @@ export type Database = {
           },
         ]
       }
+      crm_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_lost: boolean
+          is_won: boolean
+          key: string
+          name: string
+          position: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_lost?: boolean
+          is_won?: boolean
+          key: string
+          name: string
+          position?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_lost?: boolean
+          is_won?: boolean
+          key?: string
+          name?: string
+          position?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       domain_alerts: {
         Row: {
           created_at: string
@@ -1864,21 +1911,26 @@ export type Database = {
       }
       leads: {
         Row: {
+          archived: boolean
           city: string | null
           company: string | null
           country: string | null
           created_at: string
           crm_stage: string
           custom_fields: Json
+          deal_value: number | null
           email: string
           first_name: string | null
           id: string
           job_title: string | null
           last_activity_at: string | null
           last_name: string | null
+          lead_source: string | null
           linkedin_url: string | null
           list_id: string | null
+          owner_id: string | null
           phone: string | null
+          stage_id: string | null
           state: string | null
           status: string
           tags: string[]
@@ -1887,21 +1939,26 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          archived?: boolean
           city?: string | null
           company?: string | null
           country?: string | null
           created_at?: string
           crm_stage?: string
           custom_fields?: Json
+          deal_value?: number | null
           email: string
           first_name?: string | null
           id?: string
           job_title?: string | null
           last_activity_at?: string | null
           last_name?: string | null
+          lead_source?: string | null
           linkedin_url?: string | null
           list_id?: string | null
+          owner_id?: string | null
           phone?: string | null
+          stage_id?: string | null
           state?: string | null
           status?: string
           tags?: string[]
@@ -1910,21 +1967,26 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          archived?: boolean
           city?: string | null
           company?: string | null
           country?: string | null
           created_at?: string
           crm_stage?: string
           custom_fields?: Json
+          deal_value?: number | null
           email?: string
           first_name?: string | null
           id?: string
           job_title?: string | null
           last_activity_at?: string | null
           last_name?: string | null
+          lead_source?: string | null
           linkedin_url?: string | null
           list_id?: string | null
+          owner_id?: string | null
           phone?: string | null
+          stage_id?: string | null
           state?: string | null
           status?: string
           tags?: string[]
@@ -1938,6 +2000,13 @@ export type Database = {
             columns: ["list_id"]
             isOneToOne: false
             referencedRelation: "lead_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
             referencedColumns: ["id"]
           },
           {
@@ -3245,6 +3314,11 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      delete_crm_stage: {
+        Args: { _move_to: string; _stage_id: string }
+        Returns: undefined
+      }
+      ensure_crm_stages: { Args: { _workspace_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
