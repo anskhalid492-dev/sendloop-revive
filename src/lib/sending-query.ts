@@ -16,10 +16,8 @@ import {
   type EmailAccountSummary,
 } from "@/lib/sending-model";
 
-type Client = {
-  from: (table: string) => any;
-  rpc: (fn: string, args?: unknown) => any;
-};
+/** Untyped view of the request-scoped Supabase client (generated types lag the new columns). */
+type Client = any;
 
 export const ACCOUNT_COLUMNS =
   "id, label, from_name, from_email, reply_to, daily_limit, hourly_limit, sent_today, health_score, warmup_status, warmup_daily_target, warmup_started_at, warmup_target_days, customer_enabled, paused, status, spf_status, dkim_status, dmarc_status, mx_status, assigned_at, created_at, last_sent_at, last_reply_at, workspace_id";
@@ -303,4 +301,18 @@ export async function loadAccountRequests(client: Client) {
     .limit(10);
   if (error) throw new Error(error.message);
   return { requests: (data ?? []) as any[] };
+}
+
+export async function loadAllAccounts(client: Client) {
+  const { data, error } = await client
+    .from("sending_accounts")
+    .select(ACCOUNT_COLUMNS)
+    .not("workspace_id", "is", null)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as any[];
+  return {
+    accounts: rows.map((row) => decorate(row, null)),
+    summary: buildSummary(rows),
+  };
 }
