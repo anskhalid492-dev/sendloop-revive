@@ -27,6 +27,12 @@ import {
 } from "@/lib/sending-model";
 import { cn } from "@/lib/utils";
 
+const AUDIT_ACTION_LABEL: Record<string, string> = {
+  pause: "Sending paused",
+  resume: "Sending resumed",
+  remove_requested: "Removal requested",
+};
+
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1.5 text-sm">
