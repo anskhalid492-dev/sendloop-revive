@@ -128,7 +128,7 @@ export function DomainsPanel({
                   onClick={() => verifyMutation.mutate(domain.id)}
                 >
                   <RefreshCw className={cn("size-4", busyId === domain.id && "animate-spin")} />
-                  Verify
+                  {domain.dns_status === "pending" ? "Verify" : "Re-verify DNS"}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => onOpenDns(domain.id)}>
                   <Settings2 className="size-4" /> DNS records
