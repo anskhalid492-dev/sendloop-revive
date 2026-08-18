@@ -135,7 +135,21 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    // Password recovery links land on the site root with the recovery token in
+    // the URL hash. Send those visitors to the reset screen instead of leaving
+    // them signed in on the marketing page without changing their password.
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery") && !window.location.pathname.startsWith("/reset-password")) {
+      router.navigate({ to: "/reset-password", replace: true });
+    }
+
     const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        if (!window.location.pathname.startsWith("/reset-password")) {
+          router.navigate({ to: "/reset-password", replace: true });
+        }
+        return;
+      }
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();

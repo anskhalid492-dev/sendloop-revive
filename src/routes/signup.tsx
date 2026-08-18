@@ -98,9 +98,12 @@ function SignUpPage() {
       toast.error(error.message);
       return;
     }
-    if (!data.session) {
-      navigate({ to: "/verify-email", search: { email: parsed.data.email } });
+    if (data.session) {
+      // First signup: no workspace yet, so land straight in onboarding.
+      navigate({ to: "/onboarding", replace: true });
+      return;
     }
+    navigate({ to: "/verify-email", search: { email: parsed.data.email } });
   }
 
   async function handleGoogle() {
