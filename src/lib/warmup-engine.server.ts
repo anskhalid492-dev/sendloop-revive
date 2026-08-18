@@ -328,7 +328,7 @@ async function scheduleAccount(
       body,
       scheduled_at: times[i]!.toISOString(),
       idempotency_key: idempotencyKey,
-      provider: account.connection_method || account.provider,
+      provider: account.provider,
     });
     if (error) {
       if (error.code === "23505") continue; // already scheduled for this slot
@@ -415,7 +415,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     return fail("No stored credentials for this mailbox — reconnect it to resume warmup.", false);
   }
 
-  const provider = (account.connection_method as string) || (account.provider as string);
+  const provider = account.provider as string;
   const started = Date.now();
   const { getAdapter } = await import("@/lib/providers/adapter.server");
   let result: { ok: boolean; message: string; messageId?: string | undefined };
@@ -527,7 +527,7 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
     body,
     scheduled_at: new Date(Date.now() + delayMs).toISOString(),
     idempotency_key: `reply:${job["id"]}`,
-    provider: recipient.connection_method || recipient.provider,
+    provider: recipient.provider,
   });
   if (error && error.code !== "23505") throw new Error(error.message);
 

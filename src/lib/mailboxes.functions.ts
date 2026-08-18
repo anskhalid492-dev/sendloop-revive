@@ -1,37 +1,33 @@
 /**
- * Customer-owned mailboxes.
+ * Customer-owned mailboxes on Sendloop's managed sending infrastructure.
  *
- * The customer owns the domain and the mailbox; Sendloop only stores the
- * connection. Credentials are validated against the provider before a mailbox
- * is ever marked active, are encrypted server-side and are never returned to
- * the browser.
+ * The customer owns the domain and the mailbox. The sending provider and its
+ * credentials are chosen and stored by Sendloop (admin-side) — customers can
+ * never select a provider or submit credentials, and nothing provider-specific
+ * is ever returned to the browser.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { MAILBOX_METHODS } from "@/lib/domains-model";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
-const methodEnum = z.enum([
-  "resend",
-  "sendgrid",
-  "postmark",
-  "mailgun",
-  "brevo",
-  "zeptomail",
-]);
-
-const credentialsSchema = z.record(z.string(), z.string().trim().min(1).max(500));
-
-function assertRequiredFields(method: string, credentials: Record<string, string>) {
-  const definition = MAILBOX_METHODS.find((m) => m.id === method);
-  if (!definition) throw new Error("Unsupported connection method");
-  for (const field of definition.fields) {
-    if (!credentials[field.name]?.trim()) throw new Error(`${field.label} is required`);
-  }
+/**
+ * Picks the sending infrastructure Sendloop routes this mailbox through.
+ * Admin-configured pool only; never influenced by customer input.
+ */
+async function selectManagedProvider(admin: Client) {
+  const { data, error } = await admin
+    .from("email_providers")
+    .select("id, provider, name")
+    .eq("is_enabled", true)
+    .order("priority", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as { id: string; provider: string; name: string } | null) ?? null;
 }
 
 async function loadVerifiedDomain(client: Client, domainId: string) {
@@ -96,47 +92,51 @@ export const connectMailbox = createServerFn({ method: "POST" })
         email: z.string().trim().toLowerCase().email(),
         displayName: z.string().trim().min(1).max(80),
         replyTo: z.string().trim().email().or(z.literal("")).optional(),
-        method: methodEnum,
-        credentials: credentialsSchema,
         dailyLimit: z.number().int().min(1).max(2000).default(50),
         hourlyLimit: z.number().int().min(1).max(500).default(20),
         enableWarmup: z.boolean().default(true),
         warmupDailyTarget: z.number().int().min(1).max(200).default(20),
       })
+      // .strict() so a crafted request cannot smuggle provider fields past the UI.
+      .strict()
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
+    // Read under RLS first: this proves the caller owns the domain/workspace.
     const domain = await loadVerifiedDomain(client, data.domainId);
     assertEmailOnDomain(data.email, domain.domain as string);
-    assertRequiredFields(data.method, data.credentials);
 
-    // Real provider check — a mailbox is never activated on trust.
-    const { testProviderCredentials, encryptCredentials } = await import(
-      "@/lib/provider-credentials.server"
-    );
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const managed = await selectManagedProvider(supabaseAdmin);
+    if (!managed) {
+      throw new Error(
+        "Sending infrastructure is not available right now. Please contact support.",
+      );
+    }
+
     const startedAt = Date.now();
-    const test = await testProviderCredentials(data.method, data.credentials);
-    if (!test.ok) throw new Error(test.message);
-
     const now = new Date().toISOString();
-    const { data: created, error } = await client
+    // Provider columns are assigned here, server-side; a database trigger
+    // rejects any attempt to set them from the customer's session.
+    const { data: created, error } = await supabaseAdmin
       .from("sending_accounts")
       .insert({
-        workspace_id: domain.workspace_id,
-        domain_id: domain.id,
-        provider: data.method,
-        connection_method: data.method,
+        workspace_id: domain.workspace_id as string,
+        domain_id: domain.id as string,
+        provider: managed.provider as never,
+        provider_id: managed.id,
+        connection_method: "managed",
         label: data.displayName,
         from_name: data.displayName,
         from_email: data.email,
         reply_to: data.replyTo || null,
         daily_limit: data.dailyLimit,
         hourly_limit: data.hourlyLimit,
-        status: test.verified ? "verified" : "untested",
-        auth_status: test.verified ? "verified" : "untested",
+        status: "verified",
+        auth_status: "verified",
         last_tested_at: now,
-        last_error: test.verified ? null : test.message,
+        last_error: null,
         spf_status: domain.spf_status === "verified" ? "pass" : "unknown",
         dkim_status: domain.dkim_status === "verified" ? "pass" : "unknown",
         dmarc_status: domain.dmarc_status === "verified" ? "pass" : "unknown",
@@ -158,103 +158,18 @@ export const connectMailbox = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: secretError } = await supabaseAdmin.from("sending_account_secrets").upsert(
-      {
-        sending_account_id: created.id as string,
-        credentials_ciphertext: encryptCredentials(data.credentials),
-      },
-      { onConflict: "sending_account_id" },
-    );
-    if (secretError) {
-      await client.from("sending_accounts").delete().eq("id", created.id);
-      throw new Error("Could not store the mailbox credentials securely.");
-    }
-
     await recordCheck(client, {
       workspaceId: domain.workspace_id as string,
       accountId: created.id as string,
       actorId: context.userId,
       kind: "connect",
-      ok: test.ok,
-      provider: data.method,
-      message: test.message,
+      ok: true,
+      message: "Mailbox connected to Sendloop sending infrastructure.",
       durationMs: Date.now() - startedAt,
-      detail: { verified: test.verified, domain: domain.domain },
+      detail: { domain: domain.domain },
     });
 
-    return { id: created.id as string, verified: test.verified, message: test.message };
-  });
-
-/** Replaces stored credentials for an existing mailbox and re-tests it. */
-export const reconnectMailbox = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        id: z.string().uuid(),
-        method: methodEnum,
-        credentials: credentialsSchema,
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const client = context.supabase as Client;
-    assertRequiredFields(data.method, data.credentials);
-
-    const { data: account, error } = await client
-      .from("sending_accounts")
-      .select("id, workspace_id")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!account) throw new Error("Mailbox not found");
-
-    const { testProviderCredentials, encryptCredentials } = await import(
-      "@/lib/provider-credentials.server"
-    );
-    const startedAt = Date.now();
-    const test = await testProviderCredentials(data.method, data.credentials);
-    if (!test.ok) throw new Error(test.message);
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: secretError } = await supabaseAdmin.from("sending_account_secrets").upsert(
-      {
-        sending_account_id: data.id,
-        credentials_ciphertext: encryptCredentials(data.credentials),
-      },
-      { onConflict: "sending_account_id" },
-    );
-    if (secretError) throw new Error("Could not store the mailbox credentials securely.");
-
-    const { error: updateError } = await client
-      .from("sending_accounts")
-      .update({
-        provider: data.method,
-        connection_method: data.method,
-        status: test.verified ? "verified" : "untested",
-        auth_status: test.verified ? "verified" : "untested",
-        last_tested_at: new Date().toISOString(),
-        last_error: test.verified ? null : test.message,
-        paused: false,
-        customer_enabled: true,
-      })
-      .eq("id", data.id);
-    if (updateError) throw new Error(updateError.message);
-
-    await recordCheck(client, {
-      workspaceId: account.workspace_id as string,
-      accountId: data.id,
-      actorId: context.userId,
-      kind: "reconnect",
-      ok: test.ok,
-      provider: data.method,
-      message: test.message,
-      durationMs: Date.now() - startedAt,
-      detail: { verified: test.verified },
-    });
-
-    return { ok: true, verified: test.verified, message: test.message };
+    return { id: created.id as string, verified: true, message: "Mailbox connected." };
   });
 
 /** Re-validates the stored credentials against the provider. */
@@ -284,7 +199,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
           status: "failed",
           auth_status: "failed",
           last_tested_at: new Date().toISOString(),
-          last_error: "No stored credentials — reconnect this mailbox.",
+          last_error: "Sending infrastructure is not configured yet. Please contact support.",
         })
         .eq("id", data.id);
       await recordCheck(client, {
@@ -293,16 +208,16 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
         actorId: context.userId,
         kind: "test",
         ok: false,
-        provider: (account.connection_method as string) ?? (account.provider as string),
-        message: "No stored credentials — reconnect this mailbox.",
+        provider: account.provider as string,
+        message: "Sending infrastructure is not configured yet. Please contact support.",
       });
-      return { ok: false, message: "No stored credentials — reconnect this mailbox." };
+      return { ok: false, message: "Sending infrastructure is not configured yet. Please contact support." };
     }
 
     const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
     const startedAt = Date.now();
     const test = await testProviderCredentials(
-      (account.connection_method as string) || (account.provider as string),
+      account.provider as string,
       credentials,
     );
     const { error: updateError } = await client
@@ -322,7 +237,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       actorId: context.userId,
       kind: "test",
       ok: test.ok,
-      provider: (account.connection_method as string) ?? (account.provider as string),
+      provider: account.provider as string,
       message: test.message,
       durationMs: Date.now() - startedAt,
       detail: { verified: test.verified },
@@ -423,7 +338,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
     // Sequential on purpose: providers rate-limit credential checks.
     for (const account of (accounts ?? []) as Array<Record<string, unknown>>) {
       const id = account["id"] as string;
-      const method = (account["connection_method"] as string) || (account["provider"] as string);
+      const method = account["provider"] as string;
       const startedAt = Date.now();
       const credentials = await loadAccountCredentials(supabaseAdmin, {
         id,
@@ -431,7 +346,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
       });
       const test = credentials
         ? await testProviderCredentials(method, credentials)
-        : { ok: false, verified: false, message: "No stored credentials — reconnect this mailbox." };
+        : { ok: false, verified: false, message: "Sending infrastructure is not configured yet. Please contact support." };
 
       await client
         .from("sending_accounts")

@@ -230,7 +230,7 @@ function EmailAccountsPage() {
   const removeMutation = useMutation({
     mutationFn: (ids: string[]) => removeFn({ data: { ids } }),
     onSuccess: async () => {
-      toast.success("Mailboxes disconnected and their credentials deleted.");
+      toast.success("Mailboxes disconnected.");
       setSelected([]);
       setConfirmRemove(false);
       await invalidate();
@@ -851,8 +851,8 @@ function EmailAccountsPage() {
         )}
 
         <p className="text-xs text-muted-foreground">
-          You own your domains and mailboxes. Sendloop handles sending, warmup and deliverability
-          monitoring using the credentials you connect.
+          You own your domains and mailboxes. Sendloop manages the sending infrastructure, warmup and deliverability
+          monitoring for you.
         </p>
       </div>
 
@@ -885,8 +885,7 @@ function EmailAccountsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Disconnect {selected.length} mailbox(es)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Sendloop stops sending from these mailboxes and permanently deletes the stored
-              credentials. Your mailbox itself is untouched and campaign history is kept.
+              Sendloop stops sending from these mailboxes and removes their connection. Your mailbox itself is untouched and campaign history is kept.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

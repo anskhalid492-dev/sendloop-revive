@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 
 const CHECK_KIND_LABEL: Record<string, string> = {
   connect: "Mailbox connected",
-  reconnect: "Credentials replaced",
+  reconnect: "Mailbox reconnected",
   test: "Connection test",
   send: "Send attempt",
   warmup_send: "Warmup send",
@@ -294,7 +294,7 @@ export function AccountDetailSheet({
                         tone="bg-emerald-500/70"
                       />
                     </div>
-                    <Row label="Provider deliveries" value={insights.data?.providerEvents.delivered ?? 0} />
+                    <Row label="Delivered" value={insights.data?.providerEvents.delivered ?? 0} />
                     <Row label="Bounces" value={insights.data?.providerEvents.bounced ?? 0} />
                     <Row label="Spam complaints" value={insights.data?.providerEvents.complained ?? 0} />
                     <Row label="Campaign emails sent" value={insights.data?.campaign.sent ?? 0} />
@@ -322,8 +322,7 @@ export function AccountDetailSheet({
                         <div className="min-w-0">
                           <p className="font-medium">
                             {CHECK_KIND_LABEL[check.kind] ?? check.kind}
-                            {check.provider ? ` · ${check.provider}` : ""}
-                          </p>
+                                                      </p>
                           <p className="text-xs text-muted-foreground">
                             {formatDateTime(check.created_at)}
                             {check.duration_ms ? ` · ${check.duration_ms}ms` : ""}
