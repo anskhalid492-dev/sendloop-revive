@@ -16,6 +16,8 @@ import {
   buildAccountPage,
   loadAccountFacets,
   loadAccountStats,
+  loadAllAccounts,
+  decorate,
   type AccountPageResult,
 } from "@/lib/sending-query";
 
@@ -23,15 +25,7 @@ export type { AccountPageResult };
 
 export const listMySendingAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("sending_accounts")
-      .select(ACCOUNT_COLUMNS)
-      .not("workspace_id", "is", null)
-      .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
-    return { accounts: (data ?? []) as never[] };
-  });
+  .handler(async ({ context }) => loadAllAccounts(context.supabase));
 
 export const listEmailAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -71,7 +65,7 @@ export const getEmailAccountDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await (context.supabase as never as { from: (t: string) => any })
       .from("sending_accounts")
       .select(ACCOUNT_COLUMNS)
       .eq("id", data.id)
@@ -85,7 +79,7 @@ export const getEmailAccountDetail = createServerFn({ method: "GET" })
       loadAccountFacets(context.supabase),
     ]);
     return {
-      account: row as never,
+      account: decorate(row, stats[data.id] ?? null),
       stats: stats[data.id] ?? null,
       campaigns: facets.campaigns.filter((c) => c.accountIds.includes(data.id)),
     };
@@ -117,7 +111,10 @@ export const bulkSetSendingAccountsPaused = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { data: affected, error } = await (context.supabase as never as {
-      rpc: (fn: string, args: unknown) => Promise<{ data: number | null; error: { message: string } | null }>;
+      rpc: (fn: string, args: unknown) => Promise<{
+        data: number | null;
+        error: { message: string } | null;
+      }>;
     }).rpc("set_sending_accounts_paused", {
       _account_ids: data.ids,
       _paused: data.paused,
