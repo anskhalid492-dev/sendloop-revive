@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -29,16 +29,44 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { deleteCampaign, duplicateCampaign } from "@/lib/campaigns.functions";
+import { createLeadList } from "@/lib/leads.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const NO_LIST = "__none__";
 
 export function SettingsTab({ builder }: { builder: CampaignBuilder }) {
-  const { campaignId, campaign, settings, patchSettings, lists, toggleStatus } = builder;
+  const {
+    campaignId,
+    campaign,
+    settings,
+    patchSettings,
+    lists,
+    toggleStatus,
+    readiness,
+    refetchReadiness,
+  } = builder;
   const navigate = useNavigate();
   const duplicateFn = useServerFn(duplicateCampaign);
   const deleteFn = useServerFn(deleteCampaign);
   const [tagInput, setTagInput] = useState("");
+  const [newListName, setNewListName] = useState("");
+  const createListFn = useServerFn(createLeadList);
+  const queryClient = useQueryClient();
+
+  const createList = useMutation({
+    mutationFn: () =>
+      createListFn({
+        data: { workspaceId: campaign!.workspace_id, name: newListName.trim() },
+      }),
+    onSuccess: async (list: { id: string; name: string }) => {
+      setNewListName("");
+      patchSettings({ listId: list.id });
+      await queryClient.invalidateQueries({ queryKey: ["lead-lists"] });
+      toast.success(`Created “${list.name}” — add leads to it from the Leads page`);
+      await refetchReadiness();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const duplicate = useMutation({
     mutationFn: () => duplicateFn({ data: { id: campaignId, includeLeads: false } }),
@@ -102,11 +130,48 @@ export function SettingsTab({ builder }: { builder: CampaignBuilder }) {
               <SelectItem value={NO_LIST}>No list</SelectItem>
               {lists.map((list) => (
                 <SelectItem key={list.id} value={list.id}>
-                  {list.name}
+                  {list.name} · {list.leadCount.toLocaleString()} leads
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {readiness ? (
+            <p className="text-xs text-muted-foreground">
+              {readiness.ready
+                ? `Ready to launch — ${readiness.audience.toLocaleString()} leads`
+                : readiness.issues[0]?.message}
+            </p>
+          ) : null}
+          {readiness && readiness.unassignedLeads > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {readiness.unassignedLeads.toLocaleString()} leads in “All leads” are not in any list.
+              Create a list below, then assign them on the{" "}
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                onClick={() => void navigate({ to: "/leads" })}
+              >
+                Leads page
+              </button>
+              .
+            </p>
+          ) : null}
+          <div className="flex gap-2 pt-1">
+            <Input
+              aria-label="New lead list name"
+              placeholder="New list name"
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={newListName.trim().length < 2 || createList.isPending}
+              onClick={() => createList.mutate()}
+            >
+              {createList.isPending ? <Loader2 className="size-3.5 animate-spin" /> : "Create list"}
+            </Button>
+          </div>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="campaign-tags">Tags</Label>
