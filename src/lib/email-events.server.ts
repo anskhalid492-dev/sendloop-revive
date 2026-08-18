@@ -205,6 +205,16 @@ export async function processEventPayload(
         reason: delivery.reason,
       });
 
+      // Analytics reads from the normalised engagement log.
+      const { recordEngagement } = await import("@/lib/engagement.server");
+      await recordEngagement({
+        type: kind,
+        email: delivery.email,
+        providerMessageId: delivery.providerMessageId,
+        externalId: externalIdOf(payload, kind),
+        detail: delivery.reason,
+      });
+
       await finish(eventId, {
         status: outcome.status === "applied" ? "processed" : "failed",
         error: outcome.reason ?? null,
