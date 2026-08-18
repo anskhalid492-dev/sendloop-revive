@@ -22,9 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { MAILBOX_METHODS, type MailboxMethod, type SendingDomain } from "@/lib/domains-model";
+import type { SendingDomain } from "@/lib/domains-model";
 import { connectMailbox } from "@/lib/mailboxes.functions";
 
+/**
+ * Connects a mailbox on a domain the customer owns. Sending infrastructure is
+ * managed by Sendloop, so there is deliberately no provider picker and no
+ * credential fields here — that configuration is admin-side only.
+ */
 export function ConnectMailboxDialog({
   open,
   onOpenChange,
@@ -48,8 +53,6 @@ export function ConnectMailboxDialog({
   const [localPart, setLocalPart] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [replyTo, setReplyTo] = useState("");
-  const [method, setMethod] = useState<MailboxMethod["id"]>("resend");
-  const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [dailyLimit, setDailyLimit] = useState("50");
   const [hourlyLimit, setHourlyLimit] = useState("20");
   const [enableWarmup, setEnableWarmup] = useState(true);
@@ -57,10 +60,8 @@ export function ConnectMailboxDialog({
   useEffect(() => {
     if (!open) return;
     setDomainId(defaultDomainId ?? verifiedDomains[0]?.id ?? "");
-    setCredentials({});
   }, [open, defaultDomainId, verifiedDomains]);
 
-  const definition = MAILBOX_METHODS.find((m) => m.id === method) as MailboxMethod;
   const selectedDomain = verifiedDomains.find((domain) => domain.id === domainId);
 
   const mutation = useMutation({
@@ -71,8 +72,6 @@ export function ConnectMailboxDialog({
           email: `${localPart.trim()}@${selectedDomain?.domain ?? ""}`.toLowerCase(),
           displayName: displayName.trim(),
           replyTo: replyTo.trim(),
-          method,
-          credentials,
           dailyLimit: Number(dailyLimit) || 50,
           hourlyLimit: Number(hourlyLimit) || 20,
           enableWarmup,
@@ -80,11 +79,10 @@ export function ConnectMailboxDialog({
         },
       }),
     onSuccess: async () => {
-      toast.success("Mailbox connected and verified with your provider.");
+      toast.success("Mailbox connected.");
       setLocalPart("");
       setDisplayName("");
       setReplyTo("");
-      setCredentials({});
       await queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
       await queryClient.invalidateQueries({ queryKey: ["sending-domains"] });
       onOpenChange(false);
@@ -93,10 +91,7 @@ export function ConnectMailboxDialog({
   });
 
   const ready =
-    Boolean(domainId) &&
-    localPart.trim().length > 0 &&
-    displayName.trim().length > 0 &&
-    definition.fields.every((field) => credentials[field.name]?.trim());
+    Boolean(domainId) && localPart.trim().length > 0 && displayName.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,8 +99,8 @@ export function ConnectMailboxDialog({
         <DialogHeader>
           <DialogTitle>Connect your email account</DialogTitle>
           <DialogDescription>
-            Connect a mailbox on a domain you own. Credentials are encrypted, stored server-side and
-            never shown again — we test them with your provider before enabling the mailbox.
+            Connect a mailbox on a domain you own. Sendloop handles the sending infrastructure for
+            you — there is nothing to configure and no keys to paste.
           </DialogDescription>
         </DialogHeader>
 
@@ -178,46 +173,6 @@ export function ConnectMailboxDialog({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Connection method</Label>
-              <Select
-                value={method}
-                onValueChange={(value) => {
-                  setMethod(value as MailboxMethod["id"]);
-                  setCredentials({});
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MAILBOX_METHODS.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">{definition.blurb}</p>
-            </div>
-
-            {definition.fields.map((field) => (
-              <div key={field.name} className="space-y-1.5">
-                <Label htmlFor={`cred-${field.name}`}>{field.label}</Label>
-                <Input
-                  id={`cred-${field.name}`}
-                  type={field.secret ? "password" : "text"}
-                  value={credentials[field.name] ?? ""}
-                  onChange={(event) =>
-                    setCredentials((prev) => ({ ...prev, [field.name]: event.target.value }))
-                  }
-                  placeholder={field.placeholder ?? ""}
-                  autoComplete="off"
-                  required
-                />
-              </div>
-            ))}
-
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="mailbox-daily">Daily limit</Label>
@@ -258,7 +213,7 @@ export function ConnectMailboxDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={!ready || mutation.isPending}>
-                {mutation.isPending ? "Testing connection…" : "Test & connect"}
+                {mutation.isPending ? "Connecting…" : "Connect mailbox"}
               </Button>
             </DialogFooter>
           </form>
