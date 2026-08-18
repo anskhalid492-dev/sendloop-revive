@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { LaunchReadinessBar } from "./LaunchReadinessBar";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 export const CAMPAIGN_TABS = [
@@ -70,7 +71,18 @@ export function CampaignHeader({
   onDuplicate: () => void;
   onArchive: () => void;
 }) {
-  const { campaign, settings, patchSettings, save, dirty, savedAt, toggleStatus } = builder;
+  const {
+    campaign,
+    settings,
+    patchSettings,
+    save,
+    dirty,
+    savedAt,
+    toggleStatus,
+    readiness,
+    readinessLoading,
+    launch,
+  } = builder;
   const [editingName, setEditingName] = useState(false);
 
   if (!campaign || !settings) return null;
@@ -152,8 +164,18 @@ export function CampaignHeader({
               <Play className="mr-1.5 size-3.5" /> Resume campaign
             </Button>
           ) : (
-            <Button size="sm" onClick={onLaunch}>
-              <Rocket className="mr-1.5 size-3.5" /> Launch campaign
+            <Button
+              size="sm"
+              onClick={onLaunch}
+              disabled={launch.isPending || (!!readiness && !readiness.ready)}
+              title={readiness && !readiness.ready ? readiness.issues[0]?.message : undefined}
+            >
+              {launch.isPending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <Rocket className="mr-1.5 size-3.5" />
+              )}
+              Launch campaign
             </Button>
           )}
           <DropdownMenu>
@@ -173,6 +195,15 @@ export function CampaignHeader({
           </DropdownMenu>
         </div>
       </div>
+
+      {status === "draft" || status === "scheduled" ? (
+        <LaunchReadinessBar
+          readiness={readiness}
+          loading={readinessLoading}
+          dirty={dirty}
+          className="mt-3"
+        />
+      ) : null}
 
       <nav className="mt-4 flex gap-1 overflow-x-auto" aria-label="Campaign sections">
         {CAMPAIGN_TABS.map((item) => (
