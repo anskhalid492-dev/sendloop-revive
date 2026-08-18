@@ -269,8 +269,19 @@ export const updateCampaign = createServerFn({ method: "POST" })
       .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    // Any edit that can change the audience recomputes and persists the real
+    // eligible recipient count so the readiness bar survives a refresh.
+    const { refreshReadiness } = await import("@/lib/campaign-launch.server");
+    let readiness = null;
+    try {
+      readiness = await refreshReadiness(context.supabase, data.id);
+    } catch {
+      readiness = null;
+    }
+    return { ok: true, readiness };
   });
+
 
 export const saveCampaignSteps = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
