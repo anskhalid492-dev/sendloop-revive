@@ -34,7 +34,7 @@ const faqs = [
 
 const PAGE_SIZE = 12;
 
-export const Route = createFileRoute("/blog")({
+export const Route = createFileRoute("/blog/")({
   loader: () => getBlogIndex(),
   head: () =>
     metaFor(
@@ -365,7 +365,7 @@ function BlogPage() {
       <CtaBlock
         title="Put these tactics to work"
         description="Create a workspace, connect your provider and launch a campaign built on what already works."
-        primaryCta="Start for Free"
+        cta="Start for Free"
       />
     </MarketingLayout>
   );
