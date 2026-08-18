@@ -46,6 +46,7 @@ import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
 import { Route as ProductCrmRouteImport } from './routes/product.crm'
@@ -262,6 +263,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductAnalyticsRoute = ProductAnalyticsRouteImport.update({
@@ -481,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -551,6 +558,7 @@ export interface FileRoutesByTo {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -624,6 +632,7 @@ export interface FileRoutesById {
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -697,6 +706,7 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/invite/$token'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -767,6 +777,7 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/invite/$token'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -839,6 +850,7 @@ export interface FileRouteTypes {
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
     | '/blog/$slug'
+    | '/invite/$token'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -898,6 +910,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
   ProductCampaignsRoute: typeof ProductCampaignsRoute
   ProductCrmRoute: typeof ProductCrmRoute
@@ -1176,6 +1189,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/product/analytics': {
@@ -1533,6 +1553,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   BlogSlugRoute: BlogSlugRoute,
+  InviteTokenRoute: InviteTokenRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,
   ProductCampaignsRoute: ProductCampaignsRoute,
   ProductCrmRoute: ProductCrmRoute,
