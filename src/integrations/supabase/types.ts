@@ -56,6 +56,156 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_authors: {
+        Row: {
+          avatar_url: string | null
+          bio: string
+          created_at: string
+          id: string
+          name: string
+          role: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          id?: string
+          name: string
+          role?: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blog_categories: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          canonical_url: string | null
+          category_id: string | null
+          content: string
+          content_type: Database["public"]["Enums"]["blog_content_type"]
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string
+          featured: boolean
+          id: string
+          meta_description: string | null
+          og_image_url: string | null
+          popular_guide: boolean
+          published_at: string | null
+          reading_minutes: number
+          seo_title: string | null
+          slug: string
+          status: Database["public"]["Enums"]["blog_post_status"]
+          subtitle: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          canonical_url?: string | null
+          category_id?: string | null
+          content?: string
+          content_type?: Database["public"]["Enums"]["blog_content_type"]
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string
+          featured?: boolean
+          id?: string
+          meta_description?: string | null
+          og_image_url?: string | null
+          popular_guide?: boolean
+          published_at?: string | null
+          reading_minutes?: number
+          seo_title?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["blog_post_status"]
+          subtitle?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          canonical_url?: string | null
+          category_id?: string | null
+          content?: string
+          content_type?: Database["public"]["Enums"]["blog_content_type"]
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string
+          featured?: boolean
+          id?: string
+          meta_description?: string | null
+          og_image_url?: string | null
+          popular_guide?: boolean
+          published_at?: string | null
+          reading_minutes?: number
+          seo_title?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["blog_post_status"]
+          subtitle?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "blog_authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_messages: {
         Row: {
           attempts: number
@@ -1745,6 +1895,27 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -2324,6 +2495,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "support" | "user"
       billing_interval: "monthly" | "yearly"
+      blog_content_type:
+        | "article"
+        | "guide"
+        | "case_study"
+        | "template"
+        | "tutorial"
+        | "product_update"
+      blog_post_status: "draft" | "scheduled" | "published" | "archived"
       campaign_status:
         | "draft"
         | "scheduled"
@@ -2494,6 +2673,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "support", "user"],
       billing_interval: ["monthly", "yearly"],
+      blog_content_type: [
+        "article",
+        "guide",
+        "case_study",
+        "template",
+        "tutorial",
+        "product_update",
+      ],
+      blog_post_status: ["draft", "scheduled", "published", "archived"],
       campaign_status: [
         "draft",
         "scheduled",
