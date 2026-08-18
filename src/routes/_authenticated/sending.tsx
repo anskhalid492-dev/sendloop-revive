@@ -128,6 +128,10 @@ function EmailAccountsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [confirmRelease, setConfirmRelease] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "failed">(
+    "connecting",
+  );
+  const [realtimeAttempt, setRealtimeAttempt] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
