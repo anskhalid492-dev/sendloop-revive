@@ -295,9 +295,31 @@ async function applyReplyAutomation(args: {
             : "replied";
 
   if (leadId) {
+    // A reply moves the contact into the "Replied" stage, but never drags a
+    // contact backwards out of a later stage a human already set.
+    const { data: stages } = await db
+      .from("crm_stages")
+      .select("id, key, position")
+      .eq("workspace_id", workspaceId)
+      .order("position", { ascending: true });
+    const repliedStage = (stages ?? []).find((s: { key: string }) => s.key === "replied");
+    const { data: leadRow } = await db
+      .from("leads")
+      .select("stage_id")
+      .eq("id", leadId)
+      .maybeSingle();
+    const currentPosition =
+      (stages ?? []).find((s: { id: string }) => s.id === leadRow?.stage_id)?.position ?? -1;
+    const advance =
+      repliedStage && currentPosition < repliedStage.position ? repliedStage.id : undefined;
+
     await db
       .from("leads")
-      .update({ status: leadStatus, last_activity_at: args.receivedIso })
+      .update({
+        status: leadStatus,
+        last_activity_at: args.receivedIso,
+        ...(advance ? { stage_id: advance } : {}),
+      })
       .eq("id", leadId);
 
     await db.from("lead_activities").insert({
@@ -309,6 +331,7 @@ async function applyReplyAutomation(args: {
       created_at: args.receivedIso,
     });
   }
+
 
   let stopOnReply = true;
   if (campaignId) {
