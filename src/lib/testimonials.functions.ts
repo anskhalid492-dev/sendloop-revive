@@ -1,3 +1,4 @@
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
 /**
  * Testimonials shown on the marketing site, managed from the Sendloop admin.
  */
@@ -25,8 +26,8 @@ const COLUMNS =
   "id, name, role, company, avatar_url, company_logo_url, testimonial, result, pages, featured, display_order, active";
 
 function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  const url = process.env["SUPABASE_URL"]!;
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || SUPABASE_PUBLISHABLE_KEY;
+  const url = process.env["SUPABASE_URL"] || SUPABASE_URL;
   return import("@supabase/supabase-js").then(({ createClient }) =>
     createClient(url, key, {
       auth: { persistSession: false },
