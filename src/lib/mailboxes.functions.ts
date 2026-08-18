@@ -124,7 +124,7 @@ export const connectMailbox = createServerFn({ method: "POST" })
       .insert({
         workspace_id: domain.workspace_id as string,
         domain_id: domain.id as string,
-        provider: managed.provider,
+        provider: managed.provider as never,
         provider_id: managed.id,
         connection_method: "managed",
         label: data.displayName,
