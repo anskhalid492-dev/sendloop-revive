@@ -65,19 +65,19 @@ export function DomainAlerts() {
   return (
     <div className="space-y-3">
       {alerts.map((alert) => {
-        const records = (alert["records"] as string[] | null) ?? [];
+        const records = alert.records ?? [];
         const steps = records.flatMap((record) => REMEDIATION[record] ?? []);
         return (
           <div
-            key={alert["id"] as string}
+            key={alert.id}
             className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
           >
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-destructive">{alert["title"] as string}</p>
-                {alert["detail"] ? (
-                  <p className="mt-0.5 text-sm text-muted-foreground">{alert["detail"] as string}</p>
+                <p className="font-semibold text-destructive">{alert.title}</p>
+                {alert.detail ? (
+                  <p className="mt-0.5 text-sm text-muted-foreground">{alert.detail}</p>
                 ) : null}
                 {steps.length > 0 ? (
                   <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
@@ -91,14 +91,14 @@ export function DomainAlerts() {
                     size="sm"
                     variant="outline"
                     disabled={verifyMutation.isPending}
-                    onClick={() => verifyMutation.mutate(alert["domain_id"] as string)}
+                    onClick={() => verifyMutation.mutate(alert.domain_id)}
                   >
                     <RefreshCw className="size-4" /> Re-verify DNS
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => dismissMutation.mutate(alert["id"] as string)}
+                    onClick={() => dismissMutation.mutate(alert.id)}
                   >
                     <X className="size-4" /> Dismiss
                   </Button>
