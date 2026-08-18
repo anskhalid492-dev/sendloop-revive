@@ -551,9 +551,22 @@ export const launchCampaign = createServerFn({ method: "POST" })
     const c = campaign as unknown as Campaign;
 
     // Validate against the persisted audience relationship, never frontend state.
-    const { evaluateLaunchReadiness } = await import("@/lib/campaign-launch.server");
+    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent } = await import(
+      "@/lib/campaign-launch.server"
+    );
     const readiness = await evaluateLaunchReadiness(context.supabase, c.id);
-    if (!readiness.ready) throw new Error(readiness.issues[0]!.message);
+    await persistReadiness(context.supabase, readiness);
+    if (!readiness.ready) {
+      // Audit the blocked attempt with the exact reasons before failing.
+      await recordLaunchEvent(context.supabase, {
+        readiness,
+        actorId: context.userId,
+        outcome: "blocked",
+        errorMessage: readiness.issues[0]!.message,
+      });
+      throw new Error(readiness.issues[0]!.message);
+    }
+
 
     const { data: steps, error: sErr } = await context.supabase
       .from("campaign_steps")
