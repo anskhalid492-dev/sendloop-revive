@@ -148,6 +148,33 @@ export async function processEventPayload(
 
     }
 
+    if (kind === "opened" || kind === "clicked") {
+      const { recordEngagement } = await import("@/lib/engagement.server");
+      const delivery = normalizeDelivery(payload);
+      const source = (payload["data"] as Record<string, unknown> | undefined) ?? payload;
+      const link = source["link"] ?? source["url"] ?? source["click"];
+      const url =
+        typeof link === "string"
+          ? link
+          : link && typeof link === "object"
+            ? String((link as Record<string, unknown>)["url"] ?? "") || null
+            : null;
+
+      const recorded = await recordEngagement({
+        type: kind,
+        email: delivery.email,
+        providerMessageId: delivery.providerMessageId,
+        externalId: externalIdOf(payload, kind),
+        url,
+      });
+
+      await finish(eventId, {
+        status: recorded ? "processed" : "failed",
+        error: recorded ? null : "No matching send",
+      });
+      return { status: recorded ? "applied" : "unmatched", eventId };
+    }
+
     if (kind === "delivered" || kind === "bounced" || kind === "complained" || kind === "unsubscribed") {
       const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
       const delivery = normalizeDelivery(payload);
@@ -176,6 +203,16 @@ export async function processEventPayload(
         email: delivery.email,
         providerMessageId: delivery.providerMessageId,
         reason: delivery.reason,
+      });
+
+      // Analytics reads from the normalised engagement log.
+      const { recordEngagement } = await import("@/lib/engagement.server");
+      await recordEngagement({
+        type: kind,
+        email: delivery.email,
+        providerMessageId: delivery.providerMessageId,
+        externalId: externalIdOf(payload, kind),
+        detail: delivery.reason,
       });
 
       await finish(eventId, {

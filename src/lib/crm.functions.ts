@@ -308,6 +308,27 @@ export const moveCrmContact = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Moves many contacts at once; the RPC re-checks workspace membership. */
+export const moveCrmContacts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        leadIds: z.array(z.string().uuid()).min(1).max(500),
+        stageId: z.string().uuid(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const { data: moved, error } = await client.rpc("move_crm_contacts", {
+      _lead_ids: data.leadIds,
+      _stage_id: data.stageId,
+    });
+    if (error) throw new Error(error.message);
+    return { moved: Number(moved ?? 0) };
+  });
+
 export const upsertCrmContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
