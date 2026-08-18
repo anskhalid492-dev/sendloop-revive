@@ -551,9 +551,9 @@ export const launchCampaign = createServerFn({ method: "POST" })
     const c = campaign as unknown as Campaign;
 
     // Validate against the persisted audience relationship, never frontend state.
-    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent } = await import(
-      "@/lib/campaign-launch.server"
-    );
+    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent, refreshReadiness } =
+      await import("@/lib/campaign-launch.server");
+
     const readiness = await evaluateLaunchReadiness(context.supabase, c.id);
     await persistReadiness(context.supabase, readiness);
     if (!readiness.ready) {
