@@ -539,11 +539,10 @@ export const launchCampaign = createServerFn({ method: "POST" })
     if (!campaign) throw new Error("Campaign not found");
     const c = campaign as unknown as Campaign;
 
-    if (!c.list_id) throw new Error("Select a lead list before launching.");
-    if (!c.sending_account_ids.length) throw new Error("Select at least one sending account.");
-    if (c.send_end_hour <= c.send_start_hour)
-      throw new Error("The sending window end must be after the start.");
-    if (!c.send_days.length) throw new Error("Pick at least one sending day.");
+    // Validate against the persisted audience relationship, never frontend state.
+    const { evaluateLaunchReadiness } = await import("@/lib/campaign-launch.server");
+    const readiness = await evaluateLaunchReadiness(context.supabase, c.id);
+    if (!readiness.ready) throw new Error(readiness.issues[0]!.message);
 
     const { data: steps, error: sErr } = await context.supabase
       .from("campaign_steps")
@@ -615,15 +614,18 @@ export const launchCampaign = createServerFn({ method: "POST" })
       return id;
     };
 
-    const { data: leads, error: lErr } = await context.supabase
-      .from("leads")
-      .select(
-        "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-      )
-      .eq("list_id", c.list_id)
-      .eq("status", "new");
-    if (lErr) throw new Error(lErr.message);
-    if (!leads?.length) throw new Error("That lead list has no contactable leads.");
+    // Only the lead ids the readiness check proved eligible get queued.
+    let leads: Array<Record<string, unknown>> = [];
+    if (readiness.eligibleLeadIds.length) {
+      const { data: leadRows, error: lErr } = await context.supabase
+        .from("leads")
+        .select(
+          "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+        )
+        .in("id", readiness.eligibleLeadIds);
+      if (lErr) throw new Error(lErr.message);
+      leads = (leadRows ?? []) as unknown as Array<Record<string, unknown>>;
+    }
 
     const { data: existing, error: eErr } = await context.supabase
       .from("campaign_recipients")
@@ -639,7 +641,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
       endHour: c.send_end_hour,
     }).toISOString();
 
-    const fresh = leads.filter((l) => !already.has(l.id));
+    const fresh = leads.filter((l) => !already.has(String(l["id"]))) as never[];
     if (fresh.length) {
       const accountById = new Map(
         (accounts ?? []).map((a) => [a.id, a as { id: string }] as const),
@@ -662,7 +664,9 @@ export const launchCampaign = createServerFn({ method: "POST" })
         if (insErr) throw new Error(insErr.message);
 
         // Materialise the first email of the sequence into the sending queue.
-        const leadById = new Map(fresh.map((l) => [l.id, l]));
+          const leadById = new Map(
+          (fresh as unknown as Array<{ id: string }>).map((l) => [l.id, l]),
+        );
         const messages = (inserted ?? [])
           .map((recipient) => {
             const lead = leadById.get(recipient.lead_id) as never;
@@ -820,4 +824,15 @@ export const deleteCampaign = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("campaigns").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+
+/** Database-backed launch validation used by the campaign builder. */
+export const getCampaignLaunchReadiness = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { evaluateLaunchReadiness } = await import("@/lib/campaign-launch.server");
+    const readiness = await evaluateLaunchReadiness(context.supabase, data.id);
+    return readiness;
   });
