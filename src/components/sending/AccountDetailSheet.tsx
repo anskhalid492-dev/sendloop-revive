@@ -14,7 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AuthBadgeRow } from "@/components/sending/AuthBadges";
-import { getEmailAccountDetail } from "@/lib/sending.functions";
+import { getEmailAccountDetail, listSendingAccountAudit } from "@/lib/sending.functions";
 import {
   ACCOUNT_STATUS_LABEL,
   ACCOUNT_STATUS_STYLE,
