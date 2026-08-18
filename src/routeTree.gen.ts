@@ -10,33 +10,859 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
+import { Route as ApiDocsRouteImport } from './routes/api-docs'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as HelpCenterRouteImport } from './routes/help-center'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
+import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedSendingRouteImport } from './routes/_authenticated/sending'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
+import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated/warmup'
+import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
+import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
+import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
+import { Route as ProductCrmRouteImport } from './routes/product.crm'
+import { Route as ProductEmailAccountsRouteImport } from './routes/product.email-accounts'
+import { Route as ProductFollowUpsRouteImport } from './routes/product.follow-ups'
+import { Route as ProductTemplatesRouteImport } from './routes/product.templates'
+import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unified-inbox'
+import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
+import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
+import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
+import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin/billing'
+import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
+import { Route as AuthenticatedAdminInboundEventsRouteImport } from './routes/_authenticated/admin/inbound-events'
+import { Route as AuthenticatedAdminInfrastructureRouteImport } from './routes/_authenticated/admin/infrastructure'
+import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin/logs'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
+import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
+import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
+import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
+import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
+import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
+import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
+import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
+import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcceptableUseRoute = AcceptableUseRouteImport.update({
+  id: '/acceptable-use',
+  path: '/acceptable-use',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDocsRoute = ApiDocsRouteImport.update({
+  id: '/api-docs',
+  path: '/api-docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
+  id: '/cold-email-templates',
+  path: '/cold-email-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliverabilityGuideRoute = DeliverabilityGuideRouteImport.update({
+  id: '/deliverability-guide',
+  path: '/deliverability-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpCenterRoute = HelpCenterRouteImport.update({
+  id: '/help-center',
+  path: '/help-center',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSendingRoute = AuthenticatedSendingRouteImport.update({
+  id: '/sending',
+  path: '/sending',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWarmupRoute = AuthenticatedWarmupRouteImport.update({
+  id: '/warmup',
+  path: '/warmup',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ProductAnalyticsRoute = ProductAnalyticsRouteImport.update({
+  id: '/product/analytics',
+  path: '/product/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductCampaignsRoute = ProductCampaignsRouteImport.update({
+  id: '/product/campaigns',
+  path: '/product/campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductCrmRoute = ProductCrmRouteImport.update({
+  id: '/product/crm',
+  path: '/product/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductEmailAccountsRoute = ProductEmailAccountsRouteImport.update({
+  id: '/product/email-accounts',
+  path: '/product/email-accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductFollowUpsRoute = ProductFollowUpsRouteImport.update({
+  id: '/product/follow-ups',
+  path: '/product/follow-ups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductTemplatesRoute = ProductTemplatesRouteImport.update({
+  id: '/product/templates',
+  path: '/product/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductUnifiedInboxRoute = ProductUnifiedInboxRouteImport.update({
+  id: '/product/unified-inbox',
+  path: '/product/unified-inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductWarmupRoute = ProductWarmupRouteImport.update({
+  id: '/product/warmup',
+  path: '/product/warmup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductWorkspacesRoute = ProductWorkspacesRouteImport.update({
+  id: '/product/workspaces',
+  path: '/product/workspaces',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolutionsSlugRoute = SolutionsSlugRouteImport.update({
+  id: '/solutions/$slug',
+  path: '/solutions/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminBillingRoute =
+  AuthenticatedAdminBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCampaignsRoute =
+  AuthenticatedAdminCampaignsRouteImport.update({
+    id: '/campaigns',
+    path: '/campaigns',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminInboundEventsRoute =
+  AuthenticatedAdminInboundEventsRouteImport.update({
+    id: '/inbound-events',
+    path: '/inbound-events',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminInfrastructureRoute =
+  AuthenticatedAdminInfrastructureRouteImport.update({
+    id: '/infrastructure',
+    path: '/infrastructure',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminLogsRoute = AuthenticatedAdminLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminPoolRoute = AuthenticatedAdminPoolRouteImport.update({
+  id: '/pool',
+  path: '/pool',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminProvidersRoute =
+  AuthenticatedAdminProvidersRouteImport.update({
+    id: '/providers',
+    path: '/providers',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminTemplatesRoute =
+  AuthenticatedAdminTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminWorkspacesRoute =
+  AuthenticatedAdminWorkspacesRouteImport.update({
+    id: '/workspaces',
+    path: '/workspaces',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedCampaignsIndexRoute =
+  AuthenticatedCampaignsIndexRouteImport.update({
+    id: '/campaigns/',
+    path: '/campaigns/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCampaignsCampaignIdRoute =
+  AuthenticatedCampaignsCampaignIdRouteImport.update({
+    id: '/campaigns/$campaignId',
+    path: '/campaigns/$campaignId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminInboundEventsEventIdRoute =
+  AuthenticatedAdminInboundEventsEventIdRouteImport.update({
+    id: '/$eventId',
+    path: '/$eventId',
+    getParentRoute: () => AuthenticatedAdminInboundEventsRoute,
+  } as any)
+const ApiPublicCronRetryInboundRoute =
+  ApiPublicCronRetryInboundRouteImport.update({
+    id: '/api/public/cron/retry-inbound',
+    path: '/api/public/cron/retry-inbound',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronRunCampaignsRoute =
+  ApiPublicCronRunCampaignsRouteImport.update({
+    id: '/api/public/cron/run-campaigns',
+    path: '/api/public/cron/run-campaigns',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
+  id: '/api/public/inbound/email',
+  path: '/api/public/inbound/email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/auth': typeof AuthRoute
+  '/blog': typeof BlogRoute
+  '/cold-email-templates': typeof ColdEmailTemplatesRoute
+  '/contact': typeof ContactRoute
+  '/deliverability-guide': typeof DeliverabilityGuideRoute
+  '/docs': typeof DocsRoute
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help-center': typeof HelpCenterRoute
+  '/integrations': typeof IntegrationsRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signin': typeof SigninRoute
+  '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/billing': typeof AuthenticatedBillingRoute
+  '/crm': typeof AuthenticatedCrmRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/inbox': typeof AuthenticatedInboxRoute
+  '/leads': typeof AuthenticatedLeadsRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/sending': typeof AuthenticatedSendingRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/support': typeof AuthenticatedSupportRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
+  '/warmup': typeof AuthenticatedWarmupRoute
+  '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/product/analytics': typeof ProductAnalyticsRoute
+  '/product/campaigns': typeof ProductCampaignsRoute
+  '/product/crm': typeof ProductCrmRoute
+  '/product/email-accounts': typeof ProductEmailAccountsRoute
+  '/product/follow-ups': typeof ProductFollowUpsRoute
+  '/product/templates': typeof ProductTemplatesRoute
+  '/product/unified-inbox': typeof ProductUnifiedInboxRoute
+  '/product/warmup': typeof ProductWarmupRoute
+  '/product/workspaces': typeof ProductWorkspacesRoute
+  '/solutions/$slug': typeof SolutionsSlugRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
+  '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
+  '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
+  '/admin/logs': typeof AuthenticatedAdminLogsRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
+  '/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
+  '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
+  '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/auth': typeof AuthRoute
+  '/blog': typeof BlogRoute
+  '/cold-email-templates': typeof ColdEmailTemplatesRoute
+  '/contact': typeof ContactRoute
+  '/deliverability-guide': typeof DeliverabilityGuideRoute
+  '/docs': typeof DocsRoute
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help-center': typeof HelpCenterRoute
+  '/integrations': typeof IntegrationsRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signin': typeof SigninRoute
+  '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/billing': typeof AuthenticatedBillingRoute
+  '/crm': typeof AuthenticatedCrmRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/inbox': typeof AuthenticatedInboxRoute
+  '/leads': typeof AuthenticatedLeadsRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/sending': typeof AuthenticatedSendingRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/support': typeof AuthenticatedSupportRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
+  '/warmup': typeof AuthenticatedWarmupRoute
+  '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/product/analytics': typeof ProductAnalyticsRoute
+  '/product/campaigns': typeof ProductCampaignsRoute
+  '/product/crm': typeof ProductCrmRoute
+  '/product/email-accounts': typeof ProductEmailAccountsRoute
+  '/product/follow-ups': typeof ProductFollowUpsRoute
+  '/product/templates': typeof ProductTemplatesRoute
+  '/product/unified-inbox': typeof ProductUnifiedInboxRoute
+  '/product/warmup': typeof ProductWarmupRoute
+  '/product/workspaces': typeof ProductWorkspacesRoute
+  '/solutions/$slug': typeof SolutionsSlugRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
+  '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
+  '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
+  '/admin/logs': typeof AuthenticatedAdminLogsRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
+  '/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/campaigns': typeof AuthenticatedCampaignsIndexRoute
+  '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
+  '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/auth': typeof AuthRoute
+  '/blog': typeof BlogRoute
+  '/cold-email-templates': typeof ColdEmailTemplatesRoute
+  '/contact': typeof ContactRoute
+  '/deliverability-guide': typeof DeliverabilityGuideRoute
+  '/docs': typeof DocsRoute
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help-center': typeof HelpCenterRoute
+  '/integrations': typeof IntegrationsRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signin': typeof SigninRoute
+  '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/inbox': typeof AuthenticatedInboxRoute
+  '/_authenticated/leads': typeof AuthenticatedLeadsRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/sending': typeof AuthenticatedSendingRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
+  '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
+  '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
+  '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
+  '/product/analytics': typeof ProductAnalyticsRoute
+  '/product/campaigns': typeof ProductCampaignsRoute
+  '/product/crm': typeof ProductCrmRoute
+  '/product/email-accounts': typeof ProductEmailAccountsRoute
+  '/product/follow-ups': typeof ProductFollowUpsRoute
+  '/product/templates': typeof ProductTemplatesRoute
+  '/product/unified-inbox': typeof ProductUnifiedInboxRoute
+  '/product/warmup': typeof ProductWarmupRoute
+  '/product/workspaces': typeof ProductWorkspacesRoute
+  '/solutions/$slug': typeof SolutionsSlugRoute
+  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
+  '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
+  '/_authenticated/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
+  '/_authenticated/admin/logs': typeof AuthenticatedAdminLogsRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
+  '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
+  '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
+  '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/acceptable-use'
+    | '/api-docs'
+    | '/auth'
+    | '/blog'
+    | '/cold-email-templates'
+    | '/contact'
+    | '/deliverability-guide'
+    | '/docs'
+    | '/features'
+    | '/forgot-password'
+    | '/help-center'
+    | '/integrations'
+    | '/pricing'
+    | '/privacy'
+    | '/reset-password'
+    | '/signin'
+    | '/signup'
+    | '/terms'
+    | '/verify-email'
+    | '/admin'
+    | '/analytics'
+    | '/billing'
+    | '/crm'
+    | '/dashboard'
+    | '/inbox'
+    | '/leads'
+    | '/onboarding'
+    | '/sending'
+    | '/settings'
+    | '/support'
+    | '/templates'
+    | '/warmup'
+    | '/workspace'
+    | '/product/analytics'
+    | '/product/campaigns'
+    | '/product/crm'
+    | '/product/email-accounts'
+    | '/product/follow-ups'
+    | '/product/templates'
+    | '/product/unified-inbox'
+    | '/product/warmup'
+    | '/product/workspaces'
+    | '/solutions/$slug'
+    | '/admin/analytics'
+    | '/admin/billing'
+    | '/admin/campaigns'
+    | '/admin/inbound-events'
+    | '/admin/infrastructure'
+    | '/admin/logs'
+    | '/admin/notifications'
+    | '/admin/pool'
+    | '/admin/providers'
+    | '/admin/settings'
+    | '/admin/templates'
+    | '/admin/users'
+    | '/admin/workspaces'
+    | '/campaigns/$campaignId'
+    | '/admin/'
+    | '/campaigns/'
+    | '/admin/inbound-events/$eventId'
+    | '/api/public/cron/retry-inbound'
+    | '/api/public/cron/run-campaigns'
+    | '/api/public/inbound/email'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/acceptable-use'
+    | '/api-docs'
+    | '/auth'
+    | '/blog'
+    | '/cold-email-templates'
+    | '/contact'
+    | '/deliverability-guide'
+    | '/docs'
+    | '/features'
+    | '/forgot-password'
+    | '/help-center'
+    | '/integrations'
+    | '/pricing'
+    | '/privacy'
+    | '/reset-password'
+    | '/signin'
+    | '/signup'
+    | '/terms'
+    | '/verify-email'
+    | '/analytics'
+    | '/billing'
+    | '/crm'
+    | '/dashboard'
+    | '/inbox'
+    | '/leads'
+    | '/onboarding'
+    | '/sending'
+    | '/settings'
+    | '/support'
+    | '/templates'
+    | '/warmup'
+    | '/workspace'
+    | '/product/analytics'
+    | '/product/campaigns'
+    | '/product/crm'
+    | '/product/email-accounts'
+    | '/product/follow-ups'
+    | '/product/templates'
+    | '/product/unified-inbox'
+    | '/product/warmup'
+    | '/product/workspaces'
+    | '/solutions/$slug'
+    | '/admin/analytics'
+    | '/admin/billing'
+    | '/admin/campaigns'
+    | '/admin/inbound-events'
+    | '/admin/infrastructure'
+    | '/admin/logs'
+    | '/admin/notifications'
+    | '/admin/pool'
+    | '/admin/providers'
+    | '/admin/settings'
+    | '/admin/templates'
+    | '/admin/users'
+    | '/admin/workspaces'
+    | '/campaigns/$campaignId'
+    | '/admin'
+    | '/campaigns'
+    | '/admin/inbound-events/$eventId'
+    | '/api/public/cron/retry-inbound'
+    | '/api/public/cron/run-campaigns'
+    | '/api/public/inbound/email'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/about'
+    | '/acceptable-use'
+    | '/api-docs'
+    | '/auth'
+    | '/blog'
+    | '/cold-email-templates'
+    | '/contact'
+    | '/deliverability-guide'
+    | '/docs'
+    | '/features'
+    | '/forgot-password'
+    | '/help-center'
+    | '/integrations'
+    | '/pricing'
+    | '/privacy'
+    | '/reset-password'
+    | '/signin'
+    | '/signup'
+    | '/terms'
+    | '/verify-email'
+    | '/_authenticated/admin'
+    | '/_authenticated/analytics'
+    | '/_authenticated/billing'
+    | '/_authenticated/crm'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/inbox'
+    | '/_authenticated/leads'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/sending'
+    | '/_authenticated/settings'
+    | '/_authenticated/support'
+    | '/_authenticated/templates'
+    | '/_authenticated/warmup'
+    | '/_authenticated/workspace'
+    | '/product/analytics'
+    | '/product/campaigns'
+    | '/product/crm'
+    | '/product/email-accounts'
+    | '/product/follow-ups'
+    | '/product/templates'
+    | '/product/unified-inbox'
+    | '/product/warmup'
+    | '/product/workspaces'
+    | '/solutions/$slug'
+    | '/_authenticated/admin/analytics'
+    | '/_authenticated/admin/billing'
+    | '/_authenticated/admin/campaigns'
+    | '/_authenticated/admin/inbound-events'
+    | '/_authenticated/admin/infrastructure'
+    | '/_authenticated/admin/logs'
+    | '/_authenticated/admin/notifications'
+    | '/_authenticated/admin/pool'
+    | '/_authenticated/admin/providers'
+    | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/templates'
+    | '/_authenticated/admin/users'
+    | '/_authenticated/admin/workspaces'
+    | '/_authenticated/campaigns/$campaignId'
+    | '/_authenticated/admin/'
+    | '/_authenticated/campaigns/'
+    | '/_authenticated/admin/inbound-events/$eventId'
+    | '/api/public/cron/retry-inbound'
+    | '/api/public/cron/run-campaigns'
+    | '/api/public/inbound/email'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
+  AcceptableUseRoute: typeof AcceptableUseRoute
+  ApiDocsRoute: typeof ApiDocsRoute
+  AuthRoute: typeof AuthRoute
+  BlogRoute: typeof BlogRoute
+  ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
+  ContactRoute: typeof ContactRoute
+  DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
+  DocsRoute: typeof DocsRoute
+  FeaturesRoute: typeof FeaturesRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  HelpCenterRoute: typeof HelpCenterRoute
+  IntegrationsRoute: typeof IntegrationsRoute
+  PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SigninRoute: typeof SigninRoute
+  SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
+  ProductAnalyticsRoute: typeof ProductAnalyticsRoute
+  ProductCampaignsRoute: typeof ProductCampaignsRoute
+  ProductCrmRoute: typeof ProductCrmRoute
+  ProductEmailAccountsRoute: typeof ProductEmailAccountsRoute
+  ProductFollowUpsRoute: typeof ProductFollowUpsRoute
+  ProductTemplatesRoute: typeof ProductTemplatesRoute
+  ProductUnifiedInboxRoute: typeof ProductUnifiedInboxRoute
+  ProductWarmupRoute: typeof ProductWarmupRoute
+  ProductWorkspacesRoute: typeof ProductWorkspacesRoute
+  SolutionsSlugRoute: typeof SolutionsSlugRoute
+  ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
+  ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
+  ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +874,598 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acceptable-use': {
+      id: '/acceptable-use'
+      path: '/acceptable-use'
+      fullPath: '/acceptable-use'
+      preLoaderRoute: typeof AcceptableUseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api-docs': {
+      id: '/api-docs'
+      path: '/api-docs'
+      fullPath: '/api-docs'
+      preLoaderRoute: typeof ApiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cold-email-templates': {
+      id: '/cold-email-templates'
+      path: '/cold-email-templates'
+      fullPath: '/cold-email-templates'
+      preLoaderRoute: typeof ColdEmailTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deliverability-guide': {
+      id: '/deliverability-guide'
+      path: '/deliverability-guide'
+      fullPath: '/deliverability-guide'
+      preLoaderRoute: typeof DeliverabilityGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help-center': {
+      id: '/help-center'
+      path: '/help-center'
+      fullPath: '/help-center'
+      preLoaderRoute: typeof HelpCenterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/crm': {
+      id: '/_authenticated/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof AuthenticatedCrmRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inbox': {
+      id: '/_authenticated/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AuthenticatedInboxRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/leads': {
+      id: '/_authenticated/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof AuthenticatedLeadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sending': {
+      id: '/_authenticated/sending'
+      path: '/sending'
+      fullPath: '/sending'
+      preLoaderRoute: typeof AuthenticatedSendingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/templates': {
+      id: '/_authenticated/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/warmup': {
+      id: '/_authenticated/warmup'
+      path: '/warmup'
+      fullPath: '/warmup'
+      preLoaderRoute: typeof AuthenticatedWarmupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/workspace': {
+      id: '/_authenticated/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/product/analytics': {
+      id: '/product/analytics'
+      path: '/product/analytics'
+      fullPath: '/product/analytics'
+      preLoaderRoute: typeof ProductAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/campaigns': {
+      id: '/product/campaigns'
+      path: '/product/campaigns'
+      fullPath: '/product/campaigns'
+      preLoaderRoute: typeof ProductCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/crm': {
+      id: '/product/crm'
+      path: '/product/crm'
+      fullPath: '/product/crm'
+      preLoaderRoute: typeof ProductCrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/email-accounts': {
+      id: '/product/email-accounts'
+      path: '/product/email-accounts'
+      fullPath: '/product/email-accounts'
+      preLoaderRoute: typeof ProductEmailAccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/follow-ups': {
+      id: '/product/follow-ups'
+      path: '/product/follow-ups'
+      fullPath: '/product/follow-ups'
+      preLoaderRoute: typeof ProductFollowUpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/templates': {
+      id: '/product/templates'
+      path: '/product/templates'
+      fullPath: '/product/templates'
+      preLoaderRoute: typeof ProductTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/unified-inbox': {
+      id: '/product/unified-inbox'
+      path: '/product/unified-inbox'
+      fullPath: '/product/unified-inbox'
+      preLoaderRoute: typeof ProductUnifiedInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/warmup': {
+      id: '/product/warmup'
+      path: '/product/warmup'
+      fullPath: '/product/warmup'
+      preLoaderRoute: typeof ProductWarmupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/workspaces': {
+      id: '/product/workspaces'
+      path: '/product/workspaces'
+      fullPath: '/product/workspaces'
+      preLoaderRoute: typeof ProductWorkspacesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/solutions/$slug': {
+      id: '/solutions/$slug'
+      path: '/solutions/$slug'
+      fullPath: '/solutions/$slug'
+      preLoaderRoute: typeof SolutionsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/billing': {
+      id: '/_authenticated/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/campaigns': {
+      id: '/_authenticated/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns'
+      preLoaderRoute: typeof AuthenticatedAdminCampaignsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/inbound-events': {
+      id: '/_authenticated/admin/inbound-events'
+      path: '/inbound-events'
+      fullPath: '/admin/inbound-events'
+      preLoaderRoute: typeof AuthenticatedAdminInboundEventsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/infrastructure': {
+      id: '/_authenticated/admin/infrastructure'
+      path: '/infrastructure'
+      fullPath: '/admin/infrastructure'
+      preLoaderRoute: typeof AuthenticatedAdminInfrastructureRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/logs': {
+      id: '/_authenticated/admin/logs'
+      path: '/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AuthenticatedAdminLogsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/pool': {
+      id: '/_authenticated/admin/pool'
+      path: '/pool'
+      fullPath: '/admin/pool'
+      preLoaderRoute: typeof AuthenticatedAdminPoolRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/providers': {
+      id: '/_authenticated/admin/providers'
+      path: '/providers'
+      fullPath: '/admin/providers'
+      preLoaderRoute: typeof AuthenticatedAdminProvidersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/templates': {
+      id: '/_authenticated/admin/templates'
+      path: '/templates'
+      fullPath: '/admin/templates'
+      preLoaderRoute: typeof AuthenticatedAdminTemplatesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/workspaces': {
+      id: '/_authenticated/admin/workspaces'
+      path: '/workspaces'
+      fullPath: '/admin/workspaces'
+      preLoaderRoute: typeof AuthenticatedAdminWorkspacesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/campaigns/': {
+      id: '/_authenticated/campaigns/'
+      path: '/campaigns'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof AuthenticatedCampaignsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/campaigns/$campaignId': {
+      id: '/_authenticated/campaigns/$campaignId'
+      path: '/campaigns/$campaignId'
+      fullPath: '/campaigns/$campaignId'
+      preLoaderRoute: typeof AuthenticatedCampaignsCampaignIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/inbound-events/$eventId': {
+      id: '/_authenticated/admin/inbound-events/$eventId'
+      path: '/$eventId'
+      fullPath: '/admin/inbound-events/$eventId'
+      preLoaderRoute: typeof AuthenticatedAdminInboundEventsEventIdRouteImport
+      parentRoute: typeof AuthenticatedAdminInboundEventsRoute
+    }
+    '/api/public/cron/retry-inbound': {
+      id: '/api/public/cron/retry-inbound'
+      path: '/api/public/cron/retry-inbound'
+      fullPath: '/api/public/cron/retry-inbound'
+      preLoaderRoute: typeof ApiPublicCronRetryInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/run-campaigns': {
+      id: '/api/public/cron/run-campaigns'
+      path: '/api/public/cron/run-campaigns'
+      fullPath: '/api/public/cron/run-campaigns'
+      preLoaderRoute: typeof ApiPublicCronRunCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/inbound/email': {
+      id: '/api/public/inbound/email'
+      path: '/api/public/inbound/email'
+      fullPath: '/api/public/inbound/email'
+      preLoaderRoute: typeof ApiPublicInboundEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedAdminInboundEventsRouteChildren {
+  AuthenticatedAdminInboundEventsEventIdRoute: typeof AuthenticatedAdminInboundEventsEventIdRoute
+}
+
+const AuthenticatedAdminInboundEventsRouteChildren: AuthenticatedAdminInboundEventsRouteChildren =
+  {
+    AuthenticatedAdminInboundEventsEventIdRoute:
+      AuthenticatedAdminInboundEventsEventIdRoute,
+  }
+
+const AuthenticatedAdminInboundEventsRouteWithChildren =
+  AuthenticatedAdminInboundEventsRoute._addFileChildren(
+    AuthenticatedAdminInboundEventsRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
+  AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
+  AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
+  AuthenticatedAdminInfrastructureRoute: typeof AuthenticatedAdminInfrastructureRoute
+  AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
+  AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
+  AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminWorkspacesRoute: typeof AuthenticatedAdminWorkspacesRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+    AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
+    AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
+    AuthenticatedAdminInboundEventsRoute:
+      AuthenticatedAdminInboundEventsRouteWithChildren,
+    AuthenticatedAdminInfrastructureRoute:
+      AuthenticatedAdminInfrastructureRoute,
+    AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
+    AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
+    AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
+    AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
+    AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+    AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
+    AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+    AuthenticatedAdminWorkspacesRoute: AuthenticatedAdminWorkspacesRoute,
+    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
+  AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedSendingRoute: typeof AuthenticatedSendingRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
+  AuthenticatedWarmupRoute: typeof AuthenticatedWarmupRoute
+  AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
+  AuthenticatedCampaignsCampaignIdRoute: typeof AuthenticatedCampaignsCampaignIdRoute
+  AuthenticatedCampaignsIndexRoute: typeof AuthenticatedCampaignsIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInboxRoute: AuthenticatedInboxRoute,
+  AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedSendingRoute: AuthenticatedSendingRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
+  AuthenticatedWarmupRoute: AuthenticatedWarmupRoute,
+  AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
+  AuthenticatedCampaignsCampaignIdRoute: AuthenticatedCampaignsCampaignIdRoute,
+  AuthenticatedCampaignsIndexRoute: AuthenticatedCampaignsIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
+  AcceptableUseRoute: AcceptableUseRoute,
+  ApiDocsRoute: ApiDocsRoute,
+  AuthRoute: AuthRoute,
+  BlogRoute: BlogRoute,
+  ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
+  ContactRoute: ContactRoute,
+  DeliverabilityGuideRoute: DeliverabilityGuideRoute,
+  DocsRoute: DocsRoute,
+  FeaturesRoute: FeaturesRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  HelpCenterRoute: HelpCenterRoute,
+  IntegrationsRoute: IntegrationsRoute,
+  PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SigninRoute: SigninRoute,
+  SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
+  ProductAnalyticsRoute: ProductAnalyticsRoute,
+  ProductCampaignsRoute: ProductCampaignsRoute,
+  ProductCrmRoute: ProductCrmRoute,
+  ProductEmailAccountsRoute: ProductEmailAccountsRoute,
+  ProductFollowUpsRoute: ProductFollowUpsRoute,
+  ProductTemplatesRoute: ProductTemplatesRoute,
+  ProductUnifiedInboxRoute: ProductUnifiedInboxRoute,
+  ProductWarmupRoute: ProductWarmupRoute,
+  ProductWorkspacesRoute: ProductWorkspacesRoute,
+  SolutionsSlugRoute: SolutionsSlugRoute,
+  ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
+  ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
+  ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

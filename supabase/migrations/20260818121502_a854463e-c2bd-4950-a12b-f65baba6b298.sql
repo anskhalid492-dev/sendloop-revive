@@ -1,0 +1,1 @@
+UPDATE public.campaigns SET send_days = ARRAY[0,1,2,3,4,5,6]::smallint[] WHERE id='11111111-2222-4333-8444-555555550020';
