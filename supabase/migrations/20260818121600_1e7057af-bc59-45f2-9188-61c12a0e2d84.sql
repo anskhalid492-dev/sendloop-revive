@@ -1,0 +1,2 @@
+UPDATE public.campaign_messages SET scheduled_at = now() WHERE campaign_id='11111111-2222-4333-8444-555555550020';
+UPDATE public.campaign_recipients SET next_send_at = now() WHERE campaign_id='11111111-2222-4333-8444-555555550020';

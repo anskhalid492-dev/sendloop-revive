@@ -1,0 +1,3 @@
+INSERT INTO public.sending_accounts (id, workspace_id, provider, label, from_name, from_email, reply_to, daily_limit, hourly_limit, status, customer_enabled, assigned_at)
+VALUES ('11111111-2222-4333-8444-555555550001', '42032fb3-3da7-43f0-8958-0e482ebdf697', 'resend', 'Sendloop Pool 01', 'Sendloop', 'outreach@meetsmartoutreach.site', 'replies@meetsmartoutreach.site', 100, 30, 'verified', true, now())
+ON CONFLICT (id) DO NOTHING;

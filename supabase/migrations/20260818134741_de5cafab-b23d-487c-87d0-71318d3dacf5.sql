@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.run_inbound_retry() FROM PUBLIC, anon, authenticated;

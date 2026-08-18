@@ -1,0 +1,1 @@
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS custom_variables jsonb NOT NULL DEFAULT '[]'::jsonb;
