@@ -448,7 +448,7 @@ A weekly number and a monthly narrative. Ad-hoc reporting requests are a symptom
 Domain, authentication, warmup, list verification, sequence review and stop rules — the same checklist for every client, every time.$md$,
   (SELECT id FROM public.blog_categories WHERE slug='case-studies'),
   (SELECT id FROM public.blog_authors WHERE slug='sara-lindqvist'),
-  'case-study'::public.blog_content_type, 'published', false, false, 8, ARRAY['agency','workspaces','operations']::text[],
+  'case_study'::public.blog_content_type, 'published', false, false, 8, ARRAY['agency','workspaces','operations']::text[],
   'How Agencies Run Dozens of Client Workspaces Without Chaos — Sendloop Blog', 'Workspace structure, roles, reporting cadence and the automations that keep it profitable.', '2026-08-06 09:00:00+00'
 WHERE NOT EXISTS (SELECT 1 FROM public.blog_posts WHERE slug='agency-workspace-playbook');
 
@@ -510,6 +510,6 @@ Forwarded replies and auto-responders no longer split an existing thread into se
 Nothing. The change applies to newly received replies across all workspaces.$md$,
   (SELECT id FROM public.blog_categories WHERE slug='product-updates'),
   (SELECT id FROM public.blog_authors WHERE slug='anas-khalid'),
-  'product-update'::public.blog_content_type, 'published', false, false, 4, ARRAY['product','inbox']::text[],
+  'product_update'::public.blog_content_type, 'published', false, false, 4, ARRAY['product','inbox']::text[],
   'Product Update: Unified Inbox Threading Improvements — Sendloop Blog', 'Replies now thread by message headers first, so conversations stay in one place.', '2026-08-03 09:00:00+00'
 WHERE NOT EXISTS (SELECT 1 FROM public.blog_posts WHERE slug='unified-inbox-update');
