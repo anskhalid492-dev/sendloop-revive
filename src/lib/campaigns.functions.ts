@@ -262,7 +262,7 @@ export const updateCampaign = createServerFn({ method: "POST" })
       const value = (data as Record<string, unknown>)[key];
       if (key !== "id" && value !== undefined) patch[column] = value;
     }
-    if (Object.keys(patch).length === 0) return { ok: true };
+    if (Object.keys(patch).length === 0) return { ok: true, readiness: null };
 
     const { error } = await context.supabase
       .from("campaigns")
