@@ -72,6 +72,7 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
+import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
@@ -403,6 +404,11 @@ const AuthenticatedCampaignsCampaignIdRoute =
     path: '/campaigns/$campaignId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const BlogCategorySlugRoute = BlogCategorySlugRouteImport.update({
+  id: '/blog/category/$slug',
+  path: '/blog/category/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminInboundEventsEventIdRoute =
   AuthenticatedAdminInboundEventsEventIdRouteImport.update({
     id: '/$eventId',
@@ -488,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
@@ -555,6 +562,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
@@ -625,6 +633,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
@@ -695,6 +704,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/workspaces'
     | '/campaigns/$campaignId'
+    | '/blog/category/$slug'
     | '/admin/'
     | '/campaigns/'
     | '/admin/inbound-events/$eventId'
@@ -762,6 +772,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/workspaces'
     | '/campaigns/$campaignId'
+    | '/blog/category/$slug'
     | '/admin'
     | '/campaigns'
     | '/admin/inbound-events/$eventId'
@@ -831,6 +842,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/workspaces'
     | '/_authenticated/campaigns/$campaignId'
+    | '/blog/category/$slug'
     | '/_authenticated/admin/'
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/inbound-events/$eventId'
@@ -873,6 +885,7 @@ export interface RootRouteChildren {
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
@@ -1321,6 +1334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCampaignsCampaignIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/blog/category/$slug': {
+      id: '/blog/category/$slug'
+      path: '/blog/category/$slug'
+      fullPath: '/blog/category/$slug'
+      preLoaderRoute: typeof BlogCategorySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/inbound-events/$eventId': {
       id: '/_authenticated/admin/inbound-events/$eventId'
       path: '/$eventId'
@@ -1484,6 +1504,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
