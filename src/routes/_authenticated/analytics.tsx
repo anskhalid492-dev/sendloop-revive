@@ -448,7 +448,13 @@ function AnalyticsPage() {
         ) : null}
       </div>
 
-      <CampaignDetailDialog row={campaignDetail} onOpenChange={() => setCampaignDetail(null)} />
+      <CampaignDetailDialog
+        row={campaignDetail}
+        onOpenChange={() => setCampaignDetail(null)}
+        workspaceId={workspaceId}
+        from={range.from}
+        to={range.to}
+      />
     </AppShell>
   );
 }

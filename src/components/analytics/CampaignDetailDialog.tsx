@@ -5,7 +5,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ConversionFunnel } from "@/components/analytics/ConversionFunnel";
+import { useState } from "react";
+
+import { ConversionFunnel, type FunnelStepKey } from "@/components/analytics/ConversionFunnel";
+import { FunnelDrilldownDialog } from "@/components/analytics/FunnelDrilldownDialog";
 import {
   bounceRate,
   clickRate,
@@ -21,10 +24,17 @@ import {
 export function CampaignDetailDialog({
   row,
   onOpenChange,
+  workspaceId,
+  from,
+  to,
 }: {
   row: AnalyticsCampaignRow | null;
   onOpenChange: (open: boolean) => void;
+  workspaceId: string | null;
+  from: string;
+  to: string;
 }) {
+  const [step, setStep] = useState<FunnelStepKey | null>(null);
   return (
     <Dialog open={!!row} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
@@ -67,6 +77,20 @@ export function CampaignDetailDialog({
               delivered: row.delivered,
               opens: row.opens,
               replies: row.replies,
+            }}
+            onStepClick={workspaceId ? (s) => setStep(s) : undefined}
+          />
+        ) : null}
+
+        {row && workspaceId ? (
+          <FunnelDrilldownDialog
+            step={step}
+            workspaceId={workspaceId}
+            from={from}
+            to={to}
+            campaignId={row.campaignId}
+            onOpenChange={(open) => {
+              if (!open) setStep(null);
             }}
           />
         ) : null}
