@@ -153,7 +153,7 @@ export function SiteHeader() {
       ref={headerRef}
       data-scrolled={scrolled || menu ? "true" : "false"}
       onMouseLeave={scheduleClose}
-      className="sticky top-0 z-50 border-b transition-all duration-300 data-[scrolled=false]:border-transparent data-[scrolled=false]:bg-background/60 data-[scrolled=true]:border-border/70 data-[scrolled=true]:bg-background/90 data-[scrolled=true]:shadow-[0_1px_20px_-12px_rgba(15,23,42,0.45)] data-[scrolled=true]:backdrop-blur-xl"
+      className="sticky top-0 z-50 px-3 pb-2 pt-3 transition-all duration-300 sm:px-5"
     >
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2">
