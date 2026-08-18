@@ -263,46 +263,6 @@ function emptyPage(filters: Filters, facets: AccountFacets): AccountPageResult {
   };
 }
 
-export async function createAccountRequest(
-  client: Client,
-  userId: string,
-  input: { quantity: number; preferredDomain?: string | undefined; note?: string | undefined },
-) {
-  const { data: membership, error: membershipError } = await client
-    .from("workspace_members")
-    .select("workspace_id, role")
-    .eq("user_id", userId)
-    .limit(1)
-    .maybeSingle();
-  if (membershipError) throw new Error(membershipError.message);
-  if (!membership) throw new Error("No workspace found for your account");
-
-  const { data, error } = await client
-    .from("sending_account_requests")
-    .insert({
-      workspace_id: membership.workspace_id,
-      requested_by: userId,
-      kind: "new",
-      quantity: input.quantity,
-      preferred_domain: input.preferredDomain?.trim() || null,
-      note: input.note?.trim() || null,
-    })
-    .select("id, quantity, status, created_at")
-    .single();
-  if (error) throw new Error(error.message);
-  return { ok: true as const, request: data };
-}
-
-export async function loadAccountRequests(client: Client) {
-  const { data, error } = await client
-    .from("sending_account_requests")
-    .select("id, kind, quantity, preferred_domain, note, status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(10);
-  if (error) throw new Error(error.message);
-  return { requests: (data ?? []) as any[] };
-}
-
 export async function loadAllAccounts(client: Client) {
   const { data, error } = await client
     .from("sending_accounts")
