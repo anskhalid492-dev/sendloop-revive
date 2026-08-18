@@ -55,7 +55,7 @@ function CategoryPage() {
   const { category, posts } = Route.useLoaderData();
   return (
     <MarketingLayout>
-      <Section title={category?.name ?? "Category"} description={category?.description}>
+      <Section title={category?.name ?? "Category"} {...(category?.description ? { description: category.description } : {})}>
         {posts.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">No published articles in this category yet.</p>
         ) : (

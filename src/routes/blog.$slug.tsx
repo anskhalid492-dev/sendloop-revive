@@ -106,6 +106,7 @@ export const Route = createFileRoute("/blog/$slug")({
 
 function ArticlePage() {
   const { post, related } = Route.useLoaderData();
+  if (!post) return null;
   const sections = parseArticle(post.content);
 
   const share = (network: "x" | "linkedin" | "copy") => {
