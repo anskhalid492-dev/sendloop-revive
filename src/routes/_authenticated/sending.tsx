@@ -7,7 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
+  Globe,
   LineChart,
+  PlugZap,
   Pause,
   Play,
   Plus,
@@ -20,7 +22,10 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app/AppShell";
 import { AuthBadgeRow } from "@/components/sending/AuthBadges";
 import { AccountDetailSheet } from "@/components/sending/AccountDetailSheet";
-import { RequestAccountsDialog } from "@/components/sending/RequestAccountsDialog";
+import { AddDomainDialog } from "@/components/sending/AddDomainDialog";
+import { ConnectMailboxDialog } from "@/components/sending/ConnectMailboxDialog";
+import { DnsSetupDialog } from "@/components/sending/DnsSetupDialog";
+import { DomainsPanel } from "@/components/sending/DomainsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -53,8 +58,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   bulkSetSendingAccountsPaused,
   listEmailAccounts,
-  requestSendingAccountRelease,
 } from "@/lib/sending.functions";
+import { listSendingDomains } from "@/lib/domains.functions";
+import { removeMailbox, setMailboxWarmup, testMailboxConnection } from "@/lib/mailboxes.functions";
 import {
   ACCOUNT_STATUS_LABEL,
   ACCOUNT_STATUS_STYLE,
@@ -120,14 +126,20 @@ function EmailAccountsPage() {
   const queryClient = useQueryClient();
   const fetchAccounts = useServerFn(listEmailAccounts);
   const bulkPauseFn = useServerFn(bulkSetSendingAccountsPaused);
-  const releaseFn = useServerFn(requestSendingAccountRelease);
+  const removeFn = useServerFn(removeMailbox);
+  const testFn = useServerFn(testMailboxConnection);
+  const warmupFn = useServerFn(setMailboxWarmup);
+  const fetchDomains = useServerFn(listSendingDomains);
 
   const [filters, setFilters] = useState<EmailAccountFilters>(defaultFilters);
   const [searchInput, setSearchInput] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [requestOpen, setRequestOpen] = useState(false);
-  const [confirmRelease, setConfirmRelease] = useState(false);
+  const [addDomainOpen, setAddDomainOpen] = useState(false);
+  const [dnsDomainId, setDnsDomainId] = useState<string | null>(null);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectDomainId, setConnectDomainId] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "failed">(
     "connecting",
   );
@@ -146,6 +158,12 @@ function EmailAccountsPage() {
     queryKey: ["email-accounts", filters],
     queryFn: () => fetchAccounts({ data: filters }),
   });
+
+  const domainsQuery = useQuery({
+    queryKey: ["sending-domains"],
+    queryFn: () => fetchDomains(),
+  });
+  const domains = domainsQuery.data?.domains ?? [];
 
   // Live updates: refresh when Sendloop assigns, pauses or updates an account.
   // A failed/closed subscription is surfaced in the UI with an in-place retry
@@ -200,12 +218,32 @@ function EmailAccountsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const releaseMutation = useMutation({
-    mutationFn: (ids: string[]) => releaseFn({ data: { ids } }),
+  const removeMutation = useMutation({
+    mutationFn: (ids: string[]) => removeFn({ data: { ids } }),
     onSuccess: async () => {
-      toast.success("Removal requested — Sendloop will unassign these accounts.");
+      toast.success("Mailboxes disconnected and their credentials deleted.");
       setSelected([]);
-      setConfirmRelease(false);
+      setConfirmRemove(false);
+      await invalidate();
+      await queryClient.invalidateQueries({ queryKey: ["sending-domains"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const testMutation = useMutation({
+    mutationFn: (id: string) => testFn({ data: { id } }),
+    onSuccess: async (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const warmupMutation = useMutation({
+    mutationFn: (vars: { id: string; enabled: boolean }) => warmupFn({ data: vars }),
+    onSuccess: async (result) => {
+      toast.success(result.enabled ? "Warmup started" : "Warmup stopped");
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -225,11 +263,21 @@ function EmailAccountsPage() {
   return (
     <AppShell
       title="Email Accounts"
-      description="Manage your sending accounts, warmup, and email health."
+      description="Connect your own domains and mailboxes, then manage warmup and email health."
       actions={
-        <Button onClick={() => setRequestOpen(true)}>
-          <Plus className="size-4" /> Add New Account
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setAddDomainOpen(true)}>
+            <Globe className="size-4" /> Add domain
+          </Button>
+          <Button
+            onClick={() => {
+              setConnectDomainId(null);
+              setConnectOpen(true);
+            }}
+          >
+            <Plus className="size-4" /> Connect email account
+          </Button>
+        </div>
       }
     >
       <div className="space-y-5">
@@ -243,6 +291,17 @@ function EmailAccountsPage() {
             </Button>
           </div>
         )}
+
+        <DomainsPanel
+          domains={domains}
+          isLoading={domainsQuery.isLoading}
+          onAddDomain={() => setAddDomainOpen(true)}
+          onOpenDns={(id) => setDnsDomainId(id)}
+          onConnectMailbox={(id) => {
+            setConnectDomainId(id);
+            setConnectOpen(true);
+          }}
+        />
 
         <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <SummaryCard label="Total Accounts" value={summary?.totalAccounts ?? 0} />
@@ -278,12 +337,18 @@ function EmailAccountsPage() {
 
         {isEmptyWorkspace ? (
           <div className="surface-card space-y-3 p-10 text-center">
-            <h2 className="text-lg font-semibold">No email accounts yet</h2>
+            <h2 className="text-lg font-semibold">No mailboxes connected yet</h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground">
-              Sendloop manages your sending infrastructure. Request an account to get started.
+              Add your domain, publish the DNS records, verify, then connect your own email account.
+              You keep ownership of every mailbox.
             </p>
-            <Button onClick={() => setRequestOpen(true)}>
-              <Plus className="size-4" /> Request Email Account
+            <Button
+              onClick={() => {
+                setConnectDomainId(null);
+                setConnectOpen(true);
+              }}
+            >
+              <Plus className="size-4" /> Connect email account
             </Button>
           </div>
         ) : (
@@ -471,9 +536,9 @@ function EmailAccountsPage() {
                   size="sm"
                   variant="outline"
                   className="text-destructive"
-                  onClick={() => setConfirmRelease(true)}
+                  onClick={() => setConfirmRemove(true)}
                 >
-                  <Trash2 className="size-4" /> Remove
+                  <Trash2 className="size-4" /> Disconnect
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
                   Clear
@@ -627,10 +692,37 @@ function EmailAccountsPage() {
                                     </>
                                   )}
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => testMutation.mutate(account.id)}
+                                >
+                                  <PlugZap className="size-4" /> Test connection
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    warmupMutation.mutate({
+                                      id: account.id,
+                                      enabled: account.warmup_status !== "warming",
+                                    })
+                                  }
+                                >
+                                  <Flame className="size-4" />
+                                  {account.warmup_status === "warming"
+                                    ? "Stop warmup"
+                                    : "Start warmup"}
+                                </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                   <Link to="/warmup">
                                     <Flame className="size-4" /> View warmup
                                   </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    setSelected([account.id]);
+                                    setConfirmRemove(true);
+                                  }}
+                                >
+                                  <Trash2 className="size-4" /> Disconnect mailbox
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                   <Link to="/analytics">
@@ -699,8 +791,8 @@ function EmailAccountsPage() {
         )}
 
         <p className="text-xs text-muted-foreground">
-          Sendloop runs your sending infrastructure — provider routing, warmup and deliverability
-          monitoring happen behind the scenes.
+          You own your domains and mailboxes. Sendloop handles sending, warmup and deliverability
+          monitoring using the credentials you connect.
         </p>
       </div>
 
@@ -710,24 +802,40 @@ function EmailAccountsPage() {
         onOpenChange={(open) => setDetailId(open ? detailId : null)}
       />
 
-      <RequestAccountsDialog open={requestOpen} onOpenChange={setRequestOpen} />
+      <AddDomainDialog
+        open={addDomainOpen}
+        onOpenChange={setAddDomainOpen}
+        onAdded={(id) => setDnsDomainId(id)}
+      />
 
-      <AlertDialog open={confirmRelease} onOpenChange={setConfirmRelease}>
+      <DnsSetupDialog
+        domainId={dnsDomainId}
+        onOpenChange={(open) => setDnsDomainId(open ? dnsDomainId : null)}
+      />
+
+      <ConnectMailboxDialog
+        open={connectOpen}
+        onOpenChange={setConnectOpen}
+        domains={domains}
+        defaultDomainId={connectDomainId}
+      />
+
+      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {selected.length} account(s)?</AlertDialogTitle>
+            <AlertDialogTitle>Disconnect {selected.length} mailbox(es)?</AlertDialogTitle>
             <AlertDialogDescription>
-              These accounts will be paused immediately and Sendloop will unassign them from your
-              workspace. Campaign history is kept.
+              Sendloop stops sending from these mailboxes and permanently deletes the stored
+              credentials. Your mailbox itself is untouched and campaign history is kept.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => releaseMutation.mutate(selected)}
-              disabled={releaseMutation.isPending}
+              onClick={() => removeMutation.mutate(selected)}
+              disabled={removeMutation.isPending}
             >
-              Request removal
+              Disconnect
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
