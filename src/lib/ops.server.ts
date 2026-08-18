@@ -234,7 +234,7 @@ export async function getInboxHealthSummary() {
  * routed reply address, then reports whether a reply came back through it.
  */
 export async function runInboundTest(args: { userId: string; toEmail: string }) {
-  const { getAdapter, readCredentials } = await import("@/lib/providers/adapter.server");
+  const { getAdapter } = await import("@/lib/providers/adapter.server");
   const { resolveReplyTo } = await import("@/lib/inbox-send.server");
   const { mintReplyAddress, tokenFromAddress } = await import("@/lib/inbound-routing.server");
 
@@ -248,21 +248,12 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   if (!account) throw new Error("No managed mailbox is available to send the test from.");
   if (!account.workspace_id) throw new Error("The available mailbox is not assigned to a workspace.");
 
-  let credentials: Record<string, string> | null = null;
-  if (account.provider_id) {
-    const { data: secret } = await supabaseAdmin
-      .from("email_provider_secrets")
-      .select("credentials_ciphertext")
-      .eq("provider_id", account.provider_id)
-      .maybeSingle();
-    if (secret?.credentials_ciphertext) {
-      try {
-        credentials = readCredentials(secret.credentials_ciphertext);
-      } catch {
-        credentials = null;
-      }
-    }
-  }
+  // Customer-owned mailbox credentials first, shared provider credentials after.
+  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
+  const credentials = await loadAccountCredentials(supabaseAdmin, {
+    id: account.id as string,
+    provider_id: (account.provider_id as string | null) ?? null,
+  });
   if (!credentials && !(account.provider === "resend" && process.env["RESEND_API_KEY"])) {
     throw new Error("The mailbox provider has no usable credentials.");
   }

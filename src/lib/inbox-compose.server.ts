@@ -25,7 +25,7 @@ export type ComposeInput = {
 };
 
 export async function composeAndSend(input: ComposeInput) {
-  const { getAdapter, readCredentials } = await import("@/lib/providers/adapter.server");
+  const { getAdapter } = await import("@/lib/providers/adapter.server");
   const { resolveReplyTo } = await import("@/lib/inbox-send.server");
   const supabase = input.supabase;
   const to = input.to.trim().toLowerCase();
@@ -48,21 +48,12 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error("This mailbox has reached its daily sending limit.");
   }
 
-  let credentials: Record<string, string> | null = null;
-  if (account.provider_id) {
-    const { data: secret } = await supabaseAdmin
-      .from("email_provider_secrets")
-      .select("credentials_ciphertext")
-      .eq("provider_id", account.provider_id)
-      .maybeSingle();
-    if (secret?.credentials_ciphertext) {
-      try {
-        credentials = readCredentials(secret.credentials_ciphertext);
-      } catch {
-        credentials = null;
-      }
-    }
-  }
+  // Customer-owned mailbox credentials first, shared provider credentials after.
+  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
+  const credentials = await loadAccountCredentials(supabaseAdmin, {
+    id: account.id as string,
+    provider_id: (account.provider_id as string | null) ?? null,
+  });
   const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
   if (!credentials && !envFallback) {
     throw new Error("Sending is temporarily unavailable for this mailbox.");
