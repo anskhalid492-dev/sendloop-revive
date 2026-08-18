@@ -9,6 +9,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { ContactDrawer } from "@/components/crm/ContactDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import {
   listCrmContacts,
   listCrmStages,
   moveCrmContact,
+  moveCrmContacts,
   updateCrmStage,
   upsertCrmContact,
 } from "@/lib/crm.functions";
@@ -86,6 +88,7 @@ function CrmPage() {
   const fetchStages = useServerFn(listCrmStages);
   const fetchContacts = useServerFn(listCrmContacts);
   const move = useServerFn(moveCrmContact);
+  const moveMany = useServerFn(moveCrmContacts);
   const addStage = useServerFn(createCrmStage);
   const editStage = useServerFn(updateCrmStage);
   const removeStage = useServerFn(deleteCrmStage);
@@ -97,6 +100,8 @@ function CrmPage() {
   const [source, setSource] = useState("all");
   const [openContact, setOpenContact] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkStage, setBulkStage] = useState<string>("");
   const [dropStage, setDropStage] = useState<string | null>(null);
   const [newStageOpen, setNewStageOpen] = useState(false);
   const [newStageName, setNewStageName] = useState("");
@@ -232,6 +237,44 @@ function CrmPage() {
           </Button>
         </div>
 
+        {selected.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2">
+            <span className="text-sm font-medium">{selected.length} selected</span>
+            <Select value={bulkStage} onValueChange={setBulkStage}>
+              <SelectTrigger className="h-9 w-[200px]">
+                <SelectValue placeholder="Move to stage" />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              disabled={!bulkStage}
+              onClick={async () => {
+                try {
+                  const res = await moveMany({ data: { leadIds: selected, stageId: bulkStage } });
+                  toast.success(`Moved ${res.moved} contact(s)`);
+                  setSelected([]);
+                  setBulkStage("");
+                  invalidate();
+                } catch (error) {
+                  toast.error((error as Error).message);
+                }
+              }}
+            >
+              Move
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
+              Clear
+            </Button>
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -308,7 +351,22 @@ function CrmPage() {
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <p className="truncate text-sm font-medium">{contactName(c)}</p>
+                          <span
+                            className="pt-0.5"
+                            onClick={(e) => e.stopPropagation()}
+                            role="presentation"
+                          >
+                            <Checkbox
+                              checked={selected.includes(c.id)}
+                              onCheckedChange={(checked) =>
+                                setSelected((prev) =>
+                                  checked ? [...prev, c.id] : prev.filter((id) => id !== c.id),
+                                )
+                              }
+                              aria-label={`Select ${contactName(c)}`}
+                            />
+                          </span>
+                          <p className="flex-1 truncate text-sm font-medium">{contactName(c)}</p>
                           {c.unreadReplies > 0 ? (
                             <Badge className="shrink-0">{c.unreadReplies} new</Badge>
                           ) : null}
