@@ -61,8 +61,10 @@ export function AdminShell({
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({ to: "/signin", replace: true });
   }
 
   const sidebar = (

@@ -13,6 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/signin")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search["redirect"] === "string" ? (search["redirect"] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Sign in to Sendloop — Cold Email Workspace" },
@@ -35,8 +38,20 @@ export const Route = createFileRoute("/signin")({
 
 const REMEMBER_KEY = "sendloop.remember-email";
 
+function safeRedirect(target: string | undefined): string {
+  if (!target) return "/dashboard";
+  // Only allow same-origin internal paths.
+  if (!target.startsWith("/") || target.startsWith("//")) return "/dashboard";
+  if (target.startsWith("/signin") || target.startsWith("/signup") || target.startsWith("/auth")) {
+    return "/dashboard";
+  }
+  return target;
+}
+
 function SignInPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const destination = safeRedirect(search.redirect);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -53,31 +68,37 @@ function SignInPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session) navigate({ to: destination, replace: true });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && event === "SIGNED_IN") navigate({ to: "/dashboard", replace: true });
+      if (session && event === "SIGNED_IN") navigate({ to: destination, replace: true });
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, destination]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     setLoading(false);
     if (error) {
       const message =
         error.message === "Invalid login credentials"
           ? "That email and password combination doesn't match an account."
-          : error.message;
+          : error.message === "Email not confirmed"
+            ? "Please confirm your email address, then log in again."
+            : error.message;
       setFormError(message);
       toast.error(message);
       return;
     }
-    if (remember) window.localStorage.setItem(REMEMBER_KEY, email);
+    if (remember) window.localStorage.setItem(REMEMBER_KEY, email.trim());
     else window.localStorage.removeItem(REMEMBER_KEY);
+    if (data.session) navigate({ to: destination, replace: true });
   }
 
   async function handleGoogle() {
