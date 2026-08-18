@@ -21,13 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { MarketingLayout, PageHero, Section } from "@/components/site/MarketingPage";
+import { MarketingLayout, PageHero, Section, FaqBlock } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
 import { cn } from "@/lib/utils";
@@ -112,8 +106,8 @@ function PricingPage() {
         <ComparisonTable plans={plans} />
       </Section>
 
-      <Section title="Frequently Asked Questions">
-        <FaqAccordion />
+      <Section>
+        <FaqBlock faqs={pricingFaqs} />
       </Section>
 
       <Section muted>
@@ -324,8 +318,7 @@ function FragmentGroup({
   );
 }
 
-function FaqAccordion() {
-  const faqs = [
+const pricingFaqs = [
     {
       q: "Can I change plans later?",
       a: "Yes. You can upgrade or downgrade at any time from your workspace settings. Prorated credits are applied automatically.",
@@ -352,18 +345,3 @@ function FaqAccordion() {
     },
   ];
 
-  return (
-    <div className="mx-auto max-w-3xl">
-      <Accordion type="single" collapsible className="w-full">
-        {faqs.map((item, i) => (
-          <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border/60">
-            <AccordionTrigger className="text-left text-base font-medium hover:no-underline">
-              {item.q}
-            </AccordionTrigger>
-            <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </div>
-  );
-}

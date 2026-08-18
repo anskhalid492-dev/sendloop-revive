@@ -221,8 +221,8 @@ function Blog() {
         </div>
       </Section>
 
-      <Section title="Frequently Asked Questions" muted>
-        <FaqBlock faqs={faqs} />
+      <Section muted>
+        <FaqBlock faqs={faqs}  />
       </Section>
 
       <TestimonialCarousel page="blog" />

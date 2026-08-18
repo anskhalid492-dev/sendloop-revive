@@ -208,8 +208,8 @@ function Guide() {
         />
       </Section>
 
-      <Section title="Common questions" muted>
-        <FaqBlock faqs={faqs} />
+      <Section muted>
+        <FaqBlock faqs={faqs} title="Common questions" />
       </Section>
 
       <TestimonialCarousel page="deliverability-guide" />

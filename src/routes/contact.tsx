@@ -159,7 +159,7 @@ function Contact() {
         <FeatureGrid items={expectations} />
       </Section>
 
-      <Section title="Frequently Asked Questions">
+      <Section>
         <FaqBlock faqs={faqs} />
       </Section>
 
