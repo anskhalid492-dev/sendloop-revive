@@ -25,18 +25,31 @@ function secretMatches(provided: string, expected: string): boolean {
 }
 
 async function run(request: Request) {
-  const secret = process.env["CAMPAIGN_CRON_SECRET"] ?? process.env["INBOUND_EMAIL_SECRET"];
-  if (!secret) return json({ error: "Campaign runner is not configured" }, 503);
-
   const url = new URL(request.url);
   const provided =
     request.headers.get("x-sendloop-signature") ??
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     url.searchParams.get("token") ??
     "";
-  if (!secretMatches(provided, secret)) return json({ error: "Unauthorized" }, 401);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Scheduler token lives in platform_settings (service-role only); env
+  // secrets remain supported for external schedulers.
+  const { data: runnerSettings } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "campaign_runner")
+    .maybeSingle();
+  const secrets = [
+    (runnerSettings?.value as { token?: string } | null)?.token,
+    process.env["CAMPAIGN_CRON_SECRET"],
+    process.env["INBOUND_EMAIL_SECRET"],
+  ].filter((value): value is string => Boolean(value));
+  if (secrets.length === 0) return json({ error: "Runner is not configured" }, 503);
+  if (!secrets.some((secret) => secretMatches(provided, secret))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
   const { runCampaign } = await import("@/lib/dispatch.server");
 
   const only = url.searchParams.get("campaignId");

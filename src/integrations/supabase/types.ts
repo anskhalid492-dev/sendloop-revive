@@ -3266,6 +3266,7 @@ export type Database = {
       }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
+      run_warmup_runner: { Args: never; Returns: undefined }
       sending_account_stats: {
         Args: { _account_ids: string[] }
         Returns: {
