@@ -41,7 +41,23 @@ export type Plan = {
 };
 
 export const getPlans = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Public pricing data: read with the publishable key (RLS/anon policies apply)
+  // so the marketing pages work without the service role key.
+  const { createClient } = await import("@supabase/supabase-js");
+  const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = await import(
+    "@/integrations/supabase/config"
+  );
+  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (h.get("Authorization") === `Bearer ${SUPABASE_PUBLISHABLE_KEY}`) h.delete("Authorization");
+        h.set("apikey", SUPABASE_PUBLISHABLE_KEY);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
+  });
 
   const { data: plans, error } = await supabaseAdmin
     .from("plans")
