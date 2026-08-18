@@ -31,7 +31,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
-  // Pinned to the existing external Sendloop Supabase project.
+  // Resolved from environment variables (connected Supabase project).
   const SUPABASE_URL = PINNED_URL;
   const SUPABASE_PUBLISHABLE_KEY = PINNED_ANON;
 

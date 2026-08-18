@@ -31,7 +31,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseAdminClient() {
-  // Pinned to the existing external Sendloop Supabase project.
+  // Resolved from environment variables (connected Supabase project).
   const SUPABASE_URL = PINNED_URL;
   const SUPABASE_SERVICE_ROLE_KEY = getServiceRoleKey();
 
