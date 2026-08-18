@@ -11,21 +11,27 @@ export function NewsletterCard({ source = "blog", compact = false }: { source?: 
   const subscribe = useServerFn(subscribeToNewsletter);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<{ kind: "success" | "error"; message: string } | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setBusy(true);
+    setState(null);
     try {
       const res = await subscribe({ data: { email: email.trim(), source } });
       if (res.ok) {
         toast.success(res.message);
+        setState({ kind: "success", message: res.message });
         setEmail("");
       } else {
         toast.error(res.message);
+        setState({ kind: "error", message: res.message });
       }
     } catch {
-      toast.error("Could not subscribe right now. Please try again.");
+      const message = "Could not subscribe right now. Please try again.";
+      toast.error(message);
+      setState({ kind: "error", message });
     } finally {
       setBusy(false);
     }
@@ -58,6 +64,16 @@ export function NewsletterCard({ source = "blog", compact = false }: { source?: 
           <ArrowRight className="size-4" />
         </Button>
       </form>
+      {state ? (
+        <p
+          role="status"
+          className={`mt-2 text-xs font-medium ${
+            state.kind === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+          }`}
+        >
+          {state.message}
+        </p>
+      ) : null}
       <p className="mt-2 text-[11px] text-muted-foreground">No spam. Unsubscribe anytime.</p>
     </div>
   );
