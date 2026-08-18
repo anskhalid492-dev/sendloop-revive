@@ -84,20 +84,26 @@ function BlogPage() {
     e.preventDefault();
     if (!email.trim()) return;
     setSubscribing(true);
+    setSubscribeState(null);
     try {
       const res = await subscribe({ data: { email: email.trim(), source: "blog" } });
       if (res.ok) {
         toast.success(res.message);
+        setSubscribeState({ kind: "success", message: res.message });
         setEmail("");
       } else {
         toast.error(res.message);
+        setSubscribeState({ kind: "error", message: res.message });
       }
     } catch {
-      toast.error("Could not subscribe right now. Please try again.");
+      const message = "Could not subscribe right now. Please try again.";
+      toast.error(message);
+      setSubscribeState({ kind: "error", message });
     } finally {
       setSubscribing(false);
     }
   };
+
 
   const featured = data.featured;
 
