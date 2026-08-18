@@ -823,8 +823,26 @@ export const launchCampaign = createServerFn({ method: "POST" })
       .eq("id", c.id);
     if (uErr) throw new Error(uErr.message);
 
+    // Real queued message count straight from the queue, for the audit trail.
+    const { count: scheduledCount } = await context.supabase
+      .from("campaign_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", c.id)
+      .eq("status", "scheduled");
+
+    const postReadiness = await refreshReadiness(context.supabase, c.id);
+    await recordLaunchEvent(context.supabase, {
+      readiness: { ...readiness, ...postReadiness, issues: readiness.issues },
+      actorId: context.userId,
+      outcome: "launched",
+      queuedMessages: scheduledCount ?? 0,
+      totalRecipients: already.size + fresh.length,
+      firstSendAt: firstSlot,
+    });
+
     return { queued: fresh.length, total: already.size + fresh.length, firstSendAt: firstSlot };
   });
+
 
 export const setCampaignStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
