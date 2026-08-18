@@ -16,7 +16,8 @@ import {
 
 import { AppShell } from "@/components/app/AppShell";
 import { CampaignDetailDialog } from "@/components/analytics/CampaignDetailDialog";
-import { ConversionFunnel } from "@/components/analytics/ConversionFunnel";
+import { ConversionFunnel, type FunnelStepKey } from "@/components/analytics/ConversionFunnel";
+import { FunnelDrilldownDialog } from "@/components/analytics/FunnelDrilldownDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +100,7 @@ function AnalyticsPage() {
   const [customTo, setCustomTo] = useState(new Date().toISOString().slice(0, 10));
   const [visible, setVisible] = useState<string[]>(["sent", "opens", "replies"]);
   const [campaignDetail, setCampaignDetail] = useState<AnalyticsCampaignRow | null>(null);
+  const [funnelStep, setFunnelStep] = useState<FunnelStepKey | null>(null);
 
   const { from, to, bucket } = useMemo(() => {
     if (rangeId === "custom") {
@@ -338,7 +340,20 @@ function AnalyticsPage() {
             opens: current?.opens ?? 0,
             replies: current?.replies ?? 0,
           }}
+          onStepClick={workspaceId ? (step) => setFunnelStep(step) : undefined}
         />
+
+        {workspaceId ? (
+          <FunnelDrilldownDialog
+            step={funnelStep}
+            workspaceId={workspaceId}
+            from={range.from}
+            to={range.to}
+            onOpenChange={(open) => {
+              if (!open) setFunnelStep(null);
+            }}
+          />
+        ) : null}
 
         {/* campaign table */}
         <div className="surface-card p-4">
