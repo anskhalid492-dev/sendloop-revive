@@ -69,7 +69,8 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDue, setTaskDue] = useState("");
 
-  const contact = detail.data?.contact;
+  const d = detail.data;
+  const contact = d?.contact;
 
   useEffect(() => {
     if (!contact) return;
@@ -129,7 +130,7 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
   return (
     <Sheet open={Boolean(contactId)} onOpenChange={(open) => (open ? null : onClose())}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
-        {detail.isLoading || !contact ? (
+        {detail.isLoading || !d || !contact ? (
           <div className="space-y-3 pt-8">
             <Skeleton className="h-8 w-1/2" />
             <Skeleton className="h-40 w-full" />
@@ -144,7 +145,7 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
               </p>
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <Select
-                  value={contact.stage_id ?? undefined}
+                  value={contact.stage_id ?? ""}
                   onValueChange={async (stageId) => {
                     try {
                       await move({ data: { leadId: contact.id, stageId } });
@@ -248,10 +249,10 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
 
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold">Campaigns</h4>
-                  {detail.data.campaigns.length === 0 ? (
+                  {d.campaigns.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Not in any campaign yet.</p>
                   ) : (
-                    detail.data.campaigns.map((c) => (
+                    d.campaigns.map((c) => (
                       <div
                         key={c.campaign_id}
                         className="rounded-lg border border-border/60 p-3 text-xs"
@@ -273,10 +274,10 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
 
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold">Conversations</h4>
-                  {detail.data.conversations.length === 0 ? (
+                  {d.conversations.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No replies yet.</p>
                   ) : (
-                    detail.data.conversations.map((c) => (
+                    d.conversations.map((c) => (
                       <Link
                         key={c.id}
                         to="/inbox"
@@ -301,13 +302,13 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
               </TabsContent>
 
               <TabsContent value="activity" className="pt-4">
-                {detail.data.timeline.length === 0 ? (
+                {d.timeline.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
                     No activity yet.
                   </p>
                 ) : (
                   <ol className="space-y-3">
-                    {detail.data.timeline.map((item) => (
+                    {d.timeline.map((item) => (
                       <li key={item.id} className="flex gap-3">
                         <span
                           className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
@@ -361,10 +362,10 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
                     </Button>
                   </div>
                   <div className="space-y-2 pt-2">
-                    {detail.data.tasks.length === 0 ? (
+                    {d.tasks.length === 0 ? (
                       <p className="text-xs text-muted-foreground">No tasks yet.</p>
                     ) : (
-                      detail.data.tasks.map((t) => (
+                      d.tasks.map((t) => (
                         <label
                           key={t.id}
                           className="flex items-center gap-3 rounded-lg border border-border/60 p-3 text-sm"
@@ -410,10 +411,10 @@ export function ContactDrawer({ contactId, stages, onClose }: Props) {
                     Save note
                   </Button>
                   <div className="space-y-2 pt-2">
-                    {detail.data.notes.length === 0 ? (
+                    {d.notes.length === 0 ? (
                       <p className="text-xs text-muted-foreground">No notes yet.</p>
                     ) : (
-                      detail.data.notes.map((n) => (
+                      d.notes.map((n) => (
                         <div key={n.id} className="rounded-lg border border-border/60 p-3 text-sm">
                           <p className="whitespace-pre-wrap">{n.body}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
