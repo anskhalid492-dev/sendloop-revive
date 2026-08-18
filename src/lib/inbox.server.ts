@@ -135,6 +135,23 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .maybeSingle();
     leadId = lead?.id ?? null;
   }
+  if (!leadId) {
+    // Someone replied who is not in the database yet: create the CRM contact
+    // so the conversation always has a record to hang activity off. Email is
+    // the duplicate key, and the lookup above already ruled out a match.
+    const { data: created } = await db
+      .from("leads")
+      .insert({
+        workspace_id: workspaceId,
+        email: prospect,
+        status: "replied",
+        lead_source: "inbound_reply",
+      })
+      .select("id")
+      .maybeSingle();
+    leadId = created?.id ?? null;
+  }
+
 
   const campaignId = route?.campaign_id ?? campaignMessage?.campaign_id ?? null;
   const threadKey = buildThreadKey({ campaignId, prospectEmail: prospect, subject });
