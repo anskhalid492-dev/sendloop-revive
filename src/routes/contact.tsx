@@ -155,12 +155,12 @@ function Contact() {
         </div>
       </Section>
 
-      <Section>
+      <Section title="What to expect">
         <FeatureGrid items={expectations} />
       </Section>
 
-      <Section title="Frequently Asked Questions">
-        <FaqBlock faqs={faqs} title="What to expect" />
+      <Section>
+        <FaqBlock faqs={faqs} />
       </Section>
 
       <TestimonialCarousel page="contact" />
