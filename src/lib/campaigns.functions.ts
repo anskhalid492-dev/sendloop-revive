@@ -664,8 +664,8 @@ export const launchCampaign = createServerFn({ method: "POST" })
         if (insErr) throw new Error(insErr.message);
 
         // Materialise the first email of the sequence into the sending queue.
-          const leadById = new Map(
-          (fresh as unknown as Array<{ id: string }>).map((l) => [l.id, l]),
+        const leadById = new Map(
+          (fresh as unknown as Array<{ id: string }>).map((l) => [l.id, l] as const),
         );
         const messages = (inserted ?? [])
           .map((recipient) => {
