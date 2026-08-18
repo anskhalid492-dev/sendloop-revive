@@ -445,7 +445,7 @@ export const getCrmContact = createServerFn({ method: "GET" })
         .limit(100),
       client
         .from("lead_notes")
-        .select(sel("id, body, created_at, created_by"))
+        .select(sel("id, body, created_at, author_id"))
         .eq("lead_id", data.id)
         .order("created_at", { ascending: false })
         .limit(100),
@@ -613,7 +613,7 @@ export const addCrmNote = createServerFn({ method: "POST" })
       lead_id: data.leadId,
       workspace_id: lead.workspace_id,
       body: data.body,
-      created_by: context.userId,
+      author_id: context.userId,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
