@@ -67,7 +67,15 @@ export function headerOf(headers: unknown, name: string): string | null {
   return null;
 }
 
-export type EventKind = "inbound" | "delivered" | "bounced" | "complained" | "unsubscribed" | "unknown";
+export type EventKind =
+  | "inbound"
+  | "delivered"
+  | "opened"
+  | "clicked"
+  | "bounced"
+  | "complained"
+  | "unsubscribed"
+  | "unknown";
 
 /** Classifies the webhook event so delivery signals are not treated as replies. */
 export function classifyEvent(input: Record<string, unknown>): EventKind {
