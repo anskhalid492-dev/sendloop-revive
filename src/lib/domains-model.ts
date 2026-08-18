@@ -65,62 +65,11 @@ export const RECORD_KIND_LABEL: Record<DnsRecordView["kind"], string> = {
 };
 
 /**
- * Mailbox connection methods a customer can use with their own mailbox.
- * Only HTTP-API methods are offered because SMTP cannot be dialled from the
- * serverless runtime — offering it would mean pretending a connection works.
+ * Sending infrastructure is fully managed by Sendloop. Customers connect a
+ * mailbox on a domain they own; they never choose, see or submit a sending
+ * provider or provider credentials — those live server-side only.
  */
-export type MailboxMethod = {
-  id: "resend" | "sendgrid" | "postmark" | "mailgun" | "brevo" | "zeptomail";
-  label: string;
-  blurb: string;
-  fields: { name: string; label: string; placeholder?: string; secret?: boolean }[];
-};
-
-export const MAILBOX_METHODS: MailboxMethod[] = [
-  {
-    id: "resend",
-    label: "Resend",
-    blurb: "Connect the mailbox through your own Resend account and domain.",
-    fields: [{ name: "api_key", label: "Resend API key", placeholder: "re_...", secret: true }],
-  },
-  {
-    id: "sendgrid",
-    label: "SendGrid",
-    blurb: "Use your own SendGrid API key with full send permissions.",
-    fields: [{ name: "api_key", label: "SendGrid API key", placeholder: "SG....", secret: true }],
-  },
-  {
-    id: "postmark",
-    label: "Postmark",
-    blurb: "Use the server token of your own Postmark server.",
-    fields: [{ name: "api_key", label: "Server token", secret: true }],
-  },
-  {
-    id: "mailgun",
-    label: "Mailgun",
-    blurb: "Use your own Mailgun API key and sending domain.",
-    fields: [
-      { name: "api_key", label: "Mailgun API key", secret: true },
-      { name: "domain", label: "Mailgun sending domain", placeholder: "mg.yourcompany.com" },
-    ],
-  },
-  {
-    id: "brevo",
-    label: "Brevo",
-    blurb: "Use your own Brevo API key.",
-    fields: [{ name: "api_key", label: "Brevo API key", secret: true }],
-  },
-  {
-    id: "zeptomail",
-    label: "ZeptoMail",
-    blurb: "Use your own ZeptoMail send-mail token.",
-    fields: [{ name: "api_key", label: "Send-mail token", secret: true }],
-  },
-];
-
-export function methodLabel(id: string | null): string {
-  return MAILBOX_METHODS.find((m) => m.id === id)?.label ?? "—";
-}
+export const SENDING_INFRA_LABEL = "Managed by Sendloop";
 
 export function domainHealth(domain: {
   dns_status: DnsStatus;
