@@ -45,6 +45,7 @@ import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated/warmup'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
 import { Route as ProductCrmRouteImport } from './routes/product.crm'
@@ -255,6 +256,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductAnalyticsRoute = ProductAnalyticsRouteImport.update({
   id: '/product/analytics',
   path: '/product/analytics',
@@ -456,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -522,6 +529,7 @@ export interface FileRoutesByTo {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -591,6 +599,7 @@ export interface FileRoutesById {
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -660,6 +669,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/warmup'
     | '/workspace'
+    | '/blog/$slug'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -726,6 +736,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/warmup'
     | '/workspace'
+    | '/blog/$slug'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -794,6 +805,7 @@ export interface FileRouteTypes {
     | '/_authenticated/templates'
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
+    | '/blog/$slug'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -849,6 +861,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
   ProductCampaignsRoute: typeof ProductCampaignsRoute
   ProductCrmRoute: typeof ProductCrmRoute
@@ -1117,6 +1130,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/product/analytics': {
@@ -1452,6 +1472,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  BlogSlugRoute: BlogSlugRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,
   ProductCampaignsRoute: ProductCampaignsRoute,
   ProductCrmRoute: ProductCrmRoute,
