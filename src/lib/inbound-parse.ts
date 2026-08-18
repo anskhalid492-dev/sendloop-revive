@@ -85,6 +85,8 @@ export function classifyEvent(input: Record<string, unknown>): EventKind {
   if (raw.includes("complain") || raw.includes("spam")) return "complained";
   if (raw.includes("unsub")) return "unsubscribed";
   if (raw.includes("deliver")) return "delivered";
+  if (raw.includes("click")) return "clicked";
+  if (raw.includes("open")) return "opened";
   return "unknown";
 }
 
