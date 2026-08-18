@@ -333,10 +333,10 @@ function AnalyticsPage() {
 
         <ConversionFunnel
           data={{
-            sent: current.sent,
-            delivered: current.delivered,
-            opens: current.opens,
-            replies: current.replies,
+            sent: current?.sent ?? 0,
+            delivered: current?.delivered ?? 0,
+            opens: current?.opens ?? 0,
+            replies: current?.replies ?? 0,
           }}
         />
 
