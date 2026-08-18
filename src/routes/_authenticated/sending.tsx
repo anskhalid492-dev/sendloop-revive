@@ -26,6 +26,7 @@ import { AddDomainDialog } from "@/components/sending/AddDomainDialog";
 import { ConnectMailboxDialog } from "@/components/sending/ConnectMailboxDialog";
 import { DnsSetupDialog } from "@/components/sending/DnsSetupDialog";
 import { DomainsPanel } from "@/components/sending/DomainsPanel";
+import { DomainAlerts } from "@/components/sending/DomainAlerts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -323,6 +324,8 @@ function EmailAccountsPage() {
             </Button>
           </div>
         )}
+
+        <DomainAlerts />
 
         <DomainsPanel
           domains={domains}

@@ -155,7 +155,7 @@ export function SiteHeader() {
       onMouseLeave={scheduleClose}
       className="sticky top-0 z-50 px-3 pb-2 pt-3 transition-all duration-300 sm:px-5"
     >
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-xl transition-all duration-300 data-[scrolled=true]:border-border data-[scrolled=true]:bg-background/95 data-[scrolled=true]:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] sm:px-6"
+      <div className="mx-auto flex h-[4.25rem] w-full max-w-6xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-xl transition-all duration-300 data-[scrolled=true]:border-border data-[scrolled=true]:bg-background/95 data-[scrolled=true]:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] sm:px-6"
         data-scrolled={scrolled ? "true" : "false"}
       >
         <Link to="/" className="flex shrink-0 items-center gap-2">

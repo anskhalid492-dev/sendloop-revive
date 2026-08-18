@@ -403,10 +403,22 @@ export const getMailboxInsights = createServerFn({ method: "GET" })
     };
   });
 
+export type DomainAlert = {
+  id: string;
+  domain_id: string;
+  domain: string | null;
+  kind: string;
+  severity: string;
+  title: string;
+  detail: string | null;
+  records: string[];
+  created_at: string;
+};
+
 /** Open authentication alerts across the caller's domains. */
 export const listDomainAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<{ alerts: DomainAlert[] }> => {
     const { data, error } = await (context.supabase as Client)
       .from("domain_alerts")
       .select("id, domain_id, kind, severity, title, detail, records, resolved_at, created_at, sending_domains(domain)")
@@ -416,8 +428,15 @@ export const listDomainAlerts = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return {
       alerts: ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
-        ...row,
+        id: row["id"] as string,
+        domain_id: row["domain_id"] as string,
         domain: (row["sending_domains"] as { domain?: string } | null)?.domain ?? null,
+        kind: row["kind"] as string,
+        severity: row["severity"] as string,
+        title: row["title"] as string,
+        detail: (row["detail"] as string | null) ?? null,
+        records: (row["records"] as string[] | null) ?? [],
+        created_at: row["created_at"] as string,
       })),
     };
   });
