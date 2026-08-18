@@ -85,12 +85,12 @@ function SolutionPage() {
         <FeatureGrid items={content.features} />
       </Section>
 
-      <Section description="Live in an afternoon." muted>
+      <Section title="How it works" description="Live in an afternoon." muted>
         <StepList steps={content.steps} />
       </Section>
 
       <Section>
-        <FaqBlock faqs={content.faqs} title="How it works" />
+        <FaqBlock faqs={content.faqs} />
       </Section>
 
       <TestimonialCarousel page="solutions" />

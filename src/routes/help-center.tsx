@@ -92,12 +92,12 @@ function Help() {
         </div>
       </Section>
 
-      <Section>
+      <Section title="Popular articles">
         <ResourceList items={popularArticles} />
       </Section>
 
-      <Section title="Top questions" muted>
-        <FaqBlock faqs={faqs} title="Popular articles" />
+      <Section muted>
+        <FaqBlock faqs={faqs} title="Top questions" />
         <p className="mt-6 text-sm text-muted-foreground">
           Still stuck?{" "}
           <Link to="/contact" className="text-primary underline-offset-4 hover:underline">
