@@ -3,6 +3,7 @@ import { Activity, CircleAlert, Gauge, Mail, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
+import { LaunchAuditTrail } from "./LaunchAuditTrail";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 function Metric({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
@@ -168,6 +169,8 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </ul>
         )}
       </section>
+
+      <LaunchAuditTrail campaignId={campaign.id} />
     </div>
   );
 }
