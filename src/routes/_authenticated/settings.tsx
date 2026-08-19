@@ -10,6 +10,7 @@ import {
   Monitor,
   Moon,
   Palette,
+  Plug,
   Send,
   Shield,
   ShieldAlert,
@@ -42,6 +43,7 @@ import { getProfileSettings, requestEmailChange, updateProfile } from "@/lib/pro
 import { getSecurityOverview } from "@/lib/settings.functions";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { SendingTab } from "@/components/settings/SendingTab";
+import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { DeleteAccountCard } from "@/components/settings/DeleteAccountCard";
 import {
@@ -96,6 +98,7 @@ const SECTIONS = [
   { id: "team", label: "Team", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "sending", label: "Email & Sending", icon: Send },
+  { id: "integrations", label: "Integrations", icon: Plug },
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "billing", label: "Billing", icon: CreditCard },
@@ -180,6 +183,7 @@ function Page() {
 
           {section === "notifications" ? <NotificationsTab /> : null}
           {section === "sending" ? <SendingTab workspaceId={workspaceId} /> : null}
+          {section === "integrations" ? <IntegrationsTab /> : null}
           {section === "security" ? <SecuritySection /> : null}
           {section === "appearance" ? <AppearanceSection /> : null}
           {section === "billing" ? <BillingTab workspaceId={workspaceId} /> : null}

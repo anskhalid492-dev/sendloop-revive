@@ -396,6 +396,26 @@ async function applyReplyAutomation(args: {
     entity_id: conversationId,
   }));
   if (rows.length) await db.from("notifications").insert(rows);
+
+  // Fan the reply out to every connected integration that subscribes to it.
+  try {
+    const { emitIntegrationEvent } = await import("@/lib/integrations.server");
+    const payload = {
+      lead: { email: args.prospect },
+      subject: args.subject || null,
+      sentiment: args.detected ?? "neutral",
+      message: `Reply from ${args.prospect}${args.subject ? ` — ${args.subject}` : ""}`,
+      conversationId,
+      campaignId,
+      receivedAt: args.receivedIso,
+    };
+    await emitIntegrationEvent(workspaceId, "reply.received", payload, `reply:${conversationId}:${args.receivedIso}`);
+    if (args.detected === "interested") {
+      await emitIntegrationEvent(workspaceId, "reply.positive", payload, `positive:${conversationId}:${args.receivedIso}`);
+    }
+  } catch {
+    /* integration delivery must never break inbound processing */
+  }
 }
 
 /**

@@ -22,7 +22,6 @@ import { Route as DocsRouteImport } from './routes/docs'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
-import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -46,6 +45,8 @@ import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
+import { Route as IntegrationsSlugRouteImport } from './routes/integrations.$slug'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
@@ -63,6 +64,7 @@ import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
 import { Route as AuthenticatedAdminInboundEventsRouteImport } from './routes/_authenticated/admin/inbound-events'
 import { Route as AuthenticatedAdminInfrastructureRouteImport } from './routes/_authenticated/admin/infrastructure'
+import { Route as AuthenticatedAdminIntegrationsRouteImport } from './routes/_authenticated/admin/integrations'
 import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin/logs'
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
 import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
@@ -81,6 +83,7 @@ import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
+import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -144,11 +147,6 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const HelpCenterRoute = HelpCenterRouteImport.update({
   id: '/help-center',
   path: '/help-center',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IntegrationsRoute = IntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -266,6 +264,16 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
+  id: '/integrations/',
+  path: '/integrations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsSlugRoute = IntegrationsSlugRouteImport.update({
+  id: '/integrations/$slug',
+  path: '/integrations/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -354,6 +362,12 @@ const AuthenticatedAdminInfrastructureRoute =
   AuthenticatedAdminInfrastructureRouteImport.update({
     id: '/infrastructure',
     path: '/infrastructure',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminIntegrationsRoute =
+  AuthenticatedAdminIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminLogsRoute = AuthenticatedAdminLogsRouteImport.update({
@@ -457,6 +471,12 @@ const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   path: '/api/public/inbound/email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsSlugRoute =
+  ApiPublicIntegrationsSlugRouteImport.update({
+    id: '/api/public/integrations/$slug',
+    path: '/api/public/integrations/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -471,7 +491,6 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRoute
-  '/integrations': typeof IntegrationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -494,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
@@ -506,11 +526,13 @@ export interface FileRoutesByFullPath {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
+  '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
@@ -530,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
+  '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -544,7 +567,6 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRoute
-  '/integrations': typeof IntegrationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -566,6 +588,7 @@ export interface FileRoutesByTo {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
@@ -578,11 +601,13 @@ export interface FileRoutesByTo {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
+  '/integrations': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
+  '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
@@ -602,6 +627,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
+  '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -618,7 +644,6 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRoute
-  '/integrations': typeof IntegrationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -641,6 +666,7 @@ export interface FileRoutesById {
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
@@ -653,11 +679,13 @@ export interface FileRoutesById {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/_authenticated/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
+  '/_authenticated/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/_authenticated/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
@@ -677,6 +705,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
+  '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -693,7 +722,6 @@ export interface FileRouteTypes {
     | '/features'
     | '/forgot-password'
     | '/help-center'
-    | '/integrations'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -716,6 +744,7 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/integrations/$slug'
     | '/invite/$token'
     | '/product/analytics'
     | '/product/campaigns'
@@ -728,11 +757,13 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog/'
+    | '/integrations/'
     | '/admin/analytics'
     | '/admin/billing'
     | '/admin/campaigns'
     | '/admin/inbound-events'
     | '/admin/infrastructure'
+    | '/admin/integrations'
     | '/admin/logs'
     | '/admin/notifications'
     | '/admin/pool'
@@ -752,6 +783,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
+    | '/api/public/integrations/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -766,7 +798,6 @@ export interface FileRouteTypes {
     | '/features'
     | '/forgot-password'
     | '/help-center'
-    | '/integrations'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -788,6 +819,7 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/integrations/$slug'
     | '/invite/$token'
     | '/product/analytics'
     | '/product/campaigns'
@@ -800,11 +832,13 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog'
+    | '/integrations'
     | '/admin/analytics'
     | '/admin/billing'
     | '/admin/campaigns'
     | '/admin/inbound-events'
     | '/admin/infrastructure'
+    | '/admin/integrations'
     | '/admin/logs'
     | '/admin/notifications'
     | '/admin/pool'
@@ -824,6 +858,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
+    | '/api/public/integrations/$slug'
   id:
     | '__root__'
     | '/'
@@ -839,7 +874,6 @@ export interface FileRouteTypes {
     | '/features'
     | '/forgot-password'
     | '/help-center'
-    | '/integrations'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -862,6 +896,7 @@ export interface FileRouteTypes {
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
     | '/blog/$slug'
+    | '/integrations/$slug'
     | '/invite/$token'
     | '/product/analytics'
     | '/product/campaigns'
@@ -874,11 +909,13 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog/'
+    | '/integrations/'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/campaigns'
     | '/_authenticated/admin/inbound-events'
     | '/_authenticated/admin/infrastructure'
+    | '/_authenticated/admin/integrations'
     | '/_authenticated/admin/logs'
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/pool'
@@ -898,6 +935,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
+    | '/api/public/integrations/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -914,7 +952,6 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpCenterRoute: typeof HelpCenterRoute
-  IntegrationsRoute: typeof IntegrationsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -923,6 +960,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  IntegrationsSlugRoute: typeof IntegrationsSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
   ProductCampaignsRoute: typeof ProductCampaignsRoute
@@ -935,12 +973,14 @@ export interface RootRouteChildren {
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  IntegrationsIndexRoute: typeof IntegrationsIndexRoute
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
+  ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1034,13 +1074,6 @@ declare module '@tanstack/react-router' {
       path: '/help-center'
       fullPath: '/help-center'
       preLoaderRoute: typeof HelpCenterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/integrations': {
-      id: '/integrations'
-      path: '/integrations'
-      fullPath: '/integrations'
-      preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -1204,6 +1237,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/integrations/': {
+      id: '/integrations/'
+      path: '/integrations'
+      fullPath: '/integrations/'
+      preLoaderRoute: typeof IntegrationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations/$slug': {
+      id: '/integrations/$slug'
+      path: '/integrations/$slug'
+      fullPath: '/integrations/$slug'
+      preLoaderRoute: typeof IntegrationsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
@@ -1321,6 +1368,13 @@ declare module '@tanstack/react-router' {
       path: '/infrastructure'
       fullPath: '/admin/infrastructure'
       preLoaderRoute: typeof AuthenticatedAdminInfrastructureRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/integrations': {
+      id: '/_authenticated/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AuthenticatedAdminIntegrationsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/logs': {
@@ -1449,6 +1503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInboundEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/$slug': {
+      id: '/api/public/integrations/$slug'
+      path: '/api/public/integrations/$slug'
+      fullPath: '/api/public/integrations/$slug'
+      preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1473,6 +1534,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
   AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
   AuthenticatedAdminInfrastructureRoute: typeof AuthenticatedAdminInfrastructureRoute
+  AuthenticatedAdminIntegrationsRoute: typeof AuthenticatedAdminIntegrationsRoute
   AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
@@ -1494,6 +1556,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminInboundEventsRouteWithChildren,
     AuthenticatedAdminInfrastructureRoute:
       AuthenticatedAdminInfrastructureRoute,
+    AuthenticatedAdminIntegrationsRoute: AuthenticatedAdminIntegrationsRoute,
     AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
     AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
     AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
@@ -1566,7 +1629,6 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpCenterRoute: HelpCenterRoute,
-  IntegrationsRoute: IntegrationsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -1575,6 +1637,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   BlogSlugRoute: BlogSlugRoute,
+  IntegrationsSlugRoute: IntegrationsSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,
   ProductCampaignsRoute: ProductCampaignsRoute,
@@ -1587,12 +1650,14 @@ const rootRouteChildren: RootRouteChildren = {
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  IntegrationsIndexRoute: IntegrationsIndexRoute,
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
+  ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

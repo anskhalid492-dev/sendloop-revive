@@ -24,6 +24,7 @@ const columns = [
       { label: "Deliverability Guide", to: "/deliverability-guide" },
       { label: "Cold Email Templates", to: "/cold-email-templates" },
       { label: "Help Center", to: "/help-center" },
+      { label: "Integrations", to: "/integrations" },
     ],
   },
   {
