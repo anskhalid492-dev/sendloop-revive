@@ -241,9 +241,7 @@ export const testIntegration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof slugInput>) => slugInput.parse(input))
   .handler(async ({ data, context }): Promise<{ ok: boolean; message: string }> => {
-    const { requireWorkspaceRole, deliverEvent, type ConnectionRow } = await import(
-      "@/lib/integrations.server"
-    ).then((m) => ({ ...m, type: undefined }) as unknown as typeof import("@/lib/integrations.server") & { type: never });
+    const { requireWorkspaceRole, deliverEvent } = await import("@/lib/integrations.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireWorkspaceRole(data.workspaceId, context.userId, true);
 
@@ -256,7 +254,7 @@ export const testIntegration = createServerFn({ method: "POST" })
     if (!conn) return { ok: false, message: "This integration is not connected." };
 
     const result = await deliverEvent(
-      conn as unknown as ConnectionRow,
+      conn as never,
       "integration.test",
       {
         message: "Test event from Sendloop.",
