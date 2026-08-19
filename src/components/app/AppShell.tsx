@@ -11,6 +11,7 @@ import {
   CreditCard,
   FileText,
   Flame,
+  Gift,
   Inbox,
   LayoutDashboard,
   LifeBuoy,
@@ -69,6 +70,10 @@ const navGroups = [
     ],
   },
 
+  {
+    label: "Grow",
+    items: [{ to: "/referrals", label: "Referrals", icon: Gift }],
+  },
   {
     label: "Conversations",
     items: [{ to: "/inbox", label: "Unified Inbox", icon: Inbox }],

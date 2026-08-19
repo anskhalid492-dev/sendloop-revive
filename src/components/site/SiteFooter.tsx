@@ -35,6 +35,7 @@ const columns = [
       { label: "Contact", to: "/contact" },
       { label: "Pricing", to: "/pricing" },
       { label: "Customer Reviews", to: "/customer-reviews" },
+      { label: "Referral Program", to: "/referral" },
     ],
   },
   {
