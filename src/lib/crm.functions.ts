@@ -419,6 +419,20 @@ export const upsertCrmContact = createServerFn({ method: "POST" })
       type: "created",
       detail: "Contact created in CRM",
     });
+
+    try {
+      const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
+      await emitAutomationEvent({
+        workspaceId: data.workspaceId,
+        type: "lead.created",
+        leadId: created.id as string,
+        idempotencyKey: `lead.created:${created.id}`,
+        payload: { email: data.email },
+      });
+    } catch {
+      /* automations never block contact creation */
+    }
+
     return { id: created.id as string, created: true };
   });
 
