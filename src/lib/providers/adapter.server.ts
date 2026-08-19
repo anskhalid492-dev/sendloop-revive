@@ -130,8 +130,38 @@ function makeAdapter(id: string): ProviderAdapter {
     async getSendingLimit() {
       return { daily: null };
     },
+    async validateSender(credentials, fromEmail) {
+      const { checkSenderDomainVerification, senderDomain } = await import(
+        "@/lib/managed-sending.server"
+      );
+      const check = await checkSenderDomainVerification(id, credentials, senderDomain(fromEmail));
+      return { ok: check.status !== "not_verified", detail: check.detail };
+    },
+    async getDeliveryStatus() {
+      // Delivery state is tracked from provider webhooks in `email_events`;
+      // adapters that expose a polling API can override this.
+      return { known: false, status: null, detail: "Delivery status is tracked from webhooks." };
+    },
+    async registerDomain(_credentials, domain) {
+      return {
+        supported: false,
+        status: "unsupported" as const,
+        detail: `${id} domain provisioning is managed outside the app for ${domain}.`,
+      };
+    },
+    async verifyDomain(credentials, domain) {
+      const { checkSenderDomainVerification } = await import("@/lib/managed-sending.server");
+      const check = await checkSenderDomainVerification(id, credentials, domain, { fresh: true });
+      return {
+        supported: check.status !== "unknown",
+        status:
+          check.status === "verified" ? "verified" : check.status === "error" ? "error" : "pending",
+        detail: check.detail,
+      };
+    },
     processWebhook: normalizeEvent,
   };
+
 }
 
 const adapters = new Map<string, ProviderAdapter>(
