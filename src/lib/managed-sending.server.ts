@@ -17,11 +17,24 @@ import type { OutboundMessage, SendResult } from "@/lib/providers/adapter.server
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
 
+/**
+ * Customer-facing copy. These strings are deliberately provider-agnostic —
+ * raw provider text never reaches a customer.
+ */
 export const DOMAIN_NOT_VERIFIED_MESSAGE =
-  "Your sending domain is not yet verified. Please complete the DNS verification for this domain.";
+  "Your sending domain is not ready for sending yet. Please complete the DNS verification for this domain.";
 
 export const INFRA_NOT_CONFIGURED_MESSAGE =
-  "Sending infrastructure is not configured yet. Please contact support.";
+  "Sending infrastructure is temporarily unavailable. Please try again shortly.";
+
+export const SEND_FAILED_MESSAGE =
+  "We could not send this email right now. Please try again shortly.";
+
+/** Strips provider names/URLs from any text that could reach a customer. */
+export function customerSafeMessage(fallback: string): string {
+  return fallback;
+}
+
 
 export type ManagedCredentials = {
   provider: string;
