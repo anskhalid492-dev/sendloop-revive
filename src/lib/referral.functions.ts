@@ -132,7 +132,7 @@ export const requestReferralPayout = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("request_referral_payout", {
       _amount_cents: data.amountCents,
       _method: data.method,
-      _destination_hint: data.destinationHint ?? null,
+      _destination_hint: (data.destinationHint ?? null) as unknown as string,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
