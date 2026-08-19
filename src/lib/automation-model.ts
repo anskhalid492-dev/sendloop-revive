@@ -6,6 +6,9 @@
  * catalog is decorative: if the backend cannot execute it, it is not here.
  */
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonObject = { [key: string]: JsonValue };
+
 export type AutomationStatus = "draft" | "active" | "paused" | "archived";
 export type RunStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
 export type StepKind = "condition" | "action" | "wait" | "branch";
@@ -17,7 +20,7 @@ export type AutomationRow = {
   description: string | null;
   status: AutomationStatus;
   trigger_type: string;
-  trigger_config: Record<string, unknown>;
+  trigger_config: JsonObject;
   condition_logic: "and" | "or";
   version: number;
   webhook_token: string | null;
@@ -34,7 +37,7 @@ export type AutomationStep = {
   position: number;
   kind: StepKind;
   branch: "yes" | "no" | null;
-  config: Record<string, unknown>;
+  config: JsonObject;
 };
 
 export type AutomationRun = {
@@ -50,7 +53,7 @@ export type AutomationRun = {
   attempts: number;
   error: string | null;
   result: string | null;
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -63,7 +66,7 @@ export type AutomationRunStep = {
   kind: string;
   label: string;
   status: "running" | "completed" | "skipped" | "waiting" | "failed";
-  output: Record<string, unknown>;
+  output: JsonObject;
   error: string | null;
   started_at: string;
   finished_at: string | null;
