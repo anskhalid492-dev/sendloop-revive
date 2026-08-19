@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAutomationRealtime } from "@/hooks/useAutomationRealtime";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   AUTOMATION_STATUS_TONE,
@@ -101,6 +102,9 @@ function AutomationsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // The worker mutates runs server-side, so the dashboard listens instead of polling.
+  useAutomationRealtime(workspaceId);
+
   const fetchList = useServerFn(listAutomations);
   const fetchRuns = useServerFn(listAutomationRuns);
   const create = useServerFn(createAutomation);
@@ -128,7 +132,6 @@ function AutomationsPage() {
     queryKey: ["automation-runs", workspaceId, runFilter],
     queryFn: () => fetchRuns({ data: { workspaceId: workspaceId!, status: runFilter, limit: 80 } }),
     enabled: Boolean(workspaceId) && tab === "activity",
-    refetchInterval: 20_000,
   });
 
   const stats = listQuery.data?.stats;
@@ -228,11 +231,43 @@ function AutomationsPage() {
           ))}
         </div>
 
-        {limit?.max != null && (
-          <div className="rounded-lg border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            {limit.used} of {limit.max} automations used on the {limit.planName} plan.
-          </div>
-        )}
+        {limit?.max != null && (() => {
+          const used = limit.used;
+          const max = limit.max!;
+          const reached = used >= max;
+          const pct = Math.min(100, Math.round((used / Math.max(max, 1)) * 100));
+          return (
+            <div
+              className={`rounded-xl border p-4 ${reached ? "border-destructive/40 bg-destructive/5" : "bg-card"}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">
+                    {used} of {max} automations used on the {limit.planName} plan
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {reached
+                      ? "You have reached your plan limit — publishing or creating another workflow is blocked until you upgrade or archive one."
+                      : `${max - used} workflow slot${max - used === 1 ? "" : "s"} remaining.`}
+                  </p>
+                </div>
+                {reached && (
+                  <Button size="sm" asChild>
+                    <Link to="/settings" search={{ tab: "billing" } as never}>
+                      Upgrade plan
+                    </Link>
+                  </Button>
+                )}
+              </div>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full ${reached ? "bg-destructive" : "bg-primary"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
 
         <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -240,6 +275,9 @@ function AutomationsPage() {
               <TabsTrigger value="workflows">Workflows</TabsTrigger>
               <TabsTrigger value="activity">Activity log</TabsTrigger>
             </TabsList>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/automations/activity">Open full activity</Link>
+            </Button>
             {tab === "workflows" ? (
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
                 <SelectTrigger className="w-44">
