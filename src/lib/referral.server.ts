@@ -8,6 +8,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizeCode, type ReferralProgram } from "@/lib/referral-model";
+import { notifyReferrer } from "@/lib/referral-notify.server";
 
 type Json = Record<string, unknown>;
 
@@ -422,6 +423,17 @@ export async function processBillingEvent(input: BillingEventInput): Promise<{ s
       .update({ status: "converted", converted_at: new Date().toISOString() })
       .eq("id", attribution.id);
   }
+
+  // Auto-approved commissions are immediately spendable, so tell the referrer.
+  await notifyReferrer({
+    userId: attribution.referrer_user_id,
+    kind: autoApprove ? "commission_approved" : "referral_attributed",
+    amountCents: amount,
+    currency: input.currency ?? "usd",
+    detail: autoApprove ? null : "A referred customer started paying. The commission is pending review.",
+    entityType: "referral_commission",
+    entityId: commission.id,
+  });
 
   await writeAudit({
     action: "commission_created",
