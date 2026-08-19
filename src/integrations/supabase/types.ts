@@ -3669,6 +3669,7 @@ export type Database = {
         Row: {
           active: boolean
           avatar_url: string | null
+          category: string
           company: string
           company_logo_url: string | null
           created_at: string
@@ -3677,14 +3678,18 @@ export type Database = {
           id: string
           name: string
           pages: string[]
+          rating: number
           result: string | null
+          reviewed_on: string
           role: string
           testimonial: string
           updated_at: string
+          verified: boolean
         }
         Insert: {
           active?: boolean
           avatar_url?: string | null
+          category?: string
           company?: string
           company_logo_url?: string | null
           created_at?: string
@@ -3693,14 +3698,18 @@ export type Database = {
           id?: string
           name: string
           pages?: string[]
+          rating?: number
           result?: string | null
+          reviewed_on?: string
           role?: string
           testimonial: string
           updated_at?: string
+          verified?: boolean
         }
         Update: {
           active?: boolean
           avatar_url?: string | null
+          category?: string
           company?: string
           company_logo_url?: string | null
           created_at?: string
@@ -3709,10 +3718,13 @@ export type Database = {
           id?: string
           name?: string
           pages?: string[]
+          rating?: number
           result?: string | null
+          reviewed_on?: string
           role?: string
           testimonial?: string
           updated_at?: string
+          verified?: boolean
         }
         Relationships: []
       }
@@ -4647,6 +4659,16 @@ export type Database = {
       move_crm_contacts: {
         Args: { _lead_ids: string[]; _stage_id: string }
         Returns: number
+      }
+      public_review_stats: {
+        Args: never
+        Returns: {
+          average_rating: number
+          campaigns: number
+          customers: number
+          emails_sent: number
+          reviews: number
+        }[]
       }
       remove_workspace_member: {
         Args: { _member_id: string }

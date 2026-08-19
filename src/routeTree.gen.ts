@@ -17,6 +17,7 @@ import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as FeaturesRouteImport } from './routes/features'
@@ -71,6 +72,7 @@ import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
 import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
 import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
+import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
@@ -129,6 +131,11 @@ const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerReviewsRoute = CustomerReviewsRouteImport.update({
+  id: '/customer-reviews',
+  path: '/customer-reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliverabilityGuideRoute = DeliverabilityGuideRouteImport.update({
@@ -409,6 +416,12 @@ const AuthenticatedAdminProvidersRoute =
     path: '/providers',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminReviewsRoute =
+  AuthenticatedAdminReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/settings',
@@ -533,6 +546,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
@@ -586,6 +600,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
@@ -616,6 +631,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
@@ -667,6 +683,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
@@ -699,6 +716,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
@@ -752,6 +770,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
@@ -784,6 +803,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cold-email-templates'
     | '/contact'
+    | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
     | '/features'
@@ -837,6 +857,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/pool'
     | '/admin/providers'
+    | '/admin/reviews'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/templates'
@@ -867,6 +888,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cold-email-templates'
     | '/contact'
+    | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
     | '/features'
@@ -918,6 +940,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/pool'
     | '/admin/providers'
+    | '/admin/reviews'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/templates'
@@ -949,6 +972,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cold-email-templates'
     | '/contact'
+    | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
     | '/features'
@@ -1002,6 +1026,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/pool'
     | '/_authenticated/admin/providers'
+    | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/templates'
@@ -1034,6 +1059,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
+  CustomerReviewsRoute: typeof CustomerReviewsRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
   DocsRoute: typeof DocsRoute
   FeaturesRoute: typeof FeaturesRoute
@@ -1128,6 +1154,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer-reviews': {
+      id: '/customer-reviews'
+      path: '/customer-reviews'
+      fullPath: '/customer-reviews'
+      preLoaderRoute: typeof CustomerReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deliverability-guide': {
@@ -1508,6 +1541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProvidersRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/reviews': {
+      id: '/_authenticated/admin/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/settings': {
       id: '/_authenticated/admin/settings'
       path: '/settings'
@@ -1677,6 +1717,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
   AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
+  AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
@@ -1699,6 +1740,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
     AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
     AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
+    AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
@@ -1782,6 +1824,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
+  CustomerReviewsRoute: CustomerReviewsRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
   DocsRoute: DocsRoute,
   FeaturesRoute: FeaturesRoute,
