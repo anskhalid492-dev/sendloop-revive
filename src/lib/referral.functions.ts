@@ -193,6 +193,40 @@ export const getAdminReferralOverview = createServerFn({ method: "GET" })
         .limit(100),
     ]);
 
+    // Webhook health: recent deliveries plus rolled-up counters for the panel.
+    const { data: webhookRows } = await supabaseAdmin
+      .from("referral_webhook_events")
+      .select("id, provider, event_id, event_type, signature_ok, status_code, result, error, received_at")
+      .order("received_at", { ascending: false })
+      .limit(25);
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const [{ count: total24 }, { count: rejected24 }, { count: failed24 }] = await Promise.all([
+      supabaseAdmin.from("referral_webhook_events").select("id", { count: "exact", head: true }).gte("received_at", since),
+      supabaseAdmin
+        .from("referral_webhook_events")
+        .select("id", { count: "exact", head: true })
+        .gte("received_at", since)
+        .eq("signature_ok", false),
+      supabaseAdmin
+        .from("referral_webhook_events")
+        .select("id", { count: "exact", head: true })
+        .gte("received_at", since)
+        .eq("result", "error"),
+    ]);
+    const recent = webhookRows ?? [];
+    const lastVerified = recent.find((r) => r.signature_ok) ?? null;
+    const webhook = {
+      configured: Boolean(process.env["REFERRAL_BILLING_SECRET"] ?? process.env["INBOUND_EMAIL_SECRET"]),
+      endpoint: "/api/public/referral/billing",
+      recent,
+      lastEventAt: recent[0]?.received_at ?? null,
+      lastVerifiedAt: lastVerified?.received_at ?? null,
+      lastError: recent.find((r) => r.error)?.error ?? null,
+      total24h: total24 ?? 0,
+      rejected24h: rejected24 ?? 0,
+      failed24h: failed24 ?? 0,
+    };
+
     const userIds = new Set<string>();
     for (const r of referrers.data ?? []) userIds.add(r.user_id);
     for (const c of commissions.data ?? []) {
@@ -233,6 +267,7 @@ export const getAdminReferralOverview = createServerFn({ method: "GET" })
       payouts: payouts.data ?? [],
       flags: flags.data ?? [],
       audit: audit.data ?? [],
+      webhook,
     };
   });
 
@@ -305,9 +340,24 @@ export const reviewReferralCommission = createServerFn({ method: "POST" })
       .from("referral_commissions")
       .update({ ...patch, notes: data.notes ?? null })
       .eq("id", data.id)
-      .select("id, referral_profile_id")
+      .select("id, referral_profile_id, referrer_user_id, commission_amount_cents, currency")
       .single();
     if (error) throw new Error(error.message);
+    const { notifyReferrer } = await import("@/lib/referral-notify.server");
+    await notifyReferrer({
+      userId: row.referrer_user_id,
+      kind:
+        data.action === "approve"
+          ? "commission_approved"
+          : data.action === "reject"
+            ? "commission_rejected"
+            : "commission_reversed",
+      amountCents: row.commission_amount_cents,
+      currency: row.currency,
+      detail: data.notes ?? null,
+      entityType: "referral_commission",
+      entityId: row.id,
+    });
     await writeAudit({
       actorId: context.userId,
       actorRole: "admin",
@@ -347,9 +397,22 @@ export const updateReferralPayout = createServerFn({ method: "POST" })
         paid_at: data.status === "paid" ? now : null,
       })
       .eq("id", data.id)
-      .select("id, referral_profile_id, amount_cents")
+      .select("id, referral_profile_id, amount_cents, currency, user_id")
       .single();
     if (error) throw new Error(error.message);
+
+    if (data.status === "processing" || data.status === "paid" || data.status === "rejected") {
+      const { notifyReferrer } = await import("@/lib/referral-notify.server");
+      await notifyReferrer({
+        userId: payout.user_id,
+        kind: data.status === "paid" ? "payout_paid" : data.status === "processing" ? "payout_processing" : "payout_rejected",
+        amountCents: payout.amount_cents,
+        currency: payout.currency ?? "usd",
+        detail: data.notes ?? null,
+        entityType: "referral_payout",
+        entityId: payout.id,
+      });
+    }
 
     if (data.status === "paid") {
       await supabaseAdmin

@@ -2905,6 +2905,7 @@ export type Database = {
           email_enabled: boolean
           in_app_enabled: boolean
           new_replies: boolean
+          referral_updates: boolean
           support_updates: boolean
           team_activity: boolean
           updated_at: string
@@ -2919,6 +2920,7 @@ export type Database = {
           email_enabled?: boolean
           in_app_enabled?: boolean
           new_replies?: boolean
+          referral_updates?: boolean
           support_updates?: boolean
           team_activity?: boolean
           updated_at?: string
@@ -2933,6 +2935,7 @@ export type Database = {
           email_enabled?: boolean
           in_app_enabled?: boolean
           new_replies?: boolean
+          referral_updates?: boolean
           support_updates?: boolean
           team_activity?: boolean
           updated_at?: string
@@ -3722,6 +3725,45 @@ export type Database = {
           terms?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      referral_webhook_events: {
+        Row: {
+          error: string | null
+          event_id: string | null
+          event_type: string | null
+          id: string
+          provider: string
+          received_at: string
+          result: string | null
+          signature_ok: boolean
+          source_ip_hash: string | null
+          status_code: number
+        }
+        Insert: {
+          error?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          provider?: string
+          received_at?: string
+          result?: string | null
+          signature_ok?: boolean
+          source_ip_hash?: string | null
+          status_code?: number
+        }
+        Update: {
+          error?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          provider?: string
+          received_at?: string
+          result?: string | null
+          signature_ok?: boolean
+          source_ip_hash?: string | null
+          status_code?: number
         }
         Relationships: []
       }

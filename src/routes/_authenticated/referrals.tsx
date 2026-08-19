@@ -10,6 +10,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy, Gift, Loader2, MousePointerClick, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import { useReferralRealtime } from "@/hooks/useReferralRealtime";
+
 import { AppShell } from "@/components/app/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +79,9 @@ function ReferralsPage() {
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["referrals", "overview"] });
+
+  // Live refresh when a click, signup, commission or payout status changes.
+  useReferralRealtime(["referrals", "overview"], "customer");
 
   const joinMutation = useMutation({
     mutationFn: () => join(),

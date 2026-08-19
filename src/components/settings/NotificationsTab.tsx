@@ -24,6 +24,7 @@ const ITEMS: Array<{ key: keyof NotificationPreferences; label: string; hint: st
   { key: "warmup_alerts", label: "Warmup alerts", hint: "Warmup pauses or health drops." },
   { key: "team_activity", label: "Team activity", hint: "Invitations, joins and role changes." },
   { key: "support_updates", label: "Support updates", hint: "A reply lands on one of your tickets." },
+  { key: "referral_updates", label: "Referral updates", hint: "New referral signups, commission decisions and payouts." },
 ];
 
 export function NotificationsTab() {
