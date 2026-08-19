@@ -144,7 +144,7 @@ function CampaignsPage() {
         toast.success(`${result.succeeded.length} campaign(s) updated`);
       }
       if (result.failed.length > 0) {
-        toast.error(`${result.failed.length} skipped: ${result.failed[0].reason}`);
+        toast.error(`${result.failed.length} skipped: ${result.failed[0]?.reason ?? "not permitted"}`);
       }
       await refresh();
     },
