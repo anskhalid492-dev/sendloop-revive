@@ -107,7 +107,7 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{row.fromEmail}</p>
             <p className="text-xs text-muted-foreground">
-              {row.domain} · routed via {row.provider ?? "no managed provider"} ·{" "}
+              {row.domain} · routed via Sendloop managed sending ·{" "}
               {row.paused ? "paused" : row.active ? "active" : "inactive"}
             </p>
           </div>
