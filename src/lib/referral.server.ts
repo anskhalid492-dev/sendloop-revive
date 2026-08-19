@@ -247,6 +247,13 @@ export async function claimAttribution(input: {
     metadata: { referred_user_id: input.userId },
   });
 
+  await notifyReferrer({
+    userId: profile.user_id,
+    kind: "referral_attributed",
+    entityType: "referral_attribution",
+    entityId: attribution.id,
+  });
+
   return { attributed: true };
 }
 
