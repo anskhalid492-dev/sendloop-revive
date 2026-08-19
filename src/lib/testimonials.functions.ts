@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { ReviewCategory } from "@/lib/reviews";
 
 export type Testimonial = {
   id: string;
@@ -26,16 +27,7 @@ export type Testimonial = {
   reviewed_on: string;
 };
 
-export type ReviewCategory = "agency" | "saas" | "sales" | "recruiting" | "consulting" | "other";
 
-export const REVIEW_CATEGORIES: { id: ReviewCategory; label: string }[] = [
-  { id: "agency", label: "Agencies" },
-  { id: "saas", label: "SaaS" },
-  { id: "sales", label: "Sales Teams" },
-  { id: "recruiting", label: "Recruiting" },
-  { id: "consulting", label: "Consulting" },
-  { id: "other", label: "Other" },
-];
 
 const COLUMNS =
   "id, name, role, company, avatar_url, company_logo_url, testimonial, result, pages, featured, display_order, active, rating, category, verified, reviewed_on";
