@@ -702,9 +702,18 @@ async function runAction(
       if (!leadId) return { skipped: "No lead" };
       const days = Number(config["dueInDays"] ?? 1);
       const due = new Date(Date.now() + (Number.isFinite(days) ? days : 1) * 86_400_000).toISOString();
+      // Tasks are attributed to whoever owns the automation.
+      const { data: owner } = await db
+        .from("automations")
+        .select("created_by")
+        .eq("id", run.automation_id)
+        .maybeSingle();
+      const createdBy = (owner as { created_by?: string | null } | null)?.created_by ?? null;
+      if (!createdBy) return { skipped: "Automation has no owner to attribute the task to" };
       const { error } = await db.from("lead_tasks").insert({
         lead_id: leadId,
         workspace_id: workspaceId,
+        created_by: createdBy,
         title: interpolate(str("title") || "Automation follow-up", ctx).slice(0, 200),
         due_at: due,
         completed: false,
@@ -719,9 +728,10 @@ async function runAction(
       if (!allowed.includes(field) || !leadId) return { skipped: "Unsupported field" };
       const raw = interpolate(str("value"), ctx);
       const value: string | number | null = field === "deal_value" ? (raw ? Number(raw) : null) : raw;
+      const patch = { [field]: value, last_activity_at: new Date().toISOString() } as never;
       const { error } = await db
         .from("leads")
-        .update({ [field]: value, last_activity_at: new Date().toISOString() })
+        .update(patch)
         .eq("id", leadId)
         .eq("workspace_id", workspaceId);
       if (error) throw new Error(error.message);
