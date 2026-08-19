@@ -303,8 +303,20 @@ function AutomationBuilderPage() {
                 const Meta = KIND_META[step.kind];
                 const actionType = String(step.config["type"] ?? "");
                 const def = ACTIONS.find((a) => a.id === actionType);
+                // A step can only sit on a Yes/No path when a branch runs before it.
+                const afterBranch = steps.slice(0, index).some((s) => s.kind === "branch");
+                const path = step.branch;
                 return (
-                  <div key={index} className="rounded-xl border bg-card p-4">
+                  <div
+                    key={index}
+                    className={`rounded-xl border bg-card p-4 ${
+                      path === "yes"
+                        ? "border-l-4 border-l-emerald-500/70 md:ml-6"
+                        : path === "no"
+                          ? "border-l-4 border-l-destructive/60 md:ml-6"
+                          : ""
+                    }`}
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
@@ -315,6 +327,17 @@ function AutomationBuilderPage() {
                         <span className="text-xs text-muted-foreground">
                           {describeStep({ kind: step.kind, config: step.config })}
                         </span>
+                        {path && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                              path === "yes"
+                                ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                                : "bg-destructive/12 text-destructive"
+                            }`}
+                          >
+                            {path === "yes" ? "Yes path" : "No path"}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="icon" aria-label="Move up" onClick={() => move(index, -1)}>
@@ -373,20 +396,6 @@ function AutomationBuilderPage() {
                               placeholder="Value"
                               onChange={(event) => updateConfig(index, { value: event.target.value })}
                             />
-                          )}
-                          {step.kind === "branch" && (
-                            <Select
-                              value={step.branch ?? "yes"}
-                              onValueChange={(value) => updateStep(index, { branch: value as "yes" | "no" })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="yes">Run following steps if true</SelectItem>
-                                <SelectItem value="no">Run following steps if false</SelectItem>
-                              </SelectContent>
-                            </Select>
                           )}
                         </>
                       )}
@@ -501,6 +510,35 @@ function AutomationBuilderPage() {
 
                     {def?.description && step.kind === "action" && (
                       <p className="mt-3 text-xs text-muted-foreground">{def.description}</p>
+                    )}
+
+                    {step.kind === "branch" && (
+                      <p className="mt-3 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                        Steps below can be placed on the <span className="font-medium text-foreground">Yes</span> or
+                        <span className="font-medium text-foreground"> No</span> path. Steps left on “Both paths”
+                        always run.
+                      </p>
+                    )}
+
+                    {afterBranch && step.kind !== "branch" && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                        <span className="text-xs text-muted-foreground">Runs on</span>
+                        <Select
+                          value={step.branch ?? "both"}
+                          onValueChange={(value) =>
+                            updateStep(index, { branch: value === "both" ? null : (value as "yes" | "no") })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-44 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="both">Both paths</SelectItem>
+                            <SelectItem value="yes">Yes path (condition true)</SelectItem>
+                            <SelectItem value="no">No path (condition false)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
                   </div>
                 );

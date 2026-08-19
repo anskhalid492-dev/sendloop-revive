@@ -872,12 +872,52 @@ async function hmacHex(secret: string, body: string): Promise<string> {
 
 /** Re-queues a failed run from its last incomplete step. Never repeats work. */
 export async function retryRun(runId: string, workspaceId: string): Promise<void> {
-  const { error } = await supabaseAdmin
+  const db = supabaseAdmin;
+
+  // Only the failed run is touched, and only when it is still failed — a
+  // double-click or a concurrent retry updates zero rows the second time.
+  const { data: run } = await db
     .from("automation_runs")
-    .update({ status: "queued", error: null, resume_at: null, locked_by: null, locked_at: null, attempts: 0 })
+    .select("id, current_step, metadata, status")
     .eq("id", runId)
     .eq("workspace_id", workspaceId)
-    .in("status", ["failed", "cancelled"]);
+    .maybeSingle();
+  if (!run) throw new Error("Run not found");
+  if (!["failed", "cancelled"].includes(run.status as string)) {
+    throw new Error("Only failed runs can be retried.");
+  }
+
+  const meta = (run.metadata ?? {}) as Record<string, unknown>;
+  const retries = Number(meta["retries"] ?? 0) + 1;
+
+  const { data: updated, error } = await db
+    .from("automation_runs")
+    .update({
+      status: "queued",
+      error: null,
+      resume_at: null,
+      locked_by: null,
+      locked_at: null,
+      attempts: 0,
+      completed_at: null,
+      // current_step is deliberately preserved: every step before it already
+      // completed and is never executed again.
+      metadata: { ...meta, retries, last_retry_at: new Date().toISOString() } as never,
+    })
+    .eq("id", runId)
+    .eq("workspace_id", workspaceId)
+    .in("status", ["failed", "cancelled"])
+    .select("id");
   if (error) throw new Error(error.message);
+  if (!updated || updated.length === 0) throw new Error("This run was already retried.");
+
+  // Clear the failed step's error so the timeline shows the fresh attempt;
+  // completed steps are left untouched.
+  await db
+    .from("automation_run_steps")
+    .update({ status: "running", error: null, finished_at: null })
+    .eq("run_id", runId)
+    .eq("status", "failed");
+
   void runAutomationCycle(10).catch(() => undefined);
 }

@@ -100,8 +100,10 @@ export const listAutomations = createServerFn({ method: "GET" })
       stats,
       limit: {
         planName: plan?.name ?? "Free",
+        planSlug: plan?.slug ?? null,
         max: plan?.max_automations ?? null,
         used: items.filter((i) => i.status !== "archived").length,
+        active: items.filter((i) => i.status === "active").length,
       },
     };
   });
@@ -135,13 +137,17 @@ export const getAutomation = createServerFn({ method: "GET" })
 
 /* ------------------------------------------------------------ mutate */
 
-async function assertLimit(client: Client, workspaceId: string) {
+async function planMaxAutomations(client: Client, workspaceId: string): Promise<number | null> {
   const { data: subscription } = await client
     .from("workspace_subscriptions")
     .select(sel("plans:plan_id(name, max_automations)"))
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  const max = (subscription as { plans?: { max_automations: number | null } } | null)?.plans?.max_automations ?? null;
+  return (subscription as { plans?: { max_automations: number | null } } | null)?.plans?.max_automations ?? null;
+}
+
+async function assertLimit(client: Client, workspaceId: string) {
+  const max = await planMaxAutomations(client, workspaceId);
   if (max === null) return;
   const { count } = await client
     .from("automations")
@@ -150,6 +156,21 @@ async function assertLimit(client: Client, workspaceId: string) {
     .neq("status", "archived");
   if ((count ?? 0) >= max) {
     throw new Error(`Your plan includes ${max} automations. Upgrade to add more.`);
+  }
+}
+
+/** Blocks activating more live automations than the plan allows. */
+async function assertActiveLimit(client: Client, workspaceId: string, automationId: string) {
+  const max = await planMaxAutomations(client, workspaceId);
+  if (max === null) return;
+  const { count } = await client
+    .from("automations")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("status", "active")
+    .neq("id", automationId);
+  if ((count ?? 0) >= max) {
+    throw new Error(`Your plan runs ${max} active automations. Upgrade to publish more.`);
   }
 }
 
@@ -287,6 +308,9 @@ export const setAutomationStatus = createServerFn({ method: "POST" })
         .eq("automation_id", data.automationId)
         .in("kind", ["action", "wait"]);
       if ((count ?? 0) === 0) throw new Error("Add at least one action before publishing.");
+      // Publishing consumes a live automation slot, so the plan limit is
+      // enforced here too — not only at creation time.
+      await assertActiveLimit(client, data.workspaceId, data.automationId);
     }
 
     const { error } = await client
@@ -376,7 +400,9 @@ export const listAutomationRuns = createServerFn({ method: "POST" })
       .object({
         workspaceId: z.string().uuid(),
         automationId: z.string().uuid().optional(),
-        status: z.enum(["all", "completed", "failed", "waiting", "running"]).default("all"),
+        status: z.enum(["all", "completed", "failed", "waiting", "running", "cancelled"]).default("all"),
+        /** ISO cut-off; runs created before it are excluded. */
+        since: z.string().datetime().optional(),
         limit: z.number().int().min(1).max(200).default(60),
       })
       .parse(input),
@@ -394,6 +420,7 @@ export const listAutomationRuns = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (data.automationId) query = query.eq("automation_id", data.automationId);
+    if (data.since) query = query.gte("created_at", data.since);
     if (data.status === "waiting") query = query.in("status", ["waiting", "queued"]);
     else if (data.status !== "all") query = query.eq("status", data.status);
 
