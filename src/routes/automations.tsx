@@ -199,6 +199,9 @@ function Page() {
               </Reveal>
             ))}
           </div>
+          <div className="mt-8 text-center">
+            <HowItWorksDialog />
+          </div>
         </div>
       </Section>
 
