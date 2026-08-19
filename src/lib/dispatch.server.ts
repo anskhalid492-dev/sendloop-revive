@@ -274,40 +274,10 @@ export async function dispatchDueMessages(
     ((accounts ?? []) as AccountRow[]).map((a) => [a.id, a] as const),
   );
 
-  // Provider credentials are admin-owned infrastructure, read with the service
-  // client after the caller's workspace access has already been checked.
-  const providerIds = [
-    ...new Set((accounts ?? []).map((a: { provider_id: string | null }) => a.provider_id).filter(Boolean)),
-  ] as string[];
-  const credentialsByProvider = new Map<string, Record<string, string>>();
-  // Customer-owned mailboxes carry their own encrypted credentials.
-  const credentialsByAccount = new Map<string, Record<string, string>>();
-  if (accountIds.length) {
-    const { data: ownSecrets } = await supabaseAdmin
-      .from("sending_account_secrets")
-      .select("sending_account_id, credentials_ciphertext")
-      .in("sending_account_id", accountIds);
-    for (const row of ownSecrets ?? []) {
-      try {
-        credentialsByAccount.set(row.sending_account_id, readCredentials(row.credentials_ciphertext));
-      } catch {
-        /* unreadable credentials surface as a per-message failure below */
-      }
-    }
-  }
-  if (providerIds.length) {
-    const { data: secrets } = await supabaseAdmin
-      .from("email_provider_secrets")
-      .select("provider_id, credentials_ciphertext")
-      .in("provider_id", providerIds);
-    for (const row of secrets ?? []) {
-      try {
-        credentialsByProvider.set(row.provider_id, readCredentials(row.credentials_ciphertext));
-      } catch {
-        /* unreadable credentials surface as a per-message failure below */
-      }
-    }
-  }
+  // Credentials are Sendloop-managed infrastructure resolved per send inside
+  // `sendManagedEmail`; customer-supplied provider keys are never read.
+  const { sendManagedEmail } = await import("./managed-sending.server");
+
 
   const sentPerAccount = new Map<string, number>();
 
