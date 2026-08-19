@@ -518,18 +518,17 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { getAdapter, readCredentials } = await import("./providers/adapter.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendManagedEmail } = await import("./managed-sending.server");
 
     const { data: account, error } = await context.supabase
       .from("sending_accounts")
-      .select("id, provider, provider_id, from_name, from_email, reply_to, workspace_id")
+      .select("id, provider, provider_id, from_name, from_email, reply_to, workspace_id, domain_id")
       .eq("id", data.sendingAccountId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!account) throw new Error("Sending account not found");
-    if (!account.provider_id && account.provider !== "resend")
-      throw new Error("This mailbox is not linked to a provider yet");
+
 
     const { data: campaign } = await context.supabase
       .from("campaigns")
