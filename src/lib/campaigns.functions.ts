@@ -1180,3 +1180,122 @@ export const getCampaignLaunchEvents = createServerFn({ method: "POST" })
     })) as CampaignLaunchEvent[];
   });
 
+
+export type BulkCampaignAction = "pause" | "resume" | "duplicate" | "archive" | "delete";
+
+export type BulkCampaignResult = {
+  action: BulkCampaignAction;
+  succeeded: string[];
+  failed: Array<{ id: string; reason: string }>;
+};
+
+/**
+ * Applies one action to many campaigns.
+ *
+ * Every id is re-read through the caller's RLS-scoped client and re-checked
+ * against the caller's workspace membership, so a crafted request can never
+ * touch a campaign from another workspace — even when it is mixed into a list
+ * of legitimate ids.
+ */
+export const bulkCampaignAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        ids: z.array(z.string().uuid()).min(1).max(100),
+        action: z.enum(["pause", "resume", "duplicate", "archive", "delete"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<BulkCampaignResult> => {
+    const ids = [...new Set(data.ids)];
+
+    const { data: rows, error } = await context.supabase
+      .from("campaigns")
+      .select("id, workspace_id, status")
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+
+    const visible = new Map(
+      ((rows ?? []) as Array<{ id: string; workspace_id: string; status: string }>).map((r) => [
+        r.id,
+        r,
+      ]),
+    );
+
+    // Membership is verified per workspace with the security-definer helper.
+    const workspaceIds = [...new Set([...visible.values()].map((r) => r.workspace_id))];
+    const allowedWorkspaces = new Set<string>();
+    for (const workspaceId of workspaceIds) {
+      const { data: isMember } = await context.supabase.rpc("is_workspace_member", {
+        _workspace_id: workspaceId,
+        _user_id: context.userId,
+      });
+      if (isMember) allowedWorkspaces.add(workspaceId);
+    }
+
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; reason: string }> = [];
+    const targets: string[] = [];
+
+    for (const id of ids) {
+      const row = visible.get(id);
+      if (!row) {
+        failed.push({ id, reason: "Campaign not found in your workspaces" });
+        continue;
+      }
+      if (!allowedWorkspaces.has(row.workspace_id)) {
+        failed.push({ id, reason: "Not authorized for this workspace" });
+        continue;
+      }
+      if (data.action === "pause" && row.status === "draft") {
+        failed.push({ id, reason: "Draft campaigns cannot be paused" });
+        continue;
+      }
+      targets.push(id);
+    }
+
+    if (targets.length === 0) return { action: data.action, succeeded, failed };
+
+    if (data.action === "duplicate") {
+      for (const id of targets) {
+        try {
+          await duplicateCampaign({ data: { id } });
+          succeeded.push(id);
+        } catch (e) {
+          failed.push({ id, reason: (e as Error).message });
+        }
+      }
+      return { action: data.action, succeeded, failed };
+    }
+
+    if (data.action === "delete") {
+      const { data: deleted, error: delError } = await context.supabase
+        .from("campaigns")
+        .delete()
+        .in("id", targets)
+        .select("id");
+      if (delError) throw new Error(delError.message);
+      const done = new Set(((deleted ?? []) as Array<{ id: string }>).map((r) => r.id));
+      for (const id of targets) {
+        if (done.has(id)) succeeded.push(id);
+        else failed.push({ id, reason: "Delete was blocked by workspace permissions" });
+      }
+      return { action: data.action, succeeded, failed };
+    }
+
+    const status =
+      data.action === "pause" ? "paused" : data.action === "resume" ? "active" : "archived";
+    const { data: updated, error: updateError } = await context.supabase
+      .from("campaigns")
+      .update({ status })
+      .in("id", targets)
+      .select("id");
+    if (updateError) throw new Error(updateError.message);
+    const done = new Set(((updated ?? []) as Array<{ id: string }>).map((r) => r.id));
+    for (const id of targets) {
+      if (done.has(id)) succeeded.push(id);
+      else failed.push({ id, reason: "Update was blocked by workspace permissions" });
+    }
+    return { action: data.action, succeeded, failed };
+  });
