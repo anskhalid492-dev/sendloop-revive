@@ -44,6 +44,7 @@ import { WorkspaceSwitcher } from "@/components/app/WorkspaceSwitcher";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { getMyProfile } from "@/lib/workspaces.functions";
 import { updateProfile } from "@/lib/profile.functions";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { cn } from "@/lib/utils";
 
