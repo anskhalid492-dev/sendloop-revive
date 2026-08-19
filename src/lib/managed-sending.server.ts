@@ -373,7 +373,7 @@ export async function sendManagedEmail(
   const { getAdapter } = await import("@/lib/providers/adapter.server");
   const domain = senderDomain(account.from_email);
 
-  const managed = await loadManagedProviderCredentials(admin, account);
+  const managed = await resolveManagedProvider(admin, account);
   if (!managed) {
     logManagedSend({
       stage: options.stage,
