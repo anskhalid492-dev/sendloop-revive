@@ -61,6 +61,7 @@ import { Route as ProductTemplatesRouteImport } from './routes/product.templates
 import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unified-inbox'
 import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
+import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
@@ -354,6 +355,11 @@ const ProductWorkspacesRoute = ProductWorkspacesRouteImport.update({
   path: '/product/workspaces',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RCodeRoute = RCodeRouteImport.update({
+  id: '/r/$code',
+  path: '/r/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SolutionsSlugRoute = SolutionsSlugRouteImport.update({
   id: '/solutions/$slug',
   path: '/solutions/$slug',
@@ -593,6 +599,7 @@ export interface FileRoutesByFullPath {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
+  '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
@@ -677,6 +684,7 @@ export interface FileRoutesByTo {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
+  '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
   '/help-center': typeof HelpCenterIndexRoute
@@ -765,6 +773,7 @@ export interface FileRoutesById {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
+  '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
@@ -853,6 +862,7 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
+    | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
     | '/help-center/'
@@ -937,6 +947,7 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
+    | '/r/$code'
     | '/solutions/$slug'
     | '/blog'
     | '/help-center'
@@ -1024,6 +1035,7 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
+    | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
     | '/help-center/'
@@ -1097,6 +1109,7 @@ export interface RootRouteChildren {
   ProductUnifiedInboxRoute: typeof ProductUnifiedInboxRoute
   ProductWarmupRoute: typeof ProductWarmupRoute
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
+  RCodeRoute: typeof RCodeRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
@@ -1475,6 +1488,13 @@ declare module '@tanstack/react-router' {
       path: '/product/workspaces'
       fullPath: '/product/workspaces'
       preLoaderRoute: typeof ProductWorkspacesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$code': {
+      id: '/r/$code'
+      path: '/r/$code'
+      fullPath: '/r/$code'
+      preLoaderRoute: typeof RCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/solutions/$slug': {
@@ -1871,6 +1891,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductUnifiedInboxRoute: ProductUnifiedInboxRoute,
   ProductWarmupRoute: ProductWarmupRoute,
   ProductWorkspacesRoute: ProductWorkspacesRoute,
+  RCodeRoute: RCodeRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   IntegrationsIndexRoute: IntegrationsIndexRoute,
