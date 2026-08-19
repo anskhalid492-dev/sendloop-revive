@@ -511,6 +511,35 @@ function AutomationBuilderPage() {
                     {def?.description && step.kind === "action" && (
                       <p className="mt-3 text-xs text-muted-foreground">{def.description}</p>
                     )}
+
+                    {step.kind === "branch" && (
+                      <p className="mt-3 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                        Steps below can be placed on the <span className="font-medium text-foreground">Yes</span> or
+                        <span className="font-medium text-foreground"> No</span> path. Steps left on “Both paths”
+                        always run.
+                      </p>
+                    )}
+
+                    {afterBranch && step.kind !== "branch" && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                        <span className="text-xs text-muted-foreground">Runs on</span>
+                        <Select
+                          value={step.branch ?? "both"}
+                          onValueChange={(value) =>
+                            updateStep(index, { branch: value === "both" ? null : (value as "yes" | "no") })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-44 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="both">Both paths</SelectItem>
+                            <SelectItem value="yes">Yes path (condition true)</SelectItem>
+                            <SelectItem value="no">No path (condition false)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 );
               })}
