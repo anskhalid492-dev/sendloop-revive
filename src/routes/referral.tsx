@@ -20,11 +20,9 @@ import {
 
 import {
   BulletList,
-  CtaBlock,
   FaqBlock,
   FeatureBento,
   MarketingLayout,
-  PageHero,
   Section,
   StepList,
   metaFor,
@@ -71,23 +69,22 @@ const faqs = [
 export const Route = createFileRoute("/referral")({
   loader: ({ context }) => context.queryClient.ensureQueryData(programQuery),
   head: () =>
-    metaFor({
-      title: "Sendloop Referral Program — Earn recurring commission",
-      description:
-        "Refer teams to Sendloop and earn commission on real, verified payments. Transparent tracking, live dashboard, reversal-safe balances and manual-reviewed payouts.",
-      path: "/referral",
+    metaFor(
+      "Sendloop Referral Program — Earn recurring commission",
+      "Refer teams to Sendloop and earn commission on real, verified payments. Transparent tracking, live dashboard, reversal-safe balances and manual-reviewed payouts.",
+      "/referral",
       faqs,
-    }),
+    ),
   errorComponent: () => (
     <MarketingLayout>
-      <Section title="Referral program" subtitle="We could not load the program terms right now. Please refresh the page.">
+      <Section title="Referral program" description="We could not load the program terms right now. Please refresh the page.">
         <div />
       </Section>
     </MarketingLayout>
   ),
   notFoundComponent: () => (
     <MarketingLayout>
-      <Section title="Not found" subtitle="This page does not exist.">
+      <Section title="Not found" description="This page does not exist.">
         <div />
       </Section>
     </MarketingLayout>
@@ -102,21 +99,33 @@ function ReferralLanding() {
 
   return (
     <MarketingLayout>
-      <PageHero
-        eyebrow="Referral program"
-        title="Get paid for every team you bring to Sendloop"
-        subtitle={
-          live && program
-            ? `Earn ${describeCommission(program)}. Tracking is server-side, balances update from verified payments only, and payouts start at ${formatMoney(program.minimum_payout_cents)}.`
-            : "The Sendloop referral program is being finalised. Create your referral profile now and your link will be ready the moment commissions go live."
-        }
-        primary={{ label: live ? "Get my referral link" : "Create my referral profile", to: "/referrals" }}
-        secondary={{ label: "See program terms", to: "/terms" }}
-      />
+      <section className="hero-glow relative overflow-hidden border-b border-border/60">
+        <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-24">
+          <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary">
+            Referral program
+          </span>
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl">
+            Get paid for every team you bring to <span className="text-gradient">Sendloop</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            {live && program
+              ? `Earn ${describeCommission(program)}. Tracking is server-side, balances update from verified payments only, and payouts start at ${formatMoney(program.minimum_payout_cents)}.`
+              : "The Sendloop referral program is being finalised. Create your referral profile now and your link will be ready the moment commissions go live."}
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button size="lg" asChild>
+              <Link to="/referrals">{live ? "Get my referral link" : "Create my referral profile"}</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link to="/terms">See program terms</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
 
       <Section
         title={live ? "What you earn" : "How the program will work"}
-        subtitle="Every number below comes from the live program configuration, not marketing estimates."
+        description="Every number below comes from the live program configuration, not marketing estimates."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -167,7 +176,7 @@ function ReferralLanding() {
         </div>
       </Section>
 
-      <Section title="How it works" subtitle="Four steps, fully tracked inside Sendloop.">
+      <Section title="How it works" description="Four steps, fully tracked inside Sendloop.">
         <StepList
           steps={[
             { title: "Create your referral profile", text: "Open the Referrals page in your Sendloop dashboard and generate your unique link and code." },
@@ -178,7 +187,7 @@ function ReferralLanding() {
         />
       </Section>
 
-      <Section title="Built to be fair on both sides" subtitle="No inflated dashboards, no phantom balances.">
+      <Section title="Built to be fair on both sides" description="No inflated dashboards, no phantom balances.">
         <FeatureBento
           items={[
             { icon: BarChart3, title: "Live performance data", text: "Clicks, signups, converted customers and conversion rate, all calculated from your own tracked events." },
@@ -191,7 +200,7 @@ function ReferralLanding() {
         />
       </Section>
 
-      <Section title="Who can join" subtitle="Straightforward eligibility.">
+      <Section title="Who can join" description="Straightforward eligibility.">
         <BulletList
           items={[
             program?.eligibility ?? "Any Sendloop account in good standing can join the referral program.",
@@ -205,11 +214,15 @@ function ReferralLanding() {
 
       <FaqBlock faqs={faqs} />
 
-      <CtaBlock
-        title="Start referring today"
-        subtitle="Your referral link, live stats and payout requests all live inside your Sendloop dashboard."
-        action={
-          <div className="flex flex-wrap justify-center gap-3">
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+        <div className="hero-glow surface-card px-6 py-14 text-center">
+          <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
+            Start referring today
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+            Your referral link, live stats and payout requests all live inside your Sendloop dashboard.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">
               <Link to="/referrals">
                 Open referral dashboard <ArrowRight className="ml-2 size-4" />
@@ -219,8 +232,8 @@ function ReferralLanding() {
               <Link to="/signup">Create a free account</Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </section>
     </MarketingLayout>
   );
 }
