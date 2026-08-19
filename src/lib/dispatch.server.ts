@@ -227,7 +227,7 @@ export async function dispatchDueMessages(
   supabase: AnySupabase,
   options: { campaignId: string; limit?: number; force?: boolean },
 ): Promise<DispatchResult> {
-  const { getAdapter, readCredentials } = await import("./providers/adapter.server");
+  const { recordOutboundCampaignMessage: _unusedAdapterImport } = { recordOutboundCampaignMessage: null };
   const { recordOutboundCampaignMessage } = await import("./inbox.server");
   const { resolveReplyTo } = await import("./inbox-send.server");
   const { mintReplyAddress } = await import("./inbound-routing.server");
