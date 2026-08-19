@@ -26,6 +26,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ReferralRouteImport } from './routes/referral'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -39,6 +40,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated/referrals'
 import { Route as AuthenticatedSendingRouteImport } from './routes/_authenticated/sending'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
@@ -61,6 +63,7 @@ import { Route as ProductTemplatesRouteImport } from './routes/product.templates
 import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unified-inbox'
 import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
+import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
@@ -73,6 +76,7 @@ import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
 import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
 import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
+import { Route as AuthenticatedAdminReferralsRouteImport } from './routes/_authenticated/admin/referrals'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
@@ -94,6 +98,7 @@ import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -179,6 +184,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReferralRoute = ReferralRouteImport.update({
+  id: '/referral',
+  path: '/referral',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -242,6 +252,11 @@ const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSendingRoute = AuthenticatedSendingRouteImport.update({
@@ -354,6 +369,11 @@ const ProductWorkspacesRoute = ProductWorkspacesRouteImport.update({
   path: '/product/workspaces',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RCodeRoute = RCodeRouteImport.update({
+  id: '/r/$code',
+  path: '/r/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SolutionsSlugRoute = SolutionsSlugRouteImport.update({
   id: '/solutions/$slug',
   path: '/solutions/$slug',
@@ -420,6 +440,12 @@ const AuthenticatedAdminProvidersRoute =
   AuthenticatedAdminProvidersRouteImport.update({
     id: '/providers',
     path: '/providers',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminReferralsRoute =
+  AuthenticatedAdminReferralsRouteImport.update({
+    id: '/referrals',
+    path: '/referrals',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminReviewsRoute =
@@ -543,6 +569,12 @@ const ApiPublicIntegrationsSlugRoute =
     path: '/api/public/integrations/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicReferralBillingRoute =
+  ApiPublicReferralBillingRouteImport.update({
+    id: '/api/public/referral/billing',
+    path: '/api/public/referral/billing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -561,6 +593,7 @@ export interface FileRoutesByFullPath {
   '/help-center': typeof HelpCenterRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/referral': typeof ReferralRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -574,6 +607,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof AuthenticatedInboxRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/referrals': typeof AuthenticatedReferralsRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -593,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
+  '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
@@ -607,6 +642,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -629,6 +665,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -646,6 +683,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/referral': typeof ReferralRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -658,6 +696,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AuthenticatedInboxRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/referrals': typeof AuthenticatedReferralsRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -677,6 +716,7 @@ export interface FileRoutesByTo {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
+  '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
   '/help-center': typeof HelpCenterIndexRoute
@@ -691,6 +731,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -713,6 +754,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -733,6 +775,7 @@ export interface FileRoutesById {
   '/help-center': typeof HelpCenterRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/referral': typeof ReferralRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -746,6 +789,7 @@ export interface FileRoutesById {
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
   '/_authenticated/sending': typeof AuthenticatedSendingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
@@ -765,6 +809,7 @@ export interface FileRoutesById {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
+  '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
@@ -779,6 +824,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/_authenticated/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -801,6 +847,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -821,6 +868,7 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/pricing'
     | '/privacy'
+    | '/referral'
     | '/reset-password'
     | '/signin'
     | '/signup'
@@ -834,6 +882,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/leads'
     | '/onboarding'
+    | '/referrals'
     | '/sending'
     | '/settings'
     | '/support'
@@ -853,6 +902,7 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
+    | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
     | '/help-center/'
@@ -867,6 +917,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/pool'
     | '/admin/providers'
+    | '/admin/referrals'
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin/support'
@@ -889,6 +940,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/referral/billing'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -906,6 +958,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/pricing'
     | '/privacy'
+    | '/referral'
     | '/reset-password'
     | '/signin'
     | '/signup'
@@ -918,6 +971,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/leads'
     | '/onboarding'
+    | '/referrals'
     | '/sending'
     | '/settings'
     | '/support'
@@ -937,6 +991,7 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
+    | '/r/$code'
     | '/solutions/$slug'
     | '/blog'
     | '/help-center'
@@ -951,6 +1006,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/pool'
     | '/admin/providers'
+    | '/admin/referrals'
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin/support'
@@ -973,6 +1029,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/referral/billing'
   id:
     | '__root__'
     | '/'
@@ -992,6 +1049,7 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/pricing'
     | '/privacy'
+    | '/referral'
     | '/reset-password'
     | '/signin'
     | '/signup'
@@ -1005,6 +1063,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inbox'
     | '/_authenticated/leads'
     | '/_authenticated/onboarding'
+    | '/_authenticated/referrals'
     | '/_authenticated/sending'
     | '/_authenticated/settings'
     | '/_authenticated/support'
@@ -1024,6 +1083,7 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
+    | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
     | '/help-center/'
@@ -1038,6 +1098,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/pool'
     | '/_authenticated/admin/providers'
+    | '/_authenticated/admin/referrals'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
@@ -1060,6 +1121,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/referral/billing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1080,6 +1142,7 @@ export interface RootRouteChildren {
   HelpCenterRoute: typeof HelpCenterRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReferralRoute: typeof ReferralRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
@@ -1097,6 +1160,7 @@ export interface RootRouteChildren {
   ProductUnifiedInboxRoute: typeof ProductUnifiedInboxRoute
   ProductWarmupRoute: typeof ProductWarmupRoute
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
+  RCodeRoute: typeof RCodeRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
@@ -1109,6 +1173,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1232,6 +1297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/referral': {
+      id: '/referral'
+      path: '/referral'
+      fullPath: '/referral'
+      preLoaderRoute: typeof ReferralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -1321,6 +1393,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/referrals': {
+      id: '/_authenticated/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof AuthenticatedReferralsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sending': {
@@ -1477,6 +1556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductWorkspacesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/r/$code': {
+      id: '/r/$code'
+      path: '/r/$code'
+      fullPath: '/r/$code'
+      preLoaderRoute: typeof RCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/solutions/$slug': {
       id: '/solutions/$slug'
       path: '/solutions/$slug'
@@ -1559,6 +1645,13 @@ declare module '@tanstack/react-router' {
       path: '/providers'
       fullPath: '/admin/providers'
       preLoaderRoute: typeof AuthenticatedAdminProvidersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/referrals': {
+      id: '/_authenticated/admin/referrals'
+      path: '/referrals'
+      fullPath: '/admin/referrals'
+      preLoaderRoute: typeof AuthenticatedAdminReferralsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/reviews': {
@@ -1708,6 +1801,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/referral/billing': {
+      id: '/api/public/referral/billing'
+      path: '/api/public/referral/billing'
+      fullPath: '/api/public/referral/billing'
+      preLoaderRoute: typeof ApiPublicReferralBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1737,6 +1837,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
   AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
+  AuthenticatedAdminReferralsRoute: typeof AuthenticatedAdminReferralsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
@@ -1760,6 +1861,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
     AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
     AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
+    AuthenticatedAdminReferralsRoute: AuthenticatedAdminReferralsRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
@@ -1783,6 +1885,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedReferralsRoute: typeof AuthenticatedReferralsRoute
   AuthenticatedSendingRoute: typeof AuthenticatedSendingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
@@ -1805,6 +1908,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedReferralsRoute: AuthenticatedReferralsRoute,
   AuthenticatedSendingRoute: AuthenticatedSendingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
@@ -1854,6 +1958,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpCenterRoute: HelpCenterRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ReferralRoute: ReferralRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,
@@ -1871,6 +1976,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductUnifiedInboxRoute: ProductUnifiedInboxRoute,
   ProductWarmupRoute: ProductWarmupRoute,
   ProductWorkspacesRoute: ProductWorkspacesRoute,
+  RCodeRoute: RCodeRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   IntegrationsIndexRoute: IntegrationsIndexRoute,
@@ -1883,6 +1989,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
