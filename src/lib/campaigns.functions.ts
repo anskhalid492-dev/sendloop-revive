@@ -560,27 +560,26 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       body = resolveSpintax(body);
     }
 
-    const { data: accountSecret } = await supabaseAdmin
-      .from("sending_account_secrets")
-      .select("credentials_ciphertext")
-      .eq("sending_account_id", account.id)
-      .maybeSingle();
-    const { data: providerSecret } = await supabaseAdmin
-      .from("email_provider_secrets")
-      .select("credentials_ciphertext")
-      .eq("provider_id", account.provider_id ?? "00000000-0000-0000-0000-000000000000")
-      .maybeSingle();
-    const secret = accountSecret ?? providerSecret;
-    if (!secret && !(account.provider === "resend" && process.env["RESEND_API_KEY"])) {
-      throw new Error("No credentials stored for this provider yet");
+    // The mailbox may only send from a domain the customer has verified in
+    // Sendloop; the managed provider's own verification is checked at send time.
+    if (account.domain_id) {
+      const { data: domainRow } = await context.supabase
+        .from("sending_domains")
+        .select("domain, dns_status")
+        .eq("id", account.domain_id)
+        .maybeSingle();
+      if (domainRow && domainRow.dns_status !== "verified") {
+        throw new Error(
+          "Your sending domain is not yet verified. Please complete the DNS verification for this domain.",
+        );
+      }
     }
 
-    const adapter = getAdapter(account.provider);
-    const credentials = secret ? readCredentials(secret.credentials_ciphertext) : {};
     const html = `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;white-space:pre-wrap">${body
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")}</div>`;
+
 
     const results = [] as Array<{
       to: string;
