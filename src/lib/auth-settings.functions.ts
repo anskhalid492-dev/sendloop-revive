@@ -8,6 +8,7 @@
  * enforced server-side for anyone who tries the OAuth flow anyway.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -101,11 +102,10 @@ export const enforceOAuthPolicy = createServerFn({ method: "POST" })
     if (enabled) return { blocked: false };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const jwt = (getRequestHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
     try {
-      await supabaseAdmin.auth.admin.signOut(
-        // revoke every session created for this user
-        (context as unknown as { token?: string }).token ?? "",
-      );
+      // Revoke every session for this user, not just the current request.
+      if (jwt) await supabaseAdmin.auth.admin.signOut(jwt, "global");
     } catch {
       /* best effort — the client signs out below regardless */
     }
