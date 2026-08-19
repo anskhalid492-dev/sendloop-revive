@@ -47,6 +47,7 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { getMyProfile } from "@/lib/workspaces.functions";
 import { updateProfile } from "@/lib/profile.functions";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useReferralClaim } from "@/hooks/useReferralClaim";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +127,8 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { theme, setTheme } = useTheme();
+  // Attributes a referred signup the first time the customer reaches the app.
+  useReferralClaim(true);
   const fetchProfile = useServerFn(getMyProfile);
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => fetchProfile() });
   const saveProfile = useServerFn(updateProfile);
