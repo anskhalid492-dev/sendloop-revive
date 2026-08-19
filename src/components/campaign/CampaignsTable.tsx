@@ -17,6 +17,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,12 +90,19 @@ export function CampaignsTable({
   onSetStatus,
   onDuplicate,
   onDelete,
+  onBulkAction,
+  bulkBusy,
   busyId,
 }: {
   rows: CampaignOverviewRow[];
   onSetStatus: (id: string, status: "active" | "paused" | "archived") => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
+  onBulkAction?: (
+    action: "pause" | "resume" | "duplicate" | "archive" | "delete",
+    ids: string[],
+  ) => void | Promise<void>;
+  bulkBusy?: boolean;
   busyId?: string | null;
 }) {
   const [query, setQuery] = useState("");
@@ -102,6 +110,7 @@ export function CampaignsTable({
   const [sortKey, setSortKey] = useState<SortKey>("sent");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -126,6 +135,26 @@ export function CampaignsTable({
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount - 1);
   const paged = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+
+  const visibleIds = paged.map((r) => r.id);
+  const selectedSet = new Set(selected);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedSet.has(id));
+  const toggleRow = (id: string, checked: boolean) =>
+    setSelected((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
+  const toggleAllVisible = (checked: boolean) =>
+    setSelected((prev) =>
+      checked
+        ? [...new Set([...prev, ...visibleIds])]
+        : prev.filter((id) => !visibleIds.includes(id)),
+    );
+  const runBulk = async (
+    action: "pause" | "resume" | "duplicate" | "archive" | "delete",
+  ) => {
+    if (!onBulkAction || selected.length === 0) return;
+    await onBulkAction(action, selected);
+    setSelected([]);
+  };
 
   const onSort = (key: SortKey) => {
     if (key === sortKey) setDir(dir === "asc" ? "desc" : "asc");
@@ -174,10 +203,45 @@ export function CampaignsTable({
         </p>
       </div>
 
+      {onBulkAction && selected.length > 0 ? (
+        <div className="surface-card flex flex-wrap items-center gap-2 px-4 py-3">
+          <span className="text-sm font-medium">{selected.length} selected</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => runBulk("resume")}>
+              Resume
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => runBulk("pause")}>
+              Pause
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => runBulk("duplicate")}>
+              Duplicate
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => runBulk("archive")}>
+              Archive
+            </Button>
+            <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={() => runBulk("delete")}>
+              Delete
+            </Button>
+            <Button size="sm" variant="ghost" disabled={bulkBusy} onClick={() => setSelected([])}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="surface-card overflow-x-auto">
         <Table className="min-w-[1080px]">
           <TableHeader>
             <TableRow>
+              {onBulkAction ? (
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allVisibleSelected}
+                    onCheckedChange={(v) => toggleAllVisible(v === true)}
+                    aria-label="Select all campaigns on this page"
+                  />
+                </TableHead>
+              ) : null}
               <TableHead className="w-[22%]">
                 <SortButton label="Campaign" sortKey="name" active={sortKey === "name"} dir={dir} onSort={onSort} />
               </TableHead>
@@ -209,6 +273,15 @@ export function CampaignsTable({
               const paused = row.displayStatus === "paused";
               return (
                 <TableRow key={row.id} className={busyId === row.id ? "opacity-60" : undefined}>
+                  {onBulkAction ? (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedSet.has(row.id)}
+                        onCheckedChange={(v) => toggleRow(row.id, v === true)}
+                        aria-label={`Select ${row.name}`}
+                      />
+                    </TableCell>
+                  ) : null}
                   <TableCell className="max-w-0">
                     <Link
                       to="/campaigns/$campaignId"
@@ -309,7 +382,7 @@ export function CampaignsTable({
             })}
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={onBulkAction ? 10 : 9} className="py-10 text-center text-sm text-muted-foreground">
                   No campaigns match this search.
                 </TableCell>
               </TableRow>

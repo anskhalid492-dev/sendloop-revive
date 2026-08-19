@@ -234,7 +234,6 @@ export async function getInboxHealthSummary() {
  * routed reply address, then reports whether a reply came back through it.
  */
 export async function runInboundTest(args: { userId: string; toEmail: string }) {
-  const { getAdapter } = await import("@/lib/providers/adapter.server");
   const { resolveReplyTo } = await import("@/lib/inbox-send.server");
   const { mintReplyAddress, tokenFromAddress } = await import("@/lib/inbound-routing.server");
 
@@ -248,15 +247,6 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   if (!account) throw new Error("No managed mailbox is available to send the test from.");
   if (!account.workspace_id) throw new Error("The available mailbox is not assigned to a workspace.");
 
-  // Customer-owned mailbox credentials first, shared provider credentials after.
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(supabaseAdmin, {
-    id: account.id as string,
-    provider_id: (account.provider_id as string | null) ?? null,
-  });
-  if (!credentials && !(account.provider === "resend" && process.env["RESEND_API_KEY"])) {
-    throw new Error("The mailbox provider has no usable credentials.");
-  }
 
   const base = await resolveReplyTo(account.provider_id, account.reply_to);
   const replyTo = await mintReplyAddress(base, {
@@ -266,15 +256,26 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   });
   if (!replyTo) throw new Error("Configure a reply-to inbox before running the test.");
 
-  const adapter = getAdapter(account.provider);
-  const send = await adapter.sendEmail(credentials ?? {}, {
+  const { sendManagedEmail } = await import("@/lib/managed-sending.server");
+  const send = await sendManagedEmail(
+    supabaseAdmin,
+    {
+      id: account.id as string,
+      workspace_id: account.workspace_id as string,
+      provider: account.provider as string,
+      provider_id: (account.provider_id as string | null) ?? null,
+      from_email: account.from_email as string,
+    },
+    {
     fromName: account.from_name,
     fromEmail: account.from_email,
     replyTo,
     to: args.toEmail,
     subject: "Sendloop inbound delivery test",
-    text: `This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.\n\nRouted reply address: ${replyTo}`,
-  });
+      text: `This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.\n\nRouted reply address: ${replyTo}`,
+    },
+    { stage: "test" },
+  );
 
   const { data: row } = await supabaseAdmin
     .from("inbound_tests")

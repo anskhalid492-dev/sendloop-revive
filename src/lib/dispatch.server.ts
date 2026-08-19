@@ -227,7 +227,7 @@ export async function dispatchDueMessages(
   supabase: AnySupabase,
   options: { campaignId: string; limit?: number; force?: boolean },
 ): Promise<DispatchResult> {
-  const { getAdapter, readCredentials } = await import("./providers/adapter.server");
+  
   const { recordOutboundCampaignMessage } = await import("./inbox.server");
   const { resolveReplyTo } = await import("./inbox-send.server");
   const { mintReplyAddress } = await import("./inbound-routing.server");
@@ -274,40 +274,10 @@ export async function dispatchDueMessages(
     ((accounts ?? []) as AccountRow[]).map((a) => [a.id, a] as const),
   );
 
-  // Provider credentials are admin-owned infrastructure, read with the service
-  // client after the caller's workspace access has already been checked.
-  const providerIds = [
-    ...new Set((accounts ?? []).map((a: { provider_id: string | null }) => a.provider_id).filter(Boolean)),
-  ] as string[];
-  const credentialsByProvider = new Map<string, Record<string, string>>();
-  // Customer-owned mailboxes carry their own encrypted credentials.
-  const credentialsByAccount = new Map<string, Record<string, string>>();
-  if (accountIds.length) {
-    const { data: ownSecrets } = await supabaseAdmin
-      .from("sending_account_secrets")
-      .select("sending_account_id, credentials_ciphertext")
-      .in("sending_account_id", accountIds);
-    for (const row of ownSecrets ?? []) {
-      try {
-        credentialsByAccount.set(row.sending_account_id, readCredentials(row.credentials_ciphertext));
-      } catch {
-        /* unreadable credentials surface as a per-message failure below */
-      }
-    }
-  }
-  if (providerIds.length) {
-    const { data: secrets } = await supabaseAdmin
-      .from("email_provider_secrets")
-      .select("provider_id, credentials_ciphertext")
-      .in("provider_id", providerIds);
-    for (const row of secrets ?? []) {
-      try {
-        credentialsByProvider.set(row.provider_id, readCredentials(row.credentials_ciphertext));
-      } catch {
-        /* unreadable credentials surface as a per-message failure below */
-      }
-    }
-  }
+  // Credentials are Sendloop-managed infrastructure resolved per send inside
+  // `sendManagedEmail`; customer-supplied provider keys are never read.
+  const { sendManagedEmail } = await import("./managed-sending.server");
+
 
   const sentPerAccount = new Map<string, number>();
 
@@ -348,14 +318,6 @@ export async function dispatchDueMessages(
       result.skipped += 1;
       continue;
     }
-    const credentials =
-      credentialsByAccount.get(account.id) ??
-      (account.provider_id ? (credentialsByProvider.get(account.provider_id) ?? null) : null);
-    const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
-    if (!credentials && !envFallback) {
-      await fail("The mailbox provider has no credentials configured.");
-      continue;
-    }
     const usedNow = sentPerAccount.get(account.id) ?? 0;
     if ((account.sent_today ?? 0) + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
@@ -364,7 +326,6 @@ export async function dispatchDueMessages(
 
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
-    const adapter = getAdapter(account.provider);
     // Replies must reach the inbox Sendloop tracks, not the raw mailbox.
     const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
     // A unique routed address per send: replies come back tagged with the
@@ -376,14 +337,26 @@ export async function dispatchDueMessages(
       campaignId: message.campaign_id,
       purpose: "campaign",
     });
-    const send = await adapter.sendEmail(credentials ?? {}, {
-      fromName: account.from_name,
-      fromEmail: account.from_email,
-      replyTo,
-      to: message.to_email,
-      subject: message.subject,
-      text: message.body,
-    });
+    const send = await sendManagedEmail(
+      supabaseAdmin,
+      {
+        id: account.id,
+        workspace_id: message.workspace_id,
+        provider: account.provider,
+        provider_id: account.provider_id,
+        from_email: account.from_email,
+      },
+      {
+        fromName: account.from_name,
+        fromEmail: account.from_email,
+        replyTo,
+        to: message.to_email,
+        subject: message.subject,
+        text: message.body,
+      },
+      { stage: "campaign" },
+    );
+
 
     if (!send.ok) {
       await fail(send.message);

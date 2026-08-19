@@ -518,18 +518,17 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { getAdapter, readCredentials } = await import("./providers/adapter.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendManagedEmail } = await import("./managed-sending.server");
 
     const { data: account, error } = await context.supabase
       .from("sending_accounts")
-      .select("id, provider, provider_id, from_name, from_email, reply_to, workspace_id")
+      .select("id, provider, provider_id, from_name, from_email, reply_to, workspace_id, domain_id")
       .eq("id", data.sendingAccountId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!account) throw new Error("Sending account not found");
-    if (!account.provider_id && account.provider !== "resend")
-      throw new Error("This mailbox is not linked to a provider yet");
+
 
     const { data: campaign } = await context.supabase
       .from("campaigns")
@@ -561,27 +560,26 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       body = resolveSpintax(body);
     }
 
-    const { data: accountSecret } = await supabaseAdmin
-      .from("sending_account_secrets")
-      .select("credentials_ciphertext")
-      .eq("sending_account_id", account.id)
-      .maybeSingle();
-    const { data: providerSecret } = await supabaseAdmin
-      .from("email_provider_secrets")
-      .select("credentials_ciphertext")
-      .eq("provider_id", account.provider_id ?? "00000000-0000-0000-0000-000000000000")
-      .maybeSingle();
-    const secret = accountSecret ?? providerSecret;
-    if (!secret && !(account.provider === "resend" && process.env["RESEND_API_KEY"])) {
-      throw new Error("No credentials stored for this provider yet");
+    // The mailbox may only send from a domain the customer has verified in
+    // Sendloop; the managed provider's own verification is checked at send time.
+    if (account.domain_id) {
+      const { data: domainRow } = await context.supabase
+        .from("sending_domains")
+        .select("domain, dns_status")
+        .eq("id", account.domain_id)
+        .maybeSingle();
+      if (domainRow && domainRow.dns_status !== "verified") {
+        throw new Error(
+          "Your sending domain is not yet verified. Please complete the DNS verification for this domain.",
+        );
+      }
     }
 
-    const adapter = getAdapter(account.provider);
-    const credentials = secret ? readCredentials(secret.credentials_ciphertext) : {};
     const html = `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;white-space:pre-wrap">${body
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")}</div>`;
+
 
     const results = [] as Array<{
       to: string;
@@ -597,16 +595,28 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     }>;
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
-      const result = await adapter.sendEmail(credentials, {
-        fromName: account.from_name,
-        fromEmail: account.from_email,
-        replyTo: account.reply_to,
-        to,
-        subject: `[Test] ${subject}`,
-        text: body,
-        html,
-        headers: { "X-Sendloop-Test-Request-ID": requestId },
-      });
+      const result = await sendManagedEmail(
+        supabaseAdmin,
+        {
+          id: account.id,
+          workspace_id: account.workspace_id,
+          provider: account.provider,
+          provider_id: account.provider_id,
+          from_email: account.from_email,
+        },
+        {
+          fromName: account.from_name,
+          fromEmail: account.from_email,
+          replyTo: account.reply_to,
+          to,
+          subject: `[Test] ${subject}`,
+          text: body,
+          html,
+          headers: { "X-Sendloop-Test-Request-ID": requestId },
+        },
+        { stage: "test" },
+      );
+
       const diagnostic = {
         request_id: requestId,
         workspace_id: account.workspace_id,
@@ -1020,79 +1030,10 @@ export const duplicateCampaign = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: source, error } = await context.supabase
-      .from("campaigns")
-      .select(CAMPAIGN_COLUMNS)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!source) throw new Error("Campaign not found");
-    const c = source as unknown as Campaign;
-
-    const { data: created, error: cErr } = await context.supabase
-      .from("campaigns")
-      .insert({
-        workspace_id: c.workspace_id,
-        name: `${c.name} (copy)`,
-        description: c.description,
-        created_by: context.userId,
-        list_id: data.includeLeads ? c.list_id : null,
-        sending_account_ids: data.includeAccounts ? c.sending_account_ids : [],
-        timezone: c.timezone,
-        send_days: data.includeSchedule ? c.send_days : [1, 2, 3, 4, 5],
-        send_start_hour: data.includeSchedule ? c.send_start_hour : 9,
-        send_end_hour: data.includeSchedule ? c.send_end_hour : 17,
-        daily_cap: c.daily_cap,
-        stop_on_reply: c.stop_on_reply,
-        tags: c.tags,
-        min_delay_minutes: c.min_delay_minutes,
-        random_delay_minutes: c.random_delay_minutes,
-        max_per_hour: c.max_per_hour,
-        business_days_only: c.business_days_only,
-        open_tracking: c.open_tracking,
-        click_tracking: c.click_tracking,
-        text_only: c.text_only,
-        stop_on_company_reply: c.stop_on_company_reply,
-        max_contacts_per_company: c.max_contacts_per_company,
-        unsubscribe_enabled: c.unsubscribe_enabled,
-        inbox_rotation_enabled: c.inbox_rotation_enabled,
-        inbox_rotation_strategy: c.inbox_rotation_strategy,
-        rotation_daily_cap_per_inbox: c.rotation_daily_cap_per_inbox,
-        custom_variables: c.custom_variables ?? [],
-      })
-      .select("id")
-      .single();
-    if (cErr) throw new Error(cErr.message);
-
-    const { data: steps, error: sErr } = await context.supabase
-      .from("campaign_steps")
-      .select(STEP_COLUMNS)
-      .eq("campaign_id", c.id)
-      .order("step_order", { ascending: true });
-    if (sErr) throw new Error(sErr.message);
-
-    if (steps?.length) {
-      const { error: insErr } = await context.supabase.from("campaign_steps").insert(
-        steps.map((s) => ({
-          campaign_id: created.id,
-          workspace_id: c.workspace_id,
-          step_order: s.step_order,
-          name: s.name,
-          step_type: s.step_type,
-          subject: s.subject,
-          body: s.body,
-          wait_days: s.wait_days,
-          wait_hours: s.wait_hours,
-          delay_minutes: s.delay_minutes,
-          same_thread: s.same_thread,
-          config: s.config,
-        })) as never,
-      );
-      if (insErr) throw new Error(insErr.message);
-    }
-
-    return { id: created.id as string };
+    const { duplicateCampaignRow } = await import("@/lib/campaign-duplicate.server");
+    return await duplicateCampaignRow(context.supabase, context.userId, data);
   });
+
 
 export const deleteCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1170,3 +1111,123 @@ export const getCampaignLaunchEvents = createServerFn({ method: "POST" })
     })) as CampaignLaunchEvent[];
   });
 
+
+export type BulkCampaignAction = "pause" | "resume" | "duplicate" | "archive" | "delete";
+
+export type BulkCampaignResult = {
+  action: BulkCampaignAction;
+  succeeded: string[];
+  failed: Array<{ id: string; reason: string }>;
+};
+
+/**
+ * Applies one action to many campaigns.
+ *
+ * Every id is re-read through the caller's RLS-scoped client and re-checked
+ * against the caller's workspace membership, so a crafted request can never
+ * touch a campaign from another workspace — even when it is mixed into a list
+ * of legitimate ids.
+ */
+export const bulkCampaignAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        ids: z.array(z.string().uuid()).min(1).max(100),
+        action: z.enum(["pause", "resume", "duplicate", "archive", "delete"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<BulkCampaignResult> => {
+    const ids = [...new Set(data.ids)];
+
+    const { data: rows, error } = await context.supabase
+      .from("campaigns")
+      .select("id, workspace_id, status")
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+
+    const visible = new Map(
+      ((rows ?? []) as Array<{ id: string; workspace_id: string; status: string }>).map((r) => [
+        r.id,
+        r,
+      ]),
+    );
+
+    // Membership is verified per workspace with the security-definer helper.
+    const workspaceIds = [...new Set([...visible.values()].map((r) => r.workspace_id))];
+    const allowedWorkspaces = new Set<string>();
+    for (const workspaceId of workspaceIds) {
+      const { data: isMember } = await context.supabase.rpc("is_workspace_member", {
+        _workspace_id: workspaceId,
+        _user_id: context.userId,
+      });
+      if (isMember) allowedWorkspaces.add(workspaceId);
+    }
+
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; reason: string }> = [];
+    const targets: string[] = [];
+
+    for (const id of ids) {
+      const row = visible.get(id);
+      if (!row) {
+        failed.push({ id, reason: "Campaign not found in your workspaces" });
+        continue;
+      }
+      if (!allowedWorkspaces.has(row.workspace_id)) {
+        failed.push({ id, reason: "Not authorized for this workspace" });
+        continue;
+      }
+      if (data.action === "pause" && row.status === "draft") {
+        failed.push({ id, reason: "Draft campaigns cannot be paused" });
+        continue;
+      }
+      targets.push(id);
+    }
+
+    if (targets.length === 0) return { action: data.action, succeeded, failed };
+
+    if (data.action === "duplicate") {
+      const { duplicateCampaignRow } = await import("@/lib/campaign-duplicate.server");
+      for (const id of targets) {
+        try {
+          await duplicateCampaignRow(context.supabase, context.userId, { id });
+          succeeded.push(id);
+        } catch (e) {
+          failed.push({ id, reason: (e as Error).message });
+        }
+      }
+      return { action: data.action, succeeded, failed };
+    }
+
+    if (data.action === "delete") {
+      const { data: deleted, error: delError } = await context.supabase
+        .from("campaigns")
+        .delete()
+        .in("id", targets)
+        .select("id");
+      if (delError) throw new Error(delError.message);
+      const done = new Set(((deleted ?? []) as Array<{ id: string }>).map((r) => r.id));
+      for (const id of targets) {
+        if (done.has(id)) succeeded.push(id);
+        else failed.push({ id, reason: "Delete was blocked by workspace permissions" });
+      }
+      return { action: data.action, succeeded, failed };
+    }
+
+    const status =
+      data.action === "pause" ? "paused" : data.action === "resume" ? "active" : "archived";
+    const { data: updated, error: updateError } = await context.supabase
+      .from("campaigns")
+      .update({ status })
+      .in("id", targets)
+      .select("id");
+    if (updateError) throw new Error(updateError.message);
+    const done = new Set(((updated ?? []) as Array<{ id: string }>).map((r) => r.id));
+    for (const id of targets) {
+      if (done.has(id)) succeeded.push(id);
+      else failed.push({ id, reason: "Update was blocked by workspace permissions" });
+    }
+    return { action: data.action, succeeded, failed };
+  });

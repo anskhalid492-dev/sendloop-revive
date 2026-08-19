@@ -780,3 +780,132 @@ export const deleteInboundWebhook = createServerFn({ method: "POST" })
     if (!response.ok) throw new Error(`Could not remove the webhook (${response.status})`);
     return { ok: true };
   });
+
+export type ManagedProviderHealth = {
+  id: string | null;
+  provider: string;
+  name: string;
+  isEnabled: boolean;
+  hasCredentials: boolean;
+  credentialSource: "provider_secret" | "platform_env" | null;
+  reachable: boolean;
+  message: string;
+  verifiedDomains: string[];
+};
+
+export type ManagedInfraStatus = {
+  configured: boolean;
+  providers: ManagedProviderHealth[];
+  domains: Array<{
+    id: string;
+    domain: string;
+    workspaceId: string;
+    dnsStatus: string;
+    providerStatus: "verified" | "not_verified" | "unknown" | "error";
+    providerDetail: string;
+    mailboxes: number;
+  }>;
+};
+
+/** Admin check: is the Sendloop-managed sending provider wired up correctly? */
+export const getManagedInfraStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ManagedInfraStatus> => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const {
+      loadManagedProviderCredentials,
+      checkSenderDomainVerification,
+    } = await import("@/lib/managed-sending.server");
+    const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
+
+    const { data: providerRows } = await supabaseAdmin
+      .from("email_providers")
+      .select("id, provider, name, is_enabled, priority")
+      .order("priority", { ascending: true });
+
+    const providers: ManagedProviderHealth[] = [];
+    let primary: { provider: string; credentials: Record<string, string> } | null = null;
+
+    for (const row of (providerRows ?? []) as Array<Record<string, unknown>>) {
+      const managed = await loadManagedProviderCredentials(supabaseAdmin, {
+        provider: row["provider"] as string,
+        provider_id: row["id"] as string,
+      });
+      if (!managed) {
+        providers.push({
+          id: row["id"] as string,
+          provider: row["provider"] as string,
+          name: row["name"] as string,
+          isEnabled: Boolean(row["is_enabled"]),
+          hasCredentials: false,
+          credentialSource: null,
+          reachable: false,
+          message: "No Sendloop-managed credentials stored for this provider.",
+          verifiedDomains: [],
+        });
+        continue;
+      }
+      const test = await testProviderCredentials(managed.provider, managed.credentials);
+      const probe = await checkSenderDomainVerification(
+        managed.provider,
+        managed.credentials,
+        "__list__.invalid",
+        { fresh: true },
+      );
+      if (!primary && Boolean(row["is_enabled"]) && test.ok) {
+        primary = { provider: managed.provider, credentials: managed.credentials };
+      }
+      providers.push({
+        id: row["id"] as string,
+        provider: managed.provider,
+        name: row["name"] as string,
+        isEnabled: Boolean(row["is_enabled"]),
+        hasCredentials: true,
+        credentialSource: managed.source,
+        reachable: test.ok,
+        message: test.message,
+        verifiedDomains: probe.providerDomains ?? [],
+      });
+    }
+
+    const { data: domainRows } = await supabaseAdmin
+      .from("sending_domains")
+      .select("id, domain, workspace_id, dns_status")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    const { data: mailboxRows } = await supabaseAdmin
+      .from("sending_accounts")
+      .select("domain_id")
+      .not("domain_id", "is", null);
+    const mailboxCounts = new Map<string, number>();
+    for (const row of (mailboxRows ?? []) as Array<{ domain_id: string }>) {
+      mailboxCounts.set(row.domain_id, (mailboxCounts.get(row.domain_id) ?? 0) + 1);
+    }
+
+    const domains: ManagedInfraStatus["domains"] = [];
+    for (const row of (domainRows ?? []) as Array<Record<string, unknown>>) {
+      const check = primary
+        ? await checkSenderDomainVerification(
+            primary.provider,
+            primary.credentials,
+            row["domain"] as string,
+          )
+        : { status: "unknown" as const, detail: "No reachable managed provider configured." };
+      domains.push({
+        id: row["id"] as string,
+        domain: row["domain"] as string,
+        workspaceId: row["workspace_id"] as string,
+        dnsStatus: row["dns_status"] as string,
+        providerStatus: check.status,
+        providerDetail: check.detail,
+        mailboxes: mailboxCounts.get(row["id"] as string) ?? 0,
+      });
+    }
+
+    return {
+      configured: providers.some((p) => p.isEnabled && p.hasCredentials && p.reachable),
+      providers,
+      domains,
+    };
+  });
