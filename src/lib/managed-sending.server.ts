@@ -443,6 +443,9 @@ export async function sendManagedEmail(
     providerError: send.ok ? null : send.message,
   });
 
+  // Record provider health for Admin → Providers, then sanitise the customer copy.
+  await recordProviderIncident(admin, managed.providerId, send.ok ? null : send.message);
+
   // A 403 from the provider on an otherwise-unknown domain is a verification
   // failure — surface the customer-facing DNS message, not raw provider text.
   if (!send.ok && send.statusCode === 403 && /not verified|domain/i.test(send.message)) {
@@ -455,5 +458,17 @@ export async function sendManagedEmail(
     };
   }
 
+  if (!send.ok) {
+    // Raw provider text stays in the server log and Admin → Providers only.
+    return {
+      ...send,
+      message: SEND_FAILED_MESSAGE,
+      providerResponse: send.providerResponse ?? send.message,
+      verification,
+      credentialSource: managed.source,
+    };
+  }
+
   return { ...send, verification, credentialSource: managed.source };
 }
+
