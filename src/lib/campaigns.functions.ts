@@ -595,16 +595,28 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     }>;
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
-      const result = await adapter.sendEmail(credentials, {
-        fromName: account.from_name,
-        fromEmail: account.from_email,
-        replyTo: account.reply_to,
-        to,
-        subject: `[Test] ${subject}`,
-        text: body,
-        html,
-        headers: { "X-Sendloop-Test-Request-ID": requestId },
-      });
+      const result = await sendManagedEmail(
+        supabaseAdmin,
+        {
+          id: account.id,
+          workspace_id: account.workspace_id,
+          provider: account.provider,
+          provider_id: account.provider_id,
+          from_email: account.from_email,
+        },
+        {
+          fromName: account.from_name,
+          fromEmail: account.from_email,
+          replyTo: account.reply_to,
+          to,
+          subject: `[Test] ${subject}`,
+          text: body,
+          html,
+          headers: { "X-Sendloop-Test-Request-ID": requestId },
+        },
+        { stage: "test" },
+      );
+
       const diagnostic = {
         request_id: requestId,
         workspace_id: account.workspace_id,
