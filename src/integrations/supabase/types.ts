@@ -1998,6 +1998,239 @@ export type Database = {
           },
         ]
       }
+      integration_connections: {
+        Row: {
+          account_label: string | null
+          config: Json
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          last_event_at: string | null
+          last_synced_at: string | null
+          slug: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_label?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          last_event_at?: string | null
+          last_synced_at?: string | null
+          slug: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_label?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          last_event_at?: string | null
+          last_synced_at?: string | null
+          slug?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_connections_slug_fkey"
+            columns: ["slug"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "integration_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_events: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          direction: string
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          message: string | null
+          payload: Json
+          slug: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          direction?: string
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          message?: string | null
+          payload?: Json
+          slug: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          direction?: string
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          message?: string | null
+          payload?: Json
+          slug?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_secrets: {
+        Row: {
+          connection_id: string
+          credentials_ciphertext: string
+          updated_at: string
+        }
+        Insert: {
+          connection_id: string
+          credentials_ciphertext: string
+          updated_at?: string
+        }
+        Update: {
+          connection_id?: string
+          credentials_ciphertext?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_secrets_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_logs: {
+        Row: {
+          action: string
+          connection_id: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          records: number
+          slug: string
+          started_at: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          connection_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          records?: number
+          slug: string
+          started_at?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          connection_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          records?: number
+          slug?: string
+          started_at?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          category: string
+          created_at: string
+          is_enabled: boolean
+          name: string
+          requires_paid_plan: boolean
+          slug: string
+          sort_order: number
+          tagline: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          is_enabled?: boolean
+          name: string
+          requires_paid_plan?: boolean
+          slug: string
+          sort_order?: number
+          tagline?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          is_enabled?: boolean
+          name?: string
+          requires_paid_plan?: boolean
+          slug?: string
+          sort_order?: number
+          tagline?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           campaign_id: string | null
