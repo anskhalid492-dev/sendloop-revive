@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
@@ -121,6 +122,11 @@ const ApiDocsRoute = ApiDocsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsRoute = AutomationsRouteImport.update({
+  id: '/automations',
+  path: '/automations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
@@ -544,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/customer-reviews': typeof CustomerReviewsRoute
@@ -629,6 +636,7 @@ export interface FileRoutesByTo {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/automations': typeof AuthenticatedAutomationsIndexRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/customer-reviews': typeof CustomerReviewsRoute
@@ -695,7 +703,6 @@ export interface FileRoutesByTo {
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
-  '/automations': typeof AuthenticatedAutomationsIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -714,6 +721,7 @@ export interface FileRoutesById {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/customer-reviews': typeof CustomerReviewsRoute
@@ -801,6 +809,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
+    | '/automations'
     | '/cold-email-templates'
     | '/contact'
     | '/customer-reviews'
@@ -886,6 +895,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
+    | '/automations'
     | '/cold-email-templates'
     | '/contact'
     | '/customer-reviews'
@@ -952,7 +962,6 @@ export interface FileRouteTypes {
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/admin'
-    | '/automations'
     | '/campaigns'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
@@ -970,6 +979,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
+    | '/automations'
     | '/cold-email-templates'
     | '/contact'
     | '/customer-reviews'
@@ -1057,6 +1067,7 @@ export interface RootRouteChildren {
   AcceptableUseRoute: typeof AcceptableUseRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
+  AutomationsRoute: typeof AutomationsRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
   CustomerReviewsRoute: typeof CustomerReviewsRoute
@@ -1140,6 +1151,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations': {
+      id: '/automations'
+      path: '/automations'
+      fullPath: '/automations'
+      preLoaderRoute: typeof AutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cold-email-templates': {
@@ -1822,6 +1840,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptableUseRoute: AcceptableUseRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
+  AutomationsRoute: AutomationsRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
   CustomerReviewsRoute: CustomerReviewsRoute,

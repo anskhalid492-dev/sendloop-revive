@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Bell,
   Building2,
-  CheckCircle2,
   Clock,
   GitBranch,
   Inbox,
@@ -14,7 +13,6 @@ import {
   Tags,
   Target,
   Users,
-  Webhook,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -243,10 +241,6 @@ function Page() {
         title="Turn repetitive outreach tasks into automated workflows."
         description="Connect triggers, conditions and actions once — Sendloop runs them on every reply, campaign and CRM change."
       />
-      <div className="sr-only">
-        <CheckCircle2 aria-hidden />
-        <Webhook aria-hidden />
-      </div>
     </MarketingLayout>
   );
 }
