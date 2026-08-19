@@ -94,7 +94,7 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
           Add a domain and connect a mailbox to start sending.
         </p>
         <Button asChild variant="outline" size="sm">
-          <Link to="/email-accounts">Go to Email Accounts</Link>
+          <Link to="/sending">Go to Email Accounts</Link>
         </Button>
       </div>
     );
