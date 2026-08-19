@@ -23,6 +23,7 @@ import {
   X,
   type LucideIcon,
   MessageSquareQuote,
+  Gift,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ const resourceCards: Card[] = [
   { label: "Help Center", to: "/help-center", text: "Get answers and support.", icon: LifeBuoy },
   { label: "Integrations", to: "/integrations", text: "Connect Sendloop to your CRM, Slack, Zapier and more.", icon: Plug },
   { label: "Customer Reviews", to: "/customer-reviews", text: "See what Sendloop customers say about their outreach.", icon: MessageSquareQuote },
+  { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to Sendloop.", icon: Gift },
 ];
 
 type MenuKey = "products" | "resources";

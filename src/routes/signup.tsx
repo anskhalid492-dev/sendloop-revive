@@ -8,6 +8,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { captureReferralCode } from "@/hooks/useReferralClaim";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,12 @@ function SignUpPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Referral links land here as /signup?ref=CODE; keep the code until the
+    // account exists so the server can attribute the signup.
+    captureReferralCode(new URLSearchParams(window.location.search).get("ref"));
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
