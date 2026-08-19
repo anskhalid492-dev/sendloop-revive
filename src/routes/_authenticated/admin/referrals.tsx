@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WebhookHealthPanel, type WebhookHealth } from "@/components/referral/WebhookHealthPanel";
+import { useReferralRealtime } from "@/hooks/useReferralRealtime";
 import {
   getAdminReferralOverview,
   resolveFraudFlag,
@@ -78,6 +80,9 @@ function AdminReferralsPage() {
     queryKey: ["admin", "referrals"],
     queryFn: () => fetchOverview(),
   });
+
+  // Clicks, signups, commissions and payout statuses stream in live.
+  useReferralRealtime(["admin", "referrals"], "admin");
 
   const [form, setForm] = useState<ProgramForm | null>(null);
   useEffect(() => {
@@ -173,6 +178,7 @@ function AdminReferralsPage() {
         <TabsTrigger value="fraud">
           Fraud {data?.flags.length ? <Badge className="ml-2">{data.flags.length}</Badge> : null}
         </TabsTrigger>
+        <TabsTrigger value="webhook">Webhook</TabsTrigger>
         <TabsTrigger value="audit">Audit log</TabsTrigger>
       </TabsList>
 
@@ -499,6 +505,12 @@ function AdminReferralsPage() {
             )}
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="webhook">
+        {data?.webhook ? (
+          <WebhookHealthPanel health={data.webhook as WebhookHealth} onRefresh={invalidate} />
+        ) : null}
       </TabsContent>
 
       <TabsContent value="audit">
