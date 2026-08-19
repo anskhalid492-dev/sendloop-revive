@@ -495,6 +495,15 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     if (!account.provider_id && account.provider !== "resend")
       throw new Error("This mailbox is not linked to a provider yet");
 
+    const { data: campaign } = await context.supabase
+      .from("campaigns")
+      .select("id, workspace_id, custom_variables")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (!campaign || campaign.workspace_id !== account.workspace_id) {
+      throw new Error("Campaign and sending account must belong to the same workspace");
+    }
+
     let subject = data.subject;
     let body = data.body;
     if (data.leadId) {
@@ -507,16 +516,26 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         .maybeSingle();
       if (lead) {
         const l = lead as never;
-        subject = renderTemplate(resolveSpintax(subject), l);
-        body = renderTemplate(resolveSpintax(body), l);
+        const variables = (campaign.custom_variables ?? []) as CustomVariable[];
+        subject = renderTemplate(resolveSpintax(subject), l, variables);
+        body = renderTemplate(resolveSpintax(body), l, variables);
       }
+    } else {
+      subject = resolveSpintax(subject);
+      body = resolveSpintax(body);
     }
 
-    const { data: secret } = await supabaseAdmin
+    const { data: accountSecret } = await supabaseAdmin
+      .from("sending_account_secrets")
+      .select("credentials_ciphertext")
+      .eq("sending_account_id", account.id)
+      .maybeSingle();
+    const { data: providerSecret } = await supabaseAdmin
       .from("email_provider_secrets")
       .select("credentials_ciphertext")
       .eq("provider_id", account.provider_id ?? "00000000-0000-0000-0000-000000000000")
       .maybeSingle();
+    const secret = accountSecret ?? providerSecret;
     if (!secret && !(account.provider === "resend" && process.env["RESEND_API_KEY"])) {
       throw new Error("No credentials stored for this provider yet");
     }
@@ -528,8 +547,20 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")}</div>`;
 
-    const results = [] as Array<{ to: string; ok: boolean; message: string }>;
+    const results = [] as Array<{
+      to: string;
+      ok: boolean;
+      status: "accepted" | "rejected";
+      message: string;
+      requestId: string;
+      providerRequestId?: string;
+      providerMessageId?: string;
+      statusCode?: number;
+      providerResponse?: string;
+      webhookStatus: string;
+    }>;
     for (const to of data.to) {
+      const requestId = crypto.randomUUID();
       const result = await adapter.sendEmail(credentials, {
         fromName: account.from_name,
         fromEmail: account.from_email,
@@ -538,8 +569,36 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         subject: `[Test] ${subject}`,
         text: body,
         html,
+        headers: { "X-Sendloop-Test-Request-ID": requestId },
       });
-      results.push({ to, ok: result.ok, message: result.message });
+      const diagnostic = {
+        request_id: requestId,
+        workspace_id: account.workspace_id,
+        campaign_id: campaign.id,
+        sending_account_id: account.id,
+        requested_by: context.userId,
+        recipient_email: to,
+        provider: account.provider,
+        provider_message_id: result.messageId ?? null,
+        provider_response: result.providerResponse ?? result.message,
+        status: result.ok ? "accepted" : "rejected",
+        error: result.ok ? null : result.message,
+      };
+      const { error: diagnosticError } = await supabaseAdmin.from("campaign_test_sends").insert(diagnostic);
+      results.push({
+        to,
+        ok: result.ok,
+        status: result.ok ? "accepted" : "rejected",
+        message: diagnosticError
+          ? `${result.message} Diagnostic logging failed: ${diagnosticError.message}`
+          : result.message,
+        requestId,
+        ...(result.requestId ? { providerRequestId: result.requestId } : {}),
+        ...(result.messageId ? { providerMessageId: result.messageId } : {}),
+        ...(result.statusCode ? { statusCode: result.statusCode } : {}),
+        ...(result.providerResponse ? { providerResponse: result.providerResponse } : {}),
+        webhookStatus: "Waiting for provider webhook",
+      });
     }
 
     // The UI used to report success even when the provider rejected every
@@ -549,7 +608,49 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     if (failed.length === results.length) {
       throw new Error(failed[0]?.message ?? "The email provider rejected this test send");
     }
-    return { results, delivered: results.length - failed.length, failed };
+    return { results, accepted: results.length - failed.length, failed };
+  });
+
+export const listCampaignTestDiagnostics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ campaignId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: campaign } = await context.supabase
+      .from("campaigns")
+      .select("id, workspace_id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (!campaign) throw new Error("Campaign not found");
+
+    const { data: rows, error } = await context.supabase
+      .from("campaign_test_sends")
+      .select("id, request_id, recipient_email, provider, provider_message_id, provider_response, status, error, webhook_event_id, webhook_status, webhook_event_type, webhook_received_at, created_at")
+      .eq("campaign_id", data.campaignId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) throw new Error(error.message);
+
+    const messageIds = (rows ?? []).map((row) => row.provider_message_id).filter(Boolean) as string[];
+    const { data: events } = messageIds.length
+      ? await supabaseAdmin
+          .from("email_events")
+          .select("id, message_id, event_type, status, error, created_at")
+          .in("message_id", messageIds)
+          .order("created_at", { ascending: false })
+      : { data: [] };
+
+    return (rows ?? []).map((row) => {
+      const event = (events ?? []).find((item) => item.message_id === row.provider_message_id);
+      return {
+        ...row,
+        webhookEventId: event?.id ?? row.webhook_event_id,
+        webhookStatus: event?.status ?? row.webhook_status ?? "pending",
+        webhookEventType: event?.event_type ?? row.webhook_event_type,
+        webhookReceivedAt: event?.created_at ?? row.webhook_received_at,
+        webhookError: event?.error ?? null,
+      };
+    });
   });
 
 

@@ -113,7 +113,14 @@ export async function testProviderCredentials(
   }
 }
 
-export type TestSendResult = { ok: boolean; message: string; messageId?: string | undefined };
+export type TestSendResult = {
+  ok: boolean;
+  message: string;
+  messageId?: string | undefined;
+  requestId?: string | undefined;
+  statusCode?: number | undefined;
+  providerResponse?: string | undefined;
+};
 
 export type OutboundAttachment = { name: string; url?: string | undefined; content?: string | undefined };
 
@@ -173,14 +180,28 @@ export async function sendProviderEmail(
   const post = async (url: string, init: RequestInit): Promise<TestSendResult> => {
     const res = await fetch(url, { method: "POST", signal, ...init });
     const body = await res.text();
+    const requestId =
+      res.headers.get("x-request-id") ??
+      res.headers.get("request-id") ??
+      res.headers.get("cf-ray") ??
+      undefined;
     if (res.ok) {
       return {
         ok: true,
-        message: `Email sent to ${message.to}.`,
+        message: `Provider accepted the email for ${message.to}.`,
         messageId: extractMessageId(body, res.headers),
+        requestId,
+        statusCode: res.status,
+        providerResponse: body.slice(0, 1000),
       };
     }
-    return { ok: false, message: `Provider refused the send [${res.status}]: ${body.slice(0, 300)}` };
+    return {
+      ok: false,
+      message: `Provider refused the send [${res.status}]: ${body.slice(0, 300)}`,
+      requestId,
+      statusCode: res.status,
+      providerResponse: body.slice(0, 1000),
+    };
   };
 
   try {

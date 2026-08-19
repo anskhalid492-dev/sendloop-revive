@@ -697,6 +697,98 @@ export type Database = {
           },
         ]
       }
+      campaign_test_sends: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          error: string | null
+          id: string
+          provider: string
+          provider_message_id: string | null
+          provider_response: string | null
+          recipient_email: string
+          request_id: string
+          requested_by: string
+          sending_account_id: string | null
+          status: string
+          updated_at: string
+          webhook_event_id: string | null
+          webhook_event_type: string | null
+          webhook_received_at: string | null
+          webhook_status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          provider: string
+          provider_message_id?: string | null
+          provider_response?: string | null
+          recipient_email: string
+          request_id?: string
+          requested_by: string
+          sending_account_id?: string | null
+          status?: string
+          updated_at?: string
+          webhook_event_id?: string | null
+          webhook_event_type?: string | null
+          webhook_received_at?: string | null
+          webhook_status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          provider?: string
+          provider_message_id?: string | null
+          provider_response?: string | null
+          recipient_email?: string
+          request_id?: string
+          requested_by?: string
+          sending_account_id?: string | null
+          status?: string
+          updated_at?: string
+          webhook_event_id?: string | null
+          webhook_event_type?: string | null
+          webhook_received_at?: string | null
+          webhook_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_test_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_test_sends_sending_account_id_fkey"
+            columns: ["sending_account_id"]
+            isOneToOne: false
+            referencedRelation: "sending_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_test_sends_webhook_event_id_fkey"
+            columns: ["webhook_event_id"]
+            isOneToOne: false
+            referencedRelation: "email_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_test_sends_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           audience_count: number
