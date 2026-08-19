@@ -10,30 +10,40 @@ const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "u
 describe("test send pipeline uses the production sending flow", () => {
   const testSend = read("src/lib/campaigns.functions.ts");
   const production = read("src/lib/dispatch.server.ts");
+  const managed = read("src/lib/managed-sending.server.ts");
 
-  it("resolves the provider adapter the same way production does", () => {
+  it("routes both paths through the single managed sending helper", () => {
     for (const source of [testSend, production]) {
-      expect(source).toContain("providers/adapter.server");
-      expect(source).toContain("getAdapter");
-      expect(source).toContain("readCredentials");
+      expect(source).toContain("managed-sending.server");
+      expect(source).toContain("sendManagedEmail");
     }
   });
 
-  it("reads mailbox-owned credentials, not only provider-level credentials", () => {
-    expect(testSend).toContain("sending_account_secrets");
-    expect(production).toContain("sending_account_secrets");
+  it("resolves the provider adapter inside the managed helper", () => {
+    expect(managed).toContain("providers/adapter.server");
+    expect(managed).toContain("getAdapter");
+    expect(managed).toContain("adapter.sendEmail");
   });
 
-  it("sends through adapter.sendEmail rather than a bespoke transport", () => {
-    expect(testSend).toContain("adapter.sendEmail");
-    expect(production).toContain("adapter.sendEmail");
+  it("never reads customer-supplied provider API keys", () => {
+    for (const source of [testSend, production, managed]) {
+      expect(source).not.toContain("sending_account_secrets");
+    }
+    expect(managed).toContain("email_provider_secrets");
+  });
+
+  it("blocks sends when the sender domain is not verified with the provider", () => {
+    expect(managed).toContain("checkSenderDomainVerification");
+    expect(managed).toContain("DOMAIN_NOT_VERIFIED_MESSAGE");
   });
 
   it("logs every test send so provider acceptance can be audited", () => {
     expect(testSend).toContain("campaign_test_sends");
     expect(testSend).toContain("X-Sendloop-Test-Request-ID");
+    expect(managed).toContain("[managed-send]");
   });
 });
+
 
 describe("delivery status is driven by webhooks, not provider acceptance", () => {
   const base = {
