@@ -65,7 +65,7 @@ import {
   setAutomationStatus,
 } from "@/lib/automations.functions";
 
-export const Route = createFileRoute("/_authenticated/automations/")({
+export const Route = createFileRoute("/_authenticated/automations/workflows")({
   head: () => ({
     meta: [
       { title: "Automations — Sendloop" },

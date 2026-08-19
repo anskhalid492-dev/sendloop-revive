@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
@@ -78,9 +79,9 @@ import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
-import { Route as AuthenticatedAutomationsIndexRouteImport } from './routes/_authenticated/automations.index'
 import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
 import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_authenticated/automations.activity'
+import { Route as AuthenticatedAutomationsWorkflowsRouteImport } from './routes/_authenticated/automations.workflows'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
@@ -121,6 +122,11 @@ const ApiDocsRoute = ApiDocsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsRoute = AutomationsRouteImport.update({
+  id: '/automations',
+  path: '/automations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
@@ -451,12 +457,6 @@ const AuthenticatedAdminWorkspacesRoute =
     path: '/workspaces',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAutomationsIndexRoute =
-  AuthenticatedAutomationsIndexRouteImport.update({
-    id: '/automations/',
-    path: '/automations/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAutomationsIdRoute =
   AuthenticatedAutomationsIdRouteImport.update({
     id: '/automations/$id',
@@ -467,6 +467,12 @@ const AuthenticatedAutomationsActivityRoute =
   AuthenticatedAutomationsActivityRouteImport.update({
     id: '/automations/activity',
     path: '/automations/activity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAutomationsWorkflowsRoute =
+  AuthenticatedAutomationsWorkflowsRouteImport.update({
+    id: '/automations/workflows',
+    path: '/automations/workflows',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCampaignsIndexRoute =
@@ -544,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/customer-reviews': typeof CustomerReviewsRoute
@@ -608,11 +615,11 @@ export interface FileRoutesByFullPath {
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
+  '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
-  '/automations/': typeof AuthenticatedAutomationsIndexRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -629,6 +636,7 @@ export interface FileRoutesByTo {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/customer-reviews': typeof CustomerReviewsRoute
@@ -691,11 +699,11 @@ export interface FileRoutesByTo {
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
+  '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
-  '/automations': typeof AuthenticatedAutomationsIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -714,6 +722,7 @@ export interface FileRoutesById {
   '/acceptable-use': typeof AcceptableUseRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
   '/customer-reviews': typeof CustomerReviewsRoute
@@ -778,11 +787,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/_authenticated/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/_authenticated/automations/activity': typeof AuthenticatedAutomationsActivityRoute
+  '/_authenticated/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
-  '/_authenticated/automations/': typeof AuthenticatedAutomationsIndexRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -801,6 +810,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
+    | '/automations'
     | '/cold-email-templates'
     | '/contact'
     | '/customer-reviews'
@@ -865,11 +875,11 @@ export interface FileRouteTypes {
     | '/admin/workspaces'
     | '/automations/$id'
     | '/automations/activity'
+    | '/automations/workflows'
     | '/campaigns/$campaignId'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/admin/'
-    | '/automations/'
     | '/campaigns/'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
@@ -886,6 +896,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
+    | '/automations'
     | '/cold-email-templates'
     | '/contact'
     | '/customer-reviews'
@@ -948,11 +959,11 @@ export interface FileRouteTypes {
     | '/admin/workspaces'
     | '/automations/$id'
     | '/automations/activity'
+    | '/automations/workflows'
     | '/campaigns/$campaignId'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/admin'
-    | '/automations'
     | '/campaigns'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/api-docs'
     | '/auth'
+    | '/automations'
     | '/cold-email-templates'
     | '/contact'
     | '/customer-reviews'
@@ -1034,11 +1046,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/workspaces'
     | '/_authenticated/automations/$id'
     | '/_authenticated/automations/activity'
+    | '/_authenticated/automations/workflows'
     | '/_authenticated/campaigns/$campaignId'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/_authenticated/admin/'
-    | '/_authenticated/automations/'
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
@@ -1057,6 +1069,7 @@ export interface RootRouteChildren {
   AcceptableUseRoute: typeof AcceptableUseRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
+  AutomationsRoute: typeof AutomationsRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
   CustomerReviewsRoute: typeof CustomerReviewsRoute
@@ -1140,6 +1153,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations': {
+      id: '/automations'
+      path: '/automations'
+      fullPath: '/automations'
+      preLoaderRoute: typeof AutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cold-email-templates': {
@@ -1583,13 +1603,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminWorkspacesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/automations/': {
-      id: '/_authenticated/automations/'
-      path: '/automations'
-      fullPath: '/automations/'
-      preLoaderRoute: typeof AuthenticatedAutomationsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/automations/$id': {
       id: '/_authenticated/automations/$id'
       path: '/automations/$id'
@@ -1602,6 +1615,13 @@ declare module '@tanstack/react-router' {
       path: '/automations/activity'
       fullPath: '/automations/activity'
       preLoaderRoute: typeof AuthenticatedAutomationsActivityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/automations/workflows': {
+      id: '/_authenticated/automations/workflows'
+      path: '/automations/workflows'
+      fullPath: '/automations/workflows'
+      preLoaderRoute: typeof AuthenticatedAutomationsWorkflowsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/campaigns/': {
@@ -1771,8 +1791,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAutomationsIdRoute: typeof AuthenticatedAutomationsIdRoute
   AuthenticatedAutomationsActivityRoute: typeof AuthenticatedAutomationsActivityRoute
+  AuthenticatedAutomationsWorkflowsRoute: typeof AuthenticatedAutomationsWorkflowsRoute
   AuthenticatedCampaignsCampaignIdRoute: typeof AuthenticatedCampaignsCampaignIdRoute
-  AuthenticatedAutomationsIndexRoute: typeof AuthenticatedAutomationsIndexRoute
   AuthenticatedCampaignsIndexRoute: typeof AuthenticatedCampaignsIndexRoute
 }
 
@@ -1793,8 +1813,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAutomationsIdRoute: AuthenticatedAutomationsIdRoute,
   AuthenticatedAutomationsActivityRoute: AuthenticatedAutomationsActivityRoute,
+  AuthenticatedAutomationsWorkflowsRoute:
+    AuthenticatedAutomationsWorkflowsRoute,
   AuthenticatedCampaignsCampaignIdRoute: AuthenticatedCampaignsCampaignIdRoute,
-  AuthenticatedAutomationsIndexRoute: AuthenticatedAutomationsIndexRoute,
   AuthenticatedCampaignsIndexRoute: AuthenticatedCampaignsIndexRoute,
 }
 
@@ -1822,6 +1843,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptableUseRoute: AcceptableUseRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
+  AutomationsRoute: AutomationsRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
   CustomerReviewsRoute: CustomerReviewsRoute,

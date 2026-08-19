@@ -206,7 +206,7 @@ function AutomationActivityPage() {
       actions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/automations">
+            <Link to="/automations/workflows">
               <ArrowLeft className="mr-2 size-4" /> Workflows
             </Link>
           </Button>
