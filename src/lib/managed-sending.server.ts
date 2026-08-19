@@ -196,7 +196,7 @@ export async function recordProviderIncident(
       .update(
         rawError
           ? { status: "failed", last_error: rawError.slice(0, 1000), last_tested_at: new Date().toISOString() }
-          : { status: "active", last_error: null, last_tested_at: new Date().toISOString() },
+          : { status: "verified", last_error: null, last_tested_at: new Date().toISOString() },
       )
       .eq("id", providerId);
   } catch {
