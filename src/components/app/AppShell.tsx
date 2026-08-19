@@ -121,6 +121,8 @@ export function AppShell({
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => fetchProfile() });
   const saveProfile = useServerFn(updateProfile);
   const avatarUrl = useAvatarUrl(profile.data?.avatar_url);
+  const { supportUnread } = useNotifications();
+
 
   // The preference is applied instantly and remembered on the account too.
   function chooseTheme(next: "light" | "dark" | "system") {
