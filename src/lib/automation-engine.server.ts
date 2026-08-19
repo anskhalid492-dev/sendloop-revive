@@ -887,7 +887,7 @@ export async function retryRun(runId: string, workspaceId: string): Promise<void
     throw new Error("Only failed runs can be retried.");
   }
 
-  const meta = ((run.metadata ?? {}) as Record<string, unknown>) ?? {};
+  const meta = (run.metadata ?? {}) as Record<string, unknown>;
   const retries = Number(meta["retries"] ?? 0) + 1;
 
   const { data: updated, error } = await db
