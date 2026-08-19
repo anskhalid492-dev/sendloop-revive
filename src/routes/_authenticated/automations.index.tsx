@@ -253,7 +253,7 @@ function AutomationsPage() {
                 </div>
                 {reached && (
                   <Button size="sm" asChild>
-                    <Link to="/settings" search={{ tab: "billing" } as never}>
+                    <Link to="/settings">
                       Upgrade plan
                     </Link>
                   </Button>
