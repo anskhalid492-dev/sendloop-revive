@@ -81,6 +81,7 @@ import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
+import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -457,6 +458,12 @@ const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   path: '/api/public/inbound/email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsSlugRoute =
+  ApiPublicIntegrationsSlugRouteImport.update({
+    id: '/api/public/integrations/$slug',
+    path: '/api/public/integrations/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -530,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
+  '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -602,6 +610,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
+  '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -677,6 +686,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
+  '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -752,6 +762,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
+    | '/api/public/integrations/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -824,6 +835,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
+    | '/api/public/integrations/$slug'
   id:
     | '__root__'
     | '/'
@@ -898,6 +910,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
+    | '/api/public/integrations/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -941,6 +954,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
+  ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1449,6 +1463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInboundEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/$slug': {
+      id: '/api/public/integrations/$slug'
+      path: '/api/public/integrations/$slug'
+      fullPath: '/api/public/integrations/$slug'
+      preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1593,6 +1614,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
+  ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
