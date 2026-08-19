@@ -9,6 +9,7 @@ import {
   Building2,
   CreditCard,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Mailbox,
   Menu,
@@ -40,6 +41,7 @@ const nav = [
   { to: "/admin/templates", label: "Templates", icon: FileText },
   { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
   { to: "/admin/billing", label: "Billing", icon: CreditCard },
+  { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
   { to: "/admin/logs", label: "Logs", icon: ScrollText },
   { to: "/admin/settings", label: "System Settings", icon: Settings },
 ] as const;

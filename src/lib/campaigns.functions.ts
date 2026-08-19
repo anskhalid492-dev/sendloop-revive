@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { partitionBulkTargets } from "@/lib/campaign-bulk";
 import { nextSendSlot } from "@/lib/campaign-schedule";
 import {
   CAMPAIGN_COLUMNS,
@@ -1166,25 +1167,7 @@ export const bulkCampaignAction = createServerFn({ method: "POST" })
     }
 
     const succeeded: string[] = [];
-    const failed: Array<{ id: string; reason: string }> = [];
-    const targets: string[] = [];
-
-    for (const id of ids) {
-      const row = visible.get(id);
-      if (!row) {
-        failed.push({ id, reason: "Campaign not found in your workspaces" });
-        continue;
-      }
-      if (!allowedWorkspaces.has(row.workspace_id)) {
-        failed.push({ id, reason: "Not authorized for this workspace" });
-        continue;
-      }
-      if (data.action === "pause" && row.status === "draft") {
-        failed.push({ id, reason: "Draft campaigns cannot be paused" });
-        continue;
-      }
-      targets.push(id);
-    }
+    const { targets, failed } = partitionBulkTargets(ids, data.action, visible, allowedWorkspaces);
 
     if (targets.length === 0) return { action: data.action, succeeded, failed };
 
