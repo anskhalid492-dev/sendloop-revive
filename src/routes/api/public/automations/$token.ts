@@ -69,7 +69,9 @@ async function handle(request: Request, token: string) {
     automationId: automation.id,
     leadId,
     payload,
-    idempotencyKey: request.headers.get("x-idempotency-key") ?? undefined,
+    ...(request.headers.get("x-idempotency-key")
+      ? { idempotencyKey: request.headers.get("x-idempotency-key") as string }
+      : {}),
   });
 
   return json({ ok: true, enqueued: result.runs }, 200);

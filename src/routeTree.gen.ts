@@ -81,6 +81,7 @@ import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
+import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/public/cron/run-automations'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
@@ -462,6 +463,12 @@ const AuthenticatedAdminInboundEventsEventIdRoute =
     path: '/$eventId',
     getParentRoute: () => AuthenticatedAdminInboundEventsRoute,
   } as any)
+const ApiPublicAutomationsTokenRoute =
+  ApiPublicAutomationsTokenRouteImport.update({
+    id: '/api/public/automations/$token',
+    path: '/api/public/automations/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRetryInboundRoute =
   ApiPublicCronRetryInboundRouteImport.update({
     id: '/api/public/cron/retry-inbound',
@@ -569,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
@@ -646,6 +654,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
@@ -727,6 +736,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
@@ -808,6 +818,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/campaigns/'
     | '/admin/inbound-events/$eventId'
+    | '/api/public/automations/$token'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
@@ -885,6 +896,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/campaigns'
     | '/admin/inbound-events/$eventId'
+    | '/api/public/automations/$token'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
@@ -965,6 +977,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/inbound-events/$eventId'
+    | '/api/public/automations/$token'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
@@ -1011,6 +1024,7 @@ export interface RootRouteChildren {
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
+  ApiPublicAutomationsTokenRoute: typeof ApiPublicAutomationsTokenRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunAutomationsRoute: typeof ApiPublicCronRunAutomationsRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
@@ -1525,6 +1539,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminInboundEventsEventIdRouteImport
       parentRoute: typeof AuthenticatedAdminInboundEventsRoute
     }
+    '/api/public/automations/$token': {
+      id: '/api/public/automations/$token'
+      path: '/api/public/automations/$token'
+      fullPath: '/api/public/automations/$token'
+      preLoaderRoute: typeof ApiPublicAutomationsTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/retry-inbound': {
       id: '/api/public/cron/retry-inbound'
       path: '/api/public/cron/retry-inbound'
@@ -1724,6 +1745,7 @@ const rootRouteChildren: RootRouteChildren = {
   IntegrationsIndexRoute: IntegrationsIndexRoute,
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
+  ApiPublicAutomationsTokenRoute: ApiPublicAutomationsTokenRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunAutomationsRoute: ApiPublicCronRunAutomationsRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
