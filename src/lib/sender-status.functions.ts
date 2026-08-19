@@ -44,7 +44,7 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
         .order("from_email"),
       context.supabase
         .from("sending_domains")
-        .select("domain, status, verified_at")
+        .select("domain, dns_status, verified_at")
         .eq("workspace_id", data.workspaceId),
     ]);
     if (aErr) throw new Error(aErr.message);
@@ -55,9 +55,13 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
       await import("@/lib/managed-sending.server");
 
     const domainMap = new Map(
-      ((domains ?? []) as Array<{ domain: string; status: string; verified_at: string | null }>).map(
-        (d) => [d.domain.toLowerCase(), d],
-      ),
+      (
+        (domains ?? []) as unknown as Array<{
+          domain: string;
+          dns_status: string;
+          verified_at: string | null;
+        }>
+      ).map((d) => [d.domain.toLowerCase(), d]),
     );
 
     const rows: SenderRoutingRow[] = [];
@@ -75,9 +79,9 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
       const dnsRow = domainMap.get(domain);
       const dnsStatus: SenderRoutingRow["dnsStatus"] = !dnsRow
         ? "missing"
-        : dnsRow.status === "verified"
+        : dnsRow.dns_status === "verified"
           ? "verified"
-          : dnsRow.status === "failed"
+          : dnsRow.dns_status === "failed"
             ? "failed"
             : "pending";
 
