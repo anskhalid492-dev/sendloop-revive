@@ -69,11 +69,12 @@ export async function sendReplyThroughMailbox(args: {
     throw new Error("The mailbox for this conversation is currently unavailable.");
   }
 
-  // Customer-owned mailbox credentials first, shared provider credentials after.
+  // Sendloop-managed provider credentials; customer keys are never read.
   const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
   const credentials = await loadAccountCredentials(supabaseAdmin, {
     id: account.id as string,
     provider_id: (account.provider_id as string | null) ?? null,
+    provider: (account.provider as string | null) ?? null,
   });
   const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
   if (!credentials && !envFallback) {

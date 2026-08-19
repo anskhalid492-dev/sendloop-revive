@@ -248,11 +248,12 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   if (!account) throw new Error("No managed mailbox is available to send the test from.");
   if (!account.workspace_id) throw new Error("The available mailbox is not assigned to a workspace.");
 
-  // Customer-owned mailbox credentials first, shared provider credentials after.
+  // Sendloop-managed provider credentials; customer keys are never read.
   const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
   const credentials = await loadAccountCredentials(supabaseAdmin, {
     id: account.id as string,
     provider_id: (account.provider_id as string | null) ?? null,
+    provider: (account.provider as string | null) ?? null,
   });
   if (!credentials && !(account.provider === "resend" && process.env["RESEND_API_KEY"])) {
     throw new Error("The mailbox provider has no usable credentials.");

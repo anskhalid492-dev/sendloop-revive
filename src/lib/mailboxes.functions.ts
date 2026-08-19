@@ -191,6 +191,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
     const credentials = await loadAccountCredentials(supabaseAdmin, {
       id: account.id as string,
       provider_id: (account.provider_id as string | null) ?? null,
+      provider: (account.provider as string | null) ?? null,
     });
     if (!credentials) {
       await client
@@ -343,6 +344,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
       const credentials = await loadAccountCredentials(supabaseAdmin, {
         id,
         provider_id: (account["provider_id"] as string | null) ?? null,
+        provider: method,
       });
       const test = credentials
         ? await testProviderCredentials(method, credentials)
