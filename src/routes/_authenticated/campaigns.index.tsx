@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  bulkCampaignAction,
   createCampaign,
   deleteCampaign,
   duplicateCampaign,
@@ -61,6 +62,7 @@ function CampaignsPage() {
   const deleteFn = useServerFn(deleteCampaign);
   const statusFn = useServerFn(setCampaignStatus);
   const duplicateFn = useServerFn(duplicateCampaign);
+  const bulkFn = useServerFn(bulkCampaignAction);
 
   const campaigns = useQuery({ queryKey: ["campaigns", "overview"], queryFn: () => fetchOverview() });
 
@@ -132,6 +134,23 @@ function CampaignsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const bulk = useMutation({
+    mutationFn: (vars: {
+      action: "pause" | "resume" | "duplicate" | "archive" | "delete";
+      ids: string[];
+    }) => bulkFn({ data: vars }),
+    onSuccess: async (result) => {
+      if (result.succeeded.length > 0) {
+        toast.success(`${result.succeeded.length} campaign(s) updated`);
+      }
+      if (result.failed.length > 0) {
+        toast.error(`${result.failed.length} skipped: ${result.failed[0].reason}`);
+      }
+      await refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const rows = campaigns.data ?? [];
   const busyId =
     changeStatus.isPending
@@ -181,6 +200,8 @@ function CampaignsPage() {
             onSetStatus={(id, status) => changeStatus.mutate({ id, status })}
             onDuplicate={(id) => duplicate.mutate(id)}
             onDelete={(id) => remove.mutate(id)}
+            bulkBusy={bulk.isPending}
+            onBulkAction={(action, ids) => bulk.mutateAsync({ action, ids }).then(() => undefined)}
           />
         )}
       </div>
