@@ -523,19 +523,35 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
 
     const adapter = getAdapter(account.provider);
     const credentials = secret ? readCredentials(secret.credentials_ciphertext) : {};
+    const html = `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;white-space:pre-wrap">${body
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")}</div>`;
+
     const results = [] as Array<{ to: string; ok: boolean; message: string }>;
     for (const to of data.to) {
       const result = await adapter.sendEmail(credentials, {
         fromName: account.from_name,
         fromEmail: account.from_email,
+        replyTo: account.reply_to,
         to,
         subject: `[Test] ${subject}`,
         text: body,
+        html,
       });
       results.push({ to, ok: result.ok, message: result.message });
     }
-    return { results };
+
+    // The UI used to report success even when the provider rejected every
+    // recipient, which is why "sent" test emails never arrived. Surface the
+    // provider's own error instead.
+    const failed = results.filter((r) => !r.ok);
+    if (failed.length === results.length) {
+      throw new Error(failed[0]?.message ?? "The email provider rejected this test send");
+    }
+    return { results, delivered: results.length - failed.length, failed };
   });
+
 
 export const launchCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
