@@ -45,6 +45,8 @@ import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as HelpCenterIndexRouteImport } from './routes/help-center.index'
+import { Route as HelpCenterSlugRouteImport } from './routes/help-center.$slug'
 import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
 import { Route as IntegrationsSlugRouteImport } from './routes/integrations.$slug'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -263,6 +265,16 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const HelpCenterIndexRoute = HelpCenterIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HelpCenterRoute,
+} as any)
+const HelpCenterSlugRoute = HelpCenterSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => HelpCenterRoute,
 } as any)
 const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
   id: '/integrations/',
@@ -490,7 +502,7 @@ export interface FileRoutesByFullPath {
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/help-center': typeof HelpCenterRoute
+  '/help-center': typeof HelpCenterRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -513,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
@@ -526,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -566,7 +580,6 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/help-center': typeof HelpCenterRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -588,6 +601,7 @@ export interface FileRoutesByTo {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
@@ -601,6 +615,7 @@ export interface FileRoutesByTo {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
+  '/help-center': typeof HelpCenterIndexRoute
   '/integrations': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -643,7 +658,7 @@ export interface FileRoutesById {
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/help-center': typeof HelpCenterRoute
+  '/help-center': typeof HelpCenterRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -666,6 +681,7 @@ export interface FileRoutesById {
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/product/analytics': typeof ProductAnalyticsRoute
@@ -679,6 +695,7 @@ export interface FileRoutesById {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -744,6 +761,7 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
     | '/product/analytics'
@@ -757,6 +775,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog/'
+    | '/help-center/'
     | '/integrations/'
     | '/admin/analytics'
     | '/admin/billing'
@@ -797,7 +816,6 @@ export interface FileRouteTypes {
     | '/docs'
     | '/features'
     | '/forgot-password'
-    | '/help-center'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -819,6 +837,7 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
     | '/product/analytics'
@@ -832,6 +851,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog'
+    | '/help-center'
     | '/integrations'
     | '/admin/analytics'
     | '/admin/billing'
@@ -896,6 +916,7 @@ export interface FileRouteTypes {
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
     | '/blog/$slug'
+    | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
     | '/product/analytics'
@@ -909,6 +930,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog/'
+    | '/help-center/'
     | '/integrations/'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/billing'
@@ -951,7 +973,7 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  HelpCenterRoute: typeof HelpCenterRoute
+  HelpCenterRoute: typeof HelpCenterRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -1236,6 +1258,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/help-center/': {
+      id: '/help-center/'
+      path: '/'
+      fullPath: '/help-center/'
+      preLoaderRoute: typeof HelpCenterIndexRouteImport
+      parentRoute: typeof HelpCenterRoute
+    }
+    '/help-center/$slug': {
+      id: '/help-center/$slug'
+      path: '/$slug'
+      fullPath: '/help-center/$slug'
+      preLoaderRoute: typeof HelpCenterSlugRouteImport
+      parentRoute: typeof HelpCenterRoute
     }
     '/integrations/': {
       id: '/integrations/'
@@ -1615,6 +1651,20 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface HelpCenterRouteChildren {
+  HelpCenterSlugRoute: typeof HelpCenterSlugRoute
+  HelpCenterIndexRoute: typeof HelpCenterIndexRoute
+}
+
+const HelpCenterRouteChildren: HelpCenterRouteChildren = {
+  HelpCenterSlugRoute: HelpCenterSlugRoute,
+  HelpCenterIndexRoute: HelpCenterIndexRoute,
+}
+
+const HelpCenterRouteWithChildren = HelpCenterRoute._addFileChildren(
+  HelpCenterRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -1628,7 +1678,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  HelpCenterRoute: HelpCenterRoute,
+  HelpCenterRoute: HelpCenterRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
