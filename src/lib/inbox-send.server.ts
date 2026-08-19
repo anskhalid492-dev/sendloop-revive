@@ -39,7 +39,6 @@ export async function sendReplyThroughMailbox(args: {
   cc: string[];
   attachments: { name: string; url: string }[];
 }) {
-  const { getAdapter } = await import("@/lib/providers/adapter.server");
   const supabase = args.supabase;
 
   const { data: conversation, error } = await supabase
@@ -69,17 +68,6 @@ export async function sendReplyThroughMailbox(args: {
     throw new Error("The mailbox for this conversation is currently unavailable.");
   }
 
-  // Sendloop-managed provider credentials; customer keys are never read.
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(supabaseAdmin, {
-    id: account.id as string,
-    provider_id: (account.provider_id as string | null) ?? null,
-    provider: (account.provider as string | null) ?? null,
-  });
-  const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
-  if (!credentials && !envFallback) {
-    throw new Error("Sending is temporarily unavailable for this mailbox.");
-  }
 
   const { data: lastInbound } = await supabase
     .from("conversation_messages")
@@ -96,7 +84,6 @@ export async function sendReplyThroughMailbox(args: {
     throw new Error(`This contact is on your suppression list (${blocked}) and cannot be emailed.`);
   }
 
-  const adapter = getAdapter(account.provider);
   const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
   const { mintReplyAddress } = await import("@/lib/inbound-routing.server");
   const replyTo = await mintReplyAddress(baseReplyTo, {
@@ -113,7 +100,18 @@ export async function sendReplyThroughMailbox(args: {
     ...(parentId ? [parentId] : []),
   ].slice(-20);
 
-  const send = await adapter.sendEmail(credentials ?? {}, {
+  // Managed sending: Sendloop-owned credentials + provider-side domain check.
+  const { sendManagedEmail } = await import("@/lib/managed-sending.server");
+  const send = await sendManagedEmail(
+    supabaseAdmin,
+    {
+      id: account.id as string,
+      workspace_id: conversation.workspace_id as string,
+      provider: account.provider as string,
+      provider_id: (account.provider_id as string | null) ?? null,
+      from_email: account.from_email as string,
+    },
+    {
     fromName: account.from_name,
     fromEmail: account.from_email,
     replyTo,
@@ -130,8 +128,12 @@ export async function sendReplyThroughMailbox(args: {
           References: threadRefs.map((id) => `<${id}>`).join(" "),
         }
       : {},
-  });
-  if (!send.ok) throw new Error("The reply could not be delivered. Please try again.");
+    },
+    { stage: "inbox" },
+  );
+  if (!send.ok) {
+    throw new Error(send.message || "The reply could not be delivered. Please try again.");
+  }
 
   const nowIso = new Date().toISOString();
   const references = [
