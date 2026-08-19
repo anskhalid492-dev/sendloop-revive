@@ -17,6 +17,7 @@ export const NOTIFICATION_KEYS = [
   "warmup_alerts",
   "team_activity",
   "support_updates",
+  "referral_updates",
 ] as const;
 
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
@@ -34,6 +35,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   warmup_alerts: true,
   team_activity: true,
   support_updates: true,
+  referral_updates: true,
   email_enabled: true,
   in_app_enabled: true,
 };
@@ -64,6 +66,7 @@ const preferencesSchema = z.object({
   warmup_alerts: z.boolean(),
   team_activity: z.boolean(),
   support_updates: z.boolean(),
+  referral_updates: z.boolean(),
   email_enabled: z.boolean(),
   in_app_enabled: z.boolean(),
 });
