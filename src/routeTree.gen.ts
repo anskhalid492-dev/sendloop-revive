@@ -45,6 +45,7 @@ import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
@@ -260,6 +261,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
+  id: '/integrations/',
+  path: '/integrations/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -513,6 +519,7 @@ export interface FileRoutesByFullPath {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -586,6 +593,7 @@ export interface FileRoutesByTo {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
+  '/integrations': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -662,6 +670,7 @@ export interface FileRoutesById {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -738,6 +747,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog/'
+    | '/integrations/'
     | '/admin/analytics'
     | '/admin/billing'
     | '/admin/campaigns'
@@ -811,6 +821,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog'
+    | '/integrations'
     | '/admin/analytics'
     | '/admin/billing'
     | '/admin/campaigns'
@@ -886,6 +897,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/solutions/$slug'
     | '/blog/'
+    | '/integrations/'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/campaigns'
@@ -948,6 +960,7 @@ export interface RootRouteChildren {
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  IntegrationsIndexRoute: typeof IntegrationsIndexRoute
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
@@ -1209,6 +1222,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations/': {
+      id: '/integrations/'
+      path: '/integrations'
+      fullPath: '/integrations/'
+      preLoaderRoute: typeof IntegrationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -1609,6 +1629,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  IntegrationsIndexRoute: IntegrationsIndexRoute,
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
