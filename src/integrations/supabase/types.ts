@@ -2416,9 +2416,12 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          display_name: string | null
           email: string | null
+          first_name: string | null
           full_name: string | null
           id: string
+          last_name: string | null
           onboarding_completed: boolean
           theme: string
           timezone: string | null
@@ -2427,9 +2430,12 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
+          first_name?: string | null
           full_name?: string | null
           id: string
+          last_name?: string | null
           onboarding_completed?: boolean
           theme?: string
           timezone?: string | null
@@ -2438,9 +2444,12 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          last_name?: string | null
           onboarding_completed?: boolean
           theme?: string
           timezone?: string | null
@@ -2782,6 +2791,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sending_domains_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          author_id: string | null
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_role?: string
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3368,6 +3459,47 @@ export type Database = {
           },
           {
             foreignKeyName: "warmup_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_activity: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          target_email: string | null
+          target_user_id: string | null
+          type: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          target_email?: string | null
+          target_user_id?: string | null
+          type: string
+          workspace_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          target_email?: string | null
+          target_user_id?: string | null
+          type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_activity_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
