@@ -192,25 +192,22 @@ function AutomationsPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell
+      title="Automations"
+      description="Real workflows that keep running on the server — replies stop follow-ups, bookings move deals, and your team gets notified without anyone watching a dashboard."
+      actions={
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={refresh}>
+            <RefreshCw className="mr-2 size-4" /> Refresh
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 size-4" /> New automation
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-8">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Real workflows that keep running on the server — replies stop follow-ups, bookings move deals, and your
-              team gets notified without anyone watching a dashboard.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={refresh}>
-              <RefreshCw className="mr-2 size-4" /> Refresh
-            </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 size-4" /> New automation
-            </Button>
-          </div>
-        </header>
+
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
