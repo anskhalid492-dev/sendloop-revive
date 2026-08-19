@@ -211,7 +211,7 @@ function CreateWorkspaceButton({ onCreated }: { onCreated: (id: string) => void 
   );
 }
 
-function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canEdit: boolean }) {
+export function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canEdit: boolean }) {
   const queryClient = useQueryClient();
   const fetchSettings = useServerFn(getWorkspaceSettings);
   const save = useServerFn(saveWorkspaceSettings);
@@ -366,7 +366,7 @@ function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canEdit: bo
   );
 }
 
-function TeamTab({
+export function TeamTab({
   workspaceId,
   myRole,
   canManage,
@@ -664,7 +664,7 @@ function TeamActivityTimeline({ workspaceId }: { workspaceId: string }) {
 }
 
 
-function PermissionsTab({ myRole }: { myRole: string }) {
+export function PermissionsTab({ myRole }: { myRole: string }) {
   return (
     <div className="surface-card p-5">
       <h2 className="flex items-center gap-2 text-sm font-semibold">
@@ -700,7 +700,7 @@ function PermissionsTab({ myRole }: { myRole: string }) {
   );
 }
 
-function DangerTab({ workspaceId, isOwner }: { workspaceId: string; isOwner: boolean }) {
+export function DangerTab({ workspaceId, isOwner }: { workspaceId: string; isOwner: boolean }) {
   const queryClient = useQueryClient();
   const del = useServerFn(deleteWorkspace);
   const [confirm, setConfirm] = useState("");

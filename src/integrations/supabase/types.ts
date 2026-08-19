@@ -2314,6 +2314,51 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          bounce_alerts: boolean
+          campaign_completed: boolean
+          created_at: string
+          deliverability_alerts: boolean
+          email_enabled: boolean
+          in_app_enabled: boolean
+          new_replies: boolean
+          support_updates: boolean
+          team_activity: boolean
+          updated_at: string
+          user_id: string
+          warmup_alerts: boolean
+        }
+        Insert: {
+          bounce_alerts?: boolean
+          campaign_completed?: boolean
+          created_at?: string
+          deliverability_alerts?: boolean
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          new_replies?: boolean
+          support_updates?: boolean
+          team_activity?: boolean
+          updated_at?: string
+          user_id: string
+          warmup_alerts?: boolean
+        }
+        Update: {
+          bounce_alerts?: boolean
+          campaign_completed?: boolean
+          created_at?: string
+          deliverability_alerts?: boolean
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          new_replies?: boolean
+          support_updates?: boolean
+          team_activity?: boolean
+          updated_at?: string
+          user_id?: string
+          warmup_alerts?: boolean
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -2892,27 +2937,39 @@ export type Database = {
       }
       support_ticket_messages: {
         Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           author_id: string | null
           author_role: string
           body: string
           created_at: string
           id: string
+          is_internal: boolean
           ticket_id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           author_id?: string | null
           author_role?: string
           body: string
           created_at?: string
           id?: string
+          is_internal?: boolean
           ticket_id: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           author_id?: string | null
           author_role?: string
           body?: string
           created_at?: string
           id?: string
+          is_internal?: boolean
           ticket_id?: string
         }
         Relationships: [
@@ -2927,36 +2984,48 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          assigned_to: string | null
           category: string
+          closed_at: string | null
           created_at: string
           created_by: string
+          customer_last_read_at: string | null
           id: string
           last_message_at: string
           priority: string
+          staff_last_read_at: string | null
           status: string
           subject: string
           updated_at: string
           workspace_id: string | null
         }
         Insert: {
+          assigned_to?: string | null
           category?: string
+          closed_at?: string | null
           created_at?: string
           created_by: string
+          customer_last_read_at?: string | null
           id?: string
           last_message_at?: string
           priority?: string
+          staff_last_read_at?: string | null
           status?: string
           subject: string
           updated_at?: string
           workspace_id?: string | null
         }
         Update: {
+          assigned_to?: string | null
           category?: string
+          closed_at?: string | null
           created_at?: string
           created_by?: string
+          customer_last_read_at?: string | null
           id?: string
           last_message_at?: string
           priority?: string
+          staff_last_read_at?: string | null
           status?: string
           subject?: string
           updated_at?: string
@@ -3685,6 +3754,66 @@ export type Database = {
             foreignKeyName: "workspace_members_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_subscriptions: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          current_period_end: string | null
+          external_customer_id: string | null
+          external_subscription_id: string | null
+          id: string
+          payment_status: string
+          plan_id: string | null
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billing_interval?: string
+          created_at?: string
+          current_period_end?: string | null
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          payment_status?: string
+          plan_id?: string | null
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          current_period_end?: string | null
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          payment_status?: string
+          plan_id?: string | null
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
