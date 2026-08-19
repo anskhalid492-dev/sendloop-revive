@@ -318,14 +318,6 @@ export async function dispatchDueMessages(
       result.skipped += 1;
       continue;
     }
-    const credentials =
-      credentialsByAccount.get(account.id) ??
-      (account.provider_id ? (credentialsByProvider.get(account.provider_id) ?? null) : null);
-    const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
-    if (!credentials && !envFallback) {
-      await fail("The mailbox provider has no credentials configured.");
-      continue;
-    }
     const usedNow = sentPerAccount.get(account.id) ?? 0;
     if ((account.sent_today ?? 0) + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
@@ -334,7 +326,6 @@ export async function dispatchDueMessages(
 
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
-    const adapter = getAdapter(account.provider);
     // Replies must reach the inbox Sendloop tracks, not the raw mailbox.
     const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
     // A unique routed address per send: replies come back tagged with the
@@ -346,14 +337,26 @@ export async function dispatchDueMessages(
       campaignId: message.campaign_id,
       purpose: "campaign",
     });
-    const send = await adapter.sendEmail(credentials ?? {}, {
-      fromName: account.from_name,
-      fromEmail: account.from_email,
-      replyTo,
-      to: message.to_email,
-      subject: message.subject,
-      text: message.body,
-    });
+    const send = await sendManagedEmail(
+      supabaseAdmin,
+      {
+        id: account.id,
+        workspace_id: message.workspace_id,
+        provider: account.provider,
+        provider_id: account.provider_id,
+        from_email: account.from_email,
+      },
+      {
+        fromName: account.from_name,
+        fromEmail: account.from_email,
+        replyTo,
+        to: message.to_email,
+        subject: message.subject,
+        text: message.body,
+      },
+      { stage: "campaign" },
+    );
+
 
     if (!send.ok) {
       await fail(send.message);
