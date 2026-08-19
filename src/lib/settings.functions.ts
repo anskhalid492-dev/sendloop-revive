@@ -266,3 +266,91 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export type SendingSettings = {
+  sendingTimezone: string;
+  sendDays: number[];
+  sendStartHour: number;
+  sendEndHour: number;
+  defaultDailyLimit: number | null;
+  mailboxes: number;
+  canEdit: boolean;
+};
+
+export const getSendingSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ workspaceId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<SendingSettings> => {
+    const { data: ws, error } = await context.supabase
+      .from("workspaces")
+      .select("sending_timezone, timezone, send_days, send_start_hour, send_end_hour")
+      .eq("id", data.workspaceId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!ws) throw new Error("Workspace not found");
+
+    const [{ data: canEdit }, accounts] = await Promise.all([
+      context.supabase.rpc("has_workspace_role", {
+        _workspace_id: data.workspaceId,
+        _user_id: context.userId,
+        _roles: ["owner", "admin"],
+      }),
+      context.supabase
+        .from("sending_accounts")
+        .select("daily_limit", { count: "exact" })
+        .eq("workspace_id", data.workspaceId),
+    ]);
+
+    const limits = ((accounts.data ?? []) as Array<{ daily_limit: number }>).map((a) => a.daily_limit);
+    return {
+      sendingTimezone: ws.sending_timezone ?? ws.timezone ?? "UTC",
+      sendDays: ws.send_days ?? [1, 2, 3, 4, 5],
+      sendStartHour: ws.send_start_hour ?? 9,
+      sendEndHour: ws.send_end_hour ?? 17,
+      defaultDailyLimit: limits.length
+        ? Math.round(limits.reduce((a, b) => a + b, 0) / limits.length)
+        : null,
+      mailboxes: accounts.count ?? limits.length,
+      canEdit: Boolean(canEdit),
+    };
+  });
+
+export const saveSendingSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        sendingTimezone: z.string().trim().min(1).max(64),
+        sendDays: z.array(z.number().int().min(0).max(6)).min(1),
+        sendStartHour: z.number().int().min(0).max(23),
+        sendEndHour: z.number().int().min(1).max(24),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (data.sendEndHour <= data.sendStartHour) {
+      throw new Error("Sending window end must be after the start");
+    }
+    const { data: ws, error: wErr } = await context.supabase
+      .from("workspaces")
+      .select("name, slug, logo_url, timezone")
+      .eq("id", data.workspaceId)
+      .maybeSingle();
+    if (wErr) throw new Error(wErr.message);
+    if (!ws) throw new Error("Workspace not found");
+
+    const { error } = await context.supabase.rpc("update_workspace_settings", {
+      _workspace_id: data.workspaceId,
+      _name: ws.name,
+      _slug: ws.slug,
+      _logo_url: ws.logo_url,
+      _timezone: ws.timezone,
+      _sending_timezone: data.sendingTimezone,
+      _send_days: data.sendDays,
+      _send_start_hour: data.sendStartHour,
+      _send_end_hour: data.sendEndHour,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
