@@ -77,6 +77,7 @@ import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
 import { Route as AuthenticatedAutomationsIndexRouteImport } from './routes/_authenticated/automations.index'
+import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
@@ -442,6 +443,12 @@ const AuthenticatedAutomationsIndexRoute =
     path: '/automations/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAutomationsIdRoute =
+  AuthenticatedAutomationsIdRouteImport.update({
+    id: '/automations/$id',
+    path: '/automations/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCampaignsIndexRoute =
   AuthenticatedCampaignsIndexRouteImport.update({
     id: '/campaigns/',
@@ -577,6 +584,7 @@ export interface FileRoutesByFullPath {
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
@@ -656,6 +664,7 @@ export interface FileRoutesByTo {
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
@@ -739,6 +748,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/_authenticated/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
@@ -822,6 +832,7 @@ export interface FileRouteTypes {
     | '/admin/templates'
     | '/admin/users'
     | '/admin/workspaces'
+    | '/automations/$id'
     | '/campaigns/$campaignId'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
@@ -901,6 +912,7 @@ export interface FileRouteTypes {
     | '/admin/templates'
     | '/admin/users'
     | '/admin/workspaces'
+    | '/automations/$id'
     | '/campaigns/$campaignId'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
@@ -983,6 +995,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/workspaces'
+    | '/_authenticated/automations/$id'
     | '/_authenticated/campaigns/$campaignId'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
@@ -1524,6 +1537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAutomationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/automations/$id': {
+      id: '/_authenticated/automations/$id'
+      path: '/automations/$id'
+      fullPath: '/automations/$id'
+      preLoaderRoute: typeof AuthenticatedAutomationsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/campaigns/': {
       id: '/_authenticated/campaigns/'
       path: '/campaigns'
@@ -1687,6 +1707,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
   AuthenticatedWarmupRoute: typeof AuthenticatedWarmupRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
+  AuthenticatedAutomationsIdRoute: typeof AuthenticatedAutomationsIdRoute
   AuthenticatedCampaignsCampaignIdRoute: typeof AuthenticatedCampaignsCampaignIdRoute
   AuthenticatedAutomationsIndexRoute: typeof AuthenticatedAutomationsIndexRoute
   AuthenticatedCampaignsIndexRoute: typeof AuthenticatedCampaignsIndexRoute
@@ -1707,6 +1728,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
   AuthenticatedWarmupRoute: AuthenticatedWarmupRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
+  AuthenticatedAutomationsIdRoute: AuthenticatedAutomationsIdRoute,
   AuthenticatedCampaignsCampaignIdRoute: AuthenticatedCampaignsCampaignIdRoute,
   AuthenticatedAutomationsIndexRoute: AuthenticatedAutomationsIndexRoute,
   AuthenticatedCampaignsIndexRoute: AuthenticatedCampaignsIndexRoute,

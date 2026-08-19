@@ -416,6 +416,38 @@ async function applyReplyAutomation(args: {
   } catch {
     /* integration delivery must never break inbound processing */
   }
+
+  // Fire automation triggers for the reply. Idempotency keys are derived from
+  // the conversation + timestamp so a webhook retry cannot double-run a flow.
+  try {
+    const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
+    const base = {
+      workspaceId,
+      leadId: leadId ?? null,
+      campaignId: campaignId ?? null,
+      conversationId,
+      payload: {
+        email: args.prospect,
+        subject: args.subject || null,
+        sentiment: args.detected ?? "neutral",
+        receivedAt: args.receivedIso,
+      },
+    };
+    await emitAutomationEvent({
+      ...base,
+      type: "lead.replied",
+      idempotencyKey: `lead.replied:${conversationId}:${args.receivedIso}`,
+    });
+    if (args.detected === "interested") {
+      await emitAutomationEvent({
+        ...base,
+        type: "reply.positive",
+        idempotencyKey: `reply.positive:${conversationId}:${args.receivedIso}`,
+      });
+    }
+  } catch {
+    /* automations must never break inbound processing */
+  }
 }
 
 /**

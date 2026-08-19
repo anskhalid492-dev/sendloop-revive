@@ -77,5 +77,36 @@ export async function recordEngagement(args: Args): Promise<boolean> {
       { onConflict: "external_id", ignoreDuplicates: true },
     );
 
-  return !error;
+  if (error) return false;
+
+  // Delivery-side automation triggers. Only real provider events reach here.
+  try {
+    const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
+    const type =
+      args.type === "delivered"
+        ? "email.delivered"
+        : args.type === "opened"
+          ? "email.opened"
+          : args.type === "clicked"
+            ? "email.clicked"
+            : args.type === "bounced"
+              ? "email.bounced"
+              : args.type === "unsubscribed"
+                ? "lead.unsubscribed"
+                : null;
+    if (type) {
+      await emitAutomationEvent({
+        workspaceId: message.workspace_id,
+        type,
+        leadId: message.lead_id,
+        campaignId: message.campaign_id,
+        idempotencyKey: `${type}:${externalId}`.slice(0, 400),
+        payload: { email: email ?? message.to_email, url: args.url ?? null },
+      });
+    }
+  } catch {
+    /* engagement recording must never fail because of automations */
+  }
+
+  return true;
 }

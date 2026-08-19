@@ -25,6 +25,7 @@ import {
   Sun,
   User,
   Users,
+  Workflow,
   X,
 } from "lucide-react";
 
@@ -64,8 +65,10 @@ const navGroups = [
       { to: "/campaigns", label: "Campaigns", icon: Send },
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/templates", label: "Templates", icon: FileText },
+      { to: "/automations", label: "Automations", icon: Workflow },
     ],
   },
+
   {
     label: "Conversations",
     items: [{ to: "/inbox", label: "Unified Inbox", icon: Inbox }],
