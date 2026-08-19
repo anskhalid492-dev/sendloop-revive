@@ -1030,79 +1030,10 @@ export const duplicateCampaign = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: source, error } = await context.supabase
-      .from("campaigns")
-      .select(CAMPAIGN_COLUMNS)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!source) throw new Error("Campaign not found");
-    const c = source as unknown as Campaign;
-
-    const { data: created, error: cErr } = await context.supabase
-      .from("campaigns")
-      .insert({
-        workspace_id: c.workspace_id,
-        name: `${c.name} (copy)`,
-        description: c.description,
-        created_by: context.userId,
-        list_id: data.includeLeads ? c.list_id : null,
-        sending_account_ids: data.includeAccounts ? c.sending_account_ids : [],
-        timezone: c.timezone,
-        send_days: data.includeSchedule ? c.send_days : [1, 2, 3, 4, 5],
-        send_start_hour: data.includeSchedule ? c.send_start_hour : 9,
-        send_end_hour: data.includeSchedule ? c.send_end_hour : 17,
-        daily_cap: c.daily_cap,
-        stop_on_reply: c.stop_on_reply,
-        tags: c.tags,
-        min_delay_minutes: c.min_delay_minutes,
-        random_delay_minutes: c.random_delay_minutes,
-        max_per_hour: c.max_per_hour,
-        business_days_only: c.business_days_only,
-        open_tracking: c.open_tracking,
-        click_tracking: c.click_tracking,
-        text_only: c.text_only,
-        stop_on_company_reply: c.stop_on_company_reply,
-        max_contacts_per_company: c.max_contacts_per_company,
-        unsubscribe_enabled: c.unsubscribe_enabled,
-        inbox_rotation_enabled: c.inbox_rotation_enabled,
-        inbox_rotation_strategy: c.inbox_rotation_strategy,
-        rotation_daily_cap_per_inbox: c.rotation_daily_cap_per_inbox,
-        custom_variables: c.custom_variables ?? [],
-      })
-      .select("id")
-      .single();
-    if (cErr) throw new Error(cErr.message);
-
-    const { data: steps, error: sErr } = await context.supabase
-      .from("campaign_steps")
-      .select(STEP_COLUMNS)
-      .eq("campaign_id", c.id)
-      .order("step_order", { ascending: true });
-    if (sErr) throw new Error(sErr.message);
-
-    if (steps?.length) {
-      const { error: insErr } = await context.supabase.from("campaign_steps").insert(
-        steps.map((s) => ({
-          campaign_id: created.id,
-          workspace_id: c.workspace_id,
-          step_order: s.step_order,
-          name: s.name,
-          step_type: s.step_type,
-          subject: s.subject,
-          body: s.body,
-          wait_days: s.wait_days,
-          wait_hours: s.wait_hours,
-          delay_minutes: s.delay_minutes,
-          same_thread: s.same_thread,
-          config: s.config,
-        })) as never,
-      );
-      if (insErr) throw new Error(insErr.message);
-    }
-
-    return { id: created.id as string };
+    const { duplicateCampaignRow } = await import("@/lib/campaign-duplicate.server");
+    return await duplicateCampaignRow(context.supabase, context.userId, data);
   });
+
 
 export const deleteCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
