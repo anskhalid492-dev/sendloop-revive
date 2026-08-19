@@ -290,3 +290,29 @@ export const acceptInvitation = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { workspaceId: workspaceId as string };
   });
+
+export type WorkspaceActivity = {
+  id: string;
+  type: string;
+  detail: string | null;
+  target_email: string | null;
+  created_at: string;
+};
+
+/** Team activity timeline: joins, role changes, removals, invitations. */
+export const getWorkspaceActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ workspaceId: z.string().uuid(), limit: z.number().min(1).max(100).default(25) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    // RLS scopes rows to workspaces the caller belongs to.
+    const { data: rows, error } = await context.supabase
+      .from("workspace_activity")
+      .select("id, type, detail, target_email, created_at")
+      .eq("workspace_id", data.workspaceId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as WorkspaceActivity[];
+  });

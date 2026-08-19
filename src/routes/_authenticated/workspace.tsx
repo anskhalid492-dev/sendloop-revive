@@ -31,7 +31,9 @@ import { createWorkspace } from "@/lib/workspaces.functions";
 import {
   deleteWorkspace,
   getWorkspaceSettings,
+  getWorkspaceActivity,
   getWorkspaceTeam,
+
   inviteTeammate,
   removeMember,
   resendInvitation,
@@ -614,9 +616,53 @@ function TeamTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TeamActivityTimeline workspaceId={workspaceId} />
     </div>
   );
 }
+
+/** Joins, role changes, removals and invitation acceptance for this workspace. */
+function TeamActivityTimeline({ workspaceId }: { workspaceId: string }) {
+  const fetchActivity = useServerFn(getWorkspaceActivity);
+  const query = useQuery({
+    queryKey: ["workspace-activity", workspaceId],
+    queryFn: () => fetchActivity({ data: { workspaceId, limit: 25 } }),
+  });
+
+  return (
+    <section className="surface-card p-5">
+      <h2 className="text-sm font-semibold">Team activity</h2>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Member joins, role changes, removals and invitation activity.
+      </p>
+      {query.isLoading ? (
+        <div className="mt-4 space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-8 animate-pulse rounded bg-muted" />
+          ))}
+        </div>
+      ) : (query.data ?? []).length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">No team activity yet.</p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {(query.data ?? []).map((row) => (
+            <li
+              key={row.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm"
+            >
+              <span>{row.detail ?? row.type.replace(/_/g, " ")}</span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(row.created_at).toLocaleString()}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 
 function PermissionsTab({ myRole }: { myRole: string }) {
   return (
