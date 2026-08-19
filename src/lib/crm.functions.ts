@@ -305,6 +305,19 @@ export const moveCrmContact = createServerFn({ method: "POST" })
       created_at: now,
     });
 
+    try {
+      const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
+      await emitAutomationEvent({
+        workspaceId: lead.workspace_id,
+        type: "crm.stage_changed",
+        leadId: data.leadId,
+        idempotencyKey: `crm.stage_changed:${data.leadId}:${data.stageId}:${now}`,
+        payload: { stageId: data.stageId, stageName: stage.name },
+      });
+    } catch {
+      /* automations never block a pipeline move */
+    }
+
     return { ok: true };
   });
 
