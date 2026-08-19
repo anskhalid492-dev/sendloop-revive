@@ -20,8 +20,8 @@ import {
   ShieldCheck,
   Users,
   X,
-  type LucideIcon,,
-  MessageSquareQuote
+  type LucideIcon,
+  MessageSquareQuote,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";

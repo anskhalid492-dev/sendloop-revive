@@ -22,8 +22,8 @@ import {
   Share2,
   Users,
   X,
-  Inbox,,
-  MessageSquareQuote
+  Inbox,
+  MessageSquareQuote,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
