@@ -257,6 +257,66 @@ export function missingVariables(
   return [...missing];
 }
 
+export type VariableResolution = {
+  token: string;
+  where: Array<"subject" | "body">;
+  source: "lead" | "fallback" | "custom_default" | "system" | "unresolved";
+  value: string | null;
+};
+
+/**
+ * Per-token report of what the preview actually resolved, so an operator can
+ * see which variables fell back and which would send blank.
+ */
+export function variableResolutionReport(
+  subject: string,
+  body: string,
+  lead?: LeadLike,
+  customVariables: CustomVariable[] = [],
+): VariableResolution[] {
+  const defaults = new Map(
+    customVariables.filter((v) => v.defaultValue.trim()).map((v) => [v.token, v.defaultValue.trim()]),
+  );
+  const out = new Map<string, VariableResolution>();
+
+  const scan = (template: string, where: "subject" | "body") => {
+    for (const match of template.matchAll(VARIABLE_RE)) {
+      const token = match[1]!;
+      const fallback = (match[2] ?? "").trim();
+      const value = lead ? leadValue(lead, token) : undefined;
+      let source: VariableResolution["source"];
+      let resolved: string | null;
+      if (value) {
+        source = "lead";
+        resolved = value;
+      } else if (SYSTEM_VARIABLES.has(token)) {
+        source = "system";
+        resolved = null;
+      } else if (fallback) {
+        source = "fallback";
+        resolved = fallback;
+      } else if (defaults.has(token)) {
+        source = "custom_default";
+        resolved = defaults.get(token)!;
+      } else {
+        source = "unresolved";
+        resolved = null;
+      }
+      const existing = out.get(token);
+      if (existing) {
+        if (!existing.where.includes(where)) existing.where.push(where);
+        continue;
+      }
+      out.set(token, { token, where: [where], source, value: resolved });
+    }
+  };
+
+  scan(subject, "subject");
+  scan(body, "body");
+  return [...out.values()];
+}
+
+
 export type VariableUse = { token: string; fallback: string };
 
 export function parseVariables(template: string): VariableUse[] {

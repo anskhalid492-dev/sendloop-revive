@@ -26,6 +26,7 @@ import {
 import {
   missingVariables,
   renderTemplate,
+  variableResolutionReport,
   resolveSpintax,
   type LeadLike,
 } from "@/lib/campaign-model";
@@ -72,6 +73,75 @@ function useResolved(
   return { step, lead, subject, body, missing, rawSubject, rawBody };
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  lead: "Lead data",
+  fallback: "Inline fallback",
+  custom_default: "Custom default",
+  system: "Filled at send time",
+  unresolved: "Not resolved",
+};
+
+/** Shows exactly where each template variable resolved from for this lead. */
+function VariableReport({
+  rawSubject,
+  rawBody,
+  builder,
+  leadId,
+}: {
+  rawSubject: string;
+  rawBody: string;
+  builder: CampaignBuilder;
+  leadId: string;
+}) {
+  const lead = useMemo<LeadLike>(() => {
+    const row = builder.leads.find((l) => l.lead_id === leadId)?.lead;
+    return row ? ({ ...SAMPLE, ...row } as LeadLike) : SAMPLE;
+  }, [builder.leads, leadId]);
+
+  const report = variableResolutionReport(
+    rawSubject,
+    rawBody,
+    lead,
+    builder.settings?.customVariables ?? [],
+  );
+  if (report.length === 0) return null;
+  const unresolved = report.filter((r) => r.source === "unresolved");
+
+  return (
+    <div
+      className={`rounded-lg border p-3 text-sm ${unresolved.length ? "border-amber-500/30 bg-amber-500/10" : "border-border"}`}
+    >
+      <p className="font-medium">
+        {unresolved.length
+          ? `${unresolved.length} variable${unresolved.length === 1 ? "" : "s"} could not be resolved`
+          : "All variables resolved"}
+      </p>
+      <ul className="mt-2 space-y-1.5">
+        {report.map((r) => (
+          <li key={r.token} className="flex flex-wrap items-center gap-2 text-xs">
+            <Badge variant="outline" className="font-mono font-normal">
+              {`{{${r.token}}}`}
+            </Badge>
+            <span className="text-muted-foreground">{r.where.join(" + ")}</span>
+            <span
+              className={r.source === "unresolved" ? "font-medium text-amber-600" : "text-muted-foreground"}
+            >
+              {SOURCE_LABEL[r.source]}
+            </span>
+            {r.value ? <span className="truncate text-foreground">&ldquo;{r.value}&rdquo;</span> : null}
+          </li>
+        ))}
+      </ul>
+      {unresolved.length ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Unresolved variables send as empty text. Add a fallback like {"{{"}first_name | there{"}}"} or fill
+          the missing lead fields.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function PreviewDialog({
   builder,
   stepIndex,
@@ -85,7 +155,12 @@ export function PreviewDialog({
 }) {
   const [leadId, setLeadId] = useState("__sample__");
   const [variantIndex, setVariantIndex] = useState(-1);
-  const { step, subject, body, missing } = useResolved(builder, stepIndex, leadId, variantIndex);
+  const { step, subject, body, rawSubject, rawBody } = useResolved(
+    builder,
+    stepIndex,
+    leadId,
+    variantIndex,
+  );
   const account =
     builder.accounts.find((a) => builder.settings?.sendingAccountIds.includes(a.id)) ??
     builder.accounts[0];
@@ -144,16 +219,8 @@ export function PreviewDialog({
             ) : null}
           </div>
 
-          {missing.length > 0 ? (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-              Missing values for:{" "}
-              {missing.map((v) => (
-                <Badge key={v} variant="outline" className="mr-1 font-normal">
-                  {v}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
+          <VariableReport rawSubject={rawSubject} rawBody={rawBody} builder={builder} leadId={leadId} />
+
 
           <div className="rounded-xl border border-border">
             <div className="space-y-1 border-b border-border p-4">
