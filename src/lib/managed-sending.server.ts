@@ -115,6 +115,95 @@ export function platformKeyFor(provider: string): string | null {
   return map[provider] || null;
 }
 
+/**
+ * Server-side provider selection.
+ *
+ * Customers never choose a provider. Sendloop picks one from the admin-managed
+ * pool (`email_providers`) using enablement, priority and health, and falls
+ * back to the mailbox's recorded provider only when the pool yields nothing.
+ */
+export async function resolveManagedProvider(
+  admin: Admin,
+  account: { provider: string; provider_id: string | null; from_email?: string },
+): Promise<ManagedCredentials | null> {
+  const { readCredentials } = await import("@/lib/providers/adapter.server");
+
+  const { data: pool } = await admin
+    .from("email_providers")
+    .select("id, provider, is_enabled, priority, status")
+    .eq("is_enabled", true)
+    .order("priority", { ascending: true });
+
+  const rows = (pool ?? []) as Array<{
+    id: string;
+    provider: string;
+    priority: number;
+    status: string | null;
+  }>;
+
+  // The mailbox's pinned provider wins when it is still enabled and healthy.
+  const ordered = [
+    ...rows.filter((r) => r.id === account.provider_id),
+    ...rows.filter((r) => r.id !== account.provider_id && r.status !== "failed"),
+    ...rows.filter((r) => r.id !== account.provider_id && r.status === "failed"),
+  ];
+
+  for (const row of ordered) {
+    const { data } = await admin
+      .from("email_provider_secrets")
+      .select("credentials_ciphertext")
+      .eq("provider_id", row.id)
+      .maybeSingle();
+    if (data?.credentials_ciphertext) {
+      try {
+        const credentials = readCredentials(data.credentials_ciphertext);
+        if (credentials && Object.keys(credentials).length > 0) {
+          return {
+            provider: row.provider,
+            providerId: row.id,
+            credentials,
+            source: "provider_secret",
+          };
+        }
+      } catch {
+        /* try the next provider in the pool */
+      }
+    }
+    const envKey = platformKeyFor(row.provider);
+    if (envKey) {
+      return {
+        provider: row.provider,
+        providerId: row.id,
+        credentials: { api_key: envKey },
+        source: "platform_env",
+      };
+    }
+  }
+
+  return loadManagedProviderCredentials(admin, account);
+}
+
+/** Persists the raw provider failure for Admin → Providers. Never shown to customers. */
+export async function recordProviderIncident(
+  admin: Admin,
+  providerId: string | null,
+  rawError: string | null,
+): Promise<void> {
+  if (!providerId) return;
+  try {
+    await admin
+      .from("email_providers")
+      .update(
+        rawError
+          ? { status: "failed", last_error: rawError.slice(0, 1000), last_tested_at: new Date().toISOString() }
+          : { status: "active", last_error: null, last_tested_at: new Date().toISOString() },
+      )
+      .eq("id", providerId);
+  } catch {
+    /* diagnostics only — never block a send */
+  }
+}
+
 type CacheEntry = { at: number; value: DomainVerification };
 const verificationCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60_000;
