@@ -65,13 +65,12 @@ async function handle(request: Request, token: string) {
   const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
   const result = await emitAutomationEvent({
     workspaceId: automation.workspace_id,
-    triggerType: "webhook.received",
-    automationId: automation.id,
+    type: "webhook.received",
     leadId,
-    payload,
-    ...(request.headers.get("x-idempotency-key")
-      ? { idempotencyKey: request.headers.get("x-idempotency-key") as string }
-      : {}),
+    payload: { ...payload, automationId: automation.id, webhookToken: token },
+    idempotencyKey:
+      request.headers.get("x-idempotency-key") ??
+      `webhook:${automation.id}:${createHmac("sha256", automation.id).update(raw).digest("hex").slice(0, 32)}:${Math.floor(Date.now() / 1000)}`,
   });
 
   return json({ ok: true, enqueued: result.runs }, 200);
