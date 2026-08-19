@@ -224,12 +224,20 @@ export function TestSendDialog({
           body,
         },
       }),
-    onSuccess: () => {
-      toast.success("Test email sent");
+    onSuccess: (res) => {
+      const failed = res?.failed ?? [];
+      if (failed.length > 0) {
+        toast.warning(
+          `Sent to ${res.delivered} of ${res.delivered + failed.length}. ${failed[0]?.message ?? ""}`,
+        );
+      } else {
+        toast.success("Test email sent — check your inbox and spam folder");
+      }
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
