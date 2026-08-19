@@ -40,6 +40,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated/referrals'
 import { Route as AuthenticatedSendingRouteImport } from './routes/_authenticated/sending'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
@@ -250,6 +251,11 @@ const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSendingRoute = AuthenticatedSendingRouteImport.update({
@@ -594,6 +600,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof AuthenticatedInboxRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/referrals': typeof AuthenticatedReferralsRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -681,6 +688,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AuthenticatedInboxRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/referrals': typeof AuthenticatedReferralsRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -772,6 +780,7 @@ export interface FileRoutesById {
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
   '/_authenticated/sending': typeof AuthenticatedSendingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
@@ -863,6 +872,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/leads'
     | '/onboarding'
+    | '/referrals'
     | '/sending'
     | '/settings'
     | '/support'
@@ -950,6 +960,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/leads'
     | '/onboarding'
+    | '/referrals'
     | '/sending'
     | '/settings'
     | '/support'
@@ -1040,6 +1051,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inbox'
     | '/_authenticated/leads'
     | '/_authenticated/onboarding'
+    | '/_authenticated/referrals'
     | '/_authenticated/sending'
     | '/_authenticated/settings'
     | '/_authenticated/support'
@@ -1368,6 +1380,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/referrals': {
+      id: '/_authenticated/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof AuthenticatedReferralsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sending': {
@@ -1844,6 +1863,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedReferralsRoute: typeof AuthenticatedReferralsRoute
   AuthenticatedSendingRoute: typeof AuthenticatedSendingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
@@ -1866,6 +1886,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedReferralsRoute: AuthenticatedReferralsRoute,
   AuthenticatedSendingRoute: AuthenticatedSendingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
