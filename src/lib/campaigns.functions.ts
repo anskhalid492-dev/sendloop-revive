@@ -1189,9 +1189,10 @@ export const bulkCampaignAction = createServerFn({ method: "POST" })
     if (targets.length === 0) return { action: data.action, succeeded, failed };
 
     if (data.action === "duplicate") {
+      const { duplicateCampaignRow } = await import("@/lib/campaign-duplicate.server");
       for (const id of targets) {
         try {
-          await duplicateCampaign({ data: { id } });
+          await duplicateCampaignRow(context.supabase, context.userId, { id });
           succeeded.push(id);
         } catch (e) {
           failed.push({ id, reason: (e as Error).message });
