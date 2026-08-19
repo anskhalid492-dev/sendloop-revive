@@ -47,7 +47,12 @@ const SAMPLE: LeadLike = {
   custom_fields: {},
 };
 
-function useResolved(builder: CampaignBuilder, stepIndex: number, leadId: string) {
+function useResolved(
+  builder: CampaignBuilder,
+  stepIndex: number,
+  leadId: string,
+  variantIndex = -1,
+) {
   const step = builder.steps[stepIndex];
   const customVariables = builder.settings?.customVariables ?? [];
   const lead = useMemo<LeadLike>(() => {
@@ -55,16 +60,17 @@ function useResolved(builder: CampaignBuilder, stepIndex: number, leadId: string
     return row ? ({ ...SAMPLE, ...row } as LeadLike) : SAMPLE;
   }, [builder.leads, leadId]);
 
-  const subject = step
-    ? renderTemplate(resolveSpintax(step.subject), lead, customVariables)
-    : "";
-  const body = step ? renderTemplate(resolveSpintax(step.body), lead, customVariables) : "";
-  const missing = step
-    ? missingVariables(`${step.subject} ${step.body}`, lead, customVariables)
-    : [];
-  return { step, lead, subject, body, missing };
-}
+  // A/B variants are what actually gets delivered when they exist, so the
+  // preview has to resolve the selected variant, not just the base copy.
+  const variant = variantIndex >= 0 ? step?.variants[variantIndex] : undefined;
+  const rawSubject = variant?.subject || step?.subject || "";
+  const rawBody = variant?.body || step?.body || "";
 
+  const subject = renderTemplate(resolveSpintax(rawSubject), lead, customVariables);
+  const body = renderTemplate(resolveSpintax(rawBody), lead, customVariables);
+  const missing = missingVariables(`${rawSubject} ${rawBody}`, lead, customVariables);
+  return { step, lead, subject, body, missing, rawSubject, rawBody };
+}
 
 export function PreviewDialog({
   builder,
@@ -78,14 +84,17 @@ export function PreviewDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [leadId, setLeadId] = useState("__sample__");
-  const { step, subject, body, missing } = useResolved(builder, stepIndex, leadId);
-  const account = builder.accounts.find((a) =>
-    builder.settings?.sendingAccountIds.includes(a.id),
-  );
+  const [variantIndex, setVariantIndex] = useState(-1);
+  const { step, subject, body, missing } = useResolved(builder, stepIndex, leadId, variantIndex);
+  const account =
+    builder.accounts.find((a) => builder.settings?.sendingAccountIds.includes(a.id)) ??
+    builder.accounts[0];
+  const variants = step?.variants ?? [];
+  const unsubscribe = builder.settings?.unsubscribeEnabled;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Email preview</DialogTitle>
           <DialogDescription>
@@ -94,21 +103,45 @@ export function PreviewDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Preview with</Label>
-            <Select value={leadId} onValueChange={setLeadId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__sample__">Sample lead (Alex at Acme)</SelectItem>
-                {builder.leads.slice(0, 50).map((row) => (
-                  <SelectItem key={row.lead_id} value={row.lead_id}>
-                    {row.lead?.email ?? row.lead_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Preview with</Label>
+              <Select value={leadId} onValueChange={setLeadId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__sample__">Sample lead (Alex at Acme)</SelectItem>
+                  {builder.leads.slice(0, 50).map((row) => (
+                    <SelectItem key={row.lead_id} value={row.lead_id}>
+                      {row.lead?.email ?? row.lead_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {variants.length > 0 ? (
+              <div className="space-y-1.5">
+                <Label>Variant</Label>
+                <Select
+                  value={String(variantIndex)}
+                  onValueChange={(v) => setVariantIndex(Number(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-1">Base copy</SelectItem>
+                    {variants.map((v, i) => (
+                      <SelectItem key={`${v.label}-${i}`} value={String(i)}>
+                        {v.label || `Variant ${i + 1}`} ({v.weight}%)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
 
           {missing.length > 0 ? (
@@ -123,16 +156,31 @@ export function PreviewDialog({
           ) : null}
 
           <div className="rounded-xl border border-border">
-            <div className="border-b border-border p-4">
+            <div className="space-y-1 border-b border-border p-4">
               <p className="text-xs text-muted-foreground">
                 From {account ? `${account.from_name} <${account.from_email}>` : "your mailbox"}
               </p>
-              <p className="mt-1 font-semibold">{subject || "(no subject)"}</p>
+              {account?.reply_to ? (
+                <p className="text-xs text-muted-foreground">Reply-to {account.reply_to}</p>
+              ) : null}
+              <p className="pt-1 font-semibold">{subject || "(no subject)"}</p>
             </div>
             <div className="whitespace-pre-wrap p-4 text-sm leading-relaxed">
               {body || "(empty body)"}
+              {unsubscribe ? (
+                <p className="mt-6 border-t border-border pt-3 text-xs text-muted-foreground">
+                  Unsubscribe link is appended automatically at send time.
+                </p>
+              ) : null}
             </div>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Open tracking {builder.settings?.openTracking ? "on" : "off"} · Click tracking{" "}
+            {builder.settings?.clickTracking ? "on" : "off"} · Plain text only{" "}
+            {builder.settings?.textOnly ? "yes" : "no"}
+          </p>
+
           {step?.stepType !== "email" ? (
             <p className="text-sm text-muted-foreground">
               This step is not an email step, so nothing is delivered to the lead.
@@ -143,6 +191,7 @@ export function PreviewDialog({
     </Dialog>
   );
 }
+
 
 export function TestSendDialog({
   builder,
