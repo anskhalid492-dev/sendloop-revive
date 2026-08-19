@@ -44,6 +44,42 @@ export const listCampaigns = createServerFn({ method: "GET" })
     });
   });
 
+export const listCampaignsOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { buildCampaignOverview } = await import("@/lib/campaign-overview");
+
+    const [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes] =
+      await Promise.all([
+        context.supabase
+          .from("campaigns")
+          .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids")
+          .order("created_at", { ascending: false }),
+        context.supabase.from("campaign_recipients").select("campaign_id, lead_id"),
+        context.supabase.from("campaign_messages").select("campaign_id, status, to_email"),
+        context.supabase.from("campaign_replies").select("campaign_id, lead_id, from_email, sentiment"),
+        context.supabase.from("conversations").select("campaign_id, lead_id, prospect_email, status"),
+        context.supabase
+          .from("sending_accounts")
+          .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status"),
+      ]);
+
+    const failure = [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes].find(
+      (r) => r.error,
+    );
+    if (failure?.error) throw new Error(failure.error.message);
+
+    return buildCampaignOverview({
+      campaigns: (campaignsRes.data ?? []) as never,
+      recipients: (recipientsRes.data ?? []) as never,
+      messages: (messagesRes.data ?? []) as never,
+      replies: (repliesRes.data ?? []) as never,
+      meetings: (conversationsRes.data ?? []) as never,
+      accounts: (accountsRes.data ?? []) as never,
+    });
+  });
+
+
 export const getCampaign = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
@@ -640,17 +676,8 @@ export const listCampaignTestDiagnostics = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
       : { data: [] };
 
-    return (rows ?? []).map((row) => {
-      const event = (events ?? []).find((item) => item.message_id === row.provider_message_id);
-      return {
-        ...row,
-        webhookEventId: event?.id ?? row.webhook_event_id,
-        webhookStatus: event?.status ?? row.webhook_status ?? "pending",
-        webhookEventType: event?.event_type ?? row.webhook_event_type,
-        webhookReceivedAt: event?.created_at ?? row.webhook_received_at,
-        webhookError: event?.error ?? null,
-      };
-    });
+    const { correlateTestSend } = await import("@/lib/test-send-status");
+    return (rows ?? []).map((row) => correlateTestSend(row, (events ?? []) as never));
   });
 
 

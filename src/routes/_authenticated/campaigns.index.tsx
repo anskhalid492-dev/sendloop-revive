@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Send, Trash2 } from "lucide-react";
+import { Loader2, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { CampaignsTable } from "@/components/campaign/CampaignsTable";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { createCampaign, deleteCampaign, listCampaigns } from "@/lib/campaigns.functions";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  createCampaign,
+  deleteCampaign,
+  duplicateCampaign,
+  listCampaignsOverview,
+  setCampaignStatus,
+} from "@/lib/campaigns.functions";
 
 export const Route = createFileRoute("/_authenticated/campaigns/")({
   head: () => ({
@@ -41,15 +49,6 @@ export const Route = createFileRoute("/_authenticated/campaigns/")({
   component: CampaignsPage,
 });
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  active: "bg-primary/10 text-primary",
-  paused: "bg-amber-500/15 text-amber-600",
-  completed: "bg-emerald-500/15 text-emerald-600",
-  archived: "bg-muted text-muted-foreground",
-  scheduled: "bg-primary/10 text-primary",
-};
-
 function CampaignsPage() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
@@ -57,11 +56,34 @@ function CampaignsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  const fetchCampaigns = useServerFn(listCampaigns);
+  const fetchOverview = useServerFn(listCampaignsOverview);
   const createFn = useServerFn(createCampaign);
   const deleteFn = useServerFn(deleteCampaign);
+  const statusFn = useServerFn(setCampaignStatus);
+  const duplicateFn = useServerFn(duplicateCampaign);
 
-  const campaigns = useQuery({ queryKey: ["campaigns"], queryFn: () => fetchCampaigns() });
+  const campaigns = useQuery({ queryKey: ["campaigns", "overview"], queryFn: () => fetchOverview() });
+
+  // Rows reflect live metric changes: sends, replies and status edits.
+  useEffect(() => {
+    const channel = supabase
+      .channel("campaigns-overview")
+      .on("postgres_changes", { event: "*", schema: "public", table: "campaigns" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "campaign_messages" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "campaign_replies" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 
   const create = useMutation({
     mutationFn: async () => {
@@ -75,7 +97,7 @@ function CampaignsPage() {
       setName("");
       setDescription("");
       toast.success("Campaign created");
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      await refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -84,24 +106,53 @@ function CampaignsPage() {
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: async () => {
       toast.success("Campaign deleted");
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      await refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const changeStatus = useMutation({
+    mutationFn: (vars: { id: string; status: "active" | "paused" | "archived" }) =>
+      statusFn({ data: vars }),
+    onSuccess: async (_d, vars) => {
+      toast.success(
+        vars.status === "active" ? "Campaign resumed" : vars.status === "paused" ? "Campaign paused" : "Campaign archived",
+      );
+      await refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const duplicate = useMutation({
+    mutationFn: (id: string) => duplicateFn({ data: { id } }),
+    onSuccess: async () => {
+      toast.success("Campaign duplicated");
+      await refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const rows = campaigns.data ?? [];
+  const busyId =
+    changeStatus.isPending
+      ? changeStatus.variables?.id
+      : duplicate.isPending
+        ? duplicate.variables
+        : remove.isPending
+          ? remove.variables
+          : null;
 
   return (
     <AppShell title="Campaigns">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold">Campaigns</h2>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-semibold">Campaigns</h2>
             <p className="text-sm text-muted-foreground">
-              Build a sequence, pick mailboxes and a schedule, then launch the queue.
+              Live performance for every sequence, straight from your send and reply data.
             </p>
           </div>
-          <Button onClick={() => setOpen(true)} disabled={!workspace}>
+          <Button onClick={() => setOpen(true)} disabled={!workspace} className="shrink-0">
             <Plus className="mr-2 size-4" /> New campaign
           </Button>
         </div>
@@ -124,52 +175,16 @@ function CampaignsPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-3">
-            {rows.map((c) => (
-              <div key={c.id} className="surface-card flex flex-wrap items-center gap-4 p-5">
-                <div className="min-w-52 flex-1">
-                  <Link
-                    to="/campaigns/$campaignId"
-                    params={{ campaignId: c.id }}
-                    className="font-semibold hover:text-primary"
-                  >
-                    {c.name}
-                  </Link>
-                  <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                    {c.description || "No description"}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${STATUS_STYLES[c.status] ?? ""}`}
-                >
-                  {c.status}
-                </span>
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{c.recipients}</span> queued
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{c.sent}</span> processed
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/campaigns/$campaignId" params={{ campaignId: c.id }}>
-                      Open
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove.mutate(c.id)}
-                    aria-label={`Delete ${c.name}`}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <CampaignsTable
+            rows={rows}
+            busyId={busyId ?? null}
+            onSetStatus={(id, status) => changeStatus.mutate({ id, status })}
+            onDuplicate={(id) => duplicate.mutate(id)}
+            onDelete={(id) => remove.mutate(id)}
+          />
         )}
       </div>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

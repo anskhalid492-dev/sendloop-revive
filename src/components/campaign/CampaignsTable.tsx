@@ -1,0 +1,343 @@
+import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import {
+  ArrowDown,
+  ArrowUp,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  MoreHorizontal,
+  Pause,
+  Pencil,
+  Play,
+  Trash2,
+  Archive,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  CAMPAIGN_STATUS_STYLES,
+  accountOnline,
+  type CampaignOverviewRow,
+} from "@/lib/campaign-overview";
+
+type SortKey = "name" | "leads" | "sent" | "replyRate" | "positiveReplies" | "meetings" | "status";
+
+const PAGE_SIZE = 10;
+
+const numberFmt = new Intl.NumberFormat("en-US");
+
+function SortButton({
+  label,
+  sortKey,
+  active,
+  dir,
+  onSort,
+  className,
+}: {
+  label: string;
+  sortKey: SortKey;
+  active: boolean;
+  dir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(sortKey)}
+      className={`inline-flex items-center gap-1 whitespace-nowrap font-medium transition-colors hover:text-foreground ${active ? "text-foreground" : "text-muted-foreground"} ${className ?? ""}`}
+    >
+      {label}
+      {active ? (
+        dir === "asc" ? (
+          <ArrowUp className="size-3" />
+        ) : (
+          <ArrowDown className="size-3" />
+        )
+      ) : null}
+    </button>
+  );
+}
+
+export function CampaignsTable({
+  rows,
+  onSetStatus,
+  onDuplicate,
+  onDelete,
+  busyId,
+}: {
+  rows: CampaignOverviewRow[];
+  onSetStatus: (id: string, status: "active" | "paused" | "archived") => void;
+  onDuplicate: (id: string) => void;
+  onDelete: (id: string) => void;
+  busyId?: string | null;
+}) {
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("sent");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(0);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = rows.filter((r) => {
+      if (status !== "all" && r.displayStatus !== status) return false;
+      if (!q) return true;
+      return (
+        r.name.toLowerCase().includes(q) ||
+        (r.description ?? "").toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q) ||
+        (r.account?.from_email ?? "").toLowerCase().includes(q)
+      );
+    });
+    const factor = dir === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      if (sortKey === "name") return a.name.localeCompare(b.name) * factor;
+      if (sortKey === "status") return a.displayStatus.localeCompare(b.displayStatus) * factor;
+      return ((a[sortKey] as number) - (b[sortKey] as number)) * factor;
+    });
+  }, [rows, query, status, sortKey, dir]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount - 1);
+  const paged = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+
+  const onSort = (key: SortKey) => {
+    if (key === sortKey) setDir(dir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(key);
+      setDir(key === "name" || key === "status" ? "asc" : "desc");
+    }
+    setPage(0);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap">
+        <Input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(0);
+          }}
+          placeholder="Search campaigns, categories or mailboxes"
+          className="min-w-0 sm:max-w-xs"
+          aria-label="Search campaigns"
+        />
+        <Select
+          value={status}
+          onValueChange={(v) => {
+            setStatus(v);
+            setPage(0);
+          }}
+        >
+          <SelectTrigger className="w-40 shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="col-span-2 text-xs text-muted-foreground sm:ml-auto">
+          {filtered.length} of {rows.length} campaigns
+        </p>
+      </div>
+
+      <div className="surface-card overflow-x-auto">
+        <Table className="min-w-[1080px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[22%]">
+                <SortButton label="Campaign" sortKey="name" active={sortKey === "name"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead>Sending Account</TableHead>
+              <TableHead className="text-right">
+                <SortButton label="Leads" sortKey="leads" active={sortKey === "leads"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="text-right">
+                <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="text-right">
+                <SortButton label="Reply Rate" sortKey="replyRate" active={sortKey === "replyRate"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="text-right">
+                <SortButton label="Positive Replies" sortKey="positiveReplies" active={sortKey === "positiveReplies"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="text-right">
+                <SortButton label="Meetings Booked" sortKey="meetings" active={sortKey === "meetings"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead>
+                <SortButton label="Status" sortKey="status" active={sortKey === "status"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paged.map((row) => {
+              const online = accountOnline(row.account);
+              const paused = row.displayStatus === "paused";
+              return (
+                <TableRow key={row.id} className={busyId === row.id ? "opacity-60" : undefined}>
+                  <TableCell className="max-w-0">
+                    <Link
+                      to="/campaigns/$campaignId"
+                      params={{ campaignId: row.id }}
+                      className="block truncate font-semibold text-primary hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {row.category || row.description || "No category"}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    {row.account ? (
+                      <span className="flex min-w-0 items-center gap-2 text-sm">
+                        <span
+                          className={`size-2 shrink-0 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/50"}`}
+                          title={online ? "Mailbox online" : "Mailbox paused or unverified"}
+                        />
+                        <span className="truncate">{row.account.from_email}</span>
+                        {row.accountCount > 1 ? (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            +{row.accountCount - 1}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No mailbox</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.replyRate.toFixed(1)}%</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.positiveReplies)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.meetings)}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${CAMPAIGN_STATUS_STYLES[row.displayStatus]}`}
+                    >
+                      {row.displayStatus}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="outline" size="icon" asChild title="Analytics">
+                        <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
+                          <BarChart3 className="size-4" />
+                          <span className="sr-only">Analytics for {row.name}</span>
+                        </Link>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="icon" title="More actions">
+                            <MoreHorizontal className="size-4" />
+                            <span className="sr-only">More actions for {row.name}</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem asChild>
+                            <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
+                              <Pencil className="mr-2 size-4" /> Open / Edit
+                            </Link>
+                          </DropdownMenuItem>
+                          {paused ? (
+                            <DropdownMenuItem onClick={() => onSetStatus(row.id, "active")}>
+                              <Play className="mr-2 size-4" /> Resume
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => onSetStatus(row.id, "paused")}
+                              disabled={row.displayStatus === "draft"}
+                            >
+                              <Pause className="mr-2 size-4" /> Pause
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => onDuplicate(row.id)}>
+                            <Copy className="mr-2 size-4" /> Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onSetStatus(row.id, "archived")}
+                            disabled={row.displayStatus === "archived"}
+                          >
+                            <Archive className="mr-2 size-4" /> Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => onDelete(row.id)}
+                          >
+                            <Trash2 className="mr-2 size-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {paged.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                  No campaigns match this search.
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </TableBody>
+        </Table>
+      </div>
+
+      {pageCount > 1 ? (
+        <div className="flex items-center justify-between text-sm">
+          <p className="text-muted-foreground">
+            Page {current + 1} of {pageCount}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={current === 0} onClick={() => setPage(current - 1)}>
+              <ChevronLeft className="mr-1 size-4" /> Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={current >= pageCount - 1}
+              onClick={() => setPage(current + 1)}
+            >
+              Next <ChevronRight className="ml-1 size-4" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
