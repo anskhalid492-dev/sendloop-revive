@@ -8,6 +8,13 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatMoney } from "@/lib/referral-model";
+import {
+  mergeReferralTemplates,
+  renderReferralTemplate,
+  REFERRAL_TEMPLATE_FALLBACK_DETAIL,
+  type ReferralTemplateKind,
+  type ReferralTemplateMap,
+} from "@/lib/referral-templates";
 
 const FROM = "Sendloop <referrals@sendloop.io>";
 
@@ -30,51 +37,38 @@ type NotifyInput = {
   entityId?: string | null;
 };
 
-function copyFor(input: NotifyInput): { title: string; message: string } {
+export async function loadReferralTemplates(): Promise<ReferralTemplateMap> {
+  const { data } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "referral_templates")
+    .maybeSingle();
+  return mergeReferralTemplates(data?.value);
+}
+
+function copyFor(
+  input: NotifyInput,
+  templates: ReferralTemplateMap,
+): { title: string; message: string; ctaLabel: string; enabled: boolean } {
   const money =
     typeof input.amountCents === "number"
       ? formatMoney(input.amountCents, input.currency ?? "usd")
       : null;
-  switch (input.kind) {
-    case "referral_attributed":
-      return {
-        title: "You have a new referral signup",
-        message: "Someone created a Sendloop account through your referral link. You earn commission once they start paying.",
-      };
-    case "commission_approved":
-      return {
-        title: money ? `Commission approved — ${money}` : "Commission approved",
-        message: "This commission is now part of your available balance and can be included in a payout request.",
-      };
-    case "commission_rejected":
-      return {
-        title: "A commission was not approved",
-        message: input.detail ?? "A referral commission was reviewed and rejected by our team.",
-      };
-    case "commission_reversed":
-      return {
-        title: money ? `Commission reversed — ${money}` : "Commission reversed",
-        message: input.detail ?? "The referred customer's payment was refunded or cancelled, so the commission was reversed.",
-      };
-    case "payout_processing":
-      return {
-        title: money ? `Payout of ${money} is being processed` : "Your payout is being processed",
-        message: "We've started sending your referral payout. You'll get another update once it's on its way.",
-      };
-    case "payout_paid":
-      return {
-        title: money ? `Payout sent — ${money}` : "Your payout has been sent",
-        message: input.detail ?? "Your referral payout has been processed. Bank or wallet transfers can take a few business days to land.",
-      };
-    case "payout_rejected":
-      return {
-        title: "Your payout request was declined",
-        message: input.detail ?? "A payout request could not be processed. Check your payout details or contact support.",
-      };
-  }
+  const kind = input.kind as ReferralTemplateKind;
+  const template = templates[kind];
+  const vars = {
+    amount: money,
+    detail: input.detail ?? REFERRAL_TEMPLATE_FALLBACK_DETAIL[kind],
+  };
+  return {
+    enabled: template.enabled,
+    ctaLabel: template.ctaLabel,
+    title: renderReferralTemplate(template.subject, vars),
+    message: renderReferralTemplate(template.body, vars),
+  };
 }
 
-async function sendEmail(to: string, title: string, message: string, link: string) {
+async function sendEmail(to: string, title: string, message: string, link: string, ctaLabel: string) {
   const key = process.env["RESEND_API_KEY"];
   if (!key) return;
   const html = `
@@ -82,7 +76,7 @@ async function sendEmail(to: string, title: string, message: string, link: strin
       <h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1>
       <p style="color:#333;line-height:1.6">${escapeHtml(message)}</p>
       <p style="margin:24px 0">
-        <a href="${link}" style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Open your referral dashboard</a>
+        <a href="${link}" style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">${escapeHtml(ctaLabel)}</a>
       </p>
       <p style="color:#888;font-size:12px">You receive this because referral updates are enabled in your Sendloop notification settings.</p>
     </div>`;
@@ -99,7 +93,9 @@ async function sendEmail(to: string, title: string, message: string, link: strin
 
 export async function notifyReferrer(input: NotifyInput): Promise<void> {
   try {
-    const { title, message } = copyFor(input);
+    const templates = await loadReferralTemplates();
+    const { title, message, ctaLabel, enabled } = copyFor(input, templates);
+    if (!enabled) return;
 
     const [{ data: prefs }, { data: profile }] = await Promise.all([
       supabaseAdmin
@@ -126,7 +122,7 @@ export async function notifyReferrer(input: NotifyInput): Promise<void> {
 
     if ((prefs?.email_enabled ?? true) && profile?.email) {
       const base = process.env["PUBLIC_APP_URL"] ?? "https://sendloop.io";
-      await sendEmail(profile.email, title, message, `${base}/referrals`);
+      await sendEmail(profile.email, title, message, `${base}/referrals`, ctaLabel);
     }
   } catch {
     /* notifications are best-effort */
