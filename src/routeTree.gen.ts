@@ -95,6 +95,7 @@ import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -549,6 +550,12 @@ const ApiPublicIntegrationsSlugRoute =
     path: '/api/public/integrations/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicReferralBillingRoute =
+  ApiPublicReferralBillingRouteImport.update({
+    id: '/api/public/referral/billing',
+    path: '/api/public/referral/billing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -636,6 +643,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -721,6 +729,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -810,6 +819,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -899,6 +909,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/referral/billing'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -984,6 +995,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/referral/billing'
   id:
     | '__root__'
     | '/'
@@ -1072,6 +1084,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/referral/billing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1122,6 +1135,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1728,6 +1742,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/referral/billing': {
+      id: '/api/public/referral/billing'
+      path: '/api/public/referral/billing'
+      fullPath: '/api/public/referral/billing'
+      preLoaderRoute: typeof ApiPublicReferralBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1904,6 +1925,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
