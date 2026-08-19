@@ -46,13 +46,34 @@ export type NormalizedEvent = {
   reason: string | null;
 };
 
+export type DomainRegistration = {
+  supported: boolean;
+  status: "verified" | "pending" | "unsupported" | "error";
+  detail: string;
+};
+
+/**
+ * The generic managed sending interface. Nothing above this layer may know
+ * which concrete provider (Resend, SES, Mailgun, ...) is in use.
+ */
 export type ProviderAdapter = {
   id: string;
   validateConnection(credentials: Credentials): Promise<ProviderTestResult>;
+  /** Confirms the provider will accept mail from this sender address. */
+  validateSender(credentials: Credentials, fromEmail: string): Promise<{ ok: boolean; detail: string }>;
   sendEmail(credentials: Credentials, message: OutboundMessage): Promise<SendResult>;
   getSendingLimit(credentials: Credentials): Promise<{ daily: number | null }>;
+  /** Provider-side delivery status for a previously sent message, when available. */
+  getDeliveryStatus(
+    credentials: Credentials,
+    messageId: string,
+  ): Promise<{ known: boolean; status: string | null; detail: string }>;
+  /** Internal provisioning — never surfaced to customers. */
+  registerDomain(credentials: Credentials, domain: string): Promise<DomainRegistration>;
+  verifyDomain(credentials: Credentials, domain: string): Promise<DomainRegistration>;
   processWebhook(payload: unknown): NormalizedEvent;
 };
+
 
 function normalizeEvent(payload: unknown): NormalizedEvent {
   const p = (payload ?? {}) as Record<string, unknown>;
