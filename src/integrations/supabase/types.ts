@@ -3179,6 +3179,552 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_attributions: {
+        Row: {
+          code: string
+          converted_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          program_snapshot: Json
+          referral_profile_id: string
+          referred_user_id: string
+          referred_workspace_id: string | null
+          referrer_user_id: string
+          signed_up_at: string
+          status: string
+        }
+        Insert: {
+          code: string
+          converted_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          program_snapshot?: Json
+          referral_profile_id: string
+          referred_user_id: string
+          referred_workspace_id?: string | null
+          referrer_user_id: string
+          signed_up_at?: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          converted_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          program_snapshot?: Json
+          referral_profile_id?: string
+          referred_user_id?: string
+          referred_workspace_id?: string | null
+          referrer_user_id?: string
+          signed_up_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_attributions_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_attributions_referred_workspace_id_fkey"
+            columns: ["referred_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: string
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+          referral_profile_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: string
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+          referral_profile_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: string
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          referral_profile_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_audit_logs_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_billing_events: {
+        Row: {
+          error: string | null
+          event_id: string
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string
+          provider: string
+          result: string | null
+        }
+        Insert: {
+          error?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          provider: string
+          result?: string | null
+        }
+        Update: {
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          provider?: string
+          result?: string | null
+        }
+        Relationships: []
+      }
+      referral_clicks: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          landing_path: string | null
+          referer: string | null
+          referral_profile_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          landing_path?: string | null
+          referer?: string | null
+          referral_profile_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          landing_path?: string | null
+          referer?: string | null
+          referral_profile_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_clicks_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_commissions: {
+        Row: {
+          amount_cents: number
+          approved_at: string | null
+          attribution_id: string
+          commission_amount_cents: number
+          commission_rate: number
+          commission_type: string
+          created_at: string
+          currency: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_id: string | null
+          payout_id: string | null
+          plan_name: string | null
+          provider: string
+          provider_event_id: string
+          referral_profile_id: string
+          referred_user_id: string
+          referred_workspace_id: string | null
+          referrer_user_id: string
+          rejected_at: string | null
+          reversal_of: string | null
+          reversed_at: string | null
+          status: string
+          subscription_id: string | null
+        }
+        Insert: {
+          amount_cents?: number
+          approved_at?: string | null
+          attribution_id: string
+          commission_amount_cents?: number
+          commission_rate?: number
+          commission_type: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          payout_id?: string | null
+          plan_name?: string | null
+          provider: string
+          provider_event_id: string
+          referral_profile_id: string
+          referred_user_id: string
+          referred_workspace_id?: string | null
+          referrer_user_id: string
+          rejected_at?: string | null
+          reversal_of?: string | null
+          reversed_at?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          approved_at?: string | null
+          attribution_id?: string
+          commission_amount_cents?: number
+          commission_rate?: number
+          commission_type?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          payout_id?: string | null
+          plan_name?: string | null
+          provider?: string
+          provider_event_id?: string
+          referral_profile_id?: string
+          referred_user_id?: string
+          referred_workspace_id?: string | null
+          referrer_user_id?: string
+          rejected_at?: string | null
+          reversal_of?: string | null
+          reversed_at?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_commissions_attribution_id_fkey"
+            columns: ["attribution_id"]
+            isOneToOne: false
+            referencedRelation: "referral_attributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_commissions_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "referral_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_commissions_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_commissions_referred_workspace_id_fkey"
+            columns: ["referred_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_commissions_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "referral_commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_fraud_flags: {
+        Row: {
+          attribution_id: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          reason: string
+          referral_profile_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          attribution_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          reason: string
+          referral_profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          attribution_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          reason?: string
+          referral_profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_fraud_flags_attribution_id_fkey"
+            columns: ["attribution_id"]
+            isOneToOne: false
+            referencedRelation: "referral_attributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_fraud_flags_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_payouts: {
+        Row: {
+          admin_notes: string | null
+          amount_cents: number
+          created_at: string
+          currency: string
+          decided_at: string | null
+          destination_hint: string | null
+          id: string
+          method: string | null
+          paid_at: string | null
+          reference: string | null
+          referral_profile_id: string
+          requested_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          destination_hint?: string | null
+          id?: string
+          method?: string | null
+          paid_at?: string | null
+          reference?: string | null
+          referral_profile_id: string
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          destination_hint?: string | null
+          id?: string
+          method?: string | null
+          paid_at?: string | null
+          reference?: string | null
+          referral_profile_id?: string
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_payouts_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_profiles: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          payout_destination_hint: string | null
+          payout_method: string | null
+          status: string
+          suspended_reason: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          payout_destination_hint?: string | null
+          payout_method?: string | null
+          status?: string
+          suspended_reason?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          payout_destination_hint?: string | null
+          payout_method?: string | null
+          status?: string
+          suspended_reason?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_programs: {
+        Row: {
+          approval_delay_days: number
+          approval_mode: string
+          attribution_window_days: number
+          commission_duration_months: number
+          commission_fixed_cents: number
+          commission_percent: number
+          commission_type: string
+          created_at: string
+          eligibility: string
+          enabled: boolean
+          id: string
+          minimum_payout_cents: number
+          payout_methods: string[]
+          payout_provider_configured: boolean
+          payout_schedule: string
+          recurring: boolean
+          refund_policy: string
+          singleton: boolean
+          terms: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_delay_days?: number
+          approval_mode?: string
+          attribution_window_days?: number
+          commission_duration_months?: number
+          commission_fixed_cents?: number
+          commission_percent?: number
+          commission_type?: string
+          created_at?: string
+          eligibility?: string
+          enabled?: boolean
+          id?: string
+          minimum_payout_cents?: number
+          payout_methods?: string[]
+          payout_provider_configured?: boolean
+          payout_schedule?: string
+          recurring?: boolean
+          refund_policy?: string
+          singleton?: boolean
+          terms?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_delay_days?: number
+          approval_mode?: string
+          attribution_window_days?: number
+          commission_duration_months?: number
+          commission_fixed_cents?: number
+          commission_percent?: number
+          commission_type?: string
+          created_at?: string
+          eligibility?: string
+          enabled?: boolean
+          id?: string
+          minimum_payout_cents?: number
+          payout_methods?: string[]
+          payout_provider_configured?: boolean
+          payout_schedule?: string
+          recurring?: boolean
+          refund_policy?: string
+          singleton?: boolean
+          terms?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       sending_account_audit: {
         Row: {
           action: string
@@ -4625,6 +5171,27 @@ export type Database = {
         Returns: undefined
       }
       ensure_crm_stages: { Args: { _workspace_id: string }; Returns: undefined }
+      ensure_referral_profile: {
+        Args: never
+        Returns: {
+          code: string
+          created_at: string
+          id: string
+          payout_destination_hint: string | null
+          payout_method: string | null
+          status: string
+          suspended_reason: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "referral_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4670,9 +5237,74 @@ export type Database = {
           reviews: number
         }[]
       }
+      referral_dashboard_stats: {
+        Args: never
+        Returns: {
+          active_customers: number
+          approved_cents: number
+          available_cents: number
+          clicks: number
+          customers: number
+          paid_cents: number
+          pending_cents: number
+          requested_cents: number
+          reversed_cents: number
+          signups: number
+        }[]
+      }
+      referral_program_public: {
+        Args: never
+        Returns: {
+          approval_delay_days: number
+          approval_mode: string
+          attribution_window_days: number
+          commission_duration_months: number
+          commission_fixed_cents: number
+          commission_percent: number
+          commission_type: string
+          eligibility: string
+          enabled: boolean
+          minimum_payout_cents: number
+          payout_methods: string[]
+          payout_provider_configured: boolean
+          payout_schedule: string
+          recurring: boolean
+          terms: string
+        }[]
+      }
       remove_workspace_member: {
         Args: { _member_id: string }
         Returns: undefined
+      }
+      request_referral_payout: {
+        Args: {
+          _amount_cents: number
+          _destination_hint: string
+          _method: string
+        }
+        Returns: {
+          admin_notes: string | null
+          amount_cents: number
+          created_at: string
+          currency: string
+          decided_at: string | null
+          destination_hint: string | null
+          id: string
+          method: string | null
+          paid_at: string | null
+          reference: string | null
+          referral_profile_id: string
+          requested_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "referral_payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       resend_workspace_invitation: {
         Args: { _invitation_id: string }
