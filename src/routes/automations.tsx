@@ -184,7 +184,7 @@ function Page() {
         <div id="how-it-works" className="scroll-mt-24">
           <div className="grid gap-4 md:grid-cols-5">
             {flow.map((node, i) => (
-              <Reveal key={node.title} delay={i * 0.08}>
+              <Reveal key={node.title} delay={i * 80}>
                 <div className="group relative h-full rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg">
                   <Badge variant="secondary" className="text-[10px] tracking-wide uppercase">
                     {node.kind}
@@ -205,7 +205,7 @@ function Page() {
       <Section title="Built for the way you run outreach">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {useCases.map((useCase, i) => (
-            <Reveal key={useCase.title} delay={i * 0.06}>
+            <Reveal key={useCase.title} delay={i * 60}>
               <div className="h-full rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/50">
                 <useCase.icon className="h-5 w-5 text-primary" />
                 <h3 className="mt-4 text-base font-semibold">{useCase.title}</h3>

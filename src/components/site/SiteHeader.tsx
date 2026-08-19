@@ -19,6 +19,7 @@ import {
   Send,
   ShieldCheck,
   Users,
+  Workflow,
   X,
   type LucideIcon,
   MessageSquareQuote,
@@ -69,6 +70,7 @@ const featuredProducts: Card[] = [
 ];
 
 const secondaryProducts: Card[] = [
+  { label: "Automations", to: "/automations", text: "Trigger follow-ups, CRM updates and tasks automatically.", icon: Workflow },
   { label: "CRM", to: "/product/crm", text: "Manage contacts and sales conversations.", icon: Users },
   { label: "Analytics", to: "/product/analytics", text: "Track campaign performance and replies.", icon: BarChart3 },
   { label: "Templates", to: "/product/templates", text: "Use proven cold email templates.", icon: FileText },

@@ -9,6 +9,7 @@ const columns = [
       { label: "Unified Inbox", to: "/product/unified-inbox" },
       { label: "Follow-Ups", to: "/product/follow-ups" },
       { label: "Warmup", to: "/product/warmup" },
+      { label: "Automations", to: "/automations" },
       { label: "CRM", to: "/product/crm" },
       { label: "Analytics", to: "/product/analytics" },
       { label: "Workspaces", to: "/product/workspaces" },
