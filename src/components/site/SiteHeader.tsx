@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   Mailbox,
   Menu,
+  Plug,
   Send,
   ShieldCheck,
   Users,
@@ -79,6 +80,7 @@ const resourceCards: Card[] = [
   { label: "Deliverability Guide", to: "/deliverability-guide", text: "Learn how to improve inbox placement.", icon: ShieldCheck },
   { label: "Documentation", to: "/docs", text: "Learn how Sendloop works.", icon: Compass },
   { label: "Help Center", to: "/help-center", text: "Get answers and support.", icon: LifeBuoy },
+  { label: "Integrations", to: "/integrations", text: "Connect Sendloop to your CRM, Slack, Zapier and more.", icon: Plug },
 ];
 
 type MenuKey = "products" | "resources";
