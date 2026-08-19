@@ -30,11 +30,6 @@ export const INFRA_NOT_CONFIGURED_MESSAGE =
 export const SEND_FAILED_MESSAGE =
   "We could not send this email right now. Please try again shortly.";
 
-/** Strips provider names/URLs from any text that could reach a customer. */
-export function customerSafeMessage(fallback: string): string {
-  return fallback;
-}
-
 
 export type ManagedCredentials = {
   provider: string;
