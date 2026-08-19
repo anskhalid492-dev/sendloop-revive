@@ -72,6 +72,7 @@ import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
 import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
 import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
+import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
@@ -415,6 +416,12 @@ const AuthenticatedAdminProvidersRoute =
     path: '/providers',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminReviewsRoute =
+  AuthenticatedAdminReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/settings',
@@ -593,6 +600,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
@@ -675,6 +683,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
@@ -761,6 +770,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
   '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
+  '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
@@ -847,6 +857,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/pool'
     | '/admin/providers'
+    | '/admin/reviews'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/templates'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/pool'
     | '/admin/providers'
+    | '/admin/reviews'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/templates'
@@ -1014,6 +1026,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/pool'
     | '/_authenticated/admin/providers'
+    | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/templates'
@@ -1528,6 +1541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProvidersRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/reviews': {
+      id: '/_authenticated/admin/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/settings': {
       id: '/_authenticated/admin/settings'
       path: '/settings'
@@ -1697,6 +1717,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
   AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
+  AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
@@ -1719,6 +1740,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
     AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
     AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
+    AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,

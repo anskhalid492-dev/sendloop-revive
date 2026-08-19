@@ -22,7 +22,8 @@ import {
   Share2,
   Users,
   X,
-  Inbox,
+  Inbox,,
+  MessageSquareQuote
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ const nav = [
   { to: "/admin/pool", label: "Sending Pool", icon: Mailbox },
   { to: "/admin/campaigns", label: "Campaigns", icon: Send },
   { to: "/admin/templates", label: "Templates", icon: FileText },
+  { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
   { to: "/admin/integrations", label: "Integrations", icon: Plug },
   { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
   { to: "/admin/billing", label: "Billing", icon: CreditCard },
