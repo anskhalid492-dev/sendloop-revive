@@ -93,7 +93,7 @@ export const adminUpdateIntegration = createServerFn({ method: "POST" })
     if (typeof data.requiresPaidPlan === "boolean") patch["requires_paid_plan"] = data.requiresPaidPlan;
     if (Object.keys(patch).length === 0) return { ok: true };
 
-    const { error } = await supabaseAdmin.from("integrations").update(patch).eq("slug", data.slug);
+    const { error } = await supabaseAdmin.from("integrations").update(patch as never).eq("slug", data.slug);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
