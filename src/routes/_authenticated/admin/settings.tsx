@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { getSystemAnalytics } from "@/lib/admin.functions";
+import { AuthProvidersPanel } from "@/components/admin/AuthProvidersPanel";
+import { ReferralTemplatesPanel } from "@/components/admin/ReferralTemplatesPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettingsPage,
@@ -58,6 +60,9 @@ function AdminSettingsPage() {
           </Link>
         </div>
       </div>
+
+      <AuthProvidersPanel />
+      <ReferralTemplatesPanel />
     </div>
   );
 }

@@ -5269,6 +5269,12 @@ export type Database = {
         Args: { _lead_ids: string[]; _stage_id: string }
         Returns: number
       }
+      public_auth_settings: {
+        Args: never
+        Returns: {
+          google_enabled: boolean
+        }[]
+      }
       public_review_stats: {
         Args: never
         Returns: {

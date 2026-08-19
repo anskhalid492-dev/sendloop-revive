@@ -48,6 +48,7 @@ import { getMyProfile } from "@/lib/workspaces.functions";
 import { updateProfile } from "@/lib/profile.functions";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useReferralClaim } from "@/hooks/useReferralClaim";
+import { useOAuthPolicy } from "@/hooks/useOAuthPolicy";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +130,7 @@ export function AppShell({
   const { theme, setTheme } = useTheme();
   // Attributes a referred signup the first time the customer reaches the app.
   useReferralClaim(true);
+  useOAuthPolicy();
   const fetchProfile = useServerFn(getMyProfile);
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => fetchProfile() });
   const saveProfile = useServerFn(updateProfile);

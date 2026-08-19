@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
 import { lovable } from "@/integrations/lovable";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -100,7 +102,18 @@ function SignInPage() {
     if (data.session) navigate({ to: destination, replace: true });
   }
 
+  const googleQuery = useQuery({
+    queryKey: ["public-auth-settings"],
+    queryFn: () => getPublicAuthSettings(),
+    staleTime: 60_000,
+  });
+
   async function handleGoogle() {
+    const { googleEnabled } = await getPublicAuthSettings();
+    if (!googleEnabled) {
+      toast.error("Google sign-in is currently disabled. Please use your email and password.");
+      return;
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
@@ -120,15 +133,19 @@ function SignInPage() {
         </>
       }
     >
-      <Button variant="outline" className="w-full" onClick={handleGoogle}>
-        Continue with Google
-      </Button>
+      {googleQuery.data?.googleEnabled !== false && (
+        <>
+          <Button variant="outline" className="w-full" onClick={handleGoogle}>
+            Continue with Google
+          </Button>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        or use email
-        <span className="h-px flex-1 bg-border" />
-      </div>
+          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or use email
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
