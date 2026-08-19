@@ -344,7 +344,7 @@ export const saveSendingSettings = createServerFn({ method: "POST" })
       _workspace_id: data.workspaceId,
       _name: ws.name,
       _slug: ws.slug,
-      _logo_url: ws.logo_url,
+      _logo_url: ws.logo_url ?? "",
       _timezone: ws.timezone,
       _sending_timezone: data.sendingTimezone,
       _send_days: data.sendDays,
