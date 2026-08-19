@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -113,6 +114,12 @@ function SignUpPage() {
     }
     navigate({ to: "/verify-email", search: { email: parsed.data.email } });
   }
+
+  const googleQuery = useQuery({
+    queryKey: ["public-auth-settings"],
+    queryFn: () => getPublicAuthSettings(),
+    staleTime: 60_000,
+  });
 
   async function handleGoogle() {
     const { googleEnabled } = await getPublicAuthSettings();

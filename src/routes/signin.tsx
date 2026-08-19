@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +101,12 @@ function SignInPage() {
     else window.localStorage.removeItem(REMEMBER_KEY);
     if (data.session) navigate({ to: destination, replace: true });
   }
+
+  const googleQuery = useQuery({
+    queryKey: ["public-auth-settings"],
+    queryFn: () => getPublicAuthSettings(),
+    staleTime: 60_000,
+  });
 
   async function handleGoogle() {
     const { googleEnabled } = await getPublicAuthSettings();
