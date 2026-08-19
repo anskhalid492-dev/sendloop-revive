@@ -33,6 +33,79 @@ import {
 import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+/** Step-by-step walkthrough of one real workflow, opened from the hero CTA. */
+const walkthrough = [
+  {
+    kind: "Trigger",
+    title: "A prospect replies to your campaign",
+    text: "The inbound webhook records the reply, Sendloop classifies the sentiment, and the workflow starts for that specific lead. Every run is keyed to the event, so the same reply never starts the workflow twice.",
+  },
+  {
+    kind: "Condition",
+    title: "Check whether the reply is positive",
+    text: "Conditions read live lead, campaign and engagement data. If the reply is positive the run continues down the true branch; anything else follows the else branch, so one workflow handles both outcomes.",
+  },
+  {
+    kind: "Action",
+    title: "Stop follow-ups and move the deal forward",
+    text: "Queued follow-up emails for that lead are cancelled, the contact moves to the Replied stage, a task is created for the owner, and a Slack notification goes out through the connected integration.",
+  },
+  {
+    kind: "Wait",
+    title: "Pause without holding a server open",
+    text: "Waits are stored in the database with a resume time. The backend worker picks the run back up when it is due, so workflows survive restarts and deploys.",
+  },
+  {
+    kind: "Result",
+    title: "Everything is logged",
+    text: "Each step writes its status, input and output to the run history, so you can see exactly why an automation did — or did not — take an action.",
+  },
+];
+
+function HowItWorksDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="lg" variant="outline">
+          Walk through a real workflow
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Trigger → Condition → Action, step by step</DialogTitle>
+          <DialogDescription>
+            How Sendloop runs the "positive reply" workflow from the moment the email arrives.
+          </DialogDescription>
+        </DialogHeader>
+        <ol className="mt-2 space-y-4">
+          {walkthrough.map((step, i) => (
+            <li key={step.title} className="rounded-xl border border-border bg-card/60 p-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
+                  {i + 1}
+                </span>
+                <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                  {step.kind}
+                </Badge>
+              </div>
+              <h4 className="mt-3 text-sm font-semibold">{step.title}</h4>
+              <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+            </li>
+          ))}
+        </ol>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const faqs = [
   {
