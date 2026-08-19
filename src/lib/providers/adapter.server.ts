@@ -30,7 +30,14 @@ export type OutboundMessage = {
 };
 
 
-export type SendResult = { ok: boolean; messageId?: string | undefined; message: string };
+export type SendResult = {
+  ok: boolean;
+  messageId?: string | undefined;
+  requestId?: string | undefined;
+  statusCode?: number | undefined;
+  providerResponse?: string | undefined;
+  message: string;
+};
 
 export type NormalizedEvent = {
   type: "delivered" | "bounced" | "complained" | "opened" | "clicked" | "unsubscribed" | "unknown";
@@ -90,7 +97,14 @@ function makeAdapter(id: string): ProviderAdapter {
     validateConnection: (credentials) => testProviderCredentials(id, credentials),
     async sendEmail(credentials, message) {
       const result = await sendProviderEmail(id, credentials, message);
-      return { ok: result.ok, message: result.message, messageId: result.messageId };
+      return {
+        ok: result.ok,
+        message: result.message,
+        messageId: result.messageId,
+        requestId: result.requestId,
+        statusCode: result.statusCode,
+        providerResponse: result.providerResponse,
+      };
     },
     async getSendingLimit() {
       return { daily: null };

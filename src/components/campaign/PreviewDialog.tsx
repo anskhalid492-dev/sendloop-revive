@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Send } from "lucide-react";
+import { CheckCircle2, CircleAlert, Clock3, Loader2, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import {
   resolveSpintax,
   type LeadLike,
 } from "@/lib/campaign-model";
-import { sendCampaignTestEmail } from "@/lib/campaigns.functions";
+import { listCampaignTestDiagnostics, sendCampaignTestEmail } from "@/lib/campaigns.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const SAMPLE: LeadLike = {
@@ -204,11 +204,25 @@ export function TestSendDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { subject, body } = useResolved(builder, stepIndex, "__sample__");
+  const [leadId, setLeadId] = useState("__sample__");
+  const [variantIndex, setVariantIndex] = useState(-1);
+  const { subject, body, rawSubject, rawBody, step } = useResolved(
+    builder,
+    stepIndex,
+    leadId,
+    variantIndex,
+  );
   const firstSelected = builder.settings?.sendingAccountIds[0] ?? "";
   const [accountId, setAccountId] = useState(firstSelected);
   const [to, setTo] = useState("");
   const sendFn = useServerFn(sendCampaignTestEmail);
+  const diagnosticsFn = useServerFn(listCampaignTestDiagnostics);
+  const diagnostics = useQuery({
+    queryKey: ["campaign-test-diagnostics", builder.campaignId],
+    queryFn: () => diagnosticsFn({ data: { campaignId: builder.campaignId } }),
+    enabled: open,
+    refetchInterval: open ? 5000 : false,
+  });
 
   const send = useMutation({
     mutationFn: () =>
@@ -220,20 +234,21 @@ export function TestSendDialog({
             .split(",")
             .map((v) => v.trim())
             .filter(Boolean),
-          subject,
-          body,
+          subject: rawSubject,
+          body: rawBody,
+          leadId: leadId === "__sample__" ? null : leadId,
         },
       }),
     onSuccess: (res) => {
       const failed = res?.failed ?? [];
       if (failed.length > 0) {
         toast.warning(
-          `Sent to ${res.delivered} of ${res.delivered + failed.length}. ${failed[0]?.message ?? ""}`,
+          `Provider accepted ${res.accepted} of ${res.accepted + failed.length}. ${failed[0]?.message ?? ""}`,
         );
       } else {
-        toast.success("Test email sent — check your inbox and spam folder");
+        toast.success("Provider accepted the test email; delivery confirmation is pending");
       }
-      onOpenChange(false);
+      diagnostics.refetch();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -241,7 +256,7 @@ export function TestSendDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Send a test email</DialogTitle>
           <DialogDescription>
@@ -264,6 +279,38 @@ export function TestSendDialog({
               </SelectContent>
             </Select>
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Personalize with</Label>
+              <Select value={leadId} onValueChange={setLeadId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__sample__">Sample lead</SelectItem>
+                  {builder.leads.slice(0, 50).map((row) => (
+                    <SelectItem key={row.lead_id} value={row.lead_id}>
+                      {row.lead?.email ?? row.lead_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(step?.variants.length ?? 0) > 0 ? (
+              <div className="space-y-1.5">
+                <Label>Variant</Label>
+                <Select value={String(variantIndex)} onValueChange={(value) => setVariantIndex(Number(value))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-1">Base copy</SelectItem>
+                    {step?.variants.map((variant, index) => (
+                      <SelectItem key={`${variant.label}-${index}`} value={String(index)}>
+                        {variant.label || `Variant ${index + 1}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="test-to">Send to</Label>
             <Input
@@ -277,6 +324,55 @@ export function TestSendDialog({
           <div className="rounded-lg border border-border p-3 text-sm">
             <p className="font-medium">{subject || "(no subject)"}</p>
             <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-muted-foreground">{body}</p>
+          </div>
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Delivery diagnostics</p>
+                <p className="text-xs text-muted-foreground">Provider acceptance is not final delivery.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => diagnostics.refetch()} title="Refresh diagnostics">
+                <RefreshCw className={`size-4 ${diagnostics.isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              {(diagnostics.data ?? []).length === 0 ? (
+                <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+                  Send a test to capture provider and webhook diagnostics.
+                </p>
+              ) : (
+                diagnostics.data?.map((row) => {
+                  const delivered = row.webhookEventType === "delivered";
+                  const failed = row.status === "rejected" || ["bounced", "complained"].includes(row.webhookEventType ?? "");
+                  const Icon = delivered ? CheckCircle2 : failed ? CircleAlert : Clock3;
+                  return (
+                    <div key={row.id} className="rounded-md border border-border p-3 text-xs">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{row.recipient_email}</p>
+                          <p className="text-muted-foreground">Request {row.request_id}</p>
+                        </div>
+                        <Badge variant={failed ? "destructive" : delivered ? "default" : "secondary"}>
+                          <Icon className="mr-1 size-3" />
+                          {row.webhookEventType ?? row.status}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 grid gap-1 text-muted-foreground sm:grid-cols-2">
+                        <p>Provider: {row.provider}</p>
+                        <p className="truncate">Message ID: {row.provider_message_id ?? "Not returned"}</p>
+                        <p>Webhook: {row.webhookStatus}</p>
+                        <p>{new Date(row.created_at).toLocaleString()}</p>
+                      </div>
+                      {(row.error || row.webhookError || row.provider_response) ? (
+                        <p className="mt-2 break-words rounded bg-muted p-2">
+                          {row.error ?? row.webhookError ?? row.provider_response}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
         <DialogFooter>
