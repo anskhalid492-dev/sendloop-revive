@@ -65,7 +65,7 @@ const navGroups = [
       { to: "/campaigns", label: "Campaigns", icon: Send },
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/templates", label: "Templates", icon: FileText },
-      { to: "/automations", label: "Automations", icon: Workflow },
+      { to: "/automations/workflows", label: "Automations", icon: Workflow },
     ],
   },
 
