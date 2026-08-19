@@ -180,7 +180,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
     const client = context.supabase as Client;
     const { data: account, error } = await client
       .from("sending_accounts")
-      .select("id, workspace_id, provider, provider_id, connection_method")
+      .select("id, workspace_id, provider, provider_id, connection_method, from_email, domain_id")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -216,18 +216,51 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
     }
 
     const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
+    const {
+      checkSenderDomainVerification,
+      senderDomain,
+      logManagedSend,
+      DOMAIN_NOT_VERIFIED_MESSAGE,
+    } = await import("@/lib/managed-sending.server");
     const startedAt = Date.now();
     const test = await testProviderCredentials(
       account.provider as string,
       credentials,
     );
+
+    // A mailbox is only active once its sender domain is verified with the
+    // managed provider — never on provider credentials alone.
+    const domain = senderDomain(account.from_email as string);
+    const verification = test.ok
+      ? await checkSenderDomainVerification(account.provider as string, credentials, domain, {
+          fresh: true,
+        })
+      : { status: "unknown" as const, detail: "Provider credentials check failed." };
+    const domainBlocked = verification.status === "not_verified";
+    const ok = test.ok && !domainBlocked;
+    const message = domainBlocked ? DOMAIN_NOT_VERIFIED_MESSAGE : test.message;
+
+    logManagedSend({
+      stage: "test",
+      workspaceId: account.workspace_id as string,
+      mailboxId: account.id as string,
+      senderAddress: account.from_email as string,
+      senderDomain: domain,
+      provider: account.provider as string,
+      credentialSource: "managed",
+      verificationStatus: verification.status,
+      verificationDetail: verification.detail,
+      result: ok ? "sent" : "blocked",
+      providerError: ok ? null : message,
+    });
+
     const { error: updateError } = await client
       .from("sending_accounts")
       .update({
-        status: test.verified ? "verified" : test.ok ? "untested" : "failed",
-        auth_status: test.verified ? "verified" : test.ok ? "untested" : "failed",
+        status: domainBlocked ? "failed" : test.verified ? "verified" : test.ok ? "untested" : "failed",
+        auth_status: domainBlocked ? "failed" : test.verified ? "verified" : test.ok ? "untested" : "failed",
         last_tested_at: new Date().toISOString(),
-        last_error: test.ok ? null : test.message,
+        last_error: ok ? null : message,
       })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
@@ -237,14 +270,15 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       accountId: data.id,
       actorId: context.userId,
       kind: "test",
-      ok: test.ok,
+      ok,
       provider: account.provider as string,
-      message: test.message,
+      message,
       durationMs: Date.now() - startedAt,
-      detail: { verified: test.verified },
+      detail: { verified: test.verified, domain, domainVerification: verification.status },
     });
-    return { ok: test.ok, message: test.message };
+    return { ok, message, domainVerification: verification.status };
   });
+
 
 export const updateMailbox = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
