@@ -25,6 +25,7 @@ import {
   Sun,
   User,
   Users,
+  Workflow,
   X,
 } from "lucide-react";
 
