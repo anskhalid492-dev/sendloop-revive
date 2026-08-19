@@ -1,13 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
   deleteNotification,
-  listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/lib/notifications.functions";
@@ -25,24 +25,17 @@ function timeAgo(iso: string) {
 
 export function NotificationBell() {
   const queryClient = useQueryClient();
-  const fetchAll = useServerFn(listNotifications);
   const markRead = useServerFn(markNotificationRead);
   const markAll = useServerFn(markAllNotificationsRead);
   const remove = useServerFn(deleteNotification);
 
-  const query = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () => fetchAll(),
-    refetchInterval: 60_000,
-  });
+  const { query, items, unread } = useNotifications();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
   const readOne = useMutation({ mutationFn: markRead, onSuccess: invalidate });
   const readAll = useMutation({ mutationFn: markAll, onSuccess: invalidate });
   const del = useMutation({ mutationFn: remove, onSuccess: invalidate });
 
-  const unread = query.data?.unread ?? 0;
-  const items = query.data?.items ?? [];
 
   return (
     <Popover>

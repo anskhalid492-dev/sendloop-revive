@@ -44,6 +44,7 @@ import { WorkspaceSwitcher } from "@/components/app/WorkspaceSwitcher";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { getMyProfile } from "@/lib/workspaces.functions";
 import { updateProfile } from "@/lib/profile.functions";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +122,8 @@ export function AppShell({
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => fetchProfile() });
   const saveProfile = useServerFn(updateProfile);
   const avatarUrl = useAvatarUrl(profile.data?.avatar_url);
+  const { supportUnread } = useNotifications();
+
 
   // The preference is applied instantly and remembered on the account too.
   function chooseTheme(next: "light" | "dark" | "system") {
@@ -194,7 +197,15 @@ export function AppShell({
                 className={linkClass(item.to)}
               >
                 <item.icon className="size-4" />
-                {item.label}
+                <span className="flex-1 truncate text-left">{item.label}</span>
+                {item.to === "/support" && supportUnread > 0 ? (
+                  <span
+                    aria-label={`${supportUnread} unread support updates`}
+                    className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground"
+                  >
+                    {supportUnread > 9 ? "9+" : supportUnread}
+                  </span>
+                ) : null}
               </Link>
             ))}
           </div>

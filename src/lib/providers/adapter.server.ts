@@ -46,13 +46,34 @@ export type NormalizedEvent = {
   reason: string | null;
 };
 
+export type DomainRegistration = {
+  supported: boolean;
+  status: "verified" | "pending" | "unsupported" | "error";
+  detail: string;
+};
+
+/**
+ * The generic managed sending interface. Nothing above this layer may know
+ * which concrete provider (Resend, SES, Mailgun, ...) is in use.
+ */
 export type ProviderAdapter = {
   id: string;
   validateConnection(credentials: Credentials): Promise<ProviderTestResult>;
+  /** Confirms the provider will accept mail from this sender address. */
+  validateSender(credentials: Credentials, fromEmail: string): Promise<{ ok: boolean; detail: string }>;
   sendEmail(credentials: Credentials, message: OutboundMessage): Promise<SendResult>;
   getSendingLimit(credentials: Credentials): Promise<{ daily: number | null }>;
+  /** Provider-side delivery status for a previously sent message, when available. */
+  getDeliveryStatus(
+    credentials: Credentials,
+    messageId: string,
+  ): Promise<{ known: boolean; status: string | null; detail: string }>;
+  /** Internal provisioning — never surfaced to customers. */
+  registerDomain(credentials: Credentials, domain: string): Promise<DomainRegistration>;
+  verifyDomain(credentials: Credentials, domain: string): Promise<DomainRegistration>;
   processWebhook(payload: unknown): NormalizedEvent;
 };
+
 
 function normalizeEvent(payload: unknown): NormalizedEvent {
   const p = (payload ?? {}) as Record<string, unknown>;
@@ -109,8 +130,38 @@ function makeAdapter(id: string): ProviderAdapter {
     async getSendingLimit() {
       return { daily: null };
     },
+    async validateSender(credentials, fromEmail) {
+      const { checkSenderDomainVerification, senderDomain } = await import(
+        "@/lib/managed-sending.server"
+      );
+      const check = await checkSenderDomainVerification(id, credentials, senderDomain(fromEmail));
+      return { ok: check.status !== "not_verified", detail: check.detail };
+    },
+    async getDeliveryStatus() {
+      // Delivery state is tracked from provider webhooks in `email_events`;
+      // adapters that expose a polling API can override this.
+      return { known: false, status: null, detail: "Delivery status is tracked from webhooks." };
+    },
+    async registerDomain(_credentials, domain) {
+      return {
+        supported: false,
+        status: "unsupported" as const,
+        detail: `${id} domain provisioning is managed outside the app for ${domain}.`,
+      };
+    },
+    async verifyDomain(credentials, domain) {
+      const { checkSenderDomainVerification } = await import("@/lib/managed-sending.server");
+      const check = await checkSenderDomainVerification(id, credentials, domain, { fresh: true });
+      return {
+        supported: check.status !== "unknown",
+        status:
+          check.status === "verified" ? "verified" : check.status === "error" ? "error" : "pending",
+        detail: check.detail,
+      };
+    },
     processWebhook: normalizeEvent,
   };
+
 }
 
 const adapters = new Map<string, ProviderAdapter>(

@@ -17,11 +17,19 @@ import type { OutboundMessage, SendResult } from "@/lib/providers/adapter.server
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
 
+/**
+ * Customer-facing copy. These strings are deliberately provider-agnostic —
+ * raw provider text never reaches a customer.
+ */
 export const DOMAIN_NOT_VERIFIED_MESSAGE =
-  "Your sending domain is not yet verified. Please complete the DNS verification for this domain.";
+  "Your sending domain is not ready for sending yet. Please complete the DNS verification for this domain.";
 
 export const INFRA_NOT_CONFIGURED_MESSAGE =
-  "Sending infrastructure is not configured yet. Please contact support.";
+  "Sending infrastructure is temporarily unavailable. Please try again shortly.";
+
+export const SEND_FAILED_MESSAGE =
+  "We could not send this email right now. Please try again shortly.";
+
 
 export type ManagedCredentials = {
   provider: string;
@@ -100,6 +108,95 @@ export function platformKeyFor(provider: string): string | null {
     emailit: process.env["EMAILIT_API_KEY"],
   };
   return map[provider] || null;
+}
+
+/**
+ * Server-side provider selection.
+ *
+ * Customers never choose a provider. Sendloop picks one from the admin-managed
+ * pool (`email_providers`) using enablement, priority and health, and falls
+ * back to the mailbox's recorded provider only when the pool yields nothing.
+ */
+export async function resolveManagedProvider(
+  admin: Admin,
+  account: { provider: string; provider_id: string | null; from_email?: string },
+): Promise<ManagedCredentials | null> {
+  const { readCredentials } = await import("@/lib/providers/adapter.server");
+
+  const { data: pool } = await admin
+    .from("email_providers")
+    .select("id, provider, is_enabled, priority, status")
+    .eq("is_enabled", true)
+    .order("priority", { ascending: true });
+
+  const rows = (pool ?? []) as Array<{
+    id: string;
+    provider: string;
+    priority: number;
+    status: string | null;
+  }>;
+
+  // The mailbox's pinned provider wins when it is still enabled and healthy.
+  const ordered = [
+    ...rows.filter((r) => r.id === account.provider_id),
+    ...rows.filter((r) => r.id !== account.provider_id && r.status !== "failed"),
+    ...rows.filter((r) => r.id !== account.provider_id && r.status === "failed"),
+  ];
+
+  for (const row of ordered) {
+    const { data } = await admin
+      .from("email_provider_secrets")
+      .select("credentials_ciphertext")
+      .eq("provider_id", row.id)
+      .maybeSingle();
+    if (data?.credentials_ciphertext) {
+      try {
+        const credentials = readCredentials(data.credentials_ciphertext);
+        if (credentials && Object.keys(credentials).length > 0) {
+          return {
+            provider: row.provider,
+            providerId: row.id,
+            credentials,
+            source: "provider_secret",
+          };
+        }
+      } catch {
+        /* try the next provider in the pool */
+      }
+    }
+    const envKey = platformKeyFor(row.provider);
+    if (envKey) {
+      return {
+        provider: row.provider,
+        providerId: row.id,
+        credentials: { api_key: envKey },
+        source: "platform_env",
+      };
+    }
+  }
+
+  return loadManagedProviderCredentials(admin, account);
+}
+
+/** Persists the raw provider failure for Admin → Providers. Never shown to customers. */
+export async function recordProviderIncident(
+  admin: Admin,
+  providerId: string | null,
+  rawError: string | null,
+): Promise<void> {
+  if (!providerId) return;
+  try {
+    await admin
+      .from("email_providers")
+      .update(
+        rawError
+          ? { status: "failed", last_error: rawError.slice(0, 1000), last_tested_at: new Date().toISOString() }
+          : { status: "verified", last_error: null, last_tested_at: new Date().toISOString() },
+      )
+      .eq("id", providerId);
+  } catch {
+    /* diagnostics only — never block a send */
+  }
 }
 
 type CacheEntry = { at: number; value: DomainVerification };
@@ -271,7 +368,7 @@ export async function sendManagedEmail(
   const { getAdapter } = await import("@/lib/providers/adapter.server");
   const domain = senderDomain(account.from_email);
 
-  const managed = await loadManagedProviderCredentials(admin, account);
+  const managed = await resolveManagedProvider(admin, account);
   if (!managed) {
     logManagedSend({
       stage: options.stage,
@@ -341,6 +438,9 @@ export async function sendManagedEmail(
     providerError: send.ok ? null : send.message,
   });
 
+  // Record provider health for Admin → Providers, then sanitise the customer copy.
+  await recordProviderIncident(admin, managed.providerId, send.ok ? null : send.message);
+
   // A 403 from the provider on an otherwise-unknown domain is a verification
   // failure — surface the customer-facing DNS message, not raw provider text.
   if (!send.ok && send.statusCode === 403 && /not verified|domain/i.test(send.message)) {
@@ -353,5 +453,17 @@ export async function sendManagedEmail(
     };
   }
 
+  if (!send.ok) {
+    // Raw provider text stays in the server log and Admin → Providers only.
+    return {
+      ...send,
+      message: SEND_FAILED_MESSAGE,
+      providerResponse: send.providerResponse ?? send.message,
+      verification,
+      credentialSource: managed.source,
+    };
+  }
+
   return { ...send, verification, credentialSource: managed.source };
 }
+

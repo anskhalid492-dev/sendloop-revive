@@ -51,8 +51,9 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
     if (dErr) throw new Error(dErr.message);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { checkSenderDomainVerification, loadManagedProviderCredentials, senderDomain } =
-      await import("@/lib/managed-sending.server");
+    const { checkSenderDomainVerification, resolveManagedProvider, senderDomain } = await import(
+      "@/lib/managed-sending.server"
+    );
 
     const domainMap = new Map(
       (
@@ -85,25 +86,31 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
             ? "failed"
             : "pending";
 
+      // Customers only ever see Sendloop's managed sending — never a provider
+      // name, raw provider error text, or credential state.
       let providerStatus: SenderRoutingRow["providerStatus"] = "unknown";
-      let providerDetail = "Managed infrastructure is not configured for this provider yet.";
-      let provider: string | null = null;
+      let providerDetail = "Sending infrastructure is being prepared for this domain.";
+      const provider: string | null = "Sendloop managed sending";
 
       try {
-        const managed = await loadManagedProviderCredentials(supabaseAdmin as never, account);
+        const managed = await resolveManagedProvider(supabaseAdmin as never, account);
         if (managed) {
-          provider = managed.provider;
           const check = await checkSenderDomainVerification(
             managed.provider,
             managed.credentials,
             domain,
           );
           providerStatus = check.status;
-          providerDetail = check.detail;
+          providerDetail =
+            check.status === "verified"
+              ? "This domain is ready to send through Sendloop."
+              : check.status === "not_verified"
+                ? "This domain is not ready to send yet. Complete the DNS verification."
+                : "Sending readiness for this domain could not be confirmed right now.";
         }
-      } catch (error) {
+      } catch {
         providerStatus = "error";
-        providerDetail = error instanceof Error ? error.message : "Verification check failed";
+        providerDetail = "Sending readiness for this domain could not be confirmed right now.";
       }
 
       rows.push({
