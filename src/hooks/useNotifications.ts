@@ -24,8 +24,10 @@ export function useNotifications() {
 
   useEffect(() => {
     let active = true;
+    // Unique name per hook instance: several components use this hook, and
+    // reusing one channel name returns the already-subscribed channel.
     const channel = supabase
-      .channel("notifications-feed")
+      .channel(`notifications-feed-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications" },
