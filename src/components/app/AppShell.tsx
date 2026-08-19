@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -43,6 +43,8 @@ import { NotificationBell } from "@/components/app/NotificationBell";
 import { WorkspaceSwitcher } from "@/components/app/WorkspaceSwitcher";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { getMyProfile } from "@/lib/workspaces.functions";
+import { updateProfile } from "@/lib/profile.functions";
+import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { cn } from "@/lib/utils";
 
 /**
@@ -117,6 +119,14 @@ export function AppShell({
   const { theme, setTheme } = useTheme();
   const fetchProfile = useServerFn(getMyProfile);
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => fetchProfile() });
+  const saveProfile = useServerFn(updateProfile);
+  const avatarUrl = useAvatarUrl(profile.data?.avatar_url);
+
+  // The preference is applied instantly and remembered on the account too.
+  function chooseTheme(next: "light" | "dark" | "system") {
+    setTheme(next);
+    void saveProfile({ data: { theme: next } }).catch(() => {});
+  }
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -200,10 +210,11 @@ export function AppShell({
         </Button>
         <div className="flex items-center gap-2 rounded-md px-2 py-2">
           <Avatar className="size-8">
+            {avatarUrl ? <AvatarImage src={avatarUrl} alt="Your profile picture" /> : null}
             <AvatarFallback className="text-xs">{initials || "S"}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{profile.data?.full_name ?? "Your account"}</p>
+            <p className="truncate text-sm font-medium">{profile.data?.full_name ?? profile.data?.email ?? "Your account"}</p>
             <p className="truncate text-xs text-muted-foreground">{profile.data?.email ?? ""}</p>
           </div>
         </div>
@@ -252,6 +263,7 @@ export function AppShell({
             <DropdownMenuTrigger asChild>
               <button className="rounded-full" aria-label="Account menu">
                 <Avatar className="size-8">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Your profile picture" /> : null}
                   <AvatarFallback className="text-xs">{initials || "S"}</AvatarFallback>
                 </Avatar>
               </button>
@@ -283,13 +295,13 @@ export function AppShell({
               <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                 Appearance
               </DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => setTheme("light")}>
+              <DropdownMenuItem onSelect={() => chooseTheme("light")}>
                 <Sun className="size-4" /> Light {theme === "light" ? "•" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setTheme("dark")}>
+              <DropdownMenuItem onSelect={() => chooseTheme("dark")}>
                 <Moon className="size-4" /> Dark {theme === "dark" ? "•" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setTheme("system")}>
+              <DropdownMenuItem onSelect={() => chooseTheme("system")}>
                 <Monitor className="size-4" /> System {theme === "system" ? "•" : ""}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
