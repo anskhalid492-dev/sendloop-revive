@@ -17,6 +17,7 @@ import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as FeaturesRouteImport } from './routes/features'
@@ -129,6 +130,11 @@ const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerReviewsRoute = CustomerReviewsRouteImport.update({
+  id: '/customer-reviews',
+  path: '/customer-reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliverabilityGuideRoute = DeliverabilityGuideRouteImport.update({
@@ -533,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
@@ -616,6 +623,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
@@ -699,6 +707,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
@@ -784,6 +793,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cold-email-templates'
     | '/contact'
+    | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
     | '/features'
@@ -867,6 +877,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cold-email-templates'
     | '/contact'
+    | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
     | '/features'
@@ -949,6 +960,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cold-email-templates'
     | '/contact'
+    | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
     | '/features'
@@ -1034,6 +1046,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
+  CustomerReviewsRoute: typeof CustomerReviewsRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
   DocsRoute: typeof DocsRoute
   FeaturesRoute: typeof FeaturesRoute
@@ -1128,6 +1141,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer-reviews': {
+      id: '/customer-reviews'
+      path: '/customer-reviews'
+      fullPath: '/customer-reviews'
+      preLoaderRoute: typeof CustomerReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deliverability-guide': {
@@ -1782,6 +1802,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
+  CustomerReviewsRoute: CustomerReviewsRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
   DocsRoute: DocsRoute,
   FeaturesRoute: FeaturesRoute,
