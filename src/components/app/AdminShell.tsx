@@ -29,6 +29,7 @@ import {
   Shield,
   Share2,
   Users,
+  Workflow,
   X,
   Inbox,
   MessageSquareQuote,
