@@ -135,7 +135,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
       { to: "/admin/audit", label: "Change Audit Log", icon: Shield },
       { to: "/admin/logs", label: "Logs", icon: ScrollText },
-
+      { to: "/admin/usage", label: "Usage & Metering", icon: BarChart3 },
+      { to: "/admin/production", label: "Production Checklist", icon: Shield },
       { to: "/admin/settings", label: "System Settings", icon: Settings },
     ],
   },
