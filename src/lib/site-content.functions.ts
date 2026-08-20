@@ -348,3 +348,34 @@ export const getSitemapPreview = createServerFn({ method: "GET" })
     const { buildSitemap } = await import("@/lib/site-content.server");
     return buildSitemap();
   });
+
+const globalSeoInput = z.object({
+  site_title: z.string().trim().min(1).max(120),
+  title_template: z.string().trim().max(120).default("%s — Sendloop"),
+  meta_description: z.string().trim().max(320).default(""),
+  og_image_url: z.string().trim().max(600).default(""),
+  og_site_name: z.string().trim().max(120).default("Sendloop"),
+  twitter_handle: z.string().trim().max(60).default(""),
+  google_verification: z.string().trim().max(200).default(""),
+  bing_verification: z.string().trim().max(200).default(""),
+  head_scripts: z.string().max(8000).default(""),
+  body_scripts: z.string().max(8000).default(""),
+  index_site: z.boolean().default(true),
+});
+
+/** Admin: global SEO — site title, default OG, verification codes and tracking. */
+export const saveGlobalSeo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => globalSeoInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { logContentChange } = await import("@/lib/site-content.server");
+    const db = context.supabase as any;
+    const { error } = await db.from("site_settings").upsert(
+      { key: "seo", value: data, updated_by: context.userId, updated_at: new Date().toISOString() },
+      { onConflict: "key" },
+    );
+    if (error) throw new Error(error.message);
+    await logContentChange(context.userId, "site_settings.seo", "site_settings", "seo", { after: data });
+    return { ok: true };
+  });
