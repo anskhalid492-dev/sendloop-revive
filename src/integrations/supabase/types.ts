@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          detail: Json
+          id: string
+          target_id: string | null
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           channel: string
@@ -5471,6 +5504,10 @@ export type Database = {
           send_start_hour: number
           sending_timezone: string | null
           slug: string
+          status: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
           team_size: string | null
           timezone: string
           updated_at: string
@@ -5492,6 +5529,10 @@ export type Database = {
           send_start_hour?: number
           sending_timezone?: string | null
           slug: string
+          status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           team_size?: string | null
           timezone?: string
           updated_at?: string
@@ -5513,6 +5554,10 @@ export type Database = {
           send_start_hour?: number
           sending_timezone?: string | null
           slug?: string
+          status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           team_size?: string | null
           timezone?: string
           updated_at?: string
