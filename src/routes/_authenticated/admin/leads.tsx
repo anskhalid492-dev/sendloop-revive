@@ -104,7 +104,27 @@ function AdminLeadsPage() {
       <AdminPageHeader
         title="Leads"
         description="Every contact stored on the platform, labelled by workspace. Read-only support view — contacts are never edited or deleted from here."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exporting !== null || !rows.length}
+              onClick={() => runExport("page")}
+            >
+              {exporting === "page" ? "Exporting…" : "Export page CSV"}
+            </Button>
+            <Button
+              size="sm"
+              disabled={exporting !== null || !total}
+              onClick={() => runExport("all")}
+            >
+              {exporting === "all" ? "Exporting…" : `Export all ${num(total)} CSV`}
+            </Button>
+          </div>
+        }
       />
+
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Matching contacts" value={num(total)} />
