@@ -47,9 +47,6 @@ const fallbackColumns = [
   {
     title: "Company",
     links: [
-      { label: "Why Sendloop", href: "/why-sendloop" },
-      { label: "How It Works", href: "/how-it-works" },
-      { label: "About Us", href: "/about" },
       { label: "Contact", href: "/contact" },
       { label: "Pricing", href: "/pricing" },
       { label: "Customer Reviews", href: "/customer-reviews" },
@@ -66,6 +63,9 @@ const fallbackColumns = [
       { label: "Cold Email Templates", href: "/cold-email-templates" },
       { label: "Help Center", href: "/help-center" },
       { label: "Integrations", href: "/integrations" },
+      { label: "Why Sendloop", href: "/why-sendloop" },
+      { label: "How It Works", href: "/how-it-works" },
+      { label: "About Us", href: "/about" },
     ],
   },
   {
