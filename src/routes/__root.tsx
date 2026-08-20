@@ -172,10 +172,18 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <BodyScripts />
         <Scripts />
       </body>
     </html>
   );
+}
+
+/** Admin-managed tracking snippet rendered at the end of <body>. */
+function BodyScripts() {
+  const code = getGlobalSeo()?.body_scripts?.trim();
+  if (!code) return null;
+  return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }
 
 function RootComponent() {

@@ -89,7 +89,7 @@ export function parseHtmlToc(html: string): ArticleSection[] {
 export function HtmlArticleBody({ html }: { html: string }) {
   return (
     <div
-      className="prose prose-neutral dark:prose-invert max-w-none prose-headings:scroll-mt-28 prose-a:text-primary"
+      className="cms-content"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
