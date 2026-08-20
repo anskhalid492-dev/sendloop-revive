@@ -6,6 +6,7 @@
  * canonical, OG tag or JSON-LD without an extra request per navigation.
  */
 import { useSyncExternalStore } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type { SiteContentBundle, PageSeoEntry } from "@/lib/site-content.server";
 
@@ -101,5 +102,10 @@ export function applySeoOverrides(
 
 /** Live navigation / footer content for the public site chrome. */
 export function useSiteContent(): Bundle | null {
-  return useSyncExternalStore(subscribeSiteContent, getSiteContent, getSiteContent);
+  const store = useSyncExternalStore(subscribeSiteContent, getSiteContent, getSiteContent);
+  // On the client the root `beforeLoad` does not re-run for the hydrating
+  // match, so the module store is empty while the server rendered with data.
+  // Reading the dehydrated query cache keeps both renders identical.
+  const cached = useQueryClient().getQueryData<Bundle>(["site-content"]) ?? null;
+  return store ?? cached;
 }

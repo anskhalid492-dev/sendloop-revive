@@ -80,6 +80,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/providers", label: "Providers", icon: Server },
       { to: "/admin/infrastructure", label: "Sending Infrastructure", icon: Share2 },
+      { to: "/admin/webhooks", label: "Webhooks", icon: Webhook },
+      { to: "/admin/environment", label: "Environment", icon: KeyRound },
       { to: "/admin/pool", label: "Sending Pool", icon: Mailbox },
       { to: "/admin/inbound-events", label: "Inbound Events", icon: Inbox },
       { to: "/admin/notifications", label: "Alert Audit Log", icon: BellRing },
@@ -114,8 +116,6 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
       { to: "/admin/referrals", label: "Referral Program", icon: Gift },
       { to: "/admin/integrations", label: "Integrations", icon: Plug },
-      { to: "/admin/webhooks", label: "Webhooks", icon: Webhook },
-      { to: "/admin/environment", label: "Environment", icon: KeyRound },
     ],
   },
 
