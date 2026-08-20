@@ -310,9 +310,9 @@ export function UseTemplateDialog({
   const [name, setName] = useState("");
 
   const campaignsQuery = useQuery({
-    queryKey: ["campaigns"],
-    queryFn: () => fetchCampaigns(),
-    enabled: open,
+    queryKey: ["campaigns", workspaceId],
+    queryFn: () => fetchCampaigns({ data: { workspaceId: workspaceId ?? undefined } } as never),
+    enabled: open && Boolean(workspaceId),
   });
 
   useEffect(() => {
