@@ -25,6 +25,14 @@ const faqs = [
   },
 ];
 
+const COMPARE_ROUTES = {
+  "sendloop-vs-instantly": "/compare/sendloop-vs-instantly",
+  "sendloop-vs-smartlead": "/compare/sendloop-vs-smartlead",
+  "sendloop-vs-lemlist": "/compare/sendloop-vs-lemlist",
+  "sendloop-vs-apollo": "/compare/sendloop-vs-apollo",
+  "sendloop-vs-saleshandy": "/compare/sendloop-vs-saleshandy",
+} as const satisfies Record<string, string>;
+
 const pillars = [
   { icon: ShieldCheck, title: "Deliverability first", body: "SPF, DKIM and DMARC gates, per-account caps, sending windows and suppression handling before anything sends." },
   { icon: Flame, title: "Built-in warmup", body: "Per-mailbox ramp schedules with daily stats and health scoring — not a separate subscription." },
@@ -75,7 +83,9 @@ function AlternativesPage() {
                   <span className="font-semibold text-foreground">Best for {c.competitor}:</span> {c.competitorBestFor}
                 </p>
                 <Button variant="outline" className="mt-5 w-full" asChild>
-                  <Link to="/compare/$slug" params={{ slug: c.slug }} />
+                  <Link to={COMPARE_ROUTES[c.slug]!}>
+                    Read the comparison <ArrowRight className="ml-1.5 size-4" />
+                  </Link>
                 </Button>
               </div>
             </Reveal>
