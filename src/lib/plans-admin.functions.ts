@@ -147,24 +147,44 @@ export const adminSubscriptionAction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertSuperAdmin } = await import("@/lib/admin-access.server");
     const customer = await import("@/lib/billing/customer.server");
+    const audit = await import("@/lib/billing/change-audit.server");
     await assertSuperAdmin(context);
 
-    if (data.action === "resume") return customer.resumeForWorkspace(data.workspaceId, context.userId);
-    if (data.action === "cancel" || data.action === "cancel_now")
-      return customer.cancelForWorkspace(
-        data.workspaceId,
-        context.userId,
-        data.action === "cancel_now",
-      );
-    if (!data.planId || !data.interval)
-      throw new Error("A target plan and billing interval are required.");
-    return customer.changePlan({
+    const before = await audit.subscriptionSnapshot(data.workspaceId);
+    const run = async () => {
+      if (data.action === "resume")
+        return customer.resumeForWorkspace(data.workspaceId, context.userId);
+      if (data.action === "cancel" || data.action === "cancel_now")
+        return customer.cancelForWorkspace(
+          data.workspaceId,
+          context.userId,
+          data.action === "cancel_now",
+        );
+      if (!data.planId || !data.interval)
+        throw new Error("A target plan and billing interval are required.");
+      return customer.changePlan({
+        workspaceId: data.workspaceId,
+        planId: data.planId,
+        interval: data.interval,
+        userId: context.userId,
+      });
+    };
+
+    const result = await run();
+    await audit.recordAdminChange({
+      actorId: context.userId,
+      action: `subscription.${data.action}`,
+      targetType: "subscription",
+      targetId: data.workspaceId,
+      targetLabel: await audit.workspaceLabel(data.workspaceId),
       workspaceId: data.workspaceId,
-      planId: data.planId,
-      interval: data.interval,
-      userId: context.userId,
+      before,
+      after: await audit.subscriptionSnapshot(data.workspaceId),
+      detail: { requestedPlanId: data.planId ?? null, requestedInterval: data.interval ?? null },
     });
+    return result;
   });
+
 
 /* -------------------------------------------------------------- payments */
 
@@ -224,27 +244,62 @@ export const adjustWorkspaceCredits = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertSuperAdmin } = await import("@/lib/admin-access.server");
     const credits = await import("@/lib/billing/credits.server");
+    const audit = await import("@/lib/billing/change-audit.server");
     await assertSuperAdmin(context);
 
-    if (data.mode === "set")
-      return credits.setCreditBalance({
+    const before = await audit.creditSnapshot(data.workspaceId);
+    let result: { ok: boolean; unchanged?: boolean };
+    if (data.mode === "set") {
+      result = (await credits.setCreditBalance({
         workspaceId: data.workspaceId,
         target: data.amount,
         reason: data.reason,
         actorUserId: context.userId,
+      })) as { ok: boolean; unchanged?: boolean };
+    } else {
+      if (data.amount === 0) throw new Error("Enter a credit amount greater than zero.");
+      await credits.applyCreditChange({
+        workspaceId: data.workspaceId,
+        amount: data.mode === "add" ? data.amount : -data.amount,
+        entryType: (data.entryType as any) ?? "admin_adjustment",
+        reason: data.reason,
+        actor: "admin",
+        actorUserId: context.userId,
       });
+      result = { ok: true };
+    }
 
-    if (data.amount === 0) throw new Error("Enter a credit amount greater than zero.");
-    await credits.applyCreditChange({
+    await audit.recordAdminChange({
+      actorId: context.userId,
+      action: `credits.${data.mode}`,
+      targetType: "credits",
+      targetId: data.workspaceId,
+      targetLabel: await audit.workspaceLabel(data.workspaceId),
       workspaceId: data.workspaceId,
-      amount: data.mode === "add" ? data.amount : -data.amount,
-      entryType: (data.entryType as any) ?? "admin_adjustment",
-      reason: data.reason,
-      actor: "admin",
-      actorUserId: context.userId,
+      before,
+      after: await audit.creditSnapshot(data.workspaceId),
+      detail: { amount: data.amount, reason: data.reason, entryType: data.entryType ?? null },
     });
-    return { ok: true };
+    return result;
   });
+
+/* ------------------------------------------------------------ change log */
+
+export const listAdminChangeLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { targetType?: string; search?: string }) =>
+    z.object({ targetType: z.string().optional(), search: z.string().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("@/lib/admin-access.server");
+    const { listAdminChanges } = await import("@/lib/billing/change-audit.server");
+    await assertSuperAdmin(context);
+    return listAdminChanges({
+      targetType: data.targetType && data.targetType !== "all" ? data.targetType : null,
+      search: data.search ?? null,
+    });
+  });
+
 
 export const listCreditLedger = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

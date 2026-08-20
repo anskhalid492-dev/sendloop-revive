@@ -193,3 +193,17 @@ export const getWorkspaceCredits = createServerFn({ method: "GET" })
     ]);
     return { balance, ledger };
   });
+
+/**
+ * Full entitlement diagnostics for a workspace the caller belongs to:
+ * resolved plan, feature flags, credit balances and usage vs plan limits.
+ */
+export const getWorkspaceDiagnostics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceMember } = await import("@/lib/billing/access.server");
+    const { loadWorkspaceDiagnostics } = await import("@/lib/billing/diagnostics.server");
+    await assertWorkspaceMember(context, data.workspaceId);
+    return loadWorkspaceDiagnostics(data.workspaceId);
+  });

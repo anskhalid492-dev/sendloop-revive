@@ -122,26 +122,50 @@ function sanitizePlanInput(patch: Record<string, unknown>) {
 
 export async function createPlan(patch: Record<string, unknown>, userId: string) {
   const db = await admin();
+  const audit = await import("@/lib/billing/change-audit.server");
   const values = sanitizePlanInput(patch);
   if (!values["name"]) throw new Error("Plan name is required.");
   if (!values["slug"]) throw new Error("Plan slug is required.");
   const { data, error } = await db.from("plans").insert(values).select("id").single();
   if (error) throw new Error(error.message);
   await writeAudit({ userId, action: "plan.created", detail: { planId: data.id, name: values["name"] } });
+  await audit.recordAdminChange({
+    actorId: userId,
+    action: "plan.created",
+    targetType: "plan",
+    targetId: data.id,
+    targetLabel: String(values["name"]),
+    before: null,
+    after: await audit.planSnapshot(data.id),
+  });
   return { id: data.id as string };
 }
 
 export async function updatePlan(planId: string, patch: Record<string, unknown>, userId: string) {
   const db = await admin();
+  const audit = await import("@/lib/billing/change-audit.server");
   const values = sanitizePlanInput(patch);
+  const before = await audit.planSnapshot(planId);
   const { error } = await db.from("plans").update(values).eq("id", planId);
   if (error) throw new Error(error.message);
+  const after = await audit.planSnapshot(planId);
   await writeAudit({ userId, action: "plan.updated", detail: { planId, fields: Object.keys(values) } });
+  await audit.recordAdminChange({
+    actorId: userId,
+    action: "plan.updated",
+    targetType: "plan",
+    targetId: planId,
+    targetLabel: (after?.["name"] as string | undefined) ?? null,
+    before,
+    after,
+  });
   return { ok: true };
 }
 
 export async function setPlanActive(planId: string, active: boolean, userId: string) {
   const db = await admin();
+  const audit = await import("@/lib/billing/change-audit.server");
+  let subscribers = 0;
   if (!active) {
     const settings = await getBillingSettings();
     const { count } = await db
@@ -150,7 +174,8 @@ export async function setPlanActive(planId: string, active: boolean, userId: str
       .eq("plan_id", planId)
       .eq("environment", settings.environment)
       .in("status", ["active", "trialing", "past_due"]);
-    if ((count ?? 0) > 0) {
+    subscribers = count ?? 0;
+    if (subscribers > 0) {
       // Deactivation only hides the plan from new checkouts; existing
       // subscriptions keep their entitlements until the provider changes them.
       await writeAudit({
@@ -160,11 +185,24 @@ export async function setPlanActive(planId: string, active: boolean, userId: str
       });
     }
   }
+  const before = await audit.planSnapshot(planId);
   const { error } = await db.from("plans").update({ is_active: active }).eq("id", planId);
   if (error) throw new Error(error.message);
+  const after = await audit.planSnapshot(planId);
   await writeAudit({ userId, action: active ? "plan.activated" : "plan.deactivated", detail: { planId } });
+  await audit.recordAdminChange({
+    actorId: userId,
+    action: active ? "plan.activated" : "plan.deactivated",
+    targetType: "plan",
+    targetId: planId,
+    targetLabel: (after?.["name"] as string | undefined) ?? null,
+    before,
+    after,
+    detail: { activeSubscribers: subscribers },
+  });
   return { ok: true };
 }
+
 
 /* --------------------------------------------------------- feature matrix */
 
@@ -209,6 +247,8 @@ export async function setPlanFeature(
   const feature = FEATURE_CATALOG.find((f) => f.key === input.featureKey);
   if (!feature) throw new Error(`Unknown feature: ${input.featureKey}`);
   const db = await admin();
+  const audit = await import("@/lib/billing/change-audit.server");
+  const before = await audit.featureSnapshot(input.planId, input.featureKey);
 
   if (feature.column) {
     const { error } = await db
@@ -247,7 +287,19 @@ export async function setPlanFeature(
     action: input.enabled ? "plan_feature.enabled" : "plan_feature.disabled",
     detail: { planId: input.planId, featureKey: input.featureKey },
   });
+  const { data: plan } = await db.from("plans").select("name").eq("id", input.planId).maybeSingle();
+  await audit.recordAdminChange({
+    actorId: userId,
+    action: input.enabled ? "plan_feature.enabled" : "plan_feature.disabled",
+    targetType: "plan_feature",
+    targetId: input.planId,
+    targetLabel: `${plan?.name ?? "Plan"} · ${feature.label}`,
+    before,
+    after: await audit.featureSnapshot(input.planId, input.featureKey),
+  });
   return { ok: true };
+
+
 }
 
 /* ---------------------------------------------------------- subscriptions */

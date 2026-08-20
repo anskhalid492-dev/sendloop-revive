@@ -37,6 +37,7 @@ import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDiagnosticsRouteImport } from './routes/_authenticated/diagnostics'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -249,6 +250,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDiagnosticsRoute =
+  AuthenticatedDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
@@ -671,6 +678,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -770,6 +778,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -873,6 +882,7 @@ export interface FileRoutesById {
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
@@ -976,6 +986,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/crm'
     | '/dashboard'
+    | '/diagnostics'
     | '/inbox'
     | '/leads'
     | '/onboarding'
@@ -1075,6 +1086,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/crm'
     | '/dashboard'
+    | '/diagnostics'
     | '/inbox'
     | '/leads'
     | '/onboarding'
@@ -1177,6 +1189,7 @@ export interface FileRouteTypes {
     | '/_authenticated/billing'
     | '/_authenticated/crm'
     | '/_authenticated/dashboard'
+    | '/_authenticated/diagnostics'
     | '/_authenticated/inbox'
     | '/_authenticated/leads'
     | '/_authenticated/onboarding'
@@ -1502,6 +1515,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diagnostics': {
+      id: '/_authenticated/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/diagnostics'
+      preLoaderRoute: typeof AuthenticatedDiagnosticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inbox': {
@@ -2109,6 +2129,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDiagnosticsRoute: typeof AuthenticatedDiagnosticsRoute
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
@@ -2132,6 +2153,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDiagnosticsRoute: AuthenticatedDiagnosticsRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
