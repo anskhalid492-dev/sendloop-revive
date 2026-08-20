@@ -92,9 +92,14 @@ export const completeOnboarding = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    // A database trigger already seeds the owner membership; upsert keeps this
+    // idempotent instead of failing on the unique (workspace_id, user_id) key.
     const { error: memberError } = await context.supabase
       .from("workspace_members")
-      .insert({ workspace_id: workspace.id, user_id: context.userId, role: "owner" });
+      .upsert(
+        { workspace_id: workspace.id, user_id: context.userId, role: "owner" },
+        { onConflict: "workspace_id,user_id" },
+      );
     if (memberError) throw new Error(memberError.message);
 
     const { error: profileError } = await context.supabase
