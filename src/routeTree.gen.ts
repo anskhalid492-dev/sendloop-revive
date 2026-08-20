@@ -48,6 +48,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated/referrals'
 import { Route as AuthenticatedSendingRouteImport } from './routes/_authenticated/sending'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated/warmup'
@@ -332,6 +333,11 @@ const AuthenticatedSendingRoute = AuthenticatedSendingRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
@@ -873,6 +879,7 @@ export interface FileRoutesByFullPath {
   '/referrals': typeof AuthenticatedReferralsRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/support': typeof AuthenticatedSupportRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/warmup': typeof AuthenticatedWarmupRoute
@@ -1001,6 +1008,7 @@ export interface FileRoutesByTo {
   '/referrals': typeof AuthenticatedReferralsRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/support': typeof AuthenticatedSupportRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/warmup': typeof AuthenticatedWarmupRoute
@@ -1133,6 +1141,7 @@ export interface FileRoutesById {
   '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
   '/_authenticated/sending': typeof AuthenticatedSendingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
@@ -1265,6 +1274,7 @@ export interface FileRouteTypes {
     | '/referrals'
     | '/sending'
     | '/settings'
+    | '/setup'
     | '/support'
     | '/templates'
     | '/warmup'
@@ -1393,6 +1403,7 @@ export interface FileRouteTypes {
     | '/referrals'
     | '/sending'
     | '/settings'
+    | '/setup'
     | '/support'
     | '/templates'
     | '/warmup'
@@ -1524,6 +1535,7 @@ export interface FileRouteTypes {
     | '/_authenticated/referrals'
     | '/_authenticated/sending'
     | '/_authenticated/settings'
+    | '/_authenticated/setup'
     | '/_authenticated/support'
     | '/_authenticated/templates'
     | '/_authenticated/warmup'
@@ -1955,6 +1967,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/setup': {
+      id: '/_authenticated/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof AuthenticatedSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/support': {
@@ -2729,6 +2748,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReferralsRoute: typeof AuthenticatedReferralsRoute
   AuthenticatedSendingRoute: typeof AuthenticatedSendingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
   AuthenticatedWarmupRoute: typeof AuthenticatedWarmupRoute
@@ -2753,6 +2773,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReferralsRoute: AuthenticatedReferralsRoute,
   AuthenticatedSendingRoute: AuthenticatedSendingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
   AuthenticatedWarmupRoute: AuthenticatedWarmupRoute,
