@@ -208,15 +208,17 @@ export function TestimonialCarousel({
         </div>
 
         <div className="relative mt-8">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="sm:hidden">
+            <ReviewColumn items={items} speed={18} direction={1} />
+          </div>
+          <div className="hidden gap-5 sm:grid sm:grid-cols-3">
             {columns.map((col, i) => (
-              <div key={i} className={i === 2 ? "hidden lg:block" : i === 1 ? "hidden sm:block" : ""}>
-                <ReviewColumn
-                  items={col}
-                  speed={18 + i * 5}
-                  direction={i % 2 === 0 ? 1 : -1}
-                />
-              </div>
+              <ReviewColumn
+                key={i}
+                items={col}
+                speed={18 + i * 5}
+                direction={i % 2 === 0 ? 1 : -1}
+              />
             ))}
           </div>
           <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-secondary/60 to-transparent" />
