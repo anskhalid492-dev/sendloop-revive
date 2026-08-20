@@ -4,6 +4,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BellRing,
+  AtSign,
+  ContactRound,
+  Flame,
+  Globe,
   FileText,
   ArrowLeft,
   BarChart3,
