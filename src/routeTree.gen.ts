@@ -70,6 +70,7 @@ import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin/billing'
 import { Route as AuthenticatedAdminBillingProvidersRouteImport } from './routes/_authenticated/admin/billing-providers'
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
+import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin/features'
 import { Route as AuthenticatedAdminInboundEventsRouteImport } from './routes/_authenticated/admin/inbound-events'
 import { Route as AuthenticatedAdminInfrastructureRouteImport } from './routes/_authenticated/admin/infrastructure'
 import { Route as AuthenticatedAdminIntegrationsRouteImport } from './routes/_authenticated/admin/integrations'
@@ -413,6 +414,12 @@ const AuthenticatedAdminCampaignsRoute =
     path: '/campaigns',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminFeaturesRoute =
+  AuthenticatedAdminFeaturesRouteImport.update({
+    id: '/features',
+    path: '/features',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminInboundEventsRoute =
   AuthenticatedAdminInboundEventsRouteImport.update({
     id: '/inbound-events',
@@ -668,6 +675,7 @@ export interface FileRoutesByFullPath {
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
   '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
@@ -762,6 +770,7 @@ export interface FileRoutesByTo {
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
   '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
@@ -860,6 +869,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/_authenticated/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
   '/_authenticated/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
@@ -958,6 +968,7 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/billing-providers'
     | '/admin/campaigns'
+    | '/admin/features'
     | '/admin/inbound-events'
     | '/admin/infrastructure'
     | '/admin/integrations'
@@ -1052,6 +1063,7 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/billing-providers'
     | '/admin/campaigns'
+    | '/admin/features'
     | '/admin/inbound-events'
     | '/admin/infrastructure'
     | '/admin/integrations'
@@ -1149,6 +1161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/billing-providers'
     | '/_authenticated/admin/campaigns'
+    | '/_authenticated/admin/features'
     | '/_authenticated/admin/inbound-events'
     | '/_authenticated/admin/infrastructure'
     | '/_authenticated/admin/integrations'
@@ -1670,6 +1683,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCampaignsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/features': {
+      id: '/_authenticated/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AuthenticatedAdminFeaturesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/inbound-events': {
       id: '/_authenticated/admin/inbound-events'
       path: '/inbound-events'
@@ -1931,6 +1951,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
+  AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
   AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
   AuthenticatedAdminInfrastructureRoute: typeof AuthenticatedAdminInfrastructureRoute
   AuthenticatedAdminIntegrationsRoute: typeof AuthenticatedAdminIntegrationsRoute
@@ -1956,6 +1977,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBillingProvidersRoute:
       AuthenticatedAdminBillingProvidersRoute,
     AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
+    AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
     AuthenticatedAdminInboundEventsRoute:
       AuthenticatedAdminInboundEventsRouteWithChildren,
     AuthenticatedAdminInfrastructureRoute:
