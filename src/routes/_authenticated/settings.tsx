@@ -487,7 +487,7 @@ function SecuritySection() {
           </dl>
         )}
         <p className="text-xs text-muted-foreground">
-          MunchReach never shows API keys, provider credentials or encryption secrets in the
+          MunchReach never shows API keys, connection credentials or encryption secrets in the
           dashboard.
         </p>
       </section>
