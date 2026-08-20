@@ -4,14 +4,14 @@ import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
 import { ComparisonPage } from "@/components/site/ComparisonPage";
 import { COMPARISONS } from "@/lib/comparison-content";
 
-const data = COMPARISONS["sendloop-vs-apollo"]!;
+const data = COMPARISONS["munchreach-vs-apollo"]!;
 
-export const Route = createFileRoute("/compare/sendloop-vs-apollo")({
+export const Route = createFileRoute("/compare/munchreach-vs-apollo")({
   head: () =>
     metaFor(
       "MunchReach vs Apollo — Email Execution or Contact Database?",
       "Compare MunchReach and Apollo on cold email sending, deliverability and warmup, unified inbox, CRM, automations, analytics and prospect data.",
-      "/compare/sendloop-vs-apollo",
+      "/compare/munchreach-vs-apollo",
       data.faqs,
     ),
   component: () => (

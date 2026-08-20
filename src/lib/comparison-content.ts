@@ -73,7 +73,7 @@ function verifyNote(name: string) {
 }
 
 const instantly: Comparison = {
-  slug: "sendloop-vs-instantly",
+  slug: "munchreach-vs-instantly",
   competitor: "Instantly",
   competitorSite: "https://instantly.ai",
   reviewedOn: "2026-08-20",
@@ -145,7 +145,7 @@ const instantly: Comparison = {
 };
 
 const smartlead: Comparison = {
-  slug: "sendloop-vs-smartlead",
+  slug: "munchreach-vs-smartlead",
   competitor: "Smartlead",
   competitorSite: "https://smartlead.ai",
   reviewedOn: "2026-08-20",
@@ -217,7 +217,7 @@ const smartlead: Comparison = {
 };
 
 const lemlist: Comparison = {
-  slug: "sendloop-vs-lemlist",
+  slug: "munchreach-vs-lemlist",
   competitor: "lemlist",
   competitorSite: "https://lemlist.com",
   reviewedOn: "2026-08-20",
@@ -290,7 +290,7 @@ const lemlist: Comparison = {
 
 
 const apollo: Comparison = {
-  slug: "sendloop-vs-apollo",
+  slug: "munchreach-vs-apollo",
   competitor: "Apollo",
   competitorSite: "https://apollo.io",
   reviewedOn: "2026-08-20",
@@ -362,7 +362,7 @@ const apollo: Comparison = {
 };
 
 const saleshandy: Comparison = {
-  slug: "sendloop-vs-saleshandy",
+  slug: "munchreach-vs-saleshandy",
   competitor: "Saleshandy",
   competitorSite: "https://saleshandy.com",
   reviewedOn: "2026-08-20",

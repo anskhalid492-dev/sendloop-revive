@@ -26,11 +26,11 @@ const faqs = [
 ];
 
 const COMPARE_ROUTES = {
-  "sendloop-vs-instantly": "/compare/sendloop-vs-instantly",
-  "sendloop-vs-smartlead": "/compare/sendloop-vs-smartlead",
-  "sendloop-vs-lemlist": "/compare/sendloop-vs-lemlist",
-  "sendloop-vs-apollo": "/compare/sendloop-vs-apollo",
-  "sendloop-vs-saleshandy": "/compare/sendloop-vs-saleshandy",
+  "munchreach-vs-instantly": "/compare/munchreach-vs-instantly",
+  "munchreach-vs-smartlead": "/compare/munchreach-vs-smartlead",
+  "munchreach-vs-lemlist": "/compare/munchreach-vs-lemlist",
+  "munchreach-vs-apollo": "/compare/munchreach-vs-apollo",
+  "munchreach-vs-saleshandy": "/compare/munchreach-vs-saleshandy",
 } as const satisfies Record<string, string>;
 
 const pillars = [
@@ -42,12 +42,12 @@ const pillars = [
   { icon: BarChart3, title: "Funnel analytics", body: "Sent → delivered → opened → replied across campaigns, mailboxes and the whole workspace." },
 ];
 
-export const Route = createFileRoute("/compare/sendloop-alternatives")({
+export const Route = createFileRoute("/compare/munchreach-alternatives")({
   head: () =>
     metaFor(
       "MunchReach Alternatives — Compare Cold Email Platforms (2026)",
       "A neutral guide to MunchReach alternatives: Instantly, Smartlead, lemlist, Apollo and Saleshandy compared on sending, deliverability, warmup, inbox, CRM and automations.",
-      "/compare/sendloop-alternatives",
+      "/compare/munchreach-alternatives",
       faqs,
     ),
   component: AlternativesPage,
