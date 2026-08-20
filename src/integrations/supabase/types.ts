@@ -3718,16 +3718,19 @@ export type Database = {
         Row: {
           key: string
           updated_at: string
+          updated_by: string | null
           value: Json
         }
         Insert: {
           key: string
           updated_at?: string
+          updated_by?: string | null
           value?: Json
         }
         Update: {
           key?: string
           updated_at?: string
+          updated_by?: string | null
           value?: Json
         }
         Relationships: []
@@ -6130,6 +6133,15 @@ export type Database = {
         Args: never
         Returns: {
           google_enabled: boolean
+        }[]
+      }
+      public_platform_flags: {
+        Args: never
+        Returns: {
+          google_enabled: boolean
+          maintenance_message: string
+          maintenance_mode: boolean
+          registration_enabled: boolean
         }[]
       }
       public_review_stats: {
