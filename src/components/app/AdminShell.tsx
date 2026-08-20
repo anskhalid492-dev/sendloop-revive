@@ -102,7 +102,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: "Website & Content",
     items: [
-      { to: "/admin/pages", label: "Pages & SEO", icon: FileSearch },
+      { to: "/admin/seo", label: "SEO Manager", icon: FileSearch },
+      { to: "/admin/pages", label: "Pages", icon: FileSearch },
       { to: "/admin/blog", label: "Blog", icon: Newspaper },
       { to: "/admin/navigation", label: "Navigation & Footer", icon: PanelsTopLeft },
       { to: "/admin/redirects", label: "Redirects", icon: RouteIcon },

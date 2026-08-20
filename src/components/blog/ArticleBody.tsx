@@ -66,3 +66,31 @@ export function TableOfContents({ sections }: { sections: ArticleSection[] }) {
     </nav>
   );
 }
+
+/** Table of contents entries extracted from an HTML body's h2/h3 tags. */
+export function parseHtmlToc(html: string): ArticleSection[] {
+  const sections: ArticleSection[] = [];
+  const re = /<h2\b([^>]*)>([\s\S]*?)<\/h2>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html))) {
+    const attrs = match[1] ?? "";
+    const heading = (match[2] ?? "").replace(/<[^>]+>/g, "").trim();
+    if (!heading) continue;
+    const idAttr = /id="([^"]+)"/i.exec(attrs);
+    sections.push({ id: idAttr?.[1] ?? slugify(heading), heading, paragraphs: [] });
+  }
+  return sections;
+}
+
+/**
+ * Renders rich-text posts authored in the admin CMS. Content is written by
+ * platform admins only, so it is rendered as-is with editor styling.
+ */
+export function HtmlArticleBody({ html }: { html: string }) {
+  return (
+    <div
+      className="prose prose-neutral dark:prose-invert max-w-none prose-headings:scroll-mt-28 prose-a:text-primary"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
