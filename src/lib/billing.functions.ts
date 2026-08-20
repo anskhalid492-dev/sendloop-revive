@@ -1,0 +1,166 @@
+/**
+ * Customer billing server functions.
+ *
+ * Thin wrappers only: every helper is imported inside the handler so the
+ * server-fn splitter never strips a runtime sibling.
+ */
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type {
+  BillingEnvironment,
+  BillingInterval,
+  BillingProvider,
+  SubscriptionState,
+} from "@/lib/billing/model";
+
+export type CheckoutProviderOption = {
+  provider: BillingProvider;
+  environment: BillingEnvironment;
+  available: boolean;
+  reason: string | null;
+};
+
+export type CustomerBilling = {
+  environment: BillingEnvironment;
+  planId: string | null;
+  planName: string;
+  state: SubscriptionState | "none";
+  active: boolean;
+  provider: BillingProvider | null;
+  interval: BillingInterval | null;
+  amountCents: number;
+  currency: string;
+  nextBillingAt: string | null;
+  trialEndsAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  accessUntil: string | null;
+  graceUntil: string | null;
+  canManagePaymentMethod: boolean;
+  usage: {
+    emailsThisMonth: number;
+    sendingAccounts: number;
+    leads: number;
+    campaigns: number;
+    users: number;
+  };
+  limits: {
+    emailsMonthly: number | null;
+    sendingAccounts: number | null;
+    leads: number | null;
+    campaigns: number | null;
+    users: number | null;
+  };
+  invoices: {
+    id: string;
+    provider: string;
+    number: string | null;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    issued_at: string;
+    hosted_url: string | null;
+    pdf_url: string | null;
+  }[];
+  transactions: {
+    id: string;
+    provider: string;
+    kind: string;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    occurred_at: string;
+    description: string | null;
+  }[];
+};
+
+const workspaceInput = z.object({ workspaceId: z.string().uuid() });
+
+export const getCustomerBilling = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }): Promise<CustomerBilling> => {
+    const { assertWorkspaceMember } = await import("@/lib/billing/access.server");
+    const { loadCustomerBilling } = await import("@/lib/billing/customer.server");
+    await assertWorkspaceMember(context, data.workspaceId);
+    return loadCustomerBilling(data.workspaceId);
+  });
+
+export const listCheckoutProviders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async (): Promise<CheckoutProviderOption[]> => {
+    const { availableProviders } = await import("@/lib/billing/customer.server");
+    return availableProviders();
+  });
+
+export const startCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string; planId: string; interval: BillingInterval; provider: BillingProvider }) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        planId: z.string().uuid(),
+        interval: z.enum(["monthly", "yearly"]),
+        provider: z.enum(["stripe", "paddle", "lemonsqueezy"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ url: string }> => {
+    const { assertWorkspaceBillingManager } = await import("@/lib/billing/access.server");
+    const { createCheckoutSession } = await import("@/lib/billing/customer.server");
+    await assertWorkspaceBillingManager(context, data.workspaceId);
+    return createCheckoutSession({ ...data, userId: context.userId });
+  });
+
+export const changeSubscriptionPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string; planId: string; interval: BillingInterval }) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        planId: z.string().uuid(),
+        interval: z.enum(["monthly", "yearly"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceBillingManager } = await import("@/lib/billing/access.server");
+    const { changePlan } = await import("@/lib/billing/customer.server");
+    await assertWorkspaceBillingManager(context, data.workspaceId);
+    return changePlan({ ...data, userId: context.userId });
+  });
+
+export const cancelSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string; immediately?: boolean }) =>
+    z.object({ workspaceId: z.string().uuid(), immediately: z.boolean().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceBillingManager } = await import("@/lib/billing/access.server");
+    const { cancelForWorkspace } = await import("@/lib/billing/customer.server");
+    await assertWorkspaceBillingManager(context, data.workspaceId);
+    return cancelForWorkspace(data.workspaceId, context.userId, data.immediately === true);
+  });
+
+export const resumeSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceBillingManager } = await import("@/lib/billing/access.server");
+    const { resumeForWorkspace } = await import("@/lib/billing/customer.server");
+    await assertWorkspaceBillingManager(context, data.workspaceId);
+    return resumeForWorkspace(data.workspaceId, context.userId);
+  });
+
+export const openBillingPortal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string; returnUrl: string }) =>
+    z.object({ workspaceId: z.string().uuid(), returnUrl: z.string().url() }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ url: string | null }> => {
+    const { assertWorkspaceBillingManager } = await import("@/lib/billing/access.server");
+    const { portalForWorkspace } = await import("@/lib/billing/customer.server");
+    await assertWorkspaceBillingManager(context, data.workspaceId);
+    return portalForWorkspace(data.workspaceId, data.returnUrl);
+  });
