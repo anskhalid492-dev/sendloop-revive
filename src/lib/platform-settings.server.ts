@@ -175,3 +175,19 @@ export async function readSettings(groupId: string): Promise<Record<string, unkn
   const stored = ((data as { value?: Record<string, unknown> } | null)?.value ?? {}) as Record<string, unknown>;
   return { ...groupDefaults(group), ...stored };
 }
+
+/**
+ * Numeric platform limit from Admin → System settings → Platform limits.
+ * Falls back to the supplied default when settings cannot be read, so
+ * enforcement never blocks a request because of a config outage.
+ */
+export async function platformLimit(key: string, fallback: number): Promise<number> {
+  try {
+    const limits = await readSettings("limits");
+    const raw = limits[key];
+    const parsed = typeof raw === "number" ? raw : Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}

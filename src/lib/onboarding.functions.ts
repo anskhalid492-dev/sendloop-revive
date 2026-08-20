@@ -24,8 +24,20 @@ export const getOnboardingState = createServerFn({ method: "GET" })
     if (profileError) throw new Error(profileError.message);
     if (memberError) throw new Error(memberError.message);
 
+    // Admin → System settings → General can switch customer onboarding off;
+    // when it is disabled the wizard is skipped entirely.
+    let onboardingEnabled = true;
+    try {
+      const { readSettings } = await import("@/lib/platform-settings.server");
+      const general = await readSettings("general");
+      onboardingEnabled = general["onboarding_enabled"] !== false;
+    } catch {
+      onboardingEnabled = true;
+    }
+
     return {
-      completed: Boolean(profile?.onboarding_completed),
+      onboardingEnabled,
+      completed: !onboardingEnabled || Boolean(profile?.onboarding_completed),
       fullName: profile?.full_name ?? null,
       workspaceCount: count ?? 0,
     };
@@ -36,7 +48,7 @@ export const completeOnboarding = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
-        workspaceName: z.string().trim().min(2).max(60),
+        workspaceName: z.string().trim().min(2).max(200),
         companyName: z.string().trim().max(80).optional().nullable(),
         logoUrl: z.string().trim().url().max(500).optional().nullable().or(z.literal("")),
         persona: z.string().trim().max(40).optional().nullable(),
@@ -46,7 +58,16 @@ export const completeOnboarding = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    // Workspace name length is a platform-wide validation ceiling set in
+    // Admin → System settings → Platform limits.
+    const { platformLimit } = await import("@/lib/platform-settings.server");
+    const maxName = await platformLimit("max_workspace_name_length", 60);
+    if (data.workspaceName.length > maxName) {
+      throw new Error(`Workspace name must be ${maxName} characters or fewer`);
+    }
+
     const base =
+
       data.workspaceName
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
