@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   AlertTriangle,
   Compass,
@@ -19,34 +19,11 @@ import {
   FeatureGrid,
   StatStrip,
   PainPoints,
-  FaqBlock,
   CtaBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
-const faqs = [
-  {
-    q: "Is Sendloop a big company or a small team?",
-    a: "We're a focused, remote-first team. Small enough to ship fast, big enough to run infrastructure for thousands of teams.",
-  },
-  {
-    q: "Do you build your own sending infrastructure?",
-    a: "We integrate with best-in-class providers and layer our own warmup, rotation and deliverability monitoring on top.",
-  },
-  {
-    q: "Who is Sendloop built for?",
-    a: "Agencies, SDR teams and founders doing cold outbound who care about inbox placement as much as volume.",
-  },
-  {
-    q: "Do you offer an agency or white-label plan?",
-    a: "Yes — multi-workspace agency mode with client-level reporting is available on our Agency plan.",
-  },
-  {
-    q: "How can I reach the team?",
-    a: "Use the contact page, or email us directly — most messages get a reply within one business day.",
-  },
-];
 
 export const Route = createFileRoute("/about")({
   head: () =>
@@ -54,7 +31,6 @@ export const Route = createFileRoute("/about")({
       "About Sendloop — Why We Built It and Where It's Going",
       "Sendloop started inside a five-person outbound agency drowning in mailboxes. This is the story, what we learned, and what we're building next.",
       "/about",
-      faqs,
     ),
   component: About,
 });
@@ -254,24 +230,6 @@ function About() {
 
       <TestimonialCarousel page="about" />
 
-      <Section muted title="Questions about the team">
-        <FaqBlock faqs={faqs} />
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          More context:{" "}
-          <Link to="/why-sendloop" className="font-medium text-primary hover:underline">
-            why Sendloop exists
-          </Link>
-          ,{" "}
-          <Link to="/how-it-works" className="font-medium text-primary hover:underline">
-            how it works
-          </Link>{" "}
-          or{" "}
-          <Link to="/contact" className="font-medium text-primary hover:underline">
-            talk to us
-          </Link>
-          .
-        </p>
-      </Section>
 
       <CtaBlock
         title="Come build pipeline with us"
