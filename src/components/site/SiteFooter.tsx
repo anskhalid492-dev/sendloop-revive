@@ -154,7 +154,16 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
-    return [...groups.entries()].map(([title, links]) => ({ title, links }));
+    const order = ["Products", "Resources", "Company", "Legal"];
+    const sorted = [...groups.entries()].sort((a, b) => {
+      const ai = order.indexOf(a[0]);
+      const bi = order.indexOf(b[0]);
+      if (ai === -1 && bi === -1) return a[0].localeCompare(b[0]);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+    return sorted.map(([title, links]) => ({ title, links }));
   })();
 
   const social = content?.social?.length
