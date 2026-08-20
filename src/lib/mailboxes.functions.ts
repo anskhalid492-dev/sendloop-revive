@@ -221,6 +221,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       senderDomain,
       logManagedSend,
       DOMAIN_NOT_VERIFIED_MESSAGE,
+      customerSafeMessage,
     } = await import("@/lib/managed-sending.server");
     const startedAt = Date.now();
     const test = await testProviderCredentials(
@@ -238,7 +239,9 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       : { status: "unknown" as const, detail: "Provider credentials check failed." };
     const domainBlocked = verification.status === "not_verified";
     const ok = test.ok && !domainBlocked;
-    const message = domainBlocked ? DOMAIN_NOT_VERIFIED_MESSAGE : test.message;
+    const rawMessage = domainBlocked ? DOMAIN_NOT_VERIFIED_MESSAGE : test.message;
+    // Customers never see provider identity; the raw text is kept for admin logs.
+    const message = ok ? "Connection verified." : customerSafeMessage(rawMessage);
 
     logManagedSend({
       stage: "test",
@@ -251,7 +254,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       verificationStatus: verification.status,
       verificationDetail: verification.detail,
       result: ok ? "sent" : "blocked",
-      providerError: ok ? null : message,
+      providerError: ok ? null : rawMessage,
     });
 
     const { error: updateError } = await client
@@ -272,9 +275,14 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       kind: "test",
       ok,
       provider: account.provider as string,
-      message,
+      message: rawMessage,
       durationMs: Date.now() - startedAt,
-      detail: { verified: test.verified, domain, domainVerification: verification.status },
+      detail: {
+        verified: test.verified,
+        domain,
+        domainVerification: verification.status,
+        providerError: ok ? null : rawMessage,
+      },
     });
     return { ok, message, domainVerification: verification.status };
   });
@@ -368,6 +376,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
     const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
+    const { customerSafeMessage } = await import("@/lib/managed-sending.server");
 
     const results: Array<{ id: string; email: string; ok: boolean; message: string }> = [];
     // Sequential on purpose: providers rate-limit credential checks.
@@ -390,7 +399,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
           status: test.verified ? "verified" : test.ok ? "untested" : "failed",
           auth_status: test.verified ? "verified" : test.ok ? "untested" : "failed",
           last_tested_at: new Date().toISOString(),
-          last_error: test.ok ? null : test.message,
+          last_error: test.ok ? null : customerSafeMessage(test.message),
         })
         .eq("id", id);
 
@@ -403,10 +412,15 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
         provider: method,
         message: test.message,
         durationMs: Date.now() - startedAt,
-        detail: { verified: test.verified, bulk: true },
+        detail: { verified: test.verified, bulk: true, providerError: test.ok ? null : test.message },
       });
 
-      results.push({ id, email: account["from_email"] as string, ok: test.ok, message: test.message });
+      results.push({
+        id,
+        email: account["from_email"] as string,
+        ok: test.ok,
+        message: test.ok ? "Connection verified." : customerSafeMessage(test.message),
+      });
     }
 
     return { results, passed: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length };
