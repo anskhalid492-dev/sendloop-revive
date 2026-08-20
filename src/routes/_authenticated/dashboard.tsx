@@ -120,6 +120,13 @@ function DashboardPage() {
     refetchInterval: 60_000,
   });
 
+  const fetchSetup = useServerFn(getSetupProgress);
+  const setupProgress = useQuery({
+    queryKey: ["setup-progress", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: () => fetchSetup({ data: { workspaceId: workspaceId as string } }),
+  });
+
   const dismissMutation = useMutation({
     mutationFn: dismiss,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
@@ -127,23 +134,11 @@ function DashboardPage() {
 
   const m = overview.data?.metrics;
   const sending = overview.data?.sending;
-  const checklist = overview.data?.checklist;
+  const setupComplete = setupProgress.data ? countCompleted(setupProgress.data) === 7 : false;
   const showChecklist =
-    checklist &&
     !(workspace as { checklist_dismissed?: boolean } | null)?.checklist_dismissed &&
-    !(checklist.hasLeads && checklist.hasCampaign && checklist.hasSending && checklist.hasLaunched);
+    !setupComplete;
 
-  const checklistSteps = useMemo(
-    () => [
-      { done: true, label: "Create workspace", to: "/workspace" as const },
-      { done: Boolean(checklist?.hasLeads), label: "Add leads", to: "/leads" as const },
-      { done: Boolean(checklist?.hasCampaign), label: "Create campaign", to: "/campaigns" as const },
-      { done: Boolean(checklist?.hasSending), label: "Configure sending", to: "/sending" as const },
-      { done: Boolean(checklist?.hasLaunched), label: "Launch campaign", to: "/campaigns" as const },
-    ],
-    [checklist],
-  );
-  const checklistDone = checklistSteps.filter((s) => s.done).length;
 
   const firstName = profile.data?.full_name?.split(" ")[0];
   const capacity = sending?.dailyCapacity ?? 0;
