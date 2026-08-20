@@ -93,7 +93,37 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
       custom_branding: Boolean(plan?.custom_branding),
       sso_enabled: Boolean(plan?.sso_enabled),
     },
+    features: await resolveFeatures(plan),
+    credits: {
+      included: Number(plan?.monthly_credits ?? 0),
+      balance: creditBalance,
+    },
   };
+}
+
+/** Resolves the plan × feature matrix for one plan (columns + plan_features). */
+async function resolveFeatures(plan: any): Promise<Record<string, boolean>> {
+  const { FEATURE_CATALOG } = await import("@/lib/billing/features");
+  const out: Record<string, boolean> = {};
+  if (!plan?.id) {
+    for (const feature of FEATURE_CATALOG) out[feature.key] = feature.fallback;
+    return out;
+  }
+  const db = await admin();
+  const { data: rows } = await db
+    .from("plan_features")
+    .select("feature_key, included")
+    .eq("plan_id", plan.id)
+    .not("feature_key", "is", null);
+  for (const feature of FEATURE_CATALOG) {
+    if (feature.column) {
+      out[feature.key] = Boolean(plan[feature.column]);
+      continue;
+    }
+    const row = (rows ?? []).find((r: any) => r.feature_key === feature.key);
+    out[feature.key] = row ? Boolean(row.included) : feature.fallback;
+  }
+  return out;
 }
 
 /** Throws when the workspace has reached the plan limit for `key`. */
@@ -118,3 +148,22 @@ export async function assertFeature(workspaceId: string, flag: PlanFlagKey, labe
     throw new Error(`${label} is not included in the ${entitlement.planName} plan.`);
   return entitlement;
 }
+
+/**
+ * Server-side enforcement for the admin-managed plan × feature matrix.
+ * Frontend locking is cosmetic; this is what actually rejects access.
+ */
+export async function assertFeatureKey(workspaceId: string, featureKey: string) {
+  const [{ featureDefinition }, entitlement] = await Promise.all([
+    import("@/lib/billing/features"),
+    getEntitlement(workspaceId),
+  ]);
+  const definition = featureDefinition(featureKey);
+  const label = definition?.label ?? featureKey;
+  if (!entitlement.active && entitlement.state !== "none")
+    throw new Error(`Your subscription is ${entitlement.state}. Renew it to use ${label}.`);
+  if (!entitlement.features[featureKey])
+    throw new Error(`${label} is not included in the ${entitlement.planName} plan.`);
+  return entitlement;
+}
+
