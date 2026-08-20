@@ -73,6 +73,7 @@ import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBillingProvidersRouteImport } from './routes/_authenticated/admin/billing-providers'
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
 import { Route as AuthenticatedAdminCreditsRouteImport } from './routes/_authenticated/admin/credits'
+import { Route as AuthenticatedAdminCrmRouteImport } from './routes/_authenticated/admin/crm'
 import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated/admin/domains'
 import { Route as AuthenticatedAdminEmailAccountsRouteImport } from './routes/_authenticated/admin/email-accounts'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin/features'
@@ -441,6 +442,11 @@ const AuthenticatedAdminCreditsRoute =
     path: '/credits',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCrmRoute = AuthenticatedAdminCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminDomainsRoute =
   AuthenticatedAdminDomainsRouteImport.update({
     id: '/domains',
@@ -746,6 +752,7 @@ export interface FileRoutesByFullPath {
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
+  '/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
@@ -851,6 +858,7 @@ export interface FileRoutesByTo {
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
+  '/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
@@ -960,6 +968,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/_authenticated/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
+  '/_authenticated/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/_authenticated/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/_authenticated/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
@@ -1069,6 +1078,7 @@ export interface FileRouteTypes {
     | '/admin/billing-providers'
     | '/admin/campaigns'
     | '/admin/credits'
+    | '/admin/crm'
     | '/admin/domains'
     | '/admin/email-accounts'
     | '/admin/features'
@@ -1174,6 +1184,7 @@ export interface FileRouteTypes {
     | '/admin/billing-providers'
     | '/admin/campaigns'
     | '/admin/credits'
+    | '/admin/crm'
     | '/admin/domains'
     | '/admin/email-accounts'
     | '/admin/features'
@@ -1282,6 +1293,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/billing-providers'
     | '/_authenticated/admin/campaigns'
     | '/_authenticated/admin/credits'
+    | '/_authenticated/admin/crm'
     | '/_authenticated/admin/domains'
     | '/_authenticated/admin/email-accounts'
     | '/_authenticated/admin/features'
@@ -1832,6 +1844,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCreditsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/crm': {
+      id: '/_authenticated/admin/crm'
+      path: '/crm'
+      fullPath: '/admin/crm'
+      preLoaderRoute: typeof AuthenticatedAdminCrmRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/domains': {
       id: '/_authenticated/admin/domains'
       path: '/domains'
@@ -2165,6 +2184,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
   AuthenticatedAdminCreditsRoute: typeof AuthenticatedAdminCreditsRouteWithChildren
+  AuthenticatedAdminCrmRoute: typeof AuthenticatedAdminCrmRoute
   AuthenticatedAdminDomainsRoute: typeof AuthenticatedAdminDomainsRoute
   AuthenticatedAdminEmailAccountsRoute: typeof AuthenticatedAdminEmailAccountsRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
@@ -2199,6 +2219,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminBillingProvidersRoute,
     AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
     AuthenticatedAdminCreditsRoute: AuthenticatedAdminCreditsRouteWithChildren,
+    AuthenticatedAdminCrmRoute: AuthenticatedAdminCrmRoute,
     AuthenticatedAdminDomainsRoute: AuthenticatedAdminDomainsRoute,
     AuthenticatedAdminEmailAccountsRoute: AuthenticatedAdminEmailAccountsRoute,
     AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
