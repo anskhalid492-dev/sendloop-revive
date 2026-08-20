@@ -349,50 +349,70 @@ function OnboardingPage() {
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Rocket className="size-5" />
               </span>
-              <h1 className="mt-4 text-2xl font-bold tracking-tight">You're all set 🎉</h1>
+              <h1 className="mt-4 text-2xl font-bold tracking-tight">Your workspace is live 🎉</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Here's the fastest path to your first replies. MunchReach handles the sending
-                infrastructure — you just bring the prospects and the message.
+                Here&apos;s your guided path to the first reply. MunchReach runs the sending
+                infrastructure — you bring the prospects and the message.
               </p>
 
-              <ul className="mt-6 space-y-3">
-                {[
-                  { label: "Workspace created", done: true },
-                  { label: "Add or import leads", done: false },
-                  { label: "Create your first campaign", done: false },
-                  { label: "Launch your first campaign", done: false },
-                ].map((item) => (
-                  <li
-                    key={item.label}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
-                  >
-                    {item.done ? (
-                      <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <Check className="size-3.5" />
+              <ol className="mt-6 space-y-1">
+                {SETUP_STEPS.map((item, i) => {
+                  const done = item.key === "workspace";
+                  const last = i === SETUP_STEPS.length - 1;
+                  return (
+                    <li key={item.key} className="relative flex gap-3 pb-1">
+                      {!last ? (
+                        <span
+                          aria-hidden
+                          className="absolute left-[13px] top-8 h-[calc(100%-1rem)] w-px bg-border"
+                        />
+                      ) : null}
+                      <span
+                        className={cn(
+                          "relative z-[1] mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold",
+                          done
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground",
+                        )}
+                      >
+                        {done ? <Check className="size-3.5" /> : item.index}
                       </span>
-                    ) : (
-                      <Circle className="size-6 text-muted-foreground/40" />
-                    )}
-                    <span
-                      className={cn(
-                        "text-sm font-medium",
-                        item.done ? "text-muted-foreground line-through" : "text-foreground",
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                      <div className="flex-1 rounded-lg px-2 py-1.5">
+                        <p
+                          className={cn(
+                            "text-sm font-medium",
+                            done ? "text-muted-foreground" : "text-foreground",
+                          )}
+                        >
+                          {item.title}
+                          <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                            {done ? "Done" : item.estimate}
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
 
-              <Button
-                className="mt-6 w-full"
-                onClick={() => navigate({ to: "/dashboard", replace: true })}
-              >
-                Go to Dashboard <ArrowRight className="size-4" />
-              </Button>
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+                <Button
+                  className="flex-1"
+                  onClick={() => navigate({ to: "/setup", replace: true })}
+                >
+                  Continue setup <ArrowRight className="size-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate({ to: "/dashboard", replace: true })}
+                >
+                  Skip to dashboard
+                </Button>
+              </div>
             </div>
           )}
+
         </div>
       </div>
     </div>
