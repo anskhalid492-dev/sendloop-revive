@@ -132,6 +132,7 @@ function LeadsPage() {
   const query = useMemo(
     () => ({
       ...filters,
+      ...(workspaceId ? { workspaceId } : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
       ...(activeList ? { listId: activeList } : {}),
       page,
@@ -139,7 +140,7 @@ function LeadsPage() {
       sortBy,
       sortDir,
     }),
-    [filters, search, activeList, page, sortBy, sortDir],
+    [filters, workspaceId, search, activeList, page, sortBy, sortDir],
   );
 
   const leads = useQuery({
