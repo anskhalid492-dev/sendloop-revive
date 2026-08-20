@@ -179,7 +179,7 @@ export async function listAdminChanges(filter: ChangeLogFilter = {}) {
 
   const term = (filter.search ?? "").trim().toLowerCase();
   if (!term) return rows;
-  return rows.filter((r) =>
+  return rows.filter((r: (typeof rows)[number]) =>
     [r.action, r.targetLabel, r.actorEmail, r.workspaceName, r.targetId]
       .filter(Boolean)
       .some((v) => String(v).toLowerCase().includes(term)),
