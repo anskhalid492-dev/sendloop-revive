@@ -440,8 +440,23 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
     if (!campaign) throw new Error("Campaign not found");
     const c = campaign as unknown as Campaign;
 
+    const { data: list, error: listError } = await context.supabase
+      .from("lead_lists")
+      .select("id, workspace_id")
+      .eq("id", data.listId)
+      .maybeSingle();
+    if (listError) throw new Error(listError.message);
+    if (!list) throw new Error("Lead list not found");
+    if (list.workspace_id !== c.workspace_id) {
+      throw new Error("That lead list belongs to a different workspace");
+    }
+
     const [leadsRes, existingRes] = await Promise.all([
-      context.supabase.from("leads").select("id").eq("list_id", data.listId),
+      context.supabase
+        .from("leads")
+        .select("id, workspace_id")
+        .eq("list_id", data.listId)
+        .eq("workspace_id", c.workspace_id),
       context.supabase
         .from("campaign_recipients")
         .select("lead_id")
@@ -475,7 +490,21 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
         const { error: insErr } = await context.supabase
           .from("campaign_recipients")
           .insert(rows.slice(i, i + 500));
-        if (insErr) throw new Error(insErr.message);
+        if (insErr) {
+          console.error("[campaign_recipients.insert]", {
+            userId: context.userId,
+            workspaceId: c.workspace_id,
+            campaignId: c.id,
+            listId: data.listId,
+            leadIds: rows.slice(i, i + 500).map((row) => row.lead_id),
+            authenticatedRole: context.claims.role ?? "authenticated",
+            bearerValidated: true,
+            errorCode: insErr.code,
+            errorMessage: insErr.message,
+            errorDetails: insErr.details,
+          });
+          throw new Error(insErr.message);
+        }
       }
     }
 

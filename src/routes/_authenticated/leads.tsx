@@ -113,7 +113,7 @@ function LeadsPage() {
 
   const lists = useQuery({
     queryKey: ["lead-lists", workspaceId],
-    queryFn: () => fetchLists(),
+    queryFn: () => fetchLists({ data: { workspaceId } } as never),
     enabled: Boolean(workspaceId),
   });
 
