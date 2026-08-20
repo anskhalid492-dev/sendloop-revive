@@ -20,6 +20,8 @@ import {
   MockRows,
   PageHero,
   PainPoints,
+  BeforeAfter,
+  UseCaseGrid,
   Section,
   SolutionSplit,
   StatStrip,
@@ -128,6 +130,37 @@ const stats = [
   { value: "6", label: "Built-in role types for pipeline visibility" },
 ];
 
+const beforeAfter = {
+  before: [
+  "Interested replies sit unread in a shared mailbox",
+  "Deal stage lives in a spreadsheet updated once a week",
+  "Email history, notes and next steps live in three tools"
+],
+  after: [
+  "Positive replies open a deal card the moment they land",
+  "Stages, owners and tasks update from real activity",
+  "Full send, open, click and reply history on every record"
+],
+};
+
+const useCases = [
+  {
+    "audience": "Sales-led startups",
+    "scenario": "You need pipeline visibility without paying for and configuring a full CRM.",
+    "outcome": "A working pipeline on day one, no admin."
+  },
+  {
+    "audience": "Agencies",
+    "scenario": "Clients want to see pipeline progress but not each other's data.",
+    "outcome": "Client Viewer roles scoped to one workspace."
+  },
+  {
+    "audience": "Teams with an existing CRM",
+    "scenario": "Reps forget to log outbound activity into Salesforce or HubSpot.",
+    "outcome": "Activity captured automatically, then synced across."
+  }
+];
+
 function Page() {
   return (
     <MarketingLayout>
@@ -146,6 +179,9 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
+      <Section title="Why outbound pipeline goes missing">
+        <PainPoints items={pains} />
+      </Section>
       <Section title="How Sendloop solves it" description="Pipeline that builds itself from your outreach.">
         <SolutionSplit rows={solutionRows} />
       </Section>
@@ -154,6 +190,12 @@ function Page() {
       </Section>
       <Section title="How it works" muted>
         <WorkflowStrip steps={steps} />
+      </Section>
+      <Section title="Before and after" description="What changes the week you switch." muted>
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+        <UseCaseGrid items={useCases} />
       </Section>
       <TestimonialCarousel page="crm" title="From reply to revenue" />
       <Section title="Details that matter">

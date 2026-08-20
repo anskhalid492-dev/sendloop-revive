@@ -21,6 +21,8 @@ import {
   MockPanel,
   PageHero,
   PainPoints,
+  BeforeAfter,
+  UseCaseGrid,
   Section,
   SolutionSplit,
   StatStrip,
@@ -138,6 +140,37 @@ const bullets = [
   "Recommended limits based on domain age",
 ];
 
+const beforeAfter = {
+  before: [
+  "A brand-new domain sends 200 cold emails on day one",
+  "Nobody notices a blacklist entry until reply rate collapses",
+  "DNS records are half-configured and never re-checked"
+],
+  after: [
+  "Automated ramp-up with human-like reply patterns",
+  "Continuous blacklist, SPF, DKIM and DMARC monitoring",
+  "Alerts before deliverability damage becomes permanent"
+],
+};
+
+const useCases = [
+  {
+    "audience": "New domains",
+    "scenario": "You just bought sending domains and cannot risk burning them.",
+    "outcome": "A warmed, inbox-placing mailbox in weeks, not months."
+  },
+  {
+    "audience": "Recovering senders",
+    "scenario": "Reputation dropped after an aggressive campaign.",
+    "outcome": "Guided ramp-down and recovery with health scoring."
+  },
+  {
+    "audience": "High-volume teams",
+    "scenario": "Dozens of mailboxes to keep healthy at once.",
+    "outcome": "Fleet-wide health in a single dashboard."
+  }
+];
+
 function Page() {
   return (
     <MarketingLayout>
@@ -156,6 +189,9 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
+      <Section title="Why new domains land in spam">
+        <PainPoints items={painPoints} />
+      </Section>
       <Section title="How Sendloop solves it" description="Deliverability, monitored and defended automatically.">
         <SolutionSplit rows={solutionRows} />
       </Section>
@@ -177,6 +213,12 @@ function Page() {
             { value: "0", label: "Campaigns sent over a mailbox's safe limit" },
           ]}
         />
+      </Section>
+      <Section title="Before and after" description="What changes the week you switch." muted>
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+        <UseCaseGrid items={useCases} />
       </Section>
       <TestimonialCarousel page="warmup" title="Deliverability, in their words" />
       <Section muted>

@@ -45,6 +45,7 @@ export function ConversationList({
   tab,
   onTabChange,
   footerNote,
+  liveStatus,
 }: {
   items: ConversationListItem[];
   selectedId: string | null;
@@ -65,6 +66,7 @@ export function ConversationList({
   tab?: "primary" | "other" | undefined;
   onTabChange?: ((tab: "primary" | "other") => void) | undefined;
   footerNote?: string | undefined;
+  liveStatus?: "connecting" | "live" | "offline" | undefined;
 }) {
   const sentinel = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -150,6 +152,25 @@ export function ConversationList({
         </div>
       ) : null}
 
+      {liveStatus ? (
+        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-1.5 text-[11px] text-muted-foreground">
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              liveStatus === "live"
+                ? "bg-emerald-500"
+                : liveStatus === "connecting"
+                  ? "animate-pulse bg-amber-500"
+                  : "bg-destructive",
+            )}
+          />
+          {liveStatus === "live"
+            ? "Live — new replies and status changes appear instantly"
+            : liveStatus === "connecting"
+              ? "Connecting to live updates…"
+              : "Live updates offline — refreshing every 20s"}
+        </div>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (

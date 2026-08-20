@@ -20,6 +20,8 @@ import {
   MockRows,
   PageHero,
   PainPoints,
+  BeforeAfter,
+  UseCaseGrid,
   Section,
   SolutionSplit,
   StatStrip,
@@ -138,6 +140,37 @@ const bullets = [
   "Per-role visibility for client viewers",
 ];
 
+const beforeAfter = {
+  before: [
+  "Replies scatter across four or five sending mailboxes",
+  "Out-of-office and bounce noise buries real interest",
+  "Two reps answer the same prospect twice"
+],
+  after: [
+  "Every mailbox in one threaded inbox with shared visibility",
+  "Auto-classification separates interested from noise",
+  "Assignment, read state and notes keep the team in sync"
+],
+};
+
+const useCases = [
+  {
+    "audience": "Solo operators",
+    "scenario": "You run six mailboxes and check each one manually every morning.",
+    "outcome": "One inbox, one pass, nothing missed."
+  },
+  {
+    "audience": "SDR teams",
+    "scenario": "Replies need routing to the right owner within minutes.",
+    "outcome": "Auto-assignment plus real-time reply alerts."
+  },
+  {
+    "audience": "Agencies",
+    "scenario": "Client threads must stay separated and auditable.",
+    "outcome": "Per-workspace inboxes with full history."
+  }
+];
+
 function Page() {
   return (
     <MarketingLayout>
@@ -156,6 +189,9 @@ function Page() {
       >
         <InboxPreview className="rounded-none border-0" />
       </BigPreview>
+      <Section title="Why replies get lost">
+        <PainPoints items={painPoints} />
+      </Section>
       <Section title="How Sendloop solves it" description="A single inbox that thinks and triages for you.">
         <SolutionSplit rows={solutionRows} />
       </Section>
@@ -164,6 +200,12 @@ function Page() {
         <div className="mt-12">
           <StepList steps={steps} />
         </div>
+      </Section>
+      <Section title="Before and after" description="What changes the week you switch." muted>
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+        <UseCaseGrid items={useCases} />
       </Section>
       <TestimonialCarousel page="unified-inbox" title="How teams work replies in Sendloop" />
       <Section title="Details that matter" muted>
