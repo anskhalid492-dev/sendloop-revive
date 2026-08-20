@@ -44,6 +44,7 @@ type Draft = {
   name: string;
   role: string;
   company: string;
+  bio: string;
   avatarUrl: string;
   companyLogoUrl: string;
   testimonial: string;
@@ -63,6 +64,7 @@ function emptyDraft(): Draft {
     name: "",
     role: "",
     company: "",
+    bio: "",
     avatarUrl: "",
     companyLogoUrl: "",
     testimonial: "",
@@ -84,6 +86,7 @@ function toDraft(t: Testimonial): Draft {
     name: t.name,
     role: t.role,
     company: t.company,
+    bio: t.bio ?? "",
     avatarUrl: t.avatar_url ?? "",
     companyLogoUrl: t.company_logo_url ?? "",
     testimonial: t.testimonial,
@@ -135,6 +138,7 @@ function AdminReviewsPage() {
           name: d.name,
           role: d.role,
           company: d.company,
+          bio: d.bio,
           avatarUrl: d.avatarUrl,
           companyLogoUrl: d.companyLogoUrl,
           testimonial: d.testimonial,
@@ -250,6 +254,16 @@ function AdminReviewsPage() {
                 onChange={(e) => setDraft({ ...draft, company: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="bio">Short bio</Label>
+            <Input
+              id="bio"
+              placeholder="Leads a 12-person outbound team in Berlin"
+              value={draft.bio}
+              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
+            />
           </div>
 
           <div className="space-y-1.5">
