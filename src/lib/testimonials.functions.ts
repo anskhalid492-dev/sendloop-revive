@@ -15,6 +15,7 @@ export type Testimonial = {
   company: string;
   avatar_url: string | null;
   company_logo_url: string | null;
+  bio: string | null;
   testimonial: string;
   result: string | null;
   pages: string[];
