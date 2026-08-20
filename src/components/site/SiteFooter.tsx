@@ -55,8 +55,6 @@ const fallbackColumns = [
       { label: "Help Center", href: "/help-center" },
       { label: "Integrations", href: "/integrations" },
       { label: "Why Sendloop", href: "/why-sendloop" },
-      { label: "How It Works", href: "/how-it-works" },
-      { label: "About Us", href: "/about" },
     ],
   },
   {
