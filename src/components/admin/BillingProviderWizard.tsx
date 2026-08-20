@@ -172,7 +172,7 @@ export function BillingProviderWizard({
         <StepHeader
           index={2}
           done={step2}
-          title="Point the provider webhook at Sendloop"
+          title="Point the provider webhook at MunchReach"
           description="A verified signed event must arrive before this step completes."
         />
         <div className="ml-10 space-y-2">

@@ -42,7 +42,7 @@ export const DEFAULT_REFERRAL_TEMPLATES: ReferralTemplateMap = {
   referral_attributed: {
     enabled: true,
     subject: "You have a new referral signup",
-    body: "Someone created a Sendloop account through your referral link. You earn commission once they start paying.",
+    body: "Someone created a MunchReach account through your referral link. You earn commission once they start paying.",
     ctaLabel: CTA,
   },
   commission_approved: {

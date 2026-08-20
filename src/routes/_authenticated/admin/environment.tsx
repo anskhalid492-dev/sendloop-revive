@@ -21,12 +21,12 @@ import { adminGetEnvironmentStatus } from "@/lib/admin-platform.functions";
 export const Route = createFileRoute("/_authenticated/admin/environment")({
   head: () => ({
     meta: [
-      { title: "Environment & Secrets — Sendloop Admin" },
+      { title: "Environment & Secrets — MunchReach Admin" },
       {
         name: "description",
         content: "Check which platform credentials are configured, per environment, without exposing values.",
       },
-      { property: "og:title", content: "Environment & Secrets — Sendloop Admin" },
+      { property: "og:title", content: "Environment & Secrets — MunchReach Admin" },
       { property: "og:description", content: "Credential configuration status for the platform." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

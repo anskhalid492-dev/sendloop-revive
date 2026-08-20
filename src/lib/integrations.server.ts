@@ -5,7 +5,7 @@
  *  - authorise the caller against the workspace (membership + role),
  *  - encrypt/decrypt third-party credentials,
  *  - verify credentials with a live call to the provider,
- *  - deliver Sendloop events to connected destinations and log every attempt.
+ *  - deliver MunchReach events to connected destinations and log every attempt.
  *
  * Credentials are never returned to the browser — only a masked hint.
  */
@@ -180,7 +180,7 @@ export async function verifyIntegration(
         const result = await deliverToWebhook(slug, url, {
           event: "integration.connected",
           source: "sendloop",
-          message: "Sendloop connection test — you can ignore this message.",
+          message: "MunchReach connection test — you can ignore this message.",
           timestamp: new Date().toISOString(),
         });
         return result.ok
@@ -221,7 +221,7 @@ async function deliverToWebhook(
 function slackText(payload: Record<string, unknown>) {
   const event = String(payload["event"] ?? "sendloop.event");
   const detail = payload["message"] ?? payload["summary"] ?? "";
-  return `*Sendloop* — \`${event}\`\n${String(detail)}`;
+  return `*MunchReach* — \`${event}\`\n${String(detail)}`;
 }
 
 async function deliverToCrm(
@@ -325,7 +325,7 @@ export async function deliverEvent(
 }
 
 /**
- * Fan-out helper: call this from any Sendloop flow (reply received, campaign
+ * Fan-out helper: call this from any MunchReach flow (reply received, campaign
  * completed, meeting booked...) to notify every subscribed connection.
  */
 export async function emitIntegrationEvent(

@@ -19,8 +19,8 @@ import { listAdminPayments } from "@/lib/plans-admin.functions";
 export const Route = createFileRoute("/_authenticated/admin/payments")({
   head: () => ({
     meta: [
-      { title: "Billing & Payments · Sendloop Admin" },
-      { name: "description", content: "Every Sendloop payment, refund and invoice in one log." },
+      { title: "Billing & Payments · MunchReach Admin" },
+      { name: "description", content: "Every MunchReach payment, refund and invoice in one log." },
     ],
   }),
   component: AdminPaymentsPage,

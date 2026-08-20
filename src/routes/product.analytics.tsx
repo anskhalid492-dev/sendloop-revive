@@ -34,8 +34,8 @@ import {
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
-  { q: "Is open tracking reliable?", a: "Open tracking is directional because of privacy proxies like Apple Mail Privacy Protection. Sendloop filters known bots and highlights reply rate as the primary metric." },
-  { q: "Can I use my own tracking domain?", a: "Yes, and we recommend it. Add a CNAME record and Sendloop handles opens and clicks under your own domain for better deliverability." },
+  { q: "Is open tracking reliable?", a: "Open tracking is directional because of privacy proxies like Apple Mail Privacy Protection. MunchReach filters known bots and highlights reply rate as the primary metric." },
+  { q: "Can I use my own tracking domain?", a: "Yes, and we recommend it. Add a CNAME record and MunchReach handles opens and clicks under your own domain for better deliverability." },
   { q: "How long is data kept?", a: "Event-level history is retained for the lifetime of the workspace — no rolling window, no downgraded resolution." },
   { q: "Can I export raw events?", a: "Yes, every metric — sends, opens, clicks, replies, bounces — can be exported as CSV or pulled via the API." },
   { q: "Can I compare two variants directly?", a: "Yes, the variant view sits subject-line by subject-line with statistical significance flagged automatically." },
@@ -44,7 +44,7 @@ const faqs = [
 
 export const Route = createFileRoute("/product/analytics")({
   head: () => metaFor(
-    "Cold Email Analytics & Reporting — Sendloop",
+    "Cold Email Analytics & Reporting — MunchReach",
     "Dashboards for opens, clicks, replies, bounces and meetings by campaign, step, variant, mailbox and teammate.",
     "/product/analytics",
     faqs,
@@ -181,7 +181,7 @@ function Page() {
       <Section title="Why outbound reporting fails">
         <PainPoints items={pains} />
       </Section>
-      <Section title="How Sendloop solves it" description="Dashboards built around decisions, not vanity numbers.">
+      <Section title="How MunchReach solves it" description="Dashboards built around decisions, not vanity numbers.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">

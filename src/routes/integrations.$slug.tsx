@@ -25,13 +25,13 @@ export const Route = createFileRoute("/integrations/$slug")({
     if (!meta) {
       return {
         meta: [
-          { title: "Integration not found — Sendloop" },
+          { title: "Integration not found — MunchReach" },
           { name: "robots", content: "noindex" },
         ],
       };
     }
     return metaFor(
-      `${meta.name} Integration — Cold Email Automation | Sendloop`,
+      `${meta.name} Integration — Cold Email Automation | MunchReach`,
       meta.description.slice(0, 155),
       `https://sendloop.lovable.app/integrations/${meta.slug}`,
       meta.faqs,
@@ -48,7 +48,7 @@ function IntegrationNotFound() {
       <div className="mx-auto max-w-xl px-4 py-28 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Integration not found</h1>
         <p className="mt-3 text-muted-foreground">
-          That integration does not exist. Browse everything Sendloop connects to instead.
+          That integration does not exist. Browse everything MunchReach connects to instead.
         </p>
         <Button className="mt-8" asChild>
           <Link to="/integrations">All integrations</Link>
@@ -68,7 +68,7 @@ function IntegrationDetail() {
       <PageHero
         eyebrow={`${categoryLabel(meta.category)} integration`}
         title={`${meta.name} +`}
-        highlight="Sendloop"
+        highlight="MunchReach"
         description={meta.description}
         secondaryCta="Connect in your workspace"
         secondaryHref="/settings"
@@ -99,7 +99,7 @@ function IntegrationDetail() {
             )}
             {meta.inbound ? (
               <Badge variant="secondary" className="mt-4">
-                Two-way — can also create leads in Sendloop
+                Two-way — can also create leads in MunchReach
               </Badge>
             ) : null}
             <a
@@ -119,12 +119,12 @@ function IntegrationDetail() {
       </Section>
 
       <Section>
-        <FaqBlock faqs={meta.faqs} description={`Common questions about ${meta.name} and Sendloop.`} />
+        <FaqBlock faqs={meta.faqs} description={`Common questions about ${meta.name} and MunchReach.`} />
       </Section>
 
       <CtaBlock
-        title={`Connect ${meta.name} to Sendloop`}
-        description="Start free, import your leads, and let Sendloop handle the sending."
+        title={`Connect ${meta.name} to MunchReach`}
+        description="Start free, import your leads, and let MunchReach handle the sending."
         secondaryCta="All integrations"
         secondaryHref="/integrations"
       />

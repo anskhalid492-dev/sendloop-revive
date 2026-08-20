@@ -9,8 +9,8 @@ const data = COMPARISONS["sendloop-vs-instantly"]!;
 export const Route = createFileRoute("/compare/sendloop-vs-instantly")({
   head: () =>
     metaFor(
-      "Sendloop vs Instantly — Honest Cold Email Platform Comparison",
-      "Compare Sendloop and Instantly across campaigns, sending infrastructure, warmup, unified inbox, CRM, automations and analytics. Reviewed August 2026.",
+      "MunchReach vs Instantly — Honest Cold Email Platform Comparison",
+      "Compare MunchReach and Instantly across campaigns, sending infrastructure, warmup, unified inbox, CRM, automations and analytics. Reviewed August 2026.",
       "/compare/sendloop-vs-instantly",
       data.faqs,
     ),

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const faqs = [
   {
     q: "Do I connect an email provider here?",
-    a: "No. Sendloop operates the sending infrastructure. Integrations connect the other tools in your stack — AI, CRM, automation, calendar, notifications and spreadsheets.",
+    a: "No. MunchReach operates the sending infrastructure. Integrations connect the other tools in your stack — AI, CRM, automation, calendar, notifications and spreadsheets.",
   },
   {
     q: "Where do I connect an integration?",
@@ -30,7 +30,7 @@ const faqs = [
     a: "Keys are encrypted before they are stored and are never returned to the browser — you only ever see a masked hint.",
   },
   {
-    q: "Can data flow back into Sendloop?",
+    q: "Can data flow back into MunchReach?",
     a: "Yes. Zapier and Make can push new leads into your workspace through a private inbound URL that is unique to your connection.",
   },
 ];
@@ -38,8 +38,8 @@ const faqs = [
 export const Route = createFileRoute("/integrations/")({
   head: () =>
     metaFor(
-      "Integrations — Connect Sendloop to your stack | Sendloop",
-      "Connect Sendloop to OpenAI, Slack, Zapier, Make, HubSpot, GoHighLevel, Calendly and Google Sheets. Encrypted credentials, event logs and two-way automation.",
+      "Integrations — Connect MunchReach to your stack | MunchReach",
+      "Connect MunchReach to OpenAI, Slack, Zapier, Make, HubSpot, GoHighLevel, Calendly and Google Sheets. Encrypted credentials, event logs and two-way automation.",
       "https://sendloop.lovable.app/integrations",
       faqs,
     ),
@@ -58,16 +58,16 @@ function IntegrationsDirectory() {
     <MarketingLayout>
       <PageHero
         eyebrow="Integrations"
-        title="Sendloop fits into"
+        title="MunchReach fits into"
         highlight="the stack you already use"
-        description="Sendloop runs your sending infrastructure. Integrations connect everything around it — AI copy, CRM records, automation platforms, calendars, Slack alerts and spreadsheets."
+        description="MunchReach runs your sending infrastructure. Integrations connect everything around it — AI copy, CRM records, automation platforms, calendars, Slack alerts and spreadsheets."
         secondaryCta="Browse integrations"
         secondaryHref="#directory"
       />
 
       <Section
         id="directory"
-        title="Every Sendloop integration"
+        title="Every MunchReach integration"
         description="Connect in a minute from Settings → Integrations. No email provider setup — ever."
       >
         <div className="flex flex-wrap gap-2">
@@ -118,8 +118,8 @@ function IntegrationsDirectory() {
       <Section muted title="How an integration works">
         <WorkflowStrip
           steps={[
-            { title: "Connect", text: "Paste your key or webhook URL — Sendloop verifies it live." },
-            { title: "Choose events", text: "Pick the Sendloop events that should be delivered." },
+            { title: "Connect", text: "Paste your key or webhook URL — MunchReach verifies it live." },
+            { title: "Choose events", text: "Pick the MunchReach events that should be delivered." },
             { title: "Automatic delivery", text: "Replies, leads and meetings flow to your tools instantly." },
             { title: "Full log", text: "Every attempt is logged, with one-click retry on failures." },
           ]}
@@ -129,12 +129,12 @@ function IntegrationsDirectory() {
       <TestimonialCarousel page="integrations" />
 
       <Section>
-        <FaqBlock faqs={faqs} description="Questions about connecting Sendloop to your tools." />
+        <FaqBlock faqs={faqs} description="Questions about connecting MunchReach to your tools." />
       </Section>
 
       <CtaBlock
         title="Ready to simplify your cold outreach?"
-        description="Start free, import your leads, and let Sendloop handle the sending."
+        description="Start free, import your leads, and let MunchReach handle the sending."
         secondaryCta="See how it works"
         secondaryHref="/features"
       />

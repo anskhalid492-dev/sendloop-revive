@@ -27,7 +27,7 @@ import { connectMailbox } from "@/lib/mailboxes.functions";
 
 /**
  * Connects a mailbox on a domain the customer owns. Sending infrastructure is
- * managed by Sendloop, so there is deliberately no provider picker and no
+ * managed by MunchReach, so there is deliberately no provider picker and no
  * credential fields here — that configuration is admin-side only.
  */
 export function ConnectMailboxDialog({
@@ -99,7 +99,7 @@ export function ConnectMailboxDialog({
         <DialogHeader>
           <DialogTitle>Connect your email account</DialogTitle>
           <DialogDescription>
-            Connect a mailbox on a domain you own. Sendloop handles the sending infrastructure for
+            Connect a mailbox on a domain you own. MunchReach handles the sending infrastructure for
             you — there is nothing to configure and no keys to paste.
           </DialogDescription>
         </DialogHeader>

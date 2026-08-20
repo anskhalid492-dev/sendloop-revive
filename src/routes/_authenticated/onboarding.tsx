@@ -31,13 +31,13 @@ import {
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
     meta: [
-      { title: "Set up your workspace — Sendloop" },
+      { title: "Set up your workspace — MunchReach" },
       {
         name: "description",
         content:
-          "Create your Sendloop workspace, tell us about your team and launch your first cold email campaign in minutes.",
+          "Create your MunchReach workspace, tell us about your team and launch your first cold email campaign in minutes.",
       },
-      { property: "og:title", content: "Set up your Sendloop workspace" },
+      { property: "og:title", content: "Set up your MunchReach workspace" },
       {
         property: "og:description",
         content: "A short guided setup: workspace, team details and your outreach goal.",
@@ -142,7 +142,7 @@ function OnboardingPage() {
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <Send className="size-4" />
           </span>
-          <span className="text-base font-bold tracking-tight">Sendloop</span>
+          <span className="text-base font-bold tracking-tight">MunchReach</span>
         </div>
 
         {/* Progress */}
@@ -170,10 +170,10 @@ function OnboardingPage() {
                 <Sparkles className="size-3.5" /> Let's get you set up
               </span>
               <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-                Welcome to Sendloop 👋
+                Welcome to MunchReach 👋
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Sendloop is your managed cold email workspace. Import prospects, build multi-step
+                MunchReach is your managed cold email workspace. Import prospects, build multi-step
                 campaigns with smart follow-ups, and handle every reply in one shared inbox — while
                 we run the sending infrastructure and deliverability for you.
               </p>
@@ -309,7 +309,7 @@ function OnboardingPage() {
               </span>
               <h1 className="mt-4 text-2xl font-bold tracking-tight">Your outreach goal</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                What do you want to use Sendloop for?
+                What do you want to use MunchReach for?
               </p>
 
               <div className="mt-6">
@@ -351,7 +351,7 @@ function OnboardingPage() {
               </span>
               <h1 className="mt-4 text-2xl font-bold tracking-tight">You're all set 🎉</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Here's the fastest path to your first replies. Sendloop handles the sending
+                Here's the fastest path to your first replies. MunchReach handles the sending
                 infrastructure — you just bring the prospects and the message.
               </p>
 

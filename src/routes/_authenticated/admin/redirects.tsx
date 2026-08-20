@@ -31,10 +31,10 @@ import { deleteRedirect, getAdminSiteData, saveRedirect } from "@/lib/site-conte
 export const Route = createFileRoute("/_authenticated/admin/redirects")({
   head: () => ({
     meta: [
-      { title: "Redirects — Sendloop Admin" },
+      { title: "Redirects — MunchReach Admin" },
       {
         name: "description",
-        content: "Create and audit 301/302 redirects for retired or renamed Sendloop URLs.",
+        content: "Create and audit 301/302 redirects for retired or renamed MunchReach URLs.",
       },
     ],
   }),

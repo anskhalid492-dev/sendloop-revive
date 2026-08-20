@@ -40,7 +40,7 @@ import { PAYOUT_METHOD_LABELS, PAYOUT_STATUS_LABELS, formatMoney } from "@/lib/r
 export const Route = createFileRoute("/_authenticated/admin/referrals")({
   head: () => ({
     meta: [
-      { title: "Referral Program — Sendloop Admin" },
+      { title: "Referral Program — MunchReach Admin" },
       { name: "description", content: "Configure commissions, review referral activity and approve affiliate payouts." },
     ],
   }),

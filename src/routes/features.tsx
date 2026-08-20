@@ -31,7 +31,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 const faqs = [
   {
     q: "Do I need my own sending provider?",
-    a: "No. Sendloop runs the sending infrastructure for you — mailboxes, warmup, routing and deliverability monitoring are all included.",
+    a: "No. MunchReach runs the sending infrastructure for you — mailboxes, warmup, routing and deliverability monitoring are all included.",
   },
   {
     q: "Can I run multiple sequences at once?",
@@ -42,7 +42,7 @@ const faqs = [
     a: "Replies land in the unified inbox, get classified, and automatically stop follow-ups for that contact.",
   },
   {
-    q: "Does Sendloop work for agencies?",
+    q: "Does MunchReach work for agencies?",
     a: "Workspaces keep each client's leads, campaigns, mailboxes and reporting fully separated under one login.",
   },
 ];
@@ -50,8 +50,8 @@ const faqs = [
 export const Route = createFileRoute("/features")({
   head: () => ({
     ...metaFor(
-      "Features — Everything in Sendloop",
-      "Sequences, managed sending, warmup, unified inbox, CRM and analytics — the full Sendloop feature set in one place.",
+      "Features — Everything in MunchReach",
+      "Sequences, managed sending, warmup, unified inbox, CRM and analytics — the full MunchReach feature set in one place.",
       "/features",
     ),
     scripts: [faqJsonLd(faqs)],
@@ -66,14 +66,14 @@ function FeaturesPage() {
         eyebrow="Features"
         title="Everything you need to run"
         highlight="cold outreach end to end"
-        description="Sendloop handles your email sending infrastructure so your team can focus on sequences, replies and pipeline."
+        description="MunchReach handles your email sending infrastructure so your team can focus on sequences, replies and pipeline."
         secondaryCta="See the Product ↓"
       />
 
       <BigPreview
         eyebrow="Product"
         title="One workspace, the whole outbound loop"
-        description="Build a sequence, launch it, and work replies without leaving Sendloop."
+        description="Build a sequence, launch it, and work replies without leaving MunchReach."
       >
         <MockPanel title="app.sendloop.com/dashboard">
           <MockRows
@@ -97,7 +97,7 @@ function FeaturesPage() {
           items={[
             { icon: Mail, title: "Sequence builder", text: "Multi-step campaigns with per-step wait windows, variables and A/B variants." },
             { icon: Repeat, title: "Smart follow-ups", text: "Chase automatically and stop instantly on reply, bounce or unsubscribe." },
-            { icon: ShieldCheck, title: "Managed sending", text: "Mailboxes, provider routing and warmup are operated by Sendloop." },
+            { icon: ShieldCheck, title: "Managed sending", text: "Mailboxes, provider routing and warmup are operated by MunchReach." },
             { icon: Inbox, title: "Unified inbox", text: "Every reply from every mailbox in one shared, assignable inbox." },
             { icon: Users, title: "CRM", text: "Contacts, companies, pipeline stages and tasks tied to campaign history." },
             { icon: BarChart3, title: "Analytics", text: "Sent, delivered, replies, positive replies and per-mailbox performance." },
@@ -112,7 +112,7 @@ function FeaturesPage() {
           steps={[
             { title: "Import leads", text: "CSV import with mapping, validation and deduplication." },
             { title: "Build the sequence", text: "Steps, delays, personalization and variants." },
-            { title: "Sendloop sends", text: "Routing, throttling and warmup are handled for you." },
+            { title: "MunchReach sends", text: "Routing, throttling and warmup are handled for you." },
             { title: "Work replies", text: "Classify, assign and push to CRM in the unified inbox." },
           ]}
         />
@@ -131,7 +131,7 @@ function FeaturesPage() {
       <TestimonialCarousel page="features" />
 
       <Section muted>
-        <FaqBlock faqs={faqs} description="Common questions about the Sendloop feature set." />
+        <FaqBlock faqs={faqs} description="Common questions about the MunchReach feature set." />
       </Section>
 
       <CtaBlock

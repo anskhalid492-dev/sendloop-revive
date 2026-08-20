@@ -28,8 +28,8 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 export const Route = createFileRoute("/about")({
   head: () =>
     metaFor(
-      "About Sendloop — Why We Built It and Where It's Going",
-      "Sendloop started inside a five-person outbound agency drowning in mailboxes. This is the story, what we learned, and what we're building next.",
+      "About MunchReach — Why We Built It and Where It's Going",
+      "MunchReach started inside a five-person outbound agency drowning in mailboxes. This is the story, what we learned, and what we're building next.",
       "/about",
     ),
   component: About,
@@ -52,7 +52,7 @@ const milestones = [
   {
     year: "2023",
     title: "The spark",
-    text: "Sendloop started as an internal tool for a five-person outbound agency drowning in mailboxes — built to answer one question nobody could answer: which message actually got the reply?",
+    text: "MunchReach started as an internal tool for a five-person outbound agency drowning in mailboxes — built to answer one question nobody could answer: which message actually got the reply?",
   },
   {
     year: "2024",
@@ -90,7 +90,7 @@ const lessons = [
 ];
 
 const stats = [
-  { value: "2,000+", label: "Teams sending with Sendloop" },
+  { value: "2,000+", label: "Teams sending with MunchReach" },
   { value: "180M", label: "Emails delivered" },
   { value: "96.4%", label: "Median inbox placement" },
   { value: "<1 day", label: "Median support response" },
@@ -103,7 +103,7 @@ function About() {
         eyebrow="Our story"
         title="We built the outbound stack"
         highlight="we wished we had"
-        description="Sendloop began inside an agency drowning in mailboxes, spreadsheets and missed replies. We fixed it for ourselves first, then opened it to everyone."
+        description="MunchReach began inside an agency drowning in mailboxes, spreadsheets and missed replies. We fixed it for ourselves first, then opened it to everyone."
       />
 
       <Section title="Where it started">
@@ -129,7 +129,7 @@ function About() {
         <PainPoints items={problems} />
       </Section>
 
-      <Section title="How it evolved" description="Four moments that shaped what Sendloop is today.">
+      <Section title="How it evolved" description="Four moments that shaped what MunchReach is today.">
         <ol className="relative mx-auto max-w-3xl space-y-5 sm:before:absolute sm:before:bottom-8 sm:before:left-[15px] sm:before:top-8 sm:before:w-px sm:before:bg-border">
           {milestones.map((m) => (
             <li key={m.year} className="relative flex gap-5">
@@ -150,7 +150,7 @@ function About() {
         <FeatureGrid items={lessons} />
       </Section>
 
-      <Section title="Why we're building Sendloop differently">
+      <Section title="Why we're building MunchReach differently">
         <div className="mx-auto max-w-3xl space-y-4 text-muted-foreground">
           <p>
             Most outbound tools rent you their infrastructure and keep the reputation. We took the opposite position:
@@ -220,10 +220,10 @@ function About() {
           </p>
           <blockquote className="rounded-2xl border border-border bg-card p-6 text-foreground">
             <p className="text-base font-medium">
-              &ldquo;We built Sendloop because we needed it. Every decision since has been made the same way: would we
+              &ldquo;We built MunchReach because we needed it. Every decision since has been made the same way: would we
               trust this with our own clients' domains?&rdquo;
             </p>
-            <footer className="mt-3 text-sm text-muted-foreground">— The Sendloop team</footer>
+            <footer className="mt-3 text-sm text-muted-foreground">— The MunchReach team</footer>
           </blockquote>
         </div>
       </Section>
@@ -233,7 +233,7 @@ function About() {
 
       <CtaBlock
         title="Come build pipeline with us"
-        description="Create a free workspace and see why outbound teams switch to Sendloop."
+        description="Create a free workspace and see why outbound teams switch to MunchReach."
       />
     </MarketingLayout>
   );

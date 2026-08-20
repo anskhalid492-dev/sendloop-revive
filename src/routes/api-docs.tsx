@@ -65,7 +65,7 @@ const painPoints = [
   {
     icon: Gauge,
     title: "Reporting lives in a silo",
-    text: "Campaign performance needs to sit next to pipeline and revenue data, which means pulling it out of Sendloop programmatically.",
+    text: "Campaign performance needs to sit next to pipeline and revenue data, which means pulling it out of MunchReach programmatically.",
   },
 ];
 
@@ -214,7 +214,7 @@ function ApiDocs() {
       <TestimonialCarousel page="api-docs" />
 
       <CtaBlock
-        title="Build on top of Sendloop"
+        title="Build on top of MunchReach"
         description="Create a workspace, generate a key and start pushing leads in minutes."
       />
     </MarketingLayout>

@@ -153,7 +153,7 @@ export function FaqBlock({
   faqs,
   eyebrow = "FAQ",
   title = "Frequently Asked Questions",
-  description = "Everything you need to know about Sendloop.",
+  description = "Everything you need to know about MunchReach.",
 }: {
   faqs: { q: string; a: string }[];
   eyebrow?: string;
@@ -616,8 +616,8 @@ export function faqJsonLd(faqs: { q: string; a: string }[]) {
 
 /** Side-by-side "life before / life after" contrast block. */
 export function BeforeAfter({
-  beforeTitle = "Without Sendloop",
-  afterTitle = "With Sendloop",
+  beforeTitle = "Without MunchReach",
+  afterTitle = "With MunchReach",
   before,
   after,
 }: {

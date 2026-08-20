@@ -33,7 +33,7 @@ const faqs = [
   },
   {
     q: "Can I reach you if I'm not a customer yet?",
-    a: "Absolutely. Use the form for pricing questions, demos, or to check if Sendloop fits your sending volume.",
+    a: "Absolutely. Use the form for pricing questions, demos, or to check if MunchReach fits your sending volume.",
   },
   {
     q: "Do you have a status page?",
@@ -44,8 +44,8 @@ const faqs = [
 export const Route = createFileRoute("/contact")({
   head: () =>
     metaFor(
-      "Contact Sendloop — Sales, Support & Partnerships",
-      "Talk to the Sendloop team about pricing, migrations, agency plans, deliverability audits or technical support.",
+      "Contact MunchReach — Sales, Support & Partnerships",
+      "Talk to the MunchReach team about pricing, migrations, agency plans, deliverability audits or technical support.",
       "/contact",
       faqs,
     ),
@@ -60,7 +60,7 @@ const channels = [
 
 const reasons = [
   { icon: Headset, title: "I need help fast", text: "Technical or deliverability issue affecting an active campaign." },
-  { icon: Mail, title: "I'm evaluating Sendloop", text: "Pricing, plan limits, migrations from another tool." },
+  { icon: Mail, title: "I'm evaluating MunchReach", text: "Pricing, plan limits, migrations from another tool." },
   { icon: Bug, title: "I found a bug", text: "Something isn't behaving as documented — tell us what happened." },
   { icon: Building2, title: "I run an agency", text: "Multi-workspace setup, white-label reporting, reseller terms." },
 ];
@@ -165,7 +165,7 @@ function Contact() {
 
       <TestimonialCarousel page="contact" />
 
-      <CtaBlock title="Not ready to talk yet?" description="Create a free workspace and explore Sendloop at your own pace." />
+      <CtaBlock title="Not ready to talk yet?" description="Create a free workspace and explore MunchReach at your own pace." />
     </MarketingLayout>
   );
 }

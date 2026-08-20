@@ -1,8 +1,8 @@
 /**
  * Credential resolution for a sending mailbox.
  *
- * Sendloop runs managed sending: the provider credentials are owned by
- * Sendloop and stored in `email_provider_secrets` (or a platform environment
+ * MunchReach runs managed sending: the provider credentials are owned by
+ * MunchReach and stored in `email_provider_secrets` (or a platform environment
  * secret). Customers never supply provider API keys. Legacy per-mailbox
  * secrets are only consulted for mailboxes with no managed provider linked.
  */

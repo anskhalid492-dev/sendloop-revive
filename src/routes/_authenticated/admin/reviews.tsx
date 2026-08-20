@@ -29,10 +29,10 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/reviews")({
   head: () => ({
     meta: [
-      { title: "Customer Reviews — Sendloop Admin" },
+      { title: "Customer Reviews — MunchReach Admin" },
       {
         name: "description",
-        content: "Publish, feature and moderate the customer reviews shown on the Sendloop marketing site.",
+        content: "Publish, feature and moderate the customer reviews shown on the MunchReach marketing site.",
       },
     ],
   }),

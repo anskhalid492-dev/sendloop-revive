@@ -68,13 +68,13 @@ import {
 export const Route = createFileRoute("/_authenticated/automations/workflows")({
   head: () => ({
     meta: [
-      { title: "Automations — Sendloop" },
+      { title: "Automations — MunchReach" },
       {
         name: "description",
         content:
           "Build real outbound workflows: trigger on replies, bookings and campaign events, then move contacts, enroll sequences and alert your team automatically.",
       },
-      { property: "og:title", content: "Automations — Sendloop" },
+      { property: "og:title", content: "Automations — MunchReach" },
       {
         property: "og:description",
         content: "Production workflow automation for cold email: triggers, conditions, waits and real actions.",

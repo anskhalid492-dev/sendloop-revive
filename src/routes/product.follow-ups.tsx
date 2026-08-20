@@ -42,7 +42,7 @@ const faqs = [
 export const Route = createFileRoute("/product/follow-ups")({
   head: () =>
     metaFor(
-      "Automated Cold Email Follow-Ups — Sendloop",
+      "Automated Cold Email Follow-Ups — MunchReach",
       "Perfectly timed, in-thread follow-ups that adapt to opens, clicks and out-of-office replies, then stop instantly.",
       "/product/follow-ups",
       faqs,
@@ -60,7 +60,7 @@ const solutionRows = [
   {
     eyebrow: "Timed cadence",
     title: "A cadence that runs itself, down to the hour",
-    text: "Set the number of touches and the gap between them once. Sendloop counts business days, respects sending windows, and fires each step exactly on schedule.",
+    text: "Set the number of touches and the gap between them once. MunchReach counts business days, respects sending windows, and fires each step exactly on schedule.",
     bullets: [
       "Delays in minutes, hours or business days",
       "Automatic weekend and holiday skipping",
@@ -145,7 +145,7 @@ function Page() {
         eyebrow="Follow-Ups"
         title="Automated follow-ups that"
         highlight="stop at the right moment"
-        description="Most replies come from the second and third touch. Sendloop sends them for you — on your schedule, in the same thread, and only while the prospect is still silent."
+        description="Most replies come from the second and third touch. MunchReach sends them for you — on your schedule, in the same thread, and only while the prospect is still silent."
         secondaryCta="See Follow-Ups"
         secondaryHref="#product"
       />
@@ -156,7 +156,7 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
-      <Section title="How Sendloop solves it" description="Cadence, threading and stop rules, fully automated.">
+      <Section title="How MunchReach solves it" description="Cadence, threading and stop rules, fully automated.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
@@ -184,7 +184,7 @@ function Page() {
       </Section>
       <CtaBlock
         title="Never forget a follow-up again"
-        description="Set the cadence once and let Sendloop handle the timing, threading and stop rules."
+        description="Set the cadence once and let MunchReach handle the timing, threading and stop rules."
       />
     </MarketingLayout>
   );

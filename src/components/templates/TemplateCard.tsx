@@ -42,7 +42,7 @@ export function TemplateCard({
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {template.category} ·{" "}
-            {template.is_official ? "Sendloop official" : "Created by your workspace"}
+            {template.is_official ? "MunchReach official" : "Created by your workspace"}
           </p>
         </div>
         {canManage ? (

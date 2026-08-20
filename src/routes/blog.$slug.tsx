@@ -19,8 +19,8 @@ export const Route = createFileRoute("/blog/$slug")({
   },
   head: ({ params, loaderData }) => {
     const post = loaderData?.post;
-    if (!post) return { meta: [{ title: "Article — Sendloop Blog" }] };
-    const title = post.seo_title || `${post.title} — Sendloop Blog`;
+    if (!post) return { meta: [{ title: "Article — MunchReach Blog" }] };
+    const title = post.seo_title || `${post.title} — MunchReach Blog`;
     const description = post.meta_description || post.excerpt || post.subtitle;
     const path = `/blog/${params.slug}`;
     const image = post.og_image_url || post.cover_image_url;
@@ -55,7 +55,7 @@ export const Route = createFileRoute("/blog/$slug")({
             datePublished: post.published_at,
             dateModified: post.updated_at,
             author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
-            publisher: { "@type": "Organization", name: "Sendloop" },
+            publisher: { "@type": "Organization", name: "MunchReach" },
             ...(image ? { image } : {}),
           }),
         },
@@ -229,7 +229,7 @@ function ArticlePage() {
                 <div>
                   <h2 className="text-xl font-semibold">Ready to improve your cold email campaigns?</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Set up your domain, warm your mailboxes and launch a sequence in Sendloop.
+                    Set up your domain, warm your mailboxes and launch a sequence in MunchReach.
                   </p>
                 </div>
                 <Button asChild size="lg">

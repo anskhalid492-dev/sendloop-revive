@@ -14,8 +14,8 @@ export const Route = createFileRoute("/blog/author/$slug")({
   },
   head: ({ params, loaderData }) => {
     const author = loaderData?.author;
-    const title = `${author?.name ?? "Author"} — Sendloop Blog`;
-    const description = author?.bio || `Articles written by ${author?.name ?? "our team"} on the Sendloop blog.`;
+    const title = `${author?.name ?? "Author"} — MunchReach Blog`;
+    const description = author?.bio || `Articles written by ${author?.name ?? "our team"} on the MunchReach blog.`;
     const path = `/blog/author/${params.slug}`;
     return {
       meta: [

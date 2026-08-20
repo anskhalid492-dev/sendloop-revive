@@ -42,7 +42,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/email-accounts")({
   head: () => ({
     meta: [
-      { title: "Email Accounts — Sendloop Admin" },
+      { title: "Email Accounts — MunchReach Admin" },
       {
         name: "description",
         content:

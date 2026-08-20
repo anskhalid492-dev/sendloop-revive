@@ -114,7 +114,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
               Comparison · last reviewed {reviewed}
             </p>
             <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
-              Sendloop vs {data.competitor}
+              MunchReach vs {data.competitor}
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               {data.heroSummary}
@@ -124,7 +124,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
           <Reveal delay={0.05}>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
-                <p className="text-sm font-semibold text-primary">Sendloop is best for</p>
+                <p className="text-sm font-semibold text-primary">MunchReach is best for</p>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/85">{data.sendloopBestFor}</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-card p-5">
@@ -140,7 +140,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button size="lg" asChild>
                 <Link to="/signup">
-                  Try Sendloop
+                  Try MunchReach
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -186,7 +186,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
       <Section
         id="quick"
         title="Quick comparison"
-        description={`The short version for anyone deciding between Sendloop and ${data.competitor} today.`}
+        description={`The short version for anyone deciding between MunchReach and ${data.competitor} today.`}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           {data.quick.map((q) => (
@@ -197,7 +197,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
                 </p>
                 <p className="mt-3 flex gap-2 text-sm font-semibold">
                   <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-                  Sendloop: {q.sendloop}
+                  MunchReach: {q.sendloop}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {data.competitor}: {q.competitor}
@@ -211,7 +211,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
       <Section
         id="features"
         title="Feature comparison"
-        description={`Capability-by-capability. Sendloop rows describe what is in the product today; ${data.competitor} rows summarise publicly documented capabilities and may change.`}
+        description={`Capability-by-capability. MunchReach rows describe what is in the product today; ${data.competitor} rows summarise publicly documented capabilities and may change.`}
         muted
       >
         {/* Desktop table */}
@@ -220,7 +220,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
             <thead>
               <tr className="bg-secondary/50">
                 <th scope="col" className="w-56 px-5 py-3 font-semibold">Area</th>
-                <th scope="col" className="px-5 py-3 font-semibold text-primary">Sendloop</th>
+                <th scope="col" className="px-5 py-3 font-semibold text-primary">MunchReach</th>
                 <th scope="col" className="px-5 py-3 font-semibold">{data.competitor}</th>
               </tr>
             </thead>
@@ -254,7 +254,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
                   {Icon ? <Icon className="size-4 text-primary" aria-hidden="true" /> : null}
                   {row.area}
                 </p>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-primary">Sendloop</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-primary">MunchReach</p>
                 <p className="mt-1 text-sm leading-relaxed text-foreground/85">{row.sendloop}</p>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {data.competitor}
@@ -286,7 +286,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
             </ul>
           </div>
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
-            <h3 className="text-base font-bold">Where Sendloop is different</h3>
+            <h3 className="text-base font-bold">Where MunchReach is different</h3>
             <ul className="mt-4 space-y-3">
               {data.sendloopDifferences.map((s) => (
                 <li key={s} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
@@ -302,7 +302,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
       <Section id="who" title="Who should choose what" muted>
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-border/70 bg-card p-6">
-            <h3 className="text-base font-bold">Who should choose Sendloop?</h3>
+            <h3 className="text-base font-bold">Who should choose MunchReach?</h3>
             <ul className="mt-4 space-y-3">
               {data.chooseSendloop.map((s) => (
                 <li key={s} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
@@ -337,7 +337,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
 
       <Section
         id="migration"
-        title="Migration to Sendloop"
+        title="Migration to MunchReach"
         description="Four steps most teams follow when moving an active outbound motion without losing sending reputation."
       >
         <ol className="grid gap-4 sm:grid-cols-2">
@@ -353,7 +353,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
         <p className="mt-6 text-sm text-muted-foreground">
           Want the detail? Read{" "}
           <Link to="/how-it-works" className="font-medium text-primary underline-offset-4 hover:underline">
-            how Sendloop works
+            how MunchReach works
           </Link>
           ,{" "}
           <Link to="/deliverability-guide" className="font-medium text-primary underline-offset-4 hover:underline">
@@ -383,7 +383,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/12 via-secondary/40 to-background p-8 text-center sm:p-12">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              See how Sendloop handles your outbound
+              See how MunchReach handles your outbound
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
               Connect a mailbox, import a list, and run a campaign end to end — sending, replies,
@@ -392,7 +392,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Button size="lg" asChild>
                 <Link to="/signup">
-                  Try Sendloop
+                  Try MunchReach
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

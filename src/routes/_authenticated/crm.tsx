@@ -45,13 +45,13 @@ import { contactName, stageColor, STAGE_COLORS, type CrmContact } from "@/lib/cr
 export const Route = createFileRoute("/_authenticated/crm")({
   head: () => ({
     meta: [
-      { title: "CRM Pipeline — Sendloop" },
+      { title: "CRM Pipeline — MunchReach" },
       {
         name: "description",
         content:
           "Track every prospect from first touch to closed won with a live pipeline connected to your campaigns and inbox.",
       },
-      { property: "og:title", content: "CRM Pipeline — Sendloop" },
+      { property: "og:title", content: "CRM Pipeline — MunchReach" },
       {
         property: "og:description",
         content: "A live sales pipeline wired to your campaigns, replies and tasks.",

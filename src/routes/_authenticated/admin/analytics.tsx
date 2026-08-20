@@ -36,13 +36,13 @@ import { adminAnalytics, adminAnalyticsFilters } from "@/lib/admin-phase5.functi
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
   head: () => ({
     meta: [
-      { title: "Platform Analytics — Sendloop Admin" },
+      { title: "Platform Analytics — MunchReach Admin" },
       {
         name: "description",
         content:
-          "Real email, campaign, customer, revenue and system-health analytics across every Sendloop workspace, computed from source tables.",
+          "Real email, campaign, customer, revenue and system-health analytics across every MunchReach workspace, computed from source tables.",
       },
-      { property: "og:title", content: "Platform Analytics — Sendloop Admin" },
+      { property: "og:title", content: "Platform Analytics — MunchReach Admin" },
       {
         property: "og:description",
         content: "Cross-workspace analytics with deduplicated engagement metrics and no estimates.",

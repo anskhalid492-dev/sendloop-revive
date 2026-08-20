@@ -11,10 +11,10 @@ import { getFeatureMatrix, setPlanFeatureEnabled } from "@/lib/plans-admin.funct
 export const Route = createFileRoute("/_authenticated/admin/features")({
   head: () => ({
     meta: [
-      { title: "Feature Manager · Sendloop Admin" },
+      { title: "Feature Manager · MunchReach Admin" },
       {
         name: "description",
-        content: "Enable or disable Sendloop features per plan. Enforced server-side.",
+        content: "Enable or disable MunchReach features per plan. Enforced server-side.",
       },
     ],
   }),

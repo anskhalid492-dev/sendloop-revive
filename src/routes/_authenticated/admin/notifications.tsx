@@ -28,13 +28,13 @@ import { listAdminNotifications } from "@/lib/ops.functions";
 export const Route = createFileRoute("/_authenticated/admin/notifications")({
   head: () => ({
     meta: [
-      { title: "Alert Audit Log — Sendloop Admin" },
+      { title: "Alert Audit Log — MunchReach Admin" },
       {
         name: "description",
         content:
-          "Every signature-failure and retry-threshold alert Sendloop sent, with destination, delivery status and error details.",
+          "Every signature-failure and retry-threshold alert MunchReach sent, with destination, delivery status and error details.",
       },
-      { property: "og:title", content: "Alert Audit Log — Sendloop Admin" },
+      { property: "og:title", content: "Alert Audit Log — MunchReach Admin" },
       {
         property: "og:description",
         content: "Audit admin alert deliveries by channel, destination and status.",

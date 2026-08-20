@@ -44,11 +44,11 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/pages")({
   head: () => ({
     meta: [
-      { title: "Pages & SEO — Sendloop Admin" },
+      { title: "Pages & SEO — MunchReach Admin" },
       {
         name: "description",
         content:
-          "Manage titles, descriptions, canonicals, Open Graph tags and indexing for every public Sendloop page.",
+          "Manage titles, descriptions, canonicals, Open Graph tags and indexing for every public MunchReach page.",
       },
     ],
   }),

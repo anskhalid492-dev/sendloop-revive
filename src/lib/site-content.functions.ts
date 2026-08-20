@@ -352,10 +352,10 @@ export const getSitemapPreview = createServerFn({ method: "GET" })
 
 const globalSeoInput = z.object({
   site_title: z.string().trim().min(1).max(120),
-  title_template: z.string().trim().max(120).default("%s — Sendloop"),
+  title_template: z.string().trim().max(120).default("%s — MunchReach"),
   meta_description: z.string().trim().max(320).default(""),
   og_image_url: z.string().trim().max(600).default(""),
-  og_site_name: z.string().trim().max(120).default("Sendloop"),
+  og_site_name: z.string().trim().max(120).default("MunchReach"),
   twitter_handle: z.string().trim().max(60).default(""),
   google_verification: z.string().trim().max(200).default(""),
   bing_verification: z.string().trim().max(200).default(""),

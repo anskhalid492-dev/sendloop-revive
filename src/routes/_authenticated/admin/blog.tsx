@@ -53,11 +53,11 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/blog")({
   head: () => ({
     meta: [
-      { title: "Blog CMS — Sendloop Admin" },
+      { title: "Blog CMS — MunchReach Admin" },
       {
         name: "description",
         content:
-          "Write, schedule and publish Sendloop blog posts with a rich editor, media library, categories and authors.",
+          "Write, schedule and publish MunchReach blog posts with a rich editor, media library, categories and authors.",
       },
     ],
   }),

@@ -86,13 +86,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/sending")({
   head: () => ({
     meta: [
-      { title: "Email Accounts — Sendloop" },
+      { title: "Email Accounts — MunchReach" },
       {
         name: "description",
         content:
-          "Manage your Sendloop-managed sending accounts, warmup progress, deliverability and email health.",
+          "Manage your MunchReach-managed sending accounts, warmup progress, deliverability and email health.",
       },
-      { property: "og:title", content: "Email Accounts — Sendloop" },
+      { property: "og:title", content: "Email Accounts — MunchReach" },
       {
         property: "og:description",
         content: "Managed sending accounts, warmup and email health for your workspace.",
@@ -174,7 +174,7 @@ function EmailAccountsPage() {
   });
   const domains = domainsQuery.data?.domains ?? [];
 
-  // Live updates: refresh when Sendloop assigns, pauses or updates an account.
+  // Live updates: refresh when MunchReach assigns, pauses or updates an account.
   // A failed/closed subscription is surfaced in the UI with an in-place retry
   // (no page reload) instead of silently going stale.
   useEffect(() => {
@@ -851,7 +851,7 @@ function EmailAccountsPage() {
         )}
 
         <p className="text-xs text-muted-foreground">
-          You own your domains and mailboxes. Sendloop manages the sending infrastructure, warmup and deliverability
+          You own your domains and mailboxes. MunchReach manages the sending infrastructure, warmup and deliverability
           monitoring for you.
         </p>
       </div>
@@ -885,7 +885,7 @@ function EmailAccountsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Disconnect {selected.length} mailbox(es)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Sendloop stops sending from these mailboxes and removes their connection. Your mailbox itself is untouched and campaign history is kept.
+              MunchReach stops sending from these mailboxes and removes their connection. Your mailbox itself is untouched and campaign history is kept.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

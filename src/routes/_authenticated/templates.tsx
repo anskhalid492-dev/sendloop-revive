@@ -32,16 +32,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/templates")({
   head: () => ({
     meta: [
-      { title: "Template Library — Sendloop" },
+      { title: "Template Library — MunchReach" },
       {
         name: "description",
         content:
           "Search, preview and reuse proven cold email templates, or build your own workspace library.",
       },
-      { property: "og:title", content: "Template Library — Sendloop" },
+      { property: "og:title", content: "Template Library — MunchReach" },
       {
         property: "og:description",
-        content: "Official Sendloop templates plus the ones your team creates.",
+        content: "Official MunchReach templates plus the ones your team creates.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -50,13 +50,13 @@ export const Route = createFileRoute("/_authenticated/templates")({
   component: TemplatesPage,
 });
 
-type ViewTab = "All" | "Featured" | "Recently used" | "My templates" | "Sendloop official";
+type ViewTab = "All" | "Featured" | "Recently used" | "My templates" | "MunchReach official";
 const VIEW_TABS: ViewTab[] = [
   "All",
   "Featured",
   "Recently used",
   "My templates",
-  "Sendloop official",
+  "MunchReach official",
 ];
 
 function TemplatesPage() {
@@ -110,7 +110,7 @@ function TemplatesPage() {
     let rows = [...all];
     if (view === "Featured") rows = rows.filter((t) => t.featured);
     if (view === "My templates") rows = rows.filter((t) => !t.is_official);
-    if (view === "Sendloop official") rows = rows.filter((t) => t.is_official);
+    if (view === "MunchReach official") rows = rows.filter((t) => t.is_official);
     if (view === "Recently used")
       rows = recent
         .map((id) => rows.find((t) => t.id === id))
@@ -149,12 +149,12 @@ function TemplatesPage() {
   return (
     <AppShell
       title="Templates"
-      description="A library of proven cold email copy — official Sendloop templates plus your own."
+      description="A library of proven cold email copy — official MunchReach templates plus your own."
     >
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            <span>{counts.official} Sendloop templates</span>
+            <span>{counts.official} MunchReach templates</span>
             <span aria-hidden>·</span>
             <span>{counts.mine} workspace templates</span>
           </div>

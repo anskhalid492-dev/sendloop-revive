@@ -354,7 +354,7 @@ export async function sendProviderTestEmail(
 ): Promise<TestSendResult> {
   return sendProviderEmail(provider, credentials, {
     ...message,
-    subject: "Sendloop test email",
-    text: "This is a test email from Sendloop.\n\nIf you received it, this sending account is ready to run campaigns.",
+    subject: "MunchReach test email",
+    text: "This is a test email from MunchReach.\n\nIf you received it, this sending account is ready to run campaigns.",
   });
 }

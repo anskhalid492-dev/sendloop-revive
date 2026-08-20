@@ -46,7 +46,7 @@ import { providerLabel, type ProviderId } from "@/lib/providers/registry";
 export const Route = createFileRoute("/_authenticated/admin/pool")({
   head: () => ({
     meta: [
-      { title: "Sending Pool — Sendloop Admin" },
+      { title: "Sending Pool — MunchReach Admin" },
       {
         name: "description",
         content: "Manage the shared mailbox pool: capacity, warmup state and health.",
@@ -152,7 +152,7 @@ function AdminPoolPage() {
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">Sending pool</h2>
           <p className="text-sm text-muted-foreground">
-            Every mailbox Sendloop operates, across all providers and workspaces.
+            Every mailbox MunchReach operates, across all providers and workspaces.
           </p>
         </div>
         <Button className="shrink-0" onClick={() => setOpen(true)} disabled={providers.length === 0}>

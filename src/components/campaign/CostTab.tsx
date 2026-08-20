@@ -117,7 +117,7 @@ export function CostTab({ builder }: { builder: CampaignBuilder }) {
 
       <p className="text-xs text-muted-foreground">
         Estimates assume the campaign keeps running at its current pace. Actual cost follows the
-        emails Sendloop sends on your behalf.
+        emails MunchReach sends on your behalf.
       </p>
     </div>
   );

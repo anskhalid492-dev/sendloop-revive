@@ -29,13 +29,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Pricing — Sendloop" },
+      { title: "Pricing — MunchReach" },
       {
         name: "description",
         content:
           "Simple, transparent pricing for cold email outreach. Start free, then scale with Starter, Growth or Agency plans.",
       },
-      { property: "og:title", content: "Pricing — Sendloop" },
+      { property: "og:title", content: "Pricing — MunchReach" },
       {
         property: "og:description",
         content:
@@ -97,7 +97,7 @@ function PricingPage() {
         </div>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
-          Prices in USD. Sending is fully managed by Sendloop — there is nothing to set up or
+          Prices in USD. Sending is fully managed by MunchReach — there is nothing to set up or
           maintain on your side.
         </p>
       </Section>
@@ -325,7 +325,7 @@ const pricingFaqs = [
     },
     {
       q: "Do I need my own SMTP or email API?",
-      a: "No. Sendloop manages the sending infrastructure behind the scenes. You add prospects, build your campaign and launch — we handle delivery.",
+      a: "No. MunchReach manages the sending infrastructure behind the scenes. You add prospects, build your campaign and launch — we handle delivery.",
     },
     {
       q: "What counts as a lead contact?",

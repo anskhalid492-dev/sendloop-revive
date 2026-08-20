@@ -19,13 +19,13 @@ export const Route = createFileRoute("/signin")({
     typeof search["redirect"] === "string" ? { redirect: search["redirect"] as string } : {},
   head: () => ({
     meta: [
-      { title: "Sign in to Sendloop — Cold Email Workspace" },
+      { title: "Sign in to MunchReach — Cold Email Workspace" },
       {
         name: "description",
         content:
-          "Sign in to your Sendloop workspace to run cold email campaigns, automate follow-ups and manage every reply in one inbox.",
+          "Sign in to your MunchReach workspace to run cold email campaigns, automate follow-ups and manage every reply in one inbox.",
       },
-      { property: "og:title", content: "Sign in to Sendloop" },
+      { property: "og:title", content: "Sign in to MunchReach" },
       {
         property: "og:description",
         content: "Access your cold email campaigns, leads and unified inbox.",
@@ -123,7 +123,7 @@ function SignInPage() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Log in to your Sendloop workspace."
+      subtitle="Log in to your MunchReach workspace."
       footer={
         <>
           Don&apos;t have an account?{" "}

@@ -578,7 +578,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     }
 
     // The mailbox may only send from a domain the customer has verified in
-    // Sendloop; the managed provider's own verification is checked at send time.
+    // MunchReach; the managed provider's own verification is checked at send time.
     if (account.domain_id) {
       const { data: domainRow } = await context.supabase
         .from("sending_domains")
@@ -629,7 +629,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           subject: `[Test] ${subject}`,
           text: body,
           html,
-          headers: { "X-Sendloop-Test-Request-ID": requestId },
+          headers: { "X-MunchReach-Test-Request-ID": requestId },
         },
         { stage: "test" },
       );

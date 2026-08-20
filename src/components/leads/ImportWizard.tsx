@@ -228,7 +228,7 @@ export function ImportWizard({
         <DialogHeader>
           <DialogTitle>Import leads from CSV</DialogTitle>
           <DialogDescription>
-            Upload a file, map the columns to Sendloop fields, then review before importing.
+            Upload a file, map the columns to MunchReach fields, then review before importing.
           </DialogDescription>
         </DialogHeader>
 

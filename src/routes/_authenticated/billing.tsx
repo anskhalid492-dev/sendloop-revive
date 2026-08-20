@@ -10,10 +10,10 @@ import { getPlans } from "@/lib/plans.functions";
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({
     meta: [
-      { title: "Billing — Sendloop" },
-      { name: "description", content: "Manage your Sendloop subscription, plan and usage." },
-      { property: "og:title", content: "Billing — Sendloop" },
-      { property: "og:description", content: "Manage your Sendloop subscription and plan." },
+      { title: "Billing — MunchReach" },
+      { name: "description", content: "Manage your MunchReach subscription, plan and usage." },
+      { property: "og:title", content: "Billing — MunchReach" },
+      { property: "og:description", content: "Manage your MunchReach subscription and plan." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

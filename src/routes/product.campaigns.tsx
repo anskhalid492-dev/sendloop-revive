@@ -36,16 +36,16 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 const faqs = [
   { q: "How many steps can a sequence have?", a: "As many as you need. Most teams see the best results with three to five steps spread over two weeks." },
   { q: "Do follow-ups stop when someone replies?", a: "Yes. Reply, bounce and unsubscribe stop the sequence instantly, and you can add custom stop conditions." },
-  { q: "Can I rotate multiple mailboxes in one campaign?", a: "Yes. Assign several sending accounts and Sendloop distributes volume based on the limits and weights you set." },
+  { q: "Can I rotate multiple mailboxes in one campaign?", a: "Yes. Assign several sending accounts and MunchReach distributes volume based on the limits and weights you set." },
   { q: "Can I test subject lines?", a: "Yes. Add variants to any step and the winner is promoted automatically once enough data is collected." },
   { q: "Will rotation hurt my domain reputation?", a: "No — rotation respects each mailbox's warmed-up daily cap, so no single account ever gets overloaded." },
-  { q: "Can I clone a winning campaign for a new list?", a: "Yes. Duplicate any campaign, swap the audience, and Sendloop resets analytics while keeping your sequence logic." },
+  { q: "Can I clone a winning campaign for a new list?", a: "Yes. Duplicate any campaign, swap the audience, and MunchReach resets analytics while keeping your sequence logic." },
 ];
 
 export const Route = createFileRoute("/product/campaigns")({
   head: () =>
     metaFor(
-      "Cold Email Campaign & Sequence Builder — Sendloop",
+      "Cold Email Campaign & Sequence Builder — MunchReach",
       "Build multi-step cold email campaigns with branching, A/B variants and mailbox rotation that protects deliverability.",
       "/product/campaigns",
       faqs,
@@ -85,7 +85,7 @@ const solutionRows = [
   {
     eyebrow: "Mailbox rotation",
     title: "Scale volume without burning a single account",
-    text: "Assign several sending accounts to one campaign. Sendloop distributes sends by weight, respects each mailbox's warmed-up cap, and rebalances automatically if one account slows down.",
+    text: "Assign several sending accounts to one campaign. MunchReach distributes sends by weight, respects each mailbox's warmed-up cap, and rebalances automatically if one account slows down.",
     bullets: [
       "Per-mailbox daily caps and weighting",
       "Automatic throttling as warmup progresses",
@@ -106,7 +106,7 @@ const solutionRows = [
   {
     eyebrow: "A/B/n testing",
     title: "Let the data pick your best angle",
-    text: "Run up to five variants of any subject line or body per step. Sendloop tracks reply rate per variant and automatically promotes the winner once results are statistically meaningful.",
+    text: "Run up to five variants of any subject line or body per step. MunchReach tracks reply rate per variant and automatically promotes the winner once results are statistically meaningful.",
     visual: (
       <MockPanel title="Step 1 · Variant performance">
         <MockBars
@@ -200,7 +200,7 @@ function Page() {
       <Section title="Why cold email campaigns stall">
         <PainPoints items={painPoints} />
       </Section>
-      <Section title="How Sendloop solves it" description="One builder for sequencing, testing and mailbox rotation.">
+      <Section title="How MunchReach solves it" description="One builder for sequencing, testing and mailbox rotation.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
@@ -216,7 +216,7 @@ function Page() {
         <StatStrip
           stats={[
             { value: "3.4x", label: "More replies vs. single-mailbox sending" },
-            { value: "12k+", label: "Campaigns launched on Sendloop" },
+            { value: "12k+", label: "Campaigns launched on MunchReach" },
             { value: "99.2%", label: "Sequences that stop cleanly on reply" },
             { value: "<10 min", label: "Median time to launch a new campaign" },
           ]}
@@ -228,7 +228,7 @@ function Page() {
       <Section title="Who it is for" description="Built for the way outbound teams actually work.">
         <UseCaseGrid items={useCases} />
       </Section>
-      <TestimonialCarousel page="campaigns" title="Teams shipping campaigns with Sendloop" />
+      <TestimonialCarousel page="campaigns" title="Teams shipping campaigns with MunchReach" />
       <Section muted>
         <FaqBlock faqs={faqs} />
       </Section>

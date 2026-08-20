@@ -20,10 +20,10 @@ import { listCreditLedger } from "@/lib/plans-admin.functions";
 export const Route = createFileRoute("/_authenticated/admin/credits/ledger")({
   head: () => ({
     meta: [
-      { title: "Credit Ledger · Sendloop Admin" },
+      { title: "Credit Ledger · MunchReach Admin" },
       {
         name: "description",
-        content: "Immutable history of every Sendloop credit allocation, usage and adjustment.",
+        content: "Immutable history of every MunchReach credit allocation, usage and adjustment.",
       },
     ],
   }),

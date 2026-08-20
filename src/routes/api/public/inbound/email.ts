@@ -2,7 +2,7 @@
  * Inbound email + delivery event endpoint.
  *
  * Every delivery must carry a valid signature (provider Svix signature, HMAC
- * of the raw body, or the Sendloop shared secret). The verdict is recorded so
+ * of the raw body, or the MunchReach shared secret). The verdict is recorded so
  * Admin can see live webhook status, every event is logged before processing,
  * and processing is idempotent so retries never duplicate anything.
  */

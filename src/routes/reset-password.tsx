@@ -12,14 +12,14 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Set a new Sendloop password" },
+      { title: "Set a new MunchReach password" },
       {
         name: "description",
         content:
-          "Choose a new password for your Sendloop account and get back to your cold email campaigns.",
+          "Choose a new password for your MunchReach account and get back to your cold email campaigns.",
       },
-      { property: "og:title", content: "Set a new Sendloop password" },
-      { property: "og:description", content: "Choose a new password for your Sendloop account." },
+      { property: "og:title", content: "Set a new MunchReach password" },
+      { property: "og:description", content: "Choose a new password for your MunchReach account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

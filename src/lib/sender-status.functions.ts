@@ -86,11 +86,11 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
             ? "failed"
             : "pending";
 
-      // Customers only ever see Sendloop's managed sending — never a provider
+      // Customers only ever see MunchReach's managed sending — never a provider
       // name, raw provider error text, or credential state.
       let providerStatus: SenderRoutingRow["providerStatus"] = "unknown";
       let providerDetail = "Sending infrastructure is being prepared for this domain.";
-      const provider: string | null = "Sendloop managed sending";
+      const provider: string | null = "MunchReach managed sending";
 
       try {
         const managed = await resolveManagedProvider(supabaseAdmin as never, account);
@@ -103,7 +103,7 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
           providerStatus = check.status;
           providerDetail =
             check.status === "verified"
-              ? "This domain is ready to send through Sendloop."
+              ? "This domain is ready to send through MunchReach."
               : check.status === "not_verified"
                 ? "This domain is not ready to send yet. Complete the DNS verification."
                 : "Sending readiness for this domain could not be confirmed right now.";

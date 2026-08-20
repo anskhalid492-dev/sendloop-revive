@@ -16,7 +16,7 @@ import {
   type ReferralTemplateMap,
 } from "@/lib/referral-templates";
 
-const FROM = "Sendloop <referrals@sendloop.io>";
+const FROM = "MunchReach <referrals@sendloop.io>";
 
 export type ReferralNotificationKind =
   | "referral_attributed"
@@ -78,7 +78,7 @@ async function sendEmail(to: string, title: string, message: string, link: strin
       <p style="margin:24px 0">
         <a href="${link}" style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">${escapeHtml(ctaLabel)}</a>
       </p>
-      <p style="color:#888;font-size:12px">You receive this because referral updates are enabled in your Sendloop notification settings.</p>
+      <p style="color:#888;font-size:12px">You receive this because referral updates are enabled in your MunchReach notification settings.</p>
     </div>`;
   try {
     await fetch("https://api.resend.com/emails", {

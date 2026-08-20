@@ -5,8 +5,8 @@ import { MarketingLayout, PageHero, Section, Prose, CtaBlock, metaFor } from "@/
 export const Route = createFileRoute("/privacy")({
   head: () =>
     metaFor(
-      "Privacy Policy — How Sendloop Handles Your Data",
-      "What data Sendloop collects, how it is stored and encrypted, who can access it, and how to exercise your GDPR/CCPA rights.",
+      "Privacy Policy — How MunchReach Handles Your Data",
+      "What data MunchReach collects, how it is stored and encrypted, who can access it, and how to exercise your GDPR/CCPA rights.",
       "/privacy",
     ),
   component: Privacy,
@@ -35,8 +35,8 @@ const sections = [
     id: "scope",
     heading: "1. Scope and roles",
     body: [
-      "This policy describes how Sendloop, Inc. (\"Sendloop\", \"we\", \"us\") collects, uses and protects personal data when you use our website, application and API (together, the \"Service\").",
-      "When you use Sendloop to contact your own prospects, you act as the data controller for that prospect data and Sendloop acts as a data processor operating on your documented instructions. When we collect data about you as our customer or user (account, billing, support data), Sendloop is the controller.",
+      "This policy describes how MunchReach, Inc. (\"MunchReach\", \"we\", \"us\") collects, uses and protects personal data when you use our website, application and API (together, the \"Service\").",
+      "When you use MunchReach to contact your own prospects, you act as the data controller for that prospect data and MunchReach acts as a data processor operating on your documented instructions. When we collect data about you as our customer or user (account, billing, support data), MunchReach is the controller.",
     ],
   },
   {
@@ -86,7 +86,7 @@ const sections = [
     body: [
       "We use strictly necessary cookies for authentication and session management. These cannot be disabled without breaking core functionality.",
       "We use limited analytics cookies to understand product usage; you can opt out of non-essential analytics from your workspace settings.",
-      "Campaign tracking pixels and link-tracking used in emails you send are configured and controlled by you, the sender, not by Sendloop directly.",
+      "Campaign tracking pixels and link-tracking used in emails you send are configured and controlled by you, the sender, not by MunchReach directly.",
     ],
   },
   {
@@ -113,7 +113,7 @@ const sections = [
     id: "billing",
     heading: "9. Billing data",
     body: [
-      "Payment card details are collected and processed directly by our PCI-DSS-compliant payment processor; Sendloop does not store full card numbers on its own systems.",
+      "Payment card details are collected and processed directly by our PCI-DSS-compliant payment processor; MunchReach does not store full card numbers on its own systems.",
       "We retain invoice metadata (amounts, dates, plan) for accounting and dispute-resolution purposes.",
     ],
   },
@@ -123,7 +123,7 @@ const sections = [
     body: [
       "If you are located in the EEA or UK, you have the right to access, rectify, export, restrict, object to, or erase your personal data, and the right to lodge a complaint with your local supervisory authority.",
       "Where processing relies on consent, you may withdraw it at any time without affecting the lawfulness of prior processing.",
-      "Prospects contacted through a Sendloop customer's campaigns may direct rights requests to us at privacy@sendloop.app; we will forward the request to the responsible workspace controller and, on request, suppress the address across the platform.",
+      "Prospects contacted through a MunchReach customer's campaigns may direct rights requests to us at privacy@sendloop.app; we will forward the request to the responsible workspace controller and, on request, suppress the address across the platform.",
     ],
   },
   {
@@ -131,7 +131,7 @@ const sections = [
     heading: "11. CCPA/CPRA rights (California)",
     body: [
       "California residents have the right to know what personal information is collected, request deletion, correct inaccurate information, and opt out of the sale or sharing of personal information.",
-      "Sendloop does not sell or share personal information as those terms are defined under the CCPA/CPRA.",
+      "MunchReach does not sell or share personal information as those terms are defined under the CCPA/CPRA.",
       "You may submit a verifiable request to privacy@sendloop.app; we will respond within 45 days as required by law.",
     ],
   },

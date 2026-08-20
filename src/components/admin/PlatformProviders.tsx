@@ -104,7 +104,7 @@ export function PlatformProviders() {
           <div>
             <h3 className="text-sm font-semibold">Platform providers</h3>
             <p className="text-xs text-muted-foreground">
-              Every provider Sendloop talks to. Credentials stay server-side and are never sent to
+              Every provider MunchReach talks to. Credentials stay server-side and are never sent to
               the browser.
             </p>
           </div>
@@ -205,7 +205,7 @@ export function PlatformProviders() {
         <div className="border-b border-border p-4">
           <h3 className="text-sm font-semibold">Email &amp; sending infrastructure</h3>
           <p className="text-xs text-muted-foreground">
-            Sendloop-managed sending. Customers never see or configure these credentials — they
+            MunchReach-managed sending. Customers never see or configure these credentials — they
             connect their own domains and mailboxes under Email Accounts.
           </p>
         </div>

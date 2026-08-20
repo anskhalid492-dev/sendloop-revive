@@ -60,6 +60,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { adminGlobalSearch } from "@/lib/admin-dashboard.functions";
 import { listAdminNotifications } from "@/lib/ops.functions";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { BRAND_NAME } from "@/lib/branding";
 
 type NavItem = { to: string; label: string; icon: typeof Users };
 
@@ -319,12 +321,8 @@ export function AdminShell({
   const sidebar = (
     <div className="flex h-full flex-col gap-1 overflow-y-auto p-3">
       <Link to="/admin" className="mb-4 flex items-center gap-2 px-2 py-2">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-foreground/90 text-background">
-          <Shield className="size-4" />
-        </span>
-        <span className="text-base font-bold tracking-tight">
-          Sendloop <span className="text-muted-foreground">Admin</span>
-        </span>
+        <BrandLogo className="h-7 max-w-[150px]" alt={`${BRAND_NAME} admin`} />
+        <span className="text-sm font-semibold tracking-tight text-muted-foreground">Admin</span>
       </Link>
       {navSections.map((section) => (
         <div key={section.title} className="mb-2">

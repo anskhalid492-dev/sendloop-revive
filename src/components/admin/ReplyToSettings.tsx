@@ -61,7 +61,7 @@ export function ReplyToSettings() {
       <div>
         <h3 className="text-base font-semibold">Reply-to inbox</h3>
         <p className="text-sm text-muted-foreground">
-          Replies to every managed campaign land in this inbox, and forwarding it into Sendloop is
+          Replies to every managed campaign land in this inbox, and forwarding it into MunchReach is
           what makes reply tracking and the Unified Inbox work.
         </p>
       </div>
@@ -87,7 +87,7 @@ export function ReplyToSettings() {
                 id="forward-hint"
                 value={forwardHint}
                 onChange={(event) => setForwardHint(event.target.value)}
-                placeholder="Forward this inbox to the Sendloop inbound endpoint"
+                placeholder="Forward this inbox to the MunchReach inbound endpoint"
               />
             </div>
           </div>

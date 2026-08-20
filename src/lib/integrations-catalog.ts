@@ -1,5 +1,5 @@
 /**
- * Static metadata for every integration Sendloop supports.
+ * Static metadata for every integration MunchReach supports.
  *
  * The catalog is client-safe: it describes what an integration does, which
  * fields the customer must provide and how the connection is verified. The
@@ -44,13 +44,13 @@ export type IntegrationMeta = {
   /** How the customer connects: API key/token, or an incoming webhook URL. */
   authType: "api_key" | "webhook";
   fields: IntegrationField[];
-  /** Sendloop events this integration can receive. */
+  /** MunchReach events this integration can receive. */
   events: string[];
   features: string[];
   steps: { title: string; text: string }[];
   faqs: { q: string; a: string }[];
   docsUrl: string;
-  /** Set when Sendloop can also receive data from the provider. */
+  /** Set when MunchReach can also receive data from the provider. */
   inbound?: boolean;
 };
 
@@ -80,7 +80,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: Bot,
     tagline: "Generate and rewrite cold email copy with your own OpenAI key.",
     description:
-      "Connect your OpenAI account to draft subject lines, rewrite sequences and summarise replies without leaving Sendloop. Your key is encrypted and used only for requests made from your workspace.",
+      "Connect your OpenAI account to draft subject lines, rewrite sequences and summarise replies without leaving MunchReach. Your key is encrypted and used only for requests made from your workspace.",
     authType: "api_key",
     fields: [
       {
@@ -108,8 +108,8 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     ],
     steps: [
       { title: "Create a key", text: "Generate an API key in your OpenAI dashboard." },
-      { title: "Paste it in Sendloop", text: "Settings → Integrations → OpenAI → Connect." },
-      { title: "Verified live", text: "Sendloop calls the OpenAI models endpoint to confirm the key works." },
+      { title: "Paste it in MunchReach", text: "Settings → Integrations → OpenAI → Connect." },
+      { title: "Verified live", text: "MunchReach calls the OpenAI models endpoint to confirm the key works." },
     ],
     faqs: [
       { q: "Who pays for usage?", a: "You do — requests run against your own OpenAI account and key." },
@@ -124,7 +124,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: MessageSquare,
     tagline: "Get positive replies and campaign alerts in a Slack channel.",
     description:
-      "Send Sendloop events to any Slack channel using an incoming webhook. Your team sees interested replies within seconds instead of at the end of the day.",
+      "Send MunchReach events to any Slack channel using an incoming webhook. Your team sees interested replies within seconds instead of at the end of the day.",
     authType: "webhook",
     fields: [
       {
@@ -152,7 +152,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     steps: [
       { title: "Create a webhook", text: "Add an incoming webhook to the channel you want alerts in." },
       { title: "Paste the URL", text: "Connect it in Settings → Integrations → Slack." },
-      { title: "Send a test", text: "Sendloop posts a live test message to confirm delivery." },
+      { title: "Send a test", text: "MunchReach posts a live test message to confirm delivery." },
     ],
     faqs: [
       { q: "Which channel receives alerts?", a: "Whichever channel the incoming webhook was created for." },
@@ -165,9 +165,9 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     name: "Zapier",
     category: "automation",
     icon: Zap,
-    tagline: "Trigger thousands of apps whenever something happens in Sendloop.",
+    tagline: "Trigger thousands of apps whenever something happens in MunchReach.",
     description:
-      "Point Sendloop at a Zapier catch hook and every selected event is delivered as JSON. Zapier can also push data back into Sendloop through your private inbound URL.",
+      "Point MunchReach at a Zapier catch hook and every selected event is delivered as JSON. Zapier can also push data back into MunchReach through your private inbound URL.",
     authType: "webhook",
     fields: [
       {
@@ -181,14 +181,14 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     ],
     events: ["reply.received", "reply.positive", "lead.created", "campaign.completed", "meeting.booked", "email.bounced"],
     features: [
-      "Outbound JSON payload for every Sendloop event",
+      "Outbound JSON payload for every MunchReach event",
       "Private inbound URL to create leads from any Zap",
       "Full delivery log with retry",
     ],
     steps: [
       { title: "Create a catch hook", text: "Copy the webhook URL Zapier gives you." },
-      { title: "Connect in Sendloop", text: "Paste the URL and choose the events to send." },
-      { title: "Two-way", text: "Use your inbound URL in a Zap action to push leads into Sendloop." },
+      { title: "Connect in MunchReach", text: "Paste the URL and choose the events to send." },
+      { title: "Two-way", text: "Use your inbound URL in a Zap action to push leads into MunchReach." },
     ],
     faqs: [
       { q: "What does the payload look like?", a: "A JSON object with the event type, workspace, and the related lead, campaign or reply." },
@@ -202,9 +202,9 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     name: "Make",
     category: "automation",
     icon: Workflow,
-    tagline: "Build visual scenarios on top of Sendloop events.",
+    tagline: "Build visual scenarios on top of MunchReach events.",
     description:
-      "Send Sendloop events into a Make custom webhook and orchestrate the rest of your stack visually. Make can also call your private inbound URL to create leads.",
+      "Send MunchReach events into a Make custom webhook and orchestrate the rest of your stack visually. Make can also call your private inbound URL to create leads.",
     authType: "webhook",
     fields: [
       {
@@ -220,12 +220,12 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     features: ["Event-driven scenarios", "Inbound lead creation", "Delivery log with retry"],
     steps: [
       { title: "Add a custom webhook", text: "Create the trigger module in your Make scenario." },
-      { title: "Connect in Sendloop", text: "Paste the address and select events." },
+      { title: "Connect in MunchReach", text: "Paste the address and select events." },
       { title: "Run it", text: "Send a test event and watch the scenario fire." },
     ],
     faqs: [
       { q: "Do I need a paid Make plan?", a: "No — custom webhooks work on the free plan too." },
-      { q: "Can Make write back to Sendloop?", a: "Yes, through the private inbound URL shown after connecting." },
+      { q: "Can Make write back to MunchReach?", a: "Yes, through the private inbound URL shown after connecting." },
     ],
     docsUrl: "https://www.make.com/en/help/tools/webhooks",
     inbound: true,
@@ -237,7 +237,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: Users,
     tagline: "Sync replies, contacts and deals with your HubSpot pipeline.",
     description:
-      "Connect a HubSpot private app token and Sendloop keeps your CRM in step: interested prospects become contacts, and every reply is written to the contact timeline.",
+      "Connect a HubSpot private app token and MunchReach keeps your CRM in step: interested prospects become contacts, and every reply is written to the contact timeline.",
     authType: "api_key",
     fields: [
       {
@@ -251,18 +251,18 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     ],
     events: ["reply.positive", "lead.created", "meeting.booked"],
     features: [
-      "Create or update HubSpot contacts from Sendloop leads",
+      "Create or update HubSpot contacts from MunchReach leads",
       "Log positive replies against the contact",
       "Keep pipeline owners in sync",
     ],
     steps: [
       { title: "Create a private app", text: "Grant the contacts read and write scopes." },
-      { title: "Paste the token", text: "Sendloop verifies it against the HubSpot CRM API." },
-      { title: "Choose events", text: "Pick which Sendloop events push to HubSpot." },
+      { title: "Paste the token", text: "MunchReach verifies it against the HubSpot CRM API." },
+      { title: "Choose events", text: "Pick which MunchReach events push to HubSpot." },
     ],
     faqs: [
       { q: "Will it create duplicates?", a: "No — contacts are matched on email address and updated in place." },
-      { q: "Does it need a paid Sendloop plan?", a: "CRM sync is part of the paid plans." },
+      { q: "Does it need a paid MunchReach plan?", a: "CRM sync is part of the paid plans." },
     ],
     docsUrl: "https://developers.hubspot.com/docs/api/private-apps",
   },
@@ -296,12 +296,12 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     features: ["Contacts created in the correct location", "Tagging by campaign", "Reply notes on the contact"],
     steps: [
       { title: "Copy the API key", text: "Take the key from the location you want to sync." },
-      { title: "Connect", text: "Sendloop validates the key against the GoHighLevel API." },
+      { title: "Connect", text: "MunchReach validates the key against the GoHighLevel API." },
       { title: "Select events", text: "Choose which replies should create contacts." },
     ],
     faqs: [
       { q: "Which locations are supported?", a: "Any location you hold an API key for — one connection per workspace." },
-      { q: "Are tags applied?", a: "Yes, contacts are tagged with the Sendloop campaign name." },
+      { q: "Are tags applied?", a: "Yes, contacts are tagged with the MunchReach campaign name." },
     ],
     docsUrl: "https://highlevel.stoplight.io/docs/integrations",
   },
@@ -312,7 +312,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: CalendarClock,
     tagline: "Track booked meetings from your outreach automatically.",
     description:
-      "Connect a Calendly personal access token so Sendloop can attribute booked meetings back to the campaign and sequence step that produced them.",
+      "Connect a Calendly personal access token so MunchReach can attribute booked meetings back to the campaign and sequence step that produced them.",
     authType: "api_key",
     fields: [
       {
@@ -328,7 +328,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     features: ["Meeting attribution per campaign", "Booked-meeting alerts", "Meetings visible on the CRM contact"],
     steps: [
       { title: "Generate a token", text: "Create a personal access token in Calendly." },
-      { title: "Connect", text: "Sendloop verifies it against the Calendly users endpoint." },
+      { title: "Connect", text: "MunchReach verifies it against the Calendly users endpoint." },
       { title: "Track meetings", text: "Bookings appear on the campaign analytics and the contact timeline." },
     ],
     faqs: [
@@ -344,7 +344,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: Sheet,
     tagline: "Export leads and campaign results into a live spreadsheet.",
     description:
-      "Append Sendloop events to a Google Sheet through a Google Apps Script web app URL — no Google account connection or extra permissions required.",
+      "Append MunchReach events to a Google Sheet through a Google Apps Script web app URL — no Google account connection or extra permissions required.",
     authType: "webhook",
     fields: [
       {
@@ -358,7 +358,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
       {
         key: "sheet_label",
         label: "Sheet name (for your reference)",
-        placeholder: "Sendloop replies",
+        placeholder: "MunchReach replies",
         secret: false,
         required: false,
       },

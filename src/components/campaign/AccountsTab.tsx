@@ -30,7 +30,7 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
         <div>
           <h3 className="font-semibold">Mailbox rotation</h3>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Sendloop rotates every email across the mailboxes you select here, keeping each one
+            MunchReach rotates every email across the mailboxes you select here, keeping each one
             inside its own daily and hourly limits.
           </p>
         </div>
@@ -56,7 +56,7 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
           <div>
             <p className="font-semibold">No email accounts assigned yet</p>
             <p className="text-sm text-muted-foreground">
-              Managed mailboxes are assigned to your workspace by Sendloop.
+              Managed mailboxes are assigned to your workspace by MunchReach.
             </p>
           </div>
           <Button asChild variant="outline" size="sm">

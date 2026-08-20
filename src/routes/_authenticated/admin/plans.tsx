@@ -31,8 +31,8 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/plans")({
   head: () => ({
     meta: [
-      { title: "Plans & Pricing · Sendloop Admin" },
-      { name: "description", content: "Manage Sendloop plans, pricing, credits and usage limits." },
+      { title: "Plans & Pricing · MunchReach Admin" },
+      { name: "description", content: "Manage MunchReach plans, pricing, credits and usage limits." },
     ],
   }),
   component: AdminPlansPage,

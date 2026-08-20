@@ -91,7 +91,7 @@ export type FooterConfig = {
 
 export const HEADER_GROUPS = [
   { value: "core", label: "Mega menu — Core platform" },
-  { value: "more", label: "Mega menu — More from Sendloop" },
+  { value: "more", label: "Mega menu — More from MunchReach" },
   { value: "usecase", label: "Mega menu — By use case" },
   { value: "resources", label: "Mega menu — Resources" },
   { value: "top", label: "Top-level links" },

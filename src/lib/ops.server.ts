@@ -111,7 +111,7 @@ export async function getInboundReadiness(baseUrl: string | null) {
       id: "domain",
       label: "Reply-to domain configured",
       status: "failed",
-      detail: "Set a reply-to inbox above so Sendloop knows where replies land.",
+      detail: "Set a reply-to inbox above so MunchReach knows where replies land.",
     });
     return { domain: null, receiving: "unknown" as const, items };
   }
@@ -137,7 +137,7 @@ export async function getInboundReadiness(baseUrl: string | null) {
     detail:
       receiving === "enabled"
         ? "The provider is accepting inbound mail for this domain."
-        : "Receiving is switched off — replies cannot be delivered to Sendloop yet.",
+        : "Receiving is switched off — replies cannot be delivered to MunchReach yet.",
   });
 
   const mxRecord = (full?.records ?? []).find(
@@ -183,7 +183,7 @@ export async function getInboundReadiness(baseUrl: string | null) {
     label: "Reply webhook registered",
     status: hookLive ? "ok" : "pending",
     detail: hookLive
-      ? "Inbound replies are pushed to Sendloop automatically."
+      ? "Inbound replies are pushed to MunchReach automatically."
       : `Register the webhook so replies reach ${endpoint ?? "the inbound endpoint"}.`,
   });
 
@@ -271,7 +271,7 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     fromEmail: account.from_email,
     replyTo,
     to: args.toEmail,
-    subject: "Sendloop inbound delivery test",
+    subject: "MunchReach inbound delivery test",
       text: `This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.\n\nRouted reply address: ${replyTo}`,
     },
     { stage: "test" },

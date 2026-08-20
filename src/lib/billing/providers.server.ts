@@ -2,7 +2,7 @@
  * Provider adapters — server only.
  *
  * Every provider (Stripe, Paddle, Lemon Squeezy) is reduced to the same small
- * interface so the rest of Sendloop never branches on provider. Raw provider
+ * interface so the rest of MunchReach never branches on provider. Raw provider
  * errors stay here and in the billing logs; callers get sanitized messages.
  */
 import type {

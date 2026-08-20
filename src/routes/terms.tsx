@@ -5,8 +5,8 @@ import { MarketingLayout, PageHero, Section, CtaBlock, metaFor } from "@/compone
 export const Route = createFileRoute("/terms")({
   head: () =>
     metaFor(
-      "Terms of Service — Sendloop",
-      "The agreement covering use of Sendloop: accounts, billing, SLA, acceptable use, liability, termination and governing law.",
+      "Terms of Service — MunchReach",
+      "The agreement covering use of MunchReach: accounts, billing, SLA, acceptable use, liability, termination and governing law.",
       "/terms",
     ),
   component: Terms,
@@ -35,7 +35,7 @@ const sections = [
     id: "agreement",
     heading: "1. Agreement to terms",
     body: [
-      "By creating an account, accessing, or using Sendloop (the \"Service\"), you agree to these Terms of Service on behalf of yourself and any organisation you represent. If you do not agree, you may not use the Service.",
+      "By creating an account, accessing, or using MunchReach (the \"Service\"), you agree to these Terms of Service on behalf of yourself and any organisation you represent. If you do not agree, you may not use the Service.",
       "These terms incorporate by reference our Privacy Policy and Acceptable Use Policy.",
     ],
   },
@@ -80,7 +80,7 @@ const sections = [
     heading: "6. Your content and licence",
     body: [
       "You retain ownership of the leads, templates and campaign content you upload to the Service (\"Your Content\").",
-      "You grant Sendloop a limited, worldwide, non-exclusive licence to host, process and transmit Your Content solely to operate and support the Service for you.",
+      "You grant MunchReach a limited, worldwide, non-exclusive licence to host, process and transmit Your Content solely to operate and support the Service for you.",
       "You represent that you have all rights necessary to grant this licence and that Your Content does not infringe any third party's rights.",
     ],
   },
@@ -88,7 +88,7 @@ const sections = [
     id: "ip",
     heading: "7. Intellectual property",
     body: [
-      "Sendloop and its licensors retain all right, title and interest in the Service, including its software, design and trademarks.",
+      "MunchReach and its licensors retain all right, title and interest in the Service, including its software, design and trademarks.",
       "No rights are granted to you other than the limited right to use the Service in accordance with these terms.",
     ],
   },
@@ -132,7 +132,7 @@ const sections = [
     id: "indemnity",
     heading: "12. Indemnification",
     body: [
-      "You agree to indemnify and hold Sendloop harmless from claims, damages and expenses arising from your use of the Service in violation of these terms, applicable law, or third-party rights, including claims arising from Your Content or your outreach practices.",
+      "You agree to indemnify and hold MunchReach harmless from claims, damages and expenses arising from your use of the Service in violation of these terms, applicable law, or third-party rights, including claims arising from Your Content or your outreach practices.",
     ],
   },
   {
@@ -155,7 +155,7 @@ const sections = [
     heading: "15. Miscellaneous",
     body: [
       "If any provision of these terms is found unenforceable, the remaining provisions remain in full effect.",
-      "These terms, together with the Privacy Policy and Acceptable Use Policy, constitute the entire agreement between you and Sendloop regarding the Service.",
+      "These terms, together with the Privacy Policy and Acceptable Use Policy, constitute the entire agreement between you and MunchReach regarding the Service.",
       "You may not assign these terms without our written consent; we may assign them in connection with a merger, acquisition, or sale of assets.",
     ],
   },
@@ -168,7 +168,7 @@ function Terms() {
         eyebrow="Legal"
         title="Terms of"
         highlight="Service"
-        description="Last updated: August 17, 2026. These terms govern your use of Sendloop and all related services."
+        description="Last updated: August 17, 2026. These terms govern your use of MunchReach and all related services."
         primaryCta="Contact Legal"
       />
       <Section>

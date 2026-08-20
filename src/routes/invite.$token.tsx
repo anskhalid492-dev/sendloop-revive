@@ -11,13 +11,13 @@ export const Route = createFileRoute("/invite/$token")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Accept your Sendloop invitation" },
+      { title: "Accept your MunchReach invitation" },
       {
         name: "description",
-        content: "Join your team's Sendloop workspace and start sending cold email campaigns.",
+        content: "Join your team's MunchReach workspace and start sending cold email campaigns.",
       },
-      { property: "og:title", content: "Accept your Sendloop invitation" },
-      { property: "og:description", content: "Join your team's Sendloop workspace." },
+      { property: "og:title", content: "Accept your MunchReach invitation" },
+      { property: "og:description", content: "Join your team's MunchReach workspace." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

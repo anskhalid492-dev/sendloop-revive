@@ -25,13 +25,13 @@ import { takePendingTemplate } from "@/lib/templates-model";
 export const Route = createFileRoute("/_authenticated/campaigns/$campaignId")({
   head: () => ({
     meta: [
-      { title: "Campaign Workspace — Sendloop" },
+      { title: "Campaign Workspace — MunchReach" },
       {
         name: "description",
         content:
           "Build multi-step cold email sequences, manage leads, schedule sending and track performance in one campaign workspace.",
       },
-      { property: "og:title", content: "Campaign Workspace — Sendloop" },
+      { property: "og:title", content: "Campaign Workspace — MunchReach" },
       {
         property: "og:description",
         content: "Sequences, leads, schedule, mailbox rotation and analytics for your campaign.",

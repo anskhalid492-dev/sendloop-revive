@@ -32,13 +32,13 @@ import {
 export const Route = createFileRoute("/_authenticated/campaigns/")({
   head: () => ({
     meta: [
-      { title: "Campaigns — Sendloop" },
+      { title: "Campaigns — MunchReach" },
       {
         name: "description",
         content:
           "Build multi-step cold email sequences, choose sending accounts, set your schedule and launch the send queue.",
       },
-      { property: "og:title", content: "Campaigns — Sendloop" },
+      { property: "og:title", content: "Campaigns — MunchReach" },
       {
         property: "og:description",
         content: "Multi-step sequences, mailbox rotation, schedules and a live send queue.",

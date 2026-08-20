@@ -12,13 +12,13 @@ import { getWorkspaceDiagnostics } from "@/lib/billing.functions";
 export const Route = createFileRoute("/_authenticated/diagnostics")({
   head: () => ({
     meta: [
-      { title: "Plan diagnostics — Sendloop" },
+      { title: "Plan diagnostics — MunchReach" },
       {
         name: "description",
         content:
-          "Troubleshoot your Sendloop workspace: resolved plan, feature flags, credit balance and usage limits.",
+          "Troubleshoot your MunchReach workspace: resolved plan, feature flags, credit balance and usage limits.",
       },
-      { property: "og:title", content: "Plan diagnostics — Sendloop" },
+      { property: "og:title", content: "Plan diagnostics — MunchReach" },
       {
         property: "og:description",
         content: "Resolved plan, enabled features, credits and usage limits for your workspace.",

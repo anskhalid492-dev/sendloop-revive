@@ -1,7 +1,7 @@
 /**
  * Customer-facing sending accounts (Email Accounts).
  *
- * Sendloop owns and operates the sending infrastructure. Customers only ever
+ * MunchReach owns and operates the sending infrastructure. Customers only ever
  * see the accounts assigned to their workspace, their health, capacity, warmup
  * and campaign usage. Nothing provider-specific (providers, pools, SMTP or API
  * credentials) is selected or returned here. Every mutation is enforced
@@ -172,6 +172,6 @@ export const listSendingAccountAudit = createServerFn({ method: "GET" })
       action: e.action,
       detail: e.detail,
       createdAt: e.created_at,
-      actorName: (e.actor_id && names.get(e.actor_id)) || "Sendloop system",
+      actorName: (e.actor_id && names.get(e.actor_id)) || "MunchReach system",
     }));
   });

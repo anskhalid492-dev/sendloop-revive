@@ -79,7 +79,7 @@ export function buildDnsRecords(domain: string, dkimSelector: string): DnsRecord
       priority: 10,
       required: false,
       purpose:
-        "Only required when you want replies to this domain routed into the Sendloop inbox. Skip it if your mailbox provider already handles inbound mail.",
+        "Only required when you want replies to this domain routed into the MunchReach inbox. Skip it if your mailbox provider already handles inbound mail.",
     },
     {
       kind: "tracking",

@@ -65,7 +65,7 @@ export function EmailEventLog() {
           <div>
             <CardTitle>Inbound email log</CardTitle>
             <CardDescription>
-              Every webhook delivery Sendloop received, why it was classified, and whether it landed.
+              Every webhook delivery MunchReach received, why it was classified, and whether it landed.
             </CardDescription>
           </div>
           <Button

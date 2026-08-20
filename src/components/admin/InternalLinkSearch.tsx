@@ -1,4 +1,4 @@
-/** Searchable internal link picker: Sendloop pages and blog posts. */
+/** Searchable internal link picker: MunchReach pages and blog posts. */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -26,7 +26,7 @@ export function InternalLinkSearch({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="internal-link-search">Link to a Sendloop page or blog post</Label>
+      <Label htmlFor="internal-link-search">Link to a MunchReach page or blog post</Label>
       <div className="relative">
         <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
         <Input

@@ -44,9 +44,9 @@ import {
 export const Route = createFileRoute("/_authenticated/referrals")({
   head: () => ({
     meta: [
-      { title: "Referrals — Sendloop" },
-      { name: "description", content: "Track your Sendloop referral link, referred customers, commissions and payouts." },
-      { property: "og:title", content: "Referrals — Sendloop" },
+      { title: "Referrals — MunchReach" },
+      { name: "description", content: "Track your MunchReach referral link, referred customers, commissions and payouts." },
+      { property: "og:title", content: "Referrals — MunchReach" },
       { property: "og:description", content: "Your referral link, live performance and payout history." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -102,7 +102,7 @@ function ReferralsPage() {
         },
       }),
     onSuccess: () => {
-      toast.success("Payout requested. Sendloop will review it shortly.");
+      toast.success("Payout requested. MunchReach will review it shortly.");
       setAmount("");
       setDestination("");
       invalidate();
@@ -120,7 +120,7 @@ function ReferralsPage() {
   const stats = data?.stats;
 
   return (
-    <AppShell title="Referrals" description="Share Sendloop, earn commission on verified payments.">
+    <AppShell title="Referrals" description="Share MunchReach, earn commission on verified payments.">
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -290,7 +290,7 @@ function ReferralsPage() {
                 </CardContent>
               </Card>
               <p className="mt-3 text-xs text-muted-foreground">
-                Referred customers stay anonymous — Sendloop never shares their identity or account data.
+                Referred customers stay anonymous — MunchReach never shares their identity or account data.
               </p>
             </TabsContent>
 

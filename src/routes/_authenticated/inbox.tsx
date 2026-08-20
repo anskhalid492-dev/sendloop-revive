@@ -31,17 +31,17 @@ import { useInboxRealtime } from "@/hooks/useInboxRealtime";
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
     meta: [
-      { title: "Unified Inbox — Sendloop" },
+      { title: "Unified Inbox — MunchReach" },
       {
         name: "description",
         content:
-          "Every cold email reply from your managed mailboxes in one shared, searchable Sendloop inbox.",
+          "Every cold email reply from your managed mailboxes in one shared, searchable MunchReach inbox.",
       },
-      { property: "og:title", content: "Unified Inbox — Sendloop" },
+      { property: "og:title", content: "Unified Inbox — MunchReach" },
       {
         property: "og:description",
         content:
-          "Every cold email reply from your managed mailboxes in one shared, searchable Sendloop inbox.",
+          "Every cold email reply from your managed mailboxes in one shared, searchable MunchReach inbox.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

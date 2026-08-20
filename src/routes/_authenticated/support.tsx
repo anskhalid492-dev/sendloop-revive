@@ -74,16 +74,16 @@ import { uploadSupportAttachment, type UploadedAttachment } from "@/lib/support-
 export const Route = createFileRoute("/_authenticated/support")({
   head: () => ({
     meta: [
-      { title: "Support center — Sendloop" },
+      { title: "Support center — MunchReach" },
       {
         name: "description",
         content:
-          "Search the Sendloop help center, open a support request and follow your tickets end to end.",
+          "Search the MunchReach help center, open a support request and follow your tickets end to end.",
       },
-      { property: "og:title", content: "Support center — Sendloop" },
+      { property: "og:title", content: "Support center — MunchReach" },
       {
         property: "og:description",
-        content: "Help articles, support tickets and replies from the Sendloop team.",
+        content: "Help articles, support tickets and replies from the MunchReach team.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -231,7 +231,7 @@ function SupportPage() {
   return (
     <AppShell
       title="Support"
-      description="Help articles, support requests and replies from the Sendloop team"
+      description="Help articles, support requests and replies from the MunchReach team"
     >
       <div className="mx-auto max-w-5xl space-y-5">
         <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-4">
@@ -532,7 +532,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
             >
               <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">
-                  {mine ? "You" : "Sendloop Support"}
+                  {mine ? "You" : "MunchReach Support"}
                 </span>
                 <span>{formatDate(message.created_at)}</span>
               </div>

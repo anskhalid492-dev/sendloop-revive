@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin/billing-providers")(
   component: BillingProvidersPage,
   head: () => ({
     meta: [
-      { title: "Billing providers · Sendloop admin" },
+      { title: "Billing providers · MunchReach admin" },
       {
         name: "description",
         content:

@@ -572,7 +572,7 @@ export async function loadUsage(input: { from: string; to: string; workspaceId?:
       apiRequests,
       creditsConsumed,
       storageBytes,
-      // Sendloop has no AI metering table; reporting a number here would be invented.
+      // MunchReach has no AI metering table; reporting a number here would be invented.
       aiRequests: null as number | null,
     },
     workspaces,

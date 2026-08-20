@@ -38,12 +38,12 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/webhooks")({
   head: () => ({
     meta: [
-      { title: "Webhooks — Sendloop Admin" },
+      { title: "Webhooks — MunchReach Admin" },
       {
         name: "description",
         content: "Monitor verified webhook deliveries, processing results and retries.",
       },
-      { property: "og:title", content: "Webhooks — Sendloop Admin" },
+      { property: "og:title", content: "Webhooks — MunchReach Admin" },
       { property: "og:description", content: "Webhook delivery and processing monitor." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

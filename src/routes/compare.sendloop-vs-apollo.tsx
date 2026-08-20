@@ -9,8 +9,8 @@ const data = COMPARISONS["sendloop-vs-apollo"]!;
 export const Route = createFileRoute("/compare/sendloop-vs-apollo")({
   head: () =>
     metaFor(
-      "Sendloop vs Apollo — Email Execution or Contact Database?",
-      "Compare Sendloop and Apollo on cold email sending, deliverability and warmup, unified inbox, CRM, automations, analytics and prospect data.",
+      "MunchReach vs Apollo — Email Execution or Contact Database?",
+      "Compare MunchReach and Apollo on cold email sending, deliverability and warmup, unified inbox, CRM, automations, analytics and prospect data.",
       "/compare/sendloop-vs-apollo",
       data.faqs,
     ),

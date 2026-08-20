@@ -56,13 +56,13 @@ import {
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Sendloop" },
+      { title: "Settings — MunchReach" },
       {
         name: "description",
         content:
-          "Manage your Sendloop profile, workspace, team, notifications, sending schedule, security, appearance and billing.",
+          "Manage your MunchReach profile, workspace, team, notifications, sending schedule, security, appearance and billing.",
       },
-      { property: "og:title", content: "Settings — Sendloop" },
+      { property: "og:title", content: "Settings — MunchReach" },
       {
         property: "og:description",
         content: "Profile, workspace, team, notifications, sending, security and billing settings.",
@@ -487,7 +487,7 @@ function SecuritySection() {
           </dl>
         )}
         <p className="text-xs text-muted-foreground">
-          Sendloop never shows API keys, provider credentials or encryption secrets in the
+          MunchReach never shows API keys, provider credentials or encryption secrets in the
           dashboard.
         </p>
       </section>

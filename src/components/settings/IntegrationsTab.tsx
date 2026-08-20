@@ -157,7 +157,7 @@ export function IntegrationsTab() {
       <div>
         <h2 className="text-lg font-semibold">Integrations</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Connect Sendloop to the tools your team already uses. Credentials are encrypted and only
+          Connect MunchReach to the tools your team already uses. Credentials are encrypted and only
           workspace owners and admins can change them.
         </p>
       </div>

@@ -33,7 +33,7 @@ import {
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
-  { q: "Does this replace Salesforce or HubSpot?", a: "For most outbound-led teams, yes — Sendloop's CRM covers pipeline, notes and tasks end to end. If you already run a CRM for closed-won accounting, sync instead of replacing it." },
+  { q: "Does this replace Salesforce or HubSpot?", a: "For most outbound-led teams, yes — MunchReach's CRM covers pipeline, notes and tasks end to end. If you already run a CRM for closed-won accounting, sync instead of replacing it." },
   { q: "Can I customise stages?", a: "Yes. Every workspace defines its own stages, from New Lead through Meeting Booked, Proposal Sent, Won and Lost — as many as your process needs." },
   { q: "Is activity history kept after a campaign ends?", a: "Yes, the full send, open, click and reply history stays permanently on the prospect record, even after the sequence finishes." },
   { q: "Can clients see only their own pipeline?", a: "Yes, using the Client Viewer role scoped to a single workspace, filtered to their deals only." },
@@ -43,8 +43,8 @@ const faqs = [
 
 export const Route = createFileRoute("/product/crm")({
   head: () => metaFor(
-    "Outbound CRM & Pipeline Tracking — Sendloop",
-    "Track prospects through deal stages with owners, notes, tasks and full campaign activity history, built into Sendloop.",
+    "Outbound CRM & Pipeline Tracking — MunchReach",
+    "Track prospects through deal stages with owners, notes, tasks and full campaign activity history, built into MunchReach.",
     "/product/crm",
     faqs,
   ),
@@ -61,7 +61,7 @@ const solutionRows = [
   {
     eyebrow: "Pipeline",
     title: "Every reply becomes a deal card automatically",
-    text: "The moment a prospect replies positively, Sendloop creates or advances their pipeline card — no manual import, no second tool to update.",
+    text: "The moment a prospect replies positively, MunchReach creates or advances their pipeline card — no manual import, no second tool to update.",
     bullets: ["Customisable stages per workspace", "Auto-advance on positive reply detection", "One-click move from inbox to pipeline"],
     visual: (
       <MockPanel title="Pipeline — Outbound Q3">
@@ -182,7 +182,7 @@ function Page() {
       <Section title="Why outbound pipeline goes missing">
         <PainPoints items={pains} />
       </Section>
-      <Section title="How Sendloop solves it" description="Pipeline that builds itself from your outreach.">
+      <Section title="How MunchReach solves it" description="Pipeline that builds itself from your outreach.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">

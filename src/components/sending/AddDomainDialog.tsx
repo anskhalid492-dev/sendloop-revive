@@ -49,7 +49,7 @@ export function AddDomainDialog({
         <DialogHeader>
           <DialogTitle>Add your domain</DialogTitle>
           <DialogDescription>
-            Use a domain you own. Sendloop never sells or provides domains or mailboxes — you keep
+            Use a domain you own. MunchReach never sells or provides domains or mailboxes — you keep
             full ownership of your sending infrastructure.
           </DialogDescription>
         </DialogHeader>

@@ -17,7 +17,7 @@ const METRICS = [
 ];
 
 /**
- * CSS/Framer-only motion graphic of the Sendloop workflow. No images, no
+ * CSS/Framer-only motion graphic of the MunchReach workflow. No images, no
  * canvas — it animates the same pipeline the product runs.
  */
 export function AuthWorkflowVisual() {

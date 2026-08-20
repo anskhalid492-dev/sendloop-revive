@@ -4,7 +4,7 @@
  * Everything above this file (campaign engine, queue, sending accounts) only
  * ever deals with a `sending_account_id`. Provider-specific behaviour lives
  * here and nowhere else, so a provider can be swapped without touching the
- * rest of Sendloop.
+ * rest of MunchReach.
  */
 import {
   decryptCredentials,

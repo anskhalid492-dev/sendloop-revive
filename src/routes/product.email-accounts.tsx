@@ -33,7 +33,7 @@ import {
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
-  { q: "Do I need to connect my own SMTP or provider?", a: "No. Sendloop is a managed platform — we run the sending infrastructure and assign healthy mailboxes to your workspace." },
+  { q: "Do I need to connect my own SMTP or provider?", a: "No. MunchReach is a managed platform — we run the sending infrastructure and assign healthy mailboxes to your workspace." },
   { q: "How many email accounts do I get?", a: "Your plan sets the number of managed sending accounts. You can request more at any time from your workspace." },
   { q: "Can I pause a single account?", a: "Yes. Every account has an on/off switch, so you can rest a mailbox without pausing the whole campaign." },
   { q: "How is sending spread across accounts?", a: "Campaigns rotate across your assigned accounts using round robin, random or least-used strategies with per-inbox daily caps." },
@@ -44,8 +44,8 @@ const faqs = [
 export const Route = createFileRoute("/product/email-accounts")({
   head: () =>
     metaFor(
-      "Managed Email Accounts & Sending Health — Sendloop",
-      "Sendloop runs your sending infrastructure. Monitor managed email accounts, daily limits, rotation and health from one screen.",
+      "Managed Email Accounts & Sending Health — MunchReach",
+      "MunchReach runs your sending infrastructure. Monitor managed email accounts, daily limits, rotation and health from one screen.",
       "/product/email-accounts",
       faqs,
     ),
@@ -62,7 +62,7 @@ const solutionRows = [
   {
     eyebrow: "Fully managed",
     title: "Sending infrastructure you never have to configure",
-    text: "Sendloop provisions, authenticates and warms the mailboxes behind your workspace. You pick a campaign and press send — no provider keys, no SMTP settings, no DNS work.",
+    text: "MunchReach provisions, authenticates and warms the mailboxes behind your workspace. You pick a campaign and press send — no provider keys, no SMTP settings, no DNS work.",
     bullets: [
       "Authenticated domains with SPF, DKIM and DMARC in place",
       "Mailboxes warmed before they touch a real prospect",
@@ -115,7 +115,7 @@ const solutionRows = [
 ];
 
 const features = [
-  { icon: Mailbox, title: "Managed mailboxes", text: "Provisioned, authenticated and warmed by Sendloop before you send." },
+  { icon: Mailbox, title: "Managed mailboxes", text: "Provisioned, authenticated and warmed by MunchReach before you send." },
   { icon: RefreshCcw, title: "Inbox rotation", text: "Round robin, random or least-used rotation with per-inbox caps." },
   { icon: Activity, title: "Health scores", text: "One number per account covering deliverability, bounces and placement." },
   { icon: Timer, title: "Daily and hourly limits", text: "Hard ceilings that campaigns respect automatically." },
@@ -136,7 +136,7 @@ const bullets = [
   "Warmup status visible per mailbox",
   "Automatic failover away from unhealthy accounts",
   "Sending activity attributable to a specific mailbox",
-  "Capacity requests handled by the Sendloop team",
+  "Capacity requests handled by the MunchReach team",
 ];
 
 const beforeAfter = {
@@ -166,7 +166,7 @@ const useCases = [
   {
     "audience": "Managed sending",
     "scenario": "You would rather not run infrastructure at all.",
-    "outcome": "Sendloop-managed domains and mailboxes, fully verified."
+    "outcome": "MunchReach-managed domains and mailboxes, fully verified."
   }
 ];
 
@@ -177,7 +177,7 @@ function Page() {
         eyebrow="Email Accounts"
         title="Managed sending accounts,"
         highlight="monitored around the clock"
-        description="Sendloop runs the mailboxes behind your outreach. Track health, limits and rotation for every account assigned to your workspace — without configuring a single provider."
+        description="MunchReach runs the mailboxes behind your outreach. Track health, limits and rotation for every account assigned to your workspace — without configuring a single provider."
         secondaryCta="See How It Works"
         secondaryHref="#product"
       />
@@ -191,10 +191,10 @@ function Page() {
       <Section title="Why teams struggle with sending infrastructure">
         <PainPoints items={painPoints} />
       </Section>
-      <Section title="How Sendloop solves it" description="Infrastructure handled for you, visibility kept with you.">
+      <Section title="How MunchReach solves it" description="Infrastructure handled for you, visibility kept with you.">
         <SolutionSplit rows={solutionRows} />
       </Section>
-      <Section title="What you get" description="Included with every Sendloop workspace.">
+      <Section title="What you get" description="Included with every MunchReach workspace.">
         <FeatureGrid items={features} />
         <div className="mt-12">
           <WorkflowStrip steps={steps} />
@@ -224,7 +224,7 @@ function Page() {
         <FaqBlock faqs={faqs} />
       </Section>
       <CtaBlock
-        title="Let Sendloop run your sending infrastructure"
+        title="Let MunchReach run your sending infrastructure"
         description="Managed, warmed and monitored mailboxes from the day you start."
       />
     </MarketingLayout>

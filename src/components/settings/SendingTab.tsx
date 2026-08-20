@@ -227,7 +227,7 @@ export function SendingTab({ workspaceId }: { workspaceId: string | null }) {
         </p>
         <p className="text-sm text-muted-foreground">
           Per-mailbox limits and warmup ramp settings live with each mailbox so you can tune them
-          individually. Sending infrastructure and provider credentials are managed by Sendloop.
+          individually. Sending infrastructure and provider credentials are managed by MunchReach.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">

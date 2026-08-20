@@ -145,7 +145,7 @@ function Docs() {
         eyebrow="Documentation"
         title="Everything you need to"
         highlight="set up and scale"
-        description="Practical guides for every part of Sendloop, from your first mailbox connection to multi-workspace agency reporting."
+        description="Practical guides for every part of MunchReach, from your first mailbox connection to multi-workspace agency reporting."
         primaryCta="Start for Free"
       />
 

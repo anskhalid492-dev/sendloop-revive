@@ -44,13 +44,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/support")({
   head: () => ({
     meta: [
-      { title: "Support Tickets — Sendloop Admin" },
+      { title: "Support Tickets — MunchReach Admin" },
       {
         name: "description",
         content:
           "Triage, assign and answer customer support tickets, with internal notes that customers never see.",
       },
-      { property: "og:title", content: "Support Tickets — Sendloop Admin" },
+      { property: "og:title", content: "Support Tickets — MunchReach Admin" },
       {
         property: "og:description",
         content: "Customer ticket queue with assignment, status control and internal notes.",

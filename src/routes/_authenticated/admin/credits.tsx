@@ -30,8 +30,8 @@ import { adjustWorkspaceCredits, searchAdminCredits } from "@/lib/plans-admin.fu
 export const Route = createFileRoute("/_authenticated/admin/credits")({
   head: () => ({
     meta: [
-      { title: "Credit Management · Sendloop Admin" },
-      { name: "description", content: "Grant, deduct and audit Sendloop workspace credits." },
+      { title: "Credit Management · MunchReach Admin" },
+      { name: "description", content: "Grant, deduct and audit MunchReach workspace credits." },
     ],
   }),
   component: AdminCreditsPage,

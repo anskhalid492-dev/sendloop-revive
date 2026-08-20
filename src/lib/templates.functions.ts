@@ -1,7 +1,7 @@
 /**
  * Template library.
  *
- * Official Sendloop templates have `workspace_id = null` and `is_official = true`;
+ * Official MunchReach templates have `workspace_id = null` and `is_official = true`;
  * customer templates always belong to a workspace. RLS is the real boundary:
  * customers can only write rows in workspaces where they hold a manager role,
  * and only platform admins can touch official rows. The checks below give
@@ -99,7 +99,7 @@ export const saveTemplate = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const official = data.isOfficial;
     if (official && !(await isPlatformAdmin(context)))
-      throw new Error("Only Sendloop staff can manage official templates.");
+      throw new Error("Only MunchReach staff can manage official templates.");
     if (!official && !data.workspaceId) throw new Error("Pick a workspace for this template.");
 
     const row = {
@@ -175,7 +175,7 @@ export const duplicateTemplate = createServerFn({ method: "POST" })
 
     const official = Boolean(data.asOfficial);
     if (official && !(await isPlatformAdmin(context)))
-      throw new Error("Only Sendloop staff can manage official templates.");
+      throw new Error("Only MunchReach staff can manage official templates.");
     if (!official && !data.workspaceId) throw new Error("Pick a workspace for this copy.");
 
     const { data: copy, error: insErr } = await context.supabase

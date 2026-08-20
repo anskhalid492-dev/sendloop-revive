@@ -9,8 +9,8 @@ const data = COMPARISONS["sendloop-vs-saleshandy"]!;
 export const Route = createFileRoute("/compare/sendloop-vs-saleshandy")({
   head: () =>
     metaFor(
-      "Sendloop vs Saleshandy — Cold Email Platform Comparison",
-      "Compare Sendloop and Saleshandy on sequences, mailbox rotation, warmup, deliverability controls, unified inbox, CRM, automations and reporting.",
+      "MunchReach vs Saleshandy — Cold Email Platform Comparison",
+      "Compare MunchReach and Saleshandy on sequences, mailbox rotation, warmup, deliverability controls, unified inbox, CRM, automations and reporting.",
       "/compare/sendloop-vs-saleshandy",
       data.faqs,
     ),

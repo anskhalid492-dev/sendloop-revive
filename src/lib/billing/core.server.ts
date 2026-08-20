@@ -3,7 +3,7 @@
  *
  * Holds the credential lookup, the platform billing settings, the normalized
  * event shape every provider adapter must produce, and the single writer that
- * turns a verified provider event into Sendloop billing records.
+ * turns a verified provider event into MunchReach billing records.
  *
  * Nothing here is ever imported by client code; provider secrets never leave
  * this module.

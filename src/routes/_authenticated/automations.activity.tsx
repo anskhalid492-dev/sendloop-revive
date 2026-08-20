@@ -48,16 +48,16 @@ import {
 export const Route = createFileRoute("/_authenticated/automations/activity")({
   head: () => ({
     meta: [
-      { title: "Automation activity — Sendloop" },
+      { title: "Automation activity — MunchReach" },
       {
         name: "description",
         content:
           "Inspect every automation run: filter by workflow, status and time, then open a full execution timeline with per-step output and errors.",
       },
-      { property: "og:title", content: "Automation activity — Sendloop" },
+      { property: "og:title", content: "Automation activity — MunchReach" },
       {
         property: "og:description",
-        content: "Run-level observability for Sendloop automations, including step errors and safe retries.",
+        content: "Run-level observability for MunchReach automations, including step errors and safe retries.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

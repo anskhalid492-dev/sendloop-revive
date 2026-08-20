@@ -16,13 +16,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/inbound-events/$eventId")({
   head: () => ({
     meta: [
-      { title: "Inbound Event Detail — Sendloop Admin" },
+      { title: "Inbound Event Detail — MunchReach Admin" },
       {
         name: "description",
         content:
           "Full inbound webhook event detail: redacted payload and headers, signature verdict, routing token lookup and linked conversation.",
       },
-      { property: "og:title", content: "Inbound Event Detail — Sendloop Admin" },
+      { property: "og:title", content: "Inbound Event Detail — MunchReach Admin" },
       {
         property: "og:description",
         content: "Inspect one inbound webhook delivery end to end.",

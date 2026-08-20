@@ -141,7 +141,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         const flags = await getPlatformFlags();
         maintenance = {
           active: Boolean(flags.maintenanceMode),
-          message: flags.maintenanceMessage || "Sendloop is temporarily unavailable for scheduled maintenance.",
+          message: flags.maintenanceMessage || "MunchReach is temporarily unavailable for scheduled maintenance.",
         };
       } catch {
         maintenance = { active: false, message: "" };
@@ -165,7 +165,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     // Global SEO defaults come from Admin → SEO Manager when set; the values
     // below stay as the fallback so the site never renders without metadata.
     const global = getGlobalSeo();
-    const title = global?.site_title || "Sendloop — Cold Email Outreach Platform";
+    const title = global?.site_title || "MunchReach — Cold Email Outreach Platform";
     const description =
       global?.meta_description ||
       "Cold email campaigns, automated follow-ups, warmup and a unified inbox for every connected mailbox.";
@@ -179,7 +179,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: global?.og_site_name || "Sendloop" },
+      { property: "og:site_name", content: global?.og_site_name || "MunchReach" },
       { name: "twitter:card", content: "summary_large_image" },
       ...(global?.og_image_url
         ? [
@@ -224,7 +224,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 /** Favicon comes from Admin → Branding when uploaded, otherwise the default. */
 function faviconLink() {
   const custom = getPlatformConfig()?.branding?.["favicon_url"];
-  const href = typeof custom === "string" && custom.trim() ? custom.trim() : "/favicon.ico";
+  const href = typeof custom === "string" && custom.trim() ? custom.trim() : "/favicon.png";
   const type = href.endsWith(".svg")
     ? "image/svg+xml"
     : href.endsWith(".ico")

@@ -54,7 +54,7 @@ export function TemplatePreviewDialog({
           <DialogTitle>{template.name}</DialogTitle>
           <DialogDescription>
             {template.category}
-            {template.is_official ? " · Official Sendloop template" : " · Workspace template"}
+            {template.is_official ? " · Official MunchReach template" : " · Workspace template"}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

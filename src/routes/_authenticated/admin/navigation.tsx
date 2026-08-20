@@ -31,10 +31,10 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/navigation")({
   head: () => ({
     meta: [
-      { title: "Navigation & Footer — Sendloop Admin" },
+      { title: "Navigation & Footer — MunchReach Admin" },
       {
         name: "description",
-        content: "Control the Sendloop header mega menu, footer columns and social links without a deploy.",
+        content: "Control the MunchReach header mega menu, footer columns and social links without a deploy.",
       },
     ],
   }),

@@ -1,7 +1,7 @@
 /**
  * Client-safe types and helpers for the customer Email Accounts experience.
  *
- * Sendloop operates the sending infrastructure: nothing in this module (or the
+ * MunchReach operates the sending infrastructure: nothing in this module (or the
  * server functions that use it) exposes providers, credentials or pools.
  */
 

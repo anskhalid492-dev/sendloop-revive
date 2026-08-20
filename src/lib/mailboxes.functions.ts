@@ -1,8 +1,8 @@
 /**
- * Customer-owned mailboxes on Sendloop's managed sending infrastructure.
+ * Customer-owned mailboxes on MunchReach's managed sending infrastructure.
  *
  * The customer owns the domain and the mailbox. The sending provider and its
- * credentials are chosen and stored by Sendloop (admin-side) — customers can
+ * credentials are chosen and stored by MunchReach (admin-side) — customers can
  * never select a provider or submit credentials, and nothing provider-specific
  * is ever returned to the browser.
  */
@@ -15,7 +15,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 type Client = any;
 
 /**
- * Picks the sending infrastructure Sendloop routes this mailbox through.
+ * Picks the sending infrastructure MunchReach routes this mailbox through.
  * Admin-configured pool only; never influenced by customer input.
  */
 async function selectManagedProvider(admin: Client) {
@@ -164,7 +164,7 @@ export const connectMailbox = createServerFn({ method: "POST" })
       actorId: context.userId,
       kind: "connect",
       ok: true,
-      message: "Mailbox connected to Sendloop sending infrastructure.",
+      message: "Mailbox connected to MunchReach sending infrastructure.",
       durationMs: Date.now() - startedAt,
       detail: { domain: domain.domain },
     });

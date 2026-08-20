@@ -18,13 +18,13 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Create your free Sendloop account" },
+      { title: "Create your free MunchReach account" },
       {
         name: "description",
         content:
-          "Start free with Sendloop. Import leads, launch cold email sequences and let Sendloop handle the sending infrastructure for you.",
+          "Start free with MunchReach. Import leads, launch cold email sequences and let MunchReach handle the sending infrastructure for you.",
       },
-      { property: "og:title", content: "Create your free Sendloop account" },
+      { property: "og:title", content: "Create your free MunchReach account" },
       {
         property: "og:description",
         content: "Launch cold email campaigns in minutes — no sending setup required.",
