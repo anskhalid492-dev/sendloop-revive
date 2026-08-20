@@ -63,9 +63,9 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
     plan = data;
   }
 
-  const state = (sub?.status as SubscriptionState) ?? "none";
+  const state: SubscriptionState | "none" = (sub?.status as SubscriptionState) ?? "none";
   const inGrace = Boolean(sub?.grace_until && new Date(sub.grace_until) > new Date());
-  const active = state !== "none" && (ENTITLED_STATES.includes(state as SubscriptionState) || inGrace);
+  const active = state !== "none" && (ENTITLED_STATES.includes(state) || inGrace);
 
   return {
     workspaceId,

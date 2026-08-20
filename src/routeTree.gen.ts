@@ -92,6 +92,9 @@ import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
+import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
+import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
+import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/billing/stripe'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/public/cron/run-automations'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
@@ -535,6 +538,22 @@ const ApiPublicAutomationsTokenRoute =
     path: '/api/public/automations/$token',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBillingLemonsqueezyRoute =
+  ApiPublicBillingLemonsqueezyRouteImport.update({
+    id: '/api/public/billing/lemonsqueezy',
+    path: '/api/public/billing/lemonsqueezy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBillingPaddleRoute = ApiPublicBillingPaddleRouteImport.update({
+  id: '/api/public/billing/paddle',
+  path: '/api/public/billing/paddle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBillingStripeRoute = ApiPublicBillingStripeRouteImport.update({
+  id: '/api/public/billing/stripe',
+  path: '/api/public/billing/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronRetryInboundRoute =
   ApiPublicCronRetryInboundRouteImport.update({
     id: '/api/public/cron/retry-inbound',
@@ -659,6 +678,9 @@ export interface FileRoutesByFullPath {
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
+  '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
+  '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
+  '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
@@ -748,6 +770,9 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
+  '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
+  '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
+  '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
@@ -841,6 +866,9 @@ export interface FileRoutesById {
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
+  '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
+  '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
+  '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
@@ -934,6 +962,9 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
+    | '/api/public/billing/lemonsqueezy'
+    | '/api/public/billing/paddle'
+    | '/api/public/billing/stripe'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
@@ -1023,6 +1054,9 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
+    | '/api/public/billing/lemonsqueezy'
+    | '/api/public/billing/paddle'
+    | '/api/public/billing/stripe'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
@@ -1115,6 +1149,9 @@ export interface FileRouteTypes {
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
+    | '/api/public/billing/lemonsqueezy'
+    | '/api/public/billing/paddle'
+    | '/api/public/billing/stripe'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
@@ -1167,6 +1204,9 @@ export interface RootRouteChildren {
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicAutomationsTokenRoute: typeof ApiPublicAutomationsTokenRoute
+  ApiPublicBillingLemonsqueezyRoute: typeof ApiPublicBillingLemonsqueezyRoute
+  ApiPublicBillingPaddleRoute: typeof ApiPublicBillingPaddleRoute
+  ApiPublicBillingStripeRoute: typeof ApiPublicBillingStripeRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunAutomationsRoute: typeof ApiPublicCronRunAutomationsRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
@@ -1759,6 +1799,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAutomationsTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/billing/lemonsqueezy': {
+      id: '/api/public/billing/lemonsqueezy'
+      path: '/api/public/billing/lemonsqueezy'
+      fullPath: '/api/public/billing/lemonsqueezy'
+      preLoaderRoute: typeof ApiPublicBillingLemonsqueezyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/billing/paddle': {
+      id: '/api/public/billing/paddle'
+      path: '/api/public/billing/paddle'
+      fullPath: '/api/public/billing/paddle'
+      preLoaderRoute: typeof ApiPublicBillingPaddleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/billing/stripe': {
+      id: '/api/public/billing/stripe'
+      path: '/api/public/billing/stripe'
+      fullPath: '/api/public/billing/stripe'
+      preLoaderRoute: typeof ApiPublicBillingStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/retry-inbound': {
       id: '/api/public/cron/retry-inbound'
       path: '/api/public/cron/retry-inbound'
@@ -1983,6 +2044,9 @@ const rootRouteChildren: RootRouteChildren = {
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicAutomationsTokenRoute: ApiPublicAutomationsTokenRoute,
+  ApiPublicBillingLemonsqueezyRoute: ApiPublicBillingLemonsqueezyRoute,
+  ApiPublicBillingPaddleRoute: ApiPublicBillingPaddleRoute,
+  ApiPublicBillingStripeRoute: ApiPublicBillingStripeRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunAutomationsRoute: ApiPublicCronRunAutomationsRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
