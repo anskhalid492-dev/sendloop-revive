@@ -1498,7 +1498,7 @@ export async function adminOutreachFilterOptions() {
  * (capped so a runaway export can never exhaust the worker).
  */
 export async function exportAdminLeadsCsv(
-  filters: AdminLeadFilters & { scope?: "page" | "all" } = {},
+  filters: AdminLeadFilters & { scope?: "page" | "all" | undefined } = {},
 ) {
   const scope = filters.scope ?? "page";
   const rows: any[] = [];

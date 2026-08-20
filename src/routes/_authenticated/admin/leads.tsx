@@ -28,6 +28,7 @@ import {
   num,
 } from "@/components/app/admin/OutreachUI";
 import {
+  adminExportLeads,
   adminGetLead,
   adminListLeads,
   adminOutreachFilters,
@@ -61,6 +62,8 @@ function AdminLeadsPage() {
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<"page" | "all" | null>(null);
+  const exportLeads = useServerFn(adminExportLeads);
 
   const options = useQuery({
     queryKey: ["admin", "outreach", "filters"],
@@ -98,6 +101,22 @@ function AdminLeadsPage() {
   const scopedCampaigns = (options.data?.campaigns ?? []).filter(
     (c: any) => workspace === "all" || c.workspaceId === workspace,
   );
+
+  async function runExport(scope: "page" | "all") {
+    setExporting(scope);
+    try {
+      const result = await exportLeads({ data: { ...filters, scope } });
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sendloop-leads-${scope}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
