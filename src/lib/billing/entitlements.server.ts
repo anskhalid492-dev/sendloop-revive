@@ -173,7 +173,7 @@ export async function assertFeatureKey(workspaceId: string, featureKey: string) 
   // Workspaces without any subscription record are on the default trial plan
   // and keep their current access; gating only applies once a plan is attached.
   if (entitlement.state === "none") return entitlement;
-  if (!entitlement.active && entitlement.state !== "none")
+  if (!entitlement.active)
     throw new Error(`Your subscription is ${entitlement.state}. Renew it to use ${label}.`);
   if (!entitlement.features[featureKey])
     throw new Error(`${label} is not included in the ${entitlement.planName} plan.`);
