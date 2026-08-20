@@ -39,6 +39,10 @@ import {
 import { getSystemSettings, saveSystemSettings } from "@/lib/platform-settings.functions";
 import { SETTING_GROUPS, type SettingField, type SettingGroup } from "@/lib/platform-settings";
 import { AuthProvidersPanel } from "@/components/admin/AuthProvidersPanel";
+import { AnnouncementsPanel } from "@/components/admin/AnnouncementsPanel";
+import { FeatureFlagsPanel } from "@/components/admin/FeatureFlagsPanel";
+import { ConfigHistoryPanel } from "@/components/admin/ConfigHistoryPanel";
+import { UploadButton } from "@/components/admin/MediaLibrary";
 import { ReferralTemplatesPanel } from "@/components/admin/ReferralTemplatesPanel";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +64,7 @@ function SystemSettingsPage() {
   const [activeId, setActiveId] = useState(SETTING_GROUPS[0]!.id);
   const [draft, setDraft] = useState<Values>({});
   const [confirming, setConfirming] = useState<string[] | null>(null);
+  const [reason, setReason] = useState("");
 
   const query = useQuery({
     queryKey: ["admin-system-settings"],
@@ -77,12 +82,16 @@ function SystemSettingsPage() {
   }, [state?.id, state?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mutation = useMutation({
-    mutationFn: (values: Values) => save({ data: { group: group.id, values } }),
+    mutationFn: (values: Values) =>
+      save({ data: { group: group.id, values, reason: reason.trim() } }),
     onSuccess: () => {
       toast.success(`${group.label} settings saved`);
+      setReason("");
       queryClient.invalidateQueries({ queryKey: ["admin-system-settings"] });
       queryClient.invalidateQueries({ queryKey: ["platform-flags"] });
       queryClient.invalidateQueries({ queryKey: ["public-auth-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-platform-config"] });
+      queryClient.invalidateQueries({ queryKey: ["public-platform-config"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -170,7 +179,11 @@ function SystemSettingsPage() {
               </p>
             ) : null}
 
-            {query.isLoading ? (
+            {group.fields.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                This section is managed in the panel below.
+              </p>
+            ) : query.isLoading ? (
               <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" /> Loading settings…
               </div>
@@ -188,7 +201,24 @@ function SystemSettingsPage() {
               </div>
             )}
 
-            <div className="mt-6 flex items-center justify-between gap-3 border-t border-border/40 pt-4">
+            <div
+              className={cn(
+                "mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-4",
+                group.fields.length === 0 && "hidden",
+              )}
+            >
+              <div className="flex flex-1 flex-col gap-1">
+                <Label htmlFor="settings-reason" className="text-xs text-muted-foreground">
+                  Reason for change (recorded in configuration history)
+                </Label>
+                <Input
+                  id="settings-reason"
+                  className="max-w-sm"
+                  placeholder="Optional — e.g. raising limits for Q3 launch"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
               <p className="text-xs text-muted-foreground">
                 {dirtyKeys.length === 0
                   ? "No unsaved changes"
@@ -215,8 +245,13 @@ function SystemSettingsPage() {
             </div>
           </div>
 
-          {group.id === "auth" ? <AuthProvidersPanel /> : null}
-          {group.id === "notifications" ? <ReferralTemplatesPanel /> : null}
+          {group.panel === "auth" || group.id === "auth" ? <AuthProvidersPanel /> : null}
+          {group.panel === "referral-templates" || group.id === "notifications" ? (
+            <ReferralTemplatesPanel />
+          ) : null}
+          {group.panel === "announcements" ? <AnnouncementsPanel /> : null}
+          {group.panel === "flags" ? <FeatureFlagsPanel /> : null}
+          {group.panel === "history" ? <ConfigHistoryPanel /> : null}
         </div>
       </div>
 
@@ -310,6 +345,35 @@ function FieldRow({
               ))}
             </SelectContent>
           </Select>
+        ) : field.type === "image" ? (
+          <div className="flex flex-col items-start gap-2 sm:w-[320px]">
+            {value ? (
+              <img
+                src={String(value)}
+                alt={`${field.label} preview`}
+                className="h-12 max-w-[200px] rounded border border-border/60 bg-muted/40 object-contain p-1"
+              />
+            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <UploadButton
+                folder="branding"
+                label={value ? "Replace" : "Upload"}
+                onUploaded={(item) => onChange(item.public_url)}
+              />
+              {value ? (
+                <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+            <Input
+              id={id}
+              className="w-full"
+              placeholder="or paste an image URL"
+              value={String(value ?? "")}
+              onChange={(e) => onChange(e.target.value)}
+            />
+          </div>
         ) : field.type === "textarea" ? (
           <Textarea
             id={id}
