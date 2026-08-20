@@ -306,7 +306,15 @@ function AdminNavigationRoute() {
               </Button>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              {(footerGroups.length ? footerGroups : ["Product"]).map((group) => (
+            {(footerGroups.length ? footerGroups.sort((a, b) => {
+                const order = ["Products", "Resources", "Company", "Legal"];
+                const ai = order.indexOf(a);
+                const bi = order.indexOf(b);
+                if (ai === -1 && bi === -1) return a.localeCompare(b);
+                if (ai === -1) return 1;
+                if (bi === -1) return -1;
+                return ai - bi;
+              }) : ["Products"]).map((group) => (
                 <LinkGroup key={group} location="footer" groupKey={group} title={group} />
               ))}
             </div>
