@@ -248,6 +248,7 @@ export async function setPlanFeature(
   if (!feature) throw new Error(`Unknown feature: ${input.featureKey}`);
   const db = await admin();
   const audit = await import("@/lib/billing/change-audit.server");
+  const before = await audit.featureSnapshot(input.planId, input.featureKey);
 
   if (feature.column) {
     const { error } = await db
