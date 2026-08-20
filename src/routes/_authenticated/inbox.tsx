@@ -88,6 +88,7 @@ function Page() {
 
 
   const [folder, setFolder] = useState<InboxFolder>("inbox");
+  const [tab, setTab] = useState<"primary" | "other">("primary");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -97,6 +98,24 @@ function Page() {
   const [foldersOpen, setFoldersOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeSeed, setComposeSeed] = useState<ComposeSeed>({});
+  const [me, setMe] = useState<{ name: string | null; email: string | null }>({
+    name: null,
+    email: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setMe({
+        name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? null,
+        email: data.user?.email ?? null,
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const openCompose = useCallback((seed: ComposeSeed) => {
     setComposeSeed(seed);
@@ -108,7 +127,17 @@ function Page() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const listKey = ["conversations", workspaceId, folder, search, filters];
+  // Primary/Other split only applies to the general folders; status views are
+  // already scoped to a single status.
+  const tabbedFolder = folder === "inbox" || folder === "unread" || folder === "all";
+  const tabStatuses = useMemo(() => {
+    if (!tabbedFolder || filters.statuses.length) return undefined;
+    return tab === "primary"
+      ? ["lead", "interested", "meeting_booked", "meeting_completed", "won"]
+      : ["not_interested", "ooo", "unsubscribed", "bounced"];
+  }, [tab, tabbedFolder, filters.statuses.length]);
+
+  const listKey = ["conversations", workspaceId, folder, search, filters, tabStatuses];
 
   const listQuery = useInfiniteQuery({
     queryKey: listKey,
@@ -120,7 +149,9 @@ function Page() {
           workspaceId: workspaceId!,
           folder,
           search: search || undefined,
-          statuses: filters.statuses.length ? (filters.statuses as never) : undefined,
+          statuses: filters.statuses.length
+            ? (filters.statuses as never)
+            : ((tabStatuses as never) ?? undefined),
           campaignIds: filters.campaignIds.length ? filters.campaignIds : undefined,
           accountIds: filters.accountIds.length ? filters.accountIds : undefined,
           tags: filters.tags.length ? filters.tags : undefined,
@@ -132,6 +163,7 @@ function Page() {
           limit: 25,
         },
       }),
+
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 
