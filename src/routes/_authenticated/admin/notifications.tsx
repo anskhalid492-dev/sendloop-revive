@@ -169,7 +169,7 @@ function AdminNotificationsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "sendloop-alert-audit.csv";
+    a.download = "munchreach-alert-audit.csv";
     a.click();
     URL.revokeObjectURL(url);
   }

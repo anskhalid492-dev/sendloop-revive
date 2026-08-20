@@ -80,10 +80,10 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: "Infrastructure",
     items: [
-      { to: "/admin/providers", label: "Providers", icon: Server },
+      { to: "/admin/providers", label: "Email Providers", icon: Server },
       { to: "/admin/infrastructure", label: "Sending Infrastructure", icon: Share2 },
       { to: "/admin/webhooks", label: "Webhooks", icon: Webhook },
-      { to: "/admin/environment", label: "Environment", icon: KeyRound },
+      { to: "/admin/environment", label: "System Configuration", icon: KeyRound },
       { to: "/admin/pool", label: "Sending Pool", icon: Mailbox },
       { to: "/admin/inbound-events", label: "Inbound Events", icon: Inbox },
       { to: "/admin/notifications", label: "Alert Audit Log", icon: BellRing },
@@ -95,7 +95,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/campaigns", label: "Campaigns", icon: Send },
       { to: "/admin/leads", label: "Leads", icon: ContactRound },
       { to: "/admin/email-accounts", label: "Email Accounts", icon: AtSign },
-      { to: "/admin/domains", label: "Sending Domains", icon: Globe },
+      { to: "/admin/domains", label: "Domain Verification", icon: Globe },
       { to: "/admin/warmup", label: "Warmup", icon: Flame },
       { to: "/admin/crm", label: "CRM", icon: Users },
       { to: "/admin/automations", label: "Automations", icon: Workflow },

@@ -156,7 +156,7 @@ export function InboundOpsSettings() {
             <Label htmlFor="alert-webhook">Alert webhook URL</Label>
             <Input
               id="alert-webhook"
-              placeholder="https://hooks.example.com/sendloop"
+              placeholder="https://hooks.example.com/munchreach"
               value={form.notifyWebhookUrl ?? ""}
               onChange={(event) => set("notifyWebhookUrl", event.target.value || null)}
             />

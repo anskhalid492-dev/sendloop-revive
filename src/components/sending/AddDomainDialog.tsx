@@ -79,7 +79,7 @@ export function AddDomainDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="domain-registrar">DNS provider (optional)</Label>
+            <Label htmlFor="domain-registrar">DNS host (optional)</Label>
             <Input
               id="domain-registrar"
               value={registrar}

@@ -10,13 +10,13 @@ import { dismissDomainAlert, listDomainAlerts } from "@/lib/warmup.functions";
 /** Remediation steps shown for each failing authentication record. */
 const REMEDIATION: Record<string, string[]> = {
   spf: [
-    "Open your DNS provider and locate the TXT record for the root domain.",
-    "Confirm a single SPF record exists and still includes your sending provider.",
+    "Open your domain's DNS settings and locate the TXT record for the root domain.",
+    "Confirm a single SPF record exists and still matches the value shown in Domain setup.",
     "Remove duplicate SPF records — more than one makes SPF fail entirely.",
   ],
   dkim: [
     "Check the DKIM CNAME/TXT record for your selector is still published.",
-    "Re-copy the value from DNS records — providers rotate keys on reconnect.",
+    "Re-copy the value from Domain setup — keys can rotate when a mailbox reconnects.",
     "Wait for the TTL to expire after fixing, then re-verify.",
   ],
   dmarc: [
@@ -52,7 +52,7 @@ export function DomainAlerts() {
   const verifyMutation = useMutation({
     mutationFn: (id: string) => verifyFn({ data: { id } }),
     onSuccess: async (result) => {
-      if (result.dnsStatus === "verified") toast.success("DNS is healthy again.");
+      if (result.dnsStatus === "verified") toast.success("Your domain is healthy again.");
       else toast.error("The records are still failing.");
       await invalidate();
     },
