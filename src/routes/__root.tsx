@@ -17,6 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getSiteContent } from "@/lib/site-content.functions";
+import { getPlatformFlags } from "@/lib/platform-settings.functions";
 import { getGlobalSeo, setSiteContent } from "@/lib/page-seo";
 
 
@@ -108,7 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // same content the server rendered with; otherwise the footer and header
   // hydrate against the hardcoded fallbacks and React reports a mismatch.
   loader: async ({ context, location }) => {
-    let siteContent = null as Awaited<ReturnType<typeof loadSiteContentSafely>>;
+    let siteContent: Awaited<ReturnType<typeof getSiteContent>> | null = null;
     try {
       siteContent = await context.queryClient.ensureQueryData(siteContentQueryOptions);
       setSiteContent(siteContent);
