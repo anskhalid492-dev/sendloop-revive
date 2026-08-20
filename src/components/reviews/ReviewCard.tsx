@@ -1,3 +1,4 @@
+import { placeholderAvatar } from "@/lib/reviews";
 import { BadgeCheck, Quote, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -81,21 +82,12 @@ export function ReviewCard({
       ) : null}
 
       <figcaption className="mt-6 flex items-center gap-3 border-t border-border/60 pt-4">
-        {review.avatar_url ? (
-          <img
-            src={review.avatar_url}
-            alt={`${review.name}, ${review.role} at ${review.company}`}
-            className="size-11 shrink-0 rounded-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/12 text-sm font-semibold text-primary"
-          >
-            {initials(review.name)}
-          </span>
-        )}
+        <img
+          src={review.avatar_url || placeholderAvatar(`${review.id}-${review.name}`)}
+          alt={`${review.name}, ${review.role} at ${review.company}`}
+          className="size-11 shrink-0 rounded-full bg-secondary object-cover"
+          loading="lazy"
+        />
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
             {review.name}

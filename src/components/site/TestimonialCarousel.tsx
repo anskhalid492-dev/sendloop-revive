@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Quote, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { placeholderAvatar } from "@/lib/reviews";
 import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions";
 
 function initials(name: string) {
@@ -19,22 +20,13 @@ function ReviewCard({ t }: { t: Testimonial }) {
   return (
     <figure className="rounded-2xl border border-border/70 bg-card p-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition-colors duration-200 hover:border-primary/30">
       <div className="flex items-start gap-3">
-        {t.avatar_url ? (
-          <img
-            src={t.avatar_url}
-            alt={`${t.name}, ${t.role} at ${t.company}`}
-            className="size-12 shrink-0 rounded-full object-cover"
-            loading="lazy"
-            draggable={false}
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/12 text-sm font-semibold text-primary"
-          >
-            {initials(t.name)}
-          </span>
-        )}
+        <img
+          src={t.avatar_url || placeholderAvatar(`${t.id}-${t.name}`)}
+          alt={`${t.name}, ${t.role} at ${t.company}`}
+          className="size-12 shrink-0 rounded-full bg-secondary object-cover"
+          loading="lazy"
+          draggable={false}
+        />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{t.name}</p>
           <p className="truncate text-xs text-muted-foreground">
