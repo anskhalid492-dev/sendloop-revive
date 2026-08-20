@@ -150,15 +150,15 @@ export const getPublicPlatformConfig = createServerFn({ method: "GET" }).handler
   // operational switches stay server-side.
   const general = (merged["general"] ?? {}) as Record<string, Value>;
   merged["general"] = {
-    site_name: general["site_name"],
-    default_language: general["default_language"],
-    default_date_format: general["default_date_format"],
-    default_time_format: general["default_time_format"],
-    default_pagination: general["default_pagination"],
-    default_currency: general["default_currency"],
-    default_timezone: general["default_timezone"],
-    onboarding_enabled: general["onboarding_enabled"],
-    suspension_message: general["suspension_message"],
+    site_name: general["site_name"] ?? null,
+    default_language: general["default_language"] ?? null,
+    default_date_format: general["default_date_format"] ?? null,
+    default_time_format: general["default_time_format"] ?? null,
+    default_pagination: general["default_pagination"] ?? null,
+    default_currency: general["default_currency"] ?? null,
+    default_timezone: general["default_timezone"] ?? null,
+    onboarding_enabled: general["onboarding_enabled"] ?? null,
+    suspension_message: general["suspension_message"] ?? null,
   };
   return merged as {
     branding: Record<string, Value>;
