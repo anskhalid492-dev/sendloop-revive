@@ -69,6 +69,7 @@ import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
+import { Route as AuthenticatedAdminAutomationsRouteImport } from './routes/_authenticated/admin/automations'
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin/billing'
 import { Route as AuthenticatedAdminBillingProvidersRouteImport } from './routes/_authenticated/admin/billing-providers'
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
@@ -418,6 +419,12 @@ const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminAutomationsRoute =
+  AuthenticatedAdminAutomationsRouteImport.update({
+    id: '/automations',
+    path: '/automations',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminBillingRoute =
   AuthenticatedAdminBillingRouteImport.update({
     id: '/billing',
@@ -748,6 +755,7 @@ export interface FileRoutesByFullPath {
   '/integrations/': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -854,6 +862,7 @@ export interface FileRoutesByTo {
   '/integrations': typeof IntegrationsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -964,6 +973,7 @@ export interface FileRoutesById {
   '/integrations/': typeof IntegrationsIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/automations': typeof AuthenticatedAdminAutomationsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -1074,6 +1084,7 @@ export interface FileRouteTypes {
     | '/integrations/'
     | '/admin/analytics'
     | '/admin/audit'
+    | '/admin/automations'
     | '/admin/billing'
     | '/admin/billing-providers'
     | '/admin/campaigns'
@@ -1180,6 +1191,7 @@ export interface FileRouteTypes {
     | '/integrations'
     | '/admin/analytics'
     | '/admin/audit'
+    | '/admin/automations'
     | '/admin/billing'
     | '/admin/billing-providers'
     | '/admin/campaigns'
@@ -1289,6 +1301,7 @@ export interface FileRouteTypes {
     | '/integrations/'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/automations'
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/billing-providers'
     | '/_authenticated/admin/campaigns'
@@ -1816,6 +1829,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/automations': {
+      id: '/_authenticated/admin/automations'
+      path: '/automations'
+      fullPath: '/admin/automations'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/billing': {
       id: '/_authenticated/admin/billing'
       path: '/billing'
@@ -2180,6 +2200,7 @@ const AuthenticatedAdminInboundEventsRouteWithChildren =
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminAutomationsRoute: typeof AuthenticatedAdminAutomationsRoute
   AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
@@ -2214,6 +2235,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
   {
     AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
     AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+    AuthenticatedAdminAutomationsRoute: AuthenticatedAdminAutomationsRoute,
     AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
     AuthenticatedAdminBillingProvidersRoute:
       AuthenticatedAdminBillingProvidersRoute,
