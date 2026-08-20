@@ -125,7 +125,7 @@ function LeadsPage() {
 
   const campaigns = useQuery({
     queryKey: ["campaigns", workspaceId],
-    queryFn: () => fetchCampaigns(),
+    queryFn: () => fetchCampaigns({ data: { workspaceId } } as never),
     enabled: Boolean(workspaceId),
   });
 
