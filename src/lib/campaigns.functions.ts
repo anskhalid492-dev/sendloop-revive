@@ -18,21 +18,28 @@ import {
 
 export type { Campaign, CampaignStep, CampaignStepVariant, CampaignStatus } from "@/lib/campaign-model";
 
+const workspaceScope = z.object({ workspaceId: z.string().uuid().optional() }).optional();
+
 export const listCampaigns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((input) => workspaceScope.parse(input) ?? {})
+  .handler(async ({ data, context }) => {
+    let campaignQuery = context.supabase
       .from("campaigns")
       .select(CAMPAIGN_COLUMNS)
       .order("created_at", { ascending: false });
+    // Platform admins can read every campaign through RLS; scope reads to the
+    // active workspace so pickers never offer cross-workspace campaigns.
+    if (data?.workspaceId) campaignQuery = campaignQuery.eq("workspace_id", data.workspaceId);
+    const { data: rows, error } = await campaignQuery;
     if (error) throw new Error(error.message);
 
-    const campaigns = (data ?? []) as unknown as Campaign[];
+    const campaigns = (rows ?? []) as unknown as Campaign[];
     if (campaigns.length === 0) return [] as Array<Campaign & { recipients: number; sent: number }>;
 
-    const { data: recipients, error: rErr } = await context.supabase
-      .from("campaign_recipients")
-      .select("campaign_id, status");
+    let recipientQuery = context.supabase.from("campaign_recipients").select("campaign_id, status");
+    if (data?.workspaceId) recipientQuery = recipientQuery.eq("workspace_id", data.workspaceId);
+    const { data: recipients, error: rErr } = await recipientQuery;
     if (rErr) throw new Error(rErr.message);
 
     return campaigns.map((c) => {
