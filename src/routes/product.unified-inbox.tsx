@@ -28,6 +28,7 @@ import {
   BigPreview,
   FeatureBento,
 } from "@/components/site/MarketingPage";
+import { InboxPreview } from "@/components/site/InboxPreview";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
@@ -153,7 +154,7 @@ function Page() {
         title="Every reply in one place"
         description="Multiple mailboxes, AI classification, assignment and notes in a single view."
       >
-        <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
+        <InboxPreview className="rounded-none border-0" />
       </BigPreview>
       <Section title="How Sendloop solves it" description="A single inbox that thinks and triages for you.">
         <SolutionSplit rows={solutionRows} />
