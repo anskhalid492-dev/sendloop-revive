@@ -17,7 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getSiteContent } from "@/lib/site-content.functions";
-import { setSiteContent } from "@/lib/page-seo";
+import { getGlobalSeo, setSiteContent } from "@/lib/page-seo";
 
 
 function NotFoundComponent() {
