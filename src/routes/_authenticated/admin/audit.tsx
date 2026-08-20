@@ -27,6 +27,20 @@ function formatValue(value: unknown) {
   return String(value);
 }
 
+type ChangeRow = {
+  id: string;
+  at: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  targetLabel: string | null;
+  actorId: string;
+  actorEmail: string | null;
+  workspaceId: string | null;
+  workspaceName: string | null;
+  changes: Record<string, { before: unknown; after: unknown }>;
+};
+
 function AdminChangeLogPage() {
   const fetchLog = useServerFn(listAdminChangeLog);
   const [targetType, setTargetType] = useState("all");
@@ -37,7 +51,7 @@ function AdminChangeLogPage() {
     queryFn: () => fetchLog({ data: { targetType, search } }),
   });
 
-  const rows = q.data ?? [];
+  const rows = (q.data ?? []) as unknown as ChangeRow[];
 
   return (
     <div className="space-y-4">
@@ -104,9 +118,9 @@ function AdminChangeLogPage() {
                           <tr key={field} className="border-t border-border/40">
                             <td className="px-3 py-1.5 font-mono">{field}</td>
                             <td className="px-3 py-1.5 text-muted-foreground">
-                              {formatValue(value?.before)}
+                              {formatValue(value.before)}
                             </td>
-                            <td className="px-3 py-1.5 font-medium">{formatValue(value?.after)}</td>
+                            <td className="px-3 py-1.5 font-medium">{formatValue(value.after)}</td>
                           </tr>
                         ))}
                       </tbody>
