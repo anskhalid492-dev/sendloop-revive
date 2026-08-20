@@ -461,7 +461,10 @@ async function countRows(
   extra?: (q: any) => any,
   workspaceId?: string,
 ) {
-  let q = supabaseAdmin.from(table).select("id", { count: "exact", head: true }).gte(column, from).lte(column, to);
+  let q: any = (supabaseAdmin.from(table as never) as any)
+    .select("id", { count: "exact", head: true })
+    .gte(column, from)
+    .lte(column, to);
   if (workspaceId) q = q.eq("workspace_id", workspaceId);
   if (extra) q = extra(q);
   const { count, error } = await q;
