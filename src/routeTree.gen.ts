@@ -35,7 +35,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as WhySendloopRouteImport } from './routes/why-sendloop'
+import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
@@ -54,12 +54,12 @@ import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as CompareSendloopAlternativesRouteImport } from './routes/compare.sendloop-alternatives'
-import { Route as CompareSendloopVsApolloRouteImport } from './routes/compare.sendloop-vs-apollo'
-import { Route as CompareSendloopVsInstantlyRouteImport } from './routes/compare.sendloop-vs-instantly'
-import { Route as CompareSendloopVsLemlistRouteImport } from './routes/compare.sendloop-vs-lemlist'
-import { Route as CompareSendloopVsSaleshandyRouteImport } from './routes/compare.sendloop-vs-saleshandy'
-import { Route as CompareSendloopVsSmartleadRouteImport } from './routes/compare.sendloop-vs-smartlead'
+import { Route as CompareMunchreachAlternativesRouteImport } from './routes/compare.munchreach-alternatives'
+import { Route as CompareMunchreachVsApolloRouteImport } from './routes/compare.munchreach-vs-apollo'
+import { Route as CompareMunchreachVsInstantlyRouteImport } from './routes/compare.munchreach-vs-instantly'
+import { Route as CompareMunchreachVsLemlistRouteImport } from './routes/compare.munchreach-vs-lemlist'
+import { Route as CompareMunchreachVsSaleshandyRouteImport } from './routes/compare.munchreach-vs-saleshandy'
+import { Route as CompareMunchreachVsSmartleadRouteImport } from './routes/compare.munchreach-vs-smartlead'
 import { Route as HelpCenterIndexRouteImport } from './routes/help-center.index'
 import { Route as HelpCenterSlugRouteImport } from './routes/help-center.$slug'
 import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
@@ -268,9 +268,9 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WhySendloopRoute = WhySendloopRouteImport.update({
-  id: '/why-sendloop',
-  path: '/why-sendloop',
+const WhyMunchreachRoute = WhyMunchreachRouteImport.update({
+  id: '/why-munchreach',
+  path: '/why-munchreach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
@@ -364,39 +364,40 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CompareSendloopAlternativesRoute =
-  CompareSendloopAlternativesRouteImport.update({
-    id: '/compare/sendloop-alternatives',
-    path: '/compare/sendloop-alternatives',
+const CompareMunchreachAlternativesRoute =
+  CompareMunchreachAlternativesRouteImport.update({
+    id: '/compare/munchreach-alternatives',
+    path: '/compare/munchreach-alternatives',
     getParentRoute: () => rootRouteImport,
   } as any)
-const CompareSendloopVsApolloRoute = CompareSendloopVsApolloRouteImport.update({
-  id: '/compare/sendloop-vs-apollo',
-  path: '/compare/sendloop-vs-apollo',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompareSendloopVsInstantlyRoute =
-  CompareSendloopVsInstantlyRouteImport.update({
-    id: '/compare/sendloop-vs-instantly',
-    path: '/compare/sendloop-vs-instantly',
+const CompareMunchreachVsApolloRoute =
+  CompareMunchreachVsApolloRouteImport.update({
+    id: '/compare/munchreach-vs-apollo',
+    path: '/compare/munchreach-vs-apollo',
     getParentRoute: () => rootRouteImport,
   } as any)
-const CompareSendloopVsLemlistRoute =
-  CompareSendloopVsLemlistRouteImport.update({
-    id: '/compare/sendloop-vs-lemlist',
-    path: '/compare/sendloop-vs-lemlist',
+const CompareMunchreachVsInstantlyRoute =
+  CompareMunchreachVsInstantlyRouteImport.update({
+    id: '/compare/munchreach-vs-instantly',
+    path: '/compare/munchreach-vs-instantly',
     getParentRoute: () => rootRouteImport,
   } as any)
-const CompareSendloopVsSaleshandyRoute =
-  CompareSendloopVsSaleshandyRouteImport.update({
-    id: '/compare/sendloop-vs-saleshandy',
-    path: '/compare/sendloop-vs-saleshandy',
+const CompareMunchreachVsLemlistRoute =
+  CompareMunchreachVsLemlistRouteImport.update({
+    id: '/compare/munchreach-vs-lemlist',
+    path: '/compare/munchreach-vs-lemlist',
     getParentRoute: () => rootRouteImport,
   } as any)
-const CompareSendloopVsSmartleadRoute =
-  CompareSendloopVsSmartleadRouteImport.update({
-    id: '/compare/sendloop-vs-smartlead',
-    path: '/compare/sendloop-vs-smartlead',
+const CompareMunchreachVsSaleshandyRoute =
+  CompareMunchreachVsSaleshandyRouteImport.update({
+    id: '/compare/munchreach-vs-saleshandy',
+    path: '/compare/munchreach-vs-saleshandy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompareMunchreachVsSmartleadRoute =
+  CompareMunchreachVsSmartleadRouteImport.update({
+    id: '/compare/munchreach-vs-smartlead',
+    path: '/compare/munchreach-vs-smartlead',
     getParentRoute: () => rootRouteImport,
   } as any)
 const HelpCenterIndexRoute = HelpCenterIndexRouteImport.update({
@@ -859,7 +860,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/why-sendloop': typeof WhySendloopRoute
+  '/why-munchreach': typeof WhyMunchreachRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -877,12 +878,12 @@ export interface FileRoutesByFullPath {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
-  '/compare/sendloop-alternatives': typeof CompareSendloopAlternativesRoute
-  '/compare/sendloop-vs-apollo': typeof CompareSendloopVsApolloRoute
-  '/compare/sendloop-vs-instantly': typeof CompareSendloopVsInstantlyRoute
-  '/compare/sendloop-vs-lemlist': typeof CompareSendloopVsLemlistRoute
-  '/compare/sendloop-vs-saleshandy': typeof CompareSendloopVsSaleshandyRoute
-  '/compare/sendloop-vs-smartlead': typeof CompareSendloopVsSmartleadRoute
+  '/compare/munchreach-alternatives': typeof CompareMunchreachAlternativesRoute
+  '/compare/munchreach-vs-apollo': typeof CompareMunchreachVsApolloRoute
+  '/compare/munchreach-vs-instantly': typeof CompareMunchreachVsInstantlyRoute
+  '/compare/munchreach-vs-lemlist': typeof CompareMunchreachVsLemlistRoute
+  '/compare/munchreach-vs-saleshandy': typeof CompareMunchreachVsSaleshandyRoute
+  '/compare/munchreach-vs-smartlead': typeof CompareMunchreachVsSmartleadRoute
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -988,7 +989,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/why-sendloop': typeof WhySendloopRoute
+  '/why-munchreach': typeof WhyMunchreachRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1005,12 +1006,12 @@ export interface FileRoutesByTo {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
-  '/compare/sendloop-alternatives': typeof CompareSendloopAlternativesRoute
-  '/compare/sendloop-vs-apollo': typeof CompareSendloopVsApolloRoute
-  '/compare/sendloop-vs-instantly': typeof CompareSendloopVsInstantlyRoute
-  '/compare/sendloop-vs-lemlist': typeof CompareSendloopVsLemlistRoute
-  '/compare/sendloop-vs-saleshandy': typeof CompareSendloopVsSaleshandyRoute
-  '/compare/sendloop-vs-smartlead': typeof CompareSendloopVsSmartleadRoute
+  '/compare/munchreach-alternatives': typeof CompareMunchreachAlternativesRoute
+  '/compare/munchreach-vs-apollo': typeof CompareMunchreachVsApolloRoute
+  '/compare/munchreach-vs-instantly': typeof CompareMunchreachVsInstantlyRoute
+  '/compare/munchreach-vs-lemlist': typeof CompareMunchreachVsLemlistRoute
+  '/compare/munchreach-vs-saleshandy': typeof CompareMunchreachVsSaleshandyRoute
+  '/compare/munchreach-vs-smartlead': typeof CompareMunchreachVsSmartleadRoute
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -1119,7 +1120,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/why-sendloop': typeof WhySendloopRoute
+  '/why-munchreach': typeof WhyMunchreachRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
@@ -1137,12 +1138,12 @@ export interface FileRoutesById {
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
-  '/compare/sendloop-alternatives': typeof CompareSendloopAlternativesRoute
-  '/compare/sendloop-vs-apollo': typeof CompareSendloopVsApolloRoute
-  '/compare/sendloop-vs-instantly': typeof CompareSendloopVsInstantlyRoute
-  '/compare/sendloop-vs-lemlist': typeof CompareSendloopVsLemlistRoute
-  '/compare/sendloop-vs-saleshandy': typeof CompareSendloopVsSaleshandyRoute
-  '/compare/sendloop-vs-smartlead': typeof CompareSendloopVsSmartleadRoute
+  '/compare/munchreach-alternatives': typeof CompareMunchreachAlternativesRoute
+  '/compare/munchreach-vs-apollo': typeof CompareMunchreachVsApolloRoute
+  '/compare/munchreach-vs-instantly': typeof CompareMunchreachVsInstantlyRoute
+  '/compare/munchreach-vs-lemlist': typeof CompareMunchreachVsLemlistRoute
+  '/compare/munchreach-vs-saleshandy': typeof CompareMunchreachVsSaleshandyRoute
+  '/compare/munchreach-vs-smartlead': typeof CompareMunchreachVsSmartleadRoute
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -1251,7 +1252,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/verify-email'
-    | '/why-sendloop'
+    | '/why-munchreach'
     | '/admin'
     | '/analytics'
     | '/billing'
@@ -1269,12 +1270,12 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
-    | '/compare/sendloop-alternatives'
-    | '/compare/sendloop-vs-apollo'
-    | '/compare/sendloop-vs-instantly'
-    | '/compare/sendloop-vs-lemlist'
-    | '/compare/sendloop-vs-saleshandy'
-    | '/compare/sendloop-vs-smartlead'
+    | '/compare/munchreach-alternatives'
+    | '/compare/munchreach-vs-apollo'
+    | '/compare/munchreach-vs-instantly'
+    | '/compare/munchreach-vs-lemlist'
+    | '/compare/munchreach-vs-saleshandy'
+    | '/compare/munchreach-vs-smartlead'
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
@@ -1380,7 +1381,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/verify-email'
-    | '/why-sendloop'
+    | '/why-munchreach'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -1397,12 +1398,12 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
-    | '/compare/sendloop-alternatives'
-    | '/compare/sendloop-vs-apollo'
-    | '/compare/sendloop-vs-instantly'
-    | '/compare/sendloop-vs-lemlist'
-    | '/compare/sendloop-vs-saleshandy'
-    | '/compare/sendloop-vs-smartlead'
+    | '/compare/munchreach-alternatives'
+    | '/compare/munchreach-vs-apollo'
+    | '/compare/munchreach-vs-instantly'
+    | '/compare/munchreach-vs-lemlist'
+    | '/compare/munchreach-vs-saleshandy'
+    | '/compare/munchreach-vs-smartlead'
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
@@ -1510,7 +1511,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/verify-email'
-    | '/why-sendloop'
+    | '/why-munchreach'
     | '/_authenticated/admin'
     | '/_authenticated/analytics'
     | '/_authenticated/billing'
@@ -1528,12 +1529,12 @@ export interface FileRouteTypes {
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
     | '/blog/$slug'
-    | '/compare/sendloop-alternatives'
-    | '/compare/sendloop-vs-apollo'
-    | '/compare/sendloop-vs-instantly'
-    | '/compare/sendloop-vs-lemlist'
-    | '/compare/sendloop-vs-saleshandy'
-    | '/compare/sendloop-vs-smartlead'
+    | '/compare/munchreach-alternatives'
+    | '/compare/munchreach-vs-apollo'
+    | '/compare/munchreach-vs-instantly'
+    | '/compare/munchreach-vs-lemlist'
+    | '/compare/munchreach-vs-saleshandy'
+    | '/compare/munchreach-vs-smartlead'
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
@@ -1642,14 +1643,14 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
-  WhySendloopRoute: typeof WhySendloopRoute
+  WhyMunchreachRoute: typeof WhyMunchreachRoute
   BlogSlugRoute: typeof BlogSlugRoute
-  CompareSendloopAlternativesRoute: typeof CompareSendloopAlternativesRoute
-  CompareSendloopVsApolloRoute: typeof CompareSendloopVsApolloRoute
-  CompareSendloopVsInstantlyRoute: typeof CompareSendloopVsInstantlyRoute
-  CompareSendloopVsLemlistRoute: typeof CompareSendloopVsLemlistRoute
-  CompareSendloopVsSaleshandyRoute: typeof CompareSendloopVsSaleshandyRoute
-  CompareSendloopVsSmartleadRoute: typeof CompareSendloopVsSmartleadRoute
+  CompareMunchreachAlternativesRoute: typeof CompareMunchreachAlternativesRoute
+  CompareMunchreachVsApolloRoute: typeof CompareMunchreachVsApolloRoute
+  CompareMunchreachVsInstantlyRoute: typeof CompareMunchreachVsInstantlyRoute
+  CompareMunchreachVsLemlistRoute: typeof CompareMunchreachVsLemlistRoute
+  CompareMunchreachVsSaleshandyRoute: typeof CompareMunchreachVsSaleshandyRoute
+  CompareMunchreachVsSmartleadRoute: typeof CompareMunchreachVsSmartleadRoute
   IntegrationsSlugRoute: typeof IntegrationsSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
@@ -1865,11 +1866,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/why-sendloop': {
-      id: '/why-sendloop'
-      path: '/why-sendloop'
-      fullPath: '/why-sendloop'
-      preLoaderRoute: typeof WhySendloopRouteImport
+    '/why-munchreach': {
+      id: '/why-munchreach'
+      path: '/why-munchreach'
+      fullPath: '/why-munchreach'
+      preLoaderRoute: typeof WhyMunchreachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -1998,46 +1999,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/sendloop-alternatives': {
-      id: '/compare/sendloop-alternatives'
-      path: '/compare/sendloop-alternatives'
-      fullPath: '/compare/sendloop-alternatives'
-      preLoaderRoute: typeof CompareSendloopAlternativesRouteImport
+    '/compare/munchreach-alternatives': {
+      id: '/compare/munchreach-alternatives'
+      path: '/compare/munchreach-alternatives'
+      fullPath: '/compare/munchreach-alternatives'
+      preLoaderRoute: typeof CompareMunchreachAlternativesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/sendloop-vs-apollo': {
-      id: '/compare/sendloop-vs-apollo'
-      path: '/compare/sendloop-vs-apollo'
-      fullPath: '/compare/sendloop-vs-apollo'
-      preLoaderRoute: typeof CompareSendloopVsApolloRouteImport
+    '/compare/munchreach-vs-apollo': {
+      id: '/compare/munchreach-vs-apollo'
+      path: '/compare/munchreach-vs-apollo'
+      fullPath: '/compare/munchreach-vs-apollo'
+      preLoaderRoute: typeof CompareMunchreachVsApolloRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/sendloop-vs-instantly': {
-      id: '/compare/sendloop-vs-instantly'
-      path: '/compare/sendloop-vs-instantly'
-      fullPath: '/compare/sendloop-vs-instantly'
-      preLoaderRoute: typeof CompareSendloopVsInstantlyRouteImport
+    '/compare/munchreach-vs-instantly': {
+      id: '/compare/munchreach-vs-instantly'
+      path: '/compare/munchreach-vs-instantly'
+      fullPath: '/compare/munchreach-vs-instantly'
+      preLoaderRoute: typeof CompareMunchreachVsInstantlyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/sendloop-vs-lemlist': {
-      id: '/compare/sendloop-vs-lemlist'
-      path: '/compare/sendloop-vs-lemlist'
-      fullPath: '/compare/sendloop-vs-lemlist'
-      preLoaderRoute: typeof CompareSendloopVsLemlistRouteImport
+    '/compare/munchreach-vs-lemlist': {
+      id: '/compare/munchreach-vs-lemlist'
+      path: '/compare/munchreach-vs-lemlist'
+      fullPath: '/compare/munchreach-vs-lemlist'
+      preLoaderRoute: typeof CompareMunchreachVsLemlistRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/sendloop-vs-saleshandy': {
-      id: '/compare/sendloop-vs-saleshandy'
-      path: '/compare/sendloop-vs-saleshandy'
-      fullPath: '/compare/sendloop-vs-saleshandy'
-      preLoaderRoute: typeof CompareSendloopVsSaleshandyRouteImport
+    '/compare/munchreach-vs-saleshandy': {
+      id: '/compare/munchreach-vs-saleshandy'
+      path: '/compare/munchreach-vs-saleshandy'
+      fullPath: '/compare/munchreach-vs-saleshandy'
+      preLoaderRoute: typeof CompareMunchreachVsSaleshandyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/sendloop-vs-smartlead': {
-      id: '/compare/sendloop-vs-smartlead'
-      path: '/compare/sendloop-vs-smartlead'
-      fullPath: '/compare/sendloop-vs-smartlead'
-      preLoaderRoute: typeof CompareSendloopVsSmartleadRouteImport
+    '/compare/munchreach-vs-smartlead': {
+      id: '/compare/munchreach-vs-smartlead'
+      path: '/compare/munchreach-vs-smartlead'
+      fullPath: '/compare/munchreach-vs-smartlead'
+      preLoaderRoute: typeof CompareMunchreachVsSmartleadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help-center/': {
@@ -2808,14 +2809,14 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
-  WhySendloopRoute: WhySendloopRoute,
+  WhyMunchreachRoute: WhyMunchreachRoute,
   BlogSlugRoute: BlogSlugRoute,
-  CompareSendloopAlternativesRoute: CompareSendloopAlternativesRoute,
-  CompareSendloopVsApolloRoute: CompareSendloopVsApolloRoute,
-  CompareSendloopVsInstantlyRoute: CompareSendloopVsInstantlyRoute,
-  CompareSendloopVsLemlistRoute: CompareSendloopVsLemlistRoute,
-  CompareSendloopVsSaleshandyRoute: CompareSendloopVsSaleshandyRoute,
-  CompareSendloopVsSmartleadRoute: CompareSendloopVsSmartleadRoute,
+  CompareMunchreachAlternativesRoute: CompareMunchreachAlternativesRoute,
+  CompareMunchreachVsApolloRoute: CompareMunchreachVsApolloRoute,
+  CompareMunchreachVsInstantlyRoute: CompareMunchreachVsInstantlyRoute,
+  CompareMunchreachVsLemlistRoute: CompareMunchreachVsLemlistRoute,
+  CompareMunchreachVsSaleshandyRoute: CompareMunchreachVsSaleshandyRoute,
+  CompareMunchreachVsSmartleadRoute: CompareMunchreachVsSmartleadRoute,
   IntegrationsSlugRoute: IntegrationsSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,

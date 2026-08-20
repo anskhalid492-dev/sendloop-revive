@@ -4,14 +4,14 @@ import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
 import { ComparisonPage } from "@/components/site/ComparisonPage";
 import { COMPARISONS } from "@/lib/comparison-content";
 
-const data = COMPARISONS["sendloop-vs-smartlead"]!;
+const data = COMPARISONS["munchreach-vs-saleshandy"]!;
 
-export const Route = createFileRoute("/compare/sendloop-vs-smartlead")({
+export const Route = createFileRoute("/compare/munchreach-vs-saleshandy")({
   head: () =>
     metaFor(
-      "MunchReach vs Smartlead — Campaigns, Deliverability and Inbox Compared",
-      "A side-by-side look at MunchReach and Smartlead: sequences, sending infrastructure, deliverability controls, unified inbox, CRM, automations and workspaces.",
-      "/compare/sendloop-vs-smartlead",
+      "MunchReach vs Saleshandy — Cold Email Platform Comparison",
+      "Compare MunchReach and Saleshandy on sequences, mailbox rotation, warmup, deliverability controls, unified inbox, CRM, automations and reporting.",
+      "/compare/munchreach-vs-saleshandy",
       data.faqs,
     ),
   component: () => (

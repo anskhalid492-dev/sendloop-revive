@@ -90,7 +90,7 @@ const resourceCards: Card[] = [
   { label: "Integrations", to: "/integrations", text: "Connect MunchReach to your CRM, Slack, Zapier and more.", icon: Plug },
   { label: "Customer Reviews", to: "/customer-reviews", text: "See what MunchReach customers say about their outreach.", icon: MessageSquareQuote },
   { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to MunchReach.", icon: Gift },
-  { label: "Why MunchReach", to: "/why-sendloop", text: "See why teams replace six outbound tools with one workspace.", icon: Compass },
+  { label: "Why MunchReach", to: "/why-munchreach", text: "See why teams replace six outbound tools with one workspace.", icon: Compass },
   { label: "How It Works", to: "/how-it-works", text: "The twelve steps from empty workspace to booked meetings.", icon: GraduationCap },
   { label: "About MunchReach", to: "/about", text: "Our story, our team and where MunchReach is heading.", icon: BookOpen },
 ];
