@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
  */
 const fallbackColumns = [
   {
-    title: "Product",
+    title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
@@ -42,15 +42,6 @@ const fallbackColumns = [
       { label: "Analytics", href: "/product/analytics" },
       { label: "Workspaces", href: "/product/workspaces" },
       { label: "Templates", href: "/product/templates" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "Contact", href: "/contact" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Customer Reviews", href: "/customer-reviews" },
-      { label: "Referral Program", href: "/referral" },
     ],
   },
   {
@@ -66,6 +57,15 @@ const fallbackColumns = [
       { label: "Why Sendloop", href: "/why-sendloop" },
       { label: "How It Works", href: "/how-it-works" },
       { label: "About Us", href: "/about" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "Contact", href: "/contact" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Customer Reviews", href: "/customer-reviews" },
+      { label: "Referral Program", href: "/referral" },
     ],
   },
   {
@@ -154,7 +154,16 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
-    return [...groups.entries()].map(([title, links]) => ({ title, links }));
+    const order = ["Products", "Resources", "Company", "Legal"];
+    const sorted = [...groups.entries()].sort((a, b) => {
+      const ai = order.indexOf(a[0]);
+      const bi = order.indexOf(b[0]);
+      if (ai === -1 && bi === -1) return a[0].localeCompare(b[0]);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+    return sorted.map(([title, links]) => ({ title, links }));
   })();
 
   const social = content?.social?.length
@@ -261,7 +270,7 @@ export function SiteFooter() {
                 <span className="mt-2 block h-0.5 w-7 rounded-full bg-primary" />
                 <ul className="mt-4 space-y-3">
                   {col.links.map((l) => {
-                    const Icon = col.title === "Product" ? productIcons[l.label] : undefined;
+                    const Icon = col.title === "Products" ? productIcons[l.label] : undefined;
                     return (
                       <li key={`${col.title}-${l.label}`}>
                         <a
