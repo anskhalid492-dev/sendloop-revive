@@ -60,35 +60,26 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     const ws = data?.workspaceId;
     // Scope every read to the active workspace (platform admins can otherwise
     // read all tenants' rows through RLS).
-    const scoped = <T extends { eq: (c: string, v: string) => T }>(q: T) =>
-      ws ? q.eq("workspace_id", ws) : q;
+    const scope = <T>(q: T): T => (ws ? (q as { eq: (c: string, v: string) => T }).eq("workspace_id", ws) : q);
 
     const [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes] =
       await Promise.all([
-        scoped(
+        scope(
           context.supabase
             .from("campaigns")
             .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids")
-            .order("created_at", { ascending: false }) as never,
-        ) as never,
-        scoped(context.supabase.from("campaign_recipients").select("campaign_id, lead_id") as never) as never,
-        scoped(context.supabase.from("campaign_messages").select("campaign_id, status, to_email") as never) as never,
-        scoped(
-          context.supabase
-            .from("campaign_replies")
-            .select("campaign_id, lead_id, from_email, sentiment") as never,
-        ) as never,
-        scoped(
-          context.supabase
-            .from("conversations")
-            .select("campaign_id, lead_id, prospect_email, status") as never,
-        ) as never,
-        scoped(
+            .order("created_at", { ascending: false }),
+        ),
+        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")),
+        scope(context.supabase.from("campaign_messages").select("campaign_id, status, to_email")),
+        scope(context.supabase.from("campaign_replies").select("campaign_id, lead_id, from_email, sentiment")),
+        scope(context.supabase.from("conversations").select("campaign_id, lead_id, prospect_email, status")),
+        scope(
           context.supabase
             .from("sending_accounts")
-            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status") as never,
-        ) as never,
-      ] as never);
+            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status"),
+        ),
+      ]);
 
     const failure = [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes].find(
       (r) => r.error,
