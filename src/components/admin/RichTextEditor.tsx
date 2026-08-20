@@ -264,7 +264,7 @@ export function RichTextEditor({
       editor
         .chain()
         .focus()
-        .setImage({ src: item.public_url, alt: item.alt_text || item.file_name, title: item.caption || undefined })
+        .setImage({ src: item.public_url, alt: item.alt_text || item.file_name, title: item.caption || "" })
         .run();
       if (item.caption) {
         editor.chain().focus().createParagraphNear().insertContent(`<em>${item.caption}</em>`).run();
@@ -546,16 +546,16 @@ function LinkDialog({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {[
+            {([
               ["newTab", "Open in new tab"],
               ["nofollow", "Add rel=nofollow"],
               ["sponsored", "Add rel=sponsored"],
               ["ugc", "Add rel=ugc"],
-            ].map(([key, label]) => (
+            ] as const).map(([key, label]) => (
               <label key={key} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
                 <span>{label}</span>
                 <Switch
-                  checked={Boolean(state[key as keyof LinkState])}
+                  checked={Boolean(state[key])}
                   onCheckedChange={(checked) => onChange({ ...state, [key]: checked } as LinkState)}
                 />
               </label>
