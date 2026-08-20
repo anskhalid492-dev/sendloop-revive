@@ -54,6 +54,9 @@ import { Route as AuthenticatedWarmupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/workspace'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as CompareSendloopVsInstantlyRouteImport } from './routes/compare.sendloop-vs-instantly'
+import { Route as CompareSendloopVsLemlistRouteImport } from './routes/compare.sendloop-vs-lemlist'
+import { Route as CompareSendloopVsSmartleadRouteImport } from './routes/compare.sendloop-vs-smartlead'
 import { Route as HelpCenterIndexRouteImport } from './routes/help-center.index'
 import { Route as HelpCenterSlugRouteImport } from './routes/help-center.$slug'
 import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
@@ -358,6 +361,24 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompareSendloopVsInstantlyRoute =
+  CompareSendloopVsInstantlyRouteImport.update({
+    id: '/compare/sendloop-vs-instantly',
+    path: '/compare/sendloop-vs-instantly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompareSendloopVsLemlistRoute =
+  CompareSendloopVsLemlistRouteImport.update({
+    id: '/compare/sendloop-vs-lemlist',
+    path: '/compare/sendloop-vs-lemlist',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompareSendloopVsSmartleadRoute =
+  CompareSendloopVsSmartleadRouteImport.update({
+    id: '/compare/sendloop-vs-smartlead',
+    path: '/compare/sendloop-vs-smartlead',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HelpCenterIndexRoute = HelpCenterIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -836,6 +857,9 @@ export interface FileRoutesByFullPath {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/compare/sendloop-vs-instantly': typeof CompareSendloopVsInstantlyRoute
+  '/compare/sendloop-vs-lemlist': typeof CompareSendloopVsLemlistRoute
+  '/compare/sendloop-vs-smartlead': typeof CompareSendloopVsSmartleadRoute
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -958,6 +982,9 @@ export interface FileRoutesByTo {
   '/warmup': typeof AuthenticatedWarmupRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/compare/sendloop-vs-instantly': typeof CompareSendloopVsInstantlyRoute
+  '/compare/sendloop-vs-lemlist': typeof CompareSendloopVsLemlistRoute
+  '/compare/sendloop-vs-smartlead': typeof CompareSendloopVsSmartleadRoute
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -1084,6 +1111,9 @@ export interface FileRoutesById {
   '/_authenticated/warmup': typeof AuthenticatedWarmupRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/compare/sendloop-vs-instantly': typeof CompareSendloopVsInstantlyRoute
+  '/compare/sendloop-vs-lemlist': typeof CompareSendloopVsLemlistRoute
+  '/compare/sendloop-vs-smartlead': typeof CompareSendloopVsSmartleadRoute
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -1210,6 +1240,9 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/compare/sendloop-vs-instantly'
+    | '/compare/sendloop-vs-lemlist'
+    | '/compare/sendloop-vs-smartlead'
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
@@ -1332,6 +1365,9 @@ export interface FileRouteTypes {
     | '/warmup'
     | '/workspace'
     | '/blog/$slug'
+    | '/compare/sendloop-vs-instantly'
+    | '/compare/sendloop-vs-lemlist'
+    | '/compare/sendloop-vs-smartlead'
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
@@ -1457,6 +1493,9 @@ export interface FileRouteTypes {
     | '/_authenticated/warmup'
     | '/_authenticated/workspace'
     | '/blog/$slug'
+    | '/compare/sendloop-vs-instantly'
+    | '/compare/sendloop-vs-lemlist'
+    | '/compare/sendloop-vs-smartlead'
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
@@ -1567,6 +1606,9 @@ export interface RootRouteChildren {
   VerifyEmailRoute: typeof VerifyEmailRoute
   WhySendloopRoute: typeof WhySendloopRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  CompareSendloopVsInstantlyRoute: typeof CompareSendloopVsInstantlyRoute
+  CompareSendloopVsLemlistRoute: typeof CompareSendloopVsLemlistRoute
+  CompareSendloopVsSmartleadRoute: typeof CompareSendloopVsSmartleadRoute
   IntegrationsSlugRoute: typeof IntegrationsSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
@@ -1913,6 +1955,27 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/sendloop-vs-instantly': {
+      id: '/compare/sendloop-vs-instantly'
+      path: '/compare/sendloop-vs-instantly'
+      fullPath: '/compare/sendloop-vs-instantly'
+      preLoaderRoute: typeof CompareSendloopVsInstantlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/sendloop-vs-lemlist': {
+      id: '/compare/sendloop-vs-lemlist'
+      path: '/compare/sendloop-vs-lemlist'
+      fullPath: '/compare/sendloop-vs-lemlist'
+      preLoaderRoute: typeof CompareSendloopVsLemlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/sendloop-vs-smartlead': {
+      id: '/compare/sendloop-vs-smartlead'
+      path: '/compare/sendloop-vs-smartlead'
+      fullPath: '/compare/sendloop-vs-smartlead'
+      preLoaderRoute: typeof CompareSendloopVsSmartleadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help-center/': {
@@ -2685,6 +2748,9 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyEmailRoute: VerifyEmailRoute,
   WhySendloopRoute: WhySendloopRoute,
   BlogSlugRoute: BlogSlugRoute,
+  CompareSendloopVsInstantlyRoute: CompareSendloopVsInstantlyRoute,
+  CompareSendloopVsLemlistRoute: CompareSendloopVsLemlistRoute,
+  CompareSendloopVsSmartleadRoute: CompareSendloopVsSmartleadRoute,
   IntegrationsSlugRoute: IntegrationsSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,

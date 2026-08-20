@@ -76,6 +76,14 @@ const fallbackColumns = [
       { label: "Acceptable Use Policy", href: "/acceptable-use" },
     ],
   },
+  {
+    title: "Comparisons",
+    links: [
+      { label: "Sendloop vs Instantly", href: "/compare/sendloop-vs-instantly" },
+      { label: "Sendloop vs Smartlead", href: "/compare/sendloop-vs-smartlead" },
+      { label: "Sendloop vs lemlist", href: "/compare/sendloop-vs-lemlist" },
+    ],
+  },
 ];
 
 const fallbackSocial = [
@@ -154,7 +162,7 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
-    const order = ["Products", "Resources", "Company", "Legal"];
+    const order = ["Products", "Resources", "Company", "Legal", "Comparisons"];
     const sorted = [...groups.entries()].sort((a, b) => {
       const ai = order.indexOf(a[0]);
       const bi = order.indexOf(b[0]);
@@ -263,7 +271,7 @@ export function SiteFooter() {
           </div>
 
           {/* Link columns */}
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {columns.map((col) => (
               <div key={col.title}>
                 <h3 className="text-base font-semibold">{col.title}</h3>
