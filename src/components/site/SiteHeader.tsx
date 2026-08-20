@@ -28,6 +28,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { solutionNavLinks } from "@/lib/solutions-content";
+import { useSiteContent } from "@/lib/page-seo";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +90,35 @@ const resourceCards: Card[] = [
   { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to Sendloop.", icon: Gift },
 ];
 
+/**
+ * Icons are stored by name in the database so the menu can be edited without a
+ * deploy. Unknown names fall back to a neutral icon rather than crashing.
+ */
+const ICONS: Record<string, LucideIcon> = {
+  Send, Inbox, Mailbox, Flame, Workflow, Users, BarChart3, FileText, Building2,
+  BookOpen, ShieldCheck, Compass, LifeBuoy, Plug, MessageSquareQuote, Gift,
+  GraduationCap,
+};
+
+type NavRow = {
+  group_label: string | null;
+  label: string;
+  href: string;
+  description: string | null;
+  icon: string | null;
+};
+
+function toCards(rows: NavRow[], group: string, fallback: Card[]): Card[] {
+  const scoped = rows.filter((r) => (r.group_label ?? "") === group);
+  if (!scoped.length) return fallback;
+  return scoped.map((r) => ({
+    label: r.label,
+    to: r.href,
+    text: r.description ?? "",
+    icon: (r.icon && ICONS[r.icon]) || Compass,
+  }));
+}
+
 type MenuKey = "products" | "resources";
 
 const panelMotion = {
@@ -106,6 +136,22 @@ export function SiteHeader() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const siteContent = useSiteContent();
+
+  // Admin-managed menu, with the built-in menu as the fallback.
+  const headerRows = (siteContent?.header ?? []) as NavRow[];
+  const coreCards = toCards(headerRows, "core", featuredProducts);
+  const moreCards = toCards(headerRows, "more", secondaryProducts);
+  const useCaseLinks = toCards(
+    headerRows,
+    "usecase",
+    solutionNavLinks.map((l) => ({ label: l.label, to: l.to, text: "", icon: Compass })),
+  );
+  const resourceLinks = toCards(headerRows, "resources", resourceCards);
+  const topLinks = headerRows
+    .filter((r) => (r.group_label ?? "") === "top")
+    .map((r) => ({ label: r.label, to: r.href }));
+  const topNav = topLinks.length ? topLinks : [{ label: "Pricing", to: "/pricing" }, { label: "Blog", to: "/blog" }];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
@@ -176,8 +222,9 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-1 md:flex">
           <Trigger label="Products" active={menu === "products"} onOpen={() => openMenu("products")} />
           <Trigger label="Resources" active={menu === "resources"} onOpen={() => openMenu("resources")} />
-          <TopLink to="/pricing" label="Pricing" onHover={() => setMenu(null)} />
-          <TopLink to="/blog" label="Blog" onHover={() => setMenu(null)} />
+          {topNav.map((link) => (
+            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
+          ))}
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 md:flex">
@@ -216,8 +263,10 @@ export function SiteHeader() {
             className="absolute inset-x-0 top-full hidden px-4 pb-6 md:block"
           >
             <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-border/70 bg-background/98 shadow-[0_36px_80px_-40px_rgba(15,23,42,0.55)] backdrop-blur-xl">
-              {menu === "products" ? <ProductsPanel /> : null}
-              {menu === "resources" ? <ResourcesPanel /> : null}
+              {menu === "products" ? (
+                <ProductsPanel core={coreCards} more={moreCards} useCases={useCaseLinks} />
+              ) : null}
+              {menu === "resources" ? <ResourcesPanel cards={resourceLinks} /> : null}
             </div>
           </motion.div>
         ) : null}
@@ -234,32 +283,19 @@ export function SiteHeader() {
             className="overflow-hidden border-t border-border/60 bg-background md:hidden"
           >
             <div className="mx-auto flex max-h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-1 overflow-y-auto px-4 py-4">
-              <MobileGroup label="Products" cards={[...featuredProducts, ...secondaryProducts]} onNavigate={() => setOpen(false)} />
-              <MobileGroup label="Resources" cards={resourceCards} onNavigate={() => setOpen(false)} />
-              <MobileGroup
-                label="By use case"
-                cards={solutionNavLinks.map((l) => ({
-                  label: l.label,
-                  to: l.to,
-                  text: "",
-                  icon: Compass,
-                }))}
-                onNavigate={() => setOpen(false)}
-              />
-              <Link
-                to="/pricing"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-secondary"
-              >
-                Pricing
-              </Link>
-              <Link
-                to="/blog"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-secondary"
-              >
-                Blog
-              </Link>
+              <MobileGroup label="Products" cards={[...coreCards, ...moreCards]} onNavigate={() => setOpen(false)} />
+              <MobileGroup label="Resources" cards={resourceLinks} onNavigate={() => setOpen(false)} />
+              <MobileGroup label="By use case" cards={useCaseLinks} onNavigate={() => setOpen(false)} />
+              {topNav.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-secondary"
+                >
+                  {link.label}
+                </Link>
+              ))}
               <div className="mt-3 flex flex-col gap-2">
                 {signedIn ? (
                   <Button asChild>
@@ -382,14 +418,22 @@ function PanelHeading({ children }: { children: string }) {
   );
 }
 
-function ProductsPanel() {
+function ProductsPanel({
+  core,
+  more,
+  useCases,
+}: {
+  core: Card[];
+  more: Card[];
+  useCases: Card[];
+}) {
   return (
     <div>
       <div className="grid gap-6 p-6 lg:grid-cols-[1.35fr_1fr]">
         <div>
           <PanelHeading>Core platform</PanelHeading>
           <div className="grid gap-3 sm:grid-cols-2">
-            {featuredProducts.map((card) => (
+            {core.map((card) => (
               <FeatureCard key={card.label} card={card} />
             ))}
           </div>
@@ -397,7 +441,7 @@ function ProductsPanel() {
         <div className="rounded-2xl bg-secondary/30 p-4">
           <PanelHeading>More from Sendloop</PanelHeading>
           <div className="grid gap-1">
-            {secondaryProducts.map((card) => (
+            {more.map((card) => (
               <CompactCard key={card.label} card={card} />
             ))}
           </div>
@@ -407,7 +451,7 @@ function ProductsPanel() {
         <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           By use case
         </span>
-        {solutionNavLinks.map((l) => (
+        {useCases.map((l) => (
           <Link
             key={l.to}
             to={l.to}
@@ -421,13 +465,13 @@ function ProductsPanel() {
   );
 }
 
-function ResourcesPanel() {
+function ResourcesPanel({ cards }: { cards: Card[] }) {
   return (
     <div className="grid gap-6 p-6 lg:grid-cols-[1.3fr_1fr]">
       <div>
         <PanelHeading>Learn &amp; support</PanelHeading>
         <div className="grid gap-1 sm:grid-cols-2">
-          {resourceCards.map((card) => (
+          {cards.map((card) => (
             <CompactCard key={card.label} card={card} />
           ))}
         </div>
