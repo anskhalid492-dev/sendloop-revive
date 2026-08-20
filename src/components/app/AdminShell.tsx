@@ -4,6 +4,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BellRing,
+  AtSign,
+  ContactRound,
+  Flame,
+  Globe,
   FileText,
   ArrowLeft,
   BarChart3,
@@ -73,9 +77,18 @@ const navSections: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Growth",
+    title: "Outreach",
     items: [
       { to: "/admin/campaigns", label: "Campaigns", icon: Send },
+      { to: "/admin/leads", label: "Leads", icon: ContactRound },
+      { to: "/admin/email-accounts", label: "Email Accounts", icon: AtSign },
+      { to: "/admin/domains", label: "Sending Domains", icon: Globe },
+      { to: "/admin/warmup", label: "Warmup", icon: Flame },
+    ],
+  },
+  {
+    title: "Growth",
+    items: [
       { to: "/admin/templates", label: "Templates", icon: FileText },
       { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
       { to: "/admin/referrals", label: "Referral Program", icon: Gift },

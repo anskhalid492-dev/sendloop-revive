@@ -73,6 +73,7 @@ import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBillingProvidersRouteImport } from './routes/_authenticated/admin/billing-providers'
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
 import { Route as AuthenticatedAdminCreditsRouteImport } from './routes/_authenticated/admin/credits'
+import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated/admin/domains'
 import { Route as AuthenticatedAdminEmailAccountsRouteImport } from './routes/_authenticated/admin/email-accounts'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin/features'
 import { Route as AuthenticatedAdminInboundEventsRouteImport } from './routes/_authenticated/admin/inbound-events'
@@ -92,6 +93,7 @@ import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminWarmupRouteImport } from './routes/_authenticated/admin/warmup'
 import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
 import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
 import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_authenticated/automations.activity'
@@ -439,6 +441,12 @@ const AuthenticatedAdminCreditsRoute =
     path: '/credits',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminDomainsRoute =
+  AuthenticatedAdminDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminEmailAccountsRoute =
   AuthenticatedAdminEmailAccountsRouteImport.update({
     id: '/email-accounts',
@@ -548,6 +556,12 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminWarmupRoute =
+  AuthenticatedAdminWarmupRouteImport.update({
+    id: '/warmup',
+    path: '/warmup',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminWorkspacesRoute =
   AuthenticatedAdminWorkspacesRouteImport.update({
     id: '/workspaces',
@@ -732,6 +746,7 @@ export interface FileRoutesByFullPath {
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
+  '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -751,6 +766,7 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
@@ -835,6 +851,7 @@ export interface FileRoutesByTo {
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
+  '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -854,6 +871,7 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
@@ -942,6 +960,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/_authenticated/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
+  '/_authenticated/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/_authenticated/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -961,6 +980,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/_authenticated/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/_authenticated/automations/activity': typeof AuthenticatedAutomationsActivityRoute
@@ -1049,6 +1069,7 @@ export interface FileRouteTypes {
     | '/admin/billing-providers'
     | '/admin/campaigns'
     | '/admin/credits'
+    | '/admin/domains'
     | '/admin/email-accounts'
     | '/admin/features'
     | '/admin/inbound-events'
@@ -1068,6 +1089,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/templates'
     | '/admin/users'
+    | '/admin/warmup'
     | '/admin/workspaces'
     | '/automations/$id'
     | '/automations/activity'
@@ -1152,6 +1174,7 @@ export interface FileRouteTypes {
     | '/admin/billing-providers'
     | '/admin/campaigns'
     | '/admin/credits'
+    | '/admin/domains'
     | '/admin/email-accounts'
     | '/admin/features'
     | '/admin/inbound-events'
@@ -1171,6 +1194,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/templates'
     | '/admin/users'
+    | '/admin/warmup'
     | '/admin/workspaces'
     | '/automations/$id'
     | '/automations/activity'
@@ -1258,6 +1282,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/billing-providers'
     | '/_authenticated/admin/campaigns'
     | '/_authenticated/admin/credits'
+    | '/_authenticated/admin/domains'
     | '/_authenticated/admin/email-accounts'
     | '/_authenticated/admin/features'
     | '/_authenticated/admin/inbound-events'
@@ -1277,6 +1302,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/users'
+    | '/_authenticated/admin/warmup'
     | '/_authenticated/admin/workspaces'
     | '/_authenticated/automations/$id'
     | '/_authenticated/automations/activity'
@@ -1806,6 +1832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCreditsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/domains': {
+      id: '/_authenticated/admin/domains'
+      path: '/domains'
+      fullPath: '/admin/domains'
+      preLoaderRoute: typeof AuthenticatedAdminDomainsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/email-accounts': {
       id: '/_authenticated/admin/email-accounts'
       path: '/email-accounts'
@@ -1937,6 +1970,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/warmup': {
+      id: '/_authenticated/admin/warmup'
+      path: '/warmup'
+      fullPath: '/admin/warmup'
+      preLoaderRoute: typeof AuthenticatedAdminWarmupRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/workspaces': {
@@ -2125,6 +2165,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
   AuthenticatedAdminCreditsRoute: typeof AuthenticatedAdminCreditsRouteWithChildren
+  AuthenticatedAdminDomainsRoute: typeof AuthenticatedAdminDomainsRoute
   AuthenticatedAdminEmailAccountsRoute: typeof AuthenticatedAdminEmailAccountsRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
   AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -2144,6 +2185,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminWarmupRoute: typeof AuthenticatedAdminWarmupRoute
   AuthenticatedAdminWorkspacesRoute: typeof AuthenticatedAdminWorkspacesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
@@ -2157,6 +2199,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminBillingProvidersRoute,
     AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
     AuthenticatedAdminCreditsRoute: AuthenticatedAdminCreditsRouteWithChildren,
+    AuthenticatedAdminDomainsRoute: AuthenticatedAdminDomainsRoute,
     AuthenticatedAdminEmailAccountsRoute: AuthenticatedAdminEmailAccountsRoute,
     AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
     AuthenticatedAdminInboundEventsRoute:
@@ -2178,6 +2221,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+    AuthenticatedAdminWarmupRoute: AuthenticatedAdminWarmupRoute,
     AuthenticatedAdminWorkspacesRoute: AuthenticatedAdminWorkspacesRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   }
