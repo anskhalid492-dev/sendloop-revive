@@ -120,7 +120,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     try {
       siteContent = await context.queryClient.ensureQueryData(siteContentQueryOptions);
       if (siteContent) setSiteContent(siteContent);
-  if (platformConfig) setPlatformConfig(platformConfig);
+
     } catch {
       siteContent = null;
     }
