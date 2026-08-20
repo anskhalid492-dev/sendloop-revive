@@ -248,14 +248,14 @@ export const adjustWorkspaceCredits = createServerFn({ method: "POST" })
     await assertSuperAdmin(context);
 
     const before = await audit.creditSnapshot(data.workspaceId);
-    let result: unknown;
+    let result: { ok: boolean; unchanged?: boolean };
     if (data.mode === "set") {
-      result = await credits.setCreditBalance({
+      result = (await credits.setCreditBalance({
         workspaceId: data.workspaceId,
         target: data.amount,
         reason: data.reason,
         actorUserId: context.userId,
-      });
+      })) as { ok: boolean; unchanged?: boolean };
     } else {
       if (data.amount === 0) throw new Error("Enter a credit amount greater than zero.");
       await credits.applyCreditChange({
