@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -6,17 +6,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   ArrowUpRight,
-  CheckCircle2,
-  Circle,
   Inbox,
   PenLine,
   Send,
   Upload,
-  X,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { SetupJourney } from "@/components/app/SetupJourney";
+import { getSetupProgress } from "@/lib/setup-progress.functions";
+import { countCompleted } from "@/lib/setup-journey";
 import { MetricCards } from "@/components/dashboard/MetricCards";
+
 import { OutreachGraph } from "@/components/dashboard/OutreachGraph";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +117,13 @@ function DashboardPage() {
     refetchInterval: 60_000,
   });
 
+  const fetchSetup = useServerFn(getSetupProgress);
+  const setupProgress = useQuery({
+    queryKey: ["setup-progress", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: () => fetchSetup({ data: { workspaceId: workspaceId as string } }),
+  });
+
   const dismissMutation = useMutation({
     mutationFn: dismiss,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
@@ -123,23 +131,11 @@ function DashboardPage() {
 
   const m = overview.data?.metrics;
   const sending = overview.data?.sending;
-  const checklist = overview.data?.checklist;
+  const setupComplete = setupProgress.data ? countCompleted(setupProgress.data) === 7 : false;
   const showChecklist =
-    checklist &&
     !(workspace as { checklist_dismissed?: boolean } | null)?.checklist_dismissed &&
-    !(checklist.hasLeads && checklist.hasCampaign && checklist.hasSending && checklist.hasLaunched);
+    !setupComplete;
 
-  const checklistSteps = useMemo(
-    () => [
-      { done: true, label: "Create workspace", to: "/workspace" as const },
-      { done: Boolean(checklist?.hasLeads), label: "Add leads", to: "/leads" as const },
-      { done: Boolean(checklist?.hasCampaign), label: "Create campaign", to: "/campaigns" as const },
-      { done: Boolean(checklist?.hasSending), label: "Configure sending", to: "/sending" as const },
-      { done: Boolean(checklist?.hasLaunched), label: "Launch campaign", to: "/campaigns" as const },
-    ],
-    [checklist],
-  );
-  const checklistDone = checklistSteps.filter((s) => s.done).length;
 
   const firstName = profile.data?.full_name?.split(" ")[0];
   const capacity = sending?.dailyCapacity ?? 0;
@@ -185,51 +181,22 @@ function DashboardPage() {
         <AnimatePresence>
           {showChecklist ? (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, height: 0 }}
-              className="surface-card relative overflow-hidden p-6"
             >
-              <button
-                className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
-                aria-label="Dismiss checklist"
-                onClick={() => workspaceId && dismissMutation.mutate({ data: { workspaceId } })}
-              >
-                <X className="size-4" />
-              </button>
-              <h3 className="text-lg font-semibold">Get your workspace ready</h3>
-              <div className="mt-3 flex items-center gap-3">
-                <Progress value={(checklistDone / checklistSteps.length) * 100} className="h-2 max-w-xs" />
-                <span className="text-xs text-muted-foreground">
-                  {checklistDone} of {checklistSteps.length} complete
-                </span>
-              </div>
-              <ul className="mt-4 space-y-3 text-sm">
-                {checklistSteps.map((step, i) => (
-                  <motion.li
-                    key={step.label}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-center gap-3"
-                  >
-                    {step.done ? (
-                      <CheckCircle2 className="size-4 text-primary" />
-                    ) : (
-                      <Circle className="size-4 text-muted-foreground" />
-                    )}
-                    <Link
-                      to={step.to}
-                      className={step.done ? "text-muted-foreground line-through" : "hover:underline"}
-                    >
-                      {step.label}
-                    </Link>
-                  </motion.li>
-                ))}
-              </ul>
+              <SetupJourney
+                progress={setupProgress.data}
+                loading={setupProgress.isLoading}
+                variant="compact"
+                onDismiss={() =>
+                  workspaceId && dismissMutation.mutate({ data: { workspaceId } })
+                }
+              />
             </motion.div>
           ) : null}
         </AnimatePresence>
+
 
         <MetricCards
           loading={pulse.isLoading}
