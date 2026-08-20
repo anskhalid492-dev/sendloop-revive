@@ -88,6 +88,7 @@ export async function saveSettingsGroup(
   ctx: Ctx,
   groupId: string,
   input: Record<string, unknown>,
+  reason?: string,
 ): Promise<GroupState> {
   const group = groupById(groupId);
   if (!group) throw new Error("Unknown settings group");
@@ -129,7 +130,12 @@ export async function saveSettingsGroup(
       target_type: "platform_settings",
       target_id: null,
       target_label: `${group.label} settings`,
-      detail: { group: group.id, changed: Object.fromEntries(Object.entries(changed).slice(0, 30)), result: "success" },
+      detail: {
+        group: group.id,
+        changed: Object.fromEntries(Object.entries(changed).slice(0, 30)),
+        reason: (reason ?? "").slice(0, 500),
+        result: "success",
+      },
     });
   }
 
