@@ -74,6 +74,7 @@ import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAutomationsRouteImport } from './routes/_authenticated/admin/automations'
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin/billing'
 import { Route as AuthenticatedAdminBillingProvidersRouteImport } from './routes/_authenticated/admin/billing-providers'
+import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin/blog'
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
 import { Route as AuthenticatedAdminCreditsRouteImport } from './routes/_authenticated/admin/credits'
 import { Route as AuthenticatedAdminCrmRouteImport } from './routes/_authenticated/admin/crm'
@@ -95,6 +96,7 @@ import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminRedirectsRouteImport } from './routes/_authenticated/admin/redirects'
 import { Route as AuthenticatedAdminReferralsRouteImport } from './routes/_authenticated/admin/referrals'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
+import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authenticated/admin/seo-files'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin/subscriptions'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
@@ -452,6 +454,11 @@ const AuthenticatedAdminBillingProvidersRoute =
     path: '/billing-providers',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminCampaignsRoute =
   AuthenticatedAdminCampaignsRouteImport.update({
     id: '/campaigns',
@@ -570,6 +577,12 @@ const AuthenticatedAdminReviewsRoute =
   AuthenticatedAdminReviewsRouteImport.update({
     id: '/reviews',
     path: '/reviews',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminSeoFilesRoute =
+  AuthenticatedAdminSeoFilesRouteImport.update({
+    id: '/seo-files',
+    path: '/seo-files',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminSettingsRoute =
@@ -792,6 +805,7 @@ export interface FileRoutesByFullPath {
   '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
   '/admin/crm': typeof AuthenticatedAdminCrmRoute
@@ -813,6 +827,7 @@ export interface FileRoutesByFullPath {
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -904,6 +919,7 @@ export interface FileRoutesByTo {
   '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
   '/admin/crm': typeof AuthenticatedAdminCrmRoute
@@ -925,6 +941,7 @@ export interface FileRoutesByTo {
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -1020,6 +1037,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/automations': typeof AuthenticatedAdminAutomationsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
+  '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
   '/_authenticated/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
   '/_authenticated/admin/crm': typeof AuthenticatedAdminCrmRoute
@@ -1041,6 +1059,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/_authenticated/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/_authenticated/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -1136,6 +1155,7 @@ export interface FileRouteTypes {
     | '/admin/automations'
     | '/admin/billing'
     | '/admin/billing-providers'
+    | '/admin/blog'
     | '/admin/campaigns'
     | '/admin/credits'
     | '/admin/crm'
@@ -1157,6 +1177,7 @@ export interface FileRouteTypes {
     | '/admin/redirects'
     | '/admin/referrals'
     | '/admin/reviews'
+    | '/admin/seo-files'
     | '/admin/settings'
     | '/admin/subscriptions'
     | '/admin/support'
@@ -1248,6 +1269,7 @@ export interface FileRouteTypes {
     | '/admin/automations'
     | '/admin/billing'
     | '/admin/billing-providers'
+    | '/admin/blog'
     | '/admin/campaigns'
     | '/admin/credits'
     | '/admin/crm'
@@ -1269,6 +1291,7 @@ export interface FileRouteTypes {
     | '/admin/redirects'
     | '/admin/referrals'
     | '/admin/reviews'
+    | '/admin/seo-files'
     | '/admin/settings'
     | '/admin/subscriptions'
     | '/admin/support'
@@ -1363,6 +1386,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/automations'
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/billing-providers'
+    | '/_authenticated/admin/blog'
     | '/_authenticated/admin/campaigns'
     | '/_authenticated/admin/credits'
     | '/_authenticated/admin/crm'
@@ -1384,6 +1408,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/redirects'
     | '/_authenticated/admin/referrals'
     | '/_authenticated/admin/reviews'
+    | '/_authenticated/admin/seo-files'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/support'
@@ -1928,6 +1953,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBillingProvidersRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/blog': {
+      id: '/_authenticated/admin/blog'
+      path: '/blog'
+      fullPath: '/admin/blog'
+      preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/campaigns': {
       id: '/_authenticated/admin/campaigns'
       path: '/campaigns'
@@ -2073,6 +2105,13 @@ declare module '@tanstack/react-router' {
       path: '/reviews'
       fullPath: '/admin/reviews'
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/seo-files': {
+      id: '/_authenticated/admin/seo-files'
+      path: '/seo-files'
+      fullPath: '/admin/seo-files'
+      preLoaderRoute: typeof AuthenticatedAdminSeoFilesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/settings': {
@@ -2302,6 +2341,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAutomationsRoute: typeof AuthenticatedAdminAutomationsRoute
   AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
+  AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
   AuthenticatedAdminCreditsRoute: typeof AuthenticatedAdminCreditsRouteWithChildren
   AuthenticatedAdminCrmRoute: typeof AuthenticatedAdminCrmRoute
@@ -2323,6 +2363,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminRedirectsRoute: typeof AuthenticatedAdminRedirectsRoute
   AuthenticatedAdminReferralsRoute: typeof AuthenticatedAdminReferralsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
+  AuthenticatedAdminSeoFilesRoute: typeof AuthenticatedAdminSeoFilesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
@@ -2341,6 +2382,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
     AuthenticatedAdminBillingProvidersRoute:
       AuthenticatedAdminBillingProvidersRoute,
+    AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
     AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
     AuthenticatedAdminCreditsRoute: AuthenticatedAdminCreditsRouteWithChildren,
     AuthenticatedAdminCrmRoute: AuthenticatedAdminCrmRoute,
@@ -2364,6 +2406,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminRedirectsRoute: AuthenticatedAdminRedirectsRoute,
     AuthenticatedAdminReferralsRoute: AuthenticatedAdminReferralsRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
+    AuthenticatedAdminSeoFilesRoute: AuthenticatedAdminSeoFilesRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
