@@ -39,6 +39,8 @@ import {
   Newspaper,
   PanelsTopLeft,
   Route as RouteIcon,
+  Webhook,
+  KeyRound,
 
 } from "lucide-react";
 
@@ -112,6 +114,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
       { to: "/admin/referrals", label: "Referral Program", icon: Gift },
       { to: "/admin/integrations", label: "Integrations", icon: Plug },
+      { to: "/admin/webhooks", label: "Webhooks", icon: Webhook },
+      { to: "/admin/environment", label: "Environment", icon: KeyRound },
     ],
   },
 

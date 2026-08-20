@@ -33,6 +33,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlatformProviders } from "@/components/admin/PlatformProviders";
 import { ReplyToSettings } from "@/components/admin/ReplyToSettings";
 import { InboundWebhookSettings } from "@/components/admin/InboundWebhookSettings";
 import { InboundReadiness } from "@/components/admin/InboundReadiness";
@@ -133,7 +135,17 @@ function AdminProvidersPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="overview">All providers</TabsTrigger>
+        <TabsTrigger value="email">Email &amp; sending setup</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="overview">
+        <PlatformProviders />
+      </TabsContent>
+
+      <TabsContent value="email" className="space-y-6">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">Email providers</h2>
@@ -338,6 +350,7 @@ function AdminProvidersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
