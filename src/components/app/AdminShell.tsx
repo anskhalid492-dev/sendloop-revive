@@ -38,7 +38,7 @@ import {
   FileCode,
   Newspaper,
   PanelsTopLeft,
-  Route,
+  Route as RouteIcon,
 
 } from "lucide-react";
 
@@ -101,7 +101,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/pages", label: "Pages & SEO", icon: FileSearch },
       { to: "/admin/blog", label: "Blog", icon: Newspaper },
       { to: "/admin/navigation", label: "Navigation & Footer", icon: PanelsTopLeft },
-      { to: "/admin/redirects", label: "Redirects", icon: Route },
+      { to: "/admin/redirects", label: "Redirects", icon: RouteIcon },
       { to: "/admin/seo-files", label: "Robots & Sitemap", icon: FileCode },
     ],
   },
