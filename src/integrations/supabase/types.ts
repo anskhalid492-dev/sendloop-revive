@@ -5153,6 +5153,7 @@ export type Database = {
         Row: {
           active: boolean
           avatar_url: string | null
+          bio: string | null
           category: string
           company: string
           company_logo_url: string | null
@@ -5173,6 +5174,7 @@ export type Database = {
         Insert: {
           active?: boolean
           avatar_url?: string | null
+          bio?: string | null
           category?: string
           company?: string
           company_logo_url?: string | null
@@ -5193,6 +5195,7 @@ export type Database = {
         Update: {
           active?: boolean
           avatar_url?: string | null
+          bio?: string | null
           category?: string
           company?: string
           company_logo_url?: string | null

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { Quote, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions";
@@ -15,32 +15,22 @@ function initials(name: string) {
     .join("");
 }
 
-function Card({ t, active }: { t: Testimonial; active: boolean }) {
+function ReviewCard({ t }: { t: Testimonial }) {
   return (
-    <figure
-      className={cn(
-        "flex h-full flex-col justify-between rounded-2xl border bg-card p-6 transition-all duration-300 sm:p-8",
-        active
-          ? "border-primary/30 shadow-[0_18px_40px_-24px_hsl(var(--primary)/0.5)]"
-          : "border-border/70 opacity-70",
-      )}
-    >
-      <Quote className="size-6 text-primary/60" aria-hidden="true" />
-      <blockquote className="mt-4 text-base leading-relaxed text-foreground/90 sm:text-lg">
-        “{t.testimonial}”
-      </blockquote>
-      <figcaption className="mt-6 flex items-center gap-3">
+    <figure className="rounded-2xl border border-border/70 bg-card p-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition-colors duration-200 hover:border-primary/30">
+      <div className="flex items-start gap-3">
         {t.avatar_url ? (
           <img
             src={t.avatar_url}
             alt={`${t.name}, ${t.role} at ${t.company}`}
-            className="size-11 shrink-0 rounded-full object-cover"
+            className="size-12 shrink-0 rounded-full object-cover"
             loading="lazy"
+            draggable={false}
           />
         ) : (
           <span
             aria-hidden="true"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/12 text-sm font-semibold text-primary"
+            className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/12 text-sm font-semibold text-primary"
           >
             {initials(t.name)}
           </span>
@@ -50,16 +40,39 @@ function Card({ t, active }: { t: Testimonial; active: boolean }) {
           <p className="truncate text-xs text-muted-foreground">
             {[t.role, t.company].filter(Boolean).join(", ")}
           </p>
+          {t.bio ? (
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground/90">{t.bio}</p>
+          ) : null}
         </div>
         {t.company_logo_url ? (
           <img
             src={t.company_logo_url}
             alt={`${t.company} logo`}
-            className="ml-auto h-6 w-auto shrink-0 opacity-70"
+            className="ml-auto h-5 w-auto shrink-0 opacity-70"
             loading="lazy"
+            draggable={false}
           />
         ) : null}
-      </figcaption>
+      </div>
+
+      <div className="mt-4 flex items-center gap-1" aria-label={`${t.rating} out of 5`}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            className={cn(
+              "size-3.5",
+              i < t.rating ? "fill-primary text-primary" : "text-border",
+            )}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+
+      <Quote className="mt-3 size-5 text-primary/50" aria-hidden="true" />
+      <blockquote className="mt-2 text-sm leading-relaxed text-foreground/90">
+        “{t.testimonial}”
+      </blockquote>
+
       {t.result ? (
         <p className="mt-4 inline-flex w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           {t.result}
@@ -69,15 +82,101 @@ function Card({ t, active }: { t: Testimonial; active: boolean }) {
   );
 }
 
+/**
+ * A vertical, drag-scrollable review column. The list is duplicated so the
+ * gentle auto-scroll can wrap seamlessly; dragging pauses the motion.
+ */
+function ReviewColumn({
+  items,
+  speed,
+  direction,
+}: {
+  items: Testimonial[];
+  speed: number;
+  direction: 1 | -1;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+  const drag = useRef<{ y: number; top: number } | null>(null);
+
+  // Seamless wrap: keep scrollTop inside the first copy of the list.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || paused) return;
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      const half = el.scrollHeight / 2;
+      let next = el.scrollTop + direction * speed * dt;
+      if (next >= half) next -= half;
+      if (next < 0) next += half;
+      el.scrollTop = next;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused, speed, direction]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = { y: e.clientY, top: el.scrollTop };
+    setPaused(true);
+    el.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el || !drag.current) return;
+    const half = el.scrollHeight / 2;
+    let next = drag.current.top - (e.clientY - drag.current.y);
+    if (next >= half) next -= half;
+    if (next < 0) next += half;
+    el.scrollTop = next;
+  };
+  const endDrag = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = null;
+    try {
+      el.releasePointerCapture(e.pointerId);
+    } catch {
+      /* pointer already released */
+    }
+    setPaused(false);
+  };
+
+  const loop = [...items, ...items];
+
+  return (
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => !drag.current && setPaused(false)}
+      className="flex max-h-[34rem] flex-col gap-5 overflow-y-auto overscroll-contain select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      style={{ cursor: "grab", touchAction: "pan-x" }}
+    >
+      {loop.map((t, i) => (
+        <ReviewCard key={`${t.id}-${i}`} t={t} />
+      ))}
+    </div>
+  );
+}
+
 export function TestimonialCarousel({
   page,
   title = "What teams say about Sendloop",
   description,
-  autoplay = true,
 }: {
   page: string;
   title?: string;
   description?: string;
+  /** Kept for API compatibility with existing pages. */
   autoplay?: boolean;
 }) {
   const fetchTestimonials = useServerFn(listTestimonials);
@@ -88,154 +187,43 @@ export function TestimonialCarousel({
   });
 
   const items = useMemo(() => data ?? [], [data]);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const dragging = useRef<{ startX: number; startScroll: number } | null>(null);
 
-  const scrollTo = useCallback((i: number) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const child = track.children[i] as HTMLElement | undefined;
-    if (child) track.scrollTo({ left: child.offsetLeft - track.offsetLeft, behavior: "smooth" });
-  }, []);
-
-  const go = useCallback(
-    (delta: number) => {
-      if (items.length === 0) return;
-      const next = (index + delta + items.length) % items.length;
-      setIndex(next);
-      scrollTo(next);
-    },
-    [index, items.length, scrollTo],
-  );
-
-  useEffect(() => {
-    if (!autoplay || paused || items.length < 2) return;
-    const id = window.setInterval(() => go(1), 6000);
-    return () => window.clearInterval(id);
-  }, [autoplay, paused, items.length, go]);
-
-  const onScroll = () => {
-    const track = trackRef.current;
-    if (!track) return;
-    const children = Array.from(track.children) as HTMLElement[];
-    const closest = children.reduce(
-      (best, el, i) =>
-        Math.abs(el.offsetLeft - track.offsetLeft - track.scrollLeft) < best.dist
-          ? { dist: Math.abs(el.offsetLeft - track.offsetLeft - track.scrollLeft), i }
-          : best,
-      { dist: Number.POSITIVE_INFINITY, i: 0 },
-    );
-    setIndex(closest.i);
-  };
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    const track = trackRef.current;
-    if (!track) return;
-    dragging.current = { startX: e.clientX, startScroll: track.scrollLeft };
-    setPaused(true);
-    track.setPointerCapture(e.pointerId);
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const track = trackRef.current;
-    if (!track || !dragging.current) return;
-    track.scrollLeft = dragging.current.startScroll - (e.clientX - dragging.current.startX);
-  };
-  const endDrag = (e: React.PointerEvent) => {
-    const track = trackRef.current;
-    if (!track || !dragging.current) return;
-    dragging.current = null;
-    try {
-      track.releasePointerCapture(e.pointerId);
-    } catch {
-      /* pointer already released */
-    }
-    onScroll();
-    scrollTo(index);
-    setPaused(false);
-  };
+  // Spread reviews across three columns that drift in alternating directions.
+  const columns = useMemo(() => {
+    const cols: Testimonial[][] = [[], [], []];
+    items.forEach((t, i) => cols[i % 3]!.push(t));
+    return cols.filter((c) => c.length > 0);
+  }, [items]);
 
   if (items.length === 0) return null;
 
   return (
-    <section
-      className="border-y border-border/60 bg-secondary/30 py-16"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <section className="border-y border-border/60 bg-secondary/30 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
-          <div className="min-w-0">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
-            {description ? (
-              <p className="mt-2 text-sm text-muted-foreground sm:text-base">{description}</p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              aria-label="Previous testimonial"
-              className="grid size-11 place-items-center rounded-full border border-border bg-background transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => go(1)}
-              aria-label="Next testimonial"
-              className="grid size-11 place-items-center rounded-full border border-border bg-background transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
+        <div className="max-w-2xl">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+            {description ?? "Drag any column up or down to read more stories."}
+          </p>
         </div>
 
-        <div
-          ref={trackRef}
-          onScroll={onScroll}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-          role="group"
-          aria-roledescription="carousel"
-          aria-label="Customer testimonials"
-          className="mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ cursor: "grab", touchAction: "pan-y" }}
-        >
-          {items.map((t, i) => (
-            <div
-              key={t.id}
-              className="w-[86%] shrink-0 snap-center select-none sm:w-[55%] lg:w-[38%]"
-              aria-hidden={i !== index}
-            >
-              <Card t={t} active={i === index} />
-            </div>
-          ))}
-        </div>
-
-        {items.length > 1 ? (
-          <div className="mt-2 flex justify-center gap-2">
-            {items.map((t, i) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  setIndex(i);
-                  scrollTo(i);
-                }}
-                aria-label={`Go to testimonial ${i + 1}`}
-                aria-current={i === index}
-                className={cn(
-                  "h-2 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                  i === index ? "w-6 bg-primary" : "w-2 bg-border hover:bg-primary/40",
-                )}
+        <div className="relative mt-8">
+          <div className="sm:hidden">
+            <ReviewColumn items={items} speed={18} direction={1} />
+          </div>
+          <div className="hidden gap-5 sm:grid sm:grid-cols-3">
+            {columns.map((col, i) => (
+              <ReviewColumn
+                key={i}
+                items={col}
+                speed={18 + i * 5}
+                direction={i % 2 === 0 ? 1 : -1}
               />
             ))}
           </div>
-        ) : null}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-secondary/60 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-secondary/60 to-transparent" />
+        </div>
       </div>
     </section>
   );
