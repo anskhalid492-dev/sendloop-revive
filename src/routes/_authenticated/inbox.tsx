@@ -351,6 +351,35 @@ function Page() {
           : "Replies from your campaigns will automatically appear here."
       }
       readyNote="Your inbox is ready. New replies will appear here automatically."
+      {...(tabbedFolder ? { tab, onTabChange: setTab } : {})}
+      footerNote={
+        items.length
+          ? `${items.length} shown${listQuery.hasNextPage ? " · scroll for more" : ""} · threaded across ${
+              (facets?.accounts ?? []).length || 1
+            } mailbox${((facets?.accounts ?? []).length || 1) === 1 ? "" : "es"}`
+          : undefined
+      }
+    />
+  );
+
+  const sidebar = (onNavigate?: () => void) => (
+    <InboxSidebar
+      folder={folder}
+      counts={countsQuery.data ?? {}}
+      onSelect={(next) => {
+        setFolder(next);
+        setSelectedId(null);
+        onNavigate?.();
+      }}
+      onCompose={() => {
+        openCompose({});
+        onNavigate?.();
+      }}
+      accounts={facets?.accounts ?? []}
+      selectedAccountIds={filters.accountIds}
+      onToggleAccount={(id) => toggle("accountIds", id)}
+      userName={me.name}
+      userEmail={me.email}
     />
   );
 
@@ -364,18 +393,11 @@ function Page() {
                 <Menu className="mr-2 h-4 w-4" /> Folders
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetHeader className="p-4">
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="p-4 pb-0">
                 <SheetTitle>Folders</SheetTitle>
               </SheetHeader>
-              <InboxSidebar
-                folder={folder}
-                counts={countsQuery.data ?? {}}
-                onSelect={(next) => {
-                  setFolder(next);
-                  setFoldersOpen(false);
-                }}
-              />
+              <div className="h-[calc(100%-4rem)]">{sidebar(() => setFoldersOpen(false))}</div>
             </SheetContent>
           </Sheet>
           <Button variant="outline" size="sm" onClick={() => openCompose({})}>
@@ -399,16 +421,9 @@ function Page() {
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="hidden w-56 shrink-0 flex-col border-r border-border lg:flex">
-            <InboxSidebar
-              folder={folder}
-              counts={countsQuery.data ?? {}}
-              onSelect={setFolder}
-            />
-            <div className="border-t border-border p-3 space-y-2">
-              <Button size="sm" className="w-full" disabled={!workspaceId} onClick={() => openCompose({})}>
-                <PenSquare className="mr-2 h-4 w-4" /> Compose
-              </Button>
+          <div className="hidden w-60 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex">
+            <div className="min-h-0 flex-1">{sidebar()}</div>
+            <div className="border-t border-border p-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -429,12 +444,13 @@ function Page() {
           </div>
 
           <div
-            className={`min-h-0 w-full shrink-0 border-r border-border md:w-[300px] xl:w-[360px] ${
+            className={`min-h-0 w-full shrink-0 border-r border-border md:w-[320px] xl:w-[380px] ${
               selectedId ? "hidden md:block" : "block"
             }`}
           >
             {folder === "drafts" ? draftsPane : listPane}
           </div>
+
 
           <div className={`min-h-0 min-w-0 flex-1 ${selectedId ? "block" : "hidden md:block"}`}>
             {selectedId && workspaceId ? (
