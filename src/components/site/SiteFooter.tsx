@@ -82,6 +82,9 @@ const fallbackColumns = [
       { label: "Sendloop vs Instantly", href: "/compare/sendloop-vs-instantly" },
       { label: "Sendloop vs Smartlead", href: "/compare/sendloop-vs-smartlead" },
       { label: "Sendloop vs lemlist", href: "/compare/sendloop-vs-lemlist" },
+      { label: "Sendloop vs Apollo", href: "/compare/sendloop-vs-apollo" },
+      { label: "Sendloop vs Saleshandy", href: "/compare/sendloop-vs-saleshandy" },
+      { label: "Sendloop Alternatives", href: "/compare/sendloop-alternatives" },
     ],
   },
 ];

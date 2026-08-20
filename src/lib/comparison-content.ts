@@ -288,10 +288,157 @@ const lemlist: Comparison = {
   ],
 };
 
+
+const apollo: Comparison = {
+  slug: "sendloop-vs-apollo",
+  competitor: "Apollo",
+  competitorSite: "https://apollo.io",
+  reviewedOn: "2026-08-20",
+  heroSummary:
+    "Apollo pairs a large B2B contact database with sales engagement. Sendloop is the execution layer for email: sending infrastructure, deliverability, a unified inbox, CRM and automations in one workspace.",
+  sendloopBestFor:
+    "Teams that already have (or buy) their data and want the email motion itself — mailboxes, warmup, replies, pipeline — to be excellent.",
+  competitorBestFor:
+    "Teams that want prospect data, enrichment and sequencing bundled into a single subscription.",
+  quick: [
+    { label: "Primary focus", sendloop: "Email execution and reply handling", competitor: "Contact database + sales engagement" },
+    { label: "Prospect data", sendloop: "Bring your own lists or enrichment integrations", competitor: "Built-in B2B contact database" },
+    { label: "Sending control", sendloop: "Your mailboxes, per-account caps and warmup", competitor: "Connected mailboxes with sequencing limits" },
+    { label: "Pipeline", sendloop: "Built-in CRM created from replies", competitor: "CRM features plus Salesforce/HubSpot sync" },
+  ],
+  rows: [
+    { area: "Campaigns", sendloop: sendloopCells.campaigns, competitor: "Sequences launched against saved searches and lists. " + verifyNote("Apollo") },
+    { area: "Email sequences", sendloop: sendloopCells.sequences, competitor: "Multi-step sequences with email, call and task steps. " + verifyNote("Apollo") },
+    { area: "AI personalization", sendloop: sendloopCells.ai, competitor: "AI writing assistance and data-driven personalization. " + verifyNote("Apollo") },
+    { area: "Follow-ups", sendloop: sendloopCells.followups, competitor: "Automated follow-up steps that stop on reply. " + verifyNote("Apollo") },
+    { area: "Email accounts", sendloop: sendloopCells.accounts, competitor: "Connect mailboxes for sending; multiple accounts on higher tiers. " + verifyNote("Apollo") },
+    { area: "Domain management", sendloop: sendloopCells.domains, competitor: "Guidance on authentication; domain setup is handled with your provider. " + verifyNote("Apollo") },
+    { area: "Warmup", sendloop: sendloopCells.warmup, competitor: "Deliverability tooling is included; warmup depth varies by plan. " + verifyNote("Apollo") },
+    { area: "Deliverability controls", sendloop: sendloopCells.deliverability, competitor: "Sending limits and scheduling per mailbox. " + verifyNote("Apollo") },
+    { area: "Unified Inbox", sendloop: sendloopCells.inbox, competitor: "Reply inbox tied to sequences and contact records. " + verifyNote("Apollo") },
+    { area: "CRM", sendloop: sendloopCells.crm, competitor: "Built-in CRM plus deep sync with Salesforce and HubSpot. " + verifyNote("Apollo") },
+    { area: "Automations", sendloop: sendloopCells.automations, competitor: "Plays and workflow rules driven by data signals. " + verifyNote("Apollo") },
+    { area: "Analytics", sendloop: sendloopCells.analytics, competitor: "Sequence and rep-level analytics. " + verifyNote("Apollo") },
+    { area: "Integrations", sendloop: sendloopCells.integrations, competitor: "Broad CRM, API and Zapier integrations. " + verifyNote("Apollo") },
+    { area: "Team / workspaces", sendloop: sendloopCells.teams, competitor: "Seat-based teams with permissions. " + verifyNote("Apollo") },
+    { area: "Lead management", sendloop: sendloopCells.leads, competitor: "Search, filter and save leads from a built-in database. " + verifyNote("Apollo") },
+    { area: "Billing / usage model", sendloop: sendloopCells.billing, competitor: "Seat-based plans with data credit allowances. Check current pricing on their site." },
+    { area: "Customer support", sendloop: sendloopCells.support, competitor: "Help centre, community and in-app support. " + verifyNote("Apollo") },
+    { area: "Ease of use", sendloop: sendloopCells.ease, competitor: "Prospecting and sending in one place; a lot of surface area to learn." },
+  ],
+  competitorStrengths: [
+    "A very large B2B contact database with filters, so prospecting and sending happen in one tool.",
+    "Mature CRM sync with Salesforce and HubSpot for teams with an existing revenue stack.",
+    "Multi-channel steps including calls and tasks for full-cycle reps.",
+    "Data signals and scoring that help prioritise accounts.",
+  ],
+  sendloopDifferences: [
+    "Email infrastructure is the product: your own mailboxes, SPF/DKIM/DMARC gates, per-account caps and a real warmup engine.",
+    "Replies land in a unified inbox that creates CRM contacts, tasks and notes automatically.",
+    "Visual automations (trigger, condition, action, wait) run server-side instead of relying on rules inside sequences.",
+    "Launch readiness checks block a campaign until domains, mailboxes, leads and variables are actually ready.",
+  ],
+  chooseSendloop: [
+    "You already have data and want deliverability, replies and pipeline handled properly.",
+    "You send from many mailboxes and need caps, windows and warmup per account.",
+    "You want one workspace instead of a sequencer plus an inbox tool plus reporting.",
+  ],
+  chooseCompetitor: [
+    "You need a built-in contact database and enrichment credits.",
+    "Your reps work calls and tasks alongside email in the same sequence.",
+    "Salesforce or HubSpot is the system of record and deep sync is non-negotiable.",
+  ],
+  migration: [
+    { title: "1. Export your saved lists", body: "Export contacts and sequence copy from Apollo, then import the CSVs into Sendloop and map custom variables." },
+    { title: "2. Connect mailboxes and domains", body: "Add each sending account in Sendloop and pass domain authentication before enabling sending." },
+    { title: "3. Warm up first", body: "Run the warmup engine on new or rested mailboxes while you rebuild sequences." },
+    { title: "4. Test, then launch", body: "Send a test email, review the unresolved-variable report, and start with conservative daily caps." },
+  ],
+  faqs: [
+    { q: "Does Sendloop include a contact database?", a: "No. Sendloop is the execution layer — bring your own lists or connect an enrichment provider, and Sendloop handles sending, replies and pipeline." },
+    { q: "Can Sendloop sync with my CRM?", a: "Sendloop has a built-in CRM, and integrations plus webhooks let you push activity into Salesforce, HubSpot or another system of record." },
+    { q: "How current is this comparison?", a: "Reviewed 20 August 2026 from publicly documented features. Verify details on the vendor's site before deciding." },
+  ],
+};
+
+const saleshandy: Comparison = {
+  slug: "sendloop-vs-saleshandy",
+  competitor: "Saleshandy",
+  competitorSite: "https://saleshandy.com",
+  reviewedOn: "2026-08-20",
+  heroSummary:
+    "Saleshandy is a cold email platform with sequences, mailbox rotation and warmup. Sendloop covers the same sending ground and adds the post-reply workflow — unified inbox, CRM, automations and workspace analytics.",
+  sendloopBestFor:
+    "Teams that want cold email plus everything that happens after the reply in a single workspace.",
+  competitorBestFor:
+    "Teams looking for a straightforward, cost-conscious cold email sender with warmup included.",
+  quick: [
+    { label: "Primary focus", sendloop: "End-to-end outbound workspace", competitor: "Cold email sequences and outreach" },
+    { label: "Reply handling", sendloop: "Unified inbox + auto-created CRM records", competitor: "Unified inbox for campaign replies" },
+    { label: "Automations", sendloop: "Visual trigger/condition/action/wait builder", competitor: "Sequence conditions plus integrations" },
+    { label: "Reporting", sendloop: "Workspace-wide funnel and drill-downs", competitor: "Campaign and mailbox reporting" },
+  ],
+  rows: [
+    { area: "Campaigns", sendloop: sendloopCells.campaigns, competitor: "Cold email campaigns with steps, schedules and mailbox rotation. " + verifyNote("Saleshandy") },
+    { area: "Email sequences", sendloop: sendloopCells.sequences, competitor: "Multi-step sequences with delays and conditions. " + verifyNote("Saleshandy") },
+    { area: "AI personalization", sendloop: sendloopCells.ai, competitor: "AI writing help and merge-tag personalization. " + verifyNote("Saleshandy") },
+    { area: "Follow-ups", sendloop: sendloopCells.followups, competitor: "Automatic follow-ups that stop on reply. " + verifyNote("Saleshandy") },
+    { area: "Email accounts", sendloop: sendloopCells.accounts, competitor: "Connect unlimited mailboxes on most plans with rotation. " + verifyNote("Saleshandy") },
+    { area: "Domain management", sendloop: sendloopCells.domains, competitor: "Authentication checks and setup guidance. " + verifyNote("Saleshandy") },
+    { area: "Warmup", sendloop: sendloopCells.warmup, competitor: "Warmup is included with sending accounts. " + verifyNote("Saleshandy") },
+    { area: "Deliverability controls", sendloop: sendloopCells.deliverability, competitor: "Sending limits, ramp-up and bounce handling. " + verifyNote("Saleshandy") },
+    { area: "Unified Inbox", sendloop: sendloopCells.inbox, competitor: "Unified inbox for replies across connected mailboxes. " + verifyNote("Saleshandy") },
+    { area: "CRM", sendloop: sendloopCells.crm, competitor: "Lead stages within campaigns; most teams sync to an external CRM. " + verifyNote("Saleshandy") },
+    { area: "Automations", sendloop: sendloopCells.automations, competitor: "Sequence-level conditions plus webhooks and integrations. " + verifyNote("Saleshandy") },
+    { area: "Analytics", sendloop: sendloopCells.analytics, competitor: "Campaign, step and mailbox reporting. " + verifyNote("Saleshandy") },
+    { area: "Integrations", sendloop: sendloopCells.integrations, competitor: "API, webhooks and Zapier-style integrations. " + verifyNote("Saleshandy") },
+    { area: "Team / workspaces", sendloop: sendloopCells.teams, competitor: "Team members with roles on higher tiers. " + verifyNote("Saleshandy") },
+    { area: "Lead management", sendloop: sendloopCells.leads, competitor: "Prospect import, custom fields and lead finder add-on. " + verifyNote("Saleshandy") },
+    { area: "Billing / usage model", sendloop: sendloopCells.billing, competitor: "Tiered plans based on prospects and emails. Check current pricing on their site." },
+    { area: "Customer support", sendloop: sendloopCells.support, competitor: "Help centre, chat and email support. " + verifyNote("Saleshandy") },
+    { area: "Ease of use", sendloop: sendloopCells.ease, competitor: "Simple campaign flow that is quick to pick up." },
+  ],
+  competitorStrengths: [
+    "Clean, focused cold email workflow that teams can learn in an afternoon.",
+    "Mailbox rotation and warmup bundled with sending accounts.",
+    "Competitive entry pricing for smaller outbound teams.",
+    "Solid sequence-level reporting on opens, clicks and replies.",
+  ],
+  sendloopDifferences: [
+    "Replies create CRM contacts, tasks and notes so pipeline is tracked without another tool.",
+    "Automations are visual and run on a server-side scheduler rather than living only inside a sequence.",
+    "Analytics roll up across campaigns, mailboxes and the whole workspace with a delivery funnel.",
+    "Role-based workspaces suit agencies and teams managing several brands.",
+  ],
+  chooseSendloop: [
+    "You want inbox, CRM, automations and reporting bundled with sending.",
+    "You manage multiple clients or brands from one login.",
+    "You want launch checks and variable reports before anything sends.",
+  ],
+  chooseCompetitor: [
+    "You want the simplest possible cold email sender at a low entry price.",
+    "Your pipeline already lives in a CRM you don't want to duplicate.",
+    "You don't need automations beyond sequence conditions.",
+  ],
+  migration: [
+    { title: "1. Export prospects and copy", body: "Download your Saleshandy prospects as CSV and copy your sequence content." },
+    { title: "2. Add mailboxes and domains", body: "Connect each sending account in Sendloop and clear SPF, DKIM and DMARC checks." },
+    { title: "3. Keep warmup running", body: "Start Sendloop warmup on each mailbox before you move live volume across." },
+    { title: "4. Rebuild and verify", body: "Recreate sequences, run a test send, review unresolved variables, then launch gradually." },
+  ],
+  faqs: [
+    { q: "Can I connect unlimited mailboxes in Sendloop?", a: "You can connect your own mailboxes with per-account daily caps and sending windows; how many are available depends on your plan's entitlements." },
+    { q: "Does Sendloop replace my CRM?", a: "It can — the built-in CRM is created automatically from replies — but integrations and webhooks also let you keep an external CRM as the system of record." },
+    { q: "When was this page last reviewed?", a: "20 August 2026, based on publicly documented capabilities. Check the vendor's site for current details." },
+  ],
+};
+
 export const COMPARISONS: Record<string, Comparison> = {
   [instantly.slug]: instantly,
   [smartlead.slug]: smartlead,
   [lemlist.slug]: lemlist,
+  [apollo.slug]: apollo,
+  [saleshandy.slug]: saleshandy,
 };
 
-export const COMPARISON_LIST = [instantly, smartlead, lemlist];
+export const COMPARISON_LIST = [instantly, smartlead, lemlist, apollo, saleshandy];
