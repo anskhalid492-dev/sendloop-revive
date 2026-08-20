@@ -442,7 +442,7 @@ function AnalyticsPage() {
 
         {!overview.isLoading && !hasActivity ? (
           <p className="text-center text-xs text-muted-foreground">
-            Metrics appear as soon as your campaigns start sending and providers report delivery
+            Metrics appear as soon as your campaigns start sending and delivery is reported
             events.
           </p>
         ) : null}

@@ -467,3 +467,20 @@ export async function sendManagedEmail(
   return { ...send, verification, credentialSource: managed.source };
 }
 
+
+export const CONNECTION_FAILED_MESSAGE =
+  "Your email account could not connect. Please check the connection settings or contact support.";
+
+/**
+ * Strips any vendor/infrastructure identity out of a message before it reaches
+ * a customer. The raw text stays in server logs and Admin → Providers.
+ */
+export function customerSafeMessage(raw: string | null | undefined, fallback = CONNECTION_FAILED_MESSAGE): string {
+  const text = (raw ?? "").trim();
+  if (!text) return fallback;
+  if (/not verified|domain/i.test(text) && /verif/i.test(text)) return DOMAIN_NOT_VERIFIED_MESSAGE;
+  const leaks =
+    /(resend|sendgrid|mailgun|postmark|zeptomail|zoho|brevo|emailit|amazon ses|\bses\b|smtp|supabase|lovable|api[_ -]?key|https?:\/\/|\[\d{3}\]|provider)/i;
+  if (leaks.test(text)) return fallback;
+  return text;
+}
