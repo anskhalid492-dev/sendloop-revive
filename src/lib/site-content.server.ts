@@ -10,6 +10,7 @@ import {
   normalizePath,
   renderRobots,
   type FooterConfig,
+  type GlobalSeoConfig,
   type NavItem,
   type RobotsConfig,
   type SitePage,
@@ -20,6 +21,21 @@ export const DEFAULT_ROBOTS: RobotsConfig = {
   rules: [{ user_agent: "*", allow: ["/"], disallow: [] }],
   sitemap_url: "/sitemap.xml",
   extra: "",
+};
+
+export const DEFAULT_GLOBAL_SEO: GlobalSeoConfig = {
+  site_title: "Sendloop — Cold Email Outreach Platform",
+  title_template: "%s — Sendloop",
+  meta_description:
+    "Cold email campaigns, automated follow-ups, warmup and a unified inbox for every connected mailbox.",
+  og_image_url: "",
+  og_site_name: "Sendloop",
+  twitter_handle: "",
+  google_verification: "",
+  bing_verification: "",
+  head_scripts: "",
+  body_scripts: "",
+  index_site: true,
 };
 
 export const DEFAULT_FOOTER: FooterConfig = {
@@ -61,6 +77,7 @@ export type PageSeoEntry = {
 
 export type SiteContentBundle = {
   seo: Record<string, PageSeoEntry>;
+  globalSeo: GlobalSeoConfig;
   header: NavItem[];
   footer: NavItem[];
   social: NavItem[];
@@ -117,6 +134,7 @@ export async function loadSiteContent(): Promise<SiteContentBundle> {
 
   return {
     seo,
+    globalSeo: { ...DEFAULT_GLOBAL_SEO, ...((settingsMap.get("seo") as GlobalSeoConfig) ?? {}) },
     header: navRows.filter((n) => n.location === "header"),
     footer: navRows.filter((n) => n.location === "footer"),
     social: navRows.filter((n) => n.location === "social"),

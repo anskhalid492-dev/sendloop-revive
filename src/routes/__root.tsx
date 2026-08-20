@@ -17,7 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getSiteContent } from "@/lib/site-content.functions";
-import { setSiteContent } from "@/lib/page-seo";
+import { getGlobalSeo, setSiteContent } from "@/lib/page-seo";
 
 
 function NotFoundComponent() {
@@ -104,26 +104,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       if (isRedirect(error)) throw error;
     }
   },
-  head: () => ({
+  head: () => {
+    // Global SEO defaults come from Admin → SEO Manager when set; the values
+    // below stay as the fallback so the site never renders without metadata.
+    const global = getGlobalSeo();
+    const title = global?.site_title || "Sendloop — Cold Email Outreach Platform";
+    const description =
+      global?.meta_description ||
+      "Cold email campaigns, automated follow-ups, warmup and a unified inbox for every connected mailbox.";
 
+    return {
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sendloop — Cold Email Outreach Platform" },
-      {
-        name: "description",
-        content:
-          "Cold email campaigns, automated follow-ups, warmup and a unified inbox for every connected mailbox.",
-      },
-      { property: "og:title", content: "Sendloop — Cold Email Outreach Platform" },
-      {
-        property: "og:description",
-        content:
-          "Cold email campaigns, automated follow-ups, warmup and a unified inbox for every connected mailbox.",
-      },
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: global?.og_site_name || "Sendloop" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...(global?.og_image_url
+        ? [
+            { property: "og:image", content: global.og_image_url },
+            { name: "twitter:image", content: global.og_image_url },
+          ]
+        : []),
+      ...(global?.twitter_handle ? [{ name: "twitter:site", content: global.twitter_handle }] : []),
+      ...(global?.google_verification
+        ? [{ name: "google-site-verification", content: global.google_verification }]
+        : []),
+      ...(global?.bing_verification ? [{ name: "msvalidate.01", content: global.bing_verification }] : []),
+      ...(global && global.index_site === false ? [{ name: "robots", content: "noindex, nofollow" }] : []),
     ],
+
     links: [
       {
         rel: "stylesheet",
@@ -137,7 +151,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
-  }),
+    ...(global?.head_scripts?.trim()
+      ? { scripts: [{ children: global.head_scripts }] }
+      : {}),
+    };
+  },
+
 
   shellComponent: RootShell,
   component: RootComponent,

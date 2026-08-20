@@ -58,6 +58,20 @@ export type SiteRedirect = {
   updated_at: string;
 };
 
+export type GlobalSeoConfig = {
+  site_title: string;
+  title_template: string;
+  meta_description: string;
+  og_image_url: string;
+  og_site_name: string;
+  twitter_handle: string;
+  google_verification: string;
+  bing_verification: string;
+  head_scripts: string;
+  body_scripts: string;
+  index_site: boolean;
+};
+
 export type RobotsRule = {
   user_agent: string;
   allow: string[];

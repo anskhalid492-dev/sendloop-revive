@@ -97,6 +97,7 @@ import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminRedirectsRouteImport } from './routes/_authenticated/admin/redirects'
 import { Route as AuthenticatedAdminReferralsRouteImport } from './routes/_authenticated/admin/referrals'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
+import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/admin/seo'
 import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authenticated/admin/seo-files'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin/subscriptions'
@@ -125,6 +126,7 @@ import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
 
 const IndexRoute = IndexRouteImport.update({
@@ -587,6 +589,11 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSeoRoute = AuthenticatedAdminSeoRouteImport.update({
+  id: '/seo',
+  path: '/seo',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminSeoFilesRoute =
   AuthenticatedAdminSeoFilesRouteImport.update({
     id: '/seo-files',
@@ -748,6 +755,11 @@ const ApiPublicIntegrationsSlugRoute =
     path: '/api/public/integrations/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
+  id: '/api/public/media/$',
+  path: '/api/public/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicReferralBillingRoute =
   ApiPublicReferralBillingRouteImport.update({
     id: '/api/public/referral/billing',
@@ -842,6 +854,7 @@ export interface FileRoutesByFullPath {
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
@@ -871,6 +884,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesByTo {
@@ -958,6 +972,7 @@ export interface FileRoutesByTo {
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
@@ -987,6 +1002,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesById {
@@ -1078,6 +1094,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/_authenticated/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/_authenticated/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/_authenticated/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
@@ -1107,6 +1124,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRouteTypes {
@@ -1198,6 +1216,7 @@ export interface FileRouteTypes {
     | '/admin/redirects'
     | '/admin/referrals'
     | '/admin/reviews'
+    | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
     | '/admin/subscriptions'
@@ -1227,6 +1246,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/media/$'
     | '/api/public/referral/billing'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1314,6 +1334,7 @@ export interface FileRouteTypes {
     | '/admin/redirects'
     | '/admin/referrals'
     | '/admin/reviews'
+    | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
     | '/admin/subscriptions'
@@ -1343,6 +1364,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/media/$'
     | '/api/public/referral/billing'
   id:
     | '__root__'
@@ -1433,6 +1455,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/redirects'
     | '/_authenticated/admin/referrals'
     | '/_authenticated/admin/reviews'
+    | '/_authenticated/admin/seo'
     | '/_authenticated/admin/seo-files'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/subscriptions'
@@ -1462,6 +1485,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/media/$'
     | '/api/public/referral/billing'
   fileRoutesById: FileRoutesById
 }
@@ -1519,6 +1543,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
   ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
 }
 
@@ -2140,6 +2165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/seo': {
+      id: '/_authenticated/admin/seo'
+      path: '/seo'
+      fullPath: '/admin/seo'
+      preLoaderRoute: typeof AuthenticatedAdminSeoRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/seo-files': {
       id: '/_authenticated/admin/seo-files'
       path: '/seo-files'
@@ -2336,6 +2368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/media/$': {
+      id: '/api/public/media/$'
+      path: '/api/public/media/$'
+      fullPath: '/api/public/media/$'
+      preLoaderRoute: typeof ApiPublicMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/referral/billing': {
       id: '/api/public/referral/billing'
       path: '/api/public/referral/billing'
@@ -2404,6 +2443,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminRedirectsRoute: typeof AuthenticatedAdminRedirectsRoute
   AuthenticatedAdminReferralsRoute: typeof AuthenticatedAdminReferralsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
+  AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRoute
   AuthenticatedAdminSeoFilesRoute: typeof AuthenticatedAdminSeoFilesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
@@ -2449,6 +2489,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminRedirectsRoute: AuthenticatedAdminRedirectsRoute,
     AuthenticatedAdminReferralsRoute: AuthenticatedAdminReferralsRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
+    AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRoute,
     AuthenticatedAdminSeoFilesRoute: AuthenticatedAdminSeoFilesRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
@@ -2586,6 +2627,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
   ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
 }
 export const routeTree = rootRouteImport

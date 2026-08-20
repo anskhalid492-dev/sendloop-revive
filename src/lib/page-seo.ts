@@ -10,7 +10,10 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import type { SiteContentBundle, PageSeoEntry } from "@/lib/site-content.server";
 
-type Bundle = Pick<SiteContentBundle, "seo" | "header" | "footer" | "social" | "footerConfig">;
+type Bundle = Pick<
+  SiteContentBundle,
+  "seo" | "globalSeo" | "header" | "footer" | "social" | "footerConfig"
+>;
 
 let bundle: Bundle | null = null;
 const listeners = new Set<() => void>();
@@ -33,6 +36,11 @@ export function getPageSeo(path: string): PageSeoEntry | null {
   if (!bundle) return null;
   const clean = path.length > 1 ? path.replace(/\/+$/, "") : "/";
   return bundle.seo[clean] ?? null;
+}
+
+/** Admin-managed site title, default OG data, verification codes and scripts. */
+export function getGlobalSeo() {
+  return bundle?.globalSeo ?? null;
 }
 
 type MetaEntry = Record<string, string>;
