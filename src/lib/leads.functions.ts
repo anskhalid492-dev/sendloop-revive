@@ -66,17 +66,24 @@ type ListInput = z.infer<typeof listInputSchema>;
 
 export const listLeadLists = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((input) =>
+    z.object({ workspaceId: z.string().uuid().optional() }).optional().parse(input) ?? {},
+  )
+  .handler(async ({ data: input, context }) => {
+    let listsQuery = context.supabase
       .from("lead_lists")
       .select(sel("id, name, description, created_at"))
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (input.workspaceId) listsQuery = listsQuery.eq("workspace_id", input.workspaceId);
+    const { data, error } = await listsQuery
       .returns<Array<{ id: string; name: string; description: string | null; created_at: string }>>();
     if (error) throw new Error(error.message);
 
-    const { data: leadRows, error: countError } = await context.supabase
+    let leadCountQuery = context.supabase
       .from("leads")
-      .select(sel("list_id"))
+      .select(sel("list_id"));
+    if (input.workspaceId) leadCountQuery = leadCountQuery.eq("workspace_id", input.workspaceId);
+    const { data: leadRows, error: countError } = await leadCountQuery
       .returns<Array<{ list_id: string | null }>>();
     if (countError) throw new Error(countError.message);
 

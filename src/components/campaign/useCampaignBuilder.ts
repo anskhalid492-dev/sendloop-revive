@@ -132,7 +132,12 @@ export function useCampaignBuilder(campaignId: string) {
     queryKey: ["campaign-leads", campaignId],
     queryFn: () => fetchLeads({ data: { campaignId } }),
   });
-  const listsQuery = useQuery({ queryKey: ["lead-lists"], queryFn: () => fetchLists() });
+  const campaignWorkspaceId = campaignQuery.data?.campaign.workspace_id;
+  const listsQuery = useQuery({
+    queryKey: ["lead-lists", campaignWorkspaceId],
+    queryFn: () => fetchLists({ data: { workspaceId: campaignWorkspaceId } } as never),
+    enabled: Boolean(campaignWorkspaceId),
+  });
   // Launch validation always comes from the saved campaign in the database.
   const readinessQuery = useQuery({
     queryKey: ["campaign-readiness", campaignId],
