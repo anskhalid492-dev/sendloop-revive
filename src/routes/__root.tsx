@@ -107,14 +107,39 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // The bundle is also returned as loader data so the client has the exact
   // same content the server rendered with; otherwise the footer and header
   // hydrate against the hardcoded fallbacks and React reports a mismatch.
-  loader: async ({ context }) => {
+  loader: async ({ context, location }) => {
+    let siteContent = null as Awaited<ReturnType<typeof loadSiteContentSafely>>;
     try {
-      const content = await context.queryClient.ensureQueryData(siteContentQueryOptions);
-      setSiteContent(content);
-      return { siteContent: content };
+      siteContent = await context.queryClient.ensureQueryData(siteContentQueryOptions);
+      setSiteContent(siteContent);
     } catch {
-      return { siteContent: null };
+      siteContent = null;
     }
+
+    // Maintenance mode is a real gate: when an admin turns it on, visitors see
+    // the maintenance screen instead of the app. /auth and /admin stay open so
+    // an operator can always sign in and turn it back off.
+    let maintenance: { active: boolean; message: string } = { active: false, message: "" };
+    const path = location.pathname;
+    const exempt =
+      path.startsWith("/admin") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/login") ||
+      path.startsWith("/reset-password") ||
+      path.startsWith("/api");
+    if (!exempt) {
+      try {
+        const flags = await getPlatformFlags();
+        maintenance = {
+          active: Boolean(flags.maintenanceMode),
+          message: flags.maintenanceMessage || "Sendloop is temporarily unavailable for scheduled maintenance.",
+        };
+      } catch {
+        maintenance = { active: false, message: "" };
+      }
+    }
+
+    return { siteContent, maintenance };
   },
   head: () => {
     // Global SEO defaults come from Admin → SEO Manager when set; the values
@@ -198,9 +223,23 @@ function BodyScripts() {
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }
 
+function MaintenanceScreen({ message }: { message: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-2xl font-bold">Scheduled maintenance</h1>
+        <p className="mt-3 text-sm text-muted-foreground">{message}</p>
+        <a href="/auth" className="mt-6 inline-block text-sm text-primary underline-offset-4 hover:underline">
+          Administrator sign in
+        </a>
+      </div>
+    </main>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const { siteContent } = Route.useLoaderData();
+  const { siteContent, maintenance } = Route.useLoaderData();
   // Populate the module store before children render so SSR and hydration
   // read identical navigation, footer and SEO content.
   if (siteContent) setSiteContent(siteContent);
@@ -233,7 +272,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        {maintenance?.active ? <MaintenanceScreen message={maintenance.message} /> : <Outlet />}
         <Toaster />
       </ThemeProvider>
     </QueryClientProvider>
