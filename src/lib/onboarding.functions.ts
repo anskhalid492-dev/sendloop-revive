@@ -58,7 +58,16 @@ export const completeOnboarding = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    // Workspace name length is a platform-wide validation ceiling set in
+    // Admin → System settings → Platform limits.
+    const { platformLimit } = await import("@/lib/platform-settings.server");
+    const maxName = await platformLimit("max_workspace_name_length", 60);
+    if (data.workspaceName.length > maxName) {
+      throw new Error(`Workspace name must be ${maxName} characters or fewer`);
+    }
+
     const base =
+
       data.workspaceName
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
