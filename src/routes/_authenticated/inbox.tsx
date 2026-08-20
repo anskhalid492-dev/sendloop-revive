@@ -88,6 +88,7 @@ function Page() {
 
 
   const [folder, setFolder] = useState<InboxFolder>("inbox");
+  const [tab, setTab] = useState<"primary" | "other">("primary");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -97,6 +98,24 @@ function Page() {
   const [foldersOpen, setFoldersOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeSeed, setComposeSeed] = useState<ComposeSeed>({});
+  const [me, setMe] = useState<{ name: string | null; email: string | null }>({
+    name: null,
+    email: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setMe({
+        name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? null,
+        email: data.user?.email ?? null,
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const openCompose = useCallback((seed: ComposeSeed) => {
     setComposeSeed(seed);
@@ -108,7 +127,17 @@ function Page() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const listKey = ["conversations", workspaceId, folder, search, filters];
+  // Primary/Other split only applies to the general folders; status views are
+  // already scoped to a single status.
+  const tabbedFolder = folder === "inbox" || folder === "unread" || folder === "all";
+  const tabStatuses = useMemo(() => {
+    if (!tabbedFolder || filters.statuses.length) return undefined;
+    return tab === "primary"
+      ? ["lead", "interested", "meeting_booked", "meeting_completed", "won"]
+      : ["not_interested", "ooo", "unsubscribed", "bounced"];
+  }, [tab, tabbedFolder, filters.statuses.length]);
+
+  const listKey = ["conversations", workspaceId, folder, search, filters, tabStatuses];
 
   const listQuery = useInfiniteQuery({
     queryKey: listKey,
@@ -120,7 +149,9 @@ function Page() {
           workspaceId: workspaceId!,
           folder,
           search: search || undefined,
-          statuses: filters.statuses.length ? (filters.statuses as never) : undefined,
+          statuses: filters.statuses.length
+            ? (filters.statuses as never)
+            : ((tabStatuses as never) ?? undefined),
           campaignIds: filters.campaignIds.length ? filters.campaignIds : undefined,
           accountIds: filters.accountIds.length ? filters.accountIds : undefined,
           tags: filters.tags.length ? filters.tags : undefined,
@@ -132,6 +163,7 @@ function Page() {
           limit: 25,
         },
       }),
+
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 
@@ -319,6 +351,35 @@ function Page() {
           : "Replies from your campaigns will automatically appear here."
       }
       readyNote="Your inbox is ready. New replies will appear here automatically."
+      {...(tabbedFolder ? { tab, onTabChange: setTab } : {})}
+      footerNote={
+        items.length
+          ? `${items.length} shown${listQuery.hasNextPage ? " · scroll for more" : ""} · threaded across ${
+              (facets?.accounts ?? []).length || 1
+            } mailbox${((facets?.accounts ?? []).length || 1) === 1 ? "" : "es"}`
+          : undefined
+      }
+    />
+  );
+
+  const sidebar = (onNavigate?: () => void) => (
+    <InboxSidebar
+      folder={folder}
+      counts={countsQuery.data ?? {}}
+      onSelect={(next) => {
+        setFolder(next);
+        setSelectedId(null);
+        onNavigate?.();
+      }}
+      onCompose={() => {
+        openCompose({});
+        onNavigate?.();
+      }}
+      accounts={facets?.accounts ?? []}
+      selectedAccountIds={filters.accountIds}
+      onToggleAccount={(id) => toggle("accountIds", id)}
+      userName={me.name}
+      userEmail={me.email}
     />
   );
 
@@ -332,18 +393,11 @@ function Page() {
                 <Menu className="mr-2 h-4 w-4" /> Folders
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetHeader className="p-4">
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="p-4 pb-0">
                 <SheetTitle>Folders</SheetTitle>
               </SheetHeader>
-              <InboxSidebar
-                folder={folder}
-                counts={countsQuery.data ?? {}}
-                onSelect={(next) => {
-                  setFolder(next);
-                  setFoldersOpen(false);
-                }}
-              />
+              <div className="h-[calc(100%-4rem)]">{sidebar(() => setFoldersOpen(false))}</div>
             </SheetContent>
           </Sheet>
           <Button variant="outline" size="sm" onClick={() => openCompose({})}>
@@ -367,16 +421,9 @@ function Page() {
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="hidden w-56 shrink-0 flex-col border-r border-border lg:flex">
-            <InboxSidebar
-              folder={folder}
-              counts={countsQuery.data ?? {}}
-              onSelect={setFolder}
-            />
-            <div className="border-t border-border p-3 space-y-2">
-              <Button size="sm" className="w-full" disabled={!workspaceId} onClick={() => openCompose({})}>
-                <PenSquare className="mr-2 h-4 w-4" /> Compose
-              </Button>
+          <div className="hidden w-60 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex">
+            <div className="min-h-0 flex-1">{sidebar()}</div>
+            <div className="border-t border-border p-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -397,12 +444,13 @@ function Page() {
           </div>
 
           <div
-            className={`min-h-0 w-full shrink-0 border-r border-border md:w-[300px] xl:w-[360px] ${
+            className={`min-h-0 w-full shrink-0 border-r border-border md:w-[320px] xl:w-[380px] ${
               selectedId ? "hidden md:block" : "block"
             }`}
           >
             {folder === "drafts" ? draftsPane : listPane}
           </div>
+
 
           <div className={`min-h-0 min-w-0 flex-1 ${selectedId ? "block" : "hidden md:block"}`}>
             {selectedId && workspaceId ? (

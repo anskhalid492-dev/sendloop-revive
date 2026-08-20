@@ -42,6 +42,9 @@ export function ConversationList({
   emptyTitle,
   emptyBody,
   readyNote,
+  tab,
+  onTabChange,
+  footerNote,
 }: {
   items: ConversationListItem[];
   selectedId: string | null;
@@ -59,8 +62,12 @@ export function ConversationList({
   emptyTitle: string;
   emptyBody: string;
   readyNote?: string;
+  tab?: "primary" | "other" | undefined;
+  onTabChange?: ((tab: "primary" | "other") => void) | undefined;
+  footerNote?: string | undefined;
 }) {
   const sentinel = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const node = sentinel.current;
@@ -75,20 +82,41 @@ export function ConversationList({
     return () => observer.disconnect();
   }, [hasMore, onLoadMore, items.length]);
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-border p-3">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            ref={searchRef}
             value={search}
             onChange={(event) => onSearch(event.target.value)}
-            placeholder="Search name, email, company, subject, message"
-            className="pl-9"
+            placeholder="Search messages…"
+            className="pl-9 pr-12"
             aria-label="Search conversations"
           />
+          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
+            ⌘K
+          </kbd>
         </div>
-        <Button variant="outline" size="icon" onClick={onOpenFilters} aria-label="Filters">
+        <Button
+          variant="outline"
+          size="icon"
+          className="relative"
+          onClick={onOpenFilters}
+          aria-label="Filters"
+        >
           <SlidersHorizontal className="h-4 w-4" />
           {activeFilterCount > 0 ? (
             <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
@@ -100,6 +128,28 @@ export function ConversationList({
           <RefreshCcw className="h-4 w-4" />
         </Button>
       </div>
+
+      {tab && onTabChange ? (
+        <div className="flex items-center gap-4 border-b border-border px-4">
+          {(["primary", "other"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onTabChange(value)}
+              aria-current={tab === value ? "true" : undefined}
+              className={cn(
+                "-mb-px border-b-2 py-2 text-sm capitalize transition-colors",
+                tab === value
+                  ? "border-primary font-medium text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
@@ -213,6 +263,13 @@ export function ConversationList({
           <p className="px-4 py-3 text-center text-[11px] text-muted-foreground">{readyNote}</p>
         ) : null}
       </div>
+
+      {footerNote ? (
+        <div className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+          {footerNote}
+        </div>
+      ) : null}
+
     </div>
   );
 }
