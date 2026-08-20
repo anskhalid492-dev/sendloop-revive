@@ -31,7 +31,7 @@ export type Testimonial = {
 
 
 const COLUMNS =
-  "id, name, role, company, avatar_url, company_logo_url, testimonial, result, pages, featured, display_order, active, rating, category, verified, reviewed_on";
+  "id, name, role, company, bio, avatar_url, company_logo_url, testimonial, result, pages, featured, display_order, active, rating, category, verified, reviewed_on";
 
 function publicClient() {
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || SUPABASE_PUBLISHABLE_KEY;
@@ -117,6 +117,7 @@ const testimonialInput = z.object({
   company: z.string().trim().max(80).default(""),
   avatarUrl: z.string().trim().url().or(z.literal("")).optional(),
   companyLogoUrl: z.string().trim().url().or(z.literal("")).optional(),
+  bio: z.string().trim().max(200).optional(),
   testimonial: z.string().trim().min(10).max(600),
   result: z.string().trim().max(80).optional(),
   pages: z.array(z.string().trim().min(1)).max(20),
@@ -150,6 +151,7 @@ export const saveTestimonial = createServerFn({ method: "POST" })
       company: data.company,
       avatar_url: data.avatarUrl || null,
       company_logo_url: data.companyLogoUrl || null,
+      bio: data.bio || null,
       testimonial: data.testimonial,
       result: data.result || null,
       pages: data.pages,
