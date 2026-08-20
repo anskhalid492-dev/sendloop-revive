@@ -50,6 +50,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useReferralClaim } from "@/hooks/useReferralClaim";
 import { useOAuthPolicy } from "@/hooks/useOAuthPolicy";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
+import { AnnouncementBar } from "@/components/platform/AnnouncementBar";
 import { cn } from "@/lib/utils";
 
 /**
@@ -340,7 +341,10 @@ export function AppShell({
           <div className="flex flex-wrap gap-2 border-b border-border/60 px-4 py-3 sm:px-6">{actions}</div>
         ) : null}
 
-        <main className="px-4 py-8 sm:px-6">{children}</main>
+        <>
+          <AnnouncementBar />
+          <main className="px-4 py-8 sm:px-6">{children}</main>
+        </>
       </div>
     </div>
   );

@@ -19,6 +19,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSiteContent } from "@/lib/site-content.functions";
 import { getPlatformFlags } from "@/lib/platform-settings.functions";
 import { getGlobalSeo, setSiteContent } from "@/lib/page-seo";
+import { getPublicPlatformConfig } from "@/lib/platform-config.functions";
+import {
+  getPlatformConfig,
+  setPlatformConfig,
+  type PublicPlatformConfigShape,
+} from "@/lib/platform-config-store";
+import { CookieConsentBanner } from "@/components/platform/CookieConsentBanner";
 
 
 function NotFoundComponent() {
@@ -113,6 +120,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     try {
       siteContent = await context.queryClient.ensureQueryData(siteContentQueryOptions);
       if (siteContent) setSiteContent(siteContent);
+  if (platformConfig) setPlatformConfig(platformConfig);
     } catch {
       siteContent = null;
     }
@@ -140,7 +148,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       }
     }
 
-    return { siteContent, maintenance };
+    // Public platform configuration (branding, legal, consent, limits) is
+    // fetched here so head() and the consent banner render identically on the
+    // server and after hydration.
+    let platformConfig: PublicPlatformConfigShape | null = null;
+    try {
+      platformConfig = (await getPublicPlatformConfig()) as PublicPlatformConfigShape;
+      setPlatformConfig(platformConfig);
+    } catch {
+      platformConfig = null;
+    }
+
+    return { siteContent, maintenance, platformConfig };
   },
   head: () => {
     // Global SEO defaults come from Admin → SEO Manager when set; the values
@@ -187,7 +206,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      faviconLink(),
     ],
     ...(global?.head_scripts?.trim()
       ? { scripts: [{ children: global.head_scripts }] }
@@ -201,6 +220,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
+
+/** Favicon comes from Admin → Branding when uploaded, otherwise the default. */
+function faviconLink() {
+  const custom = getPlatformConfig()?.branding?.["favicon_url"];
+  const href = typeof custom === "string" && custom.trim() ? custom.trim() : "/favicon.ico";
+  const type = href.endsWith(".svg")
+    ? "image/svg+xml"
+    : href.endsWith(".ico")
+      ? "image/x-icon"
+      : "image/png";
+  return { rel: "icon", href, type };
+}
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -240,10 +271,11 @@ function MaintenanceScreen({ message }: { message: string }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const { siteContent, maintenance } = Route.useLoaderData();
+  const { siteContent, maintenance, platformConfig } = Route.useLoaderData();
   // Populate the module store before children render so SSR and hydration
   // read identical navigation, footer and SEO content.
   if (siteContent) setSiteContent(siteContent);
+  if (platformConfig) setPlatformConfig(platformConfig);
   const router = useRouter();
 
   useEffect(() => {
@@ -274,6 +306,7 @@ function RootComponent() {
       <ThemeProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         {maintenance?.active ? <MaintenanceScreen message={maintenance.message} /> : <Outlet />}
+        <CookieConsentBanner />
         <Toaster />
       </ThemeProvider>
     </QueryClientProvider>
