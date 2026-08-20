@@ -2074,6 +2074,62 @@ export type Database = {
           },
         ]
       }
+      credit_ledger: {
+        Row: {
+          actor: string
+          actor_user_id: string | null
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          entry_type: string
+          id: string
+          metadata: Json
+          reason: string | null
+          reference: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actor?: string
+          actor_user_id?: string | null
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          entry_type: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          reference?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actor?: string
+          actor_user_id?: string | null
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          entry_type?: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          reference?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_stages: {
         Row: {
           color: string
@@ -3477,6 +3533,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          feature_key: string | null
           id: string
           included: boolean
           name: string
@@ -3487,6 +3544,7 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          feature_key?: string | null
           id?: string
           included?: boolean
           name: string
@@ -3497,6 +3555,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          feature_key?: string | null
           id?: string
           included?: boolean
           name?: string
@@ -3522,6 +3581,7 @@ export type Database = {
           custom_branding: boolean
           description: string | null
           id: string
+          is_active: boolean
           is_enterprise: boolean
           is_popular: boolean
           max_automations: number | null
@@ -3531,6 +3591,7 @@ export type Database = {
           max_sending_accounts: number | null
           max_users: number | null
           max_workspaces: number | null
+          monthly_credits: number
           monthly_price: number
           name: string
           priority_support: boolean
@@ -3550,6 +3611,7 @@ export type Database = {
           custom_branding?: boolean
           description?: string | null
           id?: string
+          is_active?: boolean
           is_enterprise?: boolean
           is_popular?: boolean
           max_automations?: number | null
@@ -3559,6 +3621,7 @@ export type Database = {
           max_sending_accounts?: number | null
           max_users?: number | null
           max_workspaces?: number | null
+          monthly_credits?: number
           monthly_price?: number
           name: string
           priority_support?: boolean
@@ -3578,6 +3641,7 @@ export type Database = {
           custom_branding?: boolean
           description?: string | null
           id?: string
+          is_active?: boolean
           is_enterprise?: boolean
           is_popular?: boolean
           max_automations?: number | null
@@ -3587,6 +3651,7 @@ export type Database = {
           max_sending_accounts?: number | null
           max_users?: number | null
           max_workspaces?: number | null
+          monthly_credits?: number
           monthly_price?: number
           name?: string
           priority_support?: boolean
@@ -5335,6 +5400,41 @@ export type Database = {
           },
         ]
       }
+      workspace_credits: {
+        Row: {
+          allocated_total: number
+          balance: number
+          consumed_total: number
+          last_allocated_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allocated_total?: number
+          balance?: number
+          consumed_total?: number
+          last_allocated_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allocated_total?: number
+          balance?: number
+          consumed_total?: number
+          last_allocated_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_credits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invitations: {
         Row: {
           accepted_at: string | null
@@ -5630,6 +5730,39 @@ export type Database = {
           sent: number
           unsubscribed: number
         }[]
+      }
+      apply_credit_change: {
+        Args: {
+          _actor?: string
+          _actor_user_id?: string
+          _amount: number
+          _entry_type: string
+          _reason?: string
+          _reference?: string
+          _user_id?: string
+          _workspace_id: string
+        }
+        Returns: {
+          actor: string
+          actor_user_id: string | null
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          entry_type: string
+          id: string
+          metadata: Json
+          reason: string | null
+          reference: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_ledger"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       claim_automation_runs: {
         Args: { _limit: number; _worker: string }
