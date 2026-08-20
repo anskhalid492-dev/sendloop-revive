@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowRight, ChevronRight, Clock, Linkedin, Link2, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
-import { ArticleBody, TableOfContents, parseArticle } from "@/components/blog/ArticleBody";
+import { ArticleBody, HtmlArticleBody, TableOfContents, parseArticle, parseHtmlToc } from "@/components/blog/ArticleBody";
 import { CoverImage, PostCard } from "@/components/blog/BlogCards";
 import { MarketingLayout, Section } from "@/components/site/MarketingPage";
 import { Badge } from "@/components/ui/badge";
@@ -107,7 +107,8 @@ export const Route = createFileRoute("/blog/$slug")({
 function ArticlePage() {
   const { post, related } = Route.useLoaderData();
   if (!post) return null;
-  const sections = parseArticle(post.content);
+  const isHtml = (post as any).content_format === "html";
+  const sections = isHtml ? parseHtmlToc(post.content) : parseArticle(post.content);
 
   const share = (network: "x" | "linkedin" | "copy") => {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -221,7 +222,7 @@ function ArticlePage() {
               </div>
 
               <div className="mt-8">
-                <ArticleBody sections={sections} />
+                {isHtml ? <HtmlArticleBody html={post.content} /> : <ArticleBody sections={sections} />}
               </div>
 
               <div className="surface-card mt-12 flex flex-col items-start gap-4 p-8 sm:flex-row sm:items-center sm:justify-between">
