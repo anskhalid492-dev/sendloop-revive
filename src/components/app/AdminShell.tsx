@@ -34,6 +34,12 @@ import {
   Inbox,
   MessageSquareQuote,
   Gift,
+  FileSearch,
+  FileCode,
+  Newspaper,
+  PanelsTopLeft,
+  Route,
+
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +96,16 @@ const navSections: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Website & Content",
+    items: [
+      { to: "/admin/pages", label: "Pages & SEO", icon: FileSearch },
+      { to: "/admin/blog", label: "Blog", icon: Newspaper },
+      { to: "/admin/navigation", label: "Navigation & Footer", icon: PanelsTopLeft },
+      { to: "/admin/redirects", label: "Redirects", icon: Route },
+      { to: "/admin/seo-files", label: "Robots & Sitemap", icon: FileCode },
+    ],
+  },
+  {
     title: "Growth",
     items: [
       { to: "/admin/templates", label: "Templates", icon: FileText },
@@ -98,6 +114,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/integrations", label: "Integrations", icon: Plug },
     ],
   },
+
   {
     title: "Platform",
     items: [
