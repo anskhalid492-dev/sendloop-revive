@@ -38,7 +38,7 @@ export const getAdminSiteData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context);
-    const { DEFAULT_ROBOTS, DEFAULT_FOOTER } = await import("@/lib/site-content.server");
+    const { DEFAULT_ROBOTS, DEFAULT_FOOTER, DEFAULT_GLOBAL_SEO } = await import("@/lib/site-content.server");
     const db = context.supabase as any;
     const [pages, nav, redirects, settings] = await Promise.all([
       db.from("site_pages").select("*").order("path").limit(500),
@@ -56,6 +56,7 @@ export const getAdminSiteData = createServerFn({ method: "GET" })
       redirects: (redirects.data ?? []) as any[],
       robots: { ...DEFAULT_ROBOTS, ...((settingsMap.get("robots") as RobotsConfig) ?? {}) },
       footerConfig: { ...DEFAULT_FOOTER, ...((settingsMap.get("footer") as any) ?? {}) },
+      globalSeo: { ...DEFAULT_GLOBAL_SEO, ...((settingsMap.get("seo") as any) ?? {}) },
     };
   });
 
