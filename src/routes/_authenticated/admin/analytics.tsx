@@ -6,6 +6,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -133,13 +140,18 @@ function AdminAnalyticsPage() {
       />
 
       <FilterBar>
-        <FilterSelect
-          value={range}
-          onChange={setRange}
-          allLabel="Last 30 days"
-          hideAll
-          options={RANGES}
-        />
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {RANGES.map((r) => (
+              <SelectItem key={r.value} value={r.value}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {range === "custom" ? (
           <>
             <Input
