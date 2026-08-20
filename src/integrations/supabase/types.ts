@@ -947,12 +947,58 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_media: {
+        Row: {
+          alt_text: string
+          caption: string
+          created_at: string
+          file_name: string
+          folder: string
+          id: string
+          mime_type: string
+          public_url: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          alt_text?: string
+          caption?: string
+          created_at?: string
+          file_name: string
+          folder?: string
+          id?: string
+          mime_type?: string
+          public_url: string
+          size_bytes?: number
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          alt_text?: string
+          caption?: string
+          created_at?: string
+          file_name?: string
+          folder?: string
+          id?: string
+          mime_type?: string
+          public_url?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_id: string | null
           canonical_url: string | null
           category_id: string | null
           content: string
+          content_format: string
           content_type: Database["public"]["Enums"]["blog_content_type"]
           cover_image_url: string | null
           created_at: string
@@ -977,6 +1023,7 @@ export type Database = {
           canonical_url?: string | null
           category_id?: string | null
           content?: string
+          content_format?: string
           content_type?: Database["public"]["Enums"]["blog_content_type"]
           cover_image_url?: string | null
           created_at?: string
@@ -1001,6 +1048,7 @@ export type Database = {
           canonical_url?: string | null
           category_id?: string | null
           content?: string
+          content_format?: string
           content_type?: Database["public"]["Enums"]["blog_content_type"]
           cover_image_url?: string | null
           created_at?: string

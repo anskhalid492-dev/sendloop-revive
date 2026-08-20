@@ -307,7 +307,8 @@ const postInput = z.object({
   title: z.string().trim().min(1).max(200),
   subtitle: z.string().trim().max(300).default(""),
   excerpt: z.string().trim().max(600).default(""),
-  content: z.string().max(80000).default(""),
+  content: z.string().max(300000).default(""),
+  contentFormat: z.enum(["markdown", "html"]).default("html"),
   coverImageUrl: z.string().trim().max(600).nullable().default(null),
   categoryId: z.string().uuid().nullable().default(null),
   authorId: z.string().uuid().nullable().default(null),
@@ -337,6 +338,7 @@ export const saveBlogPost = createServerFn({ method: "POST" })
       subtitle: data.subtitle,
       excerpt: data.excerpt || data.subtitle,
       content: data.content,
+      content_format: data.contentFormat,
       cover_image_url: data.coverImageUrl || null,
       category_id: data.categoryId,
       author_id: data.authorId,
@@ -440,4 +442,197 @@ export const saveBlogAuthor = createServerFn({ method: "POST" })
     const { data: saved, error } = await query;
     if (error) throw new Error(error.message);
     return { id: (saved as { id: string }).id };
+  });
+
+/** Admin: delete an author (posts keep existing but lose the byline). */
+export const deleteBlogAuthor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    await (context.supabase as any).from("blog_posts").update({ author_id: null }).eq("author_id", data.id);
+    const { error } = await (context.supabase as any).from("blog_authors").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin: create or update a category. */
+export const saveBlogCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/),
+        name: z.string().trim().min(1).max(120),
+        description: z.string().trim().max(600).default(""),
+        sortOrder: z.number().int().min(0).max(999).default(0),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const row = {
+      slug: data.slug,
+      name: data.name,
+      description: data.description,
+      sort_order: data.sortOrder,
+    };
+    const query = data.id
+      ? (context.supabase as any).from("blog_categories").update(row).eq("id", data.id).select("id").single()
+      : (context.supabase as any).from("blog_categories").insert(row).select("id").single();
+    const { data: saved, error } = await query;
+    if (error) throw new Error(error.message);
+    return { id: (saved as { id: string }).id };
+  });
+
+/** Admin: delete a category. Posts stay published, just uncategorised. */
+export const deleteBlogCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    await (context.supabase as any).from("blog_posts").update({ category_id: null }).eq("category_id", data.id);
+    const { error } = await (context.supabase as any).from("blog_categories").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* --------------------------- Media library --------------------------- */
+
+/** Admin: list the media library. */
+export const listBlogMedia = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const { data, error } = await (context.supabase as any)
+      .from("blog_media")
+      .select("id, storage_path, public_url, file_name, mime_type, size_bytes, alt_text, caption, folder, created_at")
+      .order("created_at", { ascending: false })
+      .limit(300);
+    if (error) throw new Error(error.message);
+    return { items: (data ?? []) as any[] };
+  });
+
+/** Admin: record an uploaded file in the library (the upload itself is a direct storage write). */
+export const registerBlogMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        storagePath: z.string().trim().min(1).max(400),
+        publicUrl: z.string().trim().min(1).max(600),
+        fileName: z.string().trim().min(1).max(200),
+        mimeType: z.string().trim().max(120).default("image/png"),
+        sizeBytes: z.number().int().min(0).max(50_000_000).default(0),
+        altText: z.string().trim().max(300).default(""),
+        caption: z.string().trim().max(400).default(""),
+        folder: z.string().trim().max(60).default("library"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const { data: saved, error } = await (context.supabase as any)
+      .from("blog_media")
+      .insert({
+        storage_path: data.storagePath,
+        public_url: data.publicUrl,
+        file_name: data.fileName,
+        mime_type: data.mimeType,
+        size_bytes: data.sizeBytes,
+        alt_text: data.altText,
+        caption: data.caption,
+        folder: data.folder,
+        uploaded_by: context.userId,
+      })
+      .select("id, storage_path, public_url, file_name, mime_type, size_bytes, alt_text, caption, folder, created_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return { item: saved as any };
+  });
+
+/** Admin: edit alt text / caption on a library item. */
+export const updateBlogMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        altText: z.string().trim().max(300).default(""),
+        caption: z.string().trim().max(400).default(""),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const { error } = await (context.supabase as any)
+      .from("blog_media")
+      .update({ alt_text: data.altText, caption: data.caption, updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin: delete a library item and its stored file. */
+export const deleteBlogMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const { data: row } = await (context.supabase as any)
+      .from("blog_media")
+      .select("storage_path")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (row?.storage_path) {
+      await (context.supabase as any).storage.from("blog-media").remove([row.storage_path]);
+    }
+    const { error } = await (context.supabase as any).from("blog_media").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin: searchable internal link targets (site pages + blog posts). */
+export const searchInternalLinks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ query: z.string().trim().max(120).default("") }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const term = data.query.trim();
+    const pagesQuery = (context.supabase as any)
+      .from("site_pages")
+      .select("id, path, title, status")
+      .order("path")
+      .limit(40);
+    const postsQuery = (context.supabase as any)
+      .from("blog_posts")
+      .select("id, slug, title, status")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(40);
+    if (term) {
+      pagesQuery.or(`title.ilike.%${term}%,path.ilike.%${term}%`);
+      postsQuery.or(`title.ilike.%${term}%,slug.ilike.%${term}%`);
+    }
+    const [pages, posts] = await Promise.all([pagesQuery, postsQuery]);
+    return {
+      results: [
+        ...((pages.data ?? []) as any[]).map((p) => ({
+          id: p.id,
+          label: p.title,
+          href: p.path,
+          kind: "page" as const,
+          status: p.status as string,
+        })),
+        ...((posts.data ?? []) as any[]).map((p) => ({
+          id: p.id,
+          label: p.title,
+          href: `/blog/${p.slug}`,
+          kind: "post" as const,
+          status: p.status as string,
+        })),
+      ],
+    };
   });

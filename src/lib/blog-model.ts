@@ -49,6 +49,7 @@ export type BlogPost = {
   subtitle: string;
   excerpt: string;
   content: string;
+  content_format?: "markdown" | "html";
   cover_image_url: string | null;
   content_type: BlogContentType;
   status: BlogStatus;
@@ -67,7 +68,7 @@ export type BlogPost = {
 };
 
 export const POST_COLUMNS =
-  "id, slug, title, subtitle, excerpt, content, cover_image_url, content_type, status, featured, popular_guide, reading_minutes, tags, seo_title, meta_description, canonical_url, og_image_url, published_at, updated_at, category:blog_categories(id, slug, name, description, sort_order), author:blog_authors(id, slug, name, role, bio, avatar_url)";
+  "id, slug, title, subtitle, excerpt, content, content_format, cover_image_url, content_type, status, featured, popular_guide, reading_minutes, tags, seo_title, meta_description, canonical_url, og_image_url, published_at, updated_at, category:blog_categories(id, slug, name, description, sort_order), author:blog_authors(id, slug, name, role, bio, avatar_url)";
 
 export function formatBlogDate(value: string | null): string {
   if (!value) return "";

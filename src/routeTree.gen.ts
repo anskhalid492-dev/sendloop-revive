@@ -125,6 +125,7 @@ import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
 
 const IndexRoute = IndexRouteImport.update({
@@ -748,6 +749,11 @@ const ApiPublicIntegrationsSlugRoute =
     path: '/api/public/integrations/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
+  id: '/api/public/media/$',
+  path: '/api/public/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicReferralBillingRoute =
   ApiPublicReferralBillingRouteImport.update({
     id: '/api/public/referral/billing',
@@ -871,6 +877,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesByTo {
@@ -987,6 +994,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRoutesById {
@@ -1107,6 +1115,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
 }
 export interface FileRouteTypes {
@@ -1227,6 +1236,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/media/$'
     | '/api/public/referral/billing'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1343,6 +1353,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/media/$'
     | '/api/public/referral/billing'
   id:
     | '__root__'
@@ -1462,6 +1473,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/media/$'
     | '/api/public/referral/billing'
   fileRoutesById: FileRoutesById
 }
@@ -1519,6 +1531,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
   ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
 }
 
@@ -2336,6 +2349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/media/$': {
+      id: '/api/public/media/$'
+      path: '/api/public/media/$'
+      fullPath: '/api/public/media/$'
+      preLoaderRoute: typeof ApiPublicMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/referral/billing': {
       id: '/api/public/referral/billing'
       path: '/api/public/referral/billing'
@@ -2586,6 +2606,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
   ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
 }
 export const routeTree = rootRouteImport
