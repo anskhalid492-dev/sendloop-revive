@@ -185,50 +185,101 @@ function Home() {
       <main>
         {/* ---------------------------------------------------------- Hero */}
         <section className="hero-glow relative overflow-hidden">
-          <div className="mx-auto max-w-7xl px-4 pt-20 pb-14 text-center sm:px-6 sm:pt-28">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-              <Sparkles className="size-3.5" />
-              The cold email platform
+          <div className="mx-auto max-w-7xl px-4 pt-14 pb-10 text-center sm:px-6 sm:pt-20">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+              <Star className="size-4 fill-current" />
+              #1 Cold Email Platform for Growth-Focused Teams
             </span>
-            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl">
-              Turn Cold Emails Into <span className="text-gradient">Real Conversations</span>
+            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
+              Turn Cold Emails Into
+              <br />
+              <span className="text-gradient">Real Conversations</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Build personalized campaigns, automate follow-ups, manage every reply, and track your
-              outreach from one powerful workspace. Sendloop handles the sending infrastructure so
-              you can focus on starting conversations.
+            <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
+              Send personalized emails, automate follow-ups, manage replies, and track results — all
+              from one unified workspace.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button size="lg" asChild>
+              <Button size="lg" className="rounded-xl px-7" asChild>
                 <Link to="/signup">
                   Start for Free
                   <Send className="size-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <a href="#how-it-works">See How It Works</a>
+              <Button size="lg" variant="outline" className="rounded-xl bg-card px-7" asChild>
+                <a href="#how-it-works">
+                  See How It Works
+                  <PlayCircle className="size-4" />
+                </a>
               </Button>
+            </div>
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-sm text-muted-foreground">
+              {["14-day free trial", "No credit card", "Cancel anytime"].map((item) => (
+                <li key={item} className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-primary" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Hero product visual with orbiting feature cards */}
+          <div className="mx-auto max-w-[1400px] px-4 pb-16 sm:px-6">
+            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,15rem)_1fr_minmax(0,15rem)]">
+              <div className="order-2 grid gap-4 sm:grid-cols-3 lg:order-1 lg:grid-cols-1">
+                {heroLeftCards.map((card, i) => (
+                  <Reveal key={card.title} delay={i * 80}>
+                    <HeroFeatureCard card={card} />
+                  </Reveal>
+                ))}
+              </div>
+
+              <div className="order-1 lg:order-2">
+                <div className="float-slow browser-frame">
+                  <div className="flex items-center gap-1.5 border-b border-border bg-secondary/50 px-4 py-3">
+                    <span className="size-2.5 rounded-full bg-destructive/40" />
+                    <span className="size-2.5 rounded-full bg-primary/30" />
+                    <span className="size-2.5 rounded-full bg-muted-foreground/25" />
+                    <span className="ml-3 text-xs text-muted-foreground">
+                      app.sendloop.com / dashboard
+                    </span>
+                  </div>
+                  <img
+                    src={dashboardPreview}
+                    alt="Sendloop dashboard showing active campaigns, replies and outreach analytics"
+                    width={1600}
+                    height={1008}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="order-3 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+                {heroRightCards.map((card, i) => (
+                  <Reveal key={card.title} delay={i * 80}>
+                    <HeroFeatureCard card={card} />
+                  </Reveal>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Hero product visual */}
-          <div className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6">
-            <div className="float-slow browser-frame">
-              <div className="flex items-center gap-1.5 border-b border-border bg-secondary/50 px-4 py-3">
-                <span className="size-2.5 rounded-full bg-destructive/40" />
-                <span className="size-2.5 rounded-full bg-primary/30" />
-                <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                <span className="ml-3 text-xs text-muted-foreground">
-                  app.sendloop.com / dashboard
-                </span>
+          {/* Logo strip */}
+          <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+            <div className="flex flex-col items-center justify-center gap-6 rounded-2xl border border-border/60 bg-card/70 px-6 py-6 backdrop-blur sm:flex-row sm:gap-10">
+              <p className="text-sm text-muted-foreground">
+                Trusted by 1,000+ agencies and sales teams worldwide
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+                {heroLogos.map((logo) => (
+                  <span
+                    key={logo}
+                    className="text-base font-bold tracking-tight text-muted-foreground/70"
+                  >
+                    {logo}
+                  </span>
+                ))}
               </div>
-              <img
-                src={dashboardPreview}
-                alt="Sendloop dashboard showing active campaigns, replies and outreach analytics"
-                width={1600}
-                height={1008}
-                className="w-full"
-              />
             </div>
           </div>
         </section>
