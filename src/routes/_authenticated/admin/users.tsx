@@ -339,8 +339,8 @@ function AdminUsersPage() {
                     {u.workspaces.length === 0
                       ? "—"
                       : u.workspaces.length === 1
-                        ? u.workspaces[0].name
-                        : `${u.workspaces[0].name} +${u.workspaces.length - 1}`}
+                        ? u.workspaces[0]?.name
+                        : `${u.workspaces[0]?.name} +${u.workspaces.length - 1}`}
                   </TableCell>
                   <TableCell className="text-xs">
                     {u.platformRole ? (
