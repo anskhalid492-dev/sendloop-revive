@@ -163,7 +163,7 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
-    const order = ["Products", "Resources", "Company", "Legal", "Comparisons"];
+    const order = ["Products", "Resources", "Comparisons", "Company", "Legal"];
     const sorted = [...groups.entries()].sort((a, b) => {
       const ai = order.indexOf(a[0]);
       const bi = order.indexOf(b[0]);
