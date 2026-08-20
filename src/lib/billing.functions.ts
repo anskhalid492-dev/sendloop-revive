@@ -164,3 +164,32 @@ export const openBillingPortal = createServerFn({ method: "POST" })
     await assertWorkspaceBillingManager(context, data.workspaceId);
     return portalForWorkspace(data.workspaceId, data.returnUrl);
   });
+
+/**
+ * Plan entitlements (feature matrix, limits, credit balance) for the current
+ * workspace. The UI uses this to lock features; the server re-checks on write.
+ */
+export const getWorkspaceEntitlement = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceMember } = await import("@/lib/billing/access.server");
+    const { getEntitlement } = await import("@/lib/billing/entitlements.server");
+    await assertWorkspaceMember(context, data.workspaceId);
+    return getEntitlement(data.workspaceId);
+  });
+
+/** Credit balance + recent ledger for a workspace the caller belongs to. */
+export const getWorkspaceCredits = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceMember } = await import("@/lib/billing/access.server");
+    const { getCreditBalance, listLedger } = await import("@/lib/billing/credits.server");
+    await assertWorkspaceMember(context, data.workspaceId);
+    const [balance, ledger] = await Promise.all([
+      getCreditBalance(data.workspaceId),
+      listLedger({ workspaceId: data.workspaceId, limit: 50 }),
+    ]);
+    return { balance, ledger };
+  });
