@@ -83,7 +83,7 @@ function AlternativesPage() {
                   <span className="font-semibold text-foreground">Best for {c.competitor}:</span> {c.competitorBestFor}
                 </p>
                 <Button variant="outline" className="mt-5 w-full" asChild>
-                  <Link to={COMPARE_ROUTES[c.slug]!}>
+                  <Link to={COMPARE_ROUTES[c.slug as keyof typeof COMPARE_ROUTES]}>
                     Read the comparison <ArrowRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
