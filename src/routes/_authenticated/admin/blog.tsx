@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import {
+  MediaLibraryPanel,
+  MediaPickerDialog,
+} from "@/components/admin/MediaLibrary";
 import {
   CONTENT_TYPE_LABELS,
   STATUS_LABELS,
@@ -34,8 +40,12 @@ import {
   type BlogStatus,
 } from "@/lib/blog-model";
 import {
+  deleteBlogAuthor,
+  deleteBlogCategory,
   deleteBlogPost,
   listAllBlogPosts,
+  saveBlogAuthor,
+  saveBlogCategory,
   saveBlogPost,
   setBlogPostStatus,
 } from "@/lib/blog.functions";
@@ -43,10 +53,11 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/blog")({
   head: () => ({
     meta: [
-      { title: "Blog — Sendloop Admin" },
+      { title: "Blog CMS — Sendloop Admin" },
       {
         name: "description",
-        content: "Write, schedule and publish Sendloop blog posts with full SEO control.",
+        content:
+          "Write, schedule and publish Sendloop blog posts with a rich editor, media library, categories and authors.",
       },
     ],
   }),
@@ -60,6 +71,7 @@ type Draft = {
   subtitle: string;
   excerpt: string;
   content: string;
+  contentFormat: "markdown" | "html";
   coverImageUrl: string;
   categoryId: string;
   authorId: string;
@@ -83,6 +95,7 @@ function emptyDraft(): Draft {
     subtitle: "",
     excerpt: "",
     content: "",
+    contentFormat: "html",
     coverImageUrl: "",
     categoryId: "",
     authorId: "",
@@ -108,9 +121,10 @@ function toDraft(post: BlogPost & Record<string, any>): Draft {
     subtitle: post.subtitle ?? "",
     excerpt: post.excerpt ?? "",
     content: post.content ?? "",
+    contentFormat: (post.content_format as "markdown" | "html") ?? "markdown",
     coverImageUrl: post.cover_image_url ?? "",
-    categoryId: post["category_id"] ?? "",
-    authorId: post["author_id"] ?? "",
+    categoryId: post["category_id"] ?? post.category?.id ?? "",
+    authorId: post["author_id"] ?? post.author?.id ?? "",
     contentType: post.content_type,
     status: post.status,
     featured: post.featured,
@@ -133,6 +147,37 @@ function slugify(value: string) {
     .slice(0, 120);
 }
 
+/** Legacy markdown-lite posts are converted once, on demand, so nothing is lost. */
+function markdownToHtml(markdown: string) {
+  const escaped = markdown
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped
+    .split(/\n{2,}/)
+    .map((block) => {
+      const trimmed = block.trim();
+      if (!trimmed) return "";
+      const heading = /^(#{1,6})\s+(.*)$/.exec(trimmed);
+      if (heading) {
+        const level = heading[1]!.length;
+        return `<h${level}>${heading[2]}</h${level}>`;
+      }
+      if (/^[-*]\s+/.test(trimmed)) {
+        const items = trimmed
+          .split("\n")
+          .map((line) => `<li>${line.replace(/^[-*]\s+/, "")}</li>`)
+          .join("");
+        return `<ul>${items}</ul>`;
+      }
+      if (/^>\s+/.test(trimmed)) {
+        return `<blockquote><p>${trimmed.replace(/^>\s+/gm, "")}</p></blockquote>`;
+      }
+      return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
+    })
+    .join("");
+}
+
 function AdminBlogRoute() {
   const queryClient = useQueryClient();
   const fetchAll = useServerFn(listAllBlogPosts);
@@ -143,6 +188,7 @@ function AdminBlogRoute() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | BlogStatus>("all");
+  const [coverPicker, setCoverPicker] = useState(false);
 
   const data = useQuery({ queryKey: ["admin-blog"], queryFn: () => fetchAll() });
   const posts = (data.data?.posts ?? []) as (BlogPost & Record<string, any>)[];
@@ -150,8 +196,8 @@ function AdminBlogRoute() {
   const authors = data.data?.authors ?? [];
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
-    queryClient.invalidateQueries({ queryKey: ["admin-sitemap"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin-sitemap"] });
   };
 
   const saveMutation = useMutation({
@@ -164,6 +210,7 @@ function AdminBlogRoute() {
           subtitle: input.subtitle,
           excerpt: input.excerpt,
           content: input.content,
+          contentFormat: input.contentFormat,
           coverImageUrl: input.coverImageUrl || null,
           categoryId: input.categoryId || null,
           authorId: input.authorId || null,
@@ -231,9 +278,10 @@ function AdminBlogRoute() {
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Blog</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Blog CMS</h1>
           <p className="text-sm text-muted-foreground">
-            Posts published here appear on /blog and in the sitemap immediately.
+            Rich editor, media library, categories and authors. SEO defaults and site-wide settings live in
+            Admin → SEO Manager.
           </p>
         </div>
         <Button onClick={() => setDraft(emptyDraft())}>
@@ -241,129 +289,152 @@ function AdminBlogRoute() {
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
-        {Object.entries(counts).map(([key, value]) => (
-          <div key={key} className="rounded-lg border border-border/60 bg-card p-4">
-            <p className="text-xs capitalize text-muted-foreground">{key}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-          </div>
-        ))}
-      </div>
+      <Tabs defaultValue="posts" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="posts">Posts</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="authors">Authors</TabsTrigger>
+          <TabsTrigger value="media">Media</TabsTrigger>
+        </TabsList>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title or slug"
-            className="w-72 pl-8"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
+        <TabsContent value="posts" className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-4">
+            {Object.entries(counts).map(([key, value]) => (
+              <div key={key} className="rounded-lg border border-border/60 bg-card p-4">
+                <p className="text-xs capitalize text-muted-foreground">{key}</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+              </div>
             ))}
-          </SelectContent>
-        </Select>
-      </div>
+          </div>
 
-      <div className="rounded-lg border border-border/60">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Published</TableHead>
-              <TableHead>SEO</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                  No posts match this filter.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((post) => (
-                <TableRow key={post.id}>
-                  <TableCell>
-                    <p className="text-sm font-medium">{post.title}</p>
-                    <a
-                      href={`/blog/${post.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground"
-                    >
-                      /blog/{post.slug} <ExternalLink className="size-3" />
-                    </a>
-                  </TableCell>
-                  <TableCell className="text-xs">{CONTENT_TYPE_LABELS[post.content_type]}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={post.status}
-                      onValueChange={(v) => statusMutation.mutate({ id: post.id, status: v as BlogStatus })}
-                    >
-                      <SelectTrigger className="h-8 w-32 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {post.published_at ? new Date(post.published_at).toLocaleDateString() : "—"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {post.seo_title && post.meta_description ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">Complete</span>
-                    ) : (
-                      <span className="text-amber-500">Incomplete</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="space-x-1 text-right">
-                    <Button size="sm" variant="outline" onClick={() => setDraft(toDraft(post))}>
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive"
-                      onClick={() => deleteMutation.mutate(post.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </TableCell>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search title or slug"
+                className="w-72 pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-lg border border-border/60">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Published</TableHead>
+                  <TableHead>SEO</TableHead>
+                  <TableHead />
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {data.isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center">
+                      <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      No posts match this filter.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((post) => (
+                    <TableRow key={post.id}>
+                      <TableCell>
+                        <p className="text-sm font-medium">{post.title}</p>
+                        <a
+                          href={`/blog/${post.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground"
+                        >
+                          /blog/{post.slug} <ExternalLink className="size-3" />
+                        </a>
+                      </TableCell>
+                      <TableCell className="text-xs">{CONTENT_TYPE_LABELS[post.content_type]}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={post.status}
+                          onValueChange={(v) => statusMutation.mutate({ id: post.id, status: v as BlogStatus })}
+                        >
+                          <SelectTrigger className="h-8 w-32 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {post.published_at ? new Date(post.published_at).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {post.seo_title && post.meta_description ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">Complete</span>
+                        ) : (
+                          <span className="text-amber-500">Incomplete</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="space-x-1 text-right">
+                        <Button size="sm" variant="outline" onClick={() => setDraft(toDraft(post))}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => deleteMutation.mutate(post.id)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <CategoriesPanel categories={categories as any[]} onChanged={invalidate} />
+        </TabsContent>
+
+        <TabsContent value="authors">
+          <AuthorsPanel authors={authors as any[]} onChanged={invalidate} />
+        </TabsContent>
+
+        <TabsContent value="media">
+          <MediaLibraryPanel />
+        </TabsContent>
+      </Tabs>
 
       <Sheet open={!!draft} onOpenChange={(open) => !open && setDraft(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-4xl">
           {draft ? (
             <>
               <SheetHeader>
@@ -399,14 +470,36 @@ function AdminBlogRoute() {
                     onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })}
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                  <Label>Content (markdown)</Label>
-                  <Textarea
-                    rows={14}
-                    className="font-mono text-xs"
-                    value={draft.content}
-                    onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label>Content</Label>
+                    {draft.contentFormat === "markdown" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setDraft({ ...draft, contentFormat: "html", content: markdownToHtml(draft.content) })
+                        }
+                      >
+                        Convert to rich text
+                      </Button>
+                    ) : null}
+                  </div>
+                  {draft.contentFormat === "markdown" ? (
+                    <Textarea
+                      rows={14}
+                      className="font-mono text-xs"
+                      value={draft.content}
+                      onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+                    />
+                  ) : (
+                    <RichTextEditor
+                      value={draft.content}
+                      onChange={(html) => setDraft((prev) => (prev ? { ...prev, content: html } : prev))}
+                    />
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -468,10 +561,7 @@ function AdminBlogRoute() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Status</Label>
-                    <Select
-                      value={draft.status}
-                      onValueChange={(v) => setDraft({ ...draft, status: v as BlogStatus })}
-                    >
+                    <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v as BlogStatus })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -507,12 +597,26 @@ function AdminBlogRoute() {
                   <Label>Tags (comma separated)</Label>
                   <Input value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} />
                 </div>
+
                 <div className="space-y-1.5">
-                  <Label>Cover image URL</Label>
-                  <Input
-                    value={draft.coverImageUrl}
-                    onChange={(e) => setDraft({ ...draft, coverImageUrl: e.target.value })}
-                  />
+                  <Label>Featured image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={draft.coverImageUrl}
+                      onChange={(e) => setDraft({ ...draft, coverImageUrl: e.target.value })}
+                      placeholder="/api/public/media/..."
+                    />
+                    <Button type="button" variant="outline" onClick={() => setCoverPicker(true)}>
+                      Choose
+                    </Button>
+                  </div>
+                  {draft.coverImageUrl ? (
+                    <img
+                      src={draft.coverImageUrl}
+                      alt="Featured preview"
+                      className="mt-2 h-32 w-full rounded-md object-cover"
+                    />
+                  ) : null}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -532,31 +636,39 @@ function AdminBlogRoute() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label>SEO title</Label>
-                  <Input value={draft.seoTitle} onChange={(e) => setDraft({ ...draft, seoTitle: e.target.value })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Meta description</Label>
-                  <Textarea
-                    rows={2}
-                    value={draft.metaDescription}
-                    onChange={(e) => setDraft({ ...draft, metaDescription: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Canonical URL</Label>
-                  <Input
-                    value={draft.canonicalUrl}
-                    onChange={(e) => setDraft({ ...draft, canonicalUrl: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>OG image URL</Label>
-                  <Input
-                    value={draft.ogImageUrl}
-                    onChange={(e) => setDraft({ ...draft, ogImageUrl: e.target.value })}
-                  />
+                <div className="rounded-lg border border-border/60 p-4">
+                  <p className="text-sm font-medium">Post SEO overrides</p>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Site title, verification codes and tracking scripts live in Admin → SEO Manager.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label>SEO title</Label>
+                      <Input value={draft.seoTitle} onChange={(e) => setDraft({ ...draft, seoTitle: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Meta description</Label>
+                      <Textarea
+                        rows={2}
+                        value={draft.metaDescription}
+                        onChange={(e) => setDraft({ ...draft, metaDescription: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Canonical URL</Label>
+                      <Input
+                        value={draft.canonicalUrl}
+                        onChange={(e) => setDraft({ ...draft, canonicalUrl: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>OG image URL</Label>
+                      <Input
+                        value={draft.ogImageUrl}
+                        onChange={(e) => setDraft({ ...draft, ogImageUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pb-8">
@@ -576,6 +688,305 @@ function AdminBlogRoute() {
           ) : null}
         </SheetContent>
       </Sheet>
+
+      <MediaPickerDialog
+        open={coverPicker}
+        onOpenChange={setCoverPicker}
+        onSelect={(item) => {
+          setDraft((prev) => (prev ? { ...prev, coverImageUrl: item.public_url } : prev));
+          setCoverPicker(false);
+        }}
+      />
+    </div>
+  );
+}
+
+type CategoryDraft = { id?: string; slug: string; name: string; description: string; sortOrder: number };
+
+function CategoriesPanel({ categories, onChanged }: { categories: any[]; onChanged: () => void }) {
+  const save = useServerFn(saveBlogCategory);
+  const remove = useServerFn(deleteBlogCategory);
+  const [draft, setDraft] = useState<CategoryDraft | null>(null);
+
+  const saveMutation = useMutation({
+    mutationFn: (input: CategoryDraft) => save({ data: input }),
+    onSuccess: () => {
+      toast.success("Category saved");
+      setDraft(null);
+      onChanged();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Category deleted");
+      onChanged();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Categories power the /blog filters and category pages.</p>
+        <Button size="sm" onClick={() => setDraft({ slug: "", name: "", description: "", sortOrder: 0 })}>
+          <Plus className="mr-1.5 size-4" /> New category
+        </Button>
+      </div>
+
+      <div className="rounded-lg border border-border/60">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Order</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map((category) => (
+              <TableRow key={category.id}>
+                <TableCell className="text-sm font-medium">{category.name}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{category.slug}</TableCell>
+                <TableCell className="text-xs tabular-nums">{category.sort_order}</TableCell>
+                <TableCell className="space-x-1 text-right">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setDraft({
+                        id: category.id,
+                        slug: category.slug,
+                        name: category.name,
+                        description: category.description ?? "",
+                        sortOrder: category.sort_order ?? 0,
+                      })
+                    }
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => deleteMutation.mutate(category.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Sheet open={!!draft} onOpenChange={(open) => !open && setDraft(null)}>
+        <SheetContent className="w-full sm:max-w-md">
+          {draft ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>{draft.id ? "Edit category" : "New category"}</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Name</Label>
+                  <Input
+                    value={draft.name}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        name: e.target.value,
+                        slug: draft.id || draft.slug ? draft.slug : slugify(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Slug</Label>
+                  <Input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: slugify(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Description</Label>
+                  <Textarea
+                    rows={3}
+                    value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Sort order</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={draft.sortOrder}
+                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={!draft.name.trim() || !draft.slug.trim() || saveMutation.isPending}
+                  onClick={() => saveMutation.mutate(draft)}
+                >
+                  Save category
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+type AuthorDraft = { id?: string; slug: string; name: string; role: string; bio: string; avatarUrl: string };
+
+function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () => void }) {
+  const save = useServerFn(saveBlogAuthor);
+  const remove = useServerFn(deleteBlogAuthor);
+  const [draft, setDraft] = useState<AuthorDraft | null>(null);
+  const [avatarPicker, setAvatarPicker] = useState(false);
+
+  const saveMutation = useMutation({
+    mutationFn: (input: AuthorDraft) =>
+      save({ data: { ...input, avatarUrl: input.avatarUrl || null } }),
+    onSuccess: () => {
+      toast.success("Author saved");
+      setDraft(null);
+      onChanged();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Author deleted");
+      onChanged();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Authors show as the byline on every published post.</p>
+        <Button size="sm" onClick={() => setDraft({ slug: "", name: "", role: "", bio: "", avatarUrl: "" })}>
+          <Plus className="mr-1.5 size-4" /> New author
+        </Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {authors.map((author) => (
+          <div key={author.id} className="flex items-start gap-3 rounded-lg border border-border/60 bg-card p-4">
+            {author.avatar_url ? (
+              <img src={author.avatar_url} alt={author.name} className="size-11 rounded-full object-cover" />
+            ) : (
+              <div className="grid size-11 place-items-center rounded-full bg-muted text-sm font-medium">
+                {author.name.slice(0, 1)}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{author.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{author.role || "—"}</p>
+              <div className="mt-2 space-x-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setDraft({
+                      id: author.id,
+                      slug: author.slug,
+                      name: author.name,
+                      role: author.role ?? "",
+                      bio: author.bio ?? "",
+                      avatarUrl: author.avatar_url ?? "",
+                    })
+                  }
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => deleteMutation.mutate(author.id)}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Sheet open={!!draft} onOpenChange={(open) => !open && setDraft(null)}>
+        <SheetContent className="w-full sm:max-w-md">
+          {draft ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>{draft.id ? "Edit author" : "New author"}</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Name</Label>
+                  <Input
+                    value={draft.name}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        name: e.target.value,
+                        slug: draft.id || draft.slug ? draft.slug : slugify(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Slug</Label>
+                  <Input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: slugify(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Role</Label>
+                  <Input value={draft.role} onChange={(e) => setDraft({ ...draft, role: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Bio</Label>
+                  <Textarea rows={4} value={draft.bio} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Avatar</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={draft.avatarUrl}
+                      onChange={(e) => setDraft({ ...draft, avatarUrl: e.target.value })}
+                      placeholder="/api/public/media/..."
+                    />
+                    <Button type="button" variant="outline" onClick={() => setAvatarPicker(true)}>
+                      Choose
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={!draft.name.trim() || !draft.slug.trim() || saveMutation.isPending}
+                  onClick={() => saveMutation.mutate(draft)}
+                >
+                  Save author
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <MediaPickerDialog
+        open={avatarPicker}
+        onOpenChange={setAvatarPicker}
+        onSelect={(item) => {
+          setDraft((prev) => (prev ? { ...prev, avatarUrl: item.public_url } : prev));
+          setAvatarPicker(false);
+        }}
+      />
     </div>
   );
 }
