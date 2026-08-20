@@ -83,9 +83,9 @@ function AdminSubscriptionsPage() {
     queryFn: () =>
       list({
         data: {
-          status: status === "all" ? undefined : status,
-          provider: provider === "all" ? undefined : provider,
-          search: search || undefined,
+          ...(status === "all" ? {} : { status }),
+          ...(provider === "all" ? {} : { provider }),
+          ...(search ? { search } : {}),
         },
       }),
   });
