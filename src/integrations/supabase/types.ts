@@ -3714,6 +3714,122 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_announcements: {
+        Row: {
+          audience: string
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          dismissible: boolean
+          enabled: boolean
+          ends_at: string | null
+          id: string
+          level: string
+          message: string
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          dismissible?: boolean
+          enabled?: boolean
+          ends_at?: string | null
+          id?: string
+          level?: string
+          message: string
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          dismissible?: boolean
+          enabled?: boolean
+          ends_at?: string | null
+          id?: string
+          level?: string
+          message?: string
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_feature_flags: {
+        Row: {
+          audience: string
+          created_at: string
+          description: string
+          enabled: boolean
+          environment: string
+          key: string
+          name: string
+          rollout_percentage: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          environment?: string
+          key: string
+          name: string
+          rollout_percentage?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          environment?: string
+          key?: string
+          name?: string
+          rollout_percentage?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           key: string
@@ -6135,6 +6251,7 @@ export type Database = {
           google_enabled: boolean
         }[]
       }
+      public_platform_config: { Args: never; Returns: Json }
       public_platform_flags: {
         Args: never
         Returns: {
