@@ -32,7 +32,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { saveBillingSettings, writeAudit } = await import("@/lib/billing/core.server");
     await assertPlatformAdmin(context);
-    const next = await saveBillingSettings(data);
+    const next = await saveBillingSettings(data as Record<string, unknown>);
     await writeAudit({ userId: context.userId, action: "settings.updated", detail: data });
     return next;
   });
