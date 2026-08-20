@@ -96,6 +96,7 @@ import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
+import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
@@ -567,6 +568,12 @@ const BlogCategorySlugRoute = BlogCategorySlugRouteImport.update({
   path: '/blog/category/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminCreditsLedgerRoute =
+  AuthenticatedAdminCreditsLedgerRouteImport.update({
+    id: '/ledger',
+    path: '/ledger',
+    getParentRoute: () => AuthenticatedAdminCreditsRoute,
+  } as any)
 const AuthenticatedAdminInboundEventsEventIdRoute =
   AuthenticatedAdminInboundEventsEventIdRouteImport.update({
     id: '/$eventId',
@@ -696,7 +703,7 @@ export interface FileRoutesByFullPath {
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
-  '/admin/credits': typeof AuthenticatedAdminCreditsRoute
+  '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
@@ -723,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
+  '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
@@ -794,7 +802,7 @@ export interface FileRoutesByTo {
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
-  '/admin/credits': typeof AuthenticatedAdminCreditsRoute
+  '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
@@ -821,6 +829,7 @@ export interface FileRoutesByTo {
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
+  '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
@@ -896,7 +905,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
-  '/_authenticated/admin/credits': typeof AuthenticatedAdminCreditsRoute
+  '/_authenticated/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
   '/_authenticated/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
@@ -923,6 +932,7 @@ export interface FileRoutesById {
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
+  '/_authenticated/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
@@ -1025,6 +1035,7 @@ export interface FileRouteTypes {
     | '/blog/category/$slug'
     | '/admin/'
     | '/campaigns/'
+    | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
@@ -1123,6 +1134,7 @@ export interface FileRouteTypes {
     | '/blog/category/$slug'
     | '/admin'
     | '/campaigns'
+    | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
@@ -1224,6 +1236,7 @@ export interface FileRouteTypes {
     | '/blog/category/$slug'
     | '/_authenticated/admin/'
     | '/_authenticated/campaigns/'
+    | '/_authenticated/admin/credits/ledger'
     | '/_authenticated/admin/inbound-events/$eventId'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
@@ -1904,6 +1917,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogCategorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/credits/ledger': {
+      id: '/_authenticated/admin/credits/ledger'
+      path: '/ledger'
+      fullPath: '/admin/credits/ledger'
+      preLoaderRoute: typeof AuthenticatedAdminCreditsLedgerRouteImport
+      parentRoute: typeof AuthenticatedAdminCreditsRoute
+    }
     '/_authenticated/admin/inbound-events/$eventId': {
       id: '/_authenticated/admin/inbound-events/$eventId'
       path: '/$eventId'
@@ -1991,6 +2011,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminCreditsRouteChildren {
+  AuthenticatedAdminCreditsLedgerRoute: typeof AuthenticatedAdminCreditsLedgerRoute
+}
+
+const AuthenticatedAdminCreditsRouteChildren: AuthenticatedAdminCreditsRouteChildren =
+  {
+    AuthenticatedAdminCreditsLedgerRoute: AuthenticatedAdminCreditsLedgerRoute,
+  }
+
+const AuthenticatedAdminCreditsRouteWithChildren =
+  AuthenticatedAdminCreditsRoute._addFileChildren(
+    AuthenticatedAdminCreditsRouteChildren,
+  )
+
 interface AuthenticatedAdminInboundEventsRouteChildren {
   AuthenticatedAdminInboundEventsEventIdRoute: typeof AuthenticatedAdminInboundEventsEventIdRoute
 }
@@ -2011,7 +2045,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
-  AuthenticatedAdminCreditsRoute: typeof AuthenticatedAdminCreditsRoute
+  AuthenticatedAdminCreditsRoute: typeof AuthenticatedAdminCreditsRouteWithChildren
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
   AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
   AuthenticatedAdminInfrastructureRoute: typeof AuthenticatedAdminInfrastructureRoute
@@ -2040,7 +2074,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBillingProvidersRoute:
       AuthenticatedAdminBillingProvidersRoute,
     AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
-    AuthenticatedAdminCreditsRoute: AuthenticatedAdminCreditsRoute,
+    AuthenticatedAdminCreditsRoute: AuthenticatedAdminCreditsRouteWithChildren,
     AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
     AuthenticatedAdminInboundEventsRoute:
       AuthenticatedAdminInboundEventsRouteWithChildren,
