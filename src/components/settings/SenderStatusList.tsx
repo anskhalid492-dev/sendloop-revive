@@ -22,7 +22,7 @@ function DnsPill({ row }: { row: SenderRoutingRow }) {
   );
 }
 
-function ProviderPill({ row }: { row: SenderRoutingRow }) {
+function ConnectionPill({ row }: { row: SenderRoutingRow }) {
   const map = {
     verified: {
       label: "Sending verified",
@@ -60,7 +60,7 @@ function ProviderPill({ row }: { row: SenderRoutingRow }) {
   );
 }
 
-/** Read-only routing status per mailbox — provider name only, never credentials. */
+/** Read-only connection status per mailbox — never credentials or vendor identity. */
 export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
   const fetchStatus = useServerFn(getSenderRoutingStatus);
   const query = useQuery({
@@ -112,7 +112,7 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
             </p>
           </div>
           <DnsPill row={row} />
-          <ProviderPill row={row} />
+          <ConnectionPill row={row} />
         </div>
       ))}
     </div>

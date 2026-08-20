@@ -111,7 +111,7 @@ export function SendingTab({ workspaceId }: { workspaceId: string | null }) {
           <div>
             <h2 className="text-base font-semibold">Connected mailboxes</h2>
             <p className="text-sm text-muted-foreground">
-              Domain verification and the active provider routing for every sender.
+              Domain verification and connection status for every sender.
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
@@ -227,7 +227,7 @@ export function SendingTab({ workspaceId }: { workspaceId: string | null }) {
         </p>
         <p className="text-sm text-muted-foreground">
           Per-mailbox limits and warmup ramp settings live with each mailbox so you can tune them
-          individually. Sending infrastructure and provider credentials are managed by MunchReach.
+          individually. Sending infrastructure is managed by MunchReach.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
