@@ -35,16 +35,16 @@ import { getAdminDashboard } from "@/lib/admin-dashboard.functions";
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
     meta: [
-      { title: "Admin Dashboard — Sendloop" },
+      { title: "Admin Dashboard — MunchReach" },
       {
         name: "description",
         content:
-          "Platform-wide Sendloop metrics: users, workspaces, subscriptions, sending volume, activity and system alerts.",
+          "Platform-wide MunchReach metrics: users, workspaces, subscriptions, sending volume, activity and system alerts.",
       },
-      { property: "og:title", content: "Admin Dashboard — Sendloop" },
+      { property: "og:title", content: "Admin Dashboard — MunchReach" },
       {
         property: "og:description",
-        content: "Real-time platform health, revenue and activity for Sendloop staff.",
+        content: "Real-time platform health, revenue and activity for MunchReach staff.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

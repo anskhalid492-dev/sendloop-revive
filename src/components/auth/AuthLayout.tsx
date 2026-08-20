@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Send } from "lucide-react";
 
 import { AuthWorkflowVisual } from "@/components/auth/AuthWorkflowVisual";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { BRAND_NAME } from "@/lib/branding";
 
 /**
  * Split auth layout: animated product workflow on the left, form on the right.
@@ -24,11 +26,8 @@ export function AuthLayout({
     <div className="grid min-h-screen lg:grid-cols-2">
       <aside className="relative hidden overflow-hidden border-r border-border bg-sidebar lg:block">
         <div className="absolute left-10 top-8 z-10 xl:left-14">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <Send className="size-4" />
-            </span>
-            <span className="text-lg font-bold tracking-tight">Sendloop</span>
+          <Link to="/" className="inline-flex items-center gap-2" aria-label={BRAND_NAME}>
+            <BrandLogo context="login" className="h-9 max-w-[200px]" />
           </Link>
         </div>
         <AuthWorkflowVisual />
@@ -41,11 +40,8 @@ export function AuthLayout({
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="w-full max-w-sm"
         >
-          <Link to="/" className="mb-8 inline-flex items-center gap-2 lg:hidden">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <Send className="size-4" />
-            </span>
-            <span className="text-base font-bold tracking-tight">Sendloop</span>
+          <Link to="/" className="mb-8 inline-flex items-center gap-2 lg:hidden" aria-label={BRAND_NAME}>
+            <BrandLogo context="login" className="h-8 max-w-[180px]" />
           </Link>
 
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

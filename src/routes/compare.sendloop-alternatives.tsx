@@ -8,12 +8,12 @@ import { COMPARISON_LIST } from "@/lib/comparison-content";
 
 const faqs = [
   {
-    q: "What is the best Sendloop alternative?",
-    a: "It depends on what you optimise for. Instantly and Saleshandy are sending-first, Smartlead leans on infrastructure and APIs, lemlist adds multichannel personalization, and Apollo bundles a contact database. Sendloop's own position is end-to-end email: sending, deliverability, unified inbox, CRM, automations and analytics in one workspace.",
+    q: "What is the best MunchReach alternative?",
+    a: "It depends on what you optimise for. Instantly and Saleshandy are sending-first, Smartlead leans on infrastructure and APIs, lemlist adds multichannel personalization, and Apollo bundles a contact database. MunchReach's own position is end-to-end email: sending, deliverability, unified inbox, CRM, automations and analytics in one workspace.",
   },
   {
     q: "How were these alternatives chosen?",
-    a: "They are the cold email and sales engagement tools teams most often evaluate alongside Sendloop. Each page describes publicly documented capabilities in neutral terms — no invented pricing or feature claims.",
+    a: "They are the cold email and sales engagement tools teams most often evaluate alongside MunchReach. Each page describes publicly documented capabilities in neutral terms — no invented pricing or feature claims.",
   },
   {
     q: "Can I migrate from another tool without hurting deliverability?",
@@ -45,8 +45,8 @@ const pillars = [
 export const Route = createFileRoute("/compare/sendloop-alternatives")({
   head: () =>
     metaFor(
-      "Sendloop Alternatives — Compare Cold Email Platforms (2026)",
-      "A neutral guide to Sendloop alternatives: Instantly, Smartlead, lemlist, Apollo and Saleshandy compared on sending, deliverability, warmup, inbox, CRM and automations.",
+      "MunchReach Alternatives — Compare Cold Email Platforms (2026)",
+      "A neutral guide to MunchReach alternatives: Instantly, Smartlead, lemlist, Apollo and Saleshandy compared on sending, deliverability, warmup, inbox, CRM and automations.",
       "/compare/sendloop-alternatives",
       faqs,
     ),
@@ -58,15 +58,15 @@ function AlternativesPage() {
     <MarketingLayout>
       <PageHero
         eyebrow="Comparisons"
-        title="Sendloop"
+        title="MunchReach"
         highlight="alternatives"
-        description="Evaluating cold email platforms? Here is an honest map of the tools teams compare with Sendloop, what each one is genuinely good at, and where Sendloop is different."
+        description="Evaluating cold email platforms? Here is an honest map of the tools teams compare with MunchReach, what each one is genuinely good at, and where MunchReach is different."
         secondaryCta="View Pricing"
       />
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <Reveal>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Compare Sendloop side by side</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Compare MunchReach side by side</h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
             Each comparison covers the same areas — campaigns, sequences, deliverability, warmup, inbox, CRM,
             automations, analytics and pricing model — so you can read them like for like.
@@ -77,7 +77,7 @@ function AlternativesPage() {
           {COMPARISON_LIST.map((c, i) => (
             <Reveal key={c.slug} delay={i * 60}>
               <div className="flex h-full flex-col rounded-2xl border border-border/70 bg-card p-6 transition hover:border-primary/40 hover:shadow-lg">
-                <h3 className="text-lg font-semibold">Sendloop vs {c.competitor}</h3>
+                <h3 className="text-lg font-semibold">MunchReach vs {c.competitor}</h3>
                 <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{c.heroSummary}</p>
                 <p className="mt-4 text-xs text-muted-foreground">
                   <span className="font-semibold text-foreground">Best for {c.competitor}:</span> {c.competitorBestFor}
@@ -96,9 +96,9 @@ function AlternativesPage() {
       <section className="border-y border-border/60 bg-muted/30">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <Reveal>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">What makes Sendloop different</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">What makes MunchReach different</h2>
             <p className="mt-3 max-w-2xl text-muted-foreground">
-              Most alternatives are excellent at one slice of outbound. Sendloop is built so the whole motion —
+              Most alternatives are excellent at one slice of outbound. MunchReach is built so the whole motion —
               from the first send to the closed reply — happens in one place.
             </p>
           </Reveal>
@@ -120,7 +120,7 @@ function AlternativesPage() {
 
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <Reveal>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Switching to Sendloop</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Switching to MunchReach</h2>
         </Reveal>
         <ul className="mt-6 space-y-3">
           {[

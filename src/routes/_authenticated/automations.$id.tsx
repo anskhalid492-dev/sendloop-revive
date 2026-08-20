@@ -44,12 +44,12 @@ import {
 export const Route = createFileRoute("/_authenticated/automations/$id")({
   head: () => ({
     meta: [
-      { title: "Automation builder — Sendloop" },
+      { title: "Automation builder — MunchReach" },
       {
         name: "description",
-        content: "Configure triggers, conditions, waits and actions for a Sendloop automation workflow.",
+        content: "Configure triggers, conditions, waits and actions for a MunchReach automation workflow.",
       },
-      { property: "og:title", content: "Automation builder — Sendloop" },
+      { property: "og:title", content: "Automation builder — MunchReach" },
       { property: "og:description", content: "Design real outbound workflows that run server-side." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

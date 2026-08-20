@@ -57,7 +57,7 @@ function AdminInfrastructurePage() {
           ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
-          Sendloop owns these credentials server-side. Customers only own their domain and DNS.
+          MunchReach owns these credentials server-side. Customers only own their domain and DNS.
         </p>
         {managed.isLoading ? (
           <div className="h-24 animate-pulse rounded-xl bg-muted" />

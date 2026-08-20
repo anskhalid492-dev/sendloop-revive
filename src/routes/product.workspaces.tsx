@@ -41,7 +41,7 @@ const faqs = [
 
 export const Route = createFileRoute("/product/workspaces")({
   head: () => metaFor(
-    "Multi-Client Workspaces & Team Roles — Sendloop",
+    "Multi-Client Workspaces & Team Roles — MunchReach",
     "Run every client in its own workspace with isolated data, granular roles, invitations and per-workspace reporting.",
     "/product/workspaces",
     faqs,
@@ -143,7 +143,7 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
-      <Section title="How Sendloop solves it" description="A workspace boundary for every client, enforced everywhere.">
+      <Section title="How MunchReach solves it" description="A workspace boundary for every client, enforced everywhere.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
@@ -155,7 +155,7 @@ function Page() {
       <Section>
         <StatStrip stats={stats} />
       </Section>
-      <TestimonialCarousel page="workspaces" title="Agencies running Sendloop" />
+      <TestimonialCarousel page="workspaces" title="Agencies running MunchReach" />
       <Section title="Details that matter">
         <BulletList items={["Unlimited workspaces per account", "Role changes take effect immediately", "Client viewers see reporting only", "Audit trail of member and role changes", "Per-workspace suppression and do-not-contact lists", "Transfer ownership without downtime"]} />
       </Section>

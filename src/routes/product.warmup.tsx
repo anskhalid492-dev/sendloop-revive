@@ -34,7 +34,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
   { q: "How long does warmup take?", a: "Two to four weeks for a brand new domain. Established domains often need only a week." },
-  { q: "Can I send while warming up?", a: "Yes, at reduced volume. Sendloop enforces the safe daily ceiling for you." },
+  { q: "Can I send while warming up?", a: "Yes, at reduced volume. MunchReach enforces the safe daily ceiling for you." },
   { q: "Does warmup guarantee inbox placement?", a: "Nothing can guarantee placement, but warmup plus authentication and good copy dramatically improves it." },
   { q: "Do I need a separate domain?", a: "Most teams use a dedicated sending domain so campaign activity cannot affect their main domain." },
   { q: "How is warmup traffic different from real campaign traffic?", a: "Warmup emails are tracked separately and never count against your campaign volume or land in a real prospect's inbox." },
@@ -44,7 +44,7 @@ const faqs = [
 export const Route = createFileRoute("/product/warmup")({
   head: () =>
     metaFor(
-      "Email Warmup & Deliverability Protection — Sendloop",
+      "Email Warmup & Deliverability Protection — MunchReach",
       "Warm up new mailboxes gradually with real conversations, spam-folder rescue and live deliverability monitoring.",
       "/product/warmup",
       faqs,
@@ -69,7 +69,7 @@ const solutionRows = [
       "Ramp speed tuned to domain age",
     ],
     visual: (
-      <MockPanel title="Warmup ramp — sam@sendloop.dev">
+      <MockPanel title="Warmup ramp — sam@munchreach.dev">
         <MockBars
           bars={[
             { label: "Week 1", value: 15, caption: "8 emails/day" },
@@ -105,9 +105,9 @@ const solutionRows = [
       <MockPanel title="Mailbox health overview">
         <MockBars
           bars={[
-            { label: "sam@sendloop.dev", value: 96, caption: "96 · Healthy" },
-            { label: "hello@sendloopmail.com", value: 58, caption: "58 · Ramping" },
-            { label: "outreach@getsendloop.io", value: 34, caption: "34 · Bounce spike detected" },
+            { label: "sam@munchreach.dev", value: 96, caption: "96 · Healthy" },
+            { label: "hello@munchreachmail.com", value: 58, caption: "58 · Ramping" },
+            { label: "outreach@getmunchreach.io", value: 34, caption: "34 · Bounce spike detected" },
           ]}
         />
       </MockPanel>
@@ -192,7 +192,7 @@ function Page() {
       <Section title="Why new domains land in spam">
         <PainPoints items={painPoints} />
       </Section>
-      <Section title="How Sendloop solves it" description="Deliverability, monitored and defended automatically.">
+      <Section title="How MunchReach solves it" description="Deliverability, monitored and defended automatically.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">

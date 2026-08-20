@@ -41,7 +41,7 @@ const faqs = [
 
 export const Route = createFileRoute("/product/templates")({
   head: () => metaFor(
-    "Cold Email Templates Library — Sendloop",
+    "Cold Email Templates Library — MunchReach",
     "Proven cold email templates with variables, spintax and AI personalization, ready to drop into any sequence.",
     "/product/templates",
     faqs,
@@ -145,7 +145,7 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
-      <Section title="How Sendloop solves it" description="A gallery of proven sequences, personalized automatically.">
+      <Section title="How MunchReach solves it" description="A gallery of proven sequences, personalized automatically.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">

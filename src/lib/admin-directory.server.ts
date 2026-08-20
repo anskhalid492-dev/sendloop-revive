@@ -660,7 +660,7 @@ export async function setWorkspaceSuspended(
       workspace_id: workspaceId,
       actor_id: actorId,
       type: suspended ? "workspace.suspended" : "workspace.reactivated",
-      detail: reason ?? "By Sendloop staff",
+      detail: reason ?? "By MunchReach staff",
     }),
   ]);
 

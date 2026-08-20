@@ -1,7 +1,7 @@
 /**
  * Managed sending infrastructure.
  *
- * Sendloop owns the sending provider and its credentials. Customers own their
+ * MunchReach owns the sending provider and its credentials. Customers own their
  * domain and DNS only — they never supply a Resend (or any other provider) API
  * key, and no code path in this module reads customer-supplied provider keys.
  *
@@ -51,7 +51,7 @@ export function senderDomain(email: string): string {
 }
 
 /**
- * Resolves the Sendloop-managed credentials for a mailbox's provider.
+ * Resolves the MunchReach-managed credentials for a mailbox's provider.
  * Only admin-owned secrets (`email_provider_secrets`) or platform environment
  * secrets are considered.
  */
@@ -113,7 +113,7 @@ export function platformKeyFor(provider: string): string | null {
 /**
  * Server-side provider selection.
  *
- * Customers never choose a provider. Sendloop picks one from the admin-managed
+ * Customers never choose a provider. MunchReach picks one from the admin-managed
  * pool (`email_providers`) using enablement, priority and health, and falls
  * back to the mailbox's recorded provider only when the pool yields nothing.
  */
@@ -356,7 +356,7 @@ export function logManagedSend(entry: {
 }
 
 /**
- * The single send path for managed sending: resolves Sendloop credentials,
+ * The single send path for managed sending: resolves MunchReach credentials,
  * confirms the sender domain is verified with the provider, sends, and logs.
  */
 export async function sendManagedEmail(

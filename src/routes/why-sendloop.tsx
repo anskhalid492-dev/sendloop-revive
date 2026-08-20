@@ -39,8 +39,8 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 export const Route = createFileRoute("/why-sendloop")({
   head: () =>
     metaFor(
-      "Why Sendloop — One Workspace Instead of Six Outbound Tools",
-      "Campaigns, unified inbox, CRM, warmup, analytics and automation on infrastructure you own. See why outbound teams consolidate on Sendloop.",
+      "Why MunchReach — One Workspace Instead of Six Outbound Tools",
+      "Campaigns, unified inbox, CRM, warmup, analytics and automation on infrastructure you own. See why outbound teams consolidate on MunchReach.",
       "/why-sendloop",
     ),
   component: WhySendloop,
@@ -92,7 +92,7 @@ const controlRows = [
   {
     eyebrow: "Sending infrastructure",
     title: "Control over how every message is sent",
-    text: "Sendloop schedules across the mailboxes you connect, respects per-account daily limits and sending windows, and pauses accounts whose health drops instead of pushing volume through them.",
+    text: "MunchReach schedules across the mailboxes you connect, respects per-account daily limits and sending windows, and pauses accounts whose health drops instead of pushing volume through them.",
     bullets: [
       "Per-mailbox daily caps, ramp-up and sending windows",
       "Rotation across accounts so no single mailbox carries a campaign",
@@ -223,10 +223,10 @@ function WhySendloop() {
   return (
     <MarketingLayout>
       <PageHero
-        eyebrow="Why Sendloop"
+        eyebrow="Why MunchReach"
         title="Stop running outbound across"
         highlight="six disconnected tools"
-        description="Campaigns, replies, contacts, warmup, analytics and automation belong to the same workflow. Sendloop puts them in one workspace, on sending infrastructure you own."
+        description="Campaigns, replies, contacts, warmup, analytics and automation belong to the same workflow. MunchReach puts them in one workspace, on sending infrastructure you own."
         primaryCta="Start for Free"
       />
 
@@ -265,14 +265,14 @@ function WhySendloop() {
 
       <Section
         muted
-        title="Stitched stack vs. Sendloop"
+        title="Stitched stack vs. MunchReach"
         description="What changes when the tools stop being separate."
       >
         <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border border-border bg-card">
           <div className="grid grid-cols-[1fr_auto_auto] gap-3 border-b border-border bg-secondary/40 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <span>Capability</span>
             <span className="w-24 text-center">Stitched stack</span>
-            <span className="w-24 text-center">Sendloop</span>
+            <span className="w-24 text-center">MunchReach</span>
           </div>
           {comparison.map((row) => (
             <div

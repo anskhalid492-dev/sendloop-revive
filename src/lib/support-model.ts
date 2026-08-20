@@ -91,9 +91,9 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "Email Accounts",
     summary: "Add your domain, publish the DNS records and get verified before sending.",
     body: [
-      "Open Email Accounts and choose Add domain. Enter a domain you already own — Sendloop never registers domains for you.",
+      "Open Email Accounts and choose Add domain. Enter a domain you already own — MunchReach never registers domains for you.",
       "Publish the generated SPF, DKIM, DMARC and tracking records at your registrar. DNS changes can take up to a few hours to propagate.",
-      "Run Verify. Sendloop performs a real DNS lookup and also confirms the domain with the managed sending infrastructure. Mailboxes on the domain only become active once both checks pass.",
+      "Run Verify. MunchReach performs a real DNS lookup and also confirms the domain with the managed sending infrastructure. Mailboxes on the domain only become active once both checks pass.",
     ],
   },
   {
@@ -122,7 +122,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "campaign-launch-checklist",
     title: "Campaign launch checklist",
     category: "Campaigns",
-    summary: "What Sendloop checks before a campaign can go live.",
+    summary: "What MunchReach checks before a campaign can go live.",
     body: [
       "A campaign needs at least one sequence step, one eligible lead list and one active mailbox on a verified domain.",
       "The launch readiness bar shows every blocking item. Resolve each one and the Launch button unlocks.",

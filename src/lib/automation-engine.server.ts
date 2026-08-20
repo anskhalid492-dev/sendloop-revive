@@ -810,7 +810,7 @@ async function runAction(
         data as never,
         "automation.notification",
         {
-          message: interpolate(str("message") || "Sendloop automation ran", ctx),
+          message: interpolate(str("message") || "MunchReach automation ran", ctx),
           lead: ctx.lead ? { email: ctx.lead["email"] } : null,
           automation: run.definition?.name ?? null,
         },

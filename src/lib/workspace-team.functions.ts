@@ -237,7 +237,15 @@ export const saveWorkspaceSettings = createServerFn({ method: "POST" })
           .min(2)
           .max(40)
           .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and dashes"),
-        logoUrl: z.string().url().nullable().optional(),
+        // Storage path inside the private workspace-logos bucket (or an
+        // absolute URL for legacy rows) — never a blob: preview URL.
+        logoUrl: z
+          .string()
+          .trim()
+          .max(500)
+          .refine((v) => !v.startsWith("blob:") && !v.startsWith("data:"), "Invalid logo reference")
+          .nullable()
+          .optional(),
         timezone: z.string().max(64),
         sendingTimezone: z.string().max(64),
         sendDays: z.array(z.number().int().min(0).max(6)).min(1),

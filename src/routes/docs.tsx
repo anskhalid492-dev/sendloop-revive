@@ -145,7 +145,7 @@ function Docs() {
         eyebrow="Documentation"
         title="Everything you need to"
         highlight="set up and scale"
-        description="Practical guides for every part of Sendloop, from your first mailbox connection to multi-workspace agency reporting."
+        description="Practical guides for every part of MunchReach, from your first mailbox connection to multi-workspace agency reporting."
         primaryCta="Start for Free"
       />
 
@@ -162,7 +162,7 @@ function Docs() {
 
       <Section title="What a connected mailbox looks like">
         <div className="mx-auto max-w-2xl">
-          <MockPanel title="workspace.sendloop.app/mailboxes">
+          <MockPanel title="workspace.munchreach.app/mailboxes">
             <MockRows
               rows={[
                 { left: "sales@acme.com", muted: "SES · warmup active", badge: "Healthy" },

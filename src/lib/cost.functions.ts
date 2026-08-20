@@ -1,7 +1,7 @@
 /**
  * Campaign cost reporting.
  *
- * Sendloop owns the sending infrastructure, so cost is derived from the
+ * MunchReach owns the sending infrastructure, so cost is derived from the
  * provider rate card (`email_providers.cost_per_1k_cents`) behind each mailbox
  * the campaign uses. Customers never see provider names — only rates and totals.
  */

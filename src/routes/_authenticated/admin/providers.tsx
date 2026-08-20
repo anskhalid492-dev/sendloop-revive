@@ -49,10 +49,10 @@ import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/prov
 export const Route = createFileRoute("/_authenticated/admin/providers")({
   head: () => ({
     meta: [
-      { title: "Email Providers — Sendloop Admin" },
+      { title: "Email Providers — MunchReach Admin" },
       {
         name: "description",
-        content: "Configure the email providers Sendloop uses to deliver customer campaigns.",
+        content: "Configure the email providers MunchReach uses to deliver customer campaigns.",
       },
     ],
   }),

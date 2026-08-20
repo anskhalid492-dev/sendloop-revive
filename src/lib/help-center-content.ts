@@ -1,5 +1,5 @@
 /**
- * Help Center content. Every article below is written from Sendloop's actual
+ * Help Center content. Every article below is written from MunchReach's actual
  * feature set and the answers previously published on the Help Center page —
  * nothing here is placeholder copy.
  */
@@ -45,13 +45,13 @@ export const HELP_ARTICLES: HelpArticle[] = [
     updated: "2026-08-12",
     popular: true,
     gettingStarted: true,
-    content: `Sendloop is organised around a workspace. Everything — mailboxes, leads, campaigns, replies and billing — belongs to a workspace, and teammates get access by role.
+    content: `MunchReach is organised around a workspace. Everything — mailboxes, leads, campaigns, replies and billing — belongs to a workspace, and teammates get access by role.
 
 ## 1. Create your workspace
 After signing up you land in onboarding, where you name your workspace. You can create more workspaces later and switch between them from the switcher in the sidebar.
 
 ## 2. Add and verify a sending domain
-Sendloop sends on managed infrastructure, so a domain has to pass DNS verification before any mailbox on it can go active. Add the domain under Email Accounts, publish the records shown, then run the verification check.
+MunchReach sends on managed infrastructure, so a domain has to pass DNS verification before any mailbox on it can go active. Add the domain under Email Accounts, publish the records shown, then run the verification check.
 
 ## 3. Connect a mailbox
 Once the domain is verified, connect a mailbox on that domain. The connection test runs immediately and the result is recorded on the mailbox timeline.
@@ -93,7 +93,7 @@ A mailbox cannot become active until its sending domain is verified. If the mail
 Confirm the SPF record exists and includes the sending infrastructure, that the DKIM key is published and verifies for the sending domain, and that DMARC is published.
 
 ## Re-run verification after changes
-DNS changes propagate within hours. Re-run the domain verification in Sendloop afterwards so the mailbox can return to an active state.`,
+DNS changes propagate within hours. Re-run the domain verification in MunchReach afterwards so the mailbox can return to an active state.`,
   },
   {
     slug: "why-import-skipped-rows",
@@ -183,7 +183,7 @@ Warmup keeps running alongside campaign traffic once the mailbox is active — l
   {
     slug: "inbox-replies-and-threading",
     title: "How replies reach the Unified Inbox",
-    description: "Inbound processing, threading and replying from inside Sendloop.",
+    description: "Inbound processing, threading and replying from inside MunchReach.",
     category: "unified-inbox",
     updated: "2026-08-17",
     content: `Inbound email is received over a verified webhook and matched back to the campaign, lead and sending mailbox.
@@ -234,7 +234,7 @@ Each funnel step can be opened to see the underlying recipients, which is the fa
     description: "How connections are verified, where credentials live and what gets logged.",
     category: "integrations",
     updated: "2026-08-19",
-    content: `Sendloop supports OpenAI, Slack, Zapier, Make, HubSpot, GoHighLevel, Calendly and Google Sheets.
+    content: `MunchReach supports OpenAI, Slack, Zapier, Make, HubSpot, GoHighLevel, Calendly and Google Sheets.
 
 ## Verification before storage
 Every connection is verified with a live call to the provider before it is saved, so a bad key fails at setup rather than silently at runtime.
@@ -243,7 +243,7 @@ Every connection is verified with a live call to the provider before it is saved
 Credentials are encrypted and never returned to the browser after they are stored.
 
 ## Inbound tools
-Zapier and Make push leads into Sendloop through a token-authenticated endpoint that is validated and idempotent, so a retried delivery will not create duplicate leads.
+Zapier and Make push leads into MunchReach through a token-authenticated endpoint that is validated and idempotent, so a retried delivery will not create duplicate leads.
 
 ## Activity
 Every delivery and sync attempt is written to the integration event log in the Integrations tab.`,
@@ -288,7 +288,7 @@ Request a full export from Settings, then Account. The export includes leads, ca
   {
     slug: "plans-and-invoices",
     title: "Reading your invoice and seat usage",
-    description: "What each line item on a Sendloop invoice means.",
+    description: "What each line item on a MunchReach invoice means.",
     category: "billing",
     updated: "2026-08-04",
     content: `Invoices break down by seat, mailbox add-ons and any overage.

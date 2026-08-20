@@ -44,11 +44,11 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/pages")({
   head: () => ({
     meta: [
-      { title: "Pages & SEO — Sendloop Admin" },
+      { title: "Pages & SEO — MunchReach Admin" },
       {
         name: "description",
         content:
-          "Manage titles, descriptions, canonicals, Open Graph tags and indexing for every public Sendloop page.",
+          "Manage titles, descriptions, canonicals, Open Graph tags and indexing for every public MunchReach page.",
       },
     ],
   }),
@@ -426,7 +426,7 @@ function AdminPagesRoute() {
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Search preview</p>
                   <p className="mt-1 truncate text-sm text-primary">{draft.seoTitle || draft.title}</p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">sendloop.com{draft.path}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">munchreach.com{draft.path}</p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                     {draft.metaDescription || "No meta description set."}
                   </p>

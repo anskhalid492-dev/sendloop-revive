@@ -35,7 +35,7 @@ const faqs = [
 export const Route = createFileRoute("/deliverability-guide")({
   head: () =>
     metaFor(
-      "Cold Email Deliverability Guide | Sendloop",
+      "Cold Email Deliverability Guide | MunchReach",
       "A complete cold email deliverability guide: domain setup, SPF, DKIM and DMARC, mailbox setup, warmup, sending volume, list quality, bounces, unsubscribes, reply management and monitoring.",
       "/deliverability-guide",
       faqs,
@@ -265,7 +265,7 @@ function Guide() {
               domain your invoices and support email leave from is not.
             </Callout>
             <p>
-              In Sendloop, a domain has to pass DNS verification before any mailbox on it can go
+              In MunchReach, a domain has to pass DNS verification before any mailbox on it can go
               active — see{" "}
               <Link to="/product/email-accounts" className="text-primary underline-offset-4 hover:underline">
                 Email Accounts
@@ -281,7 +281,7 @@ function Guide() {
             </p>
             <DnsRecord
               desc="Add one SPF TXT record per domain — multiple SPF records invalidate each other."
-              example="v=spf1 include:_spf.sendloop.app ~all"
+              example="v=spf1 include:_spf.munchreach.app ~all"
             />
           </GuideSection>
 
@@ -349,7 +349,7 @@ function Guide() {
               </table>
             </div>
             <p>
-              Sendloop's{" "}
+              MunchReach's{" "}
               <Link to="/product/warmup" className="text-primary underline-offset-4 hover:underline">
                 warmup engine
               </Link>{" "}
@@ -368,7 +368,7 @@ function Guide() {
           <GuideSection id="list-quality" title="List quality">
             <p>
               Verify every address before import, avoid catch-all domains at scale because those
-              recipients cannot be verified, and suppress aggressively. On import, Sendloop reports
+              recipients cannot be verified, and suppress aggressively. On import, MunchReach reports
               every skipped row with a reason: invalid, duplicate in the file, or already in the
               workspace.
             </p>
@@ -508,7 +508,7 @@ function Guide() {
 
       <CtaBlock
         title="Check your setup in minutes"
-        description="Connect a mailbox and Sendloop validates authentication, warmup status and sending limits automatically."
+        description="Connect a mailbox and MunchReach validates authentication, warmup status and sending limits automatically."
       />
     </MarketingLayout>
   );

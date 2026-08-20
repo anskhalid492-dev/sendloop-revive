@@ -40,7 +40,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/domains")({
   head: () => ({
     meta: [
-      { title: "Sending Domains — Sendloop Admin" },
+      { title: "Sending Domains — MunchReach Admin" },
       {
         name: "description",
         content:
@@ -111,7 +111,7 @@ function AdminDomainsPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Sending Domains"
-        description="Domain authentication across every workspace. Re-checking runs live DNS lookups — Sendloop never creates or edits a customer's DNS records."
+        description="Domain authentication across every workspace. Re-checking runs live DNS lookups — MunchReach never creates or edits a customer's DNS records."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

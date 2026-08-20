@@ -33,7 +33,7 @@ function AdminDenied() {
         </span>
         <h2 className="mt-4 text-lg font-semibold">Admin access required</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This area is restricted to Sendloop staff.
+          This area is restricted to MunchReach staff.
         </p>
         <Button className="mt-6" asChild>
           <Link to="/dashboard">Back to dashboard</Link>
@@ -45,7 +45,7 @@ function AdminDenied() {
 
 function AdminLayout() {
   return (
-    <AdminShell title="Admin" description="Sendloop platform administration">
+    <AdminShell title="Admin" description="MunchReach platform administration">
       <Outlet />
     </AdminShell>
   );

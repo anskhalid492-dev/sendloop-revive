@@ -14,13 +14,13 @@ export const Route = createFileRoute("/verify-email")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Verify your email — Sendloop" },
+      { title: "Verify your email — MunchReach" },
       {
         name: "description",
         content:
-          "Confirm your email address to activate your Sendloop workspace and start sending cold email campaigns.",
+          "Confirm your email address to activate your MunchReach workspace and start sending cold email campaigns.",
       },
-      { property: "og:title", content: "Verify your email — Sendloop" },
+      { property: "og:title", content: "Verify your email — MunchReach" },
       { property: "og:description", content: "Confirm your email to activate your workspace." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -67,7 +67,7 @@ function VerifyEmailPage() {
               {" "}to <span className="font-medium text-foreground">{email}</span>
             </>
           ) : null}
-          . Click it and you&apos;ll be signed straight into Sendloop.
+          . Click it and you&apos;ll be signed straight into MunchReach.
         </p>
         {email ? (
           <Button variant="outline" className="mt-5 w-full" onClick={resend} disabled={sending}>

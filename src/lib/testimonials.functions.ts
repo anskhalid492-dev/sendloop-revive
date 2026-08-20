@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
 /**
- * Testimonials shown on the marketing site, managed from the Sendloop admin.
+ * Testimonials shown on the marketing site, managed from the MunchReach admin.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -211,7 +211,7 @@ export const uploadReviewImage = createServerFn({ method: "POST" })
       _user_id: context.userId,
       _role: "admin",
     });
-    if (!isAdmin) throw new Error("Only Sendloop admins can upload review images.");
+    if (!isAdmin) throw new Error("Only MunchReach admins can upload review images.");
 
     const bytes = Uint8Array.from(atob(data.data), (c) => c.charCodeAt(0));
     if (bytes.byteLength > 2_000_000) throw new Error("Images must be 2 MB or smaller.");

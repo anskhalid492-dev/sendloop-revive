@@ -427,7 +427,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       to: job["to_email"] as string,
       subject: job["subject"] as string,
       text: job["body"] as string,
-      headers: { "X-Sendloop-Warmup": "1" },
+      headers: { "X-MunchReach-Warmup": "1" },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Provider request failed";

@@ -22,11 +22,11 @@ export const Route = createFileRoute("/help-center/$slug")({
   },
   head: ({ params, loaderData }) => {
     if (!loaderData) {
-      return { meta: [{ title: "Article not found — Sendloop Help Center" }, { name: "robots", content: "noindex" }] };
+      return { meta: [{ title: "Article not found — MunchReach Help Center" }, { name: "robots", content: "noindex" }] };
     }
     const { article } = loaderData;
     return metaFor(
-      `${article.title} | Sendloop Help Center`,
+      `${article.title} | MunchReach Help Center`,
       article.description,
       `/help-center/${params.slug}`,
     );

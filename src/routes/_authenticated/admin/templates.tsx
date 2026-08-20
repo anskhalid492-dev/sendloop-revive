@@ -26,13 +26,13 @@ import type { EmailTemplateRow } from "@/lib/templates-model";
 export const Route = createFileRoute("/_authenticated/admin/templates")({
   head: () => ({
     meta: [
-      { title: "Admin Templates — Sendloop" },
+      { title: "Admin Templates — MunchReach" },
       {
         name: "description",
-        content: "Create, publish and order the official Sendloop cold email template library.",
+        content: "Create, publish and order the official MunchReach cold email template library.",
       },
-      { property: "og:title", content: "Admin Templates — Sendloop" },
-      { property: "og:description", content: "Manage the official Sendloop template library." },
+      { property: "og:title", content: "Admin Templates — MunchReach" },
+      { property: "og:description", content: "Manage the official MunchReach template library." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

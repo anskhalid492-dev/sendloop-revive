@@ -92,7 +92,7 @@ export const PAYOUT_METHOD_LABELS: Record<string, string> = {
   bank_transfer: "Bank transfer",
   wise: "Wise",
   stripe_connect: "Stripe Connect",
-  credit: "Sendloop account credit",
+  credit: "MunchReach account credit",
 };
 
 export const PAYOUT_STATUS_LABELS: Record<string, string> = {

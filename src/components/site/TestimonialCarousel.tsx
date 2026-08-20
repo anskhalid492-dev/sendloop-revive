@@ -153,7 +153,7 @@ function ReviewColumn({
 
 export function TestimonialCarousel({
   page,
-  title = "What teams say about Sendloop",
+  title = "What teams say about MunchReach",
   description,
 }: {
   page: string;

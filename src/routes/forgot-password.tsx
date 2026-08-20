@@ -12,13 +12,13 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Reset your Sendloop password" },
+      { title: "Reset your MunchReach password" },
       {
         name: "description",
         content:
-          "Forgot your Sendloop password? Enter your work email and we'll send you a secure link to set a new one.",
+          "Forgot your MunchReach password? Enter your work email and we'll send you a secure link to set a new one.",
       },
-      { property: "og:title", content: "Reset your Sendloop password" },
+      { property: "og:title", content: "Reset your MunchReach password" },
       { property: "og:description", content: "Get a secure password reset link by email." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

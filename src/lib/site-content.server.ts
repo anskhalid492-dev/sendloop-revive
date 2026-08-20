@@ -24,12 +24,12 @@ export const DEFAULT_ROBOTS: RobotsConfig = {
 };
 
 export const DEFAULT_GLOBAL_SEO: GlobalSeoConfig = {
-  site_title: "Sendloop — Cold Email Outreach Platform",
-  title_template: "%s — Sendloop",
+  site_title: "MunchReach — Cold Email Outreach Platform",
+  title_template: "%s — MunchReach",
   meta_description:
     "Cold email campaigns, automated follow-ups, warmup and a unified inbox for every connected mailbox.",
   og_image_url: "",
-  og_site_name: "Sendloop",
+  og_site_name: "MunchReach",
   twitter_handle: "",
   google_verification: "",
   bing_verification: "",
@@ -41,7 +41,7 @@ export const DEFAULT_GLOBAL_SEO: GlobalSeoConfig = {
 export const DEFAULT_FOOTER: FooterConfig = {
   tagline:
     "Send personalized cold emails, automate follow-ups, and manage every reply from one workspace.",
-  copyright: "Sendloop. All rights reserved.",
+  copyright: "MunchReach. All rights reserved.",
 };
 
 export async function publicClient() {

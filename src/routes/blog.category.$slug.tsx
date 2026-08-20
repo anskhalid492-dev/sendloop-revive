@@ -13,7 +13,7 @@ export const Route = createFileRoute("/blog/category/$slug")({
   },
   head: ({ params, loaderData }) => {
     const name = loaderData?.category?.name ?? "Category";
-    const title = `${name} Articles — Sendloop Blog`;
+    const title = `${name} Articles — MunchReach Blog`;
     const description =
       loaderData?.category?.description || `Articles, guides and templates about ${name.toLowerCase()}.`;
     const path = `/blog/category/${params.slug}`;

@@ -4,7 +4,7 @@
  * Sent through the managed Resend account. Failures never break the invite:
  * the row is already created, so the owner can copy the link manually.
  */
-const FROM = "Sendloop <team@sendloop.io>";
+const FROM = "MunchReach <team@sendloop.io>";
 
 export type InviteEmailInput = {
   to: string;
@@ -30,7 +30,7 @@ export async function sendInvitationEmail(
       <h1 style="font-size:20px">You've been invited to ${escapeHtml(input.workspaceName)}</h1>
       <p>${escapeHtml(input.inviterName)} invited you to join the workspace as <strong>${escapeHtml(
         input.role,
-      )}</strong> on Sendloop.</p>
+      )}</strong> on MunchReach.</p>
       ${note}
       <p style="margin:24px 0">
         <a href="${input.acceptUrl}" style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Accept invitation</a>
@@ -45,7 +45,7 @@ export async function sendInvitationEmail(
       body: JSON.stringify({
         from: FROM,
         to: [input.to],
-        subject: `Join ${input.workspaceName} on Sendloop`,
+        subject: `Join ${input.workspaceName} on MunchReach`,
         html,
       }),
     });

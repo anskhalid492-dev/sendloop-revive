@@ -45,12 +45,12 @@ const programQuery = {
 
 const faqs = [
   {
-    q: "How does Sendloop referral tracking work?",
-    a: "Every referrer gets a unique link. When someone opens it, Sendloop stores the click and a first-party attribution cookie. If that visitor creates an account, the signup is attributed server-side and permanently linked to the referrer.",
+    q: "How does MunchReach referral tracking work?",
+    a: "Every referrer gets a unique link. When someone opens it, MunchReach stores the click and a first-party attribution cookie. If that visitor creates an account, the signup is attributed server-side and permanently linked to the referrer.",
   },
   {
     q: "When do I earn a commission?",
-    a: "Commissions are created only when Sendloop receives a verified payment event from the billing provider for a referred customer. Trials and free accounts do not generate commissions.",
+    a: "Commissions are created only when MunchReach receives a verified payment event from the billing provider for a referred customer. Trials and free accounts do not generate commissions.",
   },
   {
     q: "What happens if a referred customer refunds or cancels?",
@@ -62,7 +62,7 @@ const faqs = [
   },
   {
     q: "How do payouts work?",
-    a: "Once commissions are approved, you can request a payout from your referral dashboard as soon as you reach the minimum payout amount. Sendloop reviews and marks each payout when it is sent.",
+    a: "Once commissions are approved, you can request a payout from your referral dashboard as soon as you reach the minimum payout amount. MunchReach reviews and marks each payout when it is sent.",
   },
 ];
 
@@ -70,8 +70,8 @@ export const Route = createFileRoute("/referral")({
   loader: ({ context }) => context.queryClient.ensureQueryData(programQuery),
   head: () =>
     metaFor(
-      "Sendloop Referral Program — Earn recurring commission",
-      "Refer teams to Sendloop and earn commission on real, verified payments. Transparent tracking, live dashboard, reversal-safe balances and manual-reviewed payouts.",
+      "MunchReach Referral Program — Earn recurring commission",
+      "Refer teams to MunchReach and earn commission on real, verified payments. Transparent tracking, live dashboard, reversal-safe balances and manual-reviewed payouts.",
       "/referral",
       faqs,
     ),
@@ -105,12 +105,12 @@ function ReferralLanding() {
             Referral program
           </span>
           <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Get paid for every team you bring to <span className="text-gradient">Sendloop</span>
+            Get paid for every team you bring to <span className="text-gradient">MunchReach</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
             {live && program
               ? `Earn ${describeCommission(program)}. Tracking is server-side, balances update from verified payments only, and payouts start at ${formatMoney(program.minimum_payout_cents)}.`
-              : "The Sendloop referral program is being finalised. Create your referral profile now and your link will be ready the moment commissions go live."}
+              : "The MunchReach referral program is being finalised. Create your referral profile now and your link will be ready the moment commissions go live."}
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>
@@ -176,10 +176,10 @@ function ReferralLanding() {
         </div>
       </Section>
 
-      <Section title="How it works" description="Four steps, fully tracked inside Sendloop.">
+      <Section title="How it works" description="Four steps, fully tracked inside MunchReach.">
         <StepList
           steps={[
-            { title: "Create your referral profile", text: "Open the Referrals page in your Sendloop dashboard and generate your unique link and code." },
+            { title: "Create your referral profile", text: "Open the Referrals page in your MunchReach dashboard and generate your unique link and code." },
             { title: "Share your link", text: "Post it, email it or embed it. Each visit is recorded so you can see what actually drives signups." },
             { title: "Your referral signs up", text: "The signup is attributed server-side. Self-referrals and duplicate accounts are rejected automatically." },
             { title: "Get paid on real revenue", text: "When the referred customer pays, a commission is recorded. Request a payout once your approved balance clears the minimum." },
@@ -203,10 +203,10 @@ function ReferralLanding() {
       <Section title="Who can join" description="Straightforward eligibility.">
         <BulletList
           items={[
-            program?.eligibility ?? "Any Sendloop account in good standing can join the referral program.",
-            "Referred accounts must be genuinely new Sendloop customers.",
+            program?.eligibility ?? "Any MunchReach account in good standing can join the referral program.",
+            "Referred accounts must be genuinely new MunchReach customers.",
             "Commissions apply to paid subscriptions, not trials or free usage.",
-            "Sendloop may withhold commissions linked to fraud, abuse or policy violations.",
+            "MunchReach may withhold commissions linked to fraud, abuse or policy violations.",
           ]}
         />
         {program?.terms ? <p className="mt-6 whitespace-pre-line text-sm text-muted-foreground">{program.terms}</p> : null}
@@ -220,7 +220,7 @@ function ReferralLanding() {
             Start referring today
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Your referral link, live stats and payout requests all live inside your Sendloop dashboard.
+            Your referral link, live stats and payout requests all live inside your MunchReach dashboard.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">

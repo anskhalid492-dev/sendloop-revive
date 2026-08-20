@@ -1,5 +1,5 @@
 /**
- * Sendloop admin: managed sending infrastructure.
+ * MunchReach admin: managed sending infrastructure.
  *
  * Every function here re-checks that the caller holds the platform `admin`
  * role before touching provider credentials, the sending pool or workspace
@@ -375,8 +375,8 @@ export const sendAdminTestEmail = createServerFn({ method: "POST" })
         fromName: account.from_name,
         fromEmail: account.from_email,
         to: data.to,
-        subject: "Sendloop infrastructure test",
-        text: "Test send from the Sendloop sending pool.",
+        subject: "MunchReach infrastructure test",
+        text: "Test send from the MunchReach sending pool.",
       },
     );
 
@@ -694,7 +694,7 @@ export const saveReplyToSettings = createServerFn({ method: "POST" })
  * Inbound reply webhook management.
  *
  * Replies land on the reply-to inbox at the sending provider; the provider then
- * POSTs them to Sendloop's inbound endpoint. These functions let an admin see
+ * POSTs them to MunchReach's inbound endpoint. These functions let an admin see
  * and register that webhook without leaving the app.
  */
 export const getInboundWebhooks = createServerFn({ method: "GET" })
@@ -807,7 +807,7 @@ export type ManagedInfraStatus = {
   }>;
 };
 
-/** Admin check: is the Sendloop-managed sending provider wired up correctly? */
+/** Admin check: is the MunchReach-managed sending provider wired up correctly? */
 export const getManagedInfraStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ManagedInfraStatus> => {
@@ -841,7 +841,7 @@ export const getManagedInfraStatus = createServerFn({ method: "GET" })
           hasCredentials: false,
           credentialSource: null,
           reachable: false,
-          message: "No Sendloop-managed credentials stored for this provider.",
+          message: "No MunchReach-managed credentials stored for this provider.",
           verifiedDomains: [],
         });
         continue;

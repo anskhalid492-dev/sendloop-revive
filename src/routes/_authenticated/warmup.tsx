@@ -17,13 +17,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/warmup")({
   head: () => ({
     meta: [
-      { title: "Inbox Warmup — Sendloop" },
+      { title: "Inbox Warmup — MunchReach" },
       {
         name: "description",
         content:
           "Run real mailbox-to-mailbox warmup with automatic ramping, health scoring and safety pauses.",
       },
-      { property: "og:title", content: "Inbox Warmup — Sendloop" },
+      { property: "og:title", content: "Inbox Warmup — MunchReach" },
       {
         property: "og:description",
         content: "Real warmup sending, deliverability health scoring and automatic safety controls.",

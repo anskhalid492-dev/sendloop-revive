@@ -11,7 +11,7 @@ import {
 } from "@/lib/admin.functions";
 
 /**
- * Registers the provider webhook that pushes real replies into Sendloop, so
+ * Registers the provider webhook that pushes real replies into MunchReach, so
  * reply tracking works for live campaigns and not only simulated test sends.
  */
 export function InboundWebhookSettings() {
@@ -53,7 +53,7 @@ export function InboundWebhookSettings() {
       <div>
         <h3 className="text-base font-semibold">Reply webhook</h3>
         <p className="text-sm text-muted-foreground">
-          The sending provider posts every inbound reply to Sendloop here. Once registered, replies
+          The sending provider posts every inbound reply to MunchReach here. Once registered, replies
           to live campaigns land in the Unified Inbox automatically.
         </p>
       </div>

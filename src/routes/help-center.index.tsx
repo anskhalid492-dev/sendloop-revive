@@ -31,8 +31,8 @@ import {
 export const Route = createFileRoute("/help-center/")({
   head: () =>
     metaFor(
-      "Sendloop Help Center",
-      "Search Sendloop help articles on campaigns, email accounts, deliverability, warmup, the unified inbox, CRM, analytics, integrations, billing and workspace settings.",
+      "MunchReach Help Center",
+      "Search MunchReach help articles on campaigns, email accounts, deliverability, warmup, the unified inbox, CRM, analytics, integrations, billing and workspace settings.",
       "/help-center",
     ),
   component: HelpCenter,
@@ -70,9 +70,9 @@ const relatedResources = [
   { to: "/cold-email-templates" as const, label: "Cold Email Templates", text: "A full sequence you can copy: opener, bump, proof and breakup.", icon: FileText },
   { to: "/deliverability-guide" as const, label: "Deliverability Guide", text: "Domain setup, SPF/DKIM/DMARC, warmup and volume pacing.", icon: ShieldCheck },
   { to: "/product/campaigns" as const, label: "Campaigns", text: "Sequences, schedules, stop rules and launch readiness.", icon: Send },
-  { to: "/product/warmup" as const, label: "Warmup", text: "How Sendloop ramps a mailbox before campaign traffic.", icon: Flame },
+  { to: "/product/warmup" as const, label: "Warmup", text: "How MunchReach ramps a mailbox before campaign traffic.", icon: Flame },
   { to: "/product/email-accounts" as const, label: "Email Accounts", text: "Connect mailboxes and monitor sending health.", icon: Mailbox },
-  { to: "/docs" as const, label: "Documentation", text: "Reference documentation for how Sendloop works.", icon: Sparkles },
+  { to: "/docs" as const, label: "Documentation", text: "Reference documentation for how MunchReach works.", icon: Sparkles },
 ];
 
 function HelpCenter() {
@@ -103,7 +103,7 @@ function HelpCenter() {
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
             {HELP_ARTICLES.length} articles on setup, sending, deliverability, replies and billing —
-            written by the people who build and run Sendloop.
+            written by the people who build and run MunchReach.
           </p>
 
           <div className="relative mt-8">
@@ -112,8 +112,8 @@ function HelpCenter() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Sendloop help articles..."
-              aria-label="Search Sendloop help articles"
+              placeholder="Search MunchReach help articles..."
+              aria-label="Search MunchReach help articles"
               className="h-14 w-full rounded-xl border border-border bg-card pr-12 pl-12 text-sm outline-none transition-colors focus:border-primary"
             />
             {query ? (
@@ -248,7 +248,7 @@ function HelpCenter() {
             </div>
           </Section>
 
-          <Section title="Getting started" description="New to Sendloop? Start here." muted>
+          <Section title="Getting started" description="New to MunchReach? Start here." muted>
             <div className="grid gap-4 md:grid-cols-3">
               {gettingStarted.map((a) => (
                 <ArticleCard key={a.slug} article={a} />

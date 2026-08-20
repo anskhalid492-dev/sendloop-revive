@@ -27,6 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { useStorageImage } from "@/hooks/useStorageImage";
+import { supabase } from "@/integrations/supabase/client";
 import { createWorkspace } from "@/lib/workspaces.functions";
 import {
   deleteWorkspace,
@@ -47,13 +49,13 @@ import {
 export const Route = createFileRoute("/_authenticated/workspace")({
   head: () => ({
     meta: [
-      { title: "Workspace & team settings — Sendloop" },
+      { title: "Workspace & team settings — MunchReach" },
       {
         name: "description",
         content:
-          "Manage your Sendloop workspace: name, sending window, teammates, roles, invitations and permissions.",
+          "Manage your MunchReach workspace: name, sending window, teammates, roles, invitations and permissions.",
       },
-      { property: "og:title", content: "Workspace & team settings — Sendloop" },
+      { property: "og:title", content: "Workspace & team settings — MunchReach" },
       {
         property: "og:description",
         content: "Workspace details, teammates, roles, invitations and permissions.",
@@ -220,9 +222,11 @@ export function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canE
     queryFn: () => fetchSettings({ data: { workspaceId } }),
   });
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [form, setForm] = useState<{
     name: string;
     slug: string;
+    logoUrl: string | null;
     timezone: string;
     sendingTimezone: string;
     sendDays: number[];
@@ -237,6 +241,7 @@ export function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canE
     setForm({
       name: s.name,
       slug: s.slug,
+      logoUrl: s.logoUrl ?? null,
       timezone: s.timezone ?? browserTz,
       sendingTimezone: s.sendingTimezone ?? s.timezone ?? browserTz,
       sendDays: s.sendDays,
@@ -246,7 +251,7 @@ export function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canE
   }, [query.data]);
 
   const mutation = useMutation({
-    mutationFn: () => save({ data: { workspaceId, ...form!, logoUrl: null } }),
+    mutationFn: () => save({ data: { workspaceId, ...form! } }),
     onSuccess: async () => {
       toast.success("Workspace updated");
       await queryClient.invalidateQueries({ queryKey: ["workspace-settings", workspaceId] });
@@ -297,6 +302,15 @@ export function GeneralTab({ workspaceId, canEdit }: { workspaceId: string; canE
           />
         </div>
       </div>
+
+      <WorkspaceLogoField
+        workspaceId={workspaceId}
+        value={form.logoUrl}
+        canEdit={canEdit}
+        uploading={uploadingLogo}
+        setUploading={setUploadingLogo}
+        onChange={(next) => setForm((f) => (f ? { ...f, logoUrl: next } : f))}
+      />
 
       <div className="space-y-2">
         <Label>Sending days</Label>
@@ -747,6 +761,103 @@ export function DangerTab({ workspaceId, isOwner }: { workspaceId: string; isOwn
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Workspace logo upload. Files live in the private `workspace-logos` bucket
+ * under the workspace id, which is exactly what the storage policies scope to,
+ * so one customer can never read another workspace's logo. Only the storage
+ * path is persisted — rendering goes through a short-lived signed URL.
+ */
+function WorkspaceLogoField({
+  workspaceId,
+  value,
+  canEdit,
+  uploading,
+  setUploading,
+  onChange,
+}: {
+  workspaceId: string;
+  value: string | null;
+  canEdit: boolean;
+  uploading: boolean;
+  setUploading: (next: boolean) => void;
+  onChange: (next: string | null) => void;
+}) {
+  const preview = useStorageImage("workspace-logos", value);
+
+  async function handleFile(file: File) {
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Images must be 3 MB or smaller");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.type === "image/svg+xml" ? "svg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+      const path = `${workspaceId}/logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("workspace-logos")
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
+      if (error) throw new Error(error.message);
+      const previous = value;
+      onChange(path);
+      if (previous && !previous.startsWith("http")) {
+        await supabase.storage.from("workspace-logos").remove([previous]);
+      }
+      toast.success("Logo uploaded — save changes to apply it");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>Workspace logo</Label>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex size-16 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/40">
+          {preview ? (
+            <img src={preview} alt="Workspace logo" className="size-full object-contain p-1.5" />
+          ) : (
+            <Shield className="size-5 text-muted-foreground" />
+          )}
+        </div>
+        {canEdit ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="workspace-logo-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void handleFile(file);
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={uploading}
+              onClick={() => document.getElementById("workspace-logo-input")?.click()}
+            >
+              {uploading ? "Uploading…" : value ? "Replace logo" : "Upload logo"}
+            </Button>
+            {value ? (
+              <Button type="button" size="sm" variant="ghost" onClick={() => onChange(null)}>
+                Remove
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Used inside this workspace only. It never replaces the MunchReach platform logo.
+      </p>
     </div>
   );
 }

@@ -19,8 +19,8 @@ const faqs = [
     a: "New long-form guides and articles are published regularly, with shorter tactical notes in between. Subscribe to the newsletter to get them by email.",
   },
   {
-    q: "Do these tactics only work with Sendloop?",
-    a: "No. Almost everything here is platform-agnostic. Where a Sendloop feature is referenced it is called out, so the underlying tactic still applies elsewhere.",
+    q: "Do these tactics only work with MunchReach?",
+    a: "No. Almost everything here is platform-agnostic. Where a MunchReach feature is referenced it is called out, so the underlying tactic still applies elsewhere.",
   },
   {
     q: "Can I contribute a guest article or case study?",
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/blog/")({
   loader: () => getBlogIndex(),
   head: () =>
     metaFor(
-      "Sendloop Blog — Cold Email, Deliverability & Outbound Growth",
+      "MunchReach Blog — Cold Email, Deliverability & Outbound Growth",
       "Practical strategies, guides, templates and insights to help you send better cold emails, improve deliverability and generate more conversations.",
       "/blog",
       faqs,
@@ -115,7 +115,7 @@ function BlogPage() {
       <section className="border-b border-border/60 bg-secondary/30 py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase">
-            Sendloop Blog
+            MunchReach Blog
           </span>
           <h1 className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
             Cold Email, Deliverability &amp; Outbound Growth
@@ -210,7 +210,7 @@ function BlogPage() {
 
         <div className="mt-10">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {trimmed.length > 1 ? `Search results for "${trimmed}"` : "Latest from Sendloop"}
+            {trimmed.length > 1 ? `Search results for "${trimmed}"` : "Latest from MunchReach"}
           </h2>
 
           {shown.length === 0 ? (
@@ -306,7 +306,7 @@ function BlogPage() {
 
       {/* Authors */}
       {data.authors.length ? (
-        <Section title="Authors / Contributors" description="The people writing about outbound at Sendloop.">
+        <Section title="Authors / Contributors" description="The people writing about outbound at MunchReach.">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {data.authors.map((author) => (
               <Link

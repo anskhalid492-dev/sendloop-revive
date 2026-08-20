@@ -1,9 +1,9 @@
 /**
  * Customer-owned sending domains.
  *
- * Sendloop does not register, provision or own domains. A customer adds a
+ * MunchReach does not register, provision or own domains. A customer adds a
  * domain they already own, publishes the generated DNS records at their own
- * registrar, and Sendloop performs a real DNS lookup before a domain is ever
+ * registrar, and MunchReach performs a real DNS lookup before a domain is ever
  * marked verified.
  */
 import { createServerFn } from "@tanstack/react-start";

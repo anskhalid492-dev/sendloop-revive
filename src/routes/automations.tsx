@@ -47,7 +47,7 @@ const walkthrough = [
   {
     kind: "Trigger",
     title: "A prospect replies to your campaign",
-    text: "The inbound webhook records the reply, Sendloop classifies the sentiment, and the workflow starts for that specific lead. Every run is keyed to the event, so the same reply never starts the workflow twice.",
+    text: "The inbound webhook records the reply, MunchReach classifies the sentiment, and the workflow starts for that specific lead. Every run is keyed to the event, so the same reply never starts the workflow twice.",
   },
   {
     kind: "Condition",
@@ -83,7 +83,7 @@ function HowItWorksDialog() {
         <DialogHeader>
           <DialogTitle>Trigger → Condition → Action, step by step</DialogTitle>
           <DialogDescription>
-            How Sendloop runs the "positive reply" workflow from the moment the email arrives.
+            How MunchReach runs the "positive reply" workflow from the moment the email arrives.
           </DialogDescription>
         </DialogHeader>
         <ol className="mt-2 space-y-4">
@@ -109,8 +109,8 @@ function HowItWorksDialog() {
 
 const faqs = [
   {
-    q: "What are Sendloop Automations?",
-    a: "Automations are workflows that run on Sendloop's backend. Each one starts from a real product event, optionally checks conditions, then performs actions such as enrolling a lead in a campaign, updating CRM records, creating tasks or sending notifications.",
+    q: "What are MunchReach Automations?",
+    a: "Automations are workflows that run on MunchReach's backend. Each one starts from a real product event, optionally checks conditions, then performs actions such as enrolling a lead in a campaign, updating CRM records, creating tasks or sending notifications.",
   },
   {
     q: "What can trigger an automation?",
@@ -137,8 +137,8 @@ const faqs = [
 export const Route = createFileRoute("/automations")({
   head: () =>
     metaFor(
-      "Email Outreach Automations — Sendloop",
-      "Trigger follow-ups, CRM updates, tasks and notifications automatically from campaign, lead and inbox activity with Sendloop Automations.",
+      "Email Outreach Automations — MunchReach",
+      "Trigger follow-ups, CRM updates, tasks and notifications automatically from campaign, lead and inbox activity with MunchReach Automations.",
       "/automations",
       faqs,
     ),
@@ -195,7 +195,7 @@ function Page() {
             <span className="text-gradient">from start to finish</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Sendloop Automations trigger actions, follow-ups and multi-step workflows
+            MunchReach Automations trigger actions, follow-ups and multi-step workflows
             automatically from your campaign, lead and inbox activity — so replies get
             handled, CRM records stay accurate and nobody chases updates by hand.
           </p>
@@ -213,7 +213,7 @@ function Page() {
       <BigPreview
         eyebrow="Automations workspace"
         title="Workflows that run on your real outreach data"
-        description="Triggers, conditions, actions and run history — the same objects the Sendloop Automations engine executes."
+        description="Triggers, conditions, actions and run history — the same objects the MunchReach Automations engine executes."
       >
         <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-2">
           <MockPanel title="Automation — Positive reply handler">
@@ -244,7 +244,7 @@ function Page() {
 
       <Section
         title="Real automation capabilities"
-        description="Everything below is executed by the Sendloop Automations engine."
+        description="Everything below is executed by the MunchReach Automations engine."
       >
         <FeatureBento items={features} />
       </Section>
@@ -315,7 +315,7 @@ function Page() {
 
       <CtaBlock
         title="Turn repetitive outreach tasks into automated workflows."
-        description="Connect triggers, conditions and actions once — Sendloop runs them on every reply, campaign and CRM change."
+        description="Connect triggers, conditions and actions once — MunchReach runs them on every reply, campaign and CRM change."
       />
     </MarketingLayout>
   );

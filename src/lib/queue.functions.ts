@@ -1,7 +1,7 @@
 /**
  * Campaign sending queue.
  *
- * Every email Sendloop will send exists as a row in `campaign_messages`, so
+ * Every email MunchReach will send exists as a row in `campaign_messages`, so
  * customers can watch a message move pending → scheduled → processing → sent
  * (or failed) and read the provider message id we got back.
  */

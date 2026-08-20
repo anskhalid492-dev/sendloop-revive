@@ -39,13 +39,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/inbound-events")({
   head: () => ({
     meta: [
-      { title: "Inbound Events — Sendloop Admin" },
+      { title: "Inbound Events — MunchReach Admin" },
       {
         name: "description",
         content:
           "Every inbound webhook delivery with signature, idempotency and routing status, plus retry and reprocess controls.",
       },
-      { property: "og:title", content: "Inbound Events — Sendloop Admin" },
+      { property: "og:title", content: "Inbound Events — MunchReach Admin" },
       {
         property: "og:description",
         content: "Audit, retry and reprocess inbound email webhook deliveries.",
@@ -247,7 +247,7 @@ function AdminInboundEventsPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Inbound events</h1>
         <p className="text-sm text-muted-foreground">
-          Every webhook delivery Sendloop received, with signature verification, idempotency state
+          Every webhook delivery MunchReach received, with signature verification, idempotency state
           and routing outcome.
         </p>
       </header>

@@ -17,13 +17,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/integrations")({
   head: () => ({
     meta: [
-      { title: "Admin Integrations — Sendloop" },
+      { title: "Admin Integrations — MunchReach" },
       {
         name: "description",
         content:
-          "Enable or disable Sendloop integrations globally, gate them behind paid plans and monitor delivery failures.",
+          "Enable or disable MunchReach integrations globally, gate them behind paid plans and monitor delivery failures.",
       },
-      { property: "og:title", content: "Admin Integrations — Sendloop" },
+      { property: "og:title", content: "Admin Integrations — MunchReach" },
       {
         property: "og:description",
         content: "Global integration controls, adoption and failure monitoring.",

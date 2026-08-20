@@ -5,8 +5,8 @@ import { MarketingLayout, PageHero, Section, CtaBlock, metaFor } from "@/compone
 export const Route = createFileRoute("/acceptable-use")({
   head: () =>
     metaFor(
-      "Acceptable Use Policy — Sending Rules on Sendloop",
-      "What you may and may not send with Sendloop: consent requirements, CAN-SPAM/GDPR rules, prohibited content, limits and enforcement.",
+      "Acceptable Use Policy — Sending Rules on MunchReach",
+      "What you may and may not send with MunchReach: consent requirements, CAN-SPAM/GDPR rules, prohibited content, limits and enforcement.",
       "/acceptable-use",
     ),
   component: Aup,
@@ -34,7 +34,7 @@ const sections = [
     id: "purpose",
     heading: "1. Purpose",
     body: [
-      "This Acceptable Use Policy (\"AUP\") sets out the rules for sending email through Sendloop. It exists to protect the deliverability and reputation of shared sending infrastructure for every customer, and to keep recipients' inboxes free of unwanted or unlawful email.",
+      "This Acceptable Use Policy (\"AUP\") sets out the rules for sending email through MunchReach. It exists to protect the deliverability and reputation of shared sending infrastructure for every customer, and to keep recipients' inboxes free of unwanted or unlawful email.",
       "This AUP is part of, and incorporated into, our Terms of Service.",
     ],
   },
@@ -134,14 +134,14 @@ const sections = [
     id: "appeals",
     heading: "12. Appeals",
     body: [
-      "If your workspace is suspended, you may appeal by emailing compliance@sendloop.app with an explanation and evidence of remediation. We review appeals within 5 business days.",
+      "If your workspace is suspended, you may appeal by emailing compliance@munchreach.app with an explanation and evidence of remediation. We review appeals within 5 business days.",
     ],
   },
   {
     id: "reporting",
     heading: "13. Reporting abuse",
     body: [
-      "If you received unwanted email sent through Sendloop, you can report it to abuse@sendloop.app. We investigate every report and suppress the reported address across the responsible workspace.",
+      "If you received unwanted email sent through MunchReach, you can report it to abuse@munchreach.app. We investigate every report and suppress the reported address across the responsible workspace.",
     ],
   },
   {

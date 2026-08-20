@@ -51,13 +51,13 @@ import {
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({
     meta: [
-      { title: "Leads & Lists — Sendloop" },
+      { title: "Leads & Lists — MunchReach" },
       {
         name: "description",
         content:
           "Manage every prospect in one place: advanced filters, lists, tags, bulk actions, CSV import with field mapping and full lead profiles.",
       },
-      { property: "og:title", content: "Leads & Lists — Sendloop" },
+      { property: "og:title", content: "Leads & Lists — MunchReach" },
       {
         property: "og:description",
         content: "Advanced lead management for cold outreach teams.",

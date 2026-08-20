@@ -31,6 +31,8 @@ import { solutionNavLinks } from "@/lib/solutions-content";
 import { useSiteContent } from "@/lib/page-seo";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { BRAND_NAME } from "@/lib/branding";
 
 type Card = {
   label: string;
@@ -58,7 +60,7 @@ const featuredProducts: Card[] = [
   {
     label: "Email Accounts",
     to: "/product/email-accounts",
-    text: "Manage your Sendloop-powered sending accounts and monitor their health.",
+    text: "Manage your MunchReach-powered sending accounts and monitor their health.",
     icon: Mailbox,
     cta: "View Email Accounts",
   },
@@ -83,14 +85,14 @@ const resourceCards: Card[] = [
   { label: "Blog", to: "/blog", text: "Cold email strategies, sales and outreach insights.", icon: BookOpen },
   { label: "Cold Email Templates", to: "/cold-email-templates", text: "Ready-to-use templates for different outreach campaigns.", icon: FileText },
   { label: "Deliverability Guide", to: "/deliverability-guide", text: "Learn how to improve inbox placement.", icon: ShieldCheck },
-  { label: "Documentation", to: "/docs", text: "Learn how Sendloop works.", icon: Compass },
+  { label: "Documentation", to: "/docs", text: "Learn how MunchReach works.", icon: Compass },
   { label: "Help Center", to: "/help-center", text: "Get answers and support.", icon: LifeBuoy },
-  { label: "Integrations", to: "/integrations", text: "Connect Sendloop to your CRM, Slack, Zapier and more.", icon: Plug },
-  { label: "Customer Reviews", to: "/customer-reviews", text: "See what Sendloop customers say about their outreach.", icon: MessageSquareQuote },
-  { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to Sendloop.", icon: Gift },
-  { label: "Why Sendloop", to: "/why-sendloop", text: "See why teams replace six outbound tools with one workspace.", icon: Compass },
+  { label: "Integrations", to: "/integrations", text: "Connect MunchReach to your CRM, Slack, Zapier and more.", icon: Plug },
+  { label: "Customer Reviews", to: "/customer-reviews", text: "See what MunchReach customers say about their outreach.", icon: MessageSquareQuote },
+  { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to MunchReach.", icon: Gift },
+  { label: "Why MunchReach", to: "/why-sendloop", text: "See why teams replace six outbound tools with one workspace.", icon: Compass },
   { label: "How It Works", to: "/how-it-works", text: "The twelve steps from empty workspace to booked meetings.", icon: GraduationCap },
-  { label: "About Sendloop", to: "/about", text: "Our story, our team and where Sendloop is heading.", icon: BookOpen },
+  { label: "About MunchReach", to: "/about", text: "Our story, our team and where MunchReach is heading.", icon: BookOpen },
 ];
 
 /**
@@ -221,11 +223,8 @@ export function SiteHeader() {
       <div className="mx-auto flex h-[4.25rem] w-full max-w-6xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-xl transition-all duration-300 data-[scrolled=true]:border-border data-[scrolled=true]:bg-background/95 data-[scrolled=true]:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] sm:px-6"
         data-scrolled={scrolled ? "true" : "false"}
       >
-        <Link to="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Send className="size-4" />
-          </span>
-          <span className="text-base font-bold tracking-tight">Sendloop</span>
+        <Link to="/" className="flex shrink-0 items-center gap-2" aria-label={BRAND_NAME}>
+          <BrandLogo className="h-7 max-w-[168px]" />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -448,7 +447,7 @@ function ProductsPanel({
           </div>
         </div>
         <div className="rounded-2xl bg-secondary/30 p-4">
-          <PanelHeading>More from Sendloop</PanelHeading>
+          <PanelHeading>More from MunchReach</PanelHeading>
           <div className="grid gap-1">
             {more.map((card) => (
               <CompactCard key={card.label} card={card} />

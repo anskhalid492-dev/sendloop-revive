@@ -29,7 +29,7 @@ import {
 import type { InboxFolder } from "@/lib/inbox-model";
 
 /**
- * High-fidelity mock of the Sendloop unified inbox for marketing pages.
+ * High-fidelity mock of the MunchReach unified inbox for marketing pages.
  *
  * Mailbox navigation (Inbox, Sent, Drafts, Follow-ups) is interactive and
  * mirrors the real product's folder model — folder ids come from
@@ -415,7 +415,7 @@ export function InboxPreview({ className = "" }: { className?: string }) {
 
   return (
     <div
-      aria-label="Sendloop unified inbox preview"
+      aria-label="MunchReach unified inbox preview"
       className={`overflow-hidden rounded-2xl border border-border/70 bg-card text-[13px] ${className}`}
     >
       <div className="grid grid-cols-1 lg:grid-cols-[190px_minmax(0,1fr)] xl:grid-cols-[190px_300px_minmax(0,1fr)] 2xl:grid-cols-[190px_300px_minmax(0,1fr)_248px]">
@@ -425,7 +425,7 @@ export function InboxPreview({ className = "" }: { className?: string }) {
             <span className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
               <Send className="size-3.5" />
             </span>
-            <span className="text-sm font-semibold">Sendloop</span>
+            <span className="text-sm font-semibold">MunchReach</span>
           </div>
 
           <div className="flex items-center gap-px">

@@ -257,8 +257,8 @@ export const testIntegration = createServerFn({ method: "POST" })
       conn as never,
       "integration.test",
       {
-        message: "Test event from Sendloop.",
-        lead: { email: "test@sendloop.app", first_name: "Test", last_name: "Lead", company: "Sendloop" },
+        message: "Test event from MunchReach.",
+        lead: { email: "test@munchreach.app", first_name: "Test", last_name: "Lead", company: "MunchReach" },
         timestamp: new Date().toISOString(),
       },
       `test:${crypto.randomUUID()}`,

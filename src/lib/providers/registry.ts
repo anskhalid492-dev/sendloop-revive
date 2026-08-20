@@ -1,7 +1,7 @@
 /**
  * Client-safe provider registry.
  *
- * This describes Sendloop's *internal* sending infrastructure. It is only ever
+ * This describes MunchReach's *internal* sending infrastructure. It is only ever
  * rendered inside /admin — customers never see provider names or credentials.
  */
 

@@ -65,7 +65,7 @@ const painPoints = [
   {
     icon: Gauge,
     title: "Reporting lives in a silo",
-    text: "Campaign performance needs to sit next to pipeline and revenue data, which means pulling it out of Sendloop programmatically.",
+    text: "Campaign performance needs to sit next to pipeline and revenue data, which means pulling it out of MunchReach programmatically.",
   },
 ];
 
@@ -116,7 +116,7 @@ function ApiDocs() {
 
       <Section title="Authentication" description="Every request needs a workspace-scoped bearer token.">
         <pre className="overflow-x-auto rounded-xl border border-border bg-card p-5 text-sm text-foreground">
-          <code>{`curl https://api.sendloop.app/v1/leads \\
+          <code>{`curl https://api.munchreach.app/v1/leads \\
   -H "Authorization: Bearer sk_live_your_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -214,7 +214,7 @@ function ApiDocs() {
       <TestimonialCarousel page="api-docs" />
 
       <CtaBlock
-        title="Build on top of Sendloop"
+        title="Build on top of MunchReach"
         description="Create a workspace, generate a key and start pushing leads in minutes."
       />
     </MarketingLayout>

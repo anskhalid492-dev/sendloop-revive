@@ -6,7 +6,7 @@
  *     `svix-signature` are verified as an HMAC-SHA256 over
  *     `${id}.${timestamp}.${body}` using the base64 signing secret, with a
  *     replay window on the timestamp.
- *   - Sendloop shared secret: `x-sendloop-signature` / bearer token, compared
+ *   - MunchReach shared secret: `x-sendloop-signature` / bearer token, compared
  *     in constant time. When `INBOUND_WEBHOOK_SIGNING_SECRET` is configured,
  *     an HMAC-SHA256 of the raw body (hex, optional `sha256=` prefix) is
  *     required instead of the plain secret.

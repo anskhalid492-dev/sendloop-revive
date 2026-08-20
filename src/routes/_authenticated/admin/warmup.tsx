@@ -41,7 +41,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/warmup")({
   head: () => ({
     meta: [
-      { title: "Warmup — Sendloop Admin" },
+      { title: "Warmup — MunchReach Admin" },
       {
         name: "description",
         content:

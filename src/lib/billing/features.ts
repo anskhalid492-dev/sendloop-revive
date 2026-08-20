@@ -1,5 +1,5 @@
 /**
- * Canonical Sendloop feature catalog for the plan × feature matrix.
+ * Canonical MunchReach feature catalog for the plan × feature matrix.
  * Client-safe: no secrets, no server imports.
  *
  * Features backed by a boolean column on `plans` keep using that column so the
@@ -71,7 +71,7 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
     key: "integrations",
     label: "Integrations",
     category: "Platform",
-    description: "Connect Sendloop to external CRMs and tools.",
+    description: "Connect MunchReach to external CRMs and tools.",
     column: null,
     fallback: false,
   },
@@ -79,7 +79,7 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
     key: "api_access",
     label: "API access",
     category: "Platform",
-    description: "Programmatic access to the Sendloop API.",
+    description: "Programmatic access to the MunchReach API.",
     column: "api_access",
     fallback: false,
   },

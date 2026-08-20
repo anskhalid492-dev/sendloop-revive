@@ -35,16 +35,16 @@ import inboxPreview from "@/assets/inbox-preview.jpg";
 
 const faqs = [
   {
-    q: "What is Sendloop?",
-    a: "Sendloop is a cold email platform. You build campaigns, automate follow-ups, manage every reply in one inbox and track your outreach — all from a single workspace.",
+    q: "What is MunchReach?",
+    a: "MunchReach is a cold email platform. You build campaigns, automate follow-ups, manage every reply in one inbox and track your outreach — all from a single workspace.",
   },
   {
-    q: "How does Sendloop handle email sending?",
-    a: "Sending is fully managed. Once you launch a campaign, Sendloop queues and delivers your emails in the background, respecting daily limits, delays and your sending window.",
+    q: "How does MunchReach handle email sending?",
+    a: "Sending is fully managed. Once you launch a campaign, MunchReach queues and delivers your emails in the background, respecting daily limits, delays and your sending window.",
   },
   {
     q: "Do I need my own SMTP or email API?",
-    a: "No. You don't need to connect your own email provider. Sendloop manages the sending infrastructure behind the scenes, so there is nothing technical for you to configure.",
+    a: "No. You don't need to connect your own email provider. MunchReach manages the sending infrastructure behind the scenes, so there is nothing technical for you to configure.",
   },
   {
     q: "How do I start a campaign?",
@@ -52,22 +52,22 @@ const faqs = [
   },
   {
     q: "Can I automate follow-ups?",
-    a: "Yes. Add as many follow-up steps as you like with your own delays. Sendloop sends them automatically and stops the sequence the moment a prospect replies.",
+    a: "Yes. Add as many follow-up steps as you like with your own delays. MunchReach sends them automatically and stops the sequence the moment a prospect replies.",
   },
   {
     q: "Can I manage replies in one inbox?",
     a: "Every reply lands in the unified inbox where you can classify it, assign it to a teammate, add internal notes and see the full conversation and campaign history.",
   },
   {
-    q: "Does Sendloop include warmup?",
-    a: "Yes. Sendloop gradually builds sending activity, monitors mailbox health and flags deliverability issues before they hurt your campaigns.",
+    q: "Does MunchReach include warmup?",
+    a: "Yes. MunchReach gradually builds sending activity, monitors mailbox health and flags deliverability issues before they hurt your campaigns.",
   },
   {
-    q: "Can I use Sendloop with a team?",
+    q: "Can I use MunchReach with a team?",
     a: "Invite teammates to your workspace with roles such as admin, campaign manager, inbox manager or analyst, and assign conversations between them.",
   },
   {
-    q: "Does Sendloop include a CRM?",
+    q: "Does MunchReach include a CRM?",
     a: "Yes. Prospects move through pipeline stages from new to contacted, replied, interested, meeting and won, connected to the conversation that created them.",
   },
   {
@@ -116,7 +116,7 @@ const howItWorks = [
   { n: "01", title: "Create your workspace", text: "Name it, invite your team and you're set up." },
   { n: "02", title: "Add your prospects", text: "Import a CSV, map fields and drop duplicates." },
   { n: "03", title: "Build your campaign", text: "Write the first email, then add follow-up steps." },
-  { n: "04", title: "Launch and manage replies", text: "Sendloop sends; replies land in your inbox." },
+  { n: "04", title: "Launch and manage replies", text: "MunchReach sends; replies land in your inbox." },
 ];
 
 const followUpFlow = [
@@ -131,17 +131,17 @@ const followUpFlow = [
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sendloop — Turn Cold Emails Into Real Conversations" },
+      { title: "MunchReach — Turn Cold Emails Into Real Conversations" },
       {
         name: "description",
         content:
-          "Build cold email campaigns, automate follow-ups, manage every reply and track outreach from one workspace. Sendloop handles the sending for you.",
+          "Build cold email campaigns, automate follow-ups, manage every reply and track outreach from one workspace. MunchReach handles the sending for you.",
       },
-      { property: "og:title", content: "Sendloop — Turn Cold Emails Into Real Conversations" },
+      { property: "og:title", content: "MunchReach — Turn Cold Emails Into Real Conversations" },
       {
         property: "og:description",
         content:
-          "Campaigns, automated follow-ups, a unified inbox, warmup, CRM and analytics in one workspace — with sending fully managed by Sendloop.",
+          "Campaigns, automated follow-ups, a unified inbox, warmup, CRM and analytics in one workspace — with sending fully managed by MunchReach.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -274,12 +274,12 @@ function Home() {
                     <span className="size-2.5 rounded-full bg-primary/30" />
                     <span className="size-2.5 rounded-full bg-muted-foreground/25" />
                     <span className="ml-3 text-xs text-muted-foreground">
-                      app.sendloop.com / dashboard
+                      app.munchreach.com / dashboard
                     </span>
                   </div>
                   <img
                     src={dashboardPreview}
-                    alt="Sendloop dashboard showing active campaigns, replies and outreach analytics"
+                    alt="MunchReach dashboard showing active campaigns, replies and outreach analytics"
                     width={1600}
                     height={1008}
                     className="w-full"
@@ -333,7 +333,7 @@ function Home() {
             <SectionHead
               eyebrow="The platform"
               title="Everything You Need to Run Cold Email"
-              description="From finding the right prospects to managing replies, Sendloop gives your team one place to run outbound."
+              description="From finding the right prospects to managing replies, MunchReach gives your team one place to run outbound."
             />
           </Reveal>
           <div className="mt-12 grid gap-4 md:grid-cols-6">
@@ -386,7 +386,7 @@ function Home() {
                 <div className="browser-frame">
                   <img
                     src={dashboardPreview}
-                    alt="Sendloop workspace with campaigns, prospects and performance in one view"
+                    alt="MunchReach workspace with campaigns, prospects and performance in one view"
                     width={1600}
                     height={1008}
                     loading="lazy"
@@ -476,7 +476,7 @@ function Home() {
               <SectionHead
                 eyebrow="Follow-ups"
                 title="Follow Up Automatically Without Chasing Leads"
-                description="Sendloop handles the follow-up process automatically while stopping outreach when prospects respond."
+                description="MunchReach handles the follow-up process automatically while stopping outreach when prospects respond."
               />
             </Reveal>
 
@@ -540,7 +540,7 @@ function Home() {
               <div className="browser-frame">
                 <img
                   src={inboxPreview}
-                  alt="Sendloop unified inbox with labelled replies, conversation thread and prospect details"
+                  alt="MunchReach unified inbox with labelled replies, conversation thread and prospect details"
                   width={1600}
                   height={1008}
                   loading="lazy"
@@ -563,7 +563,7 @@ function Home() {
                   Protect Your Sending Reputation
                 </h2>
                 <p className="mt-4 text-muted-foreground">
-                  Sendloop helps you gradually build sending activity, monitor mailbox health, and
+                  MunchReach helps you gradually build sending activity, monitor mailbox health, and
                   identify deliverability problems before they hurt your campaigns.
                 </p>
                 <ul className="mt-6 grid gap-2.5 text-sm text-muted-foreground">
@@ -694,14 +694,14 @@ function Home() {
             <SectionHead
               eyebrow="Managed sending"
               title="We Handle The Complicated Part"
-              description="You shouldn't need to understand email infrastructure just to run a cold email campaign. Sendloop manages the sending layer behind the scenes so you can focus on your leads, messages, and conversations."
+              description="You shouldn't need to understand email infrastructure just to run a cold email campaign. MunchReach manages the sending layer behind the scenes so you can focus on your leads, messages, and conversations."
             />
           </Reveal>
           <Reveal delay={100}>
             <ol className="mx-auto mt-12 max-w-sm">
               {[
                 { label: "Your workspace", text: "Leads, campaigns, sequences" },
-                { label: "Sendloop", text: "Scheduling, throttling, retries" },
+                { label: "MunchReach", text: "Scheduling, throttling, retries" },
                 { label: "Managed sending infrastructure", text: "Fully handled for you" },
                 { label: "Your prospects", text: "Replies land in your inbox" },
               ].map((node, i, arr) => (
@@ -726,7 +726,7 @@ function Home() {
               <SectionHead
                 eyebrow="Who it's for"
                 title="Built For Teams That Rely On Outbound"
-                description="If new conversations drive your revenue, Sendloop is the workspace your team runs them from."
+                description="If new conversations drive your revenue, MunchReach is the workspace your team runs them from."
               />
             </Reveal>
             <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -788,7 +788,7 @@ function Home() {
           <FaqBlock
             faqs={faqs}
             title="Frequently Asked Questions"
-            description="Everything you need to know about Sendloop."
+            description="Everything you need to know about MunchReach."
           />
         </section>
 
@@ -800,7 +800,7 @@ function Home() {
               Ready To Turn Cold Email Into Conversations?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Create your workspace, launch your first campaign, and let Sendloop handle the rest.
+              Create your workspace, launch your first campaign, and let MunchReach handle the rest.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" asChild>

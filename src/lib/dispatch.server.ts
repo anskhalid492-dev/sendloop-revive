@@ -274,7 +274,7 @@ export async function dispatchDueMessages(
     ((accounts ?? []) as AccountRow[]).map((a) => [a.id, a] as const),
   );
 
-  // Credentials are Sendloop-managed infrastructure resolved per send inside
+  // Credentials are MunchReach-managed infrastructure resolved per send inside
   // `sendManagedEmail`; customer-supplied provider keys are never read.
   const { sendManagedEmail } = await import("./managed-sending.server");
 
@@ -326,7 +326,7 @@ export async function dispatchDueMessages(
 
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
-    // Replies must reach the inbox Sendloop tracks, not the raw mailbox.
+    // Replies must reach the inbox MunchReach tracks, not the raw mailbox.
     const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
     // A unique routed address per send: replies come back tagged with the
     // workspace, mailbox, lead and campaign they belong to.

@@ -45,13 +45,13 @@ import {
 export const Route = createFileRoute("/_authenticated/analytics")({
   head: () => ({
     meta: [
-      { title: "Cold Email Analytics — Sendloop" },
+      { title: "Cold Email Analytics — MunchReach" },
       {
         name: "description",
         content:
-          "Live deliverability and engagement analytics for every campaign and mailbox in your Sendloop workspace.",
+          "Live deliverability and engagement analytics for every campaign and mailbox in your MunchReach workspace.",
       },
-      { property: "og:title", content: "Cold Email Analytics — Sendloop" },
+      { property: "og:title", content: "Cold Email Analytics — MunchReach" },
       {
         property: "og:description",
         content: "Track sends, opens, clicks, replies, bounces and unsubscribes in real time.",

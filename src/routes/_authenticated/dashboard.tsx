@@ -33,13 +33,13 @@ import { getMyProfile } from "@/lib/workspaces.functions";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Sendloop Cold Email Workspace" },
+      { title: "Dashboard — MunchReach Cold Email Workspace" },
       {
         name: "description",
         content:
-          "Your Sendloop workspace overview: emails sent, replies, positive replies and meetings booked, plus campaign performance at a glance.",
+          "Your MunchReach workspace overview: emails sent, replies, positive replies and meetings booked, plus campaign performance at a glance.",
       },
-      { property: "og:title", content: "Sendloop Dashboard" },
+      { property: "og:title", content: "MunchReach Dashboard" },
       {
         property: "og:description",
         content: "Campaign activity and reply performance at a glance.",
@@ -302,7 +302,7 @@ function DashboardPage() {
               </div>
               {(sending?.total ?? 0) === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  No mailboxes assigned yet — Sendloop provisions them when your first campaign
+                  No mailboxes assigned yet — MunchReach provisions them when your first campaign
                   launches.
                 </p>
               ) : null}

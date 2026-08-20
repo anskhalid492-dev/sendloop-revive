@@ -33,13 +33,13 @@ import { adminOutreachFilters } from "@/lib/admin-outreach.functions";
 export const Route = createFileRoute("/_authenticated/admin/crm")({
   head: () => ({
     meta: [
-      { title: "CRM — Sendloop Admin" },
+      { title: "CRM — MunchReach Admin" },
       {
         name: "description",
         content:
           "Platform-wide CRM inspection: pipeline stages, contacts, tasks, notes, activity and campaign history per workspace.",
       },
-      { property: "og:title", content: "CRM — Sendloop Admin" },
+      { property: "og:title", content: "CRM — MunchReach Admin" },
       {
         property: "og:description",
         content: "Read-only cross-workspace CRM inspection for support and platform teams.",

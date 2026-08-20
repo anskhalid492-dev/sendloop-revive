@@ -2,7 +2,7 @@
  * Warmup message content.
  *
  * Plain, ordinary mailbox conversation between two mailboxes that both belong
- * to Sendloop customers who opted into warmup. Content is varied so a mailbox
+ * to MunchReach customers who opted into warmup. Content is varied so a mailbox
  * does not send the identical string repeatedly; it is not designed to imitate
  * any particular sender, evade filtering, or manipulate a provider.
  */

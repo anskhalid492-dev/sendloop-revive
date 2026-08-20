@@ -23,6 +23,8 @@ import {
 import { subscribeToNewsletter } from "@/lib/blog.functions";
 import { useSiteContent } from "@/lib/page-seo";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { BRAND_NAME } from "@/lib/branding";
 
 /**
  * Fallback footer. The live footer is managed in Admin → Footer; if that
@@ -54,18 +56,18 @@ const fallbackColumns = [
       { label: "Cold Email Templates", href: "/cold-email-templates" },
       { label: "Help Center", href: "/help-center" },
       { label: "Integrations", href: "/integrations" },
-      { label: "Why Sendloop", href: "/why-sendloop" },
+      { label: "Why MunchReach", href: "/why-sendloop" },
     ],
   },
   {
     title: "Comparisons",
     links: [
-      { label: "Sendloop vs Instantly", href: "/compare/sendloop-vs-instantly" },
-      { label: "Sendloop vs Smartlead", href: "/compare/sendloop-vs-smartlead" },
-      { label: "Sendloop vs lemlist", href: "/compare/sendloop-vs-lemlist" },
-      { label: "Sendloop vs Apollo", href: "/compare/sendloop-vs-apollo" },
-      { label: "Sendloop vs Saleshandy", href: "/compare/sendloop-vs-saleshandy" },
-      { label: "Sendloop Alternatives", href: "/compare/sendloop-alternatives" },
+      { label: "MunchReach vs Instantly", href: "/compare/sendloop-vs-instantly" },
+      { label: "MunchReach vs Smartlead", href: "/compare/sendloop-vs-smartlead" },
+      { label: "MunchReach vs lemlist", href: "/compare/sendloop-vs-lemlist" },
+      { label: "MunchReach vs Apollo", href: "/compare/sendloop-vs-apollo" },
+      { label: "MunchReach vs Saleshandy", href: "/compare/sendloop-vs-saleshandy" },
+      { label: "MunchReach Alternatives", href: "/compare/sendloop-alternatives" },
     ],
   },
   {
@@ -182,7 +184,7 @@ export function SiteFooter() {
   const tagline =
     content?.footerConfig?.tagline ??
     "Send personalized cold emails, automate follow-ups, and manage every reply from one workspace.";
-  const copyright = content?.footerConfig?.copyright ?? "Sendloop. All rights reserved.";
+  const copyright = content?.footerConfig?.copyright ?? "MunchReach. All rights reserved.";
 
   const onSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,10 +209,7 @@ export function SiteFooter() {
           {/* Brand + newsletter */}
           <div>
             <div className="flex items-center gap-3">
-              <span className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Send className="size-5" />
-              </span>
-              <span className="text-2xl font-bold tracking-tight">Sendloop</span>
+              <BrandLogo className="h-9 max-w-[220px]" alt={`${BRAND_NAME} logo`} />
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">{tagline}</p>
 

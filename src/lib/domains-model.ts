@@ -1,7 +1,7 @@
 /**
  * Client-safe types and labels for customer-owned sending domains and mailboxes.
  *
- * Sendloop never provisions domains or mailboxes: everything here describes
+ * MunchReach never provisions domains or mailboxes: everything here describes
  * infrastructure the customer owns and connects themselves.
  */
 
@@ -65,11 +65,11 @@ export const RECORD_KIND_LABEL: Record<DnsRecordView["kind"], string> = {
 };
 
 /**
- * Sending infrastructure is fully managed by Sendloop. Customers connect a
+ * Sending infrastructure is fully managed by MunchReach. Customers connect a
  * mailbox on a domain they own; they never choose, see or submit a sending
  * provider or provider credentials — those live server-side only.
  */
-export const SENDING_INFRA_LABEL = "Managed by Sendloop";
+export const SENDING_INFRA_LABEL = "Managed by MunchReach";
 
 export function domainHealth(domain: {
   dns_status: DnsStatus;

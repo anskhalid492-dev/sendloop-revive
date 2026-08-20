@@ -132,14 +132,14 @@ const instantly: Comparison = {
     "Your workflows are already built around Instantly and the switching cost outweighs consolidation.",
   ],
   migration: [
-    { title: "1. Bring your lists", body: "Export leads from Instantly as CSV and import them into Sendloop with field mapping and custom fields." },
-    { title: "2. Reconnect mailboxes", body: "Add the same mailboxes or domains in Sendloop; DNS and authentication are verified before sending resumes." },
-    { title: "3. Keep warming", body: "Turn on Sendloop warmup so mailbox reputation keeps building during the switch." },
+    { title: "1. Bring your lists", body: "Export leads from Instantly as CSV and import them into MunchReach with field mapping and custom fields." },
+    { title: "2. Reconnect mailboxes", body: "Add the same mailboxes or domains in MunchReach; DNS and authentication are verified before sending resumes." },
+    { title: "3. Keep warming", body: "Turn on MunchReach warmup so mailbox reputation keeps building during the switch." },
     { title: "4. Rebuild sequences", body: "Recreate active sequences step by step, then run a test send and check the variable report before launch." },
   ],
   faqs: [
-    { q: "Can I use my own mailboxes with Sendloop?", a: "Yes. You can connect your own SMTP/IMAP or API-based sending accounts, or use managed sending. Domains are checked for SPF, DKIM and DMARC before they can send." },
-    { q: "Do I still need a separate CRM?", a: "Not for outbound. Sendloop includes a pipeline, contact records, tasks and notes that update from replies. You can still sync to an external CRM through integrations." },
+    { q: "Can I use my own mailboxes with MunchReach?", a: "Yes. You can connect your own SMTP/IMAP or API-based sending accounts, or use managed sending. Domains are checked for SPF, DKIM and DMARC before they can send." },
+    { q: "Do I still need a separate CRM?", a: "Not for outbound. MunchReach includes a pipeline, contact records, tasks and notes that update from replies. You can still sync to an external CRM through integrations." },
     { q: "Is this comparison up to date?", a: "It was last reviewed on 20 August 2026 and describes publicly documented capabilities. Products change often — check the vendor's site before making a decision." },
   ],
 };
@@ -150,7 +150,7 @@ const smartlead: Comparison = {
   competitorSite: "https://smartlead.ai",
   reviewedOn: "2026-08-20",
   heroSummary:
-    "Smartlead is built around large-scale sending with rotating mailboxes. Sendloop covers the same campaign workflow and adds the reply-side of outbound — inbox, CRM, automations and analytics — in the same workspace.",
+    "Smartlead is built around large-scale sending with rotating mailboxes. MunchReach covers the same campaign workflow and adds the reply-side of outbound — inbox, CRM, automations and analytics — in the same workspace.",
   sendloopBestFor:
     "Teams that want a single workspace for campaigns, replies, pipeline and reporting, with clear guardrails before a campaign launches.",
   competitorBestFor:
@@ -204,14 +204,14 @@ const smartlead: Comparison = {
     "You already have a CRM and reporting stack you don't intend to replace.",
   ],
   migration: [
-    { title: "1. Export campaigns and leads", body: "Pull your lead lists and sequence copy out of Smartlead; CSV import in Sendloop maps fields and custom variables." },
-    { title: "2. Reconnect sending accounts", body: "Add each mailbox in Sendloop and verify domain authentication before enabling sending." },
-    { title: "3. Warm up in parallel", body: "Run Sendloop warmup while you finish the migration so reputation is unaffected." },
+    { title: "1. Export campaigns and leads", body: "Pull your lead lists and sequence copy out of Smartlead; CSV import in MunchReach maps fields and custom variables." },
+    { title: "2. Reconnect sending accounts", body: "Add each mailbox in MunchReach and verify domain authentication before enabling sending." },
+    { title: "3. Warm up in parallel", body: "Run MunchReach warmup while you finish the migration so reputation is unaffected." },
     { title: "4. Rebuild and test", body: "Recreate sequences, send a test email, review the variable report, then launch." },
   ],
   faqs: [
-    { q: "Does Sendloop rotate between mailboxes?", a: "Yes. Campaigns can send from multiple connected accounts with per-account daily caps and sending windows." },
-    { q: "Can I keep my external CRM?", a: "Yes. Sendloop's CRM is built in, and integrations plus webhooks let you push activity to the CRM you already use." },
+    { q: "Does MunchReach rotate between mailboxes?", a: "Yes. Campaigns can send from multiple connected accounts with per-account daily caps and sending windows." },
+    { q: "Can I keep my external CRM?", a: "Yes. MunchReach's CRM is built in, and integrations plus webhooks let you push activity to the CRM you already use." },
     { q: "How current is this comparison?", a: "Reviewed 20 August 2026 based on publicly documented features. Verify details on the vendor's site before deciding." },
   ],
 };
@@ -222,7 +222,7 @@ const lemlist: Comparison = {
   competitorSite: "https://lemlist.com",
   reviewedOn: "2026-08-20",
   heroSummary:
-    "lemlist is a multichannel sales engagement tool with strong personalization and built-in lead data. Sendloop is email-first and focuses on running the whole email motion — sending, deliverability, replies, pipeline and automations — in one workspace.",
+    "lemlist is a multichannel sales engagement tool with strong personalization and built-in lead data. MunchReach is email-first and focuses on running the whole email motion — sending, deliverability, replies, pipeline and automations — in one workspace.",
   sendloopBestFor:
     "Teams whose outbound is email-led and who want deliverability controls, a unified inbox and CRM without extra tools.",
   competitorBestFor:
@@ -276,14 +276,14 @@ const lemlist: Comparison = {
     "Highly creative personalization such as dynamic images is central to your campaigns.",
   ],
   migration: [
-    { title: "1. Export your contacts", body: "Download your lemlist leads as CSV and import them into Sendloop, mapping custom variables as you go." },
-    { title: "2. Connect mailboxes and domains", body: "Add sending accounts in Sendloop and pass SPF, DKIM and DMARC checks before enabling them." },
-    { title: "3. Rebuild the email steps", body: "Recreate the email portion of your sequences; keep non-email steps as CRM tasks in Sendloop." },
+    { title: "1. Export your contacts", body: "Download your lemlist leads as CSV and import them into MunchReach, mapping custom variables as you go." },
+    { title: "2. Connect mailboxes and domains", body: "Add sending accounts in MunchReach and pass SPF, DKIM and DMARC checks before enabling them." },
+    { title: "3. Rebuild the email steps", body: "Recreate the email portion of your sequences; keep non-email steps as CRM tasks in MunchReach." },
     { title: "4. Verify before launch", body: "Run a test send, review unresolved variables, and start with a conservative daily cap." },
   ],
   faqs: [
-    { q: "Does Sendloop support LinkedIn or calling steps?", a: "Sendloop is email-first. Non-email touches can be tracked as CRM tasks on the contact record rather than as automated channel steps." },
-    { q: "Can I bring my lemlist templates?", a: "Yes. Paste your copy into Sendloop templates and map personalization tokens to Sendloop variables; the variable report flags anything that won't resolve." },
+    { q: "Does MunchReach support LinkedIn or calling steps?", a: "MunchReach is email-first. Non-email touches can be tracked as CRM tasks on the contact record rather than as automated channel steps." },
+    { q: "Can I bring my lemlist templates?", a: "Yes. Paste your copy into MunchReach templates and map personalization tokens to MunchReach variables; the variable report flags anything that won't resolve." },
     { q: "When was this page last reviewed?", a: "20 August 2026. It reflects publicly documented capabilities at that time — check the vendor's site for current details." },
   ],
 };
@@ -295,7 +295,7 @@ const apollo: Comparison = {
   competitorSite: "https://apollo.io",
   reviewedOn: "2026-08-20",
   heroSummary:
-    "Apollo pairs a large B2B contact database with sales engagement. Sendloop is the execution layer for email: sending infrastructure, deliverability, a unified inbox, CRM and automations in one workspace.",
+    "Apollo pairs a large B2B contact database with sales engagement. MunchReach is the execution layer for email: sending infrastructure, deliverability, a unified inbox, CRM and automations in one workspace.",
   sendloopBestFor:
     "Teams that already have (or buy) their data and want the email motion itself — mailboxes, warmup, replies, pipeline — to be excellent.",
   competitorBestFor:
@@ -349,14 +349,14 @@ const apollo: Comparison = {
     "Salesforce or HubSpot is the system of record and deep sync is non-negotiable.",
   ],
   migration: [
-    { title: "1. Export your saved lists", body: "Export contacts and sequence copy from Apollo, then import the CSVs into Sendloop and map custom variables." },
-    { title: "2. Connect mailboxes and domains", body: "Add each sending account in Sendloop and pass domain authentication before enabling sending." },
+    { title: "1. Export your saved lists", body: "Export contacts and sequence copy from Apollo, then import the CSVs into MunchReach and map custom variables." },
+    { title: "2. Connect mailboxes and domains", body: "Add each sending account in MunchReach and pass domain authentication before enabling sending." },
     { title: "3. Warm up first", body: "Run the warmup engine on new or rested mailboxes while you rebuild sequences." },
     { title: "4. Test, then launch", body: "Send a test email, review the unresolved-variable report, and start with conservative daily caps." },
   ],
   faqs: [
-    { q: "Does Sendloop include a contact database?", a: "No. Sendloop is the execution layer — bring your own lists or connect an enrichment provider, and Sendloop handles sending, replies and pipeline." },
-    { q: "Can Sendloop sync with my CRM?", a: "Sendloop has a built-in CRM, and integrations plus webhooks let you push activity into Salesforce, HubSpot or another system of record." },
+    { q: "Does MunchReach include a contact database?", a: "No. MunchReach is the execution layer — bring your own lists or connect an enrichment provider, and MunchReach handles sending, replies and pipeline." },
+    { q: "Can MunchReach sync with my CRM?", a: "MunchReach has a built-in CRM, and integrations plus webhooks let you push activity into Salesforce, HubSpot or another system of record." },
     { q: "How current is this comparison?", a: "Reviewed 20 August 2026 from publicly documented features. Verify details on the vendor's site before deciding." },
   ],
 };
@@ -367,7 +367,7 @@ const saleshandy: Comparison = {
   competitorSite: "https://saleshandy.com",
   reviewedOn: "2026-08-20",
   heroSummary:
-    "Saleshandy is a cold email platform with sequences, mailbox rotation and warmup. Sendloop covers the same sending ground and adds the post-reply workflow — unified inbox, CRM, automations and workspace analytics.",
+    "Saleshandy is a cold email platform with sequences, mailbox rotation and warmup. MunchReach covers the same sending ground and adds the post-reply workflow — unified inbox, CRM, automations and workspace analytics.",
   sendloopBestFor:
     "Teams that want cold email plus everything that happens after the reply in a single workspace.",
   competitorBestFor:
@@ -422,13 +422,13 @@ const saleshandy: Comparison = {
   ],
   migration: [
     { title: "1. Export prospects and copy", body: "Download your Saleshandy prospects as CSV and copy your sequence content." },
-    { title: "2. Add mailboxes and domains", body: "Connect each sending account in Sendloop and clear SPF, DKIM and DMARC checks." },
-    { title: "3. Keep warmup running", body: "Start Sendloop warmup on each mailbox before you move live volume across." },
+    { title: "2. Add mailboxes and domains", body: "Connect each sending account in MunchReach and clear SPF, DKIM and DMARC checks." },
+    { title: "3. Keep warmup running", body: "Start MunchReach warmup on each mailbox before you move live volume across." },
     { title: "4. Rebuild and verify", body: "Recreate sequences, run a test send, review unresolved variables, then launch gradually." },
   ],
   faqs: [
-    { q: "Can I connect unlimited mailboxes in Sendloop?", a: "You can connect your own mailboxes with per-account daily caps and sending windows; how many are available depends on your plan's entitlements." },
-    { q: "Does Sendloop replace my CRM?", a: "It can — the built-in CRM is created automatically from replies — but integrations and webhooks also let you keep an external CRM as the system of record." },
+    { q: "Can I connect unlimited mailboxes in MunchReach?", a: "You can connect your own mailboxes with per-account daily caps and sending windows; how many are available depends on your plan's entitlements." },
+    { q: "Does MunchReach replace my CRM?", a: "It can — the built-in CRM is created automatically from replies — but integrations and webhooks also let you keep an external CRM as the system of record." },
     { q: "When was this page last reviewed?", a: "20 August 2026, based on publicly documented capabilities. Check the vendor's site for current details." },
   ],
 };

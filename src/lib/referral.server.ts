@@ -330,7 +330,7 @@ export async function processBillingEvent(input: BillingEventInput): Promise<{ s
   if (!program.enabled) return finish("ignored", "Referral program disabled");
 
   const userId = await resolveUserId(input);
-  if (!userId) return finish("ignored", "No matching Sendloop account");
+  if (!userId) return finish("ignored", "No matching MunchReach account");
 
   const { data: attribution } = await supabaseAdmin
     .from("referral_attributions")

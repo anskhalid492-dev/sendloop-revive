@@ -33,8 +33,8 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 export const Route = createFileRoute("/how-it-works")({
   head: () =>
     metaFor(
-      "How Sendloop Works — From Setup to Replies in 12 Steps",
-      "Workspace, domain, DNS, mailboxes, leads, campaign, AI personalization, launch, inbox, analytics, CRM and automation — the full Sendloop journey.",
+      "How MunchReach Works — From Setup to Replies in 12 Steps",
+      "Workspace, domain, DNS, mailboxes, leads, campaign, AI personalization, launch, inbox, analytics, CRM and automation — the full MunchReach journey.",
       "/how-it-works",
     ),
   component: HowItWorks,
@@ -65,7 +65,7 @@ const steps = [
     n: 3,
     icon: ServerCog,
     title: "Configure DNS",
-    text: "Add the SPF, DKIM and DMARC records Sendloop generates. Verification has to pass before the domain can be used for sending.",
+    text: "Add the SPF, DKIM and DMARC records MunchReach generates. Verification has to pass before the domain can be used for sending.",
   },
   {
     n: 4,
@@ -101,7 +101,7 @@ const steps = [
     n: 9,
     icon: Rocket,
     title: "Launch outreach",
-    text: "Sendloop schedules sends across accounts, respects daily caps and pauses anything whose deliverability signals go the wrong way.",
+    text: "MunchReach schedules sends across accounts, respects daily caps and pauses anything whose deliverability signals go the wrong way.",
   },
   {
     n: 10,
@@ -127,14 +127,14 @@ const screens = [
   {
     eyebrow: "Setup",
     title: "Verified domains before a single send",
-    text: "Sendloop shows exactly which records are missing and re-checks until the domain passes. No campaign can go out on an unverified domain.",
+    text: "MunchReach shows exactly which records are missing and re-checks until the domain passes. No campaign can go out on an unverified domain.",
     bullets: ["Generated SPF, DKIM and DMARC records", "Re-check on demand", "Per-domain mailbox list and health"],
     visual: (
       <MockPanel title="Domains — yourdomain.com">
         <MockRows
           rows={[
             { left: "SPF", muted: "Found on yourdomain.com", badge: "Verified" },
-            { left: "DKIM", muted: "sendloop._domainkey", badge: "Verified" },
+            { left: "DKIM", muted: "munchreach._domainkey", badge: "Verified" },
             { left: "DMARC", muted: "p=quarantine", badge: "Verified" },
             { left: "Mailboxes on this domain", muted: "3 connected · 2 warming", right: "View" },
           ]}

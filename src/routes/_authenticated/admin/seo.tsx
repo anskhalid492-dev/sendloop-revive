@@ -33,7 +33,7 @@ import { getAdminSiteData, saveGlobalSeo, saveSitePage } from "@/lib/site-conten
 export const Route = createFileRoute("/_authenticated/admin/seo")({
   head: () => ({
     meta: [
-      { title: "SEO Manager — Sendloop Admin" },
+      { title: "SEO Manager — MunchReach Admin" },
       {
         name: "description",
         content:
@@ -186,7 +186,7 @@ function GlobalTabs({ config, onSaved }: { config?: GlobalSeoConfig; onSaved: ()
             <Input
               value={draft.title_template}
               onChange={(e) => update({ title_template: e.target.value })}
-              placeholder="%s — Sendloop"
+              placeholder="%s — MunchReach"
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">

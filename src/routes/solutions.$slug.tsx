@@ -25,11 +25,11 @@ export const Route = createFileRoute("/solutions/$slug")({
     const content = solutionsBySlug[params.slug];
     if (!content) {
       return {
-        meta: [{ title: "Solution not found — Sendloop" }, { name: "robots", content: "noindex" }],
+        meta: [{ title: "Solution not found — MunchReach" }, { name: "robots", content: "noindex" }],
       };
     }
     return metaFor(
-      `${content.nav} — Cold Email Outreach | Sendloop`,
+      `${content.nav} — Cold Email Outreach | MunchReach`,
       content.description,
       `https://sendloop.lovable.app/solutions/${content.slug}`,
       content.faqs,
@@ -45,7 +45,7 @@ function SolutionNotFound() {
       <div className="mx-auto max-w-xl px-4 py-28 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Solution not found</h1>
         <p className="mt-3 text-muted-foreground">
-          That page does not exist. Explore what Sendloop can do instead.
+          That page does not exist. Explore what MunchReach can do instead.
         </p>
         <Button className="mt-8" asChild>
           <Link to="/">Back to home</Link>
@@ -79,7 +79,7 @@ function SolutionPage() {
       </Section>
 
       <Section
-        title="How Sendloop solves it"
+        title="How MunchReach solves it"
         description="Everything you need to run outreach, without touching email infrastructure."
       >
         <FeatureGrid items={content.features} />
@@ -97,7 +97,7 @@ function SolutionPage() {
 
       <CtaBlock
         title="Ready to turn cold email into conversations?"
-        description="Create your workspace, launch your first campaign, and let Sendloop handle the rest."
+        description="Create your workspace, launch your first campaign, and let MunchReach handle the rest."
         cta="Start for Free"
         secondaryCta="View Pricing"
         secondaryHref="/pricing"

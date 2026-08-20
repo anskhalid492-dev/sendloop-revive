@@ -304,7 +304,7 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
             </div>
           </dl>
           <p className="mt-4 text-xs text-muted-foreground">
-            Sendloop still respects the limits of the managed mailboxes assigned to your workspace,
+            MunchReach still respects the limits of the managed mailboxes assigned to your workspace,
             so real volume can be lower than this ceiling.
           </p>
         </div>

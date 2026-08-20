@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 import { REVIEW_CATEGORIES, compactNumber } from "@/lib/reviews";
 import { getReviewStats, listPublicReviews } from "@/lib/testimonials.functions";
 
-const TITLE = "Customer Reviews | Sendloop";
+const TITLE = "Customer Reviews | MunchReach";
 const DESCRIPTION =
-  "Read verified Sendloop customer reviews from agencies, SaaS teams, sales teams and recruiters using Sendloop for cold email outreach, deliverability and reply management.";
+  "Read verified MunchReach customer reviews from agencies, SaaS teams, sales teams and recruiters using MunchReach for cold email outreach, deliverability and reply management.";
 
 export const Route = createFileRoute("/customer-reviews")({
   loader: async () => ({
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/customer-reviews")({
                 children: JSON.stringify({
                   "@context": "https://schema.org",
                   "@type": "Product",
-                  name: "Sendloop",
+                  name: "MunchReach",
                   description: DESCRIPTION,
                   aggregateRating: {
                     "@type": "AggregateRating",
@@ -118,10 +118,10 @@ function CustomerReviewsPage() {
             Customer Reviews
           </span>
           <h1 className="mx-auto mt-5 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
-            What teams say about running outreach on Sendloop
+            What teams say about running outreach on MunchReach
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-            Every review below comes from a real Sendloop workspace. Nothing here is written by us,
+            Every review below comes from a real MunchReach workspace. Nothing here is written by us,
             and the numbers are pulled live from the platform.
           </p>
 
@@ -169,7 +169,7 @@ function CustomerReviewsPage() {
         <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
           <h2 className="text-2xl font-semibold">Reviews are on the way</h2>
           <p className="mt-3 text-muted-foreground">
-            We only publish reviews written by verified Sendloop customers, so this page stays empty
+            We only publish reviews written by verified MunchReach customers, so this page stays empty
             until they are collected. Want to share your experience?{" "}
             <Link to="/contact" className="text-primary underline-offset-4 hover:underline">
               Get in touch
@@ -183,7 +183,7 @@ function CustomerReviewsPage() {
             <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
               <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Featured reviews</h2>
               <p className="mt-2 text-muted-foreground">
-                Longer stories from teams running Sendloop day to day.
+                Longer stories from teams running MunchReach day to day.
               </p>
               <div className="mt-8 grid gap-6 lg:grid-cols-2">
                 {featured.slice(0, 2).map((review) => (
@@ -252,7 +252,7 @@ function CustomerReviewsPage() {
       )}
 
       <CtaBlock
-        title="Run your next outreach campaign on Sendloop"
+        title="Run your next outreach campaign on MunchReach"
         description="Managed sending infrastructure, warmup, CRM and a unified inbox in one workspace."
         cta="Start for Free"
         secondaryCta="Talk to us"

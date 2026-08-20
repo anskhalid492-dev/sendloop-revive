@@ -45,7 +45,7 @@ const faqs = [
 export const Route = createFileRoute("/product/unified-inbox")({
   head: () =>
     metaFor(
-      "Unified Inbox for Cold Email Replies — Sendloop",
+      "Unified Inbox for Cold Email Replies — MunchReach",
       "One shared inbox for every mailbox, with AI reply labels, thread history, assignment and internal notes.",
       "/product/unified-inbox",
       faqs,
@@ -178,7 +178,7 @@ function Page() {
         eyebrow="Unified Inbox"
         title="Every reply from every mailbox,"
         highlight="in one place"
-        description="Stop switching between mailboxes. Sendloop pulls replies from all connected accounts into a shared inbox with AI labels, assignment and full prospect history."
+        description="Stop switching between mailboxes. MunchReach pulls replies from all connected accounts into a shared inbox with AI labels, assignment and full prospect history."
         secondaryCta="Explore Unified Inbox"
         secondaryHref="#product"
       />
@@ -192,7 +192,7 @@ function Page() {
       <Section title="Why replies get lost">
         <PainPoints items={painPoints} />
       </Section>
-      <Section title="How Sendloop solves it" description="A single inbox that thinks and triages for you.">
+      <Section title="How MunchReach solves it" description="A single inbox that thinks and triages for you.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
@@ -207,7 +207,7 @@ function Page() {
       <Section title="Who it is for" description="Built for the way outbound teams actually work.">
         <UseCaseGrid items={useCases} />
       </Section>
-      <TestimonialCarousel page="unified-inbox" title="How teams work replies in Sendloop" />
+      <TestimonialCarousel page="unified-inbox" title="How teams work replies in MunchReach" />
       <Section title="Details that matter" muted>
         <BulletList items={bullets} />
       </Section>

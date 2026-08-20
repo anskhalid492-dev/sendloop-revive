@@ -148,9 +148,9 @@ export async function notifyAdmins(
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
         body: JSON.stringify({
-          from: "Sendloop Alerts <onboarding@resend.dev>",
+          from: "MunchReach Alerts <onboarding@resend.dev>",
           to: [settings.notifyEmail],
-          subject: `[Sendloop] ${title}`,
+          subject: `[MunchReach] ${title}`,
           text: `${title}\n\n${lines}\n`,
         }),
       });

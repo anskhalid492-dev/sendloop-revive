@@ -100,7 +100,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
         label: "Site name",
         description: "Used in emails, page titles and the admin header.",
         type: "text",
-        default: "Sendloop",
+        default: "MunchReach",
       },
       {
         key: "site_url",
@@ -211,6 +211,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     fields: [
       { key: "logo_url", label: "Logo", description: "Shown in the app header and emails. Upload a PNG or SVG.", type: "image", default: "" },
       { key: "logo_dark_url", label: "Dark-mode logo", description: "Optional variant for dark backgrounds.", type: "image", default: "" },
+      { key: "login_logo_url", label: "Login logo", description: "Shown on sign-in, sign-up and password screens. Falls back to the main logo.", type: "image", default: "" },
       { key: "favicon_url", label: "Favicon", description: "Browser tab icon. Falls back to /favicon.ico.", type: "image", default: "" },
       { key: "social_image_url", label: "Default social image", description: "Fallback og:image for pages without their own.", type: "image", default: "" },
       { key: "brand_color", label: "Brand colour", description: "Accent colour used in transactional emails.", type: "text", default: "#4f46e5" },
@@ -243,7 +244,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     note: "Provider credentials live in the secret store and are never shown here. Manage providers in Admin → Providers.",
     store: { table: "platform_settings", key: "system.email" },
     fields: [
-      { key: "from_name", label: "Default sender name", description: "From-name on platform (non-campaign) email.", type: "text", default: "Sendloop" },
+      { key: "from_name", label: "Default sender name", description: "From-name on platform (non-campaign) email.", type: "text", default: "MunchReach" },
       { key: "from_email", label: "Default sender address", description: "From-address on platform email. Must be on a verified domain.", type: "text", default: "" },
       { key: "reply_to", label: "Reply-to address", description: "Where replies to platform email are delivered.", type: "text", default: "" },
       { key: "notify_signup", label: "Notify admins on signup", description: "Send an admin notification for every new account.", type: "boolean", default: false },
@@ -275,9 +276,9 @@ export const SETTING_GROUPS: SettingGroup[] = [
     note: "These values are the same records the SEO Manager writes — editing here updates the live site immediately.",
     store: { table: "site_settings", key: "seo" },
     fields: [
-      { key: "site_title", label: "Global site title", description: "Default <title> and og:title for pages without an override.", type: "text", default: "Sendloop — Cold Email Outreach Platform" },
+      { key: "site_title", label: "Global site title", description: "Default <title> and og:title for pages without an override.", type: "text", default: "MunchReach — Cold Email Outreach Platform" },
       { key: "meta_description", label: "Meta description", description: "Default description used when a page has none.", type: "textarea", default: "" },
-      { key: "og_site_name", label: "OG site name", description: "og:site_name value.", type: "text", default: "Sendloop" },
+      { key: "og_site_name", label: "OG site name", description: "og:site_name value.", type: "text", default: "MunchReach" },
       { key: "og_image_url", label: "Default OG image", description: "Absolute URL used for social previews.", type: "url", default: "" },
       { key: "google_verification", label: "Google verification", description: "google-site-verification content value.", type: "text", default: "" },
       { key: "bing_verification", label: "Bing verification", description: "msvalidate.01 content value.", type: "text", default: "" },
@@ -351,7 +352,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     store: { table: "platform_settings", key: "system.maintenance" },
     fields: [
       { key: "maintenance_mode", label: "Maintenance mode", description: "Customers see the maintenance notice; workers stop claiming new work.", type: "boolean", default: false, danger: true },
-      { key: "maintenance_message", label: "Maintenance message", description: "Shown to customers while maintenance mode is on.", type: "textarea", default: "Sendloop is temporarily unavailable while we perform scheduled maintenance." },
+      { key: "maintenance_message", label: "Maintenance message", description: "Shown to customers while maintenance mode is on.", type: "textarea", default: "MunchReach is temporarily unavailable while we perform scheduled maintenance." },
       { key: "allow_admin_access", label: "Allow admin access", description: "Platform admins keep full access during maintenance.", type: "boolean", default: true },
       { key: "maintenance_until", label: "Expected back at", description: "Optional ISO timestamp shown to customers.", type: "text", default: "" },
     ],
@@ -412,7 +413,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     fields: [
       { key: "cookie_banner_enabled", label: "Cookie consent banner", description: "Show the consent banner to visitors who have not chosen yet.", type: "boolean", default: false },
       { key: "banner_title", label: "Banner title", description: "Heading shown in the consent banner.", type: "text", default: "We use cookies" },
-      { key: "banner_text", label: "Banner text", description: "Explanation shown to visitors.", type: "textarea", default: "We use essential cookies to run Sendloop, plus optional analytics and marketing cookies. You choose what we may use." },
+      { key: "banner_text", label: "Banner text", description: "Explanation shown to visitors.", type: "textarea", default: "We use essential cookies to run MunchReach, plus optional analytics and marketing cookies. You choose what we may use." },
       { key: "accept_label", label: "Accept button label", description: "Label for the accept-all action.", type: "text", default: "Accept all" },
       { key: "reject_label", label: "Reject button label", description: "Label for the essential-only action.", type: "text", default: "Essential only" },
       { key: "analytics_consent", label: "Analytics category", description: "Offer an analytics cookie category in the banner.", type: "boolean", default: true },

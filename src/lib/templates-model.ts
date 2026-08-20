@@ -1,4 +1,4 @@
-/** Shared, client-safe types and helpers for the Sendloop template library. */
+/** Shared, client-safe types and helpers for the MunchReach template library. */
 
 import { usedVariables } from "@/lib/campaign-model";
 

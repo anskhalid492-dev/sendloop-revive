@@ -52,10 +52,12 @@ import { useOAuthPolicy } from "@/hooks/useOAuthPolicy";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { AnnouncementBar } from "@/components/platform/AnnouncementBar";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { BRAND_NAME } from "@/lib/branding";
 
 /**
  * Customer navigation only. Sending infrastructure (providers, pool,
- * assignment) is Sendloop-managed and lives in the separate staff area,
+ * assignment) is MunchReach-managed and lives in the separate staff area,
  * which is never linked from the customer dashboard.
  */
 const navGroups = [
@@ -172,11 +174,13 @@ export function AppShell({
   const sidebar = (
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-sidebar-border px-4 py-4">
-        <Link to="/dashboard" className="flex min-w-0 items-center gap-2" onClick={() => setOpen(false)}>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Send className="size-4" />
-          </span>
-          <span className="truncate text-base font-bold tracking-tight">Sendloop</span>
+        <Link
+          to="/dashboard"
+          className="flex min-w-0 items-center gap-2"
+          onClick={() => setOpen(false)}
+          aria-label={BRAND_NAME}
+        >
+          <BrandLogo className="h-7 max-w-[168px]" />
         </Link>
         <button
           type="button"

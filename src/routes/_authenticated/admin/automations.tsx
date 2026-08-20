@@ -39,13 +39,13 @@ import { adminOutreachFilters } from "@/lib/admin-outreach.functions";
 export const Route = createFileRoute("/_authenticated/admin/automations")({
   head: () => ({
     meta: [
-      { title: "Automations — Sendloop Admin" },
+      { title: "Automations — MunchReach Admin" },
       {
         name: "description",
         content:
           "Every customer automation with real execution statistics, workflow steps, run history and errors from the live automation engine.",
       },
-      { property: "og:title", content: "Automations — Sendloop Admin" },
+      { property: "og:title", content: "Automations — MunchReach Admin" },
       {
         property: "og:description",
         content: "Cross-workspace automation monitoring with safe enable, pause and disable.",

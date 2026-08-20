@@ -1,7 +1,7 @@
 /**
  * Phase 7 — platform providers, webhooks and environment status. Server only.
  *
- * This module is a *read model* over the systems Sendloop already owns:
+ * This module is a *read model* over the systems MunchReach already owns:
  *  - `email_providers`      → sending infrastructure (managed, server-side only)
  *  - `billing_providers`    → billing adapters (via billing/provider-health)
  *  - `integrations`         → customer-facing integrations catalog

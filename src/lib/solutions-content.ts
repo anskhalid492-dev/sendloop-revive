@@ -30,7 +30,7 @@ export type SolutionContent = {
 
 const managedFaq = {
   q: "Do I need my own email infrastructure?",
-  a: "No. Sendloop manages the sending layer for you. You add prospects, write your sequence and launch — we take care of getting the emails delivered.",
+  a: "No. MunchReach manages the sending layer for you. You add prospects, write your sequence and launch — we take care of getting the emails delivered.",
 };
 
 export const solutions: SolutionContent[] = [
@@ -200,7 +200,7 @@ export const solutions: SolutionContent[] = [
     ],
     faqs: [
       { q: "Can I test two different pitches?", a: "Yes. Run parallel campaigns on comparable segments and compare reply rates." },
-      { q: "Will this take engineering time?", a: "No. There is nothing to deploy or configure — sending is managed by Sendloop." },
+      { q: "Will this take engineering time?", a: "No. There is nothing to deploy or configure — sending is managed by MunchReach." },
       managedFaq,
     ],
   },

@@ -100,7 +100,7 @@ export async function sendReplyThroughMailbox(args: {
     ...(parentId ? [parentId] : []),
   ].slice(-20);
 
-  // Managed sending: Sendloop-owned credentials + provider-side domain check.
+  // Managed sending: MunchReach-owned credentials + provider-side domain check.
   const { sendManagedEmail } = await import("@/lib/managed-sending.server");
   const send = await sendManagedEmail(
     supabaseAdmin,

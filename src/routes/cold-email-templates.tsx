@@ -33,7 +33,7 @@ const faqs = [
 export const Route = createFileRoute("/cold-email-templates")({
   head: () =>
     metaFor(
-      "Cold Email Templates | Sendloop",
+      "Cold Email Templates | MunchReach",
       "A cold email template library with openers, follow-ups and breakup emails for agencies, SaaS, recruiting and lead generation — with variables and full sequences you can copy.",
       "/cold-email-templates",
       faqs,
@@ -128,7 +128,7 @@ function TemplateDialog({
 
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => useInSendloop(template)} className="gap-2">
-            Use this template in Sendloop <ArrowRight className="size-4" />
+            Use this template in MunchReach <ArrowRight className="size-4" />
           </Button>
           <CopyButton value={templateCopyText(template)} label="Copy full sequence" size="default" />
         </div>
@@ -348,7 +348,7 @@ function Templates() {
 
       <CtaBlock
         title="Load these into a live sequence"
-        description="Import the full four-step sequence into Sendloop and launch it against your list today."
+        description="Import the full four-step sequence into MunchReach and launch it against your list today."
       />
 
       <TemplateDialog template={active} onOpenChange={(open) => (open ? null : setActive(null))} />

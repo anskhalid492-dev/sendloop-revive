@@ -24,10 +24,10 @@ import { getAdminSiteData, getSitemapPreview, saveRobotsConfig } from "@/lib/sit
 export const Route = createFileRoute("/_authenticated/admin/seo-files")({
   head: () => ({
     meta: [
-      { title: "Robots & Sitemap — Sendloop Admin" },
+      { title: "Robots & Sitemap — MunchReach Admin" },
       {
         name: "description",
-        content: "Edit robots.txt rules and review the exact URLs Sendloop publishes in its sitemap.",
+        content: "Edit robots.txt rules and review the exact URLs MunchReach publishes in its sitemap.",
       },
     ],
   }),

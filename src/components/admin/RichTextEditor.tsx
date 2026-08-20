@@ -507,7 +507,7 @@ function LinkDialog({
         <DialogHeader>
           <DialogTitle>Add link</DialogTitle>
           <DialogDescription>
-            Paste an external URL, search a Sendloop page or blog post, or link to an anchor like #section.
+            Paste an external URL, search a MunchReach page or blog post, or link to an anchor like #section.
           </DialogDescription>
         </DialogHeader>
 
