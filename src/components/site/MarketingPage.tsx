@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { CheckCircle2, type LucideIcon } from "lucide-react";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { applySeoOverrides } from "@/lib/page-seo";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
 import {
@@ -327,7 +328,7 @@ export function metaFor(
   path?: string,
   faqs?: { q: string; a: string }[],
 ) {
-  return {
+  const head = {
     meta: [
       { title },
       { name: "description", content: description },
@@ -357,6 +358,8 @@ export function metaFor(
         }
       : {}),
   };
+  // Admin-managed SEO records override what the page declares in code.
+  return path ? applySeoOverrides(path, head) : head;
 }
 
 

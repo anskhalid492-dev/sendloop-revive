@@ -6,6 +6,8 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
+  isRedirect,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -14,6 +16,9 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { getSiteContent } from "@/lib/site-content.functions";
+import { setSiteContent } from "@/lib/page-seo";
+
 
 function NotFoundComponent() {
   return (
@@ -75,8 +80,32 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+export const siteContentQueryOptions = {
+  queryKey: ["site-content"] as const,
+  queryFn: () => getSiteContent(),
+  staleTime: 5 * 60 * 1000,
+};
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ context, location }) => {
+    // Load the admin-managed navigation, footer, SEO overrides and redirects
+    // once per session. A content failure must never take the site down, so
+    // every error here falls back to the hardcoded defaults.
+    try {
+      const content = await context.queryClient.ensureQueryData(siteContentQueryOptions);
+      setSiteContent(content);
+      const path =
+        location.pathname.length > 1 ? location.pathname.replace(/\/+$/, "") : location.pathname;
+      const rule = content.redirects.find((r) => r.source === path);
+      if (rule) {
+        throw redirect({ href: rule.destination, statusCode: rule.statusCode as 301 | 302 });
+      }
+    } catch (error) {
+      if (isRedirect(error)) throw error;
+    }
+  },
   head: () => ({
+
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
