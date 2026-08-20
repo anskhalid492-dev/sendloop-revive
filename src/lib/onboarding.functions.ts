@@ -48,7 +48,7 @@ export const completeOnboarding = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
-        workspaceName: z.string().trim().min(2).max(60),
+        workspaceName: z.string().trim().min(2).max(200),
         companyName: z.string().trim().max(80).optional().nullable(),
         logoUrl: z.string().trim().url().max(500).optional().nullable().or(z.literal("")),
         persona: z.string().trim().max(40).optional().nullable(),
