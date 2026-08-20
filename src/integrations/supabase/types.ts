@@ -405,6 +405,455 @@ export type Database = {
           },
         ]
       }
+      billing_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          detail: Json
+          environment: Database["public"]["Enums"]["billing_environment"] | null
+          event_id: string | null
+          id: string
+          provider: Database["public"]["Enums"]["billing_provider"] | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          detail?: Json
+          environment?:
+            | Database["public"]["Enums"]["billing_environment"]
+            | null
+          event_id?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["billing_provider"] | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          detail?: Json
+          environment?:
+            | Database["public"]["Enums"]["billing_environment"]
+            | null
+          event_id?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["billing_provider"] | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_customer_id: string
+          id: string
+          provider: Database["public"]["Enums"]["billing_provider"]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_customer_id: string
+          id?: string
+          provider: Database["public"]["Enums"]["billing_provider"]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          external_customer_id?: string
+          id?: string
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_invoices: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_invoice_id: string
+          hosted_url: string | null
+          id: string
+          issued_at: string
+          number: string | null
+          pdf_url: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          status: string
+          subscription_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_invoice_id: string
+          hosted_url?: string | null
+          id?: string
+          issued_at?: string
+          number?: string | null
+          pdf_url?: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          status?: string
+          subscription_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          external_invoice_id?: string
+          hosted_url?: string | null
+          id?: string
+          issued_at?: string
+          number?: string | null
+          pdf_url?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          status?: string
+          subscription_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_plan_prices: {
+        Row: {
+          billing_interval: Database["public"]["Enums"]["billing_interval"]
+          created_at: string
+          currency: string
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_price_id: string
+          id: string
+          plan_id: string
+          provider: Database["public"]["Enums"]["billing_provider"]
+          updated_at: string
+        }
+        Insert: {
+          billing_interval: Database["public"]["Enums"]["billing_interval"]
+          created_at?: string
+          currency?: string
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_price_id: string
+          id?: string
+          plan_id: string
+          provider: Database["public"]["Enums"]["billing_provider"]
+          updated_at?: string
+        }
+        Update: {
+          billing_interval?: Database["public"]["Enums"]["billing_interval"]
+          created_at?: string
+          currency?: string
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          external_price_id?: string
+          id?: string
+          plan_id?: string
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_plan_prices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_providers: {
+        Row: {
+          created_at: string
+          environment: Database["public"]["Enums"]["billing_environment"]
+          id: string
+          is_enabled: boolean
+          last_error: string | null
+          last_error_at: string | null
+          last_payment_at: string | null
+          last_webhook_at: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          public_config: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          environment: Database["public"]["Enums"]["billing_environment"]
+          id?: string
+          is_enabled?: boolean
+          last_error?: string | null
+          last_error_at?: string | null
+          last_payment_at?: string | null
+          last_webhook_at?: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          public_config?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          id?: string
+          is_enabled?: boolean
+          last_error?: string | null
+          last_error_at?: string | null
+          last_payment_at?: string | null
+          last_webhook_at?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          public_config?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_subscriptions: {
+        Row: {
+          access_until: string | null
+          amount_cents: number
+          billing_interval: Database["public"]["Enums"]["billing_interval"]
+          cancel_at_period_end: boolean
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_customer_id: string | null
+          external_subscription_id: string
+          grace_until: string | null
+          id: string
+          last_event_at: string | null
+          plan_id: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          status: Database["public"]["Enums"]["billing_sub_status"]
+          trial_ends_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_until?: string | null
+          amount_cents?: number
+          billing_interval?: Database["public"]["Enums"]["billing_interval"]
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_customer_id?: string | null
+          external_subscription_id: string
+          grace_until?: string | null
+          id?: string
+          last_event_at?: string | null
+          plan_id?: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          status?: Database["public"]["Enums"]["billing_sub_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_until?: string | null
+          amount_cents?: number
+          billing_interval?: Database["public"]["Enums"]["billing_interval"]
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          external_customer_id?: string | null
+          external_subscription_id?: string
+          grace_until?: string | null
+          id?: string
+          last_event_at?: string | null
+          plan_id?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          status?: Database["public"]["Enums"]["billing_sub_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_transactions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          description: string | null
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_transaction_id: string
+          id: string
+          kind: string
+          occurred_at: string
+          plan_id: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          provider_event_id: string | null
+          status: string
+          subscription_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          environment: Database["public"]["Enums"]["billing_environment"]
+          external_transaction_id: string
+          id?: string
+          kind?: string
+          occurred_at?: string
+          plan_id?: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          provider_event_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          external_transaction_id?: string
+          id?: string
+          kind?: string
+          occurred_at?: string
+          plan_id?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          provider_event_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_transactions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_webhook_events: {
+        Row: {
+          environment: Database["public"]["Enums"]["billing_environment"]
+          error: string | null
+          event_id: string
+          event_type: string | null
+          http_status: number | null
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          received_at: string
+          retry_count: number
+          signature_ok: boolean
+          status: string
+        }
+        Insert: {
+          environment: Database["public"]["Enums"]["billing_environment"]
+          error?: string | null
+          event_id: string
+          event_type?: string | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          received_at?: string
+          retry_count?: number
+          signature_ok?: boolean
+          status?: string
+        }
+        Update: {
+          environment?: Database["public"]["Enums"]["billing_environment"]
+          error?: string | null
+          event_id?: string
+          event_type?: string | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          received_at?: string
+          retry_count?: number
+          signature_ok?: boolean
+          status?: string
+        }
+        Relationships: []
+      }
       blog_authors: {
         Row: {
           avatar_url: string | null
@@ -5436,7 +5885,17 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "support" | "user"
+      billing_environment: "test" | "live"
       billing_interval: "monthly" | "yearly"
+      billing_provider: "stripe" | "paddle" | "lemonsqueezy"
+      billing_sub_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "payment_failed"
+        | "paused"
+        | "cancelled"
+        | "expired"
       blog_content_type:
         | "article"
         | "guide"
@@ -5615,7 +6074,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "support", "user"],
+      billing_environment: ["test", "live"],
       billing_interval: ["monthly", "yearly"],
+      billing_provider: ["stripe", "paddle", "lemonsqueezy"],
+      billing_sub_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "payment_failed",
+        "paused",
+        "cancelled",
+        "expired",
+      ],
       blog_content_type: [
         "article",
         "guide",
