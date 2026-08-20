@@ -1434,7 +1434,7 @@ export async function adminWarmupAction(
       .from("warmup_jobs")
       .update({ status: "cancelled" })
       .eq("sending_account_id", accountId)
-      .in("status", ["pending", "scheduled"]);
+      .in("status", ["queued"]);
   }
 
   await db().from("warmup_events").insert({
