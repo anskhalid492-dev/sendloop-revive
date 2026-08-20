@@ -263,6 +263,13 @@ export function ConversationList({
           <p className="px-4 py-3 text-center text-[11px] text-muted-foreground">{readyNote}</p>
         ) : null}
       </div>
+
+      {footerNote ? (
+        <div className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+          {footerNote}
+        </div>
+      ) : null}
+
     </div>
   );
 }
