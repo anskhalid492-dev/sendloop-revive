@@ -84,6 +84,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/email-accounts", label: "Email Accounts", icon: AtSign },
       { to: "/admin/domains", label: "Sending Domains", icon: Globe },
       { to: "/admin/warmup", label: "Warmup", icon: Flame },
+      { to: "/admin/crm", label: "CRM", icon: Users },
+      { to: "/admin/automations", label: "Automations", icon: Workflow },
     ],
   },
   {
@@ -98,7 +100,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: "Platform",
     items: [
-      { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
+      { to: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
       { to: "/admin/plans", label: "Plans & Pricing", icon: CreditCard },
       { to: "/admin/features", label: "Feature Manager", icon: Settings },
       { to: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
