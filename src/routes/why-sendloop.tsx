@@ -252,8 +252,6 @@ function WhySendloop() {
         highlight="six disconnected tools"
         description="Campaigns, replies, contacts, warmup, analytics and automation belong to the same workflow. Sendloop puts them in one workspace, on sending infrastructure you own."
         primaryCta="Start for Free"
-        secondaryCta="See how it works"
-        secondaryHref="/how-it-works"
       />
 
       <Section
