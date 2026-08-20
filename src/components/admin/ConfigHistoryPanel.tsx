@@ -49,9 +49,9 @@ export function ConfigHistoryPanel() {
               {history.map((row, index) => (
                 <tr key={`${row.id}-${index}`} className="align-top">
                   <td className="whitespace-nowrap py-2 pr-3 text-xs text-muted-foreground">
-                    {new Date(row.created_at).toLocaleString()}
+                    {new Date(row.when).toLocaleString()}
                   </td>
-                  <td className="py-2 pr-3 text-xs">{row.actor_email ?? "—"}</td>
+                  <td className="py-2 pr-3 text-xs">{row.actorEmail ?? "—"}</td>
                   <td className="py-2 pr-3 font-mono text-xs">{row.setting}</td>
                   <td className="max-w-[180px] truncate py-2 pr-3 text-xs text-muted-foreground">
                     {row.from || "—"}
