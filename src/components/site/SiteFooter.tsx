@@ -47,6 +47,8 @@ const fallbackColumns = [
   {
     title: "Company",
     links: [
+      { label: "Why Sendloop", href: "/why-sendloop" },
+      { label: "How It Works", href: "/how-it-works" },
       { label: "About Us", href: "/about" },
       { label: "Contact", href: "/contact" },
       { label: "Pricing", href: "/pricing" },

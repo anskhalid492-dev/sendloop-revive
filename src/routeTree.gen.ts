@@ -24,6 +24,7 @@ import { Route as DocsRouteImport } from './routes/docs'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReferralRouteImport } from './routes/referral'
@@ -34,6 +35,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as WhySendloopRouteImport } from './routes/why-sendloop'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
@@ -205,6 +207,11 @@ const HelpCenterRoute = HelpCenterRouteImport.update({
   path: '/help-center',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -253,6 +260,11 @@ const TermsRoute = TermsRouteImport.update({
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhySendloopRoute = WhySendloopRouteImport.update({
+  id: '/why-sendloop',
+  path: '/why-sendloop',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
@@ -795,6 +807,7 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
+  '/how-it-works': typeof HowItWorksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
@@ -805,6 +818,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/why-sendloop': typeof WhySendloopRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -916,6 +930,7 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
@@ -926,6 +941,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/why-sendloop': typeof WhySendloopRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1039,6 +1055,7 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
+  '/how-it-works': typeof HowItWorksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
@@ -1049,6 +1066,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/why-sendloop': typeof WhySendloopRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
@@ -1163,6 +1181,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/forgot-password'
     | '/help-center'
+    | '/how-it-works'
     | '/pricing'
     | '/privacy'
     | '/referral'
@@ -1173,6 +1192,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/verify-email'
+    | '/why-sendloop'
     | '/admin'
     | '/analytics'
     | '/billing'
@@ -1284,6 +1304,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/features'
     | '/forgot-password'
+    | '/how-it-works'
     | '/pricing'
     | '/privacy'
     | '/referral'
@@ -1294,6 +1315,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/verify-email'
+    | '/why-sendloop'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -1406,6 +1428,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/forgot-password'
     | '/help-center'
+    | '/how-it-works'
     | '/pricing'
     | '/privacy'
     | '/referral'
@@ -1416,6 +1439,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/verify-email'
+    | '/why-sendloop'
     | '/_authenticated/admin'
     | '/_authenticated/analytics'
     | '/_authenticated/billing'
@@ -1530,6 +1554,7 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpCenterRoute: typeof HelpCenterRouteWithChildren
+  HowItWorksRoute: typeof HowItWorksRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReferralRoute: typeof ReferralRoute
@@ -1540,6 +1565,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  WhySendloopRoute: typeof WhySendloopRoute
   BlogSlugRoute: typeof BlogSlugRoute
   IntegrationsSlugRoute: typeof IntegrationsSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
@@ -1679,6 +1705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpCenterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -1747,6 +1780,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/why-sendloop': {
+      id: '/why-sendloop'
+      path: '/why-sendloop'
+      fullPath: '/why-sendloop'
+      preLoaderRoute: typeof WhySendloopRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -2632,6 +2672,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpCenterRoute: HelpCenterRouteWithChildren,
+  HowItWorksRoute: HowItWorksRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReferralRoute: ReferralRoute,
@@ -2642,6 +2683,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  WhySendloopRoute: WhySendloopRoute,
   BlogSlugRoute: BlogSlugRoute,
   IntegrationsSlugRoute: IntegrationsSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
