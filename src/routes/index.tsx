@@ -5,15 +5,19 @@ import {
   Briefcase,
   Building2,
   CalendarCheck,
+  CheckCircle2,
   Flame,
   Inbox,
   Layers,
   LineChart,
+  Mail,
+  PlayCircle,
   Repeat,
   Rocket,
   Send,
   ShieldCheck,
   Sparkles,
+  Star,
   Target,
   Upload,
   Users,
@@ -71,6 +75,22 @@ const faqs = [
     a: "Start free, then pick a monthly or yearly plan based on how many prospects, campaigns and emails you need. Full details are on the pricing page.",
   },
 ];
+
+type HeroCard = { icon: typeof Mail; title: string; text: string };
+
+const heroLeftCards: HeroCard[] = [
+  { icon: Mail, title: "Personalized Campaigns", text: "Create hyper-personalized emails that get replies." },
+  { icon: Send, title: "Smart Automation", text: "Automate follow-ups and never miss an opportunity." },
+  { icon: Inbox, title: "Unified Inbox", text: "All replies in one place. Simple. Fast. Focused." },
+];
+
+const heroRightCards: HeroCard[] = [
+  { icon: BarChart3, title: "Real-time Analytics", text: "Track opens, replies, and revenue in real-time." },
+  { icon: Users, title: "Built-in CRM", text: "Manage leads, conversations, and deals effortlessly." },
+  { icon: ShieldCheck, title: "Deliverability First", text: "Warm up, protect your domain, and land in inbox." },
+];
+
+const heroLogos = ["ACME", "NEXTGEN", "GrowthX", "REVOLT", "IMPACT"];
 
 const coreValues = [
   { icon: Layers, title: "Campaigns", text: "Build multi-step cold email sequences." },
@@ -174,6 +194,19 @@ function ExploreLink({ to, children }: { to: string; children: string }) {
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
     </Button>
+  );
+}
+
+function HeroFeatureCard({ card }: { card: HeroCard }) {
+  const Icon = card.icon;
+  return (
+    <div className="surface-card h-full rounded-2xl p-4 text-left">
+      <span className="flex size-9 items-center justify-center rounded-xl bg-primary/12 text-primary">
+        <Icon className="size-4" />
+      </span>
+      <h3 className="mt-3 text-sm font-semibold">{card.title}</h3>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{card.text}</p>
+    </div>
   );
 }
 
