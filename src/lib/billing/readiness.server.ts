@@ -132,7 +132,7 @@ export async function evaluateProvider(
   return {
     provider,
     environment,
-    enabled: row?.enabled === true,
+    enabled: row?.is_enabled === true,
     credentials: { ok: missing.length === 0, missing },
     webhook: {
       path: required.webhookPath,

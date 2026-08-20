@@ -45,7 +45,7 @@ export async function loadConsole() {
       providers.push({
         provider,
         environment,
-        enabled: row?.enabled === true,
+        enabled: row?.is_enabled === true,
         configured: isConfigured(provider, environment),
         lastWebhookAt: row?.last_webhook_at ?? null,
         lastError: row?.last_error ?? null,
@@ -83,7 +83,7 @@ export async function setProviderEnabled(
   const db = await admin();
   const { error } = await db
     .from("billing_providers")
-    .upsert({ provider, environment, enabled }, { onConflict: "provider,environment" });
+    .upsert({ provider, environment, is_enabled: enabled }, { onConflict: "provider,environment" });
   if (error) throw new Error(error.message);
   await writeAudit({
     userId,
