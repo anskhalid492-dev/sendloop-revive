@@ -135,3 +135,36 @@ export const getBillingTestChecklist = createServerFn({ method: "GET" })
     await assertPlatformAdmin(context);
     return loadTestChecklist();
   });
+
+export const getBillingProviderHealth = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { loadProviderHealth } = await import("@/lib/billing/provider-health.server");
+    await assertPlatformAdmin(context);
+    return loadProviderHealth();
+  });
+
+export const testBillingProviderConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { provider: BillingProvider; environment: BillingEnvironment }) =>
+    z.object({ provider: providerEnum, environment: envEnum }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { testProviderConnection } = await import("@/lib/billing/provider-health.server");
+    await assertPlatformAdmin(context);
+    return testProviderConnection(data.provider, data.environment, context.userId);
+  });
+
+export const clearBillingProviderError = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { provider: BillingProvider; environment: BillingEnvironment }) =>
+    z.object({ provider: providerEnum, environment: envEnum }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { clearProviderError } = await import("@/lib/billing/provider-health.server");
+    await assertPlatformAdmin(context);
+    return clearProviderError(data.provider, data.environment, context.userId);
+  });
