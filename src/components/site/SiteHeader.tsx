@@ -88,6 +88,9 @@ const resourceCards: Card[] = [
   { label: "Integrations", to: "/integrations", text: "Connect Sendloop to your CRM, Slack, Zapier and more.", icon: Plug },
   { label: "Customer Reviews", to: "/customer-reviews", text: "See what Sendloop customers say about their outreach.", icon: MessageSquareQuote },
   { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to Sendloop.", icon: Gift },
+  { label: "Why Sendloop", to: "/why-sendloop", text: "See why teams replace six outbound tools with one workspace.", icon: Compass },
+  { label: "How It Works", to: "/how-it-works", text: "The twelve steps from empty workspace to booked meetings.", icon: GraduationCap },
+  { label: "About Sendloop", to: "/about", text: "Our story, our team and where Sendloop is heading.", icon: BookOpen },
 ];
 
 /**
