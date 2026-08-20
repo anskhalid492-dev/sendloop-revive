@@ -270,7 +270,7 @@ export function SiteFooter() {
                 <span className="mt-2 block h-0.5 w-7 rounded-full bg-primary" />
                 <ul className="mt-4 space-y-3">
                   {col.links.map((l) => {
-                    const Icon = col.title === "Product" ? productIcons[l.label] : undefined;
+                    const Icon = col.title === "Products" ? productIcons[l.label] : undefined;
                     return (
                       <li key={`${col.title}-${l.label}`}>
                         <a
