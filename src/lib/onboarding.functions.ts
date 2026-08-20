@@ -24,8 +24,20 @@ export const getOnboardingState = createServerFn({ method: "GET" })
     if (profileError) throw new Error(profileError.message);
     if (memberError) throw new Error(memberError.message);
 
+    // Admin → System settings → General can switch customer onboarding off;
+    // when it is disabled the wizard is skipped entirely.
+    let onboardingEnabled = true;
+    try {
+      const { readSettings } = await import("@/lib/platform-settings.server");
+      const general = await readSettings("general");
+      onboardingEnabled = general["onboarding_enabled"] !== false;
+    } catch {
+      onboardingEnabled = true;
+    }
+
     return {
-      completed: Boolean(profile?.onboarding_completed),
+      onboardingEnabled,
+      completed: !onboardingEnabled || Boolean(profile?.onboarding_completed),
       fullName: profile?.full_name ?? null,
       workspaceCount: count ?? 0,
     };
