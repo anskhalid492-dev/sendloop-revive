@@ -154,7 +154,13 @@ export function SiteHeader() {
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
-  const topNav = topLinks.length ? topLinks : [{ label: "Pricing", to: "/pricing" }, { label: "Blog", to: "/blog" }];
+  const topNav = topLinks.length
+    ? topLinks
+    : [
+        { label: "Customer Reviews", to: "/customer-reviews" },
+        { label: "Blog", to: "/blog" },
+        { label: "Pricing", to: "/pricing" },
+      ];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
