@@ -86,6 +86,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
       { to: "/admin/billing", label: "Billing", icon: CreditCard },
+      { to: "/admin/billing-providers", label: "Billing Providers", icon: CreditCard },
       { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
       { to: "/admin/logs", label: "Logs", icon: ScrollText },
       { to: "/admin/settings", label: "System Settings", icon: Settings },
