@@ -203,8 +203,8 @@ export async function listAdminUsers() {
   ]);
 
   const subs = await subscriptionLookup(plans);
-  const profiles = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
-  const workspaces = new Map((workspacesRes.data ?? []).map((w: any) => [w.id, w]));
+  const profiles = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+  const workspaces = new Map<string, any>((workspacesRes.data ?? []).map((w: any) => [w.id, w]));
   const roles = new Map<string, "admin" | "support">();
   for (const r of rolesRes.data ?? []) {
     if (r.role === "admin") roles.set(r.user_id, "admin");
@@ -276,7 +276,7 @@ export async function getAdminUser(userId: string): Promise<AdminUserDetail> {
       : Promise.resolve({ data: [] }),
     subscriptionLookup(plans),
   ]);
-  const wsMap = new Map((workspacesRes.data ?? []).map((w: any) => [w.id, w]));
+  const wsMap = new Map<string, any>((workspacesRes.data ?? []).map((w: any) => [w.id, w]));
 
   const [activityRes, campaignsRes, ticketsRes, txRes] = await Promise.all([
     workspaceIds.length
@@ -311,7 +311,7 @@ export async function getAdminUser(userId: string): Promise<AdminUserDetail> {
   ]);
 
   const profile: any = profileRes.data ?? {};
-  const mine = (membersRes.data ?? []).map((m: any) => ({
+  const mine: { id: string; name: string; role: string; last: string | null }[] = (membersRes.data ?? []).map((m: any) => ({
     id: m.workspace_id,
     name: wsMap.get(m.workspace_id)?.name ?? "Unknown workspace",
     role: m.role,
@@ -399,7 +399,7 @@ export async function listAdminWorkspaces(): Promise<AdminWorkspaceRow[]> {
     countBy("campaigns", "workspace_id"),
     countBy("sending_accounts", "workspace_id"),
   ]);
-  const profiles = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+  const profiles = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
 
   return (wsRes.data ?? []).map((w: any) => {
     const owner: any = w.owner_id ? profiles.get(w.owner_id) : null;
@@ -476,7 +476,7 @@ export async function getAdminWorkspace(workspaceId: string): Promise<AdminWorks
   const { data: profileRows } = ids.length
     ? await db().from("profiles").select("id,email,full_name,display_name,avatar_url").in("id", ids)
     : { data: [] as any[] };
-  const profiles = new Map((profileRows ?? []).map((p: any) => [p.id, p]));
+  const profiles = new Map<string, any>((profileRows ?? []).map((p: any) => [p.id, p]));
 
   const [{ count: leadCount }, { count: sentCount }] = await Promise.all([
     db().from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
