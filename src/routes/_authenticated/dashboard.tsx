@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -6,13 +6,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   ArrowUpRight,
-  CheckCircle2,
-  Circle,
   Inbox,
   PenLine,
   Send,
   Upload,
-  X,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
