@@ -104,6 +104,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       if (isRedirect(error)) throw error;
     }
   },
+  // The bundle is also returned as loader data so the client has the exact
+  // same content the server rendered with; otherwise the footer and header
+  // hydrate against the hardcoded fallbacks and React reports a mismatch.
+  loader: async ({ context }) => {
+    try {
+      const content = await context.queryClient.ensureQueryData(siteContentQueryOptions);
+      setSiteContent(content);
+      return { siteContent: content };
+    } catch {
+      return { siteContent: null };
+    }
+  },
   head: () => {
     // Global SEO defaults come from Admin → SEO Manager when set; the values
     // below stay as the fallback so the site never renders without metadata.
@@ -188,6 +200,10 @@ function BodyScripts() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { siteContent } = Route.useLoaderData();
+  // Populate the module store before children render so SSR and hydration
+  // read identical navigation, footer and SEO content.
+  if (siteContent) setSiteContent(siteContent);
   const router = useRouter();
 
   useEffect(() => {
