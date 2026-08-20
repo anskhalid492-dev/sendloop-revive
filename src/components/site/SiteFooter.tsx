@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
  */
 const fallbackColumns = [
   {
-    title: "Product",
+    title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
@@ -42,15 +42,6 @@ const fallbackColumns = [
       { label: "Analytics", href: "/product/analytics" },
       { label: "Workspaces", href: "/product/workspaces" },
       { label: "Templates", href: "/product/templates" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "Contact", href: "/contact" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Customer Reviews", href: "/customer-reviews" },
-      { label: "Referral Program", href: "/referral" },
     ],
   },
   {
@@ -66,6 +57,15 @@ const fallbackColumns = [
       { label: "Why Sendloop", href: "/why-sendloop" },
       { label: "How It Works", href: "/how-it-works" },
       { label: "About Us", href: "/about" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "Contact", href: "/contact" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Customer Reviews", href: "/customer-reviews" },
+      { label: "Referral Program", href: "/referral" },
     ],
   },
   {
