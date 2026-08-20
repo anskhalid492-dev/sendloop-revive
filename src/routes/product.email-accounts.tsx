@@ -72,9 +72,9 @@ const solutionRows = [
       <MockPanel title="Managed accounts — Acme workspace">
         <MockBars
           bars={[
-            { label: "outreach@sendloopmail.com", value: 82, caption: "82 sent today · Healthy" },
-            { label: "sam@getsendloop.io", value: 61, caption: "61 sent today · Healthy" },
-            { label: "hello@sendloop.dev", value: 24, caption: "24 sent today · Ramping" },
+            { label: "outreach@munchreachmail.com", value: 82, caption: "82 sent today · Healthy" },
+            { label: "sam@getmunchreach.io", value: 61, caption: "61 sent today · Healthy" },
+            { label: "hello@munchreach.dev", value: 24, caption: "24 sent today · Ramping" },
           ]}
         />
       </MockPanel>

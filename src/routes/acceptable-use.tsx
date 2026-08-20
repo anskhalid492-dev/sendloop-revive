@@ -134,14 +134,14 @@ const sections = [
     id: "appeals",
     heading: "12. Appeals",
     body: [
-      "If your workspace is suspended, you may appeal by emailing compliance@sendloop.app with an explanation and evidence of remediation. We review appeals within 5 business days.",
+      "If your workspace is suspended, you may appeal by emailing compliance@munchreach.app with an explanation and evidence of remediation. We review appeals within 5 business days.",
     ],
   },
   {
     id: "reporting",
     heading: "13. Reporting abuse",
     body: [
-      "If you received unwanted email sent through MunchReach, you can report it to abuse@sendloop.app. We investigate every report and suppress the reported address across the responsible workspace.",
+      "If you received unwanted email sent through MunchReach, you can report it to abuse@munchreach.app. We investigate every report and suppress the reported address across the responsible workspace.",
     ],
   },
   {

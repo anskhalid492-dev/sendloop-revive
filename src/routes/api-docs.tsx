@@ -116,7 +116,7 @@ function ApiDocs() {
 
       <Section title="Authentication" description="Every request needs a workspace-scoped bearer token.">
         <pre className="overflow-x-auto rounded-xl border border-border bg-card p-5 text-sm text-foreground">
-          <code>{`curl https://api.sendloop.app/v1/leads \\
+          <code>{`curl https://api.munchreach.app/v1/leads \\
   -H "Authorization: Bearer sk_live_your_key" \\
   -H "Content-Type: application/json" \\
   -d '{

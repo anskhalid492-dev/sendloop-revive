@@ -75,7 +75,7 @@ function FeaturesPage() {
         title="One workspace, the whole outbound loop"
         description="Build a sequence, launch it, and work replies without leaving MunchReach."
       >
-        <MockPanel title="app.sendloop.com/dashboard">
+        <MockPanel title="app.munchreach.com/dashboard">
           <MockRows
             rows={[
               { left: "Q3 Founders — Step 2", muted: "412 sent today", badge: "Active", right: "31% reply" },

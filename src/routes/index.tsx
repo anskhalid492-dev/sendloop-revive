@@ -274,7 +274,7 @@ function Home() {
                     <span className="size-2.5 rounded-full bg-primary/30" />
                     <span className="size-2.5 rounded-full bg-muted-foreground/25" />
                     <span className="ml-3 text-xs text-muted-foreground">
-                      app.sendloop.com / dashboard
+                      app.munchreach.com / dashboard
                     </span>
                   </div>
                   <img

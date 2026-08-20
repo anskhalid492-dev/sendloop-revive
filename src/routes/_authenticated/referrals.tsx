@@ -112,7 +112,7 @@ function ReferralsPage() {
 
   const link = useMemo(() => {
     if (!data?.profile) return "";
-    const origin = typeof window === "undefined" ? "https://sendloop.app" : window.location.origin;
+    const origin = typeof window === "undefined" ? "https://munchreach.app" : window.location.origin;
     return referralLink(origin, data.profile.code);
   }, [data?.profile]);
 

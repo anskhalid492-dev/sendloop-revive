@@ -162,7 +162,7 @@ function Docs() {
 
       <Section title="What a connected mailbox looks like">
         <div className="mx-auto max-w-2xl">
-          <MockPanel title="workspace.sendloop.app/mailboxes">
+          <MockPanel title="workspace.munchreach.app/mailboxes">
             <MockRows
               rows={[
                 { left: "sales@acme.com", muted: "SES · warmup active", badge: "Healthy" },

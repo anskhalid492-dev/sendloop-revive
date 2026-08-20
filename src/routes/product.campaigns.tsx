@@ -95,9 +95,9 @@ const solutionRows = [
       <MockPanel title="Mailbox rotation — today's send plan">
         <MockRows
           rows={[
-            { left: "sam@sendloop.dev", muted: "Warmed 41 days", right: "62 / 65 sent", badge: "Healthy" },
-            { left: "hello@sendloopmail.com", muted: "Warmed 12 days", right: "24 / 25 sent", badge: "Ramping" },
-            { left: "outreach@getsendloop.io", muted: "Warmed 58 days", right: "78 / 80 sent", badge: "Healthy" },
+            { left: "sam@munchreach.dev", muted: "Warmed 41 days", right: "62 / 65 sent", badge: "Healthy" },
+            { left: "hello@munchreachmail.com", muted: "Warmed 12 days", right: "24 / 25 sent", badge: "Ramping" },
+            { left: "outreach@getmunchreach.io", muted: "Warmed 58 days", right: "78 / 80 sent", badge: "Healthy" },
           ]}
         />
       </MockPanel>

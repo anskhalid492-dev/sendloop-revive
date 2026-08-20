@@ -281,7 +281,7 @@ function Guide() {
             </p>
             <DnsRecord
               desc="Add one SPF TXT record per domain — multiple SPF records invalidate each other."
-              example="v=spf1 include:_spf.sendloop.app ~all"
+              example="v=spf1 include:_spf.munchreach.app ~all"
             />
           </GuideSection>
 

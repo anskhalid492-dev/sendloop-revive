@@ -134,7 +134,7 @@ const screens = [
         <MockRows
           rows={[
             { left: "SPF", muted: "Found on yourdomain.com", badge: "Verified" },
-            { left: "DKIM", muted: "sendloop._domainkey", badge: "Verified" },
+            { left: "DKIM", muted: "munchreach._domainkey", badge: "Verified" },
             { left: "DMARC", muted: "p=quarantine", badge: "Verified" },
             { left: "Mailboxes on this domain", muted: "3 connected · 2 warming", right: "View" },
           ]}

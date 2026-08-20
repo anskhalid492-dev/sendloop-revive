@@ -69,7 +69,7 @@ const solutionRows = [
       "Ramp speed tuned to domain age",
     ],
     visual: (
-      <MockPanel title="Warmup ramp — sam@sendloop.dev">
+      <MockPanel title="Warmup ramp — sam@munchreach.dev">
         <MockBars
           bars={[
             { label: "Week 1", value: 15, caption: "8 emails/day" },
@@ -105,9 +105,9 @@ const solutionRows = [
       <MockPanel title="Mailbox health overview">
         <MockBars
           bars={[
-            { label: "sam@sendloop.dev", value: 96, caption: "96 · Healthy" },
-            { label: "hello@sendloopmail.com", value: 58, caption: "58 · Ramping" },
-            { label: "outreach@getsendloop.io", value: 34, caption: "34 · Bounce spike detected" },
+            { label: "sam@munchreach.dev", value: 96, caption: "96 · Healthy" },
+            { label: "hello@munchreachmail.com", value: 58, caption: "58 · Ramping" },
+            { label: "outreach@getmunchreach.io", value: 34, caption: "34 · Bounce spike detected" },
           ]}
         />
       </MockPanel>
