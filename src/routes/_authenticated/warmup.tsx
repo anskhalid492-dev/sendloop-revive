@@ -158,7 +158,7 @@ function WarmupPage() {
                     <td className="px-3 py-2.5">
                       <p className="font-medium">{row.from_email}</p>
                       <p className="text-xs text-muted-foreground">
-                        {row.domain} · {row.provider}
+                        {row.domain} · Email Account
                         {row.pause_reason ? ` · ${row.pause_reason}` : ""}
                       </p>
                     </td>
@@ -238,7 +238,7 @@ function WarmupPage() {
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Activity className="size-3.5" />
           Warmup runs on a scheduled worker: it sends real emails from your connected mailboxes,
-          tracks provider delivery events and recalculates health after every run.
+          tracks delivery events and recalculates mailbox health after every run.
         </p>
       </div>
 
