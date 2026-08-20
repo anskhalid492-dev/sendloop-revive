@@ -32,6 +32,9 @@ export type Entitlement = {
   accessUntil: string | null;
   limits: Record<PlanLimitKey, number | null>;
   flags: Record<PlanFlagKey, boolean>;
+  /** Admin-managed plan × feature matrix, keyed by feature key. */
+  features: Record<string, boolean>;
+  credits: { included: number; balance: number };
 };
 
 export async function getEntitlement(workspaceId: string): Promise<Entitlement> {
@@ -62,6 +65,13 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
       .maybeSingle();
     plan = data;
   }
+
+  const { data: creditRow } = await db
+    .from("workspace_credits")
+    .select("balance")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  const creditBalance = Number(creditRow?.balance ?? 0);
 
   const rawState = (sub?.status as SubscriptionState | undefined) ?? null;
   const state: SubscriptionState | "none" = rawState ?? "none";
