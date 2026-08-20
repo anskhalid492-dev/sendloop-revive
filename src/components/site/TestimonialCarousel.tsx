@@ -7,15 +7,6 @@ import { cn } from "@/lib/utils";
 import { placeholderAvatar } from "@/lib/reviews";
 import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
-
 function ReviewCard({ t }: { t: Testimonial }) {
   return (
     <figure className="rounded-2xl border border-border/70 bg-card p-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition-colors duration-200 hover:border-primary/30">
@@ -198,6 +189,10 @@ export function TestimonialCarousel({
             {description ?? "Drag any column up or down to read more stories."}
           </p>
         </div>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          Profile illustrations are placeholders and do not depict specific individuals.
+        </p>
 
         <div className="relative mt-8">
           <div className="sm:hidden">

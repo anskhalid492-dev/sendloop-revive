@@ -5,15 +5,6 @@ import { cn } from "@/lib/utils";
 import { categoryLabel } from "@/lib/reviews";
 import type { Testimonial } from "@/lib/testimonials.functions";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
-
 export function Stars({ rating, className }: { rating: number; className?: string }) {
   return (
     <div className={cn("flex items-center gap-0.5", className)} aria-label={`${rating} out of 5 stars`}>
