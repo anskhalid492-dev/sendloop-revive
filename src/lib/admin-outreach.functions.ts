@@ -228,3 +228,16 @@ export const adminWarmupControl = createServerFn({ method: "POST" })
     const { adminWarmupAction } = await import("./admin-outreach.server");
     return adminWarmupAction(context.userId, data.accountId, data.action);
   });
+
+/** CSV export of the lead directory honouring the active filters and scope. */
+export const adminExportLeads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    leadFilters.extend({ scope: z.enum(["page", "all"]).optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { exportAdminLeadsCsv } = await import("./admin-outreach.server");
+    return exportAdminLeadsCsv(data);
+  });

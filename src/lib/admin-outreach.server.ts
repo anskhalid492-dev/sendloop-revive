@@ -1487,3 +1487,71 @@ export async function adminOutreachFilterOptions() {
     })),
   };
 }
+
+/* ==================================================== lead CSV export */
+
+/**
+ * CSV export of the admin lead directory.
+ *
+ * Reuses `listAdminLeads` so the export is exactly what the table shows:
+ * the same filters, and either the current page or every matching row
+ * (capped so a runaway export can never exhaust the worker).
+ */
+export async function exportAdminLeadsCsv(
+  filters: AdminLeadFilters & { scope?: "page" | "all" } = {},
+) {
+  const scope = filters.scope ?? "page";
+  const rows: any[] = [];
+  if (scope === "page") {
+    const result = await listAdminLeads(filters);
+    rows.push(...result.rows);
+  } else {
+    const pageSize = 200;
+    const max = 20000;
+    for (let page = 1; rows.length < max; page += 1) {
+      const result = await listAdminLeads({ ...filters, page, pageSize });
+      rows.push(...result.rows);
+      if (result.rows.length < pageSize || rows.length >= (result.total ?? 0)) break;
+    }
+  }
+
+  const headers = [
+    "email",
+    "name",
+    "company",
+    "job_title",
+    "workspace",
+    "list",
+    "campaigns",
+    "status",
+    "created_at",
+    "last_activity_at",
+  ];
+  const escape = (value: unknown) => {
+    const text = value === null || value === undefined ? "" : String(value);
+    // Neutralise spreadsheet formula injection on export.
+    const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
+  const lines = [headers.join(",")];
+  for (const row of rows) {
+    lines.push(
+      [
+        row.email,
+        row.name,
+        row.company,
+        row.jobTitle,
+        row.workspaceName,
+        row.listName,
+        (row.campaigns ?? []).join(" | "),
+        row.status,
+        row.createdAt,
+        row.lastActivityAt,
+      ]
+        .map(escape)
+        .join(","),
+    );
+  }
+
+  return { csv: lines.join("\n"), count: rows.length };
+}
