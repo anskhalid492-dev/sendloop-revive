@@ -54,23 +54,41 @@ export const listCampaigns = createServerFn({ method: "GET" })
 
 export const listCampaignsOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input) => workspaceScope.parse(input) ?? {})
+  .handler(async ({ data, context }) => {
     const { buildCampaignOverview } = await import("@/lib/campaign-overview");
+    const ws = data?.workspaceId;
+    // Scope every read to the active workspace (platform admins can otherwise
+    // read all tenants' rows through RLS).
+    const scoped = <T extends { eq: (c: string, v: string) => T }>(q: T) =>
+      ws ? q.eq("workspace_id", ws) : q;
 
     const [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes] =
       await Promise.all([
-        context.supabase
-          .from("campaigns")
-          .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids")
-          .order("created_at", { ascending: false }),
-        context.supabase.from("campaign_recipients").select("campaign_id, lead_id"),
-        context.supabase.from("campaign_messages").select("campaign_id, status, to_email"),
-        context.supabase.from("campaign_replies").select("campaign_id, lead_id, from_email, sentiment"),
-        context.supabase.from("conversations").select("campaign_id, lead_id, prospect_email, status"),
-        context.supabase
-          .from("sending_accounts")
-          .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status"),
-      ]);
+        scoped(
+          context.supabase
+            .from("campaigns")
+            .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids")
+            .order("created_at", { ascending: false }) as never,
+        ) as never,
+        scoped(context.supabase.from("campaign_recipients").select("campaign_id, lead_id") as never) as never,
+        scoped(context.supabase.from("campaign_messages").select("campaign_id, status, to_email") as never) as never,
+        scoped(
+          context.supabase
+            .from("campaign_replies")
+            .select("campaign_id, lead_id, from_email, sentiment") as never,
+        ) as never,
+        scoped(
+          context.supabase
+            .from("conversations")
+            .select("campaign_id, lead_id, prospect_email, status") as never,
+        ) as never,
+        scoped(
+          context.supabase
+            .from("sending_accounts")
+            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status") as never,
+        ) as never,
+      ] as never);
 
     const failure = [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes].find(
       (r) => r.error,
