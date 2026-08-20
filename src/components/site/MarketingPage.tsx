@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, type LucideIcon } from "lucide-react";
+import { CheckCircle2, X as XIcon, type LucideIcon } from "lucide-react";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { applySeoOverrides } from "@/lib/page-seo";
@@ -406,9 +406,9 @@ export function SolutionSplit({
       {rows.map((row, i) => (
         <div
           key={row.title}
-          className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14"
+          className="grid min-w-0 items-center gap-8 lg:grid-cols-2 lg:gap-14"
         >
-          <div className={i % 2 === 1 ? "lg:order-2" : undefined}>
+          <div className={i % 2 === 1 ? "min-w-0 lg:order-2" : "min-w-0"}>
             {row.eyebrow ? (
               <span className="text-xs font-semibold tracking-wide text-primary uppercase">
                 {row.eyebrow}
@@ -429,7 +429,7 @@ export function SolutionSplit({
               </ul>
             ) : null}
           </div>
-          <div className={i % 2 === 1 ? "lg:order-1" : undefined}>{row.visual}</div>
+          <div className={i % 2 === 1 ? "min-w-0 lg:order-1" : "min-w-0"}>{row.visual}</div>
         </div>
       ))}
     </div>
@@ -461,7 +461,7 @@ export function MockPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="browser-frame">
+    <div className="browser-frame min-w-0 max-w-full overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border bg-secondary/50 px-4 py-3">
         <span className="size-2.5 rounded-full bg-destructive/40" />
         <span className="size-2.5 rounded-full bg-primary/30" />
@@ -516,9 +516,9 @@ export function MockBars({
     <div className="space-y-3.5">
       {bars.map((b) => (
         <div key={b.label}>
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium">{b.label}</span>
-            <span className="text-muted-foreground">{b.caption ?? `${b.value}%`}</span>
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="min-w-0 flex-1 truncate font-medium">{b.label}</span>
+            <span className="shrink-0 text-muted-foreground">{b.caption ?? `${b.value}%`}</span>
           </div>
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
             <div
@@ -611,4 +611,78 @@ export function faqJsonLd(faqs: { q: string; a: string }[]) {
       })),
     }),
   };
+}
+
+
+/** Side-by-side "life before / life after" contrast block. */
+export function BeforeAfter({
+  beforeTitle = "Without Sendloop",
+  afterTitle = "With Sendloop",
+  before,
+  after,
+}: {
+  beforeTitle?: string;
+  afterTitle?: string;
+  before: string[];
+  after: string[];
+}) {
+  return (
+    <div className="grid min-w-0 gap-4 md:grid-cols-2">
+      <div className="min-w-0 rounded-2xl border border-border bg-muted/40 p-6">
+        <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          {beforeTitle}
+        </h3>
+        <ul className="mt-4 space-y-3">
+          {before.map((b) => (
+            <li key={b} className="flex gap-3 text-sm text-muted-foreground">
+              <XIcon className="mt-0.5 size-4 shrink-0 text-destructive/70" />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="min-w-0 rounded-2xl border border-primary/30 bg-primary/[0.04] p-6">
+        <h3 className="text-sm font-semibold tracking-wide text-primary uppercase">
+          {afterTitle}
+        </h3>
+        <ul className="mt-4 space-y-3">
+          {after.map((b) => (
+            <li key={b} className="flex gap-3 text-sm">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span className="text-foreground/90">{b}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/** Who this is for — concrete scenarios with the outcome each team gets. */
+export function UseCaseGrid({
+  items,
+}: {
+  items: { icon?: LucideIcon; audience: string; scenario: string; outcome: string }[];
+}) {
+  return (
+    <div className="grid min-w-0 gap-4 md:grid-cols-3">
+      {items.map((item) => (
+        <div
+          key={item.audience}
+          className="min-w-0 rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/40"
+        >
+          {item.icon ? (
+            <span className="mb-4 inline-flex size-9 items-center justify-center rounded-lg bg-primary/12 text-primary">
+              <item.icon className="size-4" />
+            </span>
+          ) : null}
+          <h3 className="text-base font-semibold">{item.audience}</h3>
+          <p className="mt-2 text-sm text-muted-foreground">{item.scenario}</p>
+          <p className="mt-4 border-t border-border/70 pt-3 text-sm font-medium text-primary">
+            {item.outcome}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
 }

@@ -22,6 +22,8 @@ import {
   MockPanel,
   PageHero,
   PainPoints,
+  BeforeAfter,
+  UseCaseGrid,
   Section,
   SolutionSplit,
   StatStrip,
@@ -137,6 +139,37 @@ const bullets = [
   "Capacity requests handled by the Sendloop team",
 ];
 
+const beforeAfter = {
+  before: [
+  "SMTP credentials pasted into a doc and shared over Slack",
+  "No idea which mailbox is throttled, paused or failing",
+  "DNS setup guessed once and never verified again"
+],
+  after: [
+  "Credentials encrypted server-side and never returned to the browser",
+  "Live per-mailbox health, caps and send counts",
+  "Guided SPF, DKIM and DMARC verification before sending"
+],
+};
+
+const useCases = [
+  {
+    "audience": "Google and Microsoft users",
+    "scenario": "You want to send from existing work mailboxes safely.",
+    "outcome": "Connect in minutes with warmup-aware limits."
+  },
+  {
+    "audience": "Bring-your-own provider",
+    "scenario": "You already pay for SES, Postmark, SendGrid or Mailgun.",
+    "outcome": "Plug in your keys and keep your own reputation."
+  },
+  {
+    "audience": "Managed sending",
+    "scenario": "You would rather not run infrastructure at all.",
+    "outcome": "Sendloop-managed domains and mailboxes, fully verified."
+  }
+];
+
 function Page() {
   return (
     <MarketingLayout>
@@ -179,6 +212,12 @@ function Page() {
             { value: "100%", label: "Sends kept inside safe daily limits" },
           ]}
         />
+      </Section>
+      <Section title="Before and after" description="What changes the week you switch." muted>
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+        <UseCaseGrid items={useCases} />
       </Section>
       <TestimonialCarousel page="email-accounts" title="Sending health, in their words" />
       <Section muted>

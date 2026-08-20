@@ -26,6 +26,7 @@ import { ComposeDialog, type ComposeSeed } from "@/components/inbox/ComposeDialo
 import { ConversationList } from "@/components/inbox/ConversationList";
 import { ConversationView } from "@/components/inbox/ConversationView";
 import { InboxSidebar } from "@/components/inbox/InboxSidebar";
+import { useInboxRealtime } from "@/hooks/useInboxRealtime";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
@@ -195,41 +196,20 @@ function Page() {
     void queryClient.invalidateQueries({ queryKey: ["inbox-counts", workspaceId] });
   }, [queryClient, workspaceId]);
 
-  // Live updates: new replies and teammate actions land without a refresh.
-  useEffect(() => {
-    if (!workspaceId) return;
-    const channel = supabase
-      .channel(`inbox-${workspaceId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversations",
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        () => refreshAll(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversation_messages",
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        () => {
-          refreshAll();
-          if (selectedId) {
-            void queryClient.invalidateQueries({ queryKey: ["conversation", selectedId] });
-          }
-        },
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [workspaceId, selectedId, refreshAll, queryClient]);
+  // Live updates: new replies, status changes and teammate actions land without
+  // a refresh, with a polling fallback if the socket drops.
+  const { status: liveStatus } = useInboxRealtime({
+    workspaceId,
+    selectedId,
+    onNewReply: ({ conversationId }: { conversationId: string | null }) => {
+      toast.message("New reply received", {
+        description: "A prospect just replied — the thread is updated.",
+        ...(conversationId
+          ? { action: { label: "Open", onClick: () => setSelectedId(conversationId) } }
+          : {}),
+      });
+    },
+  });
 
   useEffect(() => {
     if (linkedConversationId) setSelectedId(linkedConversationId);
@@ -343,6 +323,7 @@ function Page() {
       isLoading={listQuery.isLoading}
       isFetchingMore={listQuery.isFetchingNextPage}
       isError={listQuery.isError}
+      liveStatus={liveStatus}
       activeFilterCount={activeFilterCount}
       emptyTitle={search || activeFilterCount ? "No matching conversations" : "No replies yet"}
       emptyBody={

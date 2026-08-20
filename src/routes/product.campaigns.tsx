@@ -21,6 +21,8 @@ import {
   MockRows,
   PageHero,
   PainPoints,
+  BeforeAfter,
+  UseCaseGrid,
   Section,
   SolutionSplit,
   StatStrip,
@@ -144,6 +146,39 @@ const bullets = [
   "Timezone-aware scheduling per prospect",
 ];
 
+const beforeAfter = {
+  before: [
+  "Sequences live in spreadsheets and nobody knows who got which email",
+  "One mailbox caps you at ~50 sends a day before reputation slips",
+  "Follow-ups keep firing after a prospect already replied",
+  "Subject lines are picked by opinion, never tested"
+],
+  after: [
+  "Every step, delay and branch is visible on one timeline",
+  "Volume spreads across warmed mailboxes with per-account caps",
+  "Reply, bounce and unsubscribe stop the sequence instantly",
+  "A/B/n variants promote the winner on reply rate automatically"
+],
+};
+
+const useCases = [
+  {
+    "audience": "Founders selling early",
+    "scenario": "You are the only rep and need 20 conversations a week without living in your inbox.",
+    "outcome": "Launch a 4-step sequence in under 10 minutes."
+  },
+  {
+    "audience": "Outbound teams",
+    "scenario": "Five reps, shared lists and overlapping prospects across dozens of campaigns.",
+    "outcome": "Workspace-wide dedupe and suppression before every send."
+  },
+  {
+    "audience": "Lead gen agencies",
+    "scenario": "Separate client sequences, mailboxes and reporting that must never mix.",
+    "outcome": "One workspace per client with isolated data and mailboxes."
+  }
+];
+
 function Page() {
   return (
     <MarketingLayout>
@@ -162,6 +197,9 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
+      <Section title="Why cold email campaigns stall">
+        <PainPoints items={painPoints} />
+      </Section>
       <Section title="How Sendloop solves it" description="One builder for sequencing, testing and mailbox rotation.">
         <SolutionSplit rows={solutionRows} />
       </Section>
@@ -183,6 +221,12 @@ function Page() {
             { value: "<10 min", label: "Median time to launch a new campaign" },
           ]}
         />
+      </Section>
+      <Section title="Before and after" description="What changes the week you switch." muted>
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+        <UseCaseGrid items={useCases} />
       </Section>
       <TestimonialCarousel page="campaigns" title="Teams shipping campaigns with Sendloop" />
       <Section muted>

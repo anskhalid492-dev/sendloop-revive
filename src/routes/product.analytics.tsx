@@ -22,6 +22,8 @@ import {
   MockRows,
   PageHero,
   PainPoints,
+  BeforeAfter,
+  UseCaseGrid,
   Section,
   SolutionSplit,
   StatStrip,
@@ -127,6 +129,37 @@ const stats = [
   { value: "30/60/90d", label: "Trend windows on every mailbox" },
 ];
 
+const beforeAfter = {
+  before: [
+  "Open rate is the only number anyone can quote",
+  "Deliverability problems surface weeks after they start",
+  "Client reports are stitched together by hand every month"
+],
+  after: [
+  "Funnel from delivered to reply to meeting, per step and variant",
+  "Bounce and spam alerts the day a mailbox drifts",
+  "Scheduled CSV and PDF reports, or a read-only share link"
+],
+};
+
+const useCases = [
+  {
+    "audience": "Growth leads",
+    "scenario": "You need to know which sequence actually produces meetings.",
+    "outcome": "Reply-rate attribution down to step and variant."
+  },
+  {
+    "audience": "Deliverability owners",
+    "scenario": "You manage reputation across many mailboxes and domains.",
+    "outcome": "Per-mailbox bounce and complaint trends with alerts."
+  },
+  {
+    "audience": "Agencies",
+    "scenario": "Every client wants a monthly performance report.",
+    "outcome": "Automated client-safe reporting, zero spreadsheets."
+  }
+];
+
 function Page() {
   return (
     <MarketingLayout>
@@ -145,6 +178,9 @@ function Page() {
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
+      <Section title="Why outbound reporting fails">
+        <PainPoints items={pains} />
+      </Section>
       <Section title="How Sendloop solves it" description="Dashboards built around decisions, not vanity numbers.">
         <SolutionSplit rows={solutionRows} />
       </Section>
@@ -156,6 +192,12 @@ function Page() {
       </Section>
       <Section>
         <StatStrip stats={stats} />
+      </Section>
+      <Section title="Before and after" description="What changes the week you switch." muted>
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+        <UseCaseGrid items={useCases} />
       </Section>
       <TestimonialCarousel page="analytics" title="Reporting teams trust" />
       <Section title="Details that matter">
