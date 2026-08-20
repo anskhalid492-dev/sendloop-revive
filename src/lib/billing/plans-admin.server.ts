@@ -247,45 +247,9 @@ export async function setPlanFeature(
   const feature = FEATURE_CATALOG.find((f) => f.key === input.featureKey);
   if (!feature) throw new Error(`Unknown feature: ${input.featureKey}`);
   const db = await admin();
+  const audit = await import("@/lib/billing/change-audit.server");
+  const before = await audit.featureSnapshot(input.planId, input.featureKey);
 
-  if (feature.column) {
-    const { error } = await db
-      .from("plans")
-      .update({ [feature.column]: input.enabled })
-      .eq("id", input.planId);
-    if (error) throw new Error(error.message);
-  } else {
-    const { data: existing } = await db
-      .from("plan_features")
-      .select("id")
-      .eq("plan_id", input.planId)
-      .eq("feature_key", input.featureKey)
-      .maybeSingle();
-    if (existing?.id) {
-      const { error } = await db
-        .from("plan_features")
-        .update({ included: input.enabled })
-        .eq("id", existing.id);
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await db.from("plan_features").insert({
-        plan_id: input.planId,
-        feature_key: input.featureKey,
-        name: feature.label,
-        category: feature.category,
-        included: input.enabled,
-        sort_order: 100,
-      });
-      if (error) throw new Error(error.message);
-    }
-  }
-
-  await writeAudit({
-    userId,
-    action: input.enabled ? "plan_feature.enabled" : "plan_feature.disabled",
-    detail: { planId: input.planId, featureKey: input.featureKey },
-  });
-  return { ok: true };
 }
 
 /* ---------------------------------------------------------- subscriptions */
