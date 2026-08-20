@@ -528,6 +528,21 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
     if (!campaign) throw new Error("Campaign not found");
+    const campaignWorkspaceId = (campaign as unknown as { workspace_id: string }).workspace_id;
+
+    // Every selected lead must live in the campaign's workspace, otherwise the
+    // recipient insert would cross tenants (and RLS would reject it).
+    const { data: leadRows, error: lErr } = await supabase
+      .from("leads")
+      .select(sel("id, workspace_id"))
+      .in("id", data.ids)
+      .returns<Array<{ id: string; workspace_id: string }>>();
+    if (lErr) throw new Error(lErr.message);
+    if ((leadRows ?? []).length !== data.ids.length) throw new Error("Some leads are no longer available");
+    if ((leadRows ?? []).some((l) => l.workspace_id !== campaignWorkspaceId)) {
+      throw new Error("That campaign belongs to a different workspace");
+    }
+
 
     const { data: existing } = await supabase
       .from("campaign_recipients")
