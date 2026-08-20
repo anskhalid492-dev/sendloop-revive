@@ -169,7 +169,7 @@ function AdminCampaignsPage() {
           value={workspace}
           onChange={setWorkspace}
           allLabel="All workspaces"
-          options={(options.data?.workspaces ?? []).map((w) => ({ value: w.id, label: w.name }))}
+          options={(options.data?.workspaces ?? []).map((w: { id: string; name: string }) => ({ value: w.id, label: w.name }))}
         />
         <FilterSelect
           value={status}
@@ -183,7 +183,7 @@ function AdminCampaignsPage() {
           onChange={setAccount}
           allLabel="All mailboxes"
           width="w-56"
-          options={(options.data?.sendingAccounts ?? []).map((a) => ({
+          options={(options.data?.sendingAccounts ?? []).map((a: { id: string; email: string }) => ({
             value: a.id,
             label: a.email,
           }))}
@@ -382,7 +382,7 @@ function CampaignDetail({
           {data.steps.length === 0 ? (
             <EmptyState message="No steps configured." />
           ) : (
-            data.steps.map((step) => (
+            data.steps.map((step: any) => (
               <div key={step.id} className="rounded-lg border p-3">
                 <p className="text-sm font-medium">
                   Step {step.order}: {step.name ?? step.subject ?? step.type}
@@ -410,7 +410,7 @@ function CampaignDetail({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.recipients.slice(0, 50).map((r) => (
+                {data.recipients.slice(0, 50).map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell>
                       <div className="font-medium">{r.email ?? "—"}</div>
@@ -432,7 +432,7 @@ function CampaignDetail({
           {data.sendingAccounts.length === 0 ? (
             <EmptyState message="No mailboxes attached." />
           ) : (
-            data.sendingAccounts.map((a) => (
+            data.sendingAccounts.map((a: any) => (
               <div key={a.id} className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="text-sm font-medium">{a.email}</p>
@@ -456,7 +456,7 @@ function CampaignDetail({
             <EmptyState message="No sending activity recorded yet." />
           ) : (
             <ul className="space-y-2 text-sm">
-              {data.activity.map((a) => (
+              {data.activity.map((a: any) => (
                 <li key={a.id} className="rounded-lg border p-3">
                   <p className="font-medium">{a.subject ?? "(no subject)"}</p>
                   <p className="text-xs text-muted-foreground">
@@ -473,7 +473,7 @@ function CampaignDetail({
             <EmptyState message="No delivery errors recorded." />
           ) : (
             <ul className="space-y-2 text-sm">
-              {data.errors.map((e) => (
+              {data.errors.map((e: any) => (
                 <li key={e.id} className="rounded-lg border border-destructive/30 p-3">
                   <p className="font-medium text-destructive">{e.error}</p>
                   <p className="text-xs text-muted-foreground">
