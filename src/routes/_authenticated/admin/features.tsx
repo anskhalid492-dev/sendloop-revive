@@ -42,7 +42,8 @@ function AdminFeaturesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const plans = data?.plans ?? [];
+  const plans: { id: string; name: string; slug: string; isActive: boolean }[] =
+    (data?.plans ?? []) as { id: string; name: string; slug: string; isActive: boolean }[];
   const categories = Array.from(new Set((data?.matrix ?? []).map((f) => f.category)));
 
   return (
