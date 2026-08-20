@@ -70,12 +70,12 @@ export type AdminCampaignRow = {
 };
 
 export type AdminCampaignFilters = {
-  workspaceId?: string | null;
-  status?: string | null;
-  sendingAccountId?: string | null;
-  from?: string | null;
-  to?: string | null;
-  search?: string | null;
+  workspaceId?: string | null | undefined;
+  status?: string | null | undefined;
+  sendingAccountId?: string | null | undefined;
+  from?: string | null | undefined;
+  to?: string | null | undefined;
+  search?: string | null | undefined;
 };
 
 export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
@@ -395,15 +395,15 @@ export async function adminCampaignAction(
 /* ================================================================ leads */
 
 export type AdminLeadFilters = {
-  workspaceId?: string | null;
-  campaignId?: string | null;
-  listId?: string | null;
-  status?: string | null;
-  search?: string | null;
-  page?: number;
-  pageSize?: number;
-  sort?: "created_at" | "last_activity_at" | "email" | "company";
-  direction?: "asc" | "desc";
+  workspaceId?: string | null | undefined;
+  campaignId?: string | null | undefined;
+  listId?: string | null | undefined;
+  status?: string | null | undefined;
+  search?: string | null | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  sort?: "created_at" | "last_activity_at" | "email" | "company" | undefined;
+  direction?: "asc" | "desc" | undefined;
 };
 
 export async function listAdminLeads(filters: AdminLeadFilters = {}) {
@@ -619,11 +619,11 @@ export async function getAdminLead(leadId: string) {
 /* ====================================================== email accounts */
 
 export type AdminAccountFilters = {
-  workspaceId?: string | null;
-  provider?: string | null;
-  status?: string | null;
-  warmup?: string | null;
-  search?: string | null;
+  workspaceId?: string | null | undefined;
+  provider?: string | null | undefined;
+  status?: string | null | undefined;
+  warmup?: string | null | undefined;
+  search?: string | null | undefined;
 };
 
 /** Connection state derived from the mailbox's real test/auth columns. */
@@ -989,7 +989,13 @@ export async function adminTestAccountConnection(actorId: string, accountId: str
 
 /* ============================================================== domains */
 
-export async function listAdminDomains(filters: { workspaceId?: string | null; status?: string | null; search?: string | null } = {}) {
+export type AdminDomainFilters = {
+  workspaceId?: string | null | undefined;
+  status?: string | null | undefined;
+  search?: string | null | undefined;
+};
+
+export async function listAdminDomains(filters: AdminDomainFilters = {}) {
   let q = db()
     .from("sending_domains")
     .select(
@@ -1170,7 +1176,7 @@ function todayUtc() {
 }
 
 export async function listAdminWarmup(
-  filters: { workspaceId?: string | null; status?: string | null; search?: string | null } = {},
+  filters: AdminDomainFilters = {},
 ) {
   let q = db()
     .from("warmup_settings")
