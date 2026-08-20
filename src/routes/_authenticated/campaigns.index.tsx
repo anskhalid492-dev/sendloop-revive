@@ -64,7 +64,11 @@ function CampaignsPage() {
   const duplicateFn = useServerFn(duplicateCampaign);
   const bulkFn = useServerFn(bulkCampaignAction);
 
-  const campaigns = useQuery({ queryKey: ["campaigns", "overview"], queryFn: () => fetchOverview() });
+  const campaigns = useQuery({
+    queryKey: ["campaigns", "overview", workspace?.id],
+    queryFn: () => fetchOverview({ data: { workspaceId: workspace?.id } } as never),
+    enabled: Boolean(workspace?.id),
+  });
 
   // Rows reflect live metric changes: sends, replies and status edits.
   useEffect(() => {
