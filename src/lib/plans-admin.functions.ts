@@ -147,24 +147,44 @@ export const adminSubscriptionAction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertSuperAdmin } = await import("@/lib/admin-access.server");
     const customer = await import("@/lib/billing/customer.server");
+    const audit = await import("@/lib/billing/change-audit.server");
     await assertSuperAdmin(context);
 
-    if (data.action === "resume") return customer.resumeForWorkspace(data.workspaceId, context.userId);
-    if (data.action === "cancel" || data.action === "cancel_now")
-      return customer.cancelForWorkspace(
-        data.workspaceId,
-        context.userId,
-        data.action === "cancel_now",
-      );
-    if (!data.planId || !data.interval)
-      throw new Error("A target plan and billing interval are required.");
-    return customer.changePlan({
+    const before = await audit.subscriptionSnapshot(data.workspaceId);
+    const run = async () => {
+      if (data.action === "resume")
+        return customer.resumeForWorkspace(data.workspaceId, context.userId);
+      if (data.action === "cancel" || data.action === "cancel_now")
+        return customer.cancelForWorkspace(
+          data.workspaceId,
+          context.userId,
+          data.action === "cancel_now",
+        );
+      if (!data.planId || !data.interval)
+        throw new Error("A target plan and billing interval are required.");
+      return customer.changePlan({
+        workspaceId: data.workspaceId,
+        planId: data.planId,
+        interval: data.interval,
+        userId: context.userId,
+      });
+    };
+
+    const result = await run();
+    await audit.recordAdminChange({
+      actorId: context.userId,
+      action: `subscription.${data.action}`,
+      targetType: "subscription",
+      targetId: data.workspaceId,
+      targetLabel: await audit.workspaceLabel(data.workspaceId),
       workspaceId: data.workspaceId,
-      planId: data.planId,
-      interval: data.interval,
-      userId: context.userId,
+      before,
+      after: await audit.subscriptionSnapshot(data.workspaceId),
+      detail: { requestedPlanId: data.planId ?? null, requestedInterval: data.interval ?? null },
     });
+    return result;
   });
+
 
 /* -------------------------------------------------------------- payments */
 
