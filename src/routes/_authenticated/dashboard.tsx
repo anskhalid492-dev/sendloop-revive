@@ -185,51 +185,22 @@ function DashboardPage() {
         <AnimatePresence>
           {showChecklist ? (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, height: 0 }}
-              className="surface-card relative overflow-hidden p-6"
             >
-              <button
-                className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
-                aria-label="Dismiss checklist"
-                onClick={() => workspaceId && dismissMutation.mutate({ data: { workspaceId } })}
-              >
-                <X className="size-4" />
-              </button>
-              <h3 className="text-lg font-semibold">Get your workspace ready</h3>
-              <div className="mt-3 flex items-center gap-3">
-                <Progress value={(checklistDone / checklistSteps.length) * 100} className="h-2 max-w-xs" />
-                <span className="text-xs text-muted-foreground">
-                  {checklistDone} of {checklistSteps.length} complete
-                </span>
-              </div>
-              <ul className="mt-4 space-y-3 text-sm">
-                {checklistSteps.map((step, i) => (
-                  <motion.li
-                    key={step.label}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-center gap-3"
-                  >
-                    {step.done ? (
-                      <CheckCircle2 className="size-4 text-primary" />
-                    ) : (
-                      <Circle className="size-4 text-muted-foreground" />
-                    )}
-                    <Link
-                      to={step.to}
-                      className={step.done ? "text-muted-foreground line-through" : "hover:underline"}
-                    >
-                      {step.label}
-                    </Link>
-                  </motion.li>
-                ))}
-              </ul>
+              <SetupJourney
+                progress={setupProgress.data}
+                loading={setupProgress.isLoading}
+                variant="compact"
+                onDismiss={() =>
+                  workspaceId && dismissMutation.mutate({ data: { workspaceId } })
+                }
+              />
             </motion.div>
           ) : null}
         </AnimatePresence>
+
 
         <MetricCards
           loading={pulse.isLoading}
