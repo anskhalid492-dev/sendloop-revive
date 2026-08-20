@@ -1,12 +1,14 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   BellRing,
   FileText,
   ArrowLeft,
   BarChart3,
   Building2,
+  ChevronRight,
   CreditCard,
   LayoutDashboard,
   LifeBuoy,
@@ -14,6 +16,7 @@ import {
   Mailbox,
   Menu,
   Plug,
+  Search,
   ScrollText,
   Send,
   Server,
@@ -28,29 +31,208 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { adminGlobalSearch } from "@/lib/admin-dashboard.functions";
+import { listAdminNotifications } from "@/lib/ops.functions";
 import { cn } from "@/lib/utils";
 
-const nav = [
-  { to: "/admin", label: "Admin Overview", icon: LayoutDashboard },
-  { to: "/admin/users", label: "Users", icon: Users },
-  { to: "/admin/workspaces", label: "Workspaces", icon: Building2 },
-  { to: "/admin/providers", label: "Providers", icon: Server },
-  { to: "/admin/infrastructure", label: "Sending Infrastructure", icon: Share2 },
-  { to: "/admin/inbound-events", label: "Inbound Events", icon: Inbox },
-  { to: "/admin/notifications", label: "Alert Audit Log", icon: BellRing },
-  { to: "/admin/pool", label: "Sending Pool", icon: Mailbox },
-  { to: "/admin/campaigns", label: "Campaigns", icon: Send },
-  { to: "/admin/templates", label: "Templates", icon: FileText },
-  { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
-  { to: "/admin/referrals", label: "Referral Program", icon: Gift },
-  { to: "/admin/integrations", label: "Integrations", icon: Plug },
-  { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
-  { to: "/admin/billing", label: "Billing", icon: CreditCard },
-  { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
-  { to: "/admin/logs", label: "Logs", icon: ScrollText },
-  { to: "/admin/settings", label: "System Settings", icon: Settings },
-] as const;
+type NavItem = { to: string; label: string; icon: typeof Users };
+
+const navSections: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Overview",
+    items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "Customers",
+    items: [
+      { to: "/admin/users", label: "Users", icon: Users },
+      { to: "/admin/workspaces", label: "Workspaces", icon: Building2 },
+    ],
+  },
+  {
+    title: "Infrastructure",
+    items: [
+      { to: "/admin/providers", label: "Providers", icon: Server },
+      { to: "/admin/infrastructure", label: "Sending Infrastructure", icon: Share2 },
+      { to: "/admin/pool", label: "Sending Pool", icon: Mailbox },
+      { to: "/admin/inbound-events", label: "Inbound Events", icon: Inbox },
+      { to: "/admin/notifications", label: "Alert Audit Log", icon: BellRing },
+    ],
+  },
+  {
+    title: "Growth",
+    items: [
+      { to: "/admin/campaigns", label: "Campaigns", icon: Send },
+      { to: "/admin/templates", label: "Templates", icon: FileText },
+      { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
+      { to: "/admin/referrals", label: "Referral Program", icon: Gift },
+      { to: "/admin/integrations", label: "Integrations", icon: Plug },
+    ],
+  },
+  {
+    title: "Platform",
+    items: [
+      { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
+      { to: "/admin/billing", label: "Billing", icon: CreditCard },
+      { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
+      { to: "/admin/logs", label: "Logs", icon: ScrollText },
+      { to: "/admin/settings", label: "System Settings", icon: Settings },
+    ],
+  },
+];
+
+const allNav = navSections.flatMap((s) => s.items);
+
+function useBreadcrumbs(pathname: string) {
+  return useMemo(() => {
+    const crumbs: { label: string; to?: string }[] = [{ label: "Admin", to: "/admin" }];
+    const match = allNav
+      .filter((item) => item.to !== "/admin" && pathname.startsWith(item.to))
+      .sort((a, b) => b.to.length - a.to.length)[0];
+    if (match) crumbs.push({ label: match.label, to: match.to });
+    else if (pathname === "/admin") crumbs.push({ label: "Dashboard" });
+    const rest = match ? pathname.slice(match.to.length).split("/").filter(Boolean) : [];
+    for (const part of rest) crumbs.push({ label: decodeURIComponent(part) });
+    return crumbs;
+  }, [pathname]);
+}
+
+function GlobalSearch() {
+  const search = useServerFn(adminGlobalSearch);
+  const [term, setTerm] = useState("");
+  const [debounced, setDebounced] = useState("");
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(term.trim()), 250);
+    return () => clearTimeout(id);
+  }, [term]);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["admin", "search", debounced],
+    queryFn: () => search({ data: { term: debounced } }),
+    enabled: debounced.length >= 2,
+  });
+
+  const destination: Record<string, string> = {
+    user: "/admin/users",
+    workspace: "/admin/workspaces",
+    campaign: "/admin/campaigns",
+    ticket: "/admin/support",
+  };
+
+  return (
+    <Popover open={debounced.length >= 2}>
+      <PopoverTrigger asChild>
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Search users, workspaces, campaigns…"
+            className="pl-9"
+            aria-label="Global admin search"
+          />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 p-1" onOpenAutoFocus={(e) => e.preventDefault()}>
+        {isFetching && !data ? (
+          <p className="p-3 text-sm text-muted-foreground">Searching…</p>
+        ) : !data || data.length === 0 ? (
+          <p className="p-3 text-sm text-muted-foreground">No matches</p>
+        ) : (
+          data.map((r) => (
+            <Link
+              key={`${r.kind}-${r.id}`}
+              to={destination[r.kind] ?? "/admin"}
+              onClick={() => setTerm("")}
+              className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted"
+            >
+              <span className="truncate">
+                {r.label}
+                {r.sublabel ? (
+                  <span className="ml-2 text-xs text-muted-foreground">{r.sublabel}</span>
+                ) : null}
+              </span>
+              <Badge variant="secondary" className="shrink-0 capitalize">
+                {r.kind}
+              </Badge>
+            </Link>
+          ))
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function AdminNotifications() {
+  const list = useServerFn(listAdminNotifications);
+  const { data } = useQuery({
+    queryKey: ["admin", "shell-notifications"],
+    queryFn: () => list({ data: { kind: "all", channel: "all", status: "all", limit: 10 } }),
+    staleTime: 60_000,
+  });
+
+  const failed = (data ?? []).filter((n: { status: string }) => n.status === "failed").length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative" aria-label="Admin notifications">
+          <BellRing className="size-4" />
+          {failed > 0 ? (
+            <span className="absolute right-1 top-1 size-2 rounded-full bg-destructive" />
+          ) : null}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">
+          Platform alerts
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {!data ? (
+            <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+          ) : data.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">No alerts sent yet.</p>
+          ) : (
+            data.map((n: { id: string; title: string; status: string; created_at: string }) => (
+              <div key={n.id} className="border-b border-border/40 px-4 py-3 last:border-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm">{n.title}</p>
+                  <Badge
+                    variant={n.status === "failed" ? "destructive" : "secondary"}
+                    className="shrink-0"
+                  >
+                    {n.status}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {new Date(n.created_at).toLocaleString()}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="border-t border-border/60 p-2">
+          <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+            <Link to="/admin/notifications">View alert audit log</Link>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function AdminShell({
   title,
@@ -65,6 +247,18 @@ export function AdminShell({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const crumbs = useBreadcrumbs(pathname);
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (active) setEmail(data.user?.email ?? null);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -83,21 +277,28 @@ export function AdminShell({
           Sendloop <span className="text-muted-foreground">Admin</span>
         </span>
       </Link>
-      {nav.map((item) => (
-        <Link
-          key={item.to}
-          to={item.to}
-          onClick={() => setOpen(false)}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-            pathname === item.to
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-          )}
-        >
-          <item.icon className="size-4" />
-          {item.label}
-        </Link>
+      {navSections.map((section) => (
+        <div key={section.title} className="mb-2">
+          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {section.title}
+          </p>
+          {section.items.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={() => setOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === item.to
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+              )}
+            >
+              <item.icon className="size-4" />
+              {item.label}
+            </Link>
+          ))}
+        </div>
       ))}
       <div className="mt-auto space-y-1 pt-4">
         <Button asChild variant="ghost" className="w-full justify-start">
@@ -105,10 +306,6 @@ export function AdminShell({
             <ArrowLeft className="size-4" />
             Customer dashboard
           </Link>
-        </Button>
-        <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
-          <LogOut className="size-4" />
-          Sign out
         </Button>
       </div>
     </div>
@@ -130,7 +327,7 @@ export function AdminShell({
       ) : null}
 
       <div className="lg:pl-64">
-        <header className="flex h-16 items-center gap-3 border-b border-border/60 px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/95 px-4 backdrop-blur sm:px-6">
           <button
             className="inline-flex size-9 items-center justify-center rounded-md border border-border lg:hidden"
             onClick={() => setOpen((v) => !v)}
@@ -138,11 +335,70 @@ export function AdminShell({
           >
             {open ? <X className="size-4" /> : <Menu className="size-4" />}
           </button>
-          <div>
-            <h1 className="text-sm font-semibold">{title}</h1>
-            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+
+          <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1 text-sm md:flex">
+            {crumbs.map((crumb, i) => (
+              <span key={`${crumb.label}-${i}`} className="flex items-center gap-1">
+                {i > 0 ? <ChevronRight className="size-3.5 text-muted-foreground/60" /> : null}
+                {crumb.to && i < crumbs.length - 1 ? (
+                  <Link to={crumb.to} className="text-muted-foreground hover:text-foreground">
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span className="truncate font-medium">{crumb.label}</span>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="hidden sm:block">
+              <GlobalSearch />
+            </div>
+            <AdminNotifications />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-2 px-2">
+                  <span className="flex size-7 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+                    {(email ?? "A").slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="hidden max-w-[140px] truncate text-sm md:inline">
+                    {email ?? "Admin"}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="truncate">{email ?? "Admin"}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/settings">
+                    <Settings className="size-4" />
+                    System settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">
+                    <ArrowLeft className="size-4" />
+                    Customer dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="size-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
+
+        <div className="border-b border-border/60 px-4 py-4 sm:px-6">
+          <h1 className="text-lg font-semibold">{title}</h1>
+          {description ? (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+
         <main className="px-4 py-8 sm:px-6">{children}</main>
       </div>
     </div>
