@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
@@ -24,34 +24,11 @@ import {
   MockPanel,
   MockRows,
   MockBars,
-  FaqBlock,
   CtaBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
-const faqs = [
-  {
-    q: "How long does setup take?",
-    a: "Creating a workspace and importing leads takes minutes. The gating step is DNS: records usually propagate within a few hours, and mailboxes should finish warmup before you send at full volume.",
-  },
-  {
-    q: "Do I need my own domain to start?",
-    a: "Yes for sending. Sendloop requires a verified domain you control, with SPF, DKIM and DMARC in place, before a mailbox on it can send campaigns.",
-  },
-  {
-    q: "Which email providers can I connect?",
-    a: "Any SMTP mailbox, plus API providers including SES, SendGrid, Mailgun, Postmark, Resend, Brevo and ZeptoMail.",
-  },
-  {
-    q: "Can I test a campaign before launching?",
-    a: "Every campaign supports a preview with real lead data and a test send from the mailbox that would deliver it, including an unresolved-variable report.",
-  },
-  {
-    q: "What happens when someone replies?",
-    a: "The reply lands in the Unified Inbox, remaining follow-ups for that prospect stop, and a CRM contact is created or updated so the conversation has a record.",
-  },
-];
 
 export const Route = createFileRoute("/how-it-works")({
   head: () =>
@@ -59,7 +36,6 @@ export const Route = createFileRoute("/how-it-works")({
       "How Sendloop Works — From Setup to Replies in 12 Steps",
       "Workspace, domain, DNS, mailboxes, leads, campaign, AI personalization, launch, inbox, analytics, CRM and automation — the full Sendloop journey.",
       "/how-it-works",
-      faqs,
     ),
   component: HowItWorks,
 });
@@ -282,20 +258,6 @@ function HowItWorks() {
 
       <TestimonialCarousel page="how-it-works" />
 
-      <Section title="Setup questions">
-        <FaqBlock faqs={faqs} />
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Deciding between tools?{" "}
-          <Link to="/why-sendloop" className="font-medium text-primary hover:underline">
-            See why teams consolidate on Sendloop
-          </Link>{" "}
-          — or browse the{" "}
-          <Link to="/deliverability-guide" className="font-medium text-primary hover:underline">
-            deliverability guide
-          </Link>
-          .
-        </p>
-      </Section>
 
       <CtaBlock
         title="Start Sending"

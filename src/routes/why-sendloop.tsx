@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   BarChart3,
   Boxes,
@@ -30,34 +30,11 @@ import {
   MockPanel,
   MockRows,
   MockBars,
-  FaqBlock,
   CtaBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
-const faqs = [
-  {
-    q: "Why use Sendloop instead of separate sending, inbox and CRM tools?",
-    a: "Because the handoffs between those tools are where outbound breaks. In Sendloop the campaign, the mailbox that sent it, the reply, the contact record and the analytics are the same dataset — so nothing has to be exported, matched or reconciled.",
-  },
-  {
-    q: "Do I have to use Sendloop's sending infrastructure?",
-    a: "No. You connect your own domains and your own mailboxes (SMTP, SES, SendGrid, Mailgun, Postmark, Resend and others). Sendloop schedules, rotates and monitors sending across the accounts you own.",
-  },
-  {
-    q: "What happens to my data if I leave?",
-    a: "Your domains and mailboxes are yours — they keep working with any provider. Leads, campaigns and replies can be exported from the app at any time.",
-  },
-  {
-    q: "Is Sendloop suitable for agencies with multiple clients?",
-    a: "Yes. Each client gets its own workspace with separate domains, mailboxes, leads, campaigns and reporting, plus role-based team access.",
-  },
-  {
-    q: "Does using my own mailboxes hurt deliverability?",
-    a: "It usually helps, because reputation stays attached to domains you control. Warmup, per-mailbox daily limits and health monitoring run continuously so problems surface before volume does damage.",
-  },
-];
 
 export const Route = createFileRoute("/why-sendloop")({
   head: () =>
@@ -65,7 +42,6 @@ export const Route = createFileRoute("/why-sendloop")({
       "Why Sendloop — One Workspace Instead of Six Outbound Tools",
       "Campaigns, unified inbox, CRM, warmup, analytics and automation on infrastructure you own. See why outbound teams consolidate on Sendloop.",
       "/why-sendloop",
-      faqs,
     ),
   component: WhySendloop,
 });
@@ -320,20 +296,6 @@ function WhySendloop() {
 
       <TestimonialCarousel page="why-sendloop" />
 
-      <Section title="Common questions">
-        <FaqBlock faqs={faqs} />
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Want the step-by-step version?{" "}
-          <Link to="/how-it-works" className="font-medium text-primary hover:underline">
-            See how it works
-          </Link>{" "}
-          or read{" "}
-          <Link to="/about" className="font-medium text-primary hover:underline">
-            why we built Sendloop
-          </Link>
-          .
-        </p>
-      </Section>
 
       <CtaBlock
         title="Consolidate your outbound stack"
