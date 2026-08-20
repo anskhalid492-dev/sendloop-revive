@@ -100,3 +100,68 @@ export function formatMoney(cents: number, currency = "usd") {
     return `$${(cents / 100).toFixed(2)}`;
   }
 }
+
+/* --------------------------------------------------- setup & test tracking */
+
+/** Shape each provider's external plan identifier must take. */
+export const PROVIDER_ID_RULES: Record<
+  BillingProvider,
+  { label: string; hint: string; test: (value: string) => boolean }
+> = {
+  stripe: {
+    label: "Price ID",
+    hint: "Starts with price_ (e.g. price_1P2x…)",
+    test: (v) => /^price_[A-Za-z0-9]+$/.test(v.trim()),
+  },
+  paddle: {
+    label: "Price ID",
+    hint: "Starts with pri_ (e.g. pri_01hq…)",
+    test: (v) => /^pri_[A-Za-z0-9]+$/.test(v.trim()),
+  },
+  lemonsqueezy: {
+    label: "Variant ID",
+    hint: "Numeric variant ID (e.g. 483920)",
+    test: (v) => /^\d{3,12}$/.test(v.trim()),
+  },
+};
+
+/** Webhook events each provider must deliver before the setup is trusted. */
+export const PROVIDER_TEST_EVENTS: Record<BillingProvider, { type: string; label: string }[]> = {
+  stripe: [
+    { type: "checkout.session.completed", label: "Checkout completed" },
+    { type: "customer.subscription.created", label: "Subscription created" },
+    { type: "customer.subscription.updated", label: "Subscription updated" },
+    { type: "customer.subscription.deleted", label: "Subscription cancelled" },
+    { type: "invoice.paid", label: "Invoice paid" },
+    { type: "invoice.payment_failed", label: "Payment failed" },
+    { type: "charge.refunded", label: "Refund issued" },
+  ],
+  paddle: [
+    { type: "subscription.created", label: "Subscription created" },
+    { type: "subscription.updated", label: "Subscription updated" },
+    { type: "subscription.canceled", label: "Subscription cancelled" },
+    { type: "transaction.completed", label: "Payment completed" },
+    { type: "transaction.payment_failed", label: "Payment failed" },
+    { type: "adjustment.updated", label: "Refund / adjustment" },
+  ],
+  lemonsqueezy: [
+    { type: "subscription_created", label: "Subscription created" },
+    { type: "subscription_updated", label: "Subscription updated" },
+    { type: "subscription_cancelled", label: "Subscription cancelled" },
+    { type: "subscription_payment_success", label: "Payment succeeded" },
+    { type: "subscription_payment_failed", label: "Payment failed" },
+    { type: "order_refunded", label: "Refund issued" },
+  ],
+};
+
+/** End-to-end flows verified from stored billing records rather than events. */
+export const BILLING_TEST_FLOWS = [
+  { key: "checkout", label: "Customer completed checkout", detail: "A subscription record exists for this provider and mode." },
+  { key: "active", label: "Subscription became active", detail: "At least one subscription reached trialing or active." },
+  { key: "payment", label: "Payment recorded", detail: "A successful payment transaction was stored." },
+  { key: "invoice", label: "Invoice stored", detail: "An invoice was received and saved." },
+  { key: "failed", label: "Failed payment handled", detail: "A payment failure was processed without errors." },
+  { key: "refund", label: "Refund handled", detail: "A refund transaction was stored." },
+  { key: "cancel", label: "Cancellation handled", detail: "A subscription was cancelled or expired." },
+] as const;
+export type BillingTestFlowKey = (typeof BILLING_TEST_FLOWS)[number]["key"];

@@ -1,6 +1,6 @@
 /** Admin billing console data access. Server only. */
 import type { BillingEnvironment, BillingInterval, BillingProvider } from "@/lib/billing/model";
-import { BILLING_ENVIRONMENTS, BILLING_PROVIDERS } from "@/lib/billing/model";
+import { BILLING_ENVIRONMENTS, BILLING_PROVIDERS, PROVIDER_ID_RULES } from "@/lib/billing/model";
 import { admin, getBillingSettings, isConfigured, writeAudit } from "@/lib/billing/core.server";
 
 export async function loadConsole() {
@@ -76,8 +76,10 @@ export async function setProviderEnabled(
   enabled: boolean,
   userId: string,
 ) {
-  if (enabled && !isConfigured(provider, environment))
-    throw new Error("Add the provider credentials before enabling this environment.");
+  if (enabled) {
+    const { assertProviderReady } = await import("@/lib/billing/readiness.server");
+    await assertProviderReady(provider, environment);
+  }
   const db = await admin();
   const { error } = await db
     .from("billing_providers")
@@ -103,6 +105,9 @@ export async function savePlanPrice(
   },
   userId: string,
 ) {
+  const rule = PROVIDER_ID_RULES[input.provider];
+  if (!rule.test(input.externalPriceId))
+    throw new Error(`Invalid ${rule.label} for ${input.provider}: ${rule.hint}`);
   const db = await admin();
   const { error } = await db.from("billing_plan_prices").upsert(
     {

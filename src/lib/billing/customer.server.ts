@@ -14,23 +14,29 @@ function appUrl() {
 }
 
 export async function availableProviders() {
-  const db = await admin();
   const settings = await getBillingSettings();
-  const { data: rows } = await db.from("billing_providers").select("*");
+  const { loadReadiness } = await import("@/lib/billing/readiness.server");
+  const states = await loadReadiness();
   return BILLING_PROVIDERS.map((provider) => {
-    const row = (rows ?? []).find(
-      (r: any) => r.provider === provider && r.environment === settings.environment,
+    const state = states.find(
+      (s) => s.provider === provider && s.environment === settings.environment,
     );
-    const configured = isConfigured(provider, settings.environment);
-    const enabled = row?.enabled === true;
+    const available = Boolean(state?.enabled && state.ready);
     return {
       provider,
       environment: settings.environment,
-      available: enabled && configured,
-      reason: !enabled ? "Not enabled" : !configured ? "Credentials missing" : null,
+      available,
+      reason: !state?.enabled
+        ? "Not enabled"
+        : !state.credentials.ok
+          ? "Credentials missing"
+          : !state.planIdsOk
+            ? "Plan IDs incomplete"
+            : null,
     };
   });
 }
+
 
 export async function loadCustomerBilling(workspaceId: string) {
   const db = await admin();

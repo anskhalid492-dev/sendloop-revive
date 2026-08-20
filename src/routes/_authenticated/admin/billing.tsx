@@ -17,8 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatMoney, PROVIDER_LABELS, STATE_LABELS } from "@/lib/billing/model";
+import { BillingProviderWizard } from "@/components/admin/BillingProviderWizard";
+import { BillingTestChecklist } from "@/components/admin/BillingTestChecklist";
 import {
   deletePlanPrice,
+  getBillingReadiness,
+  getBillingTestChecklist,
   getBillingConsole,
   listBillingRecords,
   retryBillingWebhook,
@@ -34,6 +38,8 @@ export const Route = createFileRoute("/_authenticated/admin/billing")({
 const TABS = [
   "Overview",
   "Providers",
+  "Setup wizard",
+  "Testing",
   "Plans & prices",
   "Subscriptions",
   "Transactions",
@@ -130,10 +136,22 @@ function AdminBillingPage() {
   const removePrice = useServerFn(deletePlanPrice);
   const retryHook = useServerFn(retryBillingWebhook);
 
+  const fetchReadiness = useServerFn(getBillingReadiness);
+  const fetchChecklist = useServerFn(getBillingTestChecklist);
   const q = useQuery({ queryKey: ["admin-billing"], queryFn: () => fetchConsole() });
+  const readinessQ = useQuery({
+    queryKey: ["admin-billing-readiness"],
+    queryFn: () => fetchReadiness(),
+  });
+  const checklistQ = useQuery({
+    queryKey: ["admin-billing-checklist"],
+    queryFn: () => fetchChecklist(),
+  });
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
     queryClient.invalidateQueries({ queryKey: ["admin-billing-records"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-billing-readiness"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-billing-checklist"] });
   };
 
   const providerMutation = useMutation({
@@ -241,7 +259,7 @@ function AdminBillingPage() {
 
       {tab === "Providers" ? (
         <Table
-          head={["Provider", "Environment", "Credentials", "Last webhook", "Last error", "Enabled"]}
+          head={["Provider", "Environment", "Credentials", "Plan IDs", "Last webhook", "Last error", "Enabled"]}
           rows={d.providers.map((p) => [
             <span className="font-medium">{PROVIDER_LABELS[p.provider]}</span>,
             p.environment,
@@ -250,11 +268,27 @@ function AdminBillingPage() {
             ) : (
               <Badge variant="outline">Missing keys</Badge>
             ),
+            (() => {
+              const r = (readinessQ.data as any[] | undefined)?.find(
+                (x: any) => x.provider === p.provider && x.environment === p.environment,
+              );
+              return r?.planIdsOk ? (
+                <Badge variant="secondary">Complete</Badge>
+              ) : (
+                <Badge variant="outline">Incomplete</Badge>
+              );
+            })(),
             when(p.lastWebhookAt),
             <span className="text-xs text-muted-foreground">{p.lastError ?? "—"}</span>,
             <Switch
               checked={p.enabled}
-              disabled={providerMutation.isPending}
+              disabled={
+                providerMutation.isPending ||
+                (!p.enabled &&
+                  !(readinessQ.data as any[] | undefined)?.find(
+                    (r: any) => r.provider === p.provider && r.environment === p.environment,
+                  )?.ready)
+              }
               onCheckedChange={(enabled) =>
                 providerMutation.mutate({
                   provider: p.provider,
@@ -265,6 +299,33 @@ function AdminBillingPage() {
             />,
           ])}
         />
+      ) : null}
+
+      {tab === "Setup wizard" ? (
+        readinessQ.isLoading ? (
+          <div className="h-64 animate-pulse rounded-xl bg-muted" />
+        ) : readinessQ.error ? (
+          <p className="text-sm text-destructive">{(readinessQ.error as Error).message}</p>
+        ) : (
+          <BillingProviderWizard
+            readiness={readinessQ.data as any}
+            appOrigin={typeof window === "undefined" ? "" : window.location.origin}
+            savingPrice={priceMutation.isPending}
+            togglingProvider={providerMutation.isPending}
+            onSavePrice={(v) => priceMutation.mutate(v)}
+            onToggleProvider={(v) => providerMutation.mutate(v)}
+          />
+        )
+      ) : null}
+
+      {tab === "Testing" ? (
+        checklistQ.isLoading ? (
+          <div className="h-64 animate-pulse rounded-xl bg-muted" />
+        ) : checklistQ.error ? (
+          <p className="text-sm text-destructive">{(checklistQ.error as Error).message}</p>
+        ) : (
+          <BillingTestChecklist data={checklistQ.data as any} />
+        )
       ) : null}
 
       {tab === "Plans & prices" ? (

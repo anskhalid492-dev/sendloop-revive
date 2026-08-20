@@ -117,3 +117,21 @@ export const retryBillingWebhook = createServerFn({ method: "POST" })
     await writeAudit({ userId: context.userId, action: "webhook.retried", detail: { id: data.id } });
     return result;
   });
+
+export const getBillingReadiness = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { loadReadiness } = await import("@/lib/billing/readiness.server");
+    await assertPlatformAdmin(context);
+    return loadReadiness();
+  });
+
+export const getBillingTestChecklist = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { loadTestChecklist } = await import("@/lib/billing/readiness.server");
+    await assertPlatformAdmin(context);
+    return loadTestChecklist();
+  });
