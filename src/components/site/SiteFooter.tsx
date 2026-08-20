@@ -58,6 +58,17 @@ const fallbackColumns = [
     ],
   },
   {
+    title: "Comparisons",
+    links: [
+      { label: "Sendloop vs Instantly", href: "/compare/sendloop-vs-instantly" },
+      { label: "Sendloop vs Smartlead", href: "/compare/sendloop-vs-smartlead" },
+      { label: "Sendloop vs lemlist", href: "/compare/sendloop-vs-lemlist" },
+      { label: "Sendloop vs Apollo", href: "/compare/sendloop-vs-apollo" },
+      { label: "Sendloop vs Saleshandy", href: "/compare/sendloop-vs-saleshandy" },
+      { label: "Sendloop Alternatives", href: "/compare/sendloop-alternatives" },
+    ],
+  },
+  {
     title: "Company",
     links: [
       { label: "Contact", href: "/contact" },
@@ -72,17 +83,6 @@ const fallbackColumns = [
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Acceptable Use Policy", href: "/acceptable-use" },
-    ],
-  },
-  {
-    title: "Comparisons",
-    links: [
-      { label: "Sendloop vs Instantly", href: "/compare/sendloop-vs-instantly" },
-      { label: "Sendloop vs Smartlead", href: "/compare/sendloop-vs-smartlead" },
-      { label: "Sendloop vs lemlist", href: "/compare/sendloop-vs-lemlist" },
-      { label: "Sendloop vs Apollo", href: "/compare/sendloop-vs-apollo" },
-      { label: "Sendloop vs Saleshandy", href: "/compare/sendloop-vs-saleshandy" },
-      { label: "Sendloop Alternatives", href: "/compare/sendloop-alternatives" },
     ],
   },
 ];
