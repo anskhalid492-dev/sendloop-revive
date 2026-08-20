@@ -34,6 +34,7 @@ const SORTABLE = [
 ] as const;
 
 const filtersSchema = z.object({
+  workspaceId: z.string().uuid().optional(),
   search: z.string().trim().max(120).optional(),
   listId: z.string().uuid().optional(),
   name: z.string().trim().max(120).optional(),
@@ -189,6 +190,7 @@ export const listLeads = createServerFn({ method: "POST" })
       .select(sel(LEAD_SELECT), { count: "exact" })
       .order(input.sortBy, { ascending: input.sortDir === "asc", nullsFirst: false });
 
+    if (input.workspaceId) query = query.eq("workspace_id", input.workspaceId);
     if (input.listId) query = query.eq("list_id", input.listId);
     if (restrictIds) query = query.in("id", restrictIds);
     if (input.statuses?.length) query = query.in("status", input.statuses);
