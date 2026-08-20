@@ -593,7 +593,7 @@ export function SequencesTab({
                   <Input
                     id="hook-url"
                     value={String(step.config["url"] ?? "")}
-                    placeholder="https://example.com/hooks/sendloop"
+                    placeholder="https://example.com/hooks/munchreach"
                     onChange={(e) => patchConfig({ url: e.target.value })}
                   />
                 </div>

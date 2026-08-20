@@ -211,7 +211,7 @@ function GlobalTabs({ config, onSaved }: { config?: GlobalSeoConfig; onSaved: ()
             <Input
               value={draft.twitter_handle}
               onChange={(e) => update({ twitter_handle: e.target.value })}
-              placeholder="@sendloop"
+              placeholder="@munchreach"
             />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border/60 p-3 sm:col-span-2">
