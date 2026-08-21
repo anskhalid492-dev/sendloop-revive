@@ -209,6 +209,9 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
     if (cErr) throw new Error(cErr.message);
     if (!campaign) throw new Error("Campaign not found.");
 
+    const { requireEntitlement } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(campaign.workspace_id as string, "ai_personalization");
+
     const { config } = await campaignAiSettings(context.supabase, data.campaignId);
     const fingerprint = promptFingerprint(config);
 

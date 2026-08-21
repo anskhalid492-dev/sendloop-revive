@@ -100,6 +100,14 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
     fallback: false,
   },
   {
+    key: "ai_personalization",
+    label: "AI personalization",
+    category: "Outreach",
+    description: "AI-written opening lines and personalized variables for each lead.",
+    column: null,
+    fallback: false,
+  },
+  {
     key: "priority_support",
     label: "Priority support",
     category: "Support",

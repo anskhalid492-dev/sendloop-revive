@@ -190,9 +190,9 @@ export const createAutomation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
     // Server-side plan enforcement: an API caller cannot bypass this.
-    const { assertFeatureKey } = await import("@/lib/billing/entitlements.server");
-    await assertFeatureKey(data.workspaceId, "automations");
-    await assertLimit(client, data.workspaceId);
+    const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(data.workspaceId, "automations");
+    await checkUsageLimit(data.workspaceId, "automations", 1);
 
     const token = crypto.randomUUID().replace(/-/g, "");
     const secret = crypto.randomUUID().replace(/-/g, "");

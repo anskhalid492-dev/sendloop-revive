@@ -339,6 +339,18 @@ export async function applyBillingEvent(
           { onConflict: "workspace_id" },
         );
       }
+      // Entitlements and credits activate only on a confirmed provider state,
+      // never on a frontend checkout success screen.
+      if (env === settings.environment && planId && (s.status === "active" || s.status === "trialing")) {
+        const { allocatePlanCredits } = await import("@/lib/billing/credits.server");
+        const period = s.currentPeriodStart ?? new Date().toISOString();
+        try {
+          await allocatePlanCredits({ workspaceId, planId, periodStart: period });
+        } catch {
+          /* credit grant must never fail webhook processing */
+        }
+      }
+
       await writeAudit({
         workspaceId,
         provider,

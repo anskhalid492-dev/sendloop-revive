@@ -369,8 +369,8 @@ export const upsertCrmContact = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // Plan × feature matrix is enforced server-side, not just in the UI.
-    const { assertFeatureKey } = await import("@/lib/billing/entitlements.server");
-    await assertFeatureKey(data.workspaceId, "crm");
+    const { requireEntitlement } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(data.workspaceId, "crm");
     const client = context.supabase as Client;
     const patch: Record<string, unknown> = {
       email: data.email,

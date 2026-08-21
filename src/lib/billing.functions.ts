@@ -207,3 +207,17 @@ export const getWorkspaceDiagnostics = createServerFn({ method: "GET" })
     await assertWorkspaceMember(context, data.workspaceId);
     return loadWorkspaceDiagnostics(data.workspaceId);
   });
+
+/**
+ * Live plan usage for the customer usage dashboard: current plan, billing
+ * period, every metered/derived resource with its limit, and credit balance.
+ */
+export const getWorkspaceUsage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceMember } = await import("@/lib/billing/access.server");
+    const { getUsageSnapshot } = await import("@/lib/billing/usage.server");
+    await assertWorkspaceMember(context, data.workspaceId);
+    return getUsageSnapshot(data.workspaceId);
+  });

@@ -112,6 +112,8 @@ export const addSendingDomain = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ id: string }> => {
     const client = context.supabase as Client;
     const workspaceId = await primaryWorkspace(client, context.userId);
+    const { checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await checkUsageLimit(workspaceId, "domains", 1);
     const { makeDkimSelector } = await import("@/lib/dns.server");
 
     const { data: created, error } = await client

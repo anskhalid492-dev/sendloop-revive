@@ -589,6 +589,32 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         continue;
       }
 
+      // Plan enforcement: feature access + atomic monthly AI allowance.
+      const { requireEntitlement, consumeUsage, releaseUsage, EntitlementError } = await import(
+        "@/lib/billing/usage.server"
+      );
+      try {
+        await requireEntitlement(settings.workspaceId, "ai_personalization");
+        await consumeUsage(settings.workspaceId, "ai_monthly", 1);
+      } catch (error) {
+        if (error instanceof EntitlementError) {
+          blockedWorkspaces.add(settings.workspaceId);
+          await admin
+            .from("ai_personalizations")
+            .update({
+              status: "failed",
+              error: error.message,
+              locked_by: null,
+              locked_until: null,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", job.id);
+          result.failed += 1;
+          continue;
+        }
+        throw error;
+      }
+
       try {
         const { content, model, quality, dataUsed } = await generatePersonalization(
           settings.config,
@@ -618,6 +644,8 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           result.paused = null;
         }
       } catch (error) {
+        // Nothing was generated: hand the reserved allowance back.
+        await releaseUsage(settings.workspaceId, "ai_monthly", 1);
         const failure = error instanceof AiGatewayError ? error : mapGatewayError(error);
         const terminal = !failure.retryable || job.attempts >= 3;
         await admin

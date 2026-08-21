@@ -107,6 +107,10 @@ export const connectMailbox = createServerFn({ method: "POST" })
     const domain = await loadVerifiedDomain(client, data.domainId);
     assertEmailOnDomain(data.email, domain.domain as string);
 
+    // Plan enforcement: mailbox count is capped by the active plan.
+    const { checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await checkUsageLimit(domain.workspace_id as string, "sending_accounts", 1);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const managed = await selectManagedProvider(supabaseAdmin);
     if (!managed) {

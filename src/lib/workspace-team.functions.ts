@@ -77,6 +77,10 @@ export const inviteTeammate = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
+    // Seats are capped by the active plan; pending invites count as a seat.
+    const { checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await checkUsageLimit(data.workspaceId, "team_members", 1);
+
     const { data: rows, error } = await client.rpc("invite_workspace_member", {
       _workspace_id: data.workspaceId,
       _email: data.email.toLowerCase(),
