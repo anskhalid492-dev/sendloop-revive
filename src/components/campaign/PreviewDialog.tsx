@@ -438,10 +438,10 @@ export function TestSendDialog({
       const failed = res?.failed ?? [];
       if (failed.length > 0) {
         toast.warning(
-          `Provider accepted ${res.accepted} of ${res.accepted + failed.length}. ${failed[0]?.message ?? ""}`,
+          `MunchReach accepted ${res.accepted} of ${res.accepted + failed.length}. ${failed[0]?.message ?? ""}`,
         );
       } else {
-        toast.success("Provider accepted the test email; delivery confirmation is pending");
+        toast.success("MunchReach accepted the test email; delivery confirmation is pending");
       }
       diagnostics.refetch();
     },
@@ -524,7 +524,7 @@ export function TestSendDialog({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Delivery diagnostics</p>
-                <p className="text-xs text-muted-foreground">Provider acceptance is not final delivery.</p>
+                <p className="text-xs text-muted-foreground">Acceptance is not the same as final delivery.</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => diagnostics.refetch()} title="Refresh diagnostics">
                 <RefreshCw className={`size-4 ${diagnostics.isFetching ? "animate-spin" : ""}`} />
@@ -533,7 +533,7 @@ export function TestSendDialog({
             <div className="max-h-64 space-y-2 overflow-y-auto">
               {(diagnostics.data ?? []).length === 0 ? (
                 <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-                  Send a test to capture provider and webhook diagnostics.
+                  Send a test to capture delivery diagnostics.
                 </p>
               ) : (
                 diagnostics.data?.map((row) => {
@@ -553,9 +553,9 @@ export function TestSendDialog({
                         </Badge>
                       </div>
                       <div className="mt-2 grid gap-1 text-muted-foreground sm:grid-cols-2">
-                        <p>Provider: {row.provider}</p>
-                        <p className="truncate">Message ID: {row.provider_message_id ?? "Not returned"}</p>
-                        <p>Webhook: {row.webhookStatus}</p>
+                        <p>Sending infrastructure: MunchReach</p>
+                        <p className="truncate">Delivery ID: {row.provider_message_id ?? "Pending"}</p>
+                        <p>Delivery status: {row.webhookStatus}</p>
                         <p>{new Date(row.created_at).toLocaleString()}</p>
                       </div>
                       {(row.error || row.webhookError || row.provider_response) ? (

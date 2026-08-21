@@ -365,7 +365,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                   <th className="px-3 py-2">Scheduled</th>
                   <th className="px-3 py-2">Sent</th>
                   <th className="px-3 py-2">Reply</th>
-                  <th className="px-3 py-2">Provider message ID</th>
+                  <th className="px-3 py-2">Delivery ID</th>
 
                 </tr>
               </thead>
@@ -457,9 +457,9 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                 <Detail label="Sent" value={when(detail.sent_at)} />
                 <Detail label="Sent from" value={mailboxLabel(detail.sending_account_id)} />
                 <Detail label="Mailbox address" value={mailboxEmail(detail.sending_account_id) || "—"} />
-                <Detail label="Provider" value={detail.provider ?? "—"} />
+                <Detail label="Sending infrastructure" value="MunchReach" />
                 <Detail label="Attempts" value={String(detail.attempts)} />
-                <Detail label="Provider message ID" value={detail.provider_message_id ?? "—"} />
+                <Detail label="Delivery ID" value={detail.provider_message_id ?? "—"} />
                 <Detail
                   label="Reply received"
                   value={
