@@ -17,6 +17,7 @@ import {
 import { AppShell } from "@/components/app/AppShell";
 import { CampaignDetailDialog } from "@/components/analytics/CampaignDetailDialog";
 import { ConversionFunnel, type FunnelStepKey } from "@/components/analytics/ConversionFunnel";
+import { EngagementOverview } from "@/components/analytics/EngagementOverview";
 import { FunnelDrilldownDialog } from "@/components/analytics/FunnelDrilldownDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -241,6 +242,10 @@ function AnalyticsPage() {
             Live
           </Badge>
         </div>
+
+        <EngagementOverview workspaceId={workspaceId} />
+
+
 
         {/* KPI cards */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
