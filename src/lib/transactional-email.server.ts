@@ -169,6 +169,35 @@ export async function restoreDefaultTemplate(admin: Admin, eventKey: string, use
   });
 }
 
+/**
+ * Re-applies the shipped defaults to every catalog template that has not been
+ * customised by an admin (`is_default`), so design upgrades to the branded
+ * shell reach the stored copies. Customised templates are never touched
+ * unless `includeCustomised` is set.
+ */
+export async function restoreAllDefaultTemplates(
+  admin: Admin,
+  userId: string | null,
+  includeCustomised = false,
+): Promise<{ created: number; updated: number; skipped: number }> {
+  const { created } = await ensureDefaultTemplates(admin);
+  const { data } = await admin.from("transactional_templates").select("event_key, is_default");
+  const rows = (data ?? []) as { event_key: string; is_default: boolean | null }[];
+
+  let updated = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    if (!defaultTemplate(row.event_key)) continue;
+    if (!includeCustomised && row.is_default === false) {
+      skipped += 1;
+      continue;
+    }
+    await restoreDefaultTemplate(admin, row.event_key, userId);
+    updated += 1;
+  }
+  return { created, updated, skipped };
+}
+
 export type TemplateDraftInput = {
   subject: string;
   preheader?: string | null | undefined;
@@ -290,11 +319,16 @@ export async function renderTemplate(
   if (!stored && !fallback) return null;
 
   const draft = options.useDraft ? ((stored?.draft ?? null) as TemplateDraftInput | null) : null;
+  // A template that has never been customised always renders from the shipped
+  // catalog, so branding/design upgrades reach every send without an admin
+  // having to restore anything. Customised copies (is_default = false) win.
+  const useCatalog = Boolean(fallback) && stored?.is_default !== false;
+  const base = useCatalog ? fallback! : null;
   const source = {
-    subject: draft?.subject ?? stored?.subject ?? fallback!.subject,
-    preheader: draft?.preheader ?? stored?.preheader ?? fallback!.preheader,
-    html: draft?.html ?? stored?.html ?? fallback!.html,
-    text: draft?.text_body ?? stored?.text_body ?? fallback!.text,
+    subject: draft?.subject ?? base?.subject ?? stored?.subject ?? fallback!.subject,
+    preheader: draft?.preheader ?? base?.preheader ?? stored?.preheader ?? fallback!.preheader,
+    html: draft?.html ?? base?.html ?? stored?.html ?? fallback!.html,
+    text: draft?.text_body ?? base?.text ?? stored?.text_body ?? fallback!.text,
     fromName: draft?.from_name ?? stored?.from_name ?? settings.from_name,
     fromEmail: draft?.from_email ?? stored?.from_email ?? settings.from_email,
     replyTo: draft?.reply_to ?? stored?.reply_to ?? settings.reply_to,
