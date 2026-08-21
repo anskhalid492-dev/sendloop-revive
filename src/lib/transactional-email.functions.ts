@@ -202,6 +202,18 @@ export const restoreTransactionalDefault = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const restoreAllTransactionalDefaults = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { includeCustomised?: boolean } | undefined) =>
+    z.object({ includeCustomised: z.boolean().optional() }).parse(data ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { restoreAllDefaultTemplates } = await import("@/lib/transactional-email.server");
+    return restoreAllDefaultTemplates(supabaseAdmin, context.userId, data.includeCustomised ?? false);
+  });
+
 export const setTransactionalTemplateEnabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { eventKey: string; enabled: boolean }) =>
