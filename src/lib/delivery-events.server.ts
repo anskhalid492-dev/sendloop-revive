@@ -14,7 +14,7 @@ export type DeliveryOutcome = {
   reason?: string;
 };
 
-type Kind = "delivered" | "bounced" | "complained" | "unsubscribed";
+type Kind = "delivered" | "bounced" | "complained" | "unsubscribed" | "delayed" | "failed";
 
 export async function applyDeliveryEvent(args: {
   kind: Kind;
@@ -22,6 +22,7 @@ export async function applyDeliveryEvent(args: {
   providerMessageId: string | null;
   reason: string | null;
   occurredAt?: string | null;
+  source?: "webhook" | "reconcile";
 }): Promise<DeliveryOutcome> {
   const db = supabaseAdmin;
   const nowIso = args.occurredAt ?? new Date().toISOString();
@@ -29,7 +30,7 @@ export async function applyDeliveryEvent(args: {
 
   let query = db
     .from("campaign_messages")
-    .select("id, workspace_id, campaign_id, lead_id, recipient_id, to_email")
+    .select("id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, to_email")
     .order("sent_at", { ascending: false })
     .limit(1);
   query = args.providerMessageId
@@ -57,12 +58,31 @@ export async function applyDeliveryEvent(args: {
       .eq("provider_message_id", args.providerMessageId);
   }
 
-  if (args.kind === "delivered") {
+  // Fold the signal into the message's delivery state (out-of-order safe and
+  // idempotent), so campaign metrics always reflect the real provider outcome.
+  const { applyDeliveryState } = await import("@/lib/delivery-state.server");
+  await applyDeliveryState({
+    message: message!,
+    state: args.kind,
+    detail: args.reason,
+    occurredAt: nowIso,
+    source: args.source ?? "webhook",
+  });
+
+  // Soft delays and delivered receipts need no suppression or lead changes.
+  if (args.kind === "delivered" || args.kind === "delayed") {
     return { status: "applied", workspaceId, leadId: message?.lead_id ?? null };
   }
 
-  if (args.kind === "bounced") {
-    await db.from("campaign_messages").update({ status: "failed", last_error: args.reason }).eq("id", message!.id);
+  if (args.kind === "failed") {
+    if (message?.campaign_id && message.lead_id) {
+      await db
+        .from("campaign_recipients")
+        .update({ status: "failed", last_error: args.reason })
+        .eq("campaign_id", message.campaign_id)
+        .eq("lead_id", message.lead_id);
+    }
+    return { status: "applied", workspaceId, leadId: message?.lead_id ?? null };
   }
 
   if (email) {
