@@ -211,7 +211,7 @@ export async function runDomainVerification(
   // between verified and unverified on transient lookup failures.
   const { data: prevRow } = await admin
     .from("sending_domains")
-    .select("record_checks")
+    .select("record_checks, verified_at, ready_at, stage")
     .eq("id", row.id)
     .maybeSingle();
   const previous = new Map(
