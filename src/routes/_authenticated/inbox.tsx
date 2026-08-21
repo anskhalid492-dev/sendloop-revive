@@ -455,21 +455,20 @@ function Page() {
             <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
               {/* Desktop: three resizable panes so the reading pane can take all remaining width. */}
               <ResizablePanelGroup
-                direction="horizontal"
-                autoSaveId="inbox-panes"
+                orientation="horizontal"
                 className="hidden min-h-0 lg:flex"
               >
-                <ResizablePanel id="nav" order={1} defaultSize={16} minSize={12} maxSize={24}>
+                <ResizablePanel id="nav" defaultSize="16" minSize="12" maxSize="24">
                   {navPane}
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel id="list" order={2} defaultSize={24} minSize={16} maxSize={40}>
+                <ResizablePanel id="list" defaultSize="24" minSize="16" maxSize="40">
                   <div className="h-full min-h-0 min-w-0">
                     {folder === "drafts" ? draftsPane : listPane}
                   </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel id="reading" order={3} defaultSize={60} minSize={30}>
+                <ResizablePanel id="reading" defaultSize="60" minSize="30">
                   <div className="h-full min-h-0 min-w-0">{readingPane}</div>
                 </ResizablePanel>
               </ResizablePanelGroup>

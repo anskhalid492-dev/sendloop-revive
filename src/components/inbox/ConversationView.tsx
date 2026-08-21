@@ -213,11 +213,10 @@ export function ConversationView({
 
   return (
     <ResizablePanelGroup
-      direction="horizontal"
-      autoSaveId="inbox-conversation"
+      orientation="horizontal"
       className="flex h-full min-h-0 flex-col xl:flex-row"
     >
-      <ResizablePanel id="thread" order={1} defaultSize={showProspect ? 70 : 100} minSize={40}>
+      <ResizablePanel id="thread" defaultSize={showProspect ? "70" : "100"} minSize="40">
       <div className="flex h-full min-h-0 min-w-0 flex-col">
 
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border p-3">
@@ -583,10 +582,9 @@ export function ConversationView({
 
       <ResizablePanel
         id="prospect"
-        order={2}
-        defaultSize={30}
-        minSize={18}
-        maxSize={45}
+        defaultSize="30"
+        minSize="18"
+        maxSize="45"
         className={showProspect ? "" : "hidden"}
       >
       <div className="h-full w-full min-w-0 overflow-y-auto border-t border-border xl:border-l xl:border-t-0">
