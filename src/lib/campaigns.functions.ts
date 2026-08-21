@@ -767,8 +767,11 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       providerResponse?: string;
       webhookStatus: string;
     }>;
+    const { consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
+      // Test sends leave the platform like any other email, so they meter too.
+      await consumeUsage(account.workspace_id, "emails_monthly", 1);
       const result = await sendManagedEmail(
         supabaseAdmin,
         {
@@ -790,6 +793,10 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         },
         { stage: "test" },
       );
+
+      if (!result.ok) {
+        await releaseUsage(account.workspace_id, "emails_monthly", 1).catch(() => {});
+      }
 
       const diagnostic = {
         request_id: requestId,
