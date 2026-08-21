@@ -10,9 +10,13 @@
 export const BRAND = {
   name: "MunchReach",
   color: "#44A6DD",
+  colorDark: "#2F8CC0",
   ink: "#0F172A",
   muted: "#5b6b7c",
   support: "support@munchreach.com",
+  site: "https://munchreach.com",
+  /** Absolute URL — email clients cannot resolve bundled or relative assets. */
+  logoUrl: "https://munchreach.com/brand/munchreach-logo.png",
 };
 
 export type EmailBlock =
