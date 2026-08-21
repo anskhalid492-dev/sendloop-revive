@@ -431,13 +431,32 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
     const campaignIds = [...new Set(jobs.map((j) => j.campaign_id))];
     const { data: campaigns } = await admin
       .from("campaigns")
-      .select("id, ai_enabled, ai_config")
+      .select("id, workspace_id, ai_enabled, ai_config")
       .in("id", campaignIds);
+    const campaignRows = (campaigns ?? []) as Array<{
+      id: string;
+      workspace_id: string;
+      ai_enabled: boolean;
+      ai_config: unknown;
+    }>;
     const configById = new Map(
-      ((campaigns ?? []) as Array<{ id: string; ai_enabled: boolean; ai_config: unknown }>).map(
-        (c) => [c.id, { enabled: c.ai_enabled, config: normalizeAiConfig(c.ai_config) }] as const,
+      campaignRows.map(
+        (c) =>
+          [
+            c.id,
+            { enabled: c.ai_enabled, config: normalizeAiConfig(c.ai_config), workspaceId: c.workspace_id },
+          ] as const,
       ),
     );
+
+    // Every workspace pays OpenAI with its own key, so load them per workspace.
+    const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
+    const credsByWorkspace = new Map<string, WorkspaceAiCredentials | null>();
+    for (const workspaceId of new Set(campaignRows.map((c) => c.workspace_id))) {
+      credsByWorkspace.set(workspaceId, await workspaceAiCredentials(admin, workspaceId));
+    }
+    /** Workspaces whose key just failed — their remaining jobs stay queued. */
+    const blockedWorkspaces = new Set<string>();
 
     const { data: leads } = await admin
       .from("leads")
@@ -464,8 +483,33 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         continue;
       }
 
+      if (blockedWorkspaces.has(settings.workspaceId)) {
+        await admin
+          .from("ai_personalizations")
+          .update({ status: "queued", locked_by: null, locked_until: null })
+          .eq("id", job.id);
+        continue;
+      }
+
+      const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
+      if (!credentials) {
+        blockedWorkspaces.add(settings.workspaceId);
+        await admin
+          .from("ai_personalizations")
+          .update({
+            status: "failed",
+            error: "No OpenAI API key is connected for this workspace.",
+            locked_by: null,
+            locked_until: null,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", job.id);
+        result.failed += 1;
+        continue;
+      }
+
       try {
-        const { content, model } = await generatePersonalization(settings.config, lead);
+        const { content, model } = await generatePersonalization(settings.config, lead, credentials);
         await admin
           .from("ai_personalizations")
           .update({
@@ -500,18 +544,15 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           .eq("id", job.id);
         if (terminal) result.failed += 1;
 
-        // Circuit breaker: stop the whole run on credit/policy denials.
-        if (failure.status === 402 || failure.status === 403 || failure.status === 401) {
-          await pauseRunner(admin, failure.message);
-          result.paused = failure.message;
-          break;
-        }
-        if (failure.status === 429) {
-          result.skipped = "rate limited — remaining items stay queued";
-          break;
+        // Key/credit/rate problems are per customer: park that workspace only.
+        if ([401, 402, 403, 429].includes(failure.status)) {
+          blockedWorkspaces.add(settings.workspaceId);
+          if (failure.status === 429)
+            result.skipped = "a workspace hit its OpenAI rate limit — its leads stay queued";
         }
       }
     }
+
 
     return result;
   } finally {
