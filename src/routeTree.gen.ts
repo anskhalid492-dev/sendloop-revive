@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
+import { Route as AiPersonalizedOutreachRouteImport } from './routes/ai-personalized-outreach'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationsRouteImport } from './routes/automations'
@@ -162,6 +163,11 @@ const AboutRoute = AboutRouteImport.update({
 const AcceptableUseRoute = AcceptableUseRouteImport.update({
   id: '/acceptable-use',
   path: '/acceptable-use',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiPersonalizedOutreachRoute = AiPersonalizedOutreachRouteImport.update({
+  id: '/ai-personalized-outreach',
+  path: '/ai-personalized-outreach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDocsRoute = ApiDocsRouteImport.update({
@@ -878,6 +884,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
@@ -1014,6 +1021,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
@@ -1150,6 +1158,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
@@ -1288,6 +1297,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/acceptable-use'
+    | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
     | '/automations'
@@ -1424,6 +1434,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/acceptable-use'
+    | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
     | '/automations'
@@ -1559,6 +1570,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/acceptable-use'
+    | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
     | '/automations'
@@ -1697,6 +1709,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AcceptableUseRoute: typeof AcceptableUseRoute
+  AiPersonalizedOutreachRoute: typeof AiPersonalizedOutreachRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
   AutomationsRoute: typeof AutomationsRoute
@@ -1788,6 +1801,13 @@ declare module '@tanstack/react-router' {
       path: '/acceptable-use'
       fullPath: '/acceptable-use'
       preLoaderRoute: typeof AcceptableUseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-personalized-outreach': {
+      id: '/ai-personalized-outreach'
+      path: '/ai-personalized-outreach'
+      fullPath: '/ai-personalized-outreach'
+      preLoaderRoute: typeof AiPersonalizedOutreachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api-docs': {
@@ -2915,6 +2935,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AcceptableUseRoute: AcceptableUseRoute,
+  AiPersonalizedOutreachRoute: AiPersonalizedOutreachRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
   AutomationsRoute: AutomationsRoute,
