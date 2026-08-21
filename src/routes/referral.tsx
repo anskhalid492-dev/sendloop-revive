@@ -30,8 +30,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getPublicReferralProgram } from "@/lib/referral.functions";
-import {
 import { PageFaqs } from "@/components/site/PageFaqs";
+import {
   PAYOUT_METHOD_LABELS,
   describeCommission,
   formatMoney,

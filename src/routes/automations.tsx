@@ -33,8 +33,8 @@ import {
 import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
 import { PageFaqs } from "@/components/site/PageFaqs";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
