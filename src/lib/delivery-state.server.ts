@@ -95,7 +95,10 @@ export async function applyDeliveryState(args: {
     }
   }
 
-  await supabaseAdmin.from("campaign_messages").update(patch).eq("id", args.message.id);
+  await supabaseAdmin
+    .from("campaign_messages")
+    .update(patch as never)
+    .eq("id", args.message.id);
   return advances ? args.state : current;
 }
 
