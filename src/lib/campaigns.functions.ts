@@ -7,8 +7,10 @@ import { nextSendSlot } from "@/lib/campaign-schedule";
 import {
   CAMPAIGN_COLUMNS,
   STEP_COLUMNS,
-  renderTemplate,
+  AI_VARIABLE_TOKEN,
+  renderEmailForLead,
   resolveSpintax,
+
   type Campaign,
   type CampaignStep,
   type CustomVariable,
@@ -598,13 +600,29 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       if (lead) {
         const l = lead as never;
         const variables = (campaign.custom_variables ?? []) as CustomVariable[];
-        subject = renderTemplate(resolveSpintax(subject), l, variables);
-        body = renderTemplate(resolveSpintax(body), l, variables);
+        // The test email must show the same AI snippet the lead would receive.
+        const { data: snippet } = await context.supabase
+          .from("ai_personalizations")
+          .select("content")
+          .eq("campaign_id", data.campaignId)
+          .eq("lead_id", data.leadId)
+          .eq("status", "completed")
+          .maybeSingle();
+        const extras = snippet?.content
+          ? { [AI_VARIABLE_TOKEN]: snippet.content as string }
+          : {};
+        const rendered = renderEmailForLead({ subject, body }, l, {
+          customVariables: variables,
+          extras,
+        });
+        subject = rendered.subject;
+        body = rendered.body;
       }
     } else {
       subject = resolveSpintax(subject);
       body = resolveSpintax(body);
     }
+
 
     // The mailbox may only send from a domain the customer has verified in
     // MunchReach; the managed provider's own verification is checked at send time.
@@ -935,13 +953,11 @@ export const launchCampaign = createServerFn({ method: "POST" })
               step_order: 1,
               status: "scheduled" as const,
               to_email: (lead as { email: string }).email,
-              subject: renderTemplate(
-                resolveSpintax(firstStep.subject),
-                lead,
-                campaignVariables,
-                ai.extras,
-              ),
-              body: renderTemplate(resolveSpintax(firstStep.body), lead, campaignVariables, ai.extras),
+              ...renderEmailForLead(firstStep, lead, {
+                customVariables: campaignVariables,
+                extras: ai.extras,
+              }),
+
               scheduled_at: firstSlot,
               provider: recipient.sending_account_id
                 ? (accountById.get(recipient.sending_account_id) as never as {
@@ -1022,18 +1038,11 @@ export const launchCampaign = createServerFn({ method: "POST" })
               step_order: 1,
               status: "scheduled" as const,
               to_email: lead.email,
-              subject: renderTemplate(
-                resolveSpintax(firstStep.subject),
-                lead as never,
-                campaignVariables,
-                ai.extras,
-              ),
-              body: renderTemplate(
-                resolveSpintax(firstStep.body),
-                lead as never,
-                campaignVariables,
-                ai.extras,
-              ),
+              ...renderEmailForLead(firstStep, lead as never, {
+                customVariables: campaignVariables,
+                extras: ai.extras,
+              }),
+
               scheduled_at: firstSlot,
               provider:
                 (accounts ?? []).find((a) => a.id === accountId)?.provider ?? null,
