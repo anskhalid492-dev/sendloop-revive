@@ -44,10 +44,66 @@ export class EntitlementError extends Error {
   }
 }
 
-/** UTC month start used as the metering period for month-scoped resources. */
+/** UTC month start — fallback metering anchor when there is no billing cycle. */
 export function periodStart(date = new Date()) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
   return d.toISOString().slice(0, 10);
+}
+
+/** Anchor used for allowances that never reset (free trial totals). */
+const LIFETIME_ANCHOR = "1970-01-01";
+
+export type MeteringPeriod = {
+  /** `period_start` key used in workspace_usage_counters. */
+  key: string;
+  start: string;
+  end: string | null;
+  /** false = fixed total allowance (free trial), true = resets every cycle. */
+  resets: boolean;
+};
+
+/**
+ * Email/AI allowances reset on the BILLING CYCLE, not the calendar month.
+ * Paid workspaces are metered against the subscription period; free-trial
+ * workspaces get a single lifetime bucket that never resets.
+ */
+export async function getMeteringPeriod(workspaceId: string): Promise<MeteringPeriod> {
+  const db = await admin();
+  const { getBillingSettings } = await import("@/lib/billing/core.server");
+  const settings = await getBillingSettings();
+  const { data: sub } = await db
+    .from("billing_subscriptions")
+    .select("status, current_period_start, current_period_end, plan_id")
+    .eq("workspace_id", workspaceId)
+    .eq("environment", settings.environment)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const paidStates = ["trialing", "active", "past_due", "payment_failed", "paused"];
+  if (sub && paidStates.includes(String(sub.status)) && sub.current_period_start) {
+    const start = new Date(sub.current_period_start as string);
+    const end = sub.current_period_end ? new Date(sub.current_period_end as string) : null;
+    // Roll forward if the provider webhook is late so a stale cycle never
+    // gives away a second allowance.
+    if (end && end.getTime() < Date.now()) {
+      return { key: periodStart(), start: `${periodStart()}T00:00:00.000Z`, end: null, resets: true };
+    }
+    return {
+      key: start.toISOString().slice(0, 10),
+      start: start.toISOString(),
+      end: end ? end.toISOString() : null,
+      resets: true,
+    };
+  }
+
+  // No paid subscription → free trial: fixed total allowance, never resets.
+  return {
+    key: LIFETIME_ANCHOR,
+    start: `${LIFETIME_ANCHOR}T00:00:00.000Z`,
+    end: null,
+    resets: false,
+  };
 }
 
 async function countRows(table: string, workspaceId: string, extra?: (q: any) => any) {
@@ -63,15 +119,17 @@ async function countRows(table: string, workspaceId: string, extra?: (q: any) =>
 
 async function meteredUsed(workspaceId: string, resource: UsageResource) {
   const db = await admin();
+  const period = await getMeteringPeriod(workspaceId);
   const { data } = await db
     .from("workspace_usage_counters")
     .select("used")
     .eq("workspace_id", workspaceId)
     .eq("resource", resource)
-    .eq("period_start", periodStart())
+    .eq("period_start", period.key)
     .maybeSingle();
   return Number(data?.used ?? 0);
 }
+
 
 /** Current usage for one resource. */
 export async function getUsage(workspaceId: string, resource: UsageResource): Promise<number> {
@@ -97,6 +155,43 @@ export async function getUsage(workspaceId: string, resource: UsageResource): Pr
       return 0;
   }
 }
+
+/**
+ * Workspace count is billed per owner, not per workspace, so it cannot live in
+ * the resource catalog. The most generous plan the owner holds wins.
+ */
+export async function checkWorkspaceQuota(userId: string): Promise<void> {
+  const db = await admin();
+  const { data: owned } = await db
+    .from("workspaces")
+    .select("id")
+    .eq("owner_id", userId);
+  const workspaces = owned ?? [];
+  if (workspaces.length === 0) return;
+
+  const entitlements = await Promise.all(workspaces.map((w) => getEntitlement(w.id)));
+  let limit: number | null = 0;
+  let planName = entitlements[0]?.planName ?? "current";
+  for (const ent of entitlements) {
+    const value = ent.limits["max_workspaces"];
+    if (value === null || value === undefined) return; // unlimited on some plan
+    if (limit !== null && Number(value) > limit) {
+      limit = Number(value);
+      planName = ent.planName;
+    }
+  }
+  if (limit !== null && workspaces.length + 1 > limit) {
+    throw new EntitlementError({
+      code: "limit_reached",
+      planName,
+      resource: "workspaces",
+      used: workspaces.length,
+      limit,
+      message: limitMessage("Workspaces", planName, workspaces.length, limit),
+    });
+  }
+}
+
 
 function limitFor(entitlement: Entitlement, resource: UsageResource): number | null {
   const def = resourceDefinition(resource);
@@ -162,13 +257,15 @@ export async function consumeUsage(workspaceId: string, resource: UsageResource,
   const limit = limitFor(entitlement, resource);
 
   const db = await admin();
+  const period = await getMeteringPeriod(workspaceId);
   const { data, error } = await db.rpc("consume_workspace_usage", {
     _workspace_id: workspaceId,
     _resource: resource,
-    _period_start: periodStart(),
+    _period_start: period.key,
     _amount: Math.trunc(amount),
     _limit: limit,
   });
+
   if (error) throw new Error(error.message);
   const result = (data ?? {}) as { allowed: boolean; used: number; limit: number | null; remaining: number | null };
   if (!result.allowed) {
@@ -192,13 +289,15 @@ export async function consumeUsage(workspaceId: string, resource: UsageResource,
 export async function releaseUsage(workspaceId: string, resource: UsageResource, amount = 1) {
   if (amount <= 0) return;
   const db = await admin();
+  const period = await getMeteringPeriod(workspaceId);
   await db.rpc("release_workspace_usage", {
     _workspace_id: workspaceId,
     _resource: resource,
-    _period_start: periodStart(),
+    _period_start: period.key,
     _amount: Math.trunc(amount),
   });
 }
+
 
 /** Feature gate: throws unless the active plan includes `featureKey`. */
 export async function requireEntitlement(workspaceId: string, featureKey: string) {
@@ -267,7 +366,7 @@ export type UsageSnapshot = {
     inGrace: boolean;
     accessUntil: string | null;
   };
-  period: { start: string; end: string };
+  period: { start: string; end: string | null; resets: boolean };
   credits: { included: number; balance: number };
   features: { key: string; label: string; category: string; enabled: boolean }[];
   usage: UsageSnapshotRow[];
@@ -298,8 +397,7 @@ export async function getUsageSnapshot(workspaceId: string): Promise<UsageSnapsh
     };
   });
 
-  const start = new Date(`${periodStart()}T00:00:00.000Z`);
-  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
+  const meter = await getMeteringPeriod(workspaceId);
 
   return {
     workspaceId,
@@ -312,7 +410,8 @@ export async function getUsageSnapshot(workspaceId: string): Promise<UsageSnapsh
       inGrace: entitlement.inGrace,
       accessUntil: entitlement.accessUntil,
     },
-    period: { start: start.toISOString(), end: end.toISOString() },
+    period: { start: meter.start, end: meter.end, resets: meter.resets },
+
     credits: entitlement.credits,
     features: FEATURE_CATALOG.map((f) => ({
       key: f.key,
