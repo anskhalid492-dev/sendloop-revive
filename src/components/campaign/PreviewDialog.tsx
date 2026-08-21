@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, CircleAlert, Clock3, Loader2, RefreshCw, Send } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  Loader2,
+  RefreshCw,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,12 +32,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AI_VARIABLE_TOKEN,
   missingVariables,
-  renderTemplate,
+  renderEmailForLead,
   variableResolutionReport,
-  resolveSpintax,
   type LeadLike,
 } from "@/lib/campaign-model";
+import { getLeadPersonalization, previewAiPersonalization } from "@/lib/ai-personalization.functions";
 import { listCampaignTestDiagnostics, sendCampaignTestEmail } from "@/lib/campaigns.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -48,11 +57,54 @@ const SAMPLE: LeadLike = {
   custom_fields: {},
 };
 
+/**
+ * The AI snippet shown in a preview is the stored one for that lead, so the
+ * preview matches the email that actually goes out.
+ */
+function useAiSnippet(builder: CampaignBuilder, leadId: string, usesAi: boolean) {
+  const fetchStored = useServerFn(getLeadPersonalization);
+  const generateFn = useServerFn(previewAiPersonalization);
+  const realLead = leadId !== "__sample__";
+
+  const stored = useQuery({
+    queryKey: ["ai-personalization", builder.campaignId, leadId],
+    queryFn: () => fetchStored({ data: { campaignId: builder.campaignId, leadId } }),
+    enabled: usesAi && realLead,
+  });
+
+  const generate = useMutation({
+    mutationFn: () =>
+      generateFn({ data: { campaignId: builder.campaignId, leadId, save: true } }),
+    onSuccess: async (res) => {
+      if (res.ok) {
+        toast.success("Personalization generated");
+        await stored.refetch();
+      } else {
+        toast.error(res.message);
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sampleSnippet = "Loved what your team is building at Acme.";
+  const content = realLead ? (stored.data?.content ?? null) : sampleSnippet;
+
+  return {
+    content,
+    quality: realLead ? (stored.data?.quality ?? null) : "complete",
+    dataUsed: realLead ? (stored.data?.dataUsed ?? []) : ["First name", "Company"],
+    loading: stored.isLoading,
+    canGenerate: realLead,
+    generate,
+  };
+}
+
 function useResolved(
   builder: CampaignBuilder,
   stepIndex: number,
   leadId: string,
   variantIndex = -1,
+  aiSnippet?: string | null,
 ) {
   const step = builder.steps[stepIndex];
   const customVariables = builder.settings?.customVariables ?? [];
@@ -67,18 +119,25 @@ function useResolved(
   const rawSubject = variant?.subject || step?.subject || "";
   const rawBody = variant?.body || step?.body || "";
 
-  const subject = renderTemplate(resolveSpintax(rawSubject), lead, customVariables);
-  const body = renderTemplate(resolveSpintax(rawBody), lead, customVariables);
+  const extras = aiSnippet ? { [AI_VARIABLE_TOKEN]: aiSnippet } : {};
+  // One resolver for preview, test send and real delivery.
+  const { subject, body } = renderEmailForLead(
+    { subject: rawSubject, body: rawBody },
+    lead,
+    { customVariables, extras },
+  );
   const missing = missingVariables(`${rawSubject} ${rawBody}`, lead, customVariables);
-  return { step, lead, subject, body, missing, rawSubject, rawBody };
+  return { step, lead, subject, body, missing, rawSubject, rawBody, extras };
 }
 
 const SOURCE_LABEL: Record<string, string> = {
   lead: "Lead data",
+  ai: "AI personalization",
   fallback: "Inline fallback",
   custom_default: "Custom default",
   system: "Filled at send time",
-  unresolved: "Not resolved",
+  missing: "No value for this lead",
+  unknown: "Unknown variable",
 };
 
 /** Shows exactly where each template variable resolved from for this lead. */
@@ -87,11 +146,13 @@ function VariableReport({
   rawBody,
   builder,
   leadId,
+  extras,
 }: {
   rawSubject: string;
   rawBody: string;
   builder: CampaignBuilder;
   leadId: string;
+  extras: Record<string, string>;
 }) {
   const lead = useMemo<LeadLike>(() => {
     const row = builder.leads.find((l) => l.lead_id === leadId)?.lead;
@@ -103,9 +164,11 @@ function VariableReport({
     rawBody,
     lead,
     builder.settings?.customVariables ?? [],
+    extras,
   );
   if (report.length === 0) return null;
-  const unresolved = report.filter((r) => r.source === "unresolved");
+  const isUnresolved = (source: string) => source === "missing" || source === "unknown";
+  const unresolved = report.filter((r) => isUnresolved(r.source));
 
   return (
     <div
@@ -124,9 +187,11 @@ function VariableReport({
             </Badge>
             <span className="text-muted-foreground">{r.where.join(" + ")}</span>
             <span
-              className={r.source === "unresolved" ? "font-medium text-amber-600" : "text-muted-foreground"}
+              className={
+                isUnresolved(r.source) ? "font-medium text-amber-600" : "text-muted-foreground"
+              }
             >
-              {SOURCE_LABEL[r.source]}
+              {SOURCE_LABEL[r.source] ?? r.source}
             </span>
             {r.value ? <span className="truncate text-foreground">&ldquo;{r.value}&rdquo;</span> : null}
           </li>
@@ -142,6 +207,7 @@ function VariableReport({
   );
 }
 
+
 export function PreviewDialog({
   builder,
   stepIndex,
@@ -155,12 +221,17 @@ export function PreviewDialog({
 }) {
   const [leadId, setLeadId] = useState("__sample__");
   const [variantIndex, setVariantIndex] = useState(-1);
-  const { step, subject, body, rawSubject, rawBody } = useResolved(
+  const rawStep = builder.steps[stepIndex];
+  const usesAi = `${rawStep?.subject ?? ""} ${rawStep?.body ?? ""}`.includes(AI_VARIABLE_TOKEN);
+  const ai = useAiSnippet(builder, leadId, usesAi);
+  const { step, subject, body, rawSubject, rawBody, extras } = useResolved(
     builder,
     stepIndex,
     leadId,
     variantIndex,
+    ai.content,
   );
+
   const account =
     builder.accounts.find((a) => builder.settings?.sendingAccountIds.includes(a.id)) ??
     builder.accounts[0];
@@ -219,7 +290,56 @@ export function PreviewDialog({
             ) : null}
           </div>
 
-          <VariableReport rawSubject={rawSubject} rawBody={rawBody} builder={builder} leadId={leadId} />
+          <VariableReport
+            rawSubject={rawSubject}
+            rawBody={rawBody}
+            builder={builder}
+            leadId={leadId}
+            extras={extras}
+          />
+
+          {usesAi ? (
+            <div className="rounded-lg border border-border p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 font-medium">
+                  <Sparkles className="size-4 text-primary" /> AI personalization
+                  {ai.quality && ai.quality !== "complete" ? (
+                    <Badge variant="secondary" className="capitalize">
+                      {ai.quality === "limited" ? "Limited data" : "Fallback"}
+                    </Badge>
+                  ) : null}
+                </p>
+                {ai.canGenerate ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => ai.generate.mutate()}
+                    disabled={ai.generate.isPending}
+                  >
+                    {ai.generate.isPending ? (
+                      <Loader2 className="mr-2 size-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 size-3.5" />
+                    )}
+                    {ai.content ? "Regenerate" : "Generate"}
+                  </Button>
+                ) : null}
+              </div>
+              <p className="mt-2 text-muted-foreground">
+                {ai.loading
+                  ? "Loading…"
+                  : (ai.content ??
+                    "Not generated for this lead yet — the campaign fallback text is used until it is.")}
+              </p>
+              {ai.dataUsed.length ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Based on: {ai.dataUsed.join(", ")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+
 
 
           <div className="rounded-xl border border-border">

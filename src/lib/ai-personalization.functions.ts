@@ -47,12 +47,22 @@ export const saveAiSettings = createServerFn({ method: "POST" })
     return { enabled: data.enabled, config };
   });
 
-/** One-off preview generation. Never stored, so previews can't be sent by accident. */
+/**
+ * Generate personalization for ONE lead, on demand.
+ *
+ * Used by the setup preview (not stored) and by the email preview / send path
+ * (`save: true`, stored against workspace + campaign + lead so the exact same
+ * text is what the lead receives).
+ */
 export const previewAiPersonalization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     campaignInput
-      .extend({ leadId: z.string().uuid(), config: configSchema.optional() })
+      .extend({
+        leadId: z.string().uuid(),
+        config: configSchema.optional(),
+        save: z.boolean().optional(),
+      })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -60,6 +70,7 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
       attachLeadNotes,
       campaignAiSettings,
       generatePersonalization,
+      promptFingerprint,
       AiGatewayError,
       LEAD_AI_COLUMNS,
     } = await import("@/lib/ai-personalization.server");
@@ -100,8 +111,42 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
     }
 
     try {
-      const { content } = await generatePersonalization(config, withNotes!, credentials);
-      return { ok: true as const, content, leadId: data.leadId };
+      const { content, quality, dataUsed, model } = await generatePersonalization(
+        config,
+        withNotes!,
+        credentials,
+      );
+
+      if (data.save) {
+        const row = {
+          workspace_id: campaign.workspace_id,
+          campaign_id: data.campaignId,
+          lead_id: data.leadId,
+          status: "completed" as const,
+          content,
+          quality,
+          data_used: dataUsed,
+          model,
+          error: null,
+          attempts: 0,
+          prompt_hash: promptFingerprint(config),
+          instructions: config.instructions,
+          completed_at: new Date().toISOString(),
+        };
+        const { data: existing } = await context.supabase
+          .from("ai_personalizations")
+          .select("id")
+          .eq("campaign_id", data.campaignId)
+          .eq("lead_id", data.leadId)
+          .maybeSingle();
+        if (existing?.id) {
+          await context.supabase.from("ai_personalizations").update(row).eq("id", existing.id);
+        } else {
+          await context.supabase.from("ai_personalizations").insert(row);
+        }
+      }
+
+      return { ok: true as const, content, quality, dataUsed, leadId: data.leadId };
     } catch (error) {
       const failure = error instanceof AiGatewayError ? error : null;
       return {
@@ -112,6 +157,29 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
       };
     }
   });
+
+/** Stored personalization for one lead on one campaign, for the email preview. */
+export const getLeadPersonalization = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => campaignInput.extend({ leadId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("ai_personalizations")
+      .select("id, status, quality, content, data_used, error")
+      .eq("campaign_id", data.campaignId)
+      .eq("lead_id", data.leadId)
+      .maybeSingle();
+    if (!row) return null;
+    return {
+      id: row.id as string,
+      status: row.status as string,
+      quality: (row.quality ?? "complete") as string,
+      content: (row.content ?? null) as string | null,
+      dataUsed: (row.data_used ?? []) as string[],
+      error: (row.error ?? null) as string | null,
+    };
+  });
+
 
 /**
  * Queue personalization for a campaign's recipients.
@@ -248,7 +316,7 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
         .eq("campaign_id", data.campaignId),
       context.supabase
         .from("ai_personalizations")
-        .select("status")
+        .select("status, quality")
         .eq("campaign_id", data.campaignId),
       context.supabase
         .from("ai_runner_state")
@@ -260,19 +328,25 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
     const eligible = new Set(
       ((recipientsRes.data ?? []) as Array<{ lead_id: string }>).map((r) => r.lead_id),
     ).size;
-    const rows = (rowsRes.data ?? []) as Array<{ status: string }>;
-    const personalized = rows.filter((r) => r.status === "completed").length;
+    const rows = (rowsRes.data ?? []) as Array<{ status: string; quality: string | null }>;
+    const done = rows.filter((r) => r.status === "completed");
+    const personalized = done.length;
+    const quality = (r: { quality: string | null }) => r.quality ?? "complete";
     const failed = rows.filter((r) => r.status === "failed").length;
     const queued = rows.filter((r) => r.status === "queued" || r.status === "processing").length;
 
     return {
       eligible,
       personalized,
+      complete: done.filter((r) => quality(r) === "complete").length,
+      limited: done.filter((r) => quality(r) === "limited").length,
+      fallback: done.filter((r) => quality(r) === "fallback").length,
       failed,
       queued,
       remaining: Math.max(0, eligible - personalized),
       paused: (runnerRes.data?.paused_reason as string | null) ?? null,
     };
+
   });
 
 export const listAiPersonalizations = createServerFn({ method: "GET" })

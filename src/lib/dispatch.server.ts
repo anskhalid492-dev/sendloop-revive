@@ -9,8 +9,9 @@
  */
 import { nextSendSlot } from "@/lib/campaign-schedule";
 import {
-  renderTemplate,
+  renderEmailForLead,
   resolveSpintax,
+
   type CustomVariable,
   type StepType,
 } from "@/lib/campaign-model";
@@ -210,8 +211,8 @@ export async function scheduleFollowUps(
       step_order: next.step_order,
       status: "scheduled",
       to_email: (lead as { email: string }).email,
-      subject: renderTemplate(resolveSpintax(next.subject), lead as never, variables, ai.extras),
-      body: renderTemplate(resolveSpintax(next.body), lead as never, variables, ai.extras),
+      ...renderEmailForLead(next, lead as never, { customVariables: variables, extras: ai.extras }),
+
       scheduled_at: slot,
     });
     advanced.push({ id: recipient.id, step: next.step_order, nextAt: slot });

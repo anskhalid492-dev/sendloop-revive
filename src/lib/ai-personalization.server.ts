@@ -160,14 +160,17 @@ export function buildPrompt(
     "You write the opening personalization line of a cold outreach email.",
     "Absolute rules:",
     "- Use ONLY the facts provided below. Nothing else is known about this prospect.",
-    "- Never invent or imply company news, funding, achievements, awards, metrics, events, products or mutual connections.",
+    "- Never invent or imply company news, funding, achievements, awards, metrics, events, products, technologies or mutual connections.",
     "- Never guess industry, size, location or anything not listed.",
     "- No greeting, no sign-off, no subject line, no quotes, no markdown, no placeholders or brackets.",
     "- Do not mention that you are an AI or that data was provided.",
     `- Write in ${config.language}.`,
     `- Tone: ${config.tone}.`,
     `- ${LENGTH_RULE[config.length]}`,
-    "- If the facts are too thin to say anything specific and truthful, reply with exactly: INSUFFICIENT_DATA",
+    "- Thin data is normal. With only a name, or only a company, write a short, conservative, truthful line using just that. Never refuse.",
+    "",
+    'Reply with JSON only, in this exact shape: {"personalization": string, "confidence": "high" | "medium" | "low", "data_used": string[]}',
+    '"data_used" lists the fact labels you actually used. "personalization" must never be empty.',
   ].join("\n");
 
   const factLines = facts.length
@@ -180,13 +183,39 @@ export function buildPrompt(
       ? `Example of the desired style (do not copy its facts):\n${config.exampleOutput.trim()}`
       : "",
     `Known facts about the prospect:\n${factLines}`,
-    "Return only the personalization text.",
+    "Return only the JSON object.",
   ]
     .filter(Boolean)
     .join("\n\n");
 
   return { system, prompt };
 }
+
+/** Best-effort JSON extraction — models occasionally wrap JSON in prose or fences. */
+function parseStructured(raw: string): {
+  personalization: string;
+  confidence: string;
+  dataUsed: string[];
+} | null {
+  const text = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    const personalization = typeof parsed["personalization"] === "string" ? parsed["personalization"] : "";
+    if (!personalization.trim()) return null;
+    const confidence =
+      typeof parsed["confidence"] === "string" ? parsed["confidence"].toLowerCase() : "medium";
+    const dataUsed = Array.isArray(parsed["data_used"])
+      ? (parsed["data_used"] as unknown[]).filter((v): v is string => typeof v === "string").slice(0, 12)
+      : [];
+    return { personalization, confidence, dataUsed };
+  } catch {
+    return null;
+  }
+}
+
 
 function mapGatewayError(error: unknown): AiGatewayError {
   if (error instanceof AiGatewayError) return error;
@@ -223,20 +252,39 @@ function mapGatewayError(error: unknown): AiGatewayError {
   return new AiGatewayError({ status: status || 500, message, retryable: true });
 }
 
-/** One generation call with the workspace's own key. Throws `AiGatewayError`. */
+/** How much verified material the snippet was built from. */
+export type PersonalizationQuality = "complete" | "limited" | "fallback";
+
+export type GenerationResult = {
+  content: string;
+  model: string;
+  quality: PersonalizationQuality;
+  dataUsed: string[];
+};
+
+/**
+ * One generation call with the workspace's own key.
+ *
+ * Thin lead data is NEVER a failure: the model is asked to stay conservative and
+ * the result is marked `limited`. Only real technical/API problems throw
+ * `AiGatewayError`; if the model gives nothing usable we fall back to the
+ * campaign's fallback text and mark the row `fallback`.
+ */
 export async function generatePersonalization(
   config: AiPersonalizationConfig,
   lead: LeadRecord,
   credentials: WorkspaceAiCredentials,
-): Promise<{ content: string; model: string }> {
+): Promise<GenerationResult> {
   const facts = leadFacts(lead, config.fields, config.level);
-  if (facts.length === 0) {
-    throw new AiGatewayError({
-      status: 422,
-      message: "This lead has none of the selected personalization fields filled in.",
-      retryable: false,
-    });
-  }
+  const safeFallback = () => ({
+    content: (config.fallbackText || "I came across your team and wanted to reach out.").trim(),
+    model: credentials.model,
+    quality: "fallback" as const,
+    dataUsed: [],
+  });
+
+  // Nothing verified to work from — return the neutral line instead of failing.
+  if (facts.length === 0) return safeFallback();
 
   const { system, prompt } = buildPrompt(config, facts);
   let text: string;
@@ -252,28 +300,27 @@ export async function generatePersonalization(
     throw mapGatewayError(error);
   }
 
-  const cleaned = text
+  const structured = parseStructured(text);
+  const raw = structured?.personalization ?? text;
+  const cleaned = raw
     .replace(/^["'`]+|["'`]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  if (!cleaned || /^INSUFFICIENT_DATA$/i.test(cleaned)) {
-    throw new AiGatewayError({
-      status: 422,
-      message: "Not enough verified data about this lead to personalize safely.",
-      retryable: false,
-    });
-  }
-  if (/[[{<]{1}[^\]}>]*[\]}>]/.test(cleaned) && /\{\{|\[\[/.test(cleaned)) {
-    throw new AiGatewayError({
-      status: 422,
-      message: "Generated text contained placeholders and was discarded.",
-      retryable: false,
-    });
-  }
+  // Model refused, went empty, or leaked a placeholder — degrade, don't fail.
+  const leakedPlaceholder = /\{\{|\[\[|\{[a-z_]+\}/i.test(cleaned);
+  if (!cleaned || /^INSUFFICIENT_DATA$/i.test(cleaned) || leakedPlaceholder) return safeFallback();
 
-  return { content: cleaned.slice(0, 600), model: credentials.model };
+  const dataUsed = structured?.dataUsed?.length
+    ? structured.dataUsed
+    : facts.map((f) => f.label);
+  // Low confidence, or very little material, is "limited" — still sendable.
+  const quality: PersonalizationQuality =
+    structured?.confidence === "low" || facts.length <= 1 ? "limited" : "complete";
+
+  return { content: cleaned.slice(0, 600), model: credentials.model, quality, dataUsed };
 }
+
 
 /** Stable fingerprint of the settings a stored snippet was generated with. */
 export function promptFingerprint(config: AiPersonalizationConfig): string {
@@ -543,7 +590,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       }
 
       try {
-        const { content, model } = await generatePersonalization(
+        const { content, model, quality, dataUsed } = await generatePersonalization(
           settings.config,
           lead,
           credentials,
@@ -554,6 +601,8 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
             status: "completed",
             content,
             model,
+            quality,
+            data_used: dataUsed,
             error: null,
             locked_by: null,
             locked_until: null,
@@ -562,6 +611,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
             completed_at: new Date().toISOString(),
           })
           .eq("id", job.id);
+
         result.completed += 1;
         if (paused) {
           await clearPause(admin);

@@ -175,11 +175,22 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
 
 export type PersonalizationStatus = "queued" | "processing" | "completed" | "failed";
 
+/** How much verified lead data a snippet was built from. */
+export type PersonalizationQuality = "complete" | "limited" | "fallback";
+
+export const QUALITY_LABELS: Record<PersonalizationQuality, string> = {
+  complete: "Completed",
+  limited: "Limited data",
+  fallback: "Fallback",
+};
+
 export type PersonalizationRow = {
   id: string;
   campaign_id: string;
   lead_id: string;
   status: PersonalizationStatus;
+  quality: PersonalizationQuality;
+  data_used: string[];
   content: string | null;
   attempts: number;
   error: string | null;
@@ -191,11 +202,17 @@ export type PersonalizationRow = {
 
 export type PersonalizationStats = {
   eligible: number;
+  /** Every generated snippet, whatever its quality. */
   personalized: number;
+  complete: number;
+  limited: number;
+  fallback: number;
+  /** Genuine technical failures only. */
   failed: number;
   queued: number;
   remaining: number;
 };
+
 
 export type AiUsageStats = {
   generated: number;

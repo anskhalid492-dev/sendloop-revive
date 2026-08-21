@@ -97,6 +97,7 @@ export type Database = {
           completed_at: string | null
           content: string | null
           created_at: string
+          data_used: string[]
           edited: boolean
           error: string | null
           id: string
@@ -106,6 +107,7 @@ export type Database = {
           locked_until: string | null
           model: string | null
           prompt_hash: string
+          quality: string
           started_at: string | null
           status: string
           updated_at: string
@@ -118,6 +120,7 @@ export type Database = {
           completed_at?: string | null
           content?: string | null
           created_at?: string
+          data_used?: string[]
           edited?: boolean
           error?: string | null
           id?: string
@@ -127,6 +130,7 @@ export type Database = {
           locked_until?: string | null
           model?: string | null
           prompt_hash?: string
+          quality?: string
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -139,6 +143,7 @@ export type Database = {
           completed_at?: string | null
           content?: string | null
           created_at?: string
+          data_used?: string[]
           edited?: boolean
           error?: string | null
           id?: string
@@ -148,6 +153,7 @@ export type Database = {
           locked_until?: string | null
           model?: string | null
           prompt_hash?: string
+          quality?: string
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -6564,6 +6570,7 @@ export type Database = {
           completed_at: string | null
           content: string | null
           created_at: string
+          data_used: string[]
           edited: boolean
           error: string | null
           id: string
@@ -6573,6 +6580,7 @@ export type Database = {
           locked_until: string | null
           model: string | null
           prompt_hash: string
+          quality: string
           started_at: string | null
           status: string
           updated_at: string

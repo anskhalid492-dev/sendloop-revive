@@ -143,6 +143,9 @@ export type LeadLike = {
 
 export type VariableDef = { token: string; label: string };
 
+/** The AI-generated snippet token. Resolved from stored personalization, never lead data. */
+export const AI_VARIABLE_TOKEN = "ai_personalization";
+
 /** The single source of truth for built-in personalization variables. */
 export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }> = [
   {
@@ -152,6 +155,7 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
       { token: "last_name", label: "Last name" },
       { token: "email", label: "Email" },
       { token: "phone", label: "Phone" },
+      { token: "linkedin_url", label: "LinkedIn URL" },
     ],
   },
   {
@@ -160,9 +164,14 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
       { token: "company", label: "Company" },
       { token: "job_title", label: "Job title" },
       { token: "website", label: "Website" },
+      { token: "industry", label: "Industry" },
       { token: "location", label: "Location" },
-      { token: "linkedin_url", label: "LinkedIn URL" },
+      { token: "company_description", label: "Company description" },
     ],
+  },
+  {
+    group: "AI",
+    variables: [{ token: AI_VARIABLE_TOKEN, label: "AI personalization" }],
   },
 ];
 
@@ -172,8 +181,12 @@ export const LEAD_VARIABLES: VariableDef[] = VARIABLE_GROUPS.flatMap((g) => g.va
 const VARIABLE_ALIASES: Record<string, string> = {
   company_name: "company",
   country: "location",
+  city: "location",
   title: "job_title",
+  role: "job_title",
   linkedin: "linkedin_url",
+  domain: "website",
+  description: "company_description",
 };
 
 /** Tokens the sending system fills in itself. */
@@ -202,6 +215,7 @@ function leadLocation(lead: LeadLike): string | undefined {
 /** Resolve a token against a lead row (built-in field, alias, or custom field). */
 export function leadValue(lead: LeadLike, token: string): string | undefined {
   const canonical = VARIABLE_ALIASES[token] ?? token;
+  const custom = (lead.custom_fields ?? {}) as Record<string, string>;
   const direct: Record<string, string | null | undefined> = {
     first_name: lead.first_name,
     last_name: lead.last_name,
@@ -212,10 +226,14 @@ export function leadValue(lead: LeadLike, token: string): string | undefined {
     phone: lead.phone,
     linkedin_url: lead.linkedin_url,
     location: leadLocation(lead),
+    // Not columns on the lead table — they live in custom fields when imported.
+    industry: custom["industry"],
+    company_description: custom["company_description"] ?? custom["description"],
   };
-  const value = direct[canonical] ?? lead.custom_fields?.[token] ?? lead.custom_fields?.[canonical];
+  const value = direct[canonical] ?? custom[token] ?? custom[canonical];
   return value ? String(value) : undefined;
 }
+
 
 /**
  * Replace {{variable}} and {{variable | fallback}} tokens with lead data.
@@ -240,6 +258,36 @@ export function renderTemplate(
     return defaults.get(token) ?? "";
   });
 }
+
+export type RenderableStep = { subject: string; body: string };
+
+export type RenderOptions = {
+  customVariables?: CustomVariable[];
+  /** Values resolved outside lead data — today the AI personalization snippet. */
+  extras?: Record<string, string>;
+  /** Which spintax branch to pick; keeps preview and send deterministic. */
+  spintaxIndex?: number;
+};
+
+/**
+ * THE renderer. Preview, test send, launch and follow-up dispatch all call this
+ * so a lead can never see different copy from what the operator previewed.
+ *
+ * Order matters: variables (which support `{{token|fallback}}`) are resolved
+ * BEFORE spintax, otherwise the spintax pass eats the `{token|fallback}` inner
+ * braces and leaves literal `{first_name}` in the delivered email.
+ */
+export function renderEmailForLead(
+  step: RenderableStep,
+  lead: LeadLike,
+  options: RenderOptions = {},
+): { subject: string; body: string } {
+  const { customVariables = [], extras = {}, spintaxIndex = 0 } = options;
+  const render = (text: string) =>
+    resolveSpintax(renderTemplate(text ?? "", lead, customVariables, extras), spintaxIndex);
+  return { subject: render(step.subject ?? ""), body: render(step.body ?? "") };
+}
+
 
 
 /**
@@ -268,34 +316,43 @@ export function missingVariables(
 
 export type VariableResolution = {
   token: string;
+  label: string;
   where: Array<"subject" | "body">;
-  source: "lead" | "fallback" | "custom_default" | "system" | "unresolved";
+  source: "lead" | "ai" | "fallback" | "custom_default" | "system" | "missing" | "unknown";
   value: string | null;
 };
 
 /**
  * Per-token report of what the preview actually resolved, so an operator can
  * see which variables fell back and which would send blank.
+ *
+ * `extras` carries AI personalization exactly as the send path passes it.
  */
 export function variableResolutionReport(
   subject: string,
   body: string,
   lead?: LeadLike,
   customVariables: CustomVariable[] = [],
+  extras: Record<string, string> = {},
 ): VariableResolution[] {
   const defaults = new Map(
     customVariables.filter((v) => v.defaultValue.trim()).map((v) => [v.token, v.defaultValue.trim()]),
   );
+  const known = new Set(customVariables.map((v) => v.token));
   const out = new Map<string, VariableResolution>();
 
   const scan = (template: string, where: "subject" | "body") => {
     for (const match of template.matchAll(VARIABLE_RE)) {
       const token = match[1]!;
       const fallback = (match[2] ?? "").trim();
+      const extra = extras[token];
       const value = lead ? leadValue(lead, token) : undefined;
       let source: VariableResolution["source"];
       let resolved: string | null;
-      if (value) {
+      if (typeof extra === "string" && extra.trim()) {
+        source = "ai";
+        resolved = extra.trim();
+      } else if (value) {
         source = "lead";
         resolved = value;
       } else if (SYSTEM_VARIABLES.has(token)) {
@@ -307,16 +364,28 @@ export function variableResolutionReport(
       } else if (defaults.has(token)) {
         source = "custom_default";
         resolved = defaults.get(token)!;
+      } else if (isLeadVariable(token) || known.has(token) || token === AI_VARIABLE_TOKEN) {
+        // A supported variable the lead simply has no value for: sends empty.
+        source = "missing";
+        resolved = null;
       } else {
-        source = "unresolved";
+        source = "unknown";
         resolved = null;
       }
+
       const existing = out.get(token);
       if (existing) {
         if (!existing.where.includes(where)) existing.where.push(where);
         continue;
       }
-      out.set(token, { token, where: [where], source, value: resolved });
+      out.set(token, {
+        token,
+        label: customVariables.find((v) => v.token === token)?.label ?? variableLabel(token),
+        where: [where],
+        source,
+        value: resolved,
+      });
+
     }
   };
 

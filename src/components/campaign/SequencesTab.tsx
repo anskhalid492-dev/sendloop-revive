@@ -59,6 +59,8 @@ import {
 } from "@/lib/campaign-model";
 
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
+import { AiTab } from "./AiTab";
+
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -228,7 +230,9 @@ export function SequencesTab({
   };
 
   return (
+    <div className="space-y-6">
     <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
+
       {/* Step rail */}
       <aside className="surface-card h-fit p-3">
         <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -909,5 +913,10 @@ export function SequencesTab({
         </DialogContent>
       </Dialog>
     </div>
+
+    {/* AI personalization lives with the copy it rewrites, not in a separate tab. */}
+    <AiTab builder={builder} />
+    </div>
   );
+
 }
