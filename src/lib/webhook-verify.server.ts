@@ -128,6 +128,7 @@ export async function verifyInboundSignature(
   }
 
   const provided =
+    request.headers.get("x-munchreach-signature") ??
     request.headers.get("x-sendloop-signature") ??
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     new URL(request.url).searchParams.get("token") ??
