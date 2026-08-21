@@ -2,7 +2,12 @@ import { Activity, CircleAlert, Gauge, Mail, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
+import {
+  LEAD_DELIVERY_LABELS,
+  LEAD_DELIVERY_STYLES,
+  STEP_TYPE_LABELS,
+  type LeadDeliveryState,
+} from "@/lib/campaign-model";
 import { LaunchAuditTrail } from "./LaunchAuditTrail";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -16,6 +21,22 @@ function Metric({ label, value, hint }: { label: string; value: string | number;
   );
 }
 
+/** Compact "2m ago" style stamp so the feed reads as live. */
+function relativeTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "—";
+  const seconds = Math.round((Date.now() - then) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(value).toLocaleDateString();
+}
+
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const { campaign, queue, delivery, steps, accounts, settings, leads } = builder;
   if (!campaign || !settings) return null;
@@ -26,10 +47,16 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
   const contacted = delivery?.contacted ?? leads.filter((l) => l.status !== "pending").length;
 
+  // Feed the activity list from the live per-lead delivery state (real message
+  // events), not the recipient row status, so opens/bounces show up instantly.
   const recentActivity = leads
-    .filter((l) => l.last_sent_at)
-    .sort((a, b) => (a.last_sent_at! < b.last_sent_at! ? 1 : -1))
-    .slice(0, 6);
+    .filter((l) => l.lastEventAt ?? l.last_sent_at)
+    .sort((a, b) => {
+      const at = String(a.lastEventAt ?? a.last_sent_at ?? "");
+      const bt = String(b.lastEventAt ?? b.last_sent_at ?? "");
+      return at < bt ? 1 : -1;
+    })
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
