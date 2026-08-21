@@ -263,23 +263,31 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     : receivedAt.toISOString();
   const messageId = stripAngle(email.messageId);
 
-  // Strongest signal first: the routed reply address we sent from.
+  // Routing token if one is present, but it is only a shortcut — a plain reply
+  // to a normal mailbox threads just as reliably through headers below.
   const { resolveRouteFromAddress } = await import("@/lib/inbound-routing.server");
   const route = await resolveRouteFromAddress(mailbox);
 
-  const campaignMessage = await findCampaignMessage(db, email, prospect);
-  let workspaceId = route?.workspace_id ?? campaignMessage?.workspace_id ?? null;
-  let sendingAccountId =
-    route?.sending_account_id ?? campaignMessage?.sending_account_id ?? null;
+  const mailboxAccount = await resolveWorkspaceFromMailbox(db, mailbox);
+  const campaignMessage = await findCampaignMessage(
+    db,
+    email,
+    prospect,
+    route?.workspace_id ?? mailboxAccount?.workspace_id ?? null,
+  );
+  const workspaceId =
+    route?.workspace_id ?? campaignMessage?.workspace_id ?? mailboxAccount?.workspace_id ?? null;
+  const sendingAccountId =
+    route?.sending_account_id ??
+    campaignMessage?.sending_account_id ??
+    mailboxAccount?.id ??
+    null;
 
   if (!workspaceId) {
-    const account = await resolveWorkspaceFromMailbox(db, mailbox);
-    if (account) {
-      workspaceId = account.workspace_id;
-      sendingAccountId = sendingAccountId ?? account.id;
-    }
+    await storeUnmatched(db, email, "No workspace matched this email");
+    return { status: "unmatched", reason: "No workspace matched this email" };
   }
-  if (!workspaceId) return { status: "unmatched", reason: "No workspace matched this email" };
+
 
   // Duplicate delivery of the very same email: stop before any side effect.
   if (messageId) {
