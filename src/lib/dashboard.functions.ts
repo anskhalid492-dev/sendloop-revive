@@ -116,7 +116,6 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       };
     });
 
-    const activity: ActivityItem[] = [
     const accountLabel = new Map(accountRows.map((a) => [a.id, a.label || a.from_email]));
 
     const activity: ActivityItem[] = [
