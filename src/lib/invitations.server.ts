@@ -4,7 +4,8 @@
  * Sent through the managed Resend account. Failures never break the invite:
  * the row is already created, so the owner can copy the link manually.
  */
-const FROM = "MunchReach <team@sendloop.io>";
+const FROM = "MunchReach <support@munchreach.com>";
+const REPLY_TO = "support@munchreach.com";
 
 export type InviteEmailInput = {
   to: string;
@@ -44,6 +45,7 @@ export async function sendInvitationEmail(
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
       body: JSON.stringify({
         from: FROM,
+        reply_to: [REPLY_TO],
         to: [input.to],
         subject: `Join ${input.workspaceName} on MunchReach`,
         html,

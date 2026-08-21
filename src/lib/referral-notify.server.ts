@@ -16,7 +16,8 @@ import {
   type ReferralTemplateMap,
 } from "@/lib/referral-templates";
 
-const FROM = "MunchReach <referrals@sendloop.io>";
+const FROM = "MunchReach <support@munchreach.com>";
+const REPLY_TO = "support@munchreach.com";
 
 export type ReferralNotificationKind =
   | "referral_attributed"
@@ -84,7 +85,7 @@ async function sendEmail(to: string, title: string, message: string, link: strin
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: FROM, to: [to], subject: title, html }),
+      body: JSON.stringify({ from: FROM, reply_to: [REPLY_TO], to: [to], subject: title, html }),
     });
   } catch {
     /* provider unreachable — the in-app notification still exists */

@@ -55,7 +55,7 @@ export const Route = createFileRoute("/contact")({
 const channels = [
   { icon: Mail, title: "Sales", text: "Pricing, agency plans and migrations.", detail: "sales@munchreach.com" },
   { icon: MessageSquare, title: "Support", text: "Deliverability and product questions.", detail: "support@munchreach.com" },
-  { icon: Building2, title: "Partnerships", text: "Agencies, resellers and integrations.", detail: "partners@munchreach.app" },
+  { icon: Building2, title: "Partnerships", text: "Agencies, resellers and integrations.", detail: "partners@munchreach.com" },
 ];
 
 const reasons = [
