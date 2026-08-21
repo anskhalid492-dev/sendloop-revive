@@ -18,6 +18,20 @@ const RUNNER_ID = "warmup";
 const LEASE_MS = 5 * 60_000;
 const MAX_JOBS_PER_RUN = 40;
 const MAX_ACCOUNTS_PER_RUN = 50;
+/** How long a sent warmup email may take to show up on the receiving side. */
+const PLACEMENT_WINDOW_MS = 45 * 60_000;
+
+/** Unguessable per-message reference used to recognise our own warmup mail. */
+function warmupToken(): string {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** The footer carries the reference when a provider strips custom headers. */
+function withWarmupRef(body: string, token: string): string {
+  return `${body}\n\n--\nRef: MRW-${token}`;
+}
 
 export type RunSummary = {
   ok: boolean;
@@ -100,12 +114,30 @@ async function releaseLease(admin: Admin, result: RunSummary) {
 async function bumpStats(
   admin: Admin,
   args: { workspaceId: string; accountId: string; day?: string; target?: number },
-  patch: Partial<Record<"scheduled" | "sent" | "delivered" | "bounced" | "complained" | "failed" | "replied", number>>,
+  patch: Partial<
+    Record<
+      | "scheduled"
+      | "sent"
+      | "delivered"
+      | "bounced"
+      | "complained"
+      | "failed"
+      | "replied"
+      | "inbox"
+      | "spam"
+      | "deferred"
+      | "rejected"
+      | "not_received",
+      number
+    >
+  >,
 ) {
   const day = args.day ?? today();
   const { data: existing } = await admin
     .from("warmup_daily_stats")
-    .select("id, scheduled, sent, delivered, bounced, complained, failed, replied, target")
+    .select(
+      "id, scheduled, sent, delivered, bounced, complained, failed, replied, inbox, spam, deferred, rejected, not_received, target",
+    )
     .eq("sending_account_id", args.accountId)
     .eq("day", day)
     .maybeSingle();
@@ -123,6 +155,11 @@ async function bumpStats(
       complained: patch.complained ?? 0,
       failed: patch.failed ?? 0,
       replied: patch.replied ?? 0,
+      inbox: patch.inbox ?? 0,
+      spam: patch.spam ?? 0,
+      deferred: patch.deferred ?? 0,
+      rejected: patch.rejected ?? 0,
+      not_received: patch.not_received ?? 0,
     });
     return;
   }
@@ -316,7 +353,9 @@ async function scheduleAccount(
       .single();
 
     const idempotencyKey = `${account.id}:${day}:${i}:initial`;
+    const token = warmupToken();
     const { error } = await admin.from("warmup_jobs").insert({
+      warmup_token: token,
       workspace_id: account.workspace_id,
       sending_account_id: account.id,
       conversation_id: conversation?.id ?? null,
@@ -325,7 +364,7 @@ async function scheduleAccount(
       from_email: account.from_email,
       to_email: peer.from_email,
       subject,
-      body,
+      body: withWarmupRef(body, token),
       scheduled_at: times[i]!.toISOString(),
       idempotency_key: idempotencyKey,
       provider: account.provider,
@@ -427,7 +466,10 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       to: job["to_email"] as string,
       subject: job["subject"] as string,
       text: job["body"] as string,
-      headers: { "X-MunchReach-Warmup": "1" },
+      headers: {
+        "X-MunchReach-Warmup": "1",
+        ...(job["warmup_token"] ? { "X-MunchReach-Warmup-Id": String(job["warmup_token"]) } : {}),
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Provider request failed";
@@ -515,7 +557,9 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
 
   const { subject, body } = buildWarmupReply(recipient.from_name as string, job["subject"] as string);
   const delayMs = (20 + Math.floor(Math.random() * 70)) * 60_000;
+  const replyToken = warmupToken();
   const { error } = await admin.from("warmup_jobs").insert({
+    warmup_token: replyToken,
     workspace_id: recipient.workspace_id,
     sending_account_id: recipient.id,
     conversation_id: job["conversation_id"] ?? null,
@@ -524,7 +568,7 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
     from_email: recipient.from_email,
     to_email: job["from_email"],
     subject,
-    body,
+    body: withWarmupRef(body, replyToken),
     scheduled_at: new Date(Date.now() + delayMs).toISOString(),
     idempotency_key: `reply:${job["id"]}`,
     provider: recipient.provider,
@@ -546,7 +590,7 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
  * event does not belong to warmup so the campaign pipeline can handle it.
  */
 export async function applyWarmupDeliveryEvent(args: {
-  kind: "delivered" | "bounced" | "complained" | "deferred" | "replied";
+  kind: "delivered" | "bounced" | "complained" | "deferred" | "delayed" | "rejected" | "replied";
   providerMessageId: string | null;
   email: string | null;
   reason: string | null;
@@ -580,23 +624,41 @@ export async function applyWarmupDeliveryEvent(args: {
     bounced: "failed",
     complained: null,
     deferred: null,
+    delayed: null,
+    rejected: "failed",
     replied: "replied",
   };
   const nextStatus = statusMap[args.kind];
-  if (nextStatus) {
-    await supabaseAdmin.from("warmup_jobs").update({ status: nextStatus }).eq("id", job.id);
+  const jobPatch: Record<string, unknown> = {};
+  if (nextStatus) jobPatch["status"] = nextStatus;
+  if (args.kind === "complained") {
+    // A complaint is a confirmed spam placement from the receiving side.
+    jobPatch["placement"] = "spam";
+    jobPatch["placement_checked_at"] = new Date().toISOString();
+  }
+  if (args.kind === "bounced" || args.kind === "rejected") {
+    jobPatch["placement"] = "not_delivered";
+    jobPatch["placement_checked_at"] = new Date().toISOString();
+  }
+  if (Object.keys(jobPatch).length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabaseAdmin.from("warmup_jobs").update(jobPatch as any).eq("id", job.id);
   }
 
-  const counter =
+  const counter: Record<string, number> =
     args.kind === "delivered"
       ? { delivered: 1 }
       : args.kind === "bounced"
         ? { bounced: 1 }
         : args.kind === "complained"
-          ? { complained: 1 }
+          ? { complained: 1, spam: 1 }
           : args.kind === "replied"
             ? { replied: 1 }
-            : {};
+            : args.kind === "deferred" || args.kind === "delayed"
+              ? { deferred: 1 }
+              : args.kind === "rejected"
+                ? { rejected: 1 }
+                : {};
   if (Object.keys(counter).length) {
     await bumpStats(
       supabaseAdmin,
@@ -607,6 +669,199 @@ export async function applyWarmupDeliveryEvent(args: {
 
   await recalculateHealth(supabaseAdmin, job.sending_account_id);
   return true;
+}
+
+/* --------------------------------------------------- inbound placement */
+
+const TOKEN_RE = /MRW-([a-f0-9]{16,32})/i;
+
+/** Pulls the warmup reference out of headers or the message body. */
+function warmupTokenFrom(input: {
+  headers?: unknown;
+  subject?: string | null;
+  text?: string | null;
+  html?: string | null;
+}): string | null {
+  const headers = input.headers;
+  if (headers && typeof headers === "object") {
+    const entries: Array<[string, string]> = Array.isArray(headers)
+      ? (headers as Array<Record<string, unknown>>).map((h) => [
+          String(h["name"] ?? ""),
+          String(h["value"] ?? ""),
+        ])
+      : Object.entries(headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
+    for (const [name, value] of entries) {
+      if (name.toLowerCase() === "x-munchreach-warmup-id" && value) {
+        return value.trim().toLowerCase();
+      }
+    }
+  }
+  for (const field of [input.text, input.html, input.subject]) {
+    const match = field ? TOKEN_RE.exec(field) : null;
+    if (match?.[1]) return match[1].toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * Reads the receiving side's spam verdict. Providers expose this differently;
+ * when no verdict is present we do not guess — placement stays `inbox` only
+ * when the receiving system reported no spam signal at all.
+ */
+function spamVerdict(input: { headers?: unknown; payload?: Record<string, unknown> }): boolean | null {
+  const raw = input.payload ?? {};
+  const source = (raw["data"] && typeof raw["data"] === "object" ? raw["data"] : raw) as Record<string, unknown>;
+  const flags = [
+    source["spam"],
+    source["is_spam"],
+    source["spam_flag"],
+    source["spamVerdict"],
+    (source["verdicts"] as Record<string, unknown> | undefined)?.["spam"],
+  ];
+  for (const flag of flags) {
+    if (typeof flag === "boolean") return flag;
+    if (typeof flag === "string") {
+      const value = flag.toLowerCase();
+      if (["true", "yes", "fail", "failed", "spam"].includes(value)) return true;
+      if (["false", "no", "pass", "passed", "ham"].includes(value)) return false;
+    }
+    if (flag && typeof flag === "object") {
+      const status = String((flag as Record<string, unknown>)["status"] ?? "").toLowerCase();
+      if (status) return status !== "pass";
+    }
+  }
+
+  const headers = input.headers;
+  if (headers && typeof headers === "object") {
+    const entries: Array<[string, string]> = Array.isArray(headers)
+      ? (headers as Array<Record<string, unknown>>).map((h) => [
+          String(h["name"] ?? ""),
+          String(h["value"] ?? ""),
+        ])
+      : Object.entries(headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
+    for (const [name, value] of entries) {
+      const key = name.toLowerCase();
+      if (key === "x-spam-flag") return /yes|true/i.test(value);
+      if (key === "x-spam-status") return /^yes/i.test(value.trim());
+      if (key === "x-spam-score") {
+        const score = Number.parseFloat(value);
+        if (Number.isFinite(score)) return score >= 5;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Claims an inbound message that belongs to the warmup network and records
+ * where it landed. Returns false for ordinary customer mail so the normal
+ * inbox pipeline handles it.
+ */
+export async function applyWarmupInbound(input: {
+  from: string | null;
+  to: string | null;
+  subject?: string | null;
+  text?: string | null;
+  html?: string | null;
+  headers?: unknown;
+  payload?: Record<string, unknown>;
+}): Promise<boolean> {
+  const token = warmupTokenFrom(input);
+  if (!token) return false;
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: job } = await supabaseAdmin
+    .from("warmup_jobs")
+    .select("id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id")
+    .eq("warmup_token", token)
+    .maybeSingle();
+  if (!job) return false;
+
+  // Already classified: acknowledge the redelivery without double counting.
+  if (job.placement && job.placement !== "pending") return true;
+
+  const spam = spamVerdict(input);
+  const placement = spam === true ? "spam" : spam === false ? "inbox" : "received_unknown";
+  const now = new Date().toISOString();
+
+  await supabaseAdmin
+    .from("warmup_jobs")
+    .update({
+      placement,
+      placement_checked_at: now,
+      received_at: now,
+      status: job.status === "sent" || job.status === "processing" ? "delivered" : job.status,
+    })
+    .eq("id", job.id);
+
+  const fresh = await logEvent(supabaseAdmin, {
+    workspaceId: job.workspace_id,
+    accountId: job.sending_account_id,
+    jobId: job.id,
+    type: placement === "spam" ? "spam_placement" : "inbox_placement",
+    detail:
+      placement === "inbox"
+        ? `Landed in the main inbox of ${input.to ?? "the receiving mailbox"}.`
+        : placement === "spam"
+          ? `Filtered to spam at ${input.to ?? "the receiving mailbox"}.`
+          : `Received by ${input.to ?? "the receiving mailbox"} — folder not reported.`,
+    externalId: `warmup:placement:${token}`,
+    payload: { placement, to: input.to, from: input.from },
+  });
+
+  if (fresh) {
+    const counter: Record<string, number> =
+      placement === "spam" ? { spam: 1 } : placement === "inbox" ? { inbox: 1 } : {};
+    if (job.status !== "delivered") counter["delivered"] = 1;
+    if (Object.keys(counter).length) {
+      await bumpStats(
+        supabaseAdmin,
+        { workspaceId: job.workspace_id, accountId: job.sending_account_id },
+        counter,
+      );
+    }
+    await recalculateHealth(supabaseAdmin, job.sending_account_id);
+  }
+  return true;
+}
+
+/**
+ * Marks sent warmup mail that never showed up on the receiving side. Runs on
+ * every cycle so the dashboard never reports a delivery that did not happen.
+ */
+async function sweepPlacement(admin: Admin): Promise<number> {
+  const cutoff = new Date(Date.now() - PLACEMENT_WINDOW_MS).toISOString();
+  const { data: stale } = await admin
+    .from("warmup_jobs")
+    .select("id, workspace_id, sending_account_id")
+    .eq("placement", "pending")
+    .in("status", ["sent", "delivered"])
+    .not("processed_at", "is", null)
+    .lt("processed_at", cutoff)
+    .limit(200);
+
+  for (const job of (stale ?? []) as Array<Record<string, string>>) {
+    await admin
+      .from("warmup_jobs")
+      .update({ placement: "not_received", placement_checked_at: new Date().toISOString() })
+      .eq("id", job["id"]!);
+    const fresh = await logEvent(admin, {
+      workspaceId: job["workspace_id"]!,
+      accountId: job["sending_account_id"]!,
+      jobId: job["id"]!,
+      type: "not_received",
+      detail: "No arrival confirmed on the receiving mailbox within 45 minutes.",
+      externalId: `warmup:notreceived:${job["id"]}`,
+    });
+    if (fresh) {
+      await bumpStats(
+        admin,
+        { workspaceId: job["workspace_id"]!, accountId: job["sending_account_id"]! },
+        { not_received: 1 },
+      );
+    }
+  }
+  return (stale ?? []).length;
 }
 
 /* ------------------------------------------------------------ health score */
@@ -625,13 +880,25 @@ export async function recalculateHealth(
   const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
   const { data: stats } = await admin
     .from("warmup_daily_stats")
-    .select("day, sent, delivered, bounced, complained, failed, replied")
+    .select("day, sent, delivered, bounced, complained, failed, replied, inbox, spam, deferred, rejected, not_received")
     .eq("sending_account_id", accountId)
     .gte("day", since);
 
   const totals = (stats ?? []).reduce(
     (acc: Record<string, number>, row: Record<string, number>) => {
-      for (const key of ["sent", "delivered", "bounced", "complained", "failed", "replied"]) {
+      for (const key of [
+        "sent",
+        "delivered",
+        "bounced",
+        "complained",
+        "failed",
+        "replied",
+        "inbox",
+        "spam",
+        "deferred",
+        "rejected",
+        "not_received",
+      ]) {
         acc[key] = (acc[key] ?? 0) + (row[key] ?? 0);
       }
       return acc;
@@ -682,6 +949,60 @@ export async function recalculateHealth(
         impact: -failPenalty,
         detail: `${failRate.toFixed(1)}% of attempts were rejected by the provider.`,
       });
+    }
+
+    const placed = (totals["inbox"] ?? 0) + (totals["spam"] ?? 0);
+    if (placed > 0) {
+      const spamRate = ((totals["spam"] ?? 0) / placed) * 100;
+      const inboxRate = ((totals["inbox"] ?? 0) / placed) * 100;
+      const spamPenalty = Math.min(35, Math.round(spamRate * 0.7));
+      if (spamPenalty) {
+        score -= spamPenalty;
+        factors.push({
+          label: "Spam folder placement",
+          impact: -spamPenalty,
+          detail: `${spamRate.toFixed(1)}% of confirmed warmup arrivals were filtered to spam.`,
+        });
+      } else {
+        factors.push({
+          label: "Inbox placement",
+          impact: 0,
+          detail: `${inboxRate.toFixed(1)}% of confirmed warmup arrivals landed in the main inbox.`,
+        });
+      }
+    }
+
+    if (totals["not_received"]) {
+      const missRate = ((totals["not_received"] ?? 0) / sent) * 100;
+      const missPenalty = Math.min(20, Math.round(missRate * 0.4));
+      if (missPenalty) {
+        score -= missPenalty;
+        factors.push({
+          label: "Unconfirmed arrivals",
+          impact: -missPenalty,
+          detail: `${missRate.toFixed(1)}% of sends were never confirmed on the receiving mailbox.`,
+        });
+      }
+    }
+
+    if (totals["deferred"]) {
+      factors.push({
+        label: "Delayed by receiving servers",
+        impact: 0,
+        detail: `${totals["deferred"]} warmup message(s) were delayed before delivery.`,
+      });
+    }
+
+    if (totals["rejected"]) {
+      const rejectPenalty = Math.min(20, Math.round(((totals["rejected"] ?? 0) / sent) * 100 * 0.5));
+      if (rejectPenalty) {
+        score -= rejectPenalty;
+        factors.push({
+          label: "Rejected by receiving servers",
+          impact: -rejectPenalty,
+          detail: `${totals["rejected"]} warmup message(s) were rejected on delivery.`,
+        });
+      }
     }
 
     if (totals["delivered"]) {
@@ -895,7 +1216,16 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
       }
     }
 
-    // 3. Health ------------------------------------------------------------
+    // 3. Placement sweep ---------------------------------------------------
+    try {
+      await sweepPlacement(admin);
+    } catch (error) {
+      summary.errors.push(
+        `placement sweep: ${error instanceof Error ? error.message : "failed"}`,
+      );
+    }
+
+    // 4. Health ------------------------------------------------------------
     const touched = new Set(jobs.map((j) => j["sending_account_id"] as string));
     for (const accountId of touched) {
       try {

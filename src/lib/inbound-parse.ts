@@ -75,13 +75,17 @@ export type EventKind =
   | "bounced"
   | "complained"
   | "unsubscribed"
+  | "delayed"
+  | "rejected"
   | "unknown";
 
 /** Classifies the webhook event so delivery signals are not treated as replies. */
 export function classifyEvent(input: Record<string, unknown>): EventKind {
   const raw = String(input["type"] ?? input["event"] ?? input["RecordType"] ?? "").toLowerCase();
   if (!raw || raw.includes("received") || raw.includes("inbound")) return "inbound";
+  if (raw.includes("delay") || raw.includes("defer")) return "delayed";
   if (raw.includes("bounce")) return "bounced";
+  if (raw.includes("reject")) return "rejected";
   if (raw.includes("complain") || raw.includes("spam")) return "complained";
   if (raw.includes("unsub")) return "unsubscribed";
   if (raw.includes("deliver")) return "delivered";

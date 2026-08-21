@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getWarmupAccount, saveWarmupSettings } from "@/lib/warmup.functions";
-import { WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
+import { PLACEMENT_LABEL, WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
 
 type Draft = {
@@ -70,6 +70,19 @@ export function WarmupSettingsDialog({
   });
 
   const settings = detail.data?.settings ?? null;
+  const health = detail.data?.health ?? null;
+  const recentJobs = (detail.data?.jobs ?? []).slice(0, 8);
+  const placementTotals = (detail.data?.stats ?? []).reduce(
+    (acc, day) => ({
+      inbox: acc.inbox + (day.inbox ?? 0),
+      spam: acc.spam + (day.spam ?? 0),
+      notReceived: acc.notReceived + (day.not_received ?? 0),
+      deferred: acc.deferred + (day.deferred ?? 0),
+      rejected: acc.rejected + (day.rejected ?? 0),
+    }),
+    { inbox: 0, spam: 0, notReceived: 0, deferred: 0, rejected: 0 },
+  );
+  const confirmed = placementTotals.inbox + placementTotals.spam;
 
   useEffect(() => {
     if (!settings) return;
@@ -274,6 +287,69 @@ export function WarmupSettingsDialog({
               onCheckedChange={(checked) => setDraft((prev) => ({ ...prev, auto_pause: checked }))}
             />
           </div>
+        </div>
+
+        <div className="mt-5 space-y-3 rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Deliverability (last 30 days)</p>
+            {health ? (
+              <span className="text-xs text-muted-foreground">
+                Health {health.score} · {health.status}
+              </span>
+            ) : null}
+          </div>
+
+          {confirmed === 0 && placementTotals.notReceived === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No arrivals confirmed yet. Placement appears once warmup mail is received by the
+              network mailboxes.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+              {[
+                { label: "Inbox", value: placementTotals.inbox },
+                { label: "Spam", value: placementTotals.spam },
+                { label: "Delayed", value: placementTotals.deferred },
+                { label: "Rejected", value: placementTotals.rejected },
+                { label: "Not confirmed", value: placementTotals.notReceived },
+              ].map((item) => (
+                <div key={item.label} className="rounded-md bg-muted/50 p-2">
+                  <p className="text-muted-foreground">{item.label}</p>
+                  <p className="text-base font-semibold tabular-nums">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {health?.factors?.length ? (
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              {health.factors.slice(0, 5).map((factor) => (
+                <li key={factor.label}>
+                  <span className="font-medium text-foreground">{factor.label}</span>
+                  {factor.impact ? ` (${factor.impact})` : ""} — {factor.detail}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {recentJobs.length ? (
+            <div className="space-y-1">
+              <p className="text-xs font-medium">Recent warmup messages</p>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                {recentJobs.map((job) => (
+                  <li key={job.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{job.to_email}</span>
+                    <span className="shrink-0">
+                      {job.status}
+                      {job.placement && job.placement !== "pending"
+                        ? ` · ${PLACEMENT_LABEL[job.placement] ?? job.placement}`
+                        : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter>

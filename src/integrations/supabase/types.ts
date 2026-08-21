@@ -5761,14 +5761,19 @@ export type Database = {
           complained: number
           created_at: string
           day: string
+          deferred: number
           delivered: number
           failed: number
           health_score: number | null
           id: string
+          inbox: number
+          not_received: number
+          rejected: number
           replied: number
           scheduled: number
           sending_account_id: string
           sent: number
+          spam: number
           target: number
           updated_at: string
           workspace_id: string
@@ -5778,14 +5783,19 @@ export type Database = {
           complained?: number
           created_at?: string
           day: string
+          deferred?: number
           delivered?: number
           failed?: number
           health_score?: number | null
           id?: string
+          inbox?: number
+          not_received?: number
+          rejected?: number
           replied?: number
           scheduled?: number
           sending_account_id: string
           sent?: number
+          spam?: number
           target?: number
           updated_at?: string
           workspace_id: string
@@ -5795,14 +5805,19 @@ export type Database = {
           complained?: number
           created_at?: string
           day?: string
+          deferred?: number
           delivered?: number
           failed?: number
           health_score?: number | null
           id?: string
+          inbox?: number
+          not_received?: number
+          rejected?: number
           replied?: number
           scheduled?: number
           sending_account_id?: string
           sent?: number
+          spam?: number
           target?: number
           updated_at?: string
           workspace_id?: string
@@ -5950,9 +5965,12 @@ export type Database = {
           locked_by: string | null
           max_attempts: number
           next_attempt_at: string | null
+          placement: string
+          placement_checked_at: string | null
           processed_at: string | null
           provider: string | null
           provider_message_id: string | null
+          received_at: string | null
           recipient_account_id: string | null
           role: string
           scheduled_at: string
@@ -5960,6 +5978,7 @@ export type Database = {
           status: string
           subject: string
           to_email: string
+          warmup_token: string | null
           workspace_id: string
         }
         Insert: {
@@ -5975,9 +5994,12 @@ export type Database = {
           locked_by?: string | null
           max_attempts?: number
           next_attempt_at?: string | null
+          placement?: string
+          placement_checked_at?: string | null
           processed_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
+          received_at?: string | null
           recipient_account_id?: string | null
           role?: string
           scheduled_at?: string
@@ -5985,6 +6007,7 @@ export type Database = {
           status?: string
           subject: string
           to_email: string
+          warmup_token?: string | null
           workspace_id: string
         }
         Update: {
@@ -6000,9 +6023,12 @@ export type Database = {
           locked_by?: string | null
           max_attempts?: number
           next_attempt_at?: string | null
+          placement?: string
+          placement_checked_at?: string | null
           processed_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
+          received_at?: string | null
           recipient_account_id?: string | null
           role?: string
           scheduled_at?: string
@@ -6010,6 +6036,7 @@ export type Database = {
           status?: string
           subject?: string
           to_email?: string
+          warmup_token?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -6704,9 +6731,12 @@ export type Database = {
           locked_by: string | null
           max_attempts: number
           next_attempt_at: string | null
+          placement: string
+          placement_checked_at: string | null
           processed_at: string | null
           provider: string | null
           provider_message_id: string | null
+          received_at: string | null
           recipient_account_id: string | null
           role: string
           scheduled_at: string
@@ -6714,6 +6744,7 @@ export type Database = {
           status: string
           subject: string
           to_email: string
+          warmup_token: string | null
           workspace_id: string
         }[]
         SetofOptions: {
