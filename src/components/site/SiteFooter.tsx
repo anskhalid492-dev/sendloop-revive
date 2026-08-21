@@ -36,6 +36,7 @@ const fallbackColumns = [
     title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
+      { label: "AI Personalization", href: "/ai-personalized-outreach" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -99,6 +100,7 @@ const fallbackSocial = [
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
   Campaigns: Send,
+  "AI Personalization": Sparkles,
   "Unified Inbox": Inbox,
   "Follow-Ups": Repeat,
   Warmup: Flame,

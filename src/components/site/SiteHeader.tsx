@@ -74,6 +74,7 @@ const featuredProducts: Card[] = [
 ];
 
 const secondaryProducts: Card[] = [
+  { label: "AI Personalization", to: "/ai-personalized-outreach", text: "Write a unique opening line for every prospect with your own OpenAI key.", icon: Sparkles },
   { label: "Automations", to: "/automations", text: "Trigger follow-ups, CRM updates and tasks automatically.", icon: Workflow },
   { label: "CRM", to: "/product/crm", text: "Manage contacts and sales conversations.", icon: Users },
   { label: "Analytics", to: "/product/analytics", text: "Track campaign performance and replies.", icon: BarChart3 },
@@ -102,7 +103,7 @@ const resourceCards: Card[] = [
 const ICONS: Record<string, LucideIcon> = {
   Send, Inbox, Mailbox, Flame, Workflow, Users, BarChart3, FileText, Building2,
   BookOpen, ShieldCheck, Compass, LifeBuoy, Plug, MessageSquareQuote, Gift,
-  GraduationCap,
+  GraduationCap, Sparkles,
 };
 
 type NavRow = {

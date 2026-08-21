@@ -14,6 +14,7 @@ export const FAQ_PAGE_SLUGS = [
   "why-munchreach",
   "integrations",
   "campaigns",
+  "ai-personalization",
   "follow-ups",
   "unified-inbox",
   "warmup",
