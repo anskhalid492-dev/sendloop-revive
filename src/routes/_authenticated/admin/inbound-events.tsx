@@ -286,7 +286,12 @@ function AdminInboundEventsPage() {
           <TabsTrigger value="routing">
             Routing failures{failures.length ? ` (${failures.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="unmatched">
+            Unmatched inbox
+            {unmatchedQuery.data?.rows.length ? ` (${unmatchedQuery.data.rows.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="reconciliation">Reconciliation</TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="events" className="mt-4">
