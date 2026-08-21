@@ -159,6 +159,7 @@ export function SiteHeader() {
   const topNav = topLinks.length
     ? topLinks
     : [
+        { label: "Features", to: "/features" },
         { label: "Customer Reviews", to: "/customer-reviews" },
         { label: "Blog", to: "/blog" },
         { label: "Pricing", to: "/pricing" },
