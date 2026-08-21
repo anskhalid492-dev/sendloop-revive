@@ -75,26 +75,101 @@ const featuredProducts: Card[] = [
 ];
 
 const secondaryProducts: Card[] = [
-  { label: "AI Personalization", to: "/ai-personalized-outreach", text: "Write a unique opening line for every prospect with your own OpenAI key.", icon: Sparkles },
-  { label: "Automations", to: "/automations", text: "Trigger follow-ups, CRM updates and tasks automatically.", icon: Workflow },
-  { label: "CRM", to: "/product/crm", text: "Manage contacts and sales conversations.", icon: Users },
-  { label: "Analytics", to: "/product/analytics", text: "Track campaign performance and replies.", icon: BarChart3 },
-  { label: "Templates", to: "/product/templates", text: "Use proven cold email templates.", icon: FileText },
-  { label: "Workspaces", to: "/product/workspaces", text: "Manage teams and outreach.", icon: Building2 },
+  {
+    label: "AI Personalization",
+    to: "/ai-personalized-outreach",
+    text: "Write a unique opening line for every prospect with your own OpenAI key.",
+    icon: Sparkles,
+  },
+  {
+    label: "Automations",
+    to: "/automations",
+    text: "Trigger follow-ups, CRM updates and tasks automatically.",
+    icon: Workflow,
+  },
+  {
+    label: "CRM",
+    to: "/product/crm",
+    text: "Manage contacts and sales conversations.",
+    icon: Users,
+  },
+  {
+    label: "Analytics",
+    to: "/product/analytics",
+    text: "Track campaign performance and replies.",
+    icon: BarChart3,
+  },
+  {
+    label: "Templates",
+    to: "/product/templates",
+    text: "Use proven cold email templates.",
+    icon: FileText,
+  },
+  {
+    label: "Workspaces",
+    to: "/product/workspaces",
+    text: "Manage teams and outreach.",
+    icon: Building2,
+  },
 ];
 
 const resourceCards: Card[] = [
-  { label: "Blog", to: "/blog", text: "Cold email strategies, sales and outreach insights.", icon: BookOpen },
-  { label: "Cold Email Templates", to: "/cold-email-templates", text: "Ready-to-use templates for different outreach campaigns.", icon: FileText },
-  { label: "Deliverability Guide", to: "/deliverability-guide", text: "Learn how to improve inbox placement.", icon: ShieldCheck },
+  {
+    label: "Blog",
+    to: "/blog",
+    text: "Cold email strategies, sales and outreach insights.",
+    icon: BookOpen,
+  },
+  {
+    label: "Cold Email Templates",
+    to: "/cold-email-templates",
+    text: "Ready-to-use templates for different outreach campaigns.",
+    icon: FileText,
+  },
+  {
+    label: "Deliverability Guide",
+    to: "/deliverability-guide",
+    text: "Learn how to improve inbox placement.",
+    icon: ShieldCheck,
+  },
   { label: "Documentation", to: "/docs", text: "Learn how MunchReach works.", icon: Compass },
   { label: "Help Center", to: "/help-center", text: "Get answers and support.", icon: LifeBuoy },
-  { label: "Integrations", to: "/integrations", text: "Connect MunchReach to your CRM, Slack, Zapier and more.", icon: Plug },
-  { label: "Customer Reviews", to: "/customer-reviews", text: "See what MunchReach customers say about their outreach.", icon: MessageSquareQuote },
-  { label: "Referral Program", to: "/referral", text: "Earn commission for every team you bring to MunchReach.", icon: Gift },
-  { label: "Why MunchReach", to: "/why-munchreach", text: "See why teams replace six outbound tools with one workspace.", icon: Compass },
-  { label: "How It Works", to: "/how-it-works", text: "The twelve steps from empty workspace to booked meetings.", icon: GraduationCap },
-  { label: "About MunchReach", to: "/about", text: "Our story, our team and where MunchReach is heading.", icon: BookOpen },
+  {
+    label: "Integrations",
+    to: "/integrations",
+    text: "Connect MunchReach to your CRM, Slack, Zapier and more.",
+    icon: Plug,
+  },
+  {
+    label: "Customer Reviews",
+    to: "/customer-reviews",
+    text: "See what MunchReach customers say about their outreach.",
+    icon: MessageSquareQuote,
+  },
+  {
+    label: "Referral Program",
+    to: "/referral",
+    text: "Earn commission for every team you bring to MunchReach.",
+    icon: Gift,
+  },
+  {
+    label: "Why MunchReach",
+    to: "/why-munchreach",
+    text: "See why teams replace six outbound tools with one workspace.",
+    icon: Compass,
+  },
+  {
+    label: "How It Works",
+    to: "/how-it-works",
+    text: "The twelve steps from empty workspace to booked meetings.",
+    icon: GraduationCap,
+  },
+  {
+    label: "About MunchReach",
+    to: "/about",
+    text: "Our story, our team and where MunchReach is heading.",
+    icon: BookOpen,
+  },
 ];
 
 /**
@@ -102,9 +177,24 @@ const resourceCards: Card[] = [
  * deploy. Unknown names fall back to a neutral icon rather than crashing.
  */
 const ICONS: Record<string, LucideIcon> = {
-  Send, Inbox, Mailbox, Flame, Workflow, Users, BarChart3, FileText, Building2,
-  BookOpen, ShieldCheck, Compass, LifeBuoy, Plug, MessageSquareQuote, Gift,
-  GraduationCap, Sparkles,
+  Send,
+  Inbox,
+  Mailbox,
+  Flame,
+  Workflow,
+  Users,
+  BarChart3,
+  FileText,
+  Building2,
+  BookOpen,
+  ShieldCheck,
+  Compass,
+  LifeBuoy,
+  Plug,
+  MessageSquareQuote,
+  Gift,
+  GraduationCap,
+  Sparkles,
 };
 
 type NavRow = {
@@ -170,7 +260,6 @@ export function SiteHeader() {
   const leadNav = allTopNav.filter((l) => l.to === "/features");
   const topNav = allTopNav.filter((l) => l.to !== "/features");
 
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) =>
@@ -227,7 +316,8 @@ export function SiteHeader() {
       onMouseLeave={scheduleClose}
       className="sticky top-0 z-50 px-3 pb-2 pt-3 transition-all duration-300 sm:px-5"
     >
-      <div className="mx-auto flex h-[4.25rem] w-full max-w-6xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-xl transition-all duration-300 data-[scrolled=true]:border-border data-[scrolled=true]:bg-background/95 data-[scrolled=true]:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] sm:px-6"
+      <div
+        className="mx-auto flex h-[4.25rem] w-full max-w-6xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-xl transition-all duration-300 data-[scrolled=true]:border-border data-[scrolled=true]:bg-background/95 data-[scrolled=true]:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] sm:px-6"
         data-scrolled={scrolled ? "true" : "false"}
       >
         <Link to="/" className="flex shrink-0 items-center gap-2" aria-label={BRAND_NAME}>
@@ -238,8 +328,16 @@ export function SiteHeader() {
           {leadNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
           ))}
-          <Trigger label="Products" active={menu === "products"} onOpen={() => openMenu("products")} />
-          <Trigger label="Resources" active={menu === "resources"} onOpen={() => openMenu("resources")} />
+          <Trigger
+            label="Products"
+            active={menu === "products"}
+            onOpen={() => openMenu("products")}
+          />
+          <Trigger
+            label="Resources"
+            active={menu === "resources"}
+            onOpen={() => openMenu("resources")}
+          />
           {topNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
           ))}
@@ -311,9 +409,21 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
-              <MobileGroup label="Products" cards={[...coreCards, ...moreCards]} onNavigate={() => setOpen(false)} />
-              <MobileGroup label="Resources" cards={resourceLinks} onNavigate={() => setOpen(false)} />
-              <MobileGroup label="By use case" cards={useCaseLinks} onNavigate={() => setOpen(false)} />
+              <MobileGroup
+                label="Products"
+                cards={[...coreCards, ...moreCards]}
+                onNavigate={() => setOpen(false)}
+              />
+              <MobileGroup
+                label="Resources"
+                cards={resourceLinks}
+                onNavigate={() => setOpen(false)}
+              />
+              <MobileGroup
+                label="By use case"
+                cards={useCaseLinks}
+                onNavigate={() => setOpen(false)}
+              />
               {topNav.map((link) => (
                 <Link
                   key={link.to}
@@ -446,15 +556,7 @@ function PanelHeading({ children }: { children: string }) {
   );
 }
 
-function ProductsPanel({
-  core,
-  more,
-  useCases,
-}: {
-  core: Card[];
-  more: Card[];
-  useCases: Card[];
-}) {
+function ProductsPanel({ core, more, useCases }: { core: Card[]; more: Card[]; useCases: Card[] }) {
   return (
     <div>
       <div className="grid gap-6 p-6 lg:grid-cols-[1.35fr_1fr]">

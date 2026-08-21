@@ -288,7 +288,9 @@ export function SiteFooter() {
                           href={l.href}
                           className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-primary"
                         >
-                          {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground/70" /> : null}
+                          {Icon ? (
+                            <Icon className="size-4 shrink-0 text-muted-foreground/70" />
+                          ) : null}
                           {l.label}
                         </a>
                       </li>
@@ -303,8 +305,16 @@ export function SiteFooter() {
         {/* Trust bar */}
         <div className="mt-12 grid gap-6 rounded-2xl border border-border bg-muted/30 p-6 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-border">
           {trustSignals.map((s) => (
-            <div key={s.title} className="flex items-start gap-3 lg:px-5 lg:first:pl-0 lg:last:pr-0">
-              <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", s.tone)}>
+            <div
+              key={s.title}
+              className="flex items-start gap-3 lg:px-5 lg:first:pl-0 lg:last:pr-0"
+            >
+              <span
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-full",
+                  s.tone,
+                )}
+              >
                 <s.icon className="size-5" />
               </span>
               <div>
@@ -341,7 +351,9 @@ export function SiteFooter() {
             </span>
             <span className="text-sm font-semibold tracking-tight text-foreground/80">Stripe</span>
             <span className="text-sm font-semibold tracking-tight text-foreground/80">Paddle</span>
-            <span className="text-sm font-semibold tracking-tight text-foreground/80">Lemon Squeezy</span>
+            <span className="text-sm font-semibold tracking-tight text-foreground/80">
+              Lemon Squeezy
+            </span>
           </div>
         </div>
       </div>

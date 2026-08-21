@@ -13,13 +13,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,7 +54,8 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const info = keyQuery.data;
 
   const save = useMutation({
-    mutationFn: () => saveKey({ data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), model } }),
+    mutationFn: () =>
+      saveKey({ data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), model } }),
     onSuccess: async (result) => {
       setApiKey("");
       if (result.status === "verified") toast.success("OpenAI key connected");

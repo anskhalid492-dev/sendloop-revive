@@ -82,7 +82,7 @@ const painPoints = [
   {
     icon: Copy,
     title: "Templates read like templates",
-    text: "\"Hi {{first_name}}, I came across {{company}}\" is the same email everyone else is sending this morning.",
+    text: '"Hi {{first_name}}, I came across {{company}}" is the same email everyone else is sending this morning.',
   },
   {
     icon: Gauge,
@@ -110,7 +110,12 @@ const solutionRows = [
       <MockPanel title="Campaign builder — AI tab">
         <MockRows
           rows={[
-            { left: "OpenAI connection", muted: "Key ending •••• 8f2c", right: "Verified", badge: "Connected" },
+            {
+              left: "OpenAI connection",
+              muted: "Key ending •••• 8f2c",
+              right: "Verified",
+              badge: "Connected",
+            },
             { left: "Model", muted: "Billed by OpenAI directly", right: "gpt-4o-mini" },
             { left: "Storage", muted: "Encrypted, server-side only", right: "Protected" },
           ]}
@@ -154,9 +159,24 @@ const solutionRows = [
       <MockPanel title="Generated openers — Q4 Outbound">
         <MockRows
           rows={[
-            { left: "maya@northwindlabs.com", muted: "Hiring 3 SDRs this quarter…", right: "Ready", badge: "Completed" },
-            { left: "d.okafor@brightpath.io", muted: "Edited by you", right: "Ready", badge: "Approved" },
-            { left: "tom@fielded.co", muted: "Awaiting generation", right: "In queue", badge: "Queued" },
+            {
+              left: "maya@northwindlabs.com",
+              muted: "Hiring 3 SDRs this quarter…",
+              right: "Ready",
+              badge: "Completed",
+            },
+            {
+              left: "d.okafor@brightpath.io",
+              muted: "Edited by you",
+              right: "Ready",
+              badge: "Approved",
+            },
+            {
+              left: "tom@fielded.co",
+              muted: "Awaiting generation",
+              right: "In queue",
+              badge: "Queued",
+            },
           ]}
         />
       </MockPanel>
@@ -165,20 +185,59 @@ const solutionRows = [
 ];
 
 const signals = [
-  { icon: UserRound, title: "Person", text: "First name, last name and job title, used naturally instead of dropped into a bracket." },
-  { icon: Building2, title: "Company", text: "Company name, website and description when you have them on the record." },
-  { icon: MapPin, title: "Location", text: "City, state and country for regional angles and timing references." },
-  { icon: ListChecks, title: "Industry", text: "Industry field or your own equivalent custom field, when it is filled in." },
-  { icon: PenLine, title: "Lead notes", text: "The latest note on the lead, so research your team already did gets reused." },
-  { icon: Braces, title: "Custom fields", text: "Anything you imported with your CSV can be offered to the model as context." },
+  {
+    icon: UserRound,
+    title: "Person",
+    text: "First name, last name and job title, used naturally instead of dropped into a bracket.",
+  },
+  {
+    icon: Building2,
+    title: "Company",
+    text: "Company name, website and description when you have them on the record.",
+  },
+  {
+    icon: MapPin,
+    title: "Location",
+    text: "City, state and country for regional angles and timing references.",
+  },
+  {
+    icon: ListChecks,
+    title: "Industry",
+    text: "Industry field or your own equivalent custom field, when it is filled in.",
+  },
+  {
+    icon: PenLine,
+    title: "Lead notes",
+    text: "The latest note on the lead, so research your team already did gets reused.",
+  },
+  {
+    icon: Braces,
+    title: "Custom fields",
+    text: "Anything you imported with your CSV can be offered to the model as context.",
+  },
 ];
 
 const steps = [
-  { title: "Connect your OpenAI key", text: "Add the key once per workspace in the AI tab. We verify it with OpenAI before saving it." },
-  { title: "Describe the angle", text: "Write plain-English instructions, pick a tone, length and language, and choose which lead fields the model may use." },
-  { title: "Preview on a real lead", text: "Generate against an actual record from your list and refine the instructions until the output sounds like you." },
-  { title: "Generate for the whole list", text: "Queue the campaign's recipients. A background worker processes them in small batches so nothing overloads your OpenAI account." },
-  { title: "Review and launch", text: "Edit anything that needs a human touch, then launch. The {{ai_personalization}} variable is replaced per lead at send time." },
+  {
+    title: "Connect your OpenAI key",
+    text: "Add the key once per workspace in the AI tab. We verify it with OpenAI before saving it.",
+  },
+  {
+    title: "Describe the angle",
+    text: "Write plain-English instructions, pick a tone, length and language, and choose which lead fields the model may use.",
+  },
+  {
+    title: "Preview on a real lead",
+    text: "Generate against an actual record from your list and refine the instructions until the output sounds like you.",
+  },
+  {
+    title: "Generate for the whole list",
+    text: "Queue the campaign's recipients. A background worker processes them in small batches so nothing overloads your OpenAI account.",
+  },
+  {
+    title: "Review and launch",
+    text: "Edit anything that needs a human touch, then launch. The {{ai_personalization}} variable is replaced per lead at send time.",
+  },
 ];
 
 const controls = [
@@ -243,19 +302,22 @@ function Page() {
             rows={[
               {
                 left: "Maya · Head of Growth, Northwind Labs",
-                muted: "Hiring three SDRs this quarter usually means the outbound motion is about to get louder.",
+                muted:
+                  "Hiring three SDRs this quarter usually means the outbound motion is about to get louder.",
                 right: "Generated",
                 badge: "Completed",
               },
               {
                 left: "Daniel · Founder, Brightpath",
-                muted: "Running growth and product at the same time is the part most founder-led teams underestimate.",
+                muted:
+                  "Running growth and product at the same time is the part most founder-led teams underestimate.",
                 right: "Generated",
                 badge: "Completed",
               },
               {
                 left: "Tom · Sales Lead, Fielded",
-                muted: "Leading sales in Austin for a field-service platform is a very specific kind of busy.",
+                muted:
+                  "Leading sales in Austin for a field-service platform is a very specific kind of busy.",
                 right: "Generated",
                 badge: "Completed",
               },
@@ -275,7 +337,10 @@ function Page() {
         <SolutionSplit rows={solutionRows} />
       </Section>
 
-      <Section title="Signals it can use" description="Only fields that actually hold data for that lead.">
+      <Section
+        title="Signals it can use"
+        description="Only fields that actually hold data for that lead."
+      >
         <FeatureBento items={signals} />
       </Section>
 
@@ -283,7 +348,10 @@ function Page() {
         <StepList steps={steps} />
       </Section>
 
-      <Section title="Controls you keep" description="Personalization you can tune, not a black box.">
+      <Section
+        title="Controls you keep"
+        description="Personalization you can tune, not a black box."
+      >
         <BulletList items={controls} />
       </Section>
 
@@ -298,12 +366,36 @@ function Page() {
       <Section title="Works with the rest of MunchReach" muted>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { to: "/features", title: "All features", text: "Everything included in the platform, in one place." },
-            { to: "/product/campaigns", title: "Campaigns", text: "Drop the AI variable into any step of a sequence." },
-            { to: "/how-it-works", title: "How it works", text: "The full path from domain setup to first reply." },
-            { to: "/integrations", title: "Integrations", text: "Push and pull lead data from the tools you already use." },
-            { to: "/product/crm", title: "CRM", text: "Notes and custom fields become personalization material." },
-            { to: "/pricing", title: "Pricing", text: "Plans for sending — AI is billed by OpenAI, not by us." },
+            {
+              to: "/features",
+              title: "All features",
+              text: "Everything included in the platform, in one place.",
+            },
+            {
+              to: "/product/campaigns",
+              title: "Campaigns",
+              text: "Drop the AI variable into any step of a sequence.",
+            },
+            {
+              to: "/how-it-works",
+              title: "How it works",
+              text: "The full path from domain setup to first reply.",
+            },
+            {
+              to: "/integrations",
+              title: "Integrations",
+              text: "Push and pull lead data from the tools you already use.",
+            },
+            {
+              to: "/product/crm",
+              title: "CRM",
+              text: "Notes and custom fields become personalization material.",
+            },
+            {
+              to: "/pricing",
+              title: "Pricing",
+              text: "Plans for sending — AI is billed by OpenAI, not by us.",
+            },
           ].map((link) => (
             <Link
               key={link.to}

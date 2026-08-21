@@ -8,26 +8,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  AlertTriangle,
-  Check,
-  Copy,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  Wand2,
-} from "lucide-react";
+import { AlertTriangle, Check, Copy, Loader2, RefreshCw, Sparkles, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -167,17 +153,14 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
     mutationFn: () => previewFn({ data: { campaignId, leadId: previewLeadId, config } }),
     onSuccess: (result) => {
       setPreview(
-        result.ok
-          ? { ok: true, text: result.content }
-          : { ok: false, text: result.message },
+        result.ok ? { ok: true, text: result.content } : { ok: false, text: result.message },
       );
     },
     onError: (error: Error) => setPreview({ ok: false, text: error.message }),
   });
 
   const generate = useMutation({
-    mutationFn: (regenerate: boolean) =>
-      queueFn({ data: { campaignId, regenerate } }),
+    mutationFn: (regenerate: boolean) => queueFn({ data: { campaignId, regenerate } }),
     onSuccess: async (result) => {
       toast.success(
         result.queued
@@ -213,7 +196,8 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
   });
 
   const stats = statsQuery.data;
-  const progress = stats && stats.eligible ? Math.round((stats.personalized / stats.eligible) * 100) : 0;
+  const progress =
+    stats && stats.eligible ? Math.round((stats.personalized / stats.eligible) * 100) : 0;
 
   const toggleField = (field: PersonalizationField) =>
     patch({
@@ -431,7 +415,9 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                       )}
                     >
                       <span className="font-medium">{option.label}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">{option.hint}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {option.hint}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -552,7 +538,11 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                       Regenerate all
                     </Button>
                     {stats?.failed ? (
-                      <Button variant="ghost" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => retry.mutate()}
+                        disabled={retry.isPending}
+                      >
                         Retry failed
                       </Button>
                     ) : null}
@@ -588,7 +578,10 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                               Edited
                             </Badge>
                           ) : null}
-                          <Badge variant="outline" className={cn("text-xs", STATUS_STYLES[row.status])}>
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", STATUS_STYLES[row.status])}
+                          >
                             {row.status}
                           </Badge>
                         </div>
