@@ -147,6 +147,8 @@ function WarmupPage() {
                   <th className="px-3 py-2.5 font-medium">Health</th>
                   <th className="px-3 py-2.5 font-medium">Today</th>
                   <th className="px-3 py-2.5 font-medium">Ramp</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Inbox</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Spam</th>
                   <th className="px-3 py-2.5 text-right font-medium">Bounced</th>
                   <th className="px-3 py-2.5 text-right font-medium">Replied</th>
                   <th className="px-3 py-2.5 text-right font-medium">Actions</th>
@@ -196,6 +198,17 @@ function WarmupPage() {
                       <span className="block text-xs text-muted-foreground">
                         max {row.max_volume || "—"}/day
                       </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-emerald-600">
+                      {row.inbox_today}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-3 py-2.5 text-right tabular-nums",
+                        row.spam_today > 0 ? "text-amber-600" : "",
+                      )}
+                    >
+                      {row.spam_today}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{row.bounced_today}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{row.replied_today}</td>
