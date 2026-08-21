@@ -204,8 +204,9 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col lg:flex-row">
+    <div className="flex h-full min-h-0 flex-col xl:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border p-3">
           {onBack ? (
             <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back to list">
