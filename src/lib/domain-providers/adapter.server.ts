@@ -26,6 +26,28 @@ export type DomainProviderAdapter = {
   isReadyToSend(creds: ProviderCredentials, domain: string): Promise<boolean>;
   /** Removes/deactivates the domain at the provider. */
   removeDomain(creds: ProviderCredentials, domain: string): Promise<ProviderDomainState>;
+  /** Sends one message through this provider (delegated to the sending layer). */
+  sendEmail?(
+    creds: ProviderCredentials,
+    message: ProviderOutboundMessage,
+  ): Promise<{ ok: boolean; messageId?: string | undefined; message: string }>;
+  /** Provider-side delivery status for a previously sent message. */
+  getDeliveryStatus?(
+    creds: ProviderCredentials,
+    messageId: string,
+  ): Promise<{ known: boolean; status: string | null; detail: string }>;
+};
+
+/** Provider-agnostic outbound message shape. */
+export type ProviderOutboundMessage = {
+  fromName: string;
+  fromEmail: string;
+  replyTo?: string | null;
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  headers?: Record<string, string> | undefined;
 };
 
 export function record(
