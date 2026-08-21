@@ -18,6 +18,20 @@ const RUNNER_ID = "warmup";
 const LEASE_MS = 5 * 60_000;
 const MAX_JOBS_PER_RUN = 40;
 const MAX_ACCOUNTS_PER_RUN = 50;
+/** How long a sent warmup email may take to show up on the receiving side. */
+const PLACEMENT_WINDOW_MS = 45 * 60_000;
+
+/** Unguessable per-message reference used to recognise our own warmup mail. */
+function warmupToken(): string {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** The footer carries the reference when a provider strips custom headers. */
+function withWarmupRef(body: string, token: string): string {
+  return `${body}\n\n--\nRef: MRW-${token}`;
+}
 
 export type RunSummary = {
   ok: boolean;
@@ -100,12 +114,30 @@ async function releaseLease(admin: Admin, result: RunSummary) {
 async function bumpStats(
   admin: Admin,
   args: { workspaceId: string; accountId: string; day?: string; target?: number },
-  patch: Partial<Record<"scheduled" | "sent" | "delivered" | "bounced" | "complained" | "failed" | "replied", number>>,
+  patch: Partial<
+    Record<
+      | "scheduled"
+      | "sent"
+      | "delivered"
+      | "bounced"
+      | "complained"
+      | "failed"
+      | "replied"
+      | "inbox"
+      | "spam"
+      | "deferred"
+      | "rejected"
+      | "not_received",
+      number
+    >
+  >,
 ) {
   const day = args.day ?? today();
   const { data: existing } = await admin
     .from("warmup_daily_stats")
-    .select("id, scheduled, sent, delivered, bounced, complained, failed, replied, target")
+    .select(
+      "id, scheduled, sent, delivered, bounced, complained, failed, replied, inbox, spam, deferred, rejected, not_received, target",
+    )
     .eq("sending_account_id", args.accountId)
     .eq("day", day)
     .maybeSingle();
@@ -123,6 +155,11 @@ async function bumpStats(
       complained: patch.complained ?? 0,
       failed: patch.failed ?? 0,
       replied: patch.replied ?? 0,
+      inbox: patch.inbox ?? 0,
+      spam: patch.spam ?? 0,
+      deferred: patch.deferred ?? 0,
+      rejected: patch.rejected ?? 0,
+      not_received: patch.not_received ?? 0,
     });
     return;
   }
@@ -316,7 +353,9 @@ async function scheduleAccount(
       .single();
 
     const idempotencyKey = `${account.id}:${day}:${i}:initial`;
+    const token = warmupToken();
     const { error } = await admin.from("warmup_jobs").insert({
+      warmup_token: token,
       workspace_id: account.workspace_id,
       sending_account_id: account.id,
       conversation_id: conversation?.id ?? null,
@@ -325,7 +364,7 @@ async function scheduleAccount(
       from_email: account.from_email,
       to_email: peer.from_email,
       subject,
-      body,
+      body: withWarmupRef(body, token),
       scheduled_at: times[i]!.toISOString(),
       idempotency_key: idempotencyKey,
       provider: account.provider,
@@ -427,7 +466,10 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       to: job["to_email"] as string,
       subject: job["subject"] as string,
       text: job["body"] as string,
-      headers: { "X-MunchReach-Warmup": "1" },
+      headers: {
+        "X-MunchReach-Warmup": "1",
+        ...(job["warmup_token"] ? { "X-MunchReach-Warmup-Id": String(job["warmup_token"]) } : {}),
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Provider request failed";
@@ -515,7 +557,9 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
 
   const { subject, body } = buildWarmupReply(recipient.from_name as string, job["subject"] as string);
   const delayMs = (20 + Math.floor(Math.random() * 70)) * 60_000;
+  const replyToken = warmupToken();
   const { error } = await admin.from("warmup_jobs").insert({
+    warmup_token: replyToken,
     workspace_id: recipient.workspace_id,
     sending_account_id: recipient.id,
     conversation_id: job["conversation_id"] ?? null,
@@ -524,7 +568,7 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
     from_email: recipient.from_email,
     to_email: job["from_email"],
     subject,
-    body,
+    body: withWarmupRef(body, replyToken),
     scheduled_at: new Date(Date.now() + delayMs).toISOString(),
     idempotency_key: `reply:${job["id"]}`,
     provider: recipient.provider,
