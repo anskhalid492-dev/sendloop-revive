@@ -117,6 +117,7 @@ export function ConversationView({
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [note, setNote] = useState("");
   const [tagDraft, setTagDraft] = useState("");
+  const [showProspect, setShowProspect] = useState(true);
   const [customSnooze, setCustomSnooze] = useState("");
 
   const conversation = data?.conversation;
@@ -211,8 +212,13 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col xl:flex-row">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+    <ResizablePanelGroup
+      direction="horizontal"
+      autoSaveId="inbox-conversation"
+      className="flex h-full min-h-0 flex-col xl:flex-row"
+    >
+      <ResizablePanel id="thread" order={1} defaultSize={showProspect ? 70 : 100} minSize={40}>
+      <div className="flex h-full min-h-0 min-w-0 flex-col">
 
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border p-3">
           {onBack ? (
@@ -224,6 +230,21 @@ export function ConversationView({
             <h2 className="truncate text-sm font-semibold">{conversation.subject}</h2>
             <p className="truncate text-xs text-muted-foreground">{conversation.prospect_email}</p>
           </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden xl:inline-flex"
+            aria-label={showProspect ? "Hide prospect panel" : "Show prospect panel"}
+            title={showProspect ? "Full-width message view" : "Show prospect details"}
+            onClick={() => setShowProspect((v) => !v)}
+          >
+            {showProspect ? (
+              <PanelRightClose className="h-4 w-4" />
+            ) : (
+              <PanelRightOpen className="h-4 w-4" />
+            )}
+          </Button>
 
           <Select
             value={conversation.status}
@@ -373,7 +394,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="min-h-[8rem] flex-1 space-y-3 overflow-y-auto p-4">
+        <div className="min-h-[8rem] flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8">
           {timeline.map((entry) =>
             entry.kind === "message" ? (
               <article
@@ -394,7 +415,7 @@ export function ConversationView({
                   <span className="ml-auto">{new Date(entry.m.occurred_at).toLocaleString()}</span>
                 </div>
                 <h4 className="mt-2 text-sm font-medium">{entry.m.subject}</h4>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                <p className="mt-1 max-w-[80ch] whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {entry.m.body}
                 </p>
                 {entry.m.attachments?.length ? (
@@ -445,7 +466,7 @@ export function ConversationView({
           )}
         </div>
 
-        <Tabs defaultValue="reply" className="max-h-[55%] shrink-0 overflow-y-auto border-t border-border p-3">
+        <Tabs defaultValue="reply" className="max-h-[55%] shrink-0 overflow-y-auto border-t border-border px-4 py-3 sm:px-6 lg:px-8">
           <TabsList>
             <TabsTrigger value="reply">Reply</TabsTrigger>
             <TabsTrigger value="note">Internal note</TabsTrigger>
@@ -556,7 +577,19 @@ export function ConversationView({
         </Tabs>
       </div>
 
-      <div className="w-full min-w-0 shrink-0 overflow-y-auto border-t border-border xl:w-80 xl:border-l xl:border-t-0">
+      </ResizablePanel>
+
+      {showProspect ? <ResizableHandle withHandle className="hidden xl:flex" /> : null}
+
+      <ResizablePanel
+        id="prospect"
+        order={2}
+        defaultSize={30}
+        minSize={18}
+        maxSize={45}
+        className={showProspect ? "" : "hidden"}
+      >
+      <div className="h-full w-full min-w-0 overflow-y-auto border-t border-border xl:border-l xl:border-t-0">
         <ProspectPanel
           lead={data.lead as never}
           prospectEmail={conversation.prospect_email}
@@ -568,7 +601,8 @@ export function ConversationView({
           events={data.events as never}
         />
       </div>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
 
