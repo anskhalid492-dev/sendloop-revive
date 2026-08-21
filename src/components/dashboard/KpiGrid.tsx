@@ -16,7 +16,6 @@ type Kpi = {
   label: string;
   value: number;
   previous: number | null;
-  hint: string;
   suffix?: string;
   tone?: "default" | "warn";
   decimals?: number;
@@ -60,10 +59,6 @@ function Delta({
   );
 }
 
-/**
- * Performance summary for the selected window. Every number is derived from
- * the workspace's real message + reply history passed in from the server.
- */
 export function KpiGrid({
   current,
   previous,
@@ -82,21 +77,18 @@ export function KpiGrid({
       label: "Emails sent",
       value: c?.sent ?? 0,
       previous: p?.sent ?? null,
-      hint: "Delivered attempts from your mailboxes",
     },
     {
       key: "delivered",
       label: "Delivered",
       value: c?.delivered ?? 0,
       previous: p?.delivered ?? null,
-      hint: "Accepted by the recipient server",
     },
     {
       key: "deliveryRate",
       label: "Delivery rate",
       value: rate(c?.delivered ?? 0, c?.sent ?? 0),
       previous: p ? rate(p.delivered, p.sent) : null,
-      hint: "Delivered ÷ sent",
       suffix: "%",
       decimals: 1,
     },
@@ -105,7 +97,6 @@ export function KpiGrid({
       label: "Reply rate",
       value: rate(c?.replies ?? 0, c?.sent ?? 0),
       previous: p ? rate(p.replies, p.sent) : null,
-      hint: "Replies ÷ sent",
       suffix: "%",
       decimals: 1,
     },
@@ -114,36 +105,18 @@ export function KpiGrid({
       label: "Positive replies",
       value: c?.positive ?? 0,
       previous: p?.positive ?? null,
-      hint: "Interested responses worth chasing",
     },
     {
       key: "meetings",
       label: "Meetings booked",
       value: c?.meetings ?? 0,
       previous: p?.meetings ?? null,
-      hint: "Leads moved to opportunity or customer",
-    },
-    {
-      key: "bounced",
-      label: "Bounced",
-      value: c?.bounced ?? 0,
-      previous: p?.bounced ?? null,
-      hint: "Keep under 3% of sends",
-      tone: "warn",
-    },
-    {
-      key: "unsubscribed",
-      label: "Unsubscribed",
-      value: c?.unsubscribed ?? 0,
-      previous: p?.unsubscribed ?? null,
-      hint: "Opt-outs in this period",
-      tone: "warn",
     },
   ];
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k) => (
           <div key={k.key} className="min-h-[104px] animate-pulse bg-card" />
         ))}
@@ -152,7 +125,7 @@ export function KpiGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm md:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm md:grid-cols-3 xl:grid-cols-6">
       {kpis.map((k, i) => (
         <motion.div
           key={k.key}
@@ -171,7 +144,6 @@ export function KpiGrid({
             {k.decimals ? k.value.toFixed(1) : k.value.toLocaleString()}
             {k.suffix ? <span className="text-base font-medium">{k.suffix}</span> : null}
           </div>
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{k.hint}</p>
         </motion.div>
       ))}
     </div>
