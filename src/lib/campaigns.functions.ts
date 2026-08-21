@@ -838,6 +838,29 @@ export const launchCampaign = createServerFn({ method: "POST" })
       return id;
     };
 
+    // AI personalization: {{ai_personalization}} is resolved from stored,
+    // completed snippets only. Leads that aren't personalized yet follow the
+    // campaign's fallback rule — and with "hold" they are not materialised at
+    // all, so no weaker email ever goes out ahead of its personalization.
+    const { campaignAiSettings, aiExtras } = await import("@/lib/ai-personalization.server");
+    const aiSettings = await campaignAiSettings(context.supabase, c.id);
+    const aiContent = new Map<string, string>();
+    if (aiSettings.enabled) {
+      const { data: aiRows } = await context.supabase
+        .from("ai_personalizations")
+        .select("lead_id, content")
+        .eq("campaign_id", c.id)
+        .eq("status", "completed");
+      for (const row of (aiRows ?? []) as Array<{ lead_id: string; content: string | null }>) {
+        if (row.content?.trim()) aiContent.set(row.lead_id, row.content.trim());
+      }
+    }
+    const aiFor = (leadId: string): { extras: Record<string, string>; hold: boolean } =>
+      aiSettings.enabled
+        ? aiExtras(aiSettings.config, aiContent.get(leadId) ?? null)
+        : { extras: {}, hold: false };
+    let heldForAi = 0;
+
     // Only the lead ids the readiness check proved eligible get queued.
     let leads: Array<Record<string, unknown>> = [];
     if (readiness.eligibleLeadIds.length) {
@@ -897,6 +920,11 @@ export const launchCampaign = createServerFn({ method: "POST" })
           .map((recipient) => {
             const lead = leadById.get(recipient.lead_id) as never;
             if (!lead) return null;
+            const ai = aiFor(recipient.lead_id);
+            if (ai.hold) {
+              heldForAi += 1;
+              return null;
+            }
             return {
               workspace_id: c.workspace_id,
               campaign_id: c.id,
@@ -907,8 +935,13 @@ export const launchCampaign = createServerFn({ method: "POST" })
               step_order: 1,
               status: "scheduled" as const,
               to_email: (lead as { email: string }).email,
-              subject: renderTemplate(resolveSpintax(firstStep.subject), lead, campaignVariables),
-              body: renderTemplate(resolveSpintax(firstStep.body), lead, campaignVariables),
+              subject: renderTemplate(
+                resolveSpintax(firstStep.subject),
+                lead,
+                campaignVariables,
+                ai.extras,
+              ),
+              body: renderTemplate(resolveSpintax(firstStep.body), lead, campaignVariables, ai.extras),
               scheduled_at: firstSlot,
               provider: recipient.sending_account_id
                 ? (accountById.get(recipient.sending_account_id) as never as {
@@ -973,6 +1006,11 @@ export const launchCampaign = createServerFn({ method: "POST" })
           .map((recipient) => {
             const lead = leadById.get(recipient.lead_id);
             if (!lead) return null;
+            const ai = aiFor(recipient.lead_id);
+            if (ai.hold) {
+              heldForAi += 1;
+              return null;
+            }
             const accountId = recipient.sending_account_id ?? pickAccount();
             return {
               workspace_id: c.workspace_id,
@@ -988,11 +1026,13 @@ export const launchCampaign = createServerFn({ method: "POST" })
                 resolveSpintax(firstStep.subject),
                 lead as never,
                 campaignVariables,
+                ai.extras,
               ),
               body: renderTemplate(
                 resolveSpintax(firstStep.body),
                 lead as never,
                 campaignVariables,
+                ai.extras,
               ),
               scheduled_at: firstSlot,
               provider:
@@ -1053,7 +1093,13 @@ export const launchCampaign = createServerFn({ method: "POST" })
       },
     });
 
-    return { queued: fresh.length, total: already.size + fresh.length, firstSendAt: firstSlot };
+    return {
+      queued: fresh.length,
+      total: already.size + fresh.length,
+      firstSendAt: firstSlot,
+      heldForAi,
+    };
+
   });
 
 

@@ -135,6 +135,7 @@ import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/p
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
 import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/billing/stripe'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
+import { Route as ApiPublicCronRunAiPersonalizationRouteImport } from './routes/api/public/cron/run-ai-personalization'
 import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/public/cron/run-automations'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
 import { Route as ApiPublicCronRunTransactionalEmailRouteImport } from './routes/api/public/cron/run-transactional-email'
@@ -821,6 +822,12 @@ const ApiPublicCronRetryInboundRoute =
     path: '/api/public/cron/retry-inbound',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronRunAiPersonalizationRoute =
+  ApiPublicCronRunAiPersonalizationRouteImport.update({
+    id: '/api/public/cron/run-ai-personalization',
+    path: '/api/public/cron/run-ai-personalization',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRunAutomationsRoute =
   ApiPublicCronRunAutomationsRouteImport.update({
     id: '/api/public/cron/run-automations',
@@ -993,6 +1000,7 @@ export interface FileRoutesByFullPath {
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
+  '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
@@ -1126,6 +1134,7 @@ export interface FileRoutesByTo {
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
+  '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
@@ -1263,6 +1272,7 @@ export interface FileRoutesById {
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
+  '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
@@ -1400,6 +1410,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
     | '/api/public/cron/retry-inbound'
+    | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
@@ -1533,6 +1544,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
     | '/api/public/cron/retry-inbound'
+    | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
@@ -1669,6 +1681,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
     | '/api/public/cron/retry-inbound'
+    | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
@@ -1736,6 +1749,7 @@ export interface RootRouteChildren {
   ApiPublicBillingPaddleRoute: typeof ApiPublicBillingPaddleRoute
   ApiPublicBillingStripeRoute: typeof ApiPublicBillingStripeRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
+  ApiPublicCronRunAiPersonalizationRoute: typeof ApiPublicCronRunAiPersonalizationRoute
   ApiPublicCronRunAutomationsRoute: typeof ApiPublicCronRunAutomationsRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicCronRunTransactionalEmailRoute: typeof ApiPublicCronRunTransactionalEmailRoute
@@ -2630,6 +2644,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRetryInboundRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/run-ai-personalization': {
+      id: '/api/public/cron/run-ai-personalization'
+      path: '/api/public/cron/run-ai-personalization'
+      fullPath: '/api/public/cron/run-ai-personalization'
+      preLoaderRoute: typeof ApiPublicCronRunAiPersonalizationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/run-automations': {
       id: '/api/public/cron/run-automations'
       path: '/api/public/cron/run-automations'
@@ -2946,6 +2967,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBillingPaddleRoute: ApiPublicBillingPaddleRoute,
   ApiPublicBillingStripeRoute: ApiPublicBillingStripeRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
+  ApiPublicCronRunAiPersonalizationRoute:
+    ApiPublicCronRunAiPersonalizationRoute,
   ApiPublicCronRunAutomationsRoute: ApiPublicCronRunAutomationsRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
   ApiPublicCronRunTransactionalEmailRoute:
