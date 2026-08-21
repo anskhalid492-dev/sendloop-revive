@@ -51,8 +51,9 @@ export const createWorkspace = createServerFn({ method: "POST" })
     const { checkWorkspaceQuota } = await import("@/lib/billing/usage.server");
     await checkWorkspaceQuota(context.userId);
 
-
+    const base =
       data.name
+
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "")
