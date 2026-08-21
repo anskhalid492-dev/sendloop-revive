@@ -99,6 +99,28 @@ export async function processEventPayload(
         return { status: "failed", eventId, reason: "Invalid payload" };
       }
       const parsed = inboundPayloadSchema.parse(normalized);
+
+      // Warmup network traffic never reaches the customer inbox: it is claimed
+      // here and turned into a placement record (inbox vs spam).
+      const { applyWarmupInbound } = await import("@/lib/warmup-engine.server");
+      const inboundSource =
+        payload["data"] && typeof payload["data"] === "object"
+          ? (payload["data"] as Record<string, unknown>)
+          : payload;
+      const warmupClaimed = await applyWarmupInbound({
+        from: extractEmail(parsed.from),
+        to: extractEmail(parsed.to),
+        subject: parsed.subject ?? null,
+        text: parsed.text ?? null,
+        html: parsed.html ?? null,
+        headers: inboundSource["headers"],
+        payload,
+      });
+      if (warmupClaimed) {
+        await finish(eventId, { status: "processed", error: null });
+        return { status: "applied", eventId };
+      }
+
       const references = Array.isArray(parsed.references)
         ? parsed.references
         : (parsed.references ?? "").split(/\s+/).filter(Boolean);
@@ -173,6 +195,22 @@ export async function processEventPayload(
         error: recorded ? null : "No matching send",
       });
       return { status: recorded ? "applied" : "unmatched", eventId };
+    }
+
+    if (kind === "delayed" || kind === "rejected") {
+      // Soft/hard delivery signals only matter for warmup analytics today.
+      const { applyWarmupDeliveryEvent } = await import("@/lib/warmup-engine.server");
+      const delivery = normalizeDelivery(payload);
+      const claimed = await applyWarmupDeliveryEvent({
+        kind,
+        providerMessageId: delivery.providerMessageId,
+        email: delivery.email,
+        reason: delivery.reason,
+        externalId: `warmup:${kind}:${delivery.providerMessageId ?? ""}:${externalIdOf(payload, kind) ?? ""}`,
+        payload,
+      });
+      await finish(eventId, { status: claimed ? "processed" : "ignored", error: null });
+      return { status: claimed ? "applied" : "ignored", eventId };
     }
 
     if (kind === "delivered" || kind === "bounced" || kind === "complained" || kind === "unsubscribed") {
