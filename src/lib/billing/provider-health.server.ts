@@ -23,8 +23,8 @@ export type ProviderHealth = {
   counts: { webhooks30d: number; failedWebhooks30d: number; activeSubscriptions: number };
 };
 
-function missingSecretsFor(provider: BillingProvider, environment: BillingEnvironment) {
-  const creds = providerCredentials(provider, environment);
+async function missingSecretsFor(provider: BillingProvider, environment: BillingEnvironment) {
+  const creds = await providerCredentials(provider, environment);
   const req = PROVIDER_REQUIREMENTS[provider];
   const present: Record<string, boolean> = {
     [`${provider === "stripe" ? "STRIPE_SECRET_KEY" : provider === "paddle" ? "PADDLE_API_KEY" : "LEMONSQUEEZY_API_KEY"}`]:
@@ -76,7 +76,7 @@ export async function loadProviderHealth(): Promise<{
         (t: any) => t.provider === provider && t.environment === environment && t.status !== "failed",
       );
       const state = readiness.find((r) => r.provider === provider && r.environment === environment);
-      const missingSecrets = missingSecretsFor(provider, environment);
+      const missingSecrets = await missingSecretsFor(provider, environment);
       const config = (row?.public_config ?? {}) as Record<string, unknown>;
       const connectionState =
         config["connection_state"] === "connected" || config["connection_state"] === "failed"
@@ -129,7 +129,7 @@ export async function loadProviderHealth(): Promise<{
 }
 
 async function ping(provider: BillingProvider, environment: BillingEnvironment) {
-  const creds = providerCredentials(provider, environment);
+  const creds = await providerCredentials(provider, environment);
   if (!creds.apiKey) throw new Error(`No API key configured for ${provider} ${environment} mode.`);
 
   if (provider === "stripe") {

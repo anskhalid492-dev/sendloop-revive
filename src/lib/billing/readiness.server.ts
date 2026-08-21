@@ -85,7 +85,7 @@ export async function evaluateProvider(
         .limit(1000)
     ).data ?? []);
 
-  const creds = providerCredentials(provider, environment);
+  const creds = await providerCredentials(provider, environment);
   const required = PROVIDER_REQUIREMENTS[provider];
   const missing: string[] = [];
   if (!creds.apiKey) missing.push(secretName(required.secrets[0]!.name, environment));
