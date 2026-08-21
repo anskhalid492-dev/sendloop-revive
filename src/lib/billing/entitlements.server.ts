@@ -106,6 +106,8 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
       max_sending_accounts: plan?.max_sending_accounts ?? null,
       max_workspaces: plan?.max_workspaces ?? null,
       max_automations: plan?.max_automations ?? null,
+      max_emails_daily: plan?.max_emails_daily ?? null,
+      max_warmup_daily: plan?.max_warmup_daily ?? null,
     },
     flags: {
       warmup_enabled: Boolean(plan?.warmup_enabled),

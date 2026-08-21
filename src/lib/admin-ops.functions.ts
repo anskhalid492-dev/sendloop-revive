@@ -28,6 +28,25 @@ export const adminLoadUsage = createServerFn({ method: "POST" })
     });
   });
 
+/** Recent allowance decisions across the platform (consume / release / denied). */
+export const adminUsageAudit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        workspaceId: z.string().uuid().optional(),
+        deniedOnly: z.boolean().default(false),
+        limit: z.number().int().min(1).max(200).default(50),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("@/lib/admin-access.server");
+    await assertSuperAdmin(context);
+    const { loadUsageAudit } = await import("@/lib/admin-ops.server");
+    return loadUsageAudit(data);
+  });
+
 export const adminRunProductionChecks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ deep: z.boolean().default(false) }).parse(d))

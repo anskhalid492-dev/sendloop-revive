@@ -14,6 +14,8 @@ export type UsageResource =
   | "team_members"
   | "automations"
   | "emails_monthly"
+  | "emails_daily"
+  | "warmup_daily"
   | "ai_monthly";
 
 export type ResourceDefinition = {
@@ -24,7 +26,7 @@ export type ResourceDefinition = {
   /** `derived` = counted from live rows, `metered` = atomic period counter. */
   kind: "derived" | "metered";
   /** Reset window for metered resources. */
-  period: "total" | "month";
+  period: "total" | "month" | "day";
   unit: string;
 };
 
@@ -37,8 +39,11 @@ export const RESOURCE_CATALOG: ResourceDefinition[] = [
   { key: "team_members", label: "Team members", limitKey: "max_users", kind: "derived", period: "total", unit: "members" },
   { key: "automations", label: "Automations", limitKey: "max_automations", kind: "derived", period: "total", unit: "automations" },
   { key: "emails_monthly", label: "Emails sent", limitKey: "max_emails_monthly", kind: "metered", period: "month", unit: "emails" },
+  { key: "emails_daily", label: "Emails sent today", limitKey: "max_emails_daily", kind: "metered", period: "day", unit: "emails" },
   { key: "ai_monthly", label: "AI personalizations", limitKey: "max_ai_monthly", kind: "metered", period: "month", unit: "generations" },
+  { key: "warmup_daily", label: "Warmup emails today", limitKey: "max_warmup_daily", kind: "metered", period: "day", unit: "warmup emails" },
 ];
+
 
 export function resourceDefinition(key: UsageResource): ResourceDefinition {
   const found = RESOURCE_CATALOG.find((r) => r.key === key);

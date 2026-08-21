@@ -301,7 +301,7 @@ export async function dispatchDueMessages(
   const { consumeUsage, releaseUsage, EntitlementError } = await import(
     "@/lib/billing/usage.server"
   );
-  const workspaceId = due[0].workspace_id as string;
+  // Metering is per-message: a dispatch batch can span workspaces.
 
   // Bounced, complained and unsubscribed addresses are never emailed again.
   const suppressed = await suppressedSet(
@@ -376,7 +376,7 @@ export async function dispatchDueMessages(
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
     try {
-      await consumeUsage(workspaceId, "emails_monthly", 1);
+      await consumeUsage(message.workspace_id as string, "emails_monthly", 1, "campaign_send");
     } catch (error) {
       if (error instanceof EntitlementError) {
         result.skipped += 1;
@@ -426,7 +426,7 @@ export async function dispatchDueMessages(
 
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
-      await releaseUsage(workspaceId, "emails_monthly", 1);
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await fail(send.message);
       continue;
     }

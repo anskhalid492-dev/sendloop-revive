@@ -454,6 +454,17 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     return fail("No stored credentials for this mailbox — reconnect it to resume warmup.", false);
   }
 
+  // Warmup traffic is metered on its own daily allowance and never consumes
+  // the customer's campaign email allowance.
+  const { consumeUsage, releaseUsage, EntitlementError } = await import("@/lib/billing/usage.server");
+  try {
+    await consumeUsage(workspaceId, "warmup_daily", 1, "warmup_send");
+  } catch (error) {
+    if (error instanceof EntitlementError) return fail(error.message, false);
+    throw error;
+  }
+  const refundWarmup = () => releaseUsage(workspaceId, "warmup_daily", 1, "warmup_send_failed");
+
   const provider = account.provider as string;
   const started = Date.now();
   const { getAdapter } = await import("@/lib/providers/adapter.server");
@@ -483,6 +494,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       durationMs: Date.now() - started,
       detail: { jobId, to: job["to_email"] },
     });
+    await refundWarmup();
     return fail(message, true);
   }
 
@@ -500,6 +512,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
 
   if (!result.ok) {
     const retryable = /timeout|rate|429|5\d\d|temporar/i.test(result.message);
+    await refundWarmup();
     return fail(result.message, retryable);
   }
 

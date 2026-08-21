@@ -256,6 +256,17 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   });
   if (!replyTo) throw new Error("Configure a reply-to inbox before running the test.");
 
+  // Platform diagnostics never consume a customer's allowance, but the send is
+  // recorded so an admin test can always be told apart from real usage.
+  await supabaseAdmin.from("usage_audit_log").insert({
+    workspace_id: account.workspace_id as string,
+    resource: "emails_monthly",
+    action: "admin_diagnostic",
+    amount: 1,
+    allowed: true,
+    reason: "inbound_delivery_test",
+  });
+
   const { sendManagedEmail } = await import("@/lib/managed-sending.server");
   const send = await sendManagedEmail(
     supabaseAdmin,

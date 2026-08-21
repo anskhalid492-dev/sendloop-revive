@@ -72,6 +72,9 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
     queryKey: ["workspace-usage", workspaceId],
     queryFn: () => fetchUsage({ data: { workspaceId: workspaceId! } }),
     enabled: Boolean(workspaceId),
+    // Usage moves while campaigns send: keep the meters live.
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   if (!workspaceId || usage.isLoading) {
@@ -87,7 +90,10 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
 
   const leads = data.usage.find((u) => u.key === "leads");
   const emails = data.usage.find((u) => u.key === "emails_monthly");
-  const other = data.usage.filter((u) => u.key !== "leads" && u.key !== "emails_monthly");
+  const emailsDaily = data.usage.find((u) => u.key === "emails_daily");
+  const other = data.usage.filter(
+    (u) => !["leads", "emails_monthly", "emails_daily"].includes(u.key),
+  );
   const resetLabel = data.period.resets
     ? data.period.end
       ? `Resets ${new Date(data.period.end).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
@@ -134,6 +140,12 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
           <LimitCard title="Emails" caption={resetLabel} row={emails} />
         </div>
 
+        {emailsDaily && emailsDaily.limit !== null ? (
+          <div className="mt-4">
+            <LimitCard title="Daily sending cap" caption="Resets at midnight UTC" row={emailsDaily} />
+          </div>
+        ) : null}
+
         {data.credits.included > 0 ? (
           <div className="mt-6">
             <div className="flex items-center justify-between text-sm">
@@ -146,6 +158,24 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
           </div>
         ) : null}
       </div>
+
+      {data.overages.length > 0 ? (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-medium">Your workspace is above the limits of the {data.plan.name} plan.</p>
+            <p className="mt-1 text-muted-foreground">
+              {data.overages
+                .map((o) => `${o.label}: ${formatNumber(o.used)} of ${formatNumber(o.limit)}`)
+                .join(" · ")}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Existing data stays visible and exportable, but you cannot add more until you upgrade
+              or remove the excess.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {data.overLimitResources.length > 0 ? (
         <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">

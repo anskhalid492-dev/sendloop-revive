@@ -3887,10 +3887,12 @@ export type Database = {
           max_automations: number | null
           max_campaigns: number | null
           max_domains: number | null
+          max_emails_daily: number | null
           max_emails_monthly: number | null
           max_leads: number | null
           max_sending_accounts: number | null
           max_users: number | null
+          max_warmup_daily: number | null
           max_workspaces: number | null
           monthly_credits: number
           monthly_price: number
@@ -3921,10 +3923,12 @@ export type Database = {
           max_automations?: number | null
           max_campaigns?: number | null
           max_domains?: number | null
+          max_emails_daily?: number | null
           max_emails_monthly?: number | null
           max_leads?: number | null
           max_sending_accounts?: number | null
           max_users?: number | null
+          max_warmup_daily?: number | null
           max_workspaces?: number | null
           monthly_credits?: number
           monthly_price?: number
@@ -3955,10 +3959,12 @@ export type Database = {
           max_automations?: number | null
           max_campaigns?: number | null
           max_domains?: number | null
+          max_emails_daily?: number | null
           max_emails_monthly?: number | null
           max_leads?: number | null
           max_sending_accounts?: number | null
           max_users?: number | null
+          max_warmup_daily?: number | null
           max_workspaces?: number | null
           monthly_credits?: number
           monthly_price?: number
@@ -5947,6 +5953,62 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_audit_log: {
+        Row: {
+          action: string
+          allowed: boolean
+          amount: number
+          created_at: string
+          id: string
+          limit_value: number | null
+          period_start: string | null
+          plan_id: string | null
+          plan_name: string | null
+          reason: string | null
+          resource: string
+          used_after: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          allowed?: boolean
+          amount?: number
+          created_at?: string
+          id?: string
+          limit_value?: number | null
+          period_start?: string | null
+          plan_id?: string | null
+          plan_name?: string | null
+          reason?: string | null
+          resource: string
+          used_after?: number | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          allowed?: boolean
+          amount?: number
+          created_at?: string
+          id?: string
+          limit_value?: number | null
+          period_start?: string | null
+          plan_id?: string | null
+          plan_name?: string | null
+          reason?: string | null
+          resource?: string
+          used_after?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -6803,6 +6865,7 @@ export type Database = {
           suspended_reason: string | null
           team_size: string | null
           timezone: string
+          trial_consumed_at: string | null
           updated_at: string
         }
         Insert: {
@@ -6828,6 +6891,7 @@ export type Database = {
           suspended_reason?: string | null
           team_size?: string | null
           timezone?: string
+          trial_consumed_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -6853,6 +6917,7 @@ export type Database = {
           suspended_reason?: string | null
           team_size?: string | null
           timezone?: string
+          trial_consumed_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -7070,6 +7135,17 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_workspace_usage_v2: {
+        Args: {
+          _amount?: number
+          _dry_run?: boolean
+          _environment?: string
+          _reason?: string
+          _resource: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       delete_crm_stage: {
         Args: { _move_to: string; _stage_id: string }
         Returns: undefined
@@ -7204,6 +7280,16 @@ export type Database = {
         Args: {
           _amount: number
           _period_start: string
+          _resource: string
+          _workspace_id: string
+        }
+        Returns: undefined
+      }
+      release_workspace_usage_v2: {
+        Args: {
+          _amount?: number
+          _environment?: string
+          _reason?: string
           _resource: string
           _workspace_id: string
         }
