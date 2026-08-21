@@ -962,3 +962,58 @@ export const getManagedInfraStatus = createServerFn({ method: "GET" })
       domains,
     };
   });
+
+/**
+ * Full health diagnostics for one provider, computed from the rolling window of
+ * real API operations (credential checks, domain lookups, sends).
+ */
+export const getProviderDiagnostics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeProviderDiagnostics } = await import("@/lib/provider-health.server");
+    return computeProviderDiagnostics(supabaseAdmin, data.id);
+  });
+
+/** Runs a real, safe read-only probe against one provider and updates health. */
+export const testProviderHealth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { checkProviderHealth, loadPool, logRoutingEvent } = await import(
+      "@/lib/provider-pool.server"
+    );
+    const { computeProviderDiagnostics } = await import("@/lib/provider-health.server");
+
+    const row = (await loadPool(supabaseAdmin)).find((p) => p.id === data.id);
+    if (!row) throw new Error("Provider not found");
+
+    const probe = await checkProviderHealth(supabaseAdmin, row);
+    await logRoutingEvent(supabaseAdmin, {
+      providerId: row.id,
+      event: "health_check",
+      reason: probe.health,
+      detail: probe.reason,
+    });
+    const diagnostics = await computeProviderDiagnostics(supabaseAdmin, data.id);
+    return { probe, diagnostics };
+  });
+
+/** Rolling-window health metrics for every provider in the pool (no probing). */
+export const listProviderHealth = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeProviderDiagnostics } = await import("@/lib/provider-health.server");
+    const { data } = await supabaseAdmin.from("email_providers").select("id");
+    const ids = ((data ?? []) as Array<{ id: string }>).map((r) => r.id);
+    const results = await Promise.all(
+      ids.map((id) => computeProviderDiagnostics(supabaseAdmin, id)),
+    );
+    return results;
+  });

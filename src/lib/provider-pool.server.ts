@@ -168,23 +168,36 @@ export async function recordProviderUsage(
     );
 }
 
-/** Live health probe against the provider API; persists the result on the pool row. */
+/**
+ * Live health probe against the provider API.
+ *
+ * The probe is a real, safe read-only operation (credential + domain API call).
+ * Its result is appended to the rolling operations log, then health is
+ * recomputed from that window — a passing credential test alone never forces
+ * the provider to "healthy".
+ */
 export async function checkProviderHealth(
   admin: Admin,
   row: PoolProviderRow,
-): Promise<{ health: "healthy" | "degraded" | "down"; detail: string }> {
+): Promise<{ health: string; detail: string; reason: string }> {
+  const { recordProviderOperation, refreshProviderHealth, httpStatusFrom } = await import(
+    "@/lib/provider-health.server"
+  );
+
   const creds = await credentialsFor(admin, row);
   if (!creds) {
     const detail = "No credentials configured for this provider.";
+    await recordProviderOperation(admin, row.id, {
+      operation: "credential_check",
+      ok: false,
+      message: detail,
+    });
+    const diagnostics = await refreshProviderHealth(admin, row.id);
     await admin
       .from("email_providers")
-      .update({
-        health_status: "down",
-        health_detail: detail,
-        health_checked_at: new Date().toISOString(),
-      })
+      .update({ health_status: "down", health_reason: detail, health_detail: detail })
       .eq("id", row.id);
-    return { health: "down", detail };
+    return { health: "down", detail, reason: diagnostics.reason };
   }
 
   const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
@@ -198,33 +211,51 @@ export async function checkProviderHealth(
     detail = error instanceof Error ? error.message : String(error);
   }
 
-  const rate = errorRate(row);
-  const health: "healthy" | "degraded" | "down" = !ok
-    ? "down"
-    : rate > 0.25 || !hasCapacity(row)
-      ? "degraded"
-      : "healthy";
+  await recordProviderOperation(admin, row.id, {
+    operation: "credential_check",
+    ok,
+    httpStatus: httpStatusFrom(detail),
+    message: detail,
+  });
 
   await admin
     .from("email_providers")
     .update({
-      health_status: health,
-      health_detail: detail.slice(0, 500) || null,
-      health_checked_at: new Date().toISOString(),
       status: ok ? "verified" : "failed",
       last_tested_at: new Date().toISOString(),
       last_error: ok ? null : detail.slice(0, 500),
+      ...(ok ? { last_success_at: new Date().toISOString() } : {}),
     })
     .eq("id", row.id);
 
-  return { health, detail };
+  const diagnostics = await refreshProviderHealth(admin, row.id);
+  // Capacity exhaustion is a real routing constraint, not an API failure.
+  if (diagnostics.health === "healthy" && !hasCapacity(row)) {
+    await admin
+      .from("email_providers")
+      .update({
+        health_status: "degraded",
+        health_reason: "At capacity — hourly/daily sending limit reached.",
+      })
+      .eq("id", row.id);
+    return { health: "degraded", detail, reason: "At capacity — hourly/daily limit reached." };
+  }
+
+  return { health: diagnostics.health, detail, reason: diagnostics.reason };
 }
+
 
 export async function checkPoolHealth(
   admin: Admin,
-): Promise<Array<{ id: string; provider: string; health: string; detail: string }>> {
+): Promise<Array<{ id: string; provider: string; health: string; detail: string; reason: string }>> {
   const pool = await loadPool(admin);
-  const results: Array<{ id: string; provider: string; health: string; detail: string }> = [];
+  const results: Array<{
+    id: string;
+    provider: string;
+    health: string;
+    detail: string;
+    reason: string;
+  }> = [];
   for (const row of pool) {
     const result = await checkProviderHealth(admin, row);
     results.push({ id: row.id, provider: row.provider, ...result });
@@ -232,7 +263,7 @@ export async function checkPoolHealth(
       providerId: row.id,
       event: "health_check",
       reason: result.health,
-      detail: result.detail,
+      detail: result.reason,
     });
   }
   return results;
