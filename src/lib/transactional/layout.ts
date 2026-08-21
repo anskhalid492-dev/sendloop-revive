@@ -92,7 +92,7 @@ ${preheader}
           Need help? <a href="{{support_url}}" style="color:${BRAND.color};text-decoration:none;font-weight:600">Visit the help center</a> or reply to this email — a real person reads it.
         </p>
         <p style="margin:0;font-size:12px;line-height:1.6;color:${BRAND.muted}">
-          <strong style="color:${BRAND.ink}">${BRAND.name}</strong> · ${BRAND_TAGLINE}<br>
+          <strong style="color:${BRAND.ink}">${BRAND.name}</strong> · Cold outreach that lands in the inbox<br>
           <a href="{{dashboard_url}}" style="color:${BRAND.muted};text-decoration:underline">Dashboard</a> ·
           <a href="${BRAND.site}/privacy" style="color:${BRAND.muted};text-decoration:underline">Privacy</a> ·
           <a href="${BRAND.site}/terms" style="color:${BRAND.muted};text-decoration:underline">Terms</a> ·
