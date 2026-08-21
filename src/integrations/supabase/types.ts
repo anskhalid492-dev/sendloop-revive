@@ -5795,6 +5795,60 @@ export type Database = {
         }
         Relationships: []
       }
+      unmatched_inbound_emails: {
+        Row: {
+          body: string | null
+          created_at: string
+          from_email: string
+          from_name: string | null
+          html: string | null
+          id: string
+          in_reply_to: string | null
+          message_id: string | null
+          reason: string | null
+          received_at: string
+          reference_ids: string[]
+          resolved_at: string | null
+          resolved_conversation_id: string | null
+          subject: string | null
+          to_email: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          html?: string | null
+          id?: string
+          in_reply_to?: string | null
+          message_id?: string | null
+          reason?: string | null
+          received_at?: string
+          reference_ids?: string[]
+          resolved_at?: string | null
+          resolved_conversation_id?: string | null
+          subject?: string | null
+          to_email: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          html?: string | null
+          id?: string
+          in_reply_to?: string | null
+          message_id?: string | null
+          reason?: string | null
+          received_at?: string
+          reference_ids?: string[]
+          resolved_at?: string | null
+          resolved_conversation_id?: string | null
+          subject?: string | null
+          to_email?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
