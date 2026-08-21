@@ -10,6 +10,7 @@ import { CampaignHeader, type CampaignTab } from "@/components/campaign/Campaign
 import { OverviewTab } from "@/components/campaign/OverviewTab";
 import { LeadsTab } from "@/components/campaign/LeadsTab";
 import { SequencesTab } from "@/components/campaign/SequencesTab";
+import { AiTab } from "@/components/campaign/AiTab";
 import { ScheduleTab } from "@/components/campaign/ScheduleTab";
 import { AccountsTab } from "@/components/campaign/AccountsTab";
 import { OptionsTab } from "@/components/campaign/OptionsTab";
@@ -114,6 +115,7 @@ function CampaignWorkspace() {
             onTest={(index) => setTestStep(index)}
           />
         ) : null}
+        {tab === "AI" ? <AiTab builder={builder} /> : null}
         {tab === "Schedule" ? <ScheduleTab builder={builder} /> : null}
         {tab === "Email Accounts" ? <AccountsTab builder={builder} /> : null}
         {tab === "Options" ? <OptionsTab builder={builder} /> : null}

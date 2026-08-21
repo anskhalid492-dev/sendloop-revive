@@ -32,6 +32,7 @@ export const CAMPAIGN_TABS = [
   "Overview",
   "Leads",
   "Sequences",
+  "AI",
   "Schedule",
   "Email Accounts",
   "Options",
