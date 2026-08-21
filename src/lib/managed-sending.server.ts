@@ -184,6 +184,9 @@ export async function recordProviderIncident(
   providerId: string | null,
   rawError: string | null,
 ): Promise<void> {
+  // Feed the Provider Manager's usage/error-rate signals from real sends.
+  const { recordProviderUsage } = await import("@/lib/provider-pool.server");
+  await recordProviderUsage(admin, providerId, rawError ? { failed: 1 } : { sent: 1 });
   if (!providerId) return;
   try {
     await admin

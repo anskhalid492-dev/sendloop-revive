@@ -147,7 +147,7 @@ type DomainSetupView = {
 };
 
 const OWNED_COLUMNS =
-  "id, workspace_id, domain, dkim_selector, provider, provider_id, provider_domain_id, provider_records, record_checks, stage, disabled_at, dns_status, spf_status, dkim_status, dmarc_status, verified_at";
+  "id, workspace_id, domain, dkim_selector, provider, provider_id, provider_domain_id, provider_records, record_checks, stage, disabled_at, provider_locked_until, dns_status, spf_status, dkim_status, dmarc_status, verified_at";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadOwnedDomain(client: Client, id: string): Promise<any> {
