@@ -77,7 +77,7 @@ export async function scheduleFollowUps(
   const { data: campaign } = await supabase
     .from("campaigns")
     .select(
-      "id, workspace_id, status, timezone, send_days, send_start_hour, send_end_hour, custom_variables, stop_on_reply",
+      "id, workspace_id, status, timezone, send_days, send_start_hour, send_end_hour, custom_variables, stop_on_reply, ai_enabled, ai_config",
     )
     .eq("id", campaignId)
     .maybeSingle();
@@ -139,6 +139,16 @@ export async function scheduleFollowUps(
   const leadById = new Map((leads ?? []).map((l: { id: string }) => [l.id, l] as const));
 
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
+
+  // Follow-ups reuse the AI snippet generated for this lead on this campaign, so
+  // the whole sequence stays consistent instead of re-billing a generation.
+  const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
+  const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
+  const aiEnabled = Boolean(campaign.ai_enabled);
+  const aiConfig = normalizeAiConfig(campaign.ai_config);
+  const aiContent = aiEnabled
+    ? await personalizationByLead(supabase, campaignId, leadIds)
+    : new Map<string, string>();
   const window = {
     timezone: campaign.timezone,
     sendDays: campaign.send_days,
@@ -184,6 +194,11 @@ export async function scheduleFollowUps(
     const lead = leadById.get(recipient.lead_id);
     if (!lead) continue;
     const slot = nextSendSlot(dueAt, window).toISOString();
+    const ai = aiEnabled
+      ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
+      : { extras: {} as Record<string, string>, hold: false };
+    // "hold" keeps the follow-up unqueued until its personalization lands.
+    if (ai.hold) continue;
 
     inserts.push({
       workspace_id: campaign.workspace_id,
@@ -195,8 +210,8 @@ export async function scheduleFollowUps(
       step_order: next.step_order,
       status: "scheduled",
       to_email: (lead as { email: string }).email,
-      subject: renderTemplate(resolveSpintax(next.subject), lead as never, variables),
-      body: renderTemplate(resolveSpintax(next.body), lead as never, variables),
+      subject: renderTemplate(resolveSpintax(next.subject), lead as never, variables, ai.extras),
+      body: renderTemplate(resolveSpintax(next.body), lead as never, variables, ai.extras),
       scheduled_at: slot,
     });
     advanced.push({ id: recipient.id, step: next.step_order, nextAt: slot });

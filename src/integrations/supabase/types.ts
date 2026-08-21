@@ -89,6 +89,124 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_personalizations: {
+        Row: {
+          accepted: boolean
+          attempts: number
+          campaign_id: string
+          completed_at: string | null
+          content: string | null
+          created_at: string
+          edited: boolean
+          error: string | null
+          id: string
+          instructions: string
+          lead_id: string
+          locked_by: string | null
+          locked_until: string | null
+          model: string | null
+          prompt_hash: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted?: boolean
+          attempts?: number
+          campaign_id: string
+          completed_at?: string | null
+          content?: string | null
+          created_at?: string
+          edited?: boolean
+          error?: string | null
+          id?: string
+          instructions?: string
+          lead_id: string
+          locked_by?: string | null
+          locked_until?: string | null
+          model?: string | null
+          prompt_hash?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted?: boolean
+          attempts?: number
+          campaign_id?: string
+          completed_at?: string | null
+          content?: string | null
+          created_at?: string
+          edited?: boolean
+          error?: string | null
+          id?: string
+          instructions?: string
+          lead_id?: string
+          locked_by?: string | null
+          locked_until?: string | null
+          model?: string | null
+          prompt_hash?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_personalizations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_personalizations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_personalizations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_runner_state: {
+        Row: {
+          key: string
+          last_run_at: string | null
+          locked_by: string | null
+          locked_until: string | null
+          paused_at: string | null
+          paused_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          last_run_at?: string | null
+          locked_by?: string | null
+          locked_until?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          last_run_at?: string | null
+          locked_by?: string | null
+          locked_until?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       automation_events: {
         Row: {
           campaign_id: string | null
@@ -1670,6 +1788,8 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          ai_config: Json
+          ai_enabled: boolean
           audience_count: number
           business_days_only: boolean
           click_tracking: boolean
@@ -1711,6 +1831,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_config?: Json
+          ai_enabled?: boolean
           audience_count?: number
           business_days_only?: boolean
           click_tracking?: boolean
@@ -1752,6 +1874,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_config?: Json
+          ai_enabled?: boolean
           audience_count?: number
           business_days_only?: boolean
           click_tracking?: boolean
@@ -6381,6 +6505,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_ai_personalization_jobs: {
+        Args: { _limit: number; _worker: string }
+        Returns: {
+          accepted: boolean
+          attempts: number
+          campaign_id: string
+          completed_at: string | null
+          content: string | null
+          created_at: string
+          edited: boolean
+          error: string | null
+          id: string
+          instructions: string
+          lead_id: string
+          locked_by: string | null
+          locked_until: string | null
+          model: string | null
+          prompt_hash: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_personalizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_automation_runs: {
         Args: { _limit: number; _worker: string }
         Returns: {
@@ -6619,6 +6773,7 @@ export type Database = {
         Args: { _invitation_id: string }
         Returns: undefined
       }
+      run_ai_personalization_runner: { Args: never; Returns: undefined }
       run_automation_runner: { Args: never; Returns: undefined }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }

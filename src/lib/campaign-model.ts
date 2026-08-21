@@ -217,14 +217,22 @@ export function leadValue(lead: LeadLike, token: string): string | undefined {
   return value ? String(value) : undefined;
 }
 
-/** Replace {{variable}} and {{variable | fallback}} tokens with lead data. */
+/**
+ * Replace {{variable}} and {{variable | fallback}} tokens with lead data.
+ *
+ * `extras` carries values the sending pipeline resolves itself (today: the
+ * AI-generated `{{ai_personalization}}` snippet) and always wins over lead data.
+ */
 export function renderTemplate(
   template: string,
   lead: LeadLike,
   customVariables: CustomVariable[] = [],
+  extras: Record<string, string> = {},
 ): string {
   const defaults = new Map(customVariables.map((v) => [v.token, v.defaultValue]));
   return template.replace(VARIABLE_RE, (_m, token: string, fallback?: string) => {
+    const extra = extras[token];
+    if (typeof extra === "string") return extra;
     const value = leadValue(lead, token);
     if (value) return value;
     const trimmed = (fallback ?? "").trim();
@@ -232,6 +240,7 @@ export function renderTemplate(
     return defaults.get(token) ?? "";
   });
 }
+
 
 /**
  * Tokens that would render empty for this specific lead and have no fallback.
