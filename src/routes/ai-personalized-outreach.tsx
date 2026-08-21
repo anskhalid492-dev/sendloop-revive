@@ -668,7 +668,7 @@ function Page() {
         </div>
       </Section>
 
-      <Section title="Frequently asked questions">
+      <Section>
         <PageFaqs page="ai-personalization" defaults={faqs} />
       </Section>
 
