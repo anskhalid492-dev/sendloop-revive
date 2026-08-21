@@ -184,27 +184,33 @@ function mapGatewayError(error: unknown): AiGatewayError {
   const raw = error as { statusCode?: number; status?: number; message?: string };
   const status = raw?.statusCode ?? raw?.status ?? 0;
   const message = raw?.message ?? "AI generation failed.";
-  if (status === 402)
+  if (status === 402 || status === 429)
     return new AiGatewayError({
       status,
-      message: "AI credits are exhausted for this platform. Personalization is paused.",
-      retryable: false,
+      message:
+        status === 402
+          ? "Your OpenAI account has no available credit. Add billing in OpenAI and retry."
+          : "OpenAI rate limited this workspace. Remaining leads stay queued and retry automatically.",
+      retryable: status === 429,
     });
   if (status === 403)
-    return new AiGatewayError({ status, message: "AI generation is blocked by platform policy.", retryable: false });
+    return new AiGatewayError({ status, message: "OpenAI blocked this request for your key.", retryable: false });
   if (status === 401)
-    return new AiGatewayError({ status, message: "AI service is not configured.", retryable: false });
+    return new AiGatewayError({
+      status,
+      message: "Your OpenAI API key was rejected. Reconnect it in the AI tab.",
+      retryable: false,
+    });
   if (status === 400)
-    return new AiGatewayError({ status, message: `AI request was rejected: ${message}`, retryable: false });
-  if (status === 429)
-    return new AiGatewayError({ status, message: "AI service is rate limited. Retrying later.", retryable: true });
+    return new AiGatewayError({ status, message: `OpenAI rejected the request: ${message}`, retryable: false });
   return new AiGatewayError({ status: status || 500, message, retryable: true });
 }
 
-/** One generation call. Throws `AiGatewayError` on any provider failure. */
+/** One generation call with the workspace's own key. Throws `AiGatewayError`. */
 export async function generatePersonalization(
   config: AiPersonalizationConfig,
   lead: LeadRecord,
+  credentials: WorkspaceAiCredentials,
 ): Promise<{ content: string; model: string }> {
   const facts = leadFacts(lead, config.fields, config.level);
   if (facts.length === 0) {
@@ -219,7 +225,7 @@ export async function generatePersonalization(
   let text: string;
   try {
     const result = await generateText({
-      model: gateway()(MODEL),
+      model: provider(credentials)(credentials.model),
       system,
       prompt,
       temperature: 0.6,
@@ -228,6 +234,7 @@ export async function generatePersonalization(
   } catch (error) {
     throw mapGatewayError(error);
   }
+
 
   const cleaned = text
     .replace(/^["'`]+|["'`]+$/g, "")
