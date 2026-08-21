@@ -133,6 +133,8 @@ export function useCampaignBuilder(campaignId: string) {
   const leadsQuery = useQuery({
     queryKey: ["campaign-leads", campaignId],
     queryFn: () => fetchLeads({ data: { campaignId } }),
+    // Realtime drives most updates; this is the safety net for missed events.
+    refetchInterval: 30_000,
   });
   const campaignWorkspaceId = campaignQuery.data?.campaign.workspace_id;
   const listsQuery = useQuery({
