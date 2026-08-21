@@ -47,6 +47,23 @@ export type WarmupSettings = {
   started_at: string | null;
 };
 
+export type WarmupPlacement =
+  | "pending"
+  | "inbox"
+  | "spam"
+  | "received_unknown"
+  | "not_received"
+  | "not_delivered";
+
+export const PLACEMENT_LABEL: Record<WarmupPlacement, string> = {
+  pending: "Awaiting arrival",
+  inbox: "Inbox",
+  spam: "Spam",
+  received_unknown: "Received",
+  not_received: "Not confirmed",
+  not_delivered: "Not delivered",
+};
+
 export type WarmupDayStat = {
   day: string;
   target: number;
@@ -57,6 +74,11 @@ export type WarmupDayStat = {
   complained: number;
   failed: number;
   replied: number;
+  inbox: number;
+  spam: number;
+  deferred: number;
+  rejected: number;
+  not_received: number;
   health_score: number | null;
 };
 
@@ -78,6 +100,8 @@ export type WarmupJob = {
   id: string;
   role: string;
   status: WarmupJobStatus;
+  placement: WarmupPlacement | null;
+  received_at: string | null;
   to_email: string;
   subject: string;
   scheduled_at: string;

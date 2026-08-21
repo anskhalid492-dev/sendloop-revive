@@ -42,6 +42,8 @@ export type WarmupAccountRow = {
   target_today: number;
   sent_today: number;
   delivered_today: number;
+  inbox_today: number;
+  spam_today: number;
   bounced_today: number;
   replied_today: number;
   max_volume: number;
@@ -93,7 +95,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
-        .select("sending_account_id, target, sent, delivered, bounced, replied")
+        .select("sending_account_id, target, sent, delivered, inbox, spam, bounced, replied")
         .in("sending_account_id", ids)
         .eq("day", today),
     ]);
@@ -135,6 +137,8 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         target_today: (stat?.["target"] as number) ?? 0,
         sent_today: (stat?.["sent"] as number) ?? 0,
         delivered_today: (stat?.["delivered"] as number) ?? 0,
+        inbox_today: (stat?.["inbox"] as number) ?? 0,
+        spam_today: (stat?.["spam"] as number) ?? 0,
         bounced_today: (stat?.["bounced"] as number) ?? 0,
         replied_today: (stat?.["replied"] as number) ?? 0,
         max_volume: (setting?.["max_volume"] as number) ?? 0,
@@ -171,7 +175,9 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
       client.from("warmup_settings").select(SETTINGS_COLUMNS).eq("sending_account_id", data.id).maybeSingle(),
       client
         .from("warmup_daily_stats")
-        .select("day, target, scheduled, sent, delivered, bounced, complained, failed, replied, health_score")
+        .select(
+          "day, target, scheduled, sent, delivered, inbox, spam, deferred, rejected, not_received, bounced, complained, failed, replied, health_score",
+        )
         .eq("sending_account_id", data.id)
         .gte("day", since)
         .order("day"),
@@ -184,7 +190,7 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
       client
         .from("warmup_jobs")
         .select(
-          "id, role, status, to_email, subject, scheduled_at, processed_at, attempts, provider, provider_message_id, error",
+          "id, role, status, placement, received_at, to_email, subject, scheduled_at, processed_at, attempts, provider, provider_message_id, error",
         )
         .eq("sending_account_id", data.id)
         .order("scheduled_at", { ascending: false })
