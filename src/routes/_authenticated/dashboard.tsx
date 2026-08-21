@@ -17,6 +17,8 @@ import { SetupJourney } from "@/components/app/SetupJourney";
 import { getSetupProgress } from "@/lib/setup-progress.functions";
 import { countCompleted } from "@/lib/setup-journey";
 import { MetricCards } from "@/components/dashboard/MetricCards";
+import { EngagementOverview } from "@/components/analytics/EngagementOverview";
+
 
 import { OutreachGraph } from "@/components/dashboard/OutreachGraph";
 import { Button } from "@/components/ui/button";
