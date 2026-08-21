@@ -29,7 +29,7 @@ const faqs = [
   },
   {
     q: "I have a deliverability emergency, what do I do?",
-    a: "Email support@munchreach.app with 'urgent' in the subject line — deliverability incidents are triaged first.",
+    a: "Email support@munchreach.com with 'urgent' in the subject line — deliverability incidents are triaged first.",
   },
   {
     q: "Can I reach you if I'm not a customer yet?",
@@ -53,8 +53,8 @@ export const Route = createFileRoute("/contact")({
 });
 
 const channels = [
-  { icon: Mail, title: "Sales", text: "Pricing, agency plans and migrations.", detail: "sales@munchreach.app" },
-  { icon: MessageSquare, title: "Support", text: "Deliverability and product questions.", detail: "support@munchreach.app" },
+  { icon: Mail, title: "Sales", text: "Pricing, agency plans and migrations.", detail: "sales@munchreach.com" },
+  { icon: MessageSquare, title: "Support", text: "Deliverability and product questions.", detail: "support@munchreach.com" },
   { icon: Building2, title: "Partnerships", text: "Agencies, resellers and integrations.", detail: "partners@munchreach.app" },
 ];
 
