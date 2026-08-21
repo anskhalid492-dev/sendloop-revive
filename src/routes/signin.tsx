@@ -142,6 +142,19 @@ function SignInPage() {
         </>
       )}
 
+      {googleQuery.data?.googleEnabled === false && (
+        <p className="mb-6 text-center text-xs text-muted-foreground">
+          Platform admin?{" "}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="font-medium text-primary hover:underline"
+          >
+            Continue with Google
+          </button>
+        </p>
+      )}
+
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <Label htmlFor="email">Work email</Label>
