@@ -227,7 +227,24 @@ export const verifySendingDomain = createServerFn({ method: "POST" })
             records: brokenNow,
           });
         }
+        const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+        await emitTransactionalEvent({
+          eventKey: "domain.verification_failed",
+          userId: context.userId,
+          workspaceId: row.workspace_id as string,
+          variables: { "domain.name": row.domain, "domain.status": "failed" },
+        });
       } else if (coreVerified) {
+        if (!wasVerified) {
+          const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+          await emitTransactionalEvent({
+            eventKey: "domain.verified",
+            userId: context.userId,
+            workspaceId: row.workspace_id as string,
+            idempotencyKey: `domain.verified:${data.id}`,
+            variables: { "domain.name": row.domain, "domain.status": "verified" },
+          });
+        }
         await client
           .from("domain_alerts")
           .update({ resolved_at: new Date().toISOString() })

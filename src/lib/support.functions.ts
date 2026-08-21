@@ -152,6 +152,15 @@ export const createSupportTicket = createServerFn({ method: "POST" })
     });
     if (mErr) throw new Error(mErr.message);
 
+    const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+    await emitTransactionalEvent({
+      eventKey: "support.ticket.created",
+      userId: context.userId,
+      workspaceId: data.workspaceId ?? null,
+      idempotencyKey: `support.created:${ticket.id as string}`,
+      variables: { "ticket.id": ticket.id, "ticket.subject": data.subject, "ticket.status": "open" },
+    });
+
     return { id: ticket.id as string };
   });
 

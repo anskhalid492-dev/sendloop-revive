@@ -1040,6 +1040,19 @@ export const launchCampaign = createServerFn({ method: "POST" })
       firstSendAt: firstSlot,
     });
 
+    const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+    await emitTransactionalEvent({
+      eventKey: "campaign.launched",
+      userId: context.userId,
+      workspaceId: c.workspace_id as string,
+      idempotencyKey: `campaign.launched:${c.id as string}`,
+      variables: {
+        "campaign.name": c.name,
+        "campaign.recipients": String(already.size + fresh.length),
+        "campaign.status": "active",
+      },
+    });
+
     return { queued: fresh.length, total: already.size + fresh.length, firstSendAt: firstSlot };
   });
 
