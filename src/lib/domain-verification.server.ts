@@ -247,11 +247,18 @@ export async function runDomainVerification(
     }
   }
 
-  // 3. Sending readiness confirmed by the provider itself.
-  const readyToSend =
-    dnsVerified &&
-    providerState.state === "verified" &&
-    (await adapter.isReadyToSend(provider.credentials, row.domain).catch(() => false));
+  // 3. Sending readiness confirmed by the provider itself. A transient provider
+  // error must not knock an already-ready domain back to "verifying".
+  let readyToSend = false;
+  if (dnsVerified && providerState.state === "verified") {
+    try {
+      readyToSend = await adapter.isReadyToSend(provider.credentials, row.domain);
+    } catch {
+      readyToSend = prevRow?.stage === "ready";
+    }
+  } else if (dnsVerified && prevRow?.stage === "ready" && providerState.state !== "failed") {
+    readyToSend = true;
+  }
 
   const stage: DomainStage = readyToSend
     ? "ready"
