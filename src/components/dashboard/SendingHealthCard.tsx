@@ -38,7 +38,7 @@ export function SendingHealthCard({
           <p className="text-xs text-muted-foreground">Mailboxes, domains and daily capacity.</p>
         </div>
         <Button asChild variant="ghost" size="sm" className="h-8 text-xs">
-          <Link to="/email-accounts">
+          <Link to="/sending">
             Manage <ArrowUpRight className="size-3.5" />
           </Link>
         </Button>
@@ -102,7 +102,7 @@ export function SendingHealthCard({
             </p>
           </div>
           <Button asChild size="sm">
-            <Link to="/email-accounts">Connect a mailbox</Link>
+            <Link to="/sending">Connect a mailbox</Link>
           </Button>
         </div>
       )}
