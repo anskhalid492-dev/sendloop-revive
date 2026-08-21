@@ -20,6 +20,8 @@ export type ResolvedProvider = {
   provider: string;
   providerId: string | null;
   credentials: Record<string, string>;
+  mode?: "sandbox" | "live";
+  region?: string | null;
 };
 
 export type DomainRow = {
@@ -32,6 +34,7 @@ export type DomainRow = {
   provider_domain_id: string | null;
   stage: string;
   disabled_at?: string | null;
+  provider_locked_until?: string | null;
 };
 
 export type VerificationOutcome = {
@@ -45,58 +48,31 @@ export type VerificationOutcome = {
 };
 
 /**
- * Picks the provider that handles a workspace's domain. The customer never
- * chooses; admin enablement/priority and an optional per-domain pin decide.
+ * Automatic provider routing for a domain.
+ *
+ * The customer never chooses and admins never assign a provider per workspace.
+ * The Provider Manager picks deterministically from the global pool, keeping a
+ * domain on its current provider whenever that provider is still eligible.
  */
 export async function resolveDomainProvider(
   admin: Admin,
-  pinned?: { provider?: string | null; providerId?: string | null },
+  pinned?: { provider?: string | null; providerId?: string | null; key?: string; exclude?: string[] },
 ): Promise<ResolvedProvider | null> {
-  const { readCredentials } = await import("@/lib/providers/adapter.server");
-  const { platformKeyFor } = await import("@/lib/managed-sending.server");
-  const { DOMAIN_CAPABLE_PROVIDERS } = await import("@/lib/domain-providers/registry.server");
-
-  const { data } = await admin
-    .from("email_providers")
-    .select("id, provider, is_enabled, priority, status")
-    .eq("is_enabled", true)
-    .order("priority", { ascending: true });
-
-  const rows = ((data ?? []) as Array<{ id: string; provider: string; status: string | null }>).filter(
-    (row) => DOMAIN_CAPABLE_PROVIDERS.includes(row.provider),
-  );
-
-  const ordered = [
-    ...rows.filter((r) => (pinned?.providerId ? r.id === pinned.providerId : false)),
-    ...rows.filter((r) => (pinned?.providerId ? r.id !== pinned.providerId : true)),
-  ];
-
-  for (const row of ordered) {
-    const { data: secret } = await admin
-      .from("email_provider_secrets")
-      .select("credentials_ciphertext")
-      .eq("provider_id", row.id)
-      .maybeSingle();
-    if (secret?.credentials_ciphertext) {
-      try {
-        const credentials = readCredentials(secret.credentials_ciphertext) as Record<string, string>;
-        if (credentials && Object.keys(credentials).length > 0) {
-          return { provider: row.provider, providerId: row.id, credentials };
-        }
-      } catch {
-        /* try the next provider */
-      }
-    }
-    const envKey = platformKeyFor(row.provider);
-    if (envKey) return { provider: row.provider, providerId: row.id, credentials: { api_key: envKey } };
-  }
-
-  // Last resort: a platform env key for any domain-capable provider.
-  for (const provider of DOMAIN_CAPABLE_PROVIDERS) {
-    const envKey = platformKeyFor(provider);
-    if (envKey) return { provider, providerId: null, credentials: { api_key: envKey } };
-  }
-  return null;
+  const { selectProvider } = await import("@/lib/provider-pool.server");
+  const selected = await selectProvider(admin, {
+    key: pinned?.key ?? pinned?.providerId ?? "munchreach",
+    currentProviderId: pinned?.providerId ?? null,
+    requireDomainApi: true,
+    exclude: pinned?.exclude ?? [],
+  });
+  if (!selected) return null;
+  return {
+    provider: selected.provider,
+    providerId: selected.providerId,
+    credentials: selected.credentials,
+    mode: selected.mode,
+    region: selected.region,
+  };
 }
 
 /** Persists the raw provider failure for Admin -> System health. */
@@ -119,43 +95,124 @@ async function logDomainEvent(
 }
 
 /**
- * Ensures the domain exists at the assigned provider and returns the provider's
- * current DNS requirements (plus MunchReach's recommended DMARC record).
+ * Ensures the domain exists at the routed provider and returns that provider's
+ * own DNS requirements (plus MunchReach's recommended DMARC record).
+ *
+ * DNS records always come from the single provider currently routing the
+ * domain — provider record sets are never mixed. If the routed provider cannot
+ * accept the domain, the manager fails over to the next healthy provider and
+ * regenerates the record set from that provider's adapter.
  */
 export async function ensureProviderDomain(
   admin: Admin,
   row: DomainRow,
 ): Promise<{ provider: ResolvedProvider; records: ProviderDnsRecord[]; detail: string } | null> {
-  const provider = await resolveDomainProvider(admin, {
-    provider: row.provider,
-    providerId: row.provider_id,
-  });
-  if (!provider) return null;
-
   const { getDomainAdapter } = await import("@/lib/domain-providers/registry.server");
   const { recommendedDmarcRecord } = await import("@/lib/dns.server");
-  const adapter = getDomainAdapter(provider.provider);
+  const { logRoutingEvent } = await import("@/lib/provider-pool.server");
 
-  const setup = await adapter.createDomain(provider.credentials, row.domain);
-  const records = [...setup.records];
-  if (!records.some((r) => r.kind === "dmarc")) records.push(recommendedDmarcRecord(row.domain));
+  const locked =
+    row.provider_locked_until != null && new Date(row.provider_locked_until).getTime() > Date.now();
+  const tried: string[] = [];
+  let lastDetail = "No sending infrastructure is available.";
 
-  await admin
-    .from("sending_domains")
-    .update({
-      provider: provider.provider,
-      provider_id: provider.providerId,
-      provider_domain_id: setup.providerDomainId,
-      provider_records: records,
-      provider_status: setup.state,
-      provider_error: setup.state === "failed" ? setup.detail.slice(0, 1000) : null,
-      provider_checked_at: new Date().toISOString(),
-    })
-    .eq("id", row.id);
+  // At most three attempts: routed provider, then failover candidates.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const provider = await resolveDomainProvider(admin, {
+      provider: row.provider,
+      providerId: row.provider_id,
+      key: row.domain,
+      exclude: tried,
+    });
+    if (!provider) break;
+    if (provider.providerId) tried.push(provider.providerId);
 
-  await logDomainEvent(admin, row, provider.provider, `createDomain: ${setup.detail}`);
-  return { provider, records, detail: setup.detail };
+    const adapter = getDomainAdapter(provider.provider);
+    let setup;
+    try {
+      setup = await adapter.createDomain(provider.credentials, row.domain);
+    } catch (error) {
+      lastDetail = error instanceof Error ? error.message : String(error);
+      setup = { state: "failed" as const, detail: lastDetail, providerDomainId: null, records: [] };
+    }
+
+    const switching = row.provider_id != null && row.provider_id !== provider.providerId;
+
+    if (setup.state === "failed" && !locked && attempt < 2) {
+      // Provider unavailable -> log and fail over to the next healthy provider.
+      lastDetail = setup.detail;
+      await logRoutingEvent(admin, {
+        providerId: provider.providerId,
+        domainId: row.id,
+        domain: row.domain,
+        workspaceId: row.workspace_id,
+        event: "failover_attempt",
+        reason: "provider_unavailable",
+        detail: setup.detail,
+      });
+      continue;
+    }
+
+    if (switching && locked) {
+      // A send is in flight on the current provider: never swap underneath it.
+      await logRoutingEvent(admin, {
+        providerId: row.provider_id,
+        domainId: row.id,
+        domain: row.domain,
+        workspaceId: row.workspace_id,
+        event: "switch_deferred",
+        reason: "sending_lock_active",
+        detail: `Kept current infrastructure until ${row.provider_locked_until}.`,
+      });
+    }
+
+    const records = [...setup.records];
+    if (!records.some((r) => r.kind === "dmarc")) records.push(recommendedDmarcRecord(row.domain));
+
+    await admin
+      .from("sending_domains")
+      .update({
+        provider: provider.provider,
+        provider_id: provider.providerId,
+        provider_domain_id: setup.providerDomainId,
+        provider_records: records,
+        provider_status: setup.state,
+        provider_error: setup.state === "failed" ? setup.detail.slice(0, 1000) : null,
+        provider_checked_at: new Date().toISOString(),
+        provider_assigned_at: switching ? new Date().toISOString() : undefined,
+      })
+      .eq("id", row.id);
+
+    if (switching) {
+      await logRoutingEvent(admin, {
+        providerId: provider.providerId,
+        previousProviderId: row.provider_id,
+        domainId: row.id,
+        domain: row.domain,
+        workspaceId: row.workspace_id,
+        event: "provider_switched",
+        reason: "automatic_routing",
+        detail: setup.detail,
+      });
+    } else if (!row.provider_id) {
+      await logRoutingEvent(admin, {
+        providerId: provider.providerId,
+        domainId: row.id,
+        domain: row.domain,
+        workspaceId: row.workspace_id,
+        event: "provider_assigned",
+        reason: "automatic_routing",
+        detail: setup.detail,
+      });
+    }
+
+    await logDomainEvent(admin, row, provider.provider, `createDomain: ${setup.detail}`);
+    return { provider, records, detail: setup.detail };
+  }
+
+  return null;
 }
+
 
 /**
  * The complete automatic verification pass. Never marks a domain verified
