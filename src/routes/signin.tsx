@@ -109,11 +109,6 @@ function SignInPage() {
   });
 
   async function handleGoogle() {
-    const { googleEnabled } = await getPublicAuthSettings();
-    if (!googleEnabled) {
-      toast.error("Google sign-in is currently disabled. Please use your email and password.");
-      return;
-    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
