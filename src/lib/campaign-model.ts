@@ -377,7 +377,11 @@ export function variableResolutionReport(
       const value = lead ? leadValue(lead, token) : undefined;
       let source: VariableResolution["source"];
       let resolved: string | null;
-      if (typeof extra === "string" && extra.trim()) {
+      if (typeof extra === "string" && extra.trim() && SYSTEM_VARIABLES.has(token)) {
+        // Sender tokens come from the mailbox, not the lead or the model.
+        source = "system";
+        resolved = extra.trim();
+      } else if (typeof extra === "string" && extra.trim()) {
         source = "ai";
         resolved = extra.trim();
       } else if (value) {
