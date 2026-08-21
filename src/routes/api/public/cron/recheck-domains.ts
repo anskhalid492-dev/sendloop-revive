@@ -28,12 +28,20 @@ function secretMatches(provided: string, expected: string): boolean {
 async function run(request: Request) {
   const url = new URL(request.url);
   const provided =
+    request.headers.get("x-munchreach-signature") ??
     request.headers.get("x-sendloop-signature") ??
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     url.searchParams.get("token") ??
     "";
 
-  const secrets = [process.env["DOMAIN_CRON_SECRET"], process.env["INBOUND_EMAIL_SECRET"]].filter(
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: settings } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "domain_runner")
+    .maybeSingle();
+  const dbToken = (settings?.value as { token?: string } | null)?.token ?? null;
+  const secrets = [dbToken, process.env["DOMAIN_CRON_SECRET"], process.env["INBOUND_EMAIL_SECRET"]].filter(
     (value): value is string => Boolean(value),
   );
   if (secrets.length === 0) return json({ error: "Domain runner is not configured" }, 503);
@@ -45,7 +53,6 @@ async function run(request: Request) {
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 20;
 
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { runDomainVerification } = await import("@/lib/domain-verification.server");
 
     const { data, error } = await supabaseAdmin
