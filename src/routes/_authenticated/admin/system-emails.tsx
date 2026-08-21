@@ -21,6 +21,7 @@ import {
   listTransactionalTemplates,
   previewTransactionalTemplate,
   publishTransactionalTemplate,
+  restoreAllTransactionalDefaults,
   restoreTransactionalDefault,
   rollbackTransactionalTemplate,
   runTransactionalQueueNow,
@@ -82,6 +83,7 @@ function SystemEmailsPage() {
   const publishFn = useServerFn(publishTransactionalTemplate);
   const rollbackFn = useServerFn(rollbackTransactionalTemplate);
   const restoreFn = useServerFn(restoreTransactionalDefault);
+  const restoreAllFn = useServerFn(restoreAllTransactionalDefaults);
   const toggleFn = useServerFn(setTransactionalTemplateEnabled);
   const testFn = useServerFn(sendTransactionalTest);
   const settingsFn = useServerFn(updateTransactionalSettings);
@@ -189,6 +191,18 @@ function SystemEmailsPage() {
     mutationFn: () => restoreFn({ data: { eventKey: activeKey! } }),
     onSuccess: () => {
       toast.success("Default template restored");
+      setDraft(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "system-emails"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const restoreAll = useMutation({
+    mutationFn: () => restoreAllFn({ data: { includeCustomised: false } }),
+    onSuccess: (r: { created: number; updated: number; skipped: number }) => {
+      toast.success(`Refreshed ${r.updated} template${r.updated === 1 ? "" : "s"} to the latest MunchReach design`, {
+        description: r.skipped ? `${r.skipped} customised template(s) left untouched.` : undefined,
+      });
       setDraft(null);
       queryClient.invalidateQueries({ queryKey: ["admin", "system-emails"] });
     },
@@ -477,6 +491,10 @@ function SystemEmailsPage() {
                 </Button>
                 <Button variant="outline" onClick={() => restore.mutate()} disabled={restore.isPending}>
                   <RotateCcw className="mr-2 size-4" /> Restore default
+                </Button>
+                <Button variant="ghost" onClick={() => restoreAll.mutate()} disabled={restoreAll.isPending}>
+                  {restoreAll.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                  Refresh all to latest design
                 </Button>
               </div>
 
