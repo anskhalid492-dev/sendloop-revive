@@ -63,8 +63,11 @@ function mapRecords(domain: string, records: ResendRecord[]): ProviderDnsRecord[
 
 function mapState(status: string | undefined): ProviderDomainState["state"] {
   const s = (status ?? "").toLowerCase();
-  if (s === "verified") return "verified";
-  if (s === "failed" || s === "temporary_failure") return "failed";
+  if (s === "verified" || s === "active" || s === "success") return "verified";
+  // Resend reports a hard rejection as "failure"/"failed"; "temporary_failure"
+  // means the provider is still retrying its own DNS check.
+  if (s === "failed" || s === "failure") return "failed";
+  if (s === "temporary_failure" || s === "pending" || s === "not_started") return "pending";
   if (!s) return "unknown";
   return "pending";
 }
@@ -124,7 +127,14 @@ export const resendDomainAdapter: DomainProviderAdapter = {
       headers: headers(creds),
     });
     if (!res.ok) return failure(res.status, res.body);
-    return { state: "pending", detail: "Verification requested." };
+    // The verify call is asynchronous — read the real provider status back so
+    // MunchReach stores the provider's verdict, not an assumed one.
+    const after = await providerFetch(`${API}/domains/${found.id}`, { headers: headers(creds) });
+    const status = (after.json as ResendDomain | null)?.status;
+    return {
+      state: mapState(status) === "unknown" ? "pending" : mapState(status),
+      detail: `Verification requested; provider status "${status ?? "pending"}".`,
+    };
   },
 
   async getDomainStatus(creds, domain) {
