@@ -117,5 +117,5 @@ export async function reconcileDeliveryState(limit = 100): Promise<{
     }
   }
 
-  return { checked: messages.length, updated, skipped };
+  return { checked: messages.length, updated, skipped, repaired };
 }
