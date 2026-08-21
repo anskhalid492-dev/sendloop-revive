@@ -81,6 +81,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
 
     const campaignRows = campaigns.data ?? [];
     const recipientRows = recipients.data ?? [];
+    const accountRows = accounts.data ?? [];
     const domainRows = domains.data ?? [];
     const warmupRows = warmupEvents.data ?? [];
 
