@@ -9,6 +9,8 @@ export type PlanFeature = {
   value: string | null;
   sort_order: number;
   created_at: string;
+  /** Non-null rows drive server-side gating and are hidden from pricing UI. */
+  feature_key: string | null;
 };
 
 export type Plan = {

@@ -46,7 +46,17 @@ export function resourceDefinition(key: UsageResource): ResourceDefinition {
   return found;
 }
 
-/** Customer-facing copy for a blocked action. Never leak technical detail. */
+/**
+ * Customer-facing copy for a blocked action. Never leak technical detail.
+ * Email sends get their own wording because that allowance resets with the
+ * billing cycle, and this exact string is shown everywhere sending is blocked
+ * (queue, bulk send, scheduled jobs, inbox replies, test sends).
+ */
 export function limitMessage(label: string, planName: string, used: number, limit: number) {
   return `You've reached your ${label.toLowerCase()} limit for the ${planName} plan (${used.toLocaleString()} of ${limit.toLocaleString()}).`;
 }
+
+export function emailLimitMessage(planName: string, used: number, limit: number) {
+  return `You've reached your monthly email limit for the ${planName} plan (${used.toLocaleString()} of ${limit.toLocaleString()} emails). Upgrade your plan to keep sending.`;
+}
+

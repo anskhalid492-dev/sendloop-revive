@@ -17,6 +17,7 @@ import {
   RESOURCE_CATALOG,
   resourceDefinition,
   limitMessage,
+  emailLimitMessage,
   type UsageResource,
 } from "@/lib/billing/limits";
 
@@ -232,7 +233,10 @@ export async function checkUsageLimit(
       resource,
       used,
       limit,
-      message: limitMessage(def.label, entitlement.planName, used, limit),
+      message:
+        resource === "emails_monthly"
+          ? emailLimitMessage(entitlement.planName, used, limit)
+          : limitMessage(def.label, entitlement.planName, used, limit),
     });
   }
   return {
@@ -275,7 +279,10 @@ export async function consumeUsage(workspaceId: string, resource: UsageResource,
       resource,
       used: Number(result.used ?? 0),
       limit,
-      message: limitMessage(def.label, entitlement.planName, Number(result.used ?? 0), limit ?? 0),
+      message:
+        resource === "emails_monthly"
+          ? emailLimitMessage(entitlement.planName, Number(result.used ?? 0), limit ?? 0)
+          : limitMessage(def.label, entitlement.planName, Number(result.used ?? 0), limit ?? 0),
     });
   }
   return {
