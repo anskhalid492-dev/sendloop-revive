@@ -7,6 +7,22 @@ import {
 import { Progress } from "@/components/ui/progress";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
+/** Solid fill colors for the proportional status bar. */
+const BAR_COLORS: Record<LeadDeliveryState, string> = {
+  not_contacted: "bg-muted-foreground/30",
+  queued: "bg-muted-foreground/40",
+  sent: "bg-primary/70",
+  delayed: "bg-amber-500/70",
+  delivered: "bg-sky-500/70",
+  opened: "bg-emerald-500/70",
+  clicked: "bg-emerald-600/80",
+  replied: "bg-emerald-700/80",
+  unsubscribed: "bg-amber-600/70",
+  complained: "bg-destructive/60",
+  bounced: "bg-destructive/80",
+  failed: "bg-destructive",
+};
+
 function pct(part: number, total: number) {
   if (!total) return 0;
   return Math.round((part / total) * 1000) / 10;
@@ -119,7 +135,7 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
               {visibleBreakdown.map((row) => (
                 <div
                   key={row.state}
-                  className={`${LEAD_DELIVERY_STYLES[row.state].split(" ")[0]?.replace("/15", "/70").replace("/20", "/70").replace("/10", "/70")} h-full`}
+                  className={`h-full ${BAR_COLORS[row.state]}`}
                   style={{ width: `${row.share}%` }}
                   title={`${row.label}: ${row.count} (${row.share}%)`}
                 />
