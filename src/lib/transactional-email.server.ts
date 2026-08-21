@@ -319,11 +319,16 @@ export async function renderTemplate(
   if (!stored && !fallback) return null;
 
   const draft = options.useDraft ? ((stored?.draft ?? null) as TemplateDraftInput | null) : null;
+  // A template that has never been customised always renders from the shipped
+  // catalog, so branding/design upgrades reach every send without an admin
+  // having to restore anything. Customised copies (is_default = false) win.
+  const useCatalog = Boolean(fallback) && stored?.is_default !== false;
+  const base = useCatalog ? fallback! : null;
   const source = {
-    subject: draft?.subject ?? stored?.subject ?? fallback!.subject,
-    preheader: draft?.preheader ?? stored?.preheader ?? fallback!.preheader,
-    html: draft?.html ?? stored?.html ?? fallback!.html,
-    text: draft?.text_body ?? stored?.text_body ?? fallback!.text,
+    subject: draft?.subject ?? base?.subject ?? stored?.subject ?? fallback!.subject,
+    preheader: draft?.preheader ?? base?.preheader ?? stored?.preheader ?? fallback!.preheader,
+    html: draft?.html ?? base?.html ?? stored?.html ?? fallback!.html,
+    text: draft?.text_body ?? base?.text ?? stored?.text_body ?? fallback!.text,
     fromName: draft?.from_name ?? stored?.from_name ?? settings.from_name,
     fromEmail: draft?.from_email ?? stored?.from_email ?? settings.from_email,
     replyTo: draft?.reply_to ?? stored?.reply_to ?? settings.reply_to,
