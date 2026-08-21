@@ -72,6 +72,14 @@ export const enforceOAuthPolicy = createServerFn({ method: "POST" })
 
     if (await readGoogleEnabled()) return { blocked: false };
 
+    // Admins keep Google access even when the public switch is off, so the
+    // platform owner never locks themselves out of their own admin account.
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (isAdmin) return { blocked: false };
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const jwt = (getRequestHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
     try {

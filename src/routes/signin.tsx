@@ -109,11 +109,6 @@ function SignInPage() {
   });
 
   async function handleGoogle() {
-    const { googleEnabled } = await getPublicAuthSettings();
-    if (!googleEnabled) {
-      toast.error("Google sign-in is currently disabled. Please use your email and password.");
-      return;
-    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
@@ -145,6 +140,19 @@ function SignInPage() {
             <span className="h-px flex-1 bg-border" />
           </div>
         </>
+      )}
+
+      {googleQuery.data?.googleEnabled === false && (
+        <p className="mb-6 text-center text-xs text-muted-foreground">
+          Platform admin?{" "}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="font-medium text-primary hover:underline"
+          >
+            Continue with Google
+          </button>
+        </p>
       )}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
