@@ -52,12 +52,17 @@ export const listConversations = createServerFn({ method: "GET" })
       .limit(data.limit);
 
     // Folders are server-side filters so paging and counts stay honest.
+    // The inbox only ever contains conversations that received a real inbound
+    // reply — outbound-only campaign sends stay in Campaigns → Sent/Activity.
     switch (data.folder) {
       case "inbox":
-        query = query.eq("archived", false).or(`snoozed_until.is.null,snoozed_until.lte.${nowIso}`);
+        query = query
+          .eq("has_inbound", true)
+          .eq("archived", false)
+          .or(`snoozed_until.is.null,snoozed_until.lte.${nowIso}`);
         break;
       case "unread":
-        query = query.eq("archived", false).eq("unread", true);
+        query = query.eq("has_inbound", true).eq("archived", false).eq("unread", true);
         break;
       case "sent":
       case "drafts":
@@ -65,20 +70,22 @@ export const listConversations = createServerFn({ method: "GET" })
         query = query.eq("has_outbound", true).eq("archived", false);
         break;
       case "archived":
-        query = query.eq("archived", true);
+        query = query.eq("has_inbound", true).eq("archived", true);
         break;
       case "snoozed":
-        query = query.gt("snoozed_until", nowIso);
+        query = query.eq("has_inbound", true).gt("snoozed_until", nowIso);
         break;
       case "assigned_to_me":
-        query = query.eq("archived", false).eq("assigned_to", context.userId);
+        query = query.eq("has_inbound", true).eq("archived", false).eq("assigned_to", context.userId);
         break;
       case "all":
+        query = query.eq("has_inbound", true);
         break;
       default:
-        query = query.eq("archived", false).eq("status", data.folder);
+        query = query.eq("has_inbound", true).eq("archived", false).eq("status", data.folder);
         break;
     }
+
 
     if (data.cursor) query = query.lt("last_message_at", data.cursor);
     if (data.statuses?.length) query = query.in("status", data.statuses);
