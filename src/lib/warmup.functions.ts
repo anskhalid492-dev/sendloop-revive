@@ -458,3 +458,245 @@ export const dismissDomainAlert = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export type WarmupAnalyticsPoint = {
+  day: string;
+  sent: number;
+  delivered: number;
+  inbox: number;
+  spam: number;
+  bounced: number;
+  complained: number;
+  replied: number;
+  not_received: number;
+  deferred: number;
+  rejected: number;
+  health_score: number | null;
+  inbox_rate: number | null;
+  reply_rate: number | null;
+};
+
+export type WarmupAnalyticsMailbox = {
+  id: string;
+  from_email: string;
+  sent: number;
+  inbox: number;
+  spam: number;
+  bounced: number;
+  replied: number;
+  inbox_rate: number | null;
+  reply_rate: number | null;
+  bounce_rate: number | null;
+  health_score: number | null;
+};
+
+/**
+ * Workspace warmup analytics computed only from persisted warmup rows
+ * (warmup_daily_stats rollups + warmup_jobs placement). No estimates.
+ */
+export const getWarmupAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        days: z.number().int().min(7).max(90).default(30),
+        accountIds: z.array(z.string().uuid()).max(50).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const sinceIso = new Date(Date.now() - (data.days - 1) * 86_400_000).toISOString();
+    const sinceDay = sinceIso.slice(0, 10);
+    const pct = (part: number, total: number) =>
+      total > 0 ? Math.round((part / total) * 1000) / 10 : null;
+
+    const { data: accounts, error: accountsError } = await client
+      .from("sending_accounts")
+      .select("id, from_email, health_score")
+      .order("from_email");
+    if (accountsError) throw new Error(accountsError.message);
+
+    const all = (accounts ?? []) as Array<{
+      id: string;
+      from_email: string;
+      health_score: number | null;
+    }>;
+    const selected = data.accountIds?.length
+      ? all.filter((a) => data.accountIds?.includes(a.id))
+      : all;
+    const ids = selected.map((a) => a.id);
+
+    const empty = {
+      mailboxes: all.map((a) => ({ id: a.id, from_email: a.from_email })),
+      series: [] as WarmupAnalyticsPoint[],
+      perMailbox: [] as WarmupAnalyticsMailbox[],
+      totals: {
+        sent: 0,
+        delivered: 0,
+        inbox: 0,
+        spam: 0,
+        bounced: 0,
+        complained: 0,
+        replied: 0,
+        not_received: 0,
+        deferred: 0,
+        rejected: 0,
+      },
+      rates: {
+        inbox: null as number | null,
+        spam: null as number | null,
+        reply: null as number | null,
+        bounce: null as number | null,
+        delivered: null as number | null,
+      },
+      placement: [] as Array<{ placement: string; count: number }>,
+      days: data.days,
+    };
+    if (ids.length === 0) return empty;
+
+    const [{ data: stats, error: statsError }, { data: jobs, error: jobsError }] =
+      await Promise.all([
+        client
+          .from("warmup_daily_stats")
+          .select(
+            "sending_account_id, day, sent, delivered, inbox, spam, deferred, rejected, not_received, bounced, complained, failed, replied, health_score",
+          )
+          .in("sending_account_id", ids)
+          .gte("day", sinceDay)
+          .order("day"),
+        client
+          .from("warmup_jobs")
+          .select("placement, status, processed_at")
+          .in("sending_account_id", ids)
+          .gte("created_at", sinceIso)
+          .limit(5000),
+      ]);
+    if (statsError) throw new Error(statsError.message);
+    if (jobsError) throw new Error(jobsError.message);
+
+    type Row = Record<string, number | string | null>;
+    const num = (row: Row, key: string) => Number(row[key] ?? 0) || 0;
+
+    const byDay = new Map<string, WarmupAnalyticsPoint>();
+    const byAccount = new Map<string, WarmupAnalyticsMailbox>();
+    for (const a of selected) {
+      byAccount.set(a.id, {
+        id: a.id,
+        from_email: a.from_email,
+        sent: 0,
+        inbox: 0,
+        spam: 0,
+        bounced: 0,
+        replied: 0,
+        inbox_rate: null,
+        reply_rate: null,
+        bounce_rate: null,
+        health_score: a.health_score,
+      });
+    }
+
+    const totals = { ...empty.totals };
+    const healthByDay = new Map<string, number[]>();
+
+    for (const raw of (stats ?? []) as Row[]) {
+      const day = String(raw["day"]);
+      const point =
+        byDay.get(day) ??
+        ({
+          day,
+          sent: 0,
+          delivered: 0,
+          inbox: 0,
+          spam: 0,
+          bounced: 0,
+          complained: 0,
+          replied: 0,
+          not_received: 0,
+          deferred: 0,
+          rejected: 0,
+          health_score: null,
+          inbox_rate: null,
+          reply_rate: null,
+        } satisfies WarmupAnalyticsPoint);
+
+      for (const key of [
+        "sent",
+        "delivered",
+        "inbox",
+        "spam",
+        "bounced",
+        "complained",
+        "replied",
+        "not_received",
+        "deferred",
+        "rejected",
+      ] as const) {
+        const value = num(raw, key);
+        point[key] += value;
+        totals[key] += value;
+      }
+      byDay.set(day, point);
+
+      const score = raw["health_score"];
+      if (score !== null && score !== undefined) {
+        const list = healthByDay.get(day) ?? [];
+        list.push(Number(score));
+        healthByDay.set(day, list);
+      }
+
+      const mailbox = byAccount.get(String(raw["sending_account_id"]));
+      if (mailbox) {
+        mailbox.sent += num(raw, "sent");
+        mailbox.inbox += num(raw, "inbox");
+        mailbox.spam += num(raw, "spam");
+        mailbox.bounced += num(raw, "bounced");
+        mailbox.replied += num(raw, "replied");
+      }
+    }
+
+    const series = [...byDay.values()]
+      .sort((a, b) => a.day.localeCompare(b.day))
+      .map((point) => {
+        const scores = healthByDay.get(point.day) ?? [];
+        return {
+          ...point,
+          health_score: scores.length
+            ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
+            : null,
+          inbox_rate: pct(point.inbox, point.inbox + point.spam),
+          reply_rate: pct(point.replied, point.sent),
+        };
+      });
+
+    const perMailbox = [...byAccount.values()].map((m) => ({
+      ...m,
+      inbox_rate: pct(m.inbox, m.inbox + m.spam),
+      reply_rate: pct(m.replied, m.sent),
+      bounce_rate: pct(m.bounced, m.sent),
+    }));
+
+    const placementCounts = new Map<string, number>();
+    for (const job of (jobs ?? []) as Array<{ placement: string | null; status: string }>) {
+      const key = job.placement ?? (job.status === "failed" ? "not_delivered" : "pending");
+      placementCounts.set(key, (placementCounts.get(key) ?? 0) + 1);
+    }
+
+    return {
+      mailboxes: all.map((a) => ({ id: a.id, from_email: a.from_email })),
+      series,
+      perMailbox,
+      totals,
+      rates: {
+        inbox: pct(totals.inbox, totals.inbox + totals.spam),
+        spam: pct(totals.spam, totals.inbox + totals.spam),
+        reply: pct(totals.replied, totals.sent),
+        bounce: pct(totals.bounced, totals.sent),
+        delivered: pct(totals.delivered, totals.sent),
+      },
+      placement: [...placementCounts.entries()]
+        .map(([placement, count]) => ({ placement, count }))
+        .sort((a, b) => b.count - a.count),
+      days: data.days,
+    };
+  });

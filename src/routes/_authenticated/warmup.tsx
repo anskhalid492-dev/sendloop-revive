@@ -6,13 +6,16 @@ import { Activity, AlertTriangle, Flame, Pause, Play, Settings2 } from "lucide-r
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { WarmupAnalytics } from "@/components/warmup/WarmupAnalytics";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
 import { listWarmupAccounts, saveWarmupSettings } from "@/lib/warmup.functions";
 import { HEALTH_STATUS_LABEL, healthTone, type WarmupHealthStatus } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/warmup")({
   head: () => ({
@@ -57,11 +60,12 @@ function WarmupPage() {
   const fetchAccounts = useServerFn(listWarmupAccounts);
   const saveFn = useServerFn(saveWarmupSettings);
   const [settingsId, setSettingsId] = useState<string | null>(null);
+  useWarmupRealtime();
 
   const accountsQuery = useQuery({
     queryKey: ["warmup-accounts"],
     queryFn: () => fetchAccounts(),
-    refetchInterval: 60_000,
+    refetchInterval: 120_000,
   });
   const rows = accountsQuery.data?.accounts ?? [];
 
@@ -248,10 +252,13 @@ function WarmupPage() {
           </div>
         )}
 
+        <WarmupAnalytics />
+
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Activity className="size-3.5" />
           Warmup runs on a scheduled worker: it sends real emails from your connected mailboxes,
-          tracks delivery events and recalculates mailbox health after every run.
+          tracks delivery events and recalculates mailbox health after every run. This dashboard updates
+          live as jobs send and placement is detected — no refresh needed.
         </p>
       </div>
 
