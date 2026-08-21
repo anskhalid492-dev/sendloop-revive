@@ -227,89 +227,22 @@ async function queryDomainVerification(
   credentials: Record<string, string>,
   domain: string,
 ): Promise<DomainVerification> {
-  const signal = AbortSignal.timeout(10_000);
-  const target = domain.toLowerCase();
-  const matches = (name: string) => {
-    const n = name.toLowerCase().replace(/\.$/, "");
-    return n === target || target.endsWith(`.${n}`);
-  };
-
+  const target = domain.toLowerCase().replace(/\.$/, "");
   try {
-    if (provider === "resend") {
-      const res = await fetch("https://api.resend.com/domains", {
-        headers: { Authorization: `Bearer ${credentials["api_key"] ?? ""}` },
-        signal,
-      });
-      const body = await res.text();
-      if (!res.ok) {
-        return {
-          status: "error",
-          detail: `Managed provider domain lookup failed [${res.status}]: ${body.slice(0, 200)}`,
-        };
-      }
-      const json = JSON.parse(body) as { data?: Array<{ name?: string; status?: string }> };
-      const list = json.data ?? [];
-      const verified = list
-        .filter((d) => (d.status ?? "").toLowerCase() === "verified")
-        .map((d) => (d.name ?? "").toLowerCase());
-      const entry = list.find((d) => matches(d.name ?? ""));
-      if (!entry) {
-        return {
-          status: "not_verified",
-          detail: `${target} is not registered with the managed sending provider.`,
-          providerDomains: verified,
-        };
-      }
-      const status = (entry.status ?? "").toLowerCase();
-      return status === "verified"
-        ? { status: "verified", detail: `${target} is verified with the managed provider.`, providerDomains: verified }
-        : {
-            status: "not_verified",
-            detail: `${target} is registered but its provider status is "${status || "pending"}".`,
-            providerDomains: verified,
-          };
+    const { getDomainAdapter } = await import("@/lib/domain-providers/registry.server");
+    const adapter = getDomainAdapter(provider);
+    if (!adapter.supportsDomainApi) {
+      return {
+        status: "unknown",
+        detail: `${provider} does not expose a domain API; verification is enforced at send time.`,
+      };
     }
-
-    if (provider === "mailgun") {
-      const res = await fetch("https://api.mailgun.net/v3/domains", {
-        headers: {
-          Authorization: `Basic ${Buffer.from(`api:${credentials["api_key"] ?? ""}`).toString("base64")}`,
-        },
-        signal,
-      });
-      const body = await res.text();
-      if (!res.ok) {
-        return {
-          status: "error",
-          detail: `Managed provider domain lookup failed [${res.status}]: ${body.slice(0, 200)}`,
-        };
-      }
-      const json = JSON.parse(body) as { items?: Array<{ name?: string; state?: string }> };
-      const items = json.items ?? [];
-      const verified = items
-        .filter((d) => (d.state ?? "").toLowerCase() === "active")
-        .map((d) => (d.name ?? "").toLowerCase());
-      const entry = items.find((d) => matches(d.name ?? ""));
-      if (!entry) {
-        return {
-          status: "not_verified",
-          detail: `${target} is not registered with the managed sending provider.`,
-          providerDomains: verified,
-        };
-      }
-      return (entry.state ?? "").toLowerCase() === "active"
-        ? { status: "verified", detail: `${target} is active with the managed provider.`, providerDomains: verified }
-        : {
-            status: "not_verified",
-            detail: `${target} is registered but its provider state is "${entry.state ?? "unknown"}".`,
-            providerDomains: verified,
-          };
-    }
-
-    return {
-      status: "unknown",
-      detail: `${provider} does not expose a domain verification API; verification is enforced at send time.`,
-    };
+    const state = await adapter.getDomainStatus(credentials, target);
+    if (state.state === "verified") return { status: "verified", detail: state.detail };
+    if (state.state === "failed") return { status: "error", detail: state.detail };
+    if (state.state === "unknown")
+      return { status: "not_verified", detail: state.detail };
+    return { status: "not_verified", detail: state.detail };
   } catch (error) {
     return {
       status: "error",
