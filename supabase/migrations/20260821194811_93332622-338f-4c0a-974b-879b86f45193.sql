@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.mark_conversation_direction() FROM PUBLIC, anon, authenticated;
