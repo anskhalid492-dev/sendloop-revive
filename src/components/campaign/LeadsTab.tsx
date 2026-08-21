@@ -112,7 +112,8 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           r.lead?.company ?? "",
           r.lead?.job_title ?? "",
           r.lead?.country ?? "",
-          r.status,
+          LEAD_DELIVERY_LABELS[(r.deliveryState ?? "not_contacted") as LeadDeliveryState] ??
+            r.status,
           r.current_step,
         ]
           .map((v) => `"${String(v).replace(/"/g, '""')}"`)
