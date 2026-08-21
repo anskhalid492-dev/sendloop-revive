@@ -60,15 +60,29 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .limit(5000),
       supabase
         .from("sending_accounts")
-        .select("id, from_email, health_score, warmup_status, daily_limit, sent_today, paused, customer_enabled")
+        .select(
+          "id, from_email, label, health_score, warmup_status, daily_limit, sent_today, paused, customer_enabled, created_at, last_error",
+        )
         .eq("workspace_id", workspaceId),
+      supabase
+        .from("sending_domains")
+        .select("id, domain, stage, dns_status, verified_at, ready_at, created_at")
+        .eq("workspace_id", workspaceId),
+      supabase
+        .from("warmup_events")
+        .select("id, type, detail, occurred_at, sending_account_id")
+        .eq("workspace_id", workspaceId)
+        .order("occurred_at", { ascending: false })
+        .limit(10),
     ]);
 
     if (!membership.data) throw new Error("Workspace not found");
 
     const campaignRows = campaigns.data ?? [];
     const recipientRows = recipients.data ?? [];
-    const accountRows = accounts.data ?? [];
+    const domainRows = domains.data ?? [];
+    const warmupRows = warmupEvents.data ?? [];
+
 
     const sentStatuses = new Set(["in_progress", "completed", "replied", "bounced", "unsubscribed"]);
     const sent = recipientRows.filter((r) => sentStatuses.has(r.status)).length;
