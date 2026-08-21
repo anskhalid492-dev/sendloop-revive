@@ -297,10 +297,10 @@ export async function runDomainVerification(
       dmarc_status: kindStatus("dmarc"),
       mx_status: kindStatus("mx"),
       tracking_status: kindStatus("tracking"),
-      dns_status: dnsVerified ? "verified" : "failed",
+      dns_status: dnsVerified ? "verified" : checks.some((c) => c.status === "failed") ? "failed" : "pending",
       last_checked_at: now,
-      verified_at: dnsVerified ? now : null,
-      ready_at: readyToSend ? now : null,
+      verified_at: dnsVerified ? (prevRow?.verified_at ?? now) : null,
+      ready_at: readyToSend ? (prevRow?.ready_at ?? now) : null,
       last_error: dnsVerified
         ? null
         : requiredRecords
