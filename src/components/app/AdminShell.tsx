@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Mail,
   Mailbox,
   Menu,
   Plug,
