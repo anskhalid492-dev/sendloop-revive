@@ -191,12 +191,16 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         healthy,
         warming,
         attention,
+        issues,
+        domainsTotal: domainRows.length,
+        domainsReady,
         dailyCapacity: accountRows.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0),
         sentToday: accountRows.reduce((sum, a) => sum + (a.sent_today ?? 0), 0),
         overallHealth: accountRows.length
           ? Math.round(accountRows.reduce((s, a) => s + (a.health_score ?? 0), 0) / accountRows.length)
           : 0,
       },
+
       campaigns: campaignTable,
       activity,
       checklist: {
