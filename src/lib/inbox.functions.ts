@@ -79,8 +79,9 @@ export const listConversations = createServerFn({ method: "GET" })
         query = query.eq("has_inbound", true).eq("archived", false).eq("assigned_to", context.userId);
         break;
       case "all":
-        query = query.eq("has_inbound", true);
+        // All mail spans both replies and sent threads.
         break;
+
       default:
         query = query.eq("has_inbound", true).eq("archived", false).eq("status", data.folder);
         break;
