@@ -76,7 +76,7 @@ export async function loadProviderSecretStatus(): Promise<ProviderSecretStatus[]
 export async function saveProviderSecrets(input: {
   provider: BillingProvider;
   environment: BillingEnvironment;
-  values: Partial<Record<CredentialField, string>>;
+  values: Partial<Record<CredentialField, string | undefined>>;
   userId: string;
 }) {
   const { provider, environment, userId } = input;
