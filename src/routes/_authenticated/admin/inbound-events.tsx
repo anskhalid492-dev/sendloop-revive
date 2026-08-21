@@ -124,6 +124,26 @@ function AdminInboundEventsPage() {
   const reprocess = useServerFn(reprocessEmailEvent);
   const reconcile = useServerFn(runReconciliation);
   const repairLink = useServerFn(repairEventConversationLink);
+  const fetchUnmatched = useServerFn(listUnmatchedEmails);
+  const retryUnmatched = useServerFn(retryUnmatchedEmail);
+
+  const unmatchedQuery = useQuery({
+    queryKey: ["unmatched-inbound"],
+    queryFn: () => fetchUnmatched({}),
+  });
+  const retryUnmatchedMutation = useMutation({
+    mutationFn: (id: string) => retryUnmatched({ data: { id } }),
+    onSuccess: (result: { status: string }) => {
+      toast[result.status === "unmatched" ? "error" : "success"](
+        result.status === "unmatched"
+          ? "Still no matching mailbox for this reply."
+          : "Reply moved into the unified inbox.",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["unmatched-inbound"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const [status, setStatus] = useState("all");
   const [eventType, setEventType] = useState("all");
