@@ -8,7 +8,7 @@ import { listPageFaqs } from "@/lib/faqs.functions";
  * Page-scoped FAQ section.
  *
  * Each page owns its own questions: the ones written in code act as the
- * baseline, and an admin can extend or replace them for that page from
+ * baseline, until an admin publishes questions for that page from
  * Admin → Website FAQs. When neither source has content the section is
  * omitted entirely rather than rendering an empty block.
  */
@@ -34,8 +34,9 @@ export function PageFaqs({
   });
 
   const managed = (data ?? []).map((f) => ({ q: f.question, a: f.answer }));
-  const seen = new Set(managed.map((f) => f.q.toLowerCase().trim()));
-  const faqs = [...managed, ...defaults.filter((f) => !seen.has(f.q.toLowerCase().trim()))];
+  // Admin-managed questions replace the in-code baseline for that page, so a
+  // page never shows two near-identical versions of the same question.
+  const faqs = managed.length > 0 ? managed : defaults;
 
   if (faqs.length === 0) return null;
 
