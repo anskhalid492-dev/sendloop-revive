@@ -14,6 +14,7 @@ import {
   Lock,
   Repeat,
   Send,
+  Sparkles,
   ShieldCheck,
   Users,
   Youtube,
@@ -36,6 +37,7 @@ const fallbackColumns = [
     title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
+      { label: "AI Personalization", href: "/ai-personalized-outreach" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -99,6 +101,7 @@ const fallbackSocial = [
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
   Campaigns: Send,
+  "AI Personalization": Sparkles,
   "Unified Inbox": Inbox,
   "Follow-Ups": Repeat,
   Warmup: Flame,
@@ -285,7 +288,9 @@ export function SiteFooter() {
                           href={l.href}
                           className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-primary"
                         >
-                          {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground/70" /> : null}
+                          {Icon ? (
+                            <Icon className="size-4 shrink-0 text-muted-foreground/70" />
+                          ) : null}
                           {l.label}
                         </a>
                       </li>
@@ -300,8 +305,16 @@ export function SiteFooter() {
         {/* Trust bar */}
         <div className="mt-12 grid gap-6 rounded-2xl border border-border bg-muted/30 p-6 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-border">
           {trustSignals.map((s) => (
-            <div key={s.title} className="flex items-start gap-3 lg:px-5 lg:first:pl-0 lg:last:pr-0">
-              <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", s.tone)}>
+            <div
+              key={s.title}
+              className="flex items-start gap-3 lg:px-5 lg:first:pl-0 lg:last:pr-0"
+            >
+              <span
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-full",
+                  s.tone,
+                )}
+              >
                 <s.icon className="size-5" />
               </span>
               <div>
@@ -338,7 +351,9 @@ export function SiteFooter() {
             </span>
             <span className="text-sm font-semibold tracking-tight text-foreground/80">Stripe</span>
             <span className="text-sm font-semibold tracking-tight text-foreground/80">Paddle</span>
-            <span className="text-sm font-semibold tracking-tight text-foreground/80">Lemon Squeezy</span>
+            <span className="text-sm font-semibold tracking-tight text-foreground/80">
+              Lemon Squeezy
+            </span>
           </div>
         </div>
       </div>

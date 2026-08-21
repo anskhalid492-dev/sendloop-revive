@@ -51,11 +51,18 @@ export const saveAiSettings = createServerFn({ method: "POST" })
 export const previewAiPersonalization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    campaignInput.extend({ leadId: z.string().uuid(), config: configSchema.optional() }).parse(input),
+    campaignInput
+      .extend({ leadId: z.string().uuid(), config: configSchema.optional() })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { attachLeadNotes, campaignAiSettings, generatePersonalization, AiGatewayError, LEAD_AI_COLUMNS } =
-      await import("@/lib/ai-personalization.server");
+    const {
+      attachLeadNotes,
+      campaignAiSettings,
+      generatePersonalization,
+      AiGatewayError,
+      LEAD_AI_COLUMNS,
+    } = await import("@/lib/ai-personalization.server");
 
     const config: AiPersonalizationConfig = data.config
       ? normalizeAiConfig(data.config)
@@ -71,8 +78,29 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
     if (!lead) throw new Error("Lead not found.");
 
     const [withNotes] = await attachLeadNotes(context.supabase, [lead as never]);
+
+    // The preview runs on the workspace's own OpenAI key, exactly like sending.
+    const { data: campaign } = await context.supabase
+      .from("campaigns")
+      .select("workspace_id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (!campaign?.workspace_id) throw new Error("Campaign not found.");
+
+    const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const credentials = await workspaceAiCredentials(supabaseAdmin, campaign.workspace_id);
+    if (!credentials) {
+      return {
+        ok: false as const,
+        leadId: data.leadId,
+        message: "Connect your OpenAI API key to generate personalization.",
+        status: 401,
+      };
+    }
+
     try {
-      const { content } = await generatePersonalization(config, withNotes!);
+      const { content } = await generatePersonalization(config, withNotes!, credentials);
       return { ok: true as const, content, leadId: data.leadId };
     } catch (error) {
       const failure = error instanceof AiGatewayError ? error : null;
@@ -102,7 +130,8 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { promptFingerprint, campaignAiSettings } = await import("@/lib/ai-personalization.server");
+    const { promptFingerprint, campaignAiSettings } =
+      await import("@/lib/ai-personalization.server");
 
     const { data: campaign, error: cErr } = await context.supabase
       .from("campaigns")
@@ -125,7 +154,9 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
     const { data: recipients, error: rErr } = await recipientQuery;
     if (rErr) throw new Error(rErr.message);
 
-    const leadIds = [...new Set(((recipients ?? []) as Array<{ lead_id: string }>).map((r) => r.lead_id))];
+    const leadIds = [
+      ...new Set(((recipients ?? []) as Array<{ lead_id: string }>).map((r) => r.lead_id)),
+    ];
     if (!leadIds.length) return { queued: 0, reused: 0, total: 0 };
 
     const { data: existing, error: eErr } = await context.supabase
@@ -136,9 +167,14 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
     if (eErr) throw new Error(eErr.message);
 
     const existingByLead = new Map(
-      ((existing ?? []) as Array<{ id: string; lead_id: string; status: string; prompt_hash: string | null }>).map(
-        (row) => [row.lead_id, row] as const,
-      ),
+      (
+        (existing ?? []) as Array<{
+          id: string;
+          lead_id: string;
+          status: string;
+          prompt_hash: string | null;
+        }>
+      ).map((row) => [row.lead_id, row] as const),
     );
 
     const toInsert: Array<{
@@ -214,7 +250,11 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
         .from("ai_personalizations")
         .select("status")
         .eq("campaign_id", data.campaignId),
-      context.supabase.from("ai_runner_state").select("paused_reason").eq("key", "ai_personalization").maybeSingle(),
+      context.supabase
+        .from("ai_runner_state")
+        .select("paused_reason")
+        .eq("key", "ai_personalization")
+        .maybeSingle(),
     ]);
 
     const eligible = new Set(
@@ -239,13 +279,18 @@ export const listAiPersonalizations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     campaignInput
-      .extend({ status: z.enum(["queued", "processing", "completed", "failed"]).optional(), limit: z.number().int().min(1).max(200).optional() })
+      .extend({
+        status: z.enum(["queued", "processing", "completed", "failed"]).optional(),
+        limit: z.number().int().min(1).max(200).optional(),
+      })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("ai_personalizations")
-      .select("id, campaign_id, lead_id, status, content, attempts, error, edited, accepted, created_at, completed_at")
+      .select(
+        "id, campaign_id, lead_id, status, content, attempts, error, edited, accepted, created_at, completed_at",
+      )
       .eq("campaign_id", data.campaignId)
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 50);
@@ -282,7 +327,9 @@ export const listAiPersonalizations = createServerFn({ method: "GET" })
 /** Manual edit of a generated snippet — edits are preserved and never overwritten silently. */
 export const updateAiPersonalization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid(), content: z.string().min(1).max(1200) }).parse(input))
+  .inputValidator((input) =>
+    z.object({ id: z.string().uuid(), content: z.string().min(1).max(1200) }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("ai_personalizations")
@@ -304,7 +351,14 @@ export const retryFailedAiPersonalizations = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("ai_personalizations")
-      .update({ status: "queued", error: null, attempts: 0, locked_by: null, locked_until: null, completed_at: null })
+      .update({
+        status: "queued",
+        error: null,
+        attempts: 0,
+        locked_by: null,
+        locked_until: null,
+        completed_at: null,
+      })
       .eq("campaign_id", data.campaignId)
       .eq("status", "failed")
       .select("id");

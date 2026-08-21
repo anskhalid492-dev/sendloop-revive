@@ -1,13 +1,14 @@
 /**
  * Server-only AI personalization engine.
  *
- * The AI provider is managed by MunchReach: customers never supply or see any
- * model credentials. All generation happens here, behind server functions and
- * the background worker.
+ * Bring-your-own key: each workspace connects its own OpenAI API key and is
+ * billed by OpenAI directly. MunchReach never supplies model credentials — the
+ * key is decrypted here, used for the call, and never leaves the server.
  */
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 
+import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import {
   AI_TOKEN,
   normalizeAiConfig,
@@ -19,7 +20,6 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
-const MODEL = "google/gemini-3.7-flash";
 const RUNNER_KEY = "ai_personalization";
 /** Hard ceiling per worker run so a big list never becomes a request storm. */
 const BATCH_SIZE = 10;
@@ -36,13 +36,17 @@ export class AiGatewayError extends Error {
   }
 }
 
-function gateway() {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key) throw new AiGatewayError({ status: 401, message: "AI service is not configured.", retryable: false });
+function provider(credentials: WorkspaceAiCredentials) {
+  if (!credentials?.apiKey)
+    throw new AiGatewayError({
+      status: 401,
+      message: "No OpenAI API key is connected for this workspace.",
+      retryable: false,
+    });
   return createOpenAICompatible({
-    name: "munchreach-ai",
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    headers: { "Lovable-API-Key": key },
+    name: "openai",
+    baseURL: "https://api.openai.com/v1",
+    headers: { Authorization: `Bearer ${credentials.apiKey}` },
   });
 }
 
@@ -70,12 +74,18 @@ export const LEAD_AI_COLUMNS =
  * Attach the most recent lead notes so "Lead notes" personalization has real
  * material. Notes live in their own table and are workspace-scoped by RLS.
  */
-export async function attachLeadNotes(supabase: Client, leads: LeadRecord[]): Promise<LeadRecord[]> {
+export async function attachLeadNotes(
+  supabase: Client,
+  leads: LeadRecord[],
+): Promise<LeadRecord[]> {
   if (!leads.length) return leads;
   const { data } = await supabase
     .from("lead_notes")
     .select("lead_id, body, created_at")
-    .in("lead_id", leads.map((l) => l.id))
+    .in(
+      "lead_id",
+      leads.map((l) => l.id),
+    )
     .order("created_at", { ascending: false });
   const byLead = new Map<string, string>();
   for (const row of (data ?? []) as Array<{ lead_id: string; body: string }>) {
@@ -101,7 +111,11 @@ export function leadFacts(
 ): Array<{ label: string; value: string }> {
   const custom = lead.custom_fields ?? {};
   const location = [lead.city, lead.state, lead.country].filter(Boolean).join(", ");
-  const candidates: Array<{ field: PersonalizationField; label: string; value: string | null | undefined }> = [
+  const candidates: Array<{
+    field: PersonalizationField;
+    label: string;
+    value: string | null | undefined;
+  }> = [
     { field: "first_name", label: "First name", value: lead.first_name },
     { field: "last_name", label: "Last name", value: lead.last_name },
     { field: "job_title", label: "Job title", value: lead.job_title },
@@ -179,27 +193,41 @@ function mapGatewayError(error: unknown): AiGatewayError {
   const raw = error as { statusCode?: number; status?: number; message?: string };
   const status = raw?.statusCode ?? raw?.status ?? 0;
   const message = raw?.message ?? "AI generation failed.";
-  if (status === 402)
+  if (status === 402 || status === 429)
     return new AiGatewayError({
       status,
-      message: "AI credits are exhausted for this platform. Personalization is paused.",
-      retryable: false,
+      message:
+        status === 402
+          ? "Your OpenAI account has no available credit. Add billing in OpenAI and retry."
+          : "OpenAI rate limited this workspace. Remaining leads stay queued and retry automatically.",
+      retryable: status === 429,
     });
   if (status === 403)
-    return new AiGatewayError({ status, message: "AI generation is blocked by platform policy.", retryable: false });
+    return new AiGatewayError({
+      status,
+      message: "OpenAI blocked this request for your key.",
+      retryable: false,
+    });
   if (status === 401)
-    return new AiGatewayError({ status, message: "AI service is not configured.", retryable: false });
+    return new AiGatewayError({
+      status,
+      message: "Your OpenAI API key was rejected. Reconnect it in the AI tab.",
+      retryable: false,
+    });
   if (status === 400)
-    return new AiGatewayError({ status, message: `AI request was rejected: ${message}`, retryable: false });
-  if (status === 429)
-    return new AiGatewayError({ status, message: "AI service is rate limited. Retrying later.", retryable: true });
+    return new AiGatewayError({
+      status,
+      message: `OpenAI rejected the request: ${message}`,
+      retryable: false,
+    });
   return new AiGatewayError({ status: status || 500, message, retryable: true });
 }
 
-/** One generation call. Throws `AiGatewayError` on any provider failure. */
+/** One generation call with the workspace's own key. Throws `AiGatewayError`. */
 export async function generatePersonalization(
   config: AiPersonalizationConfig,
   lead: LeadRecord,
+  credentials: WorkspaceAiCredentials,
 ): Promise<{ content: string; model: string }> {
   const facts = leadFacts(lead, config.fields, config.level);
   if (facts.length === 0) {
@@ -214,7 +242,7 @@ export async function generatePersonalization(
   let text: string;
   try {
     const result = await generateText({
-      model: gateway()(MODEL),
+      model: provider(credentials)(credentials.model),
       system,
       prompt,
       temperature: 0.6,
@@ -244,7 +272,7 @@ export async function generatePersonalization(
     });
   }
 
-  return { content: cleaned.slice(0, 600), model: MODEL };
+  return { content: cleaned.slice(0, 600), model: credentials.model };
 }
 
 /** Stable fingerprint of the settings a stored snippet was generated with. */
@@ -374,7 +402,14 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
   const state = (stateRow ?? null) as RunnerState | null;
 
   if (state?.locked_until && new Date(state.locked_until).getTime() > now.getTime()) {
-    return { claimed: 0, completed: 0, failed: 0, skipped: "another run is in progress", paused: null, probe: false };
+    return {
+      claimed: 0,
+      completed: 0,
+      failed: 0,
+      skipped: "another run is in progress",
+      paused: null,
+      probe: false,
+    };
   }
 
   const lockedUntil = new Date(now.getTime() + 4 * 60_000).toISOString();
@@ -384,7 +419,14 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
     .eq("key", RUNNER_KEY)
     .or(`locked_until.is.null,locked_until.lt.${now.toISOString()}`);
   if (lockError) {
-    return { claimed: 0, completed: 0, failed: 0, skipped: lockError.message, paused: null, probe: false };
+    return {
+      claimed: 0,
+      completed: 0,
+      failed: 0,
+      skipped: lockError.message,
+      paused: null,
+      probe: false,
+    };
   }
 
   const paused = state?.paused_reason ?? null;
@@ -419,13 +461,36 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
     const campaignIds = [...new Set(jobs.map((j) => j.campaign_id))];
     const { data: campaigns } = await admin
       .from("campaigns")
-      .select("id, ai_enabled, ai_config")
+      .select("id, workspace_id, ai_enabled, ai_config")
       .in("id", campaignIds);
+    const campaignRows = (campaigns ?? []) as Array<{
+      id: string;
+      workspace_id: string;
+      ai_enabled: boolean;
+      ai_config: unknown;
+    }>;
     const configById = new Map(
-      ((campaigns ?? []) as Array<{ id: string; ai_enabled: boolean; ai_config: unknown }>).map(
-        (c) => [c.id, { enabled: c.ai_enabled, config: normalizeAiConfig(c.ai_config) }] as const,
+      campaignRows.map(
+        (c) =>
+          [
+            c.id,
+            {
+              enabled: c.ai_enabled,
+              config: normalizeAiConfig(c.ai_config),
+              workspaceId: c.workspace_id,
+            },
+          ] as const,
       ),
     );
+
+    // Every workspace pays OpenAI with its own key, so load them per workspace.
+    const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
+    const credsByWorkspace = new Map<string, WorkspaceAiCredentials | null>();
+    for (const workspaceId of new Set(campaignRows.map((c) => c.workspace_id))) {
+      credsByWorkspace.set(workspaceId, await workspaceAiCredentials(admin, workspaceId));
+    }
+    /** Workspaces whose key just failed — their remaining jobs stay queued. */
+    const blockedWorkspaces = new Set<string>();
 
     const { data: leads } = await admin
       .from("leads")
@@ -452,8 +517,37 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         continue;
       }
 
+      if (blockedWorkspaces.has(settings.workspaceId)) {
+        await admin
+          .from("ai_personalizations")
+          .update({ status: "queued", locked_by: null, locked_until: null })
+          .eq("id", job.id);
+        continue;
+      }
+
+      const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
+      if (!credentials) {
+        blockedWorkspaces.add(settings.workspaceId);
+        await admin
+          .from("ai_personalizations")
+          .update({
+            status: "failed",
+            error: "No OpenAI API key is connected for this workspace.",
+            locked_by: null,
+            locked_until: null,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", job.id);
+        result.failed += 1;
+        continue;
+      }
+
       try {
-        const { content, model } = await generatePersonalization(settings.config, lead);
+        const { content, model } = await generatePersonalization(
+          settings.config,
+          lead,
+          credentials,
+        );
         await admin
           .from("ai_personalizations")
           .update({
@@ -488,15 +582,11 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           .eq("id", job.id);
         if (terminal) result.failed += 1;
 
-        // Circuit breaker: stop the whole run on credit/policy denials.
-        if (failure.status === 402 || failure.status === 403 || failure.status === 401) {
-          await pauseRunner(admin, failure.message);
-          result.paused = failure.message;
-          break;
-        }
-        if (failure.status === 429) {
-          result.skipped = "rate limited — remaining items stay queued";
-          break;
+        // Key/credit/rate problems are per customer: park that workspace only.
+        if ([401, 402, 403, 429].includes(failure.status)) {
+          blockedWorkspaces.add(settings.workspaceId);
+          if (failure.status === 429)
+            result.skipped = "a workspace hit its OpenAI rate limit — its leads stay queued";
         }
       }
     }
