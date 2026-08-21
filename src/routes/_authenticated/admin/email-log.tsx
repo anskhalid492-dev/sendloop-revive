@@ -55,7 +55,7 @@ function EmailLogPage() {
 
   const listQuery = useQuery({
     queryKey: ["admin", "email-log", status, search],
-    queryFn: () => fetchList({ data: { status, search: search || undefined, limit: 200 } }),
+    queryFn: () => fetchList({ data: search ? { status, search, limit: 200 } : { status, limit: 200 } }),
   });
 
   const detailQuery = useQuery({

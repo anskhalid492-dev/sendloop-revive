@@ -89,6 +89,7 @@ import { Route as AuthenticatedAdminCreditsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCrmRouteImport } from './routes/_authenticated/admin/crm'
 import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated/admin/domains'
 import { Route as AuthenticatedAdminEmailAccountsRouteImport } from './routes/_authenticated/admin/email-accounts'
+import { Route as AuthenticatedAdminEmailLogRouteImport } from './routes/_authenticated/admin/email-log'
 import { Route as AuthenticatedAdminEnvironmentRouteImport } from './routes/_authenticated/admin/environment'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin/features'
 import { Route as AuthenticatedAdminInboundEventsRouteImport } from './routes/_authenticated/admin/inbound-events'
@@ -556,6 +557,12 @@ const AuthenticatedAdminEmailAccountsRoute =
     path: '/email-accounts',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminEmailLogRoute =
+  AuthenticatedAdminEmailLogRouteImport.update({
+    id: '/email-log',
+    path: '/email-log',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminEnvironmentRoute =
   AuthenticatedAdminEnvironmentRouteImport.update({
     id: '/environment',
@@ -933,6 +940,7 @@ export interface FileRoutesByFullPath {
   '/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
+  '/admin/email-log': typeof AuthenticatedAdminEmailLogRoute
   '/admin/environment': typeof AuthenticatedAdminEnvironmentRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -1064,6 +1072,7 @@ export interface FileRoutesByTo {
   '/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
+  '/admin/email-log': typeof AuthenticatedAdminEmailLogRoute
   '/admin/environment': typeof AuthenticatedAdminEnvironmentRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -1199,6 +1208,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/_authenticated/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/_authenticated/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
+  '/_authenticated/admin/email-log': typeof AuthenticatedAdminEmailLogRoute
   '/_authenticated/admin/environment': typeof AuthenticatedAdminEnvironmentRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -1334,6 +1344,7 @@ export interface FileRouteTypes {
     | '/admin/crm'
     | '/admin/domains'
     | '/admin/email-accounts'
+    | '/admin/email-log'
     | '/admin/environment'
     | '/admin/features'
     | '/admin/inbound-events'
@@ -1465,6 +1476,7 @@ export interface FileRouteTypes {
     | '/admin/crm'
     | '/admin/domains'
     | '/admin/email-accounts'
+    | '/admin/email-log'
     | '/admin/environment'
     | '/admin/features'
     | '/admin/inbound-events'
@@ -1599,6 +1611,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/crm'
     | '/_authenticated/admin/domains'
     | '/_authenticated/admin/email-accounts'
+    | '/_authenticated/admin/email-log'
     | '/_authenticated/admin/environment'
     | '/_authenticated/admin/features'
     | '/_authenticated/admin/inbound-events'
@@ -2283,6 +2296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmailAccountsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/email-log': {
+      id: '/_authenticated/admin/email-log'
+      path: '/email-log'
+      fullPath: '/admin/email-log'
+      preLoaderRoute: typeof AuthenticatedAdminEmailLogRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/environment': {
       id: '/_authenticated/admin/environment'
       path: '/environment'
@@ -2691,6 +2711,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCrmRoute: typeof AuthenticatedAdminCrmRoute
   AuthenticatedAdminDomainsRoute: typeof AuthenticatedAdminDomainsRoute
   AuthenticatedAdminEmailAccountsRoute: typeof AuthenticatedAdminEmailAccountsRoute
+  AuthenticatedAdminEmailLogRoute: typeof AuthenticatedAdminEmailLogRoute
   AuthenticatedAdminEnvironmentRoute: typeof AuthenticatedAdminEnvironmentRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
   AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
@@ -2738,6 +2759,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminCrmRoute: AuthenticatedAdminCrmRoute,
     AuthenticatedAdminDomainsRoute: AuthenticatedAdminDomainsRoute,
     AuthenticatedAdminEmailAccountsRoute: AuthenticatedAdminEmailAccountsRoute,
+    AuthenticatedAdminEmailLogRoute: AuthenticatedAdminEmailLogRoute,
     AuthenticatedAdminEnvironmentRoute: AuthenticatedAdminEnvironmentRoute,
     AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
     AuthenticatedAdminInboundEventsRoute:
