@@ -169,6 +169,35 @@ export async function restoreDefaultTemplate(admin: Admin, eventKey: string, use
   });
 }
 
+/**
+ * Re-applies the shipped defaults to every catalog template that has not been
+ * customised by an admin (`is_default`), so design upgrades to the branded
+ * shell reach the stored copies. Customised templates are never touched
+ * unless `includeCustomised` is set.
+ */
+export async function restoreAllDefaultTemplates(
+  admin: Admin,
+  userId: string | null,
+  includeCustomised = false,
+): Promise<{ created: number; updated: number; skipped: number }> {
+  const { created } = await ensureDefaultTemplates(admin);
+  const { data } = await admin.from("transactional_templates").select("event_key, is_default");
+  const rows = (data ?? []) as { event_key: string; is_default: boolean | null }[];
+
+  let updated = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    if (!defaultTemplate(row.event_key)) continue;
+    if (!includeCustomised && row.is_default === false) {
+      skipped += 1;
+      continue;
+    }
+    await restoreDefaultTemplate(admin, row.event_key, userId);
+    updated += 1;
+  }
+  return { created, updated, skipped };
+}
+
 export type TemplateDraftInput = {
   subject: string;
   preheader?: string | null | undefined;
