@@ -98,15 +98,65 @@ type DohAnswer = { name: string; type: number; data: string };
 
 const TYPE_CODE = { TXT: 16, CNAME: 5, MX: 15 } as const;
 
+/**
+ * Transient lookup problem (resolver unreachable, SERVFAIL, timeout). These must
+ * never be reported as "failed" — a record that is actually published would
+ * otherwise flap between verified and unverified on every check.
+ */
+export class TransientDnsError extends Error {}
+
+const RESOLVERS = [
+  "https://dns.google/resolve",
+  "https://cloudflare-dns.com/dns-query",
+] as const;
+
+type ResolverOutcome =
+  | { ok: true; answers: DohAnswer[] }
+  | { ok: false; transient: true }
+  | { ok: false; transient: false }; // authoritative NXDOMAIN / empty answer
+
+async function queryResolver(
+  endpoint: string,
+  name: string,
+  type: keyof typeof TYPE_CODE,
+): Promise<ResolverOutcome> {
+  try {
+    const res = await fetch(`${endpoint}?name=${encodeURIComponent(name)}&type=${type}`, {
+      headers: { Accept: "application/dns-json" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { ok: false, transient: true };
+    const json = (await res.json()) as { Answer?: DohAnswer[]; Status?: number };
+    const status = json.Status ?? 0;
+    // 0 = NOERROR, 3 = NXDOMAIN (authoritative "not there"). Anything else is transient.
+    if (status !== 0 && status !== 3) return { ok: false, transient: true };
+    const answers = (json.Answer ?? []).filter((a) => a.type === TYPE_CODE[type]);
+    if (answers.length > 0) return { ok: true, answers };
+    return { ok: false, transient: false };
+  } catch {
+    return { ok: false, transient: true };
+  }
+}
+
+/**
+ * Queries several public resolvers and returns the first positive answer.
+ * A record counts as present if ANY resolver sees it (propagation is uneven);
+ * it counts as absent only when at least one resolver answered authoritatively
+ * with nothing. If every resolver failed, a TransientDnsError is thrown.
+ */
 async function resolve(name: string, type: keyof typeof TYPE_CODE): Promise<DohAnswer[]> {
-  const url = `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/dns-json" },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) throw new Error(`DNS lookup failed for ${name} (${res.status})`);
-  const json = (await res.json()) as { Answer?: DohAnswer[]; Status?: number };
-  return json.Answer ?? [];
+  let sawAuthoritativeEmpty = false;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const outcomes = await Promise.all(RESOLVERS.map((r) => queryResolver(r, name, type)));
+    const hit = outcomes.find((o): o is { ok: true; answers: DohAnswer[] } => o.ok);
+    if (hit) return hit.answers;
+    if (outcomes.some((o) => !o.ok && !o.transient)) {
+      sawAuthoritativeEmpty = true;
+      break;
+    }
+  }
+  if (sawAuthoritativeEmpty) return [];
+  throw new TransientDnsError(`Could not reach a DNS resolver for ${name}. Will retry.`);
 }
 
 function clean(value: string): string {
@@ -178,7 +228,7 @@ async function checkRecord(spec: DnsRecordSpec): Promise<DnsCheckResult> {
   } catch (error) {
     return {
       kind: spec.kind,
-      status: "failed",
+      status: error instanceof TransientDnsError ? "pending" : "failed",
       observed: null,
       message: (error as Error).message,
     };
@@ -262,7 +312,12 @@ export async function checkProviderRecord(spec: ProviderDnsRecord): Promise<Prov
           message: answers.length ? "MX records exist but none match." : "No MX record found.",
         };
   } catch (error) {
-    return { id: spec.id, status: "failed", observed: null, message: (error as Error).message };
+    return {
+      id: spec.id,
+      status: error instanceof TransientDnsError ? "pending" : "failed",
+      observed: null,
+      message: (error as Error).message,
+    };
   }
 }
 

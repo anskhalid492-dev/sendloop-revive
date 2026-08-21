@@ -204,7 +204,33 @@ export async function runDomainVerification(
   const adapter = getDomainAdapter(provider.provider);
 
   // 1. Authoritative DNS lookup for every record the provider requires.
-  const checks = await checkProviderRecords(records);
+  const freshChecks = await checkProviderRecords(records);
+
+  // Stickiness: a record that was already observed in DNS stays verified when the
+  // current pass could not reach a resolver ("pending"). Without this the UI flips
+  // between verified and unverified on transient lookup failures.
+  const { data: prevRow } = await admin
+    .from("sending_domains")
+    .select("record_checks, verified_at, ready_at, stage")
+    .eq("id", row.id)
+    .maybeSingle();
+  const previous = new Map(
+    ((prevRow?.record_checks ?? []) as Array<{ id: string; status: string; observed: string | null; message: string }>)
+      .map((c) => [c.id, c]),
+  );
+  const checks = freshChecks.map((c) => {
+    if (c.status === "pending" && previous.get(c.id)?.status === "verified") {
+      const prev = previous.get(c.id)!;
+      return {
+        ...c,
+        status: "verified" as const,
+        observed: prev.observed ?? null,
+        message: "Previously verified — DNS lookup temporarily unavailable.",
+      };
+    }
+    return c;
+  });
+
   const byId = new Map(checks.map((c) => [c.id, c]));
   const requiredRecords = records.filter((r) => r.required);
   const dnsVerified =
@@ -221,11 +247,18 @@ export async function runDomainVerification(
     }
   }
 
-  // 3. Sending readiness confirmed by the provider itself.
-  const readyToSend =
-    dnsVerified &&
-    providerState.state === "verified" &&
-    (await adapter.isReadyToSend(provider.credentials, row.domain).catch(() => false));
+  // 3. Sending readiness confirmed by the provider itself. A transient provider
+  // error must not knock an already-ready domain back to "verifying".
+  let readyToSend = false;
+  if (dnsVerified && providerState.state === "verified") {
+    try {
+      readyToSend = await adapter.isReadyToSend(provider.credentials, row.domain);
+    } catch {
+      readyToSend = prevRow?.stage === "ready";
+    }
+  } else if (dnsVerified && prevRow?.stage === "ready" && providerState.state !== "failed") {
+    readyToSend = true;
+  }
 
   const stage: DomainStage = readyToSend
     ? "ready"
@@ -264,10 +297,10 @@ export async function runDomainVerification(
       dmarc_status: kindStatus("dmarc"),
       mx_status: kindStatus("mx"),
       tracking_status: kindStatus("tracking"),
-      dns_status: dnsVerified ? "verified" : "failed",
+      dns_status: dnsVerified ? "verified" : checks.some((c) => c.status === "failed") ? "failed" : "pending",
       last_checked_at: now,
-      verified_at: dnsVerified ? now : null,
-      ready_at: readyToSend ? now : null,
+      verified_at: dnsVerified ? (prevRow?.verified_at ?? now) : null,
+      ready_at: readyToSend ? (prevRow?.ready_at ?? now) : null,
       last_error: dnsVerified
         ? null
         : requiredRecords
