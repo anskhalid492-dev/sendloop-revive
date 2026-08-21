@@ -549,7 +549,7 @@ export function ConversationView({
         </Tabs>
       </div>
 
-      <div className="w-full min-w-0 shrink-0 overflow-y-auto border-t border-border lg:w-72 lg:border-l lg:border-t-0 xl:w-80">
+      <div className="w-full min-w-0 shrink-0 overflow-y-auto border-t border-border xl:w-80 xl:border-l xl:border-t-0">
         <ProspectPanel
           lead={data.lead as never}
           prospectEmail={conversation.prospect_email}
