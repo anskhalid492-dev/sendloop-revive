@@ -44,8 +44,22 @@ export async function reconcileDeliveryState(limit = 100): Promise<{
   checked: number;
   updated: number;
   skipped: number;
+  repaired: number;
 }> {
   const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  // First, self-heal from signals we already stored: an event row whose state
+  // never landed on its message (webhook raced the send row, or an older event
+  // arrived out of order) is folded back in. Idempotent, so it is safe to run
+  // on every pass and it repairs historic campaign statistics.
+  let repaired = 0;
+  {
+    const { data } = await supabaseAdmin.rpc("repair_delivery_state" as never, {
+      _workspace_id: null,
+      _since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    } as never);
+    repaired = Number(data ?? 0);
+  }
 
   const { data: rows } = await supabaseAdmin
     .from("campaign_messages")
