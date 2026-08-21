@@ -1111,42 +1111,23 @@ export async function getAdminDomain(domainId: string) {
  * Re-runs the existing DNS verification (live lookups) and persists the real
  * result. It never creates, edits or removes a customer's DNS records.
  */
+/**
+ * Admin re-check. This runs the exact same automatic pipeline the customer
+ * triggers (DNS lookups + provider authorisation) — admins never manually
+ * approve a domain, they only re-run or troubleshoot verification.
+ */
 export async function adminRecheckDomain(actorId: string, domainId: string) {
   const { data: row } = await db()
     .from("sending_domains")
-    .select("id, domain, dkim_selector, workspace_id")
+    .select(
+      "id, domain, dkim_selector, workspace_id, provider, provider_id, provider_domain_id, provider_records, stage, disabled_at",
+    )
     .eq("id", domainId)
     .maybeSingle();
   if (!row) throw new Error("Domain not found");
 
-  const { verifyDomainRecords } = await import("@/lib/dns.server");
-  const { records, results } = await verifyDomainRecords(
-    row.domain as string,
-    row.dkim_selector as string,
-  );
-  const byKind = new Map(results.map((r) => [r.kind, r]));
-  const status = (kind: string) => byKind.get(kind as never)?.status ?? "pending";
-  const coreVerified =
-    status("spf") === "verified" && status("dkim") === "verified" && status("dmarc") === "verified";
-  const failures = results
-    .filter((r) => r.status === "failed" && records.find((s) => s.kind === r.kind)?.required)
-    .map((r) => `${r.kind.toUpperCase()}: ${r.message}`);
-
-  const { error } = await db()
-    .from("sending_domains")
-    .update({
-      spf_status: status("spf"),
-      dkim_status: status("dkim"),
-      dmarc_status: status("dmarc"),
-      mx_status: status("mx"),
-      tracking_status: status("tracking"),
-      dns_status: coreVerified ? "verified" : "failed",
-      last_checked_at: new Date().toISOString(),
-      verified_at: coreVerified ? new Date().toISOString() : null,
-      last_error: failures.length ? failures.join(" · ") : null,
-    })
-    .eq("id", domainId);
-  if (error) throw new Error(error.message);
+  const { runDomainVerification } = await import("@/lib/domain-verification.server");
+  const outcome = await runDomainVerification(db(), row);
 
   await db().from("admin_audit_log").insert({
     actor_id: actorId,
@@ -1154,19 +1135,101 @@ export async function adminRecheckDomain(actorId: string, domainId: string) {
     target_type: "sending_domain",
     target_id: domainId,
     target_label: row.domain,
-    detail: { workspaceId: row.workspace_id, verified: coreVerified },
+    detail: {
+      workspaceId: row.workspace_id,
+      stage: outcome.stage,
+      provider: row.provider,
+      providerDetail: outcome.providerDetail,
+    },
   });
 
   return {
-    status: coreVerified ? "verified" : "failed",
-    errors: failures,
-    records: records.map((spec) => ({
-      ...spec,
-      status: byKind.get(spec.kind)?.status ?? "pending",
-      message: byKind.get(spec.kind)?.message ?? null,
-      observed: byKind.get(spec.kind)?.observed ?? null,
-    })),
+    status: outcome.readyToSend ? "verified" : outcome.dnsVerified ? "provider_pending" : "failed",
+    stage: outcome.stage,
+    provider: row.provider,
+    providerDetail: outcome.providerDetail,
+    errors: outcome.records
+      .filter((record) => record.required && record.status === "failed")
+      .map((record) => `${record.kind.toUpperCase()}: ${record.message ?? "not found"}`),
+    records: outcome.records,
   };
+}
+
+/** Admin can disable or re-enable a domain (the only manual domain control). */
+export async function adminSetDomainEnabled(actorId: string, domainId: string, enabled: boolean) {
+  const { data: row } = await db()
+    .from("sending_domains")
+    .select("id, domain, workspace_id, stage")
+    .eq("id", domainId)
+    .maybeSingle();
+  if (!row) throw new Error("Domain not found");
+
+  const { error } = await db()
+    .from("sending_domains")
+    .update({
+      disabled_at: enabled ? null : new Date().toISOString(),
+      stage: enabled ? "pending_dns" : "disabled",
+    })
+    .eq("id", domainId);
+  if (error) throw new Error(error.message);
+
+  await db().from("admin_audit_log").insert({
+    actor_id: actorId,
+    action: enabled ? "domain.enable" : "domain.disable",
+    target_type: "sending_domain",
+    target_id: domainId,
+    target_label: row.domain,
+    detail: { workspaceId: row.workspace_id },
+  });
+
+  return { enabled };
+}
+
+/** Re-assign the sending infrastructure that handles a domain. */
+export async function adminSetDomainProvider(actorId: string, domainId: string, providerId: string | null) {
+  const { data: row } = await db()
+    .from("sending_domains")
+    .select("id, domain, workspace_id")
+    .eq("id", domainId)
+    .maybeSingle();
+  if (!row) throw new Error("Domain not found");
+
+  let provider: string | null = null;
+  if (providerId) {
+    const { data: p } = await db()
+      .from("email_providers")
+      .select("id, provider")
+      .eq("id", providerId)
+      .maybeSingle();
+    if (!p) throw new Error("Provider not found");
+    provider = p.provider as string;
+  }
+
+  const { error } = await db()
+    .from("sending_domains")
+    .update({
+      provider,
+      provider_id: providerId,
+      provider_domain_id: null,
+      provider_records: [],
+      record_checks: [],
+      provider_status: null,
+      stage: "pending_dns",
+      dns_status: "pending",
+    })
+    .eq("id", domainId);
+  if (error) throw new Error(error.message);
+
+  await db().from("admin_audit_log").insert({
+    actor_id: actorId,
+    action: "domain.provider_change",
+    target_type: "sending_domain",
+    target_id: domainId,
+    target_label: row.domain,
+    detail: { workspaceId: row.workspace_id, providerId, provider },
+  });
+
+  return { provider, providerId };
 }
 
 /* =============================================================== warmup */
