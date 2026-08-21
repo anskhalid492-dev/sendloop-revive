@@ -2226,9 +2226,11 @@ export type Database = {
           assigned_to: string | null
           campaign_id: string | null
           created_at: string
+          has_inbound: boolean
           has_outbound: boolean
           id: string
           last_direction: string
+          last_inbound_at: string | null
           last_message_at: string
           last_preview: string | null
           lead_id: string | null
@@ -2249,9 +2251,11 @@ export type Database = {
           assigned_to?: string | null
           campaign_id?: string | null
           created_at?: string
+          has_inbound?: boolean
           has_outbound?: boolean
           id?: string
           last_direction?: string
+          last_inbound_at?: string | null
           last_message_at?: string
           last_preview?: string | null
           lead_id?: string | null
@@ -2272,9 +2276,11 @@ export type Database = {
           assigned_to?: string | null
           campaign_id?: string | null
           created_at?: string
+          has_inbound?: boolean
           has_outbound?: boolean
           id?: string
           last_direction?: string
+          last_inbound_at?: string | null
           last_message_at?: string
           last_preview?: string | null
           lead_id?: string | null
