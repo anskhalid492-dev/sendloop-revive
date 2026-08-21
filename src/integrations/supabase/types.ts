@@ -1321,14 +1321,26 @@ export type Database = {
         Row: {
           attempts: number
           body: string
+          bounced_at: string | null
           campaign_id: string
+          clicked_at: string | null
+          complained_at: string | null
           created_at: string
+          delayed_at: string | null
+          delivered_at: string | null
+          delivery_detail: string | null
+          delivery_status: string
+          failed_at: string | null
           id: string
           last_error: string | null
+          last_event_at: string | null
           lead_id: string
+          opened_at: string | null
           provider: string | null
           provider_message_id: string | null
           recipient_id: string | null
+          reconciled_at: string | null
+          replied_at: string | null
           scheduled_at: string | null
           sending_account_id: string | null
           sent_at: string | null
@@ -1337,6 +1349,7 @@ export type Database = {
           step_order: number
           subject: string
           to_email: string
+          unsubscribed_at: string | null
           updated_at: string
           variant_id: string | null
           workspace_id: string
@@ -1344,14 +1357,26 @@ export type Database = {
         Insert: {
           attempts?: number
           body?: string
+          bounced_at?: string | null
           campaign_id: string
+          clicked_at?: string | null
+          complained_at?: string | null
           created_at?: string
+          delayed_at?: string | null
+          delivered_at?: string | null
+          delivery_detail?: string | null
+          delivery_status?: string
+          failed_at?: string | null
           id?: string
           last_error?: string | null
+          last_event_at?: string | null
           lead_id: string
+          opened_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
+          reconciled_at?: string | null
+          replied_at?: string | null
           scheduled_at?: string | null
           sending_account_id?: string | null
           sent_at?: string | null
@@ -1360,6 +1385,7 @@ export type Database = {
           step_order?: number
           subject?: string
           to_email: string
+          unsubscribed_at?: string | null
           updated_at?: string
           variant_id?: string | null
           workspace_id: string
@@ -1367,14 +1393,26 @@ export type Database = {
         Update: {
           attempts?: number
           body?: string
+          bounced_at?: string | null
           campaign_id?: string
+          clicked_at?: string | null
+          complained_at?: string | null
           created_at?: string
+          delayed_at?: string | null
+          delivered_at?: string | null
+          delivery_detail?: string | null
+          delivery_status?: string
+          failed_at?: string | null
           id?: string
           last_error?: string | null
+          last_event_at?: string | null
           lead_id?: string
+          opened_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
+          reconciled_at?: string | null
+          replied_at?: string | null
           scheduled_at?: string | null
           sending_account_id?: string | null
           sent_at?: string | null
@@ -1383,6 +1421,7 @@ export type Database = {
           step_order?: number
           subject?: string
           to_email?: string
+          unsubscribed_at?: string | null
           updated_at?: string
           variant_id?: string | null
           workspace_id?: string
@@ -7212,6 +7251,7 @@ export type Database = {
       run_ai_personalization_runner: { Args: never; Returns: undefined }
       run_automation_runner: { Args: never; Returns: undefined }
       run_campaign_scheduler: { Args: never; Returns: undefined }
+      run_delivery_reconcile_runner: { Args: never; Returns: undefined }
       run_domain_recheck_runner: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
       run_provider_health_runner: { Args: never; Returns: undefined }

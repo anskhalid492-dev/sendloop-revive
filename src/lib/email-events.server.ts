@@ -190,6 +190,17 @@ export async function processEventPayload(
         url,
       });
 
+      if (recorded) {
+        const { findCampaignMessageForEvent, applyDeliveryState } = await import(
+          "@/lib/delivery-state.server"
+        );
+        const message = await findCampaignMessageForEvent(
+          delivery.providerMessageId,
+          delivery.email,
+        );
+        if (message) await applyDeliveryState({ message, state: kind });
+      }
+
       await finish(eventId, {
         status: recorded ? "processed" : "failed",
         error: recorded ? null : "No matching send",
@@ -198,7 +209,6 @@ export async function processEventPayload(
     }
 
     if (kind === "delayed" || kind === "rejected") {
-      // Soft/hard delivery signals only matter for warmup analytics today.
       const { applyWarmupDeliveryEvent } = await import("@/lib/warmup-engine.server");
       const delivery = normalizeDelivery(payload);
       const claimed = await applyWarmupDeliveryEvent({
@@ -209,9 +219,28 @@ export async function processEventPayload(
         externalId: `warmup:${kind}:${delivery.providerMessageId ?? ""}:${externalIdOf(payload, kind) ?? ""}`,
         payload,
       });
-      await finish(eventId, { status: claimed ? "processed" : "ignored", error: null });
-      return { status: claimed ? "applied" : "ignored", eventId };
+      if (claimed) {
+        await finish(eventId, { status: "processed", error: null });
+        return { status: "applied", eventId };
+      }
+
+      // Campaign traffic: a delay is transient, a rejection is a hard failure.
+      const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
+      const outcome = await applyDeliveryEvent({
+        kind: kind === "delayed" ? "delayed" : "failed",
+        email: delivery.email,
+        providerMessageId: delivery.providerMessageId,
+        reason: delivery.reason,
+      });
+      await finish(eventId, {
+        status: outcome.status === "applied" ? "processed" : "ignored",
+        error: outcome.reason ?? null,
+        workspace_id: outcome.workspaceId ?? null,
+        lead_id: outcome.leadId ?? null,
+      });
+      return { status: outcome.status === "applied" ? "applied" : "ignored", eventId };
     }
+
 
     if (kind === "delivered" || kind === "bounced" || kind === "complained" || kind === "unsubscribed") {
       const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");

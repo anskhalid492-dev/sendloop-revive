@@ -543,6 +543,22 @@ async function applyReplyAutomation(args: {
       .eq("campaign_id", campaignId)
       .eq("lead_id", leadId);
 
+    // Mark the most recent send to this lead as replied so campaign metrics
+    // read the reply straight off the message state.
+    const { data: lastSend } = await db
+      .from("campaign_messages")
+      .select("id, status, delivery_status")
+      .eq("campaign_id", campaignId)
+      .eq("lead_id", leadId)
+      .not("sent_at", "is", null)
+      .order("sent_at", { ascending: false })
+      .limit(1);
+    if (lastSend?.[0]) {
+      const { applyDeliveryState } = await import("@/lib/delivery-state.server");
+      await applyDeliveryState({ message: lastSend[0], state: "replied", occurredAt: args.receivedIso });
+    }
+
+
     if (stopOnReply) {
       await db
         .from("campaign_messages")
