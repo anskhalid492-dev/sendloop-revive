@@ -1,0 +1,333 @@
+/**
+ * MunchReach Provider Manager.
+ *
+ * A single, global pool of sending providers (Resend, Amazon SES, Mailgun,
+ * Brevo, SendGrid) owned by MunchReach. There is NO workspace -> provider
+ * assignment anywhere: when a domain needs infrastructure, this manager picks
+ * one deterministically from the healthy, enabled, in-capacity providers.
+ *
+ *   Customer -> Provider Manager -> provider pool -> automatic routing
+ *
+ * Customers never see, choose, or configure a provider. Admins configure the
+ * pool globally (enabled, mode, credentials, region, capacity, priority) and
+ * everything else is automatic, including failover.
+ */
+import type { ProviderCredentials } from "@/lib/domain-providers/adapter.server";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Admin = any;
+
+export type PoolProviderRow = {
+  id: string;
+  provider: string;
+  name: string;
+  is_enabled: boolean;
+  priority: number;
+  daily_capacity: number;
+  hourly_capacity: number;
+  status: string | null;
+  mode: string | null;
+  region: string | null;
+  health_status: string | null;
+  health_checked_at: string | null;
+  health_detail: string | null;
+  sent_hour: number | null;
+  sent_day: number | null;
+  success_count: number | null;
+  failure_count: number | null;
+  last_success_at: string | null;
+  last_tested_at: string | null;
+  last_error: string | null;
+};
+
+export type PoolCandidate = {
+  row: PoolProviderRow;
+  credentials: ProviderCredentials;
+  credentialSource: "stored" | "platform_env";
+};
+
+export type SelectedProvider = {
+  provider: string;
+  providerId: string | null;
+  credentials: ProviderCredentials;
+  mode: "sandbox" | "live";
+  region: string | null;
+};
+
+const POOL_COLUMNS =
+  "id, provider, name, is_enabled, priority, daily_capacity, hourly_capacity, status, mode, region, health_status, health_checked_at, health_detail, sent_hour, sent_day, success_count, failure_count, last_success_at, last_tested_at, last_error";
+
+/** Stable 32-bit hash so a given domain keeps landing on the same provider. */
+function stableHash(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+export function errorRate(row: PoolProviderRow): number {
+  const ok = row.success_count ?? 0;
+  const bad = row.failure_count ?? 0;
+  const total = ok + bad;
+  return total === 0 ? 0 : bad / total;
+}
+
+/** 0..1 — how much of the hourly/daily capacity is already used. */
+export function loadFactor(row: PoolProviderRow): number {
+  const hourly = row.hourly_capacity > 0 ? (row.sent_hour ?? 0) / row.hourly_capacity : 0;
+  const daily = row.daily_capacity > 0 ? (row.sent_day ?? 0) / row.daily_capacity : 0;
+  return Math.max(hourly, daily);
+}
+
+export function hasCapacity(row: PoolProviderRow): boolean {
+  return loadFactor(row) < 1;
+}
+
+export async function loadPool(admin: Admin): Promise<PoolProviderRow[]> {
+  const { data } = await admin
+    .from("email_providers")
+    .select(POOL_COLUMNS)
+    .order("priority", { ascending: true });
+  return (data ?? []) as PoolProviderRow[];
+}
+
+/** Server-side only: decrypts stored credentials, else falls back to a platform key. */
+export async function credentialsFor(
+  admin: Admin,
+  row: Pick<PoolProviderRow, "id" | "provider">,
+): Promise<{ credentials: ProviderCredentials; source: "stored" | "platform_env" } | null> {
+  const { readCredentials } = await import("@/lib/providers/adapter.server");
+  const { platformKeyFor } = await import("@/lib/managed-sending.server");
+
+  const { data: secret } = await admin
+    .from("email_provider_secrets")
+    .select("credentials_ciphertext")
+    .eq("provider_id", row.id)
+    .maybeSingle();
+
+  if (secret?.credentials_ciphertext) {
+    try {
+      const credentials = readCredentials(secret.credentials_ciphertext) as ProviderCredentials;
+      if (credentials && Object.keys(credentials).length > 0) {
+        return { credentials, source: "stored" };
+      }
+    } catch {
+      /* fall through to the platform key */
+    }
+  }
+
+  const envKey = platformKeyFor(row.provider);
+  return envKey ? { credentials: { api_key: envKey }, source: "platform_env" } : null;
+}
+
+export async function logRoutingEvent(
+  admin: Admin,
+  input: {
+    providerId?: string | null;
+    previousProviderId?: string | null;
+    domainId?: string | null;
+    domain?: string | null;
+    workspaceId?: string | null;
+    event: string;
+    reason?: string | null;
+    detail?: string | null;
+  },
+): Promise<void> {
+  await admin
+    .from("provider_routing_events")
+    .insert({
+      provider_id: input.providerId ?? null,
+      previous_provider_id: input.previousProviderId ?? null,
+      domain_id: input.domainId ?? null,
+      domain: input.domain ?? null,
+      workspace_id: input.workspaceId ?? null,
+      event: input.event,
+      reason: input.reason ?? null,
+      detail: (input.detail ?? "").slice(0, 2000) || null,
+    })
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+}
+
+/** Records a real send/failure against the provider's usage counters. */
+export async function recordProviderUsage(
+  admin: Admin,
+  providerId: string | null,
+  { sent = 0, failed = 0 }: { sent?: number; failed?: number },
+): Promise<void> {
+  if (!providerId) return;
+  await admin
+    .rpc("provider_record_usage", { _provider_id: providerId, _sent: sent, _failed: failed })
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+}
+
+/** Live health probe against the provider API; persists the result on the pool row. */
+export async function checkProviderHealth(
+  admin: Admin,
+  row: PoolProviderRow,
+): Promise<{ health: "healthy" | "degraded" | "down"; detail: string }> {
+  const creds = await credentialsFor(admin, row);
+  if (!creds) {
+    const detail = "No credentials configured for this provider.";
+    await admin
+      .from("email_providers")
+      .update({
+        health_status: "down",
+        health_detail: detail,
+        health_checked_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+    return { health: "down", detail };
+  }
+
+  const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
+  let ok = false;
+  let detail = "";
+  try {
+    const result = await testProviderCredentials(row.provider, creds.credentials);
+    ok = result.ok;
+    detail = result.message;
+  } catch (error) {
+    detail = error instanceof Error ? error.message : String(error);
+  }
+
+  const rate = errorRate(row);
+  const health: "healthy" | "degraded" | "down" = !ok
+    ? "down"
+    : rate > 0.25 || !hasCapacity(row)
+      ? "degraded"
+      : "healthy";
+
+  await admin
+    .from("email_providers")
+    .update({
+      health_status: health,
+      health_detail: detail.slice(0, 500) || null,
+      health_checked_at: new Date().toISOString(),
+      status: ok ? "verified" : "failed",
+      last_tested_at: new Date().toISOString(),
+      last_error: ok ? null : detail.slice(0, 500),
+    })
+    .eq("id", row.id);
+
+  return { health, detail };
+}
+
+export async function checkPoolHealth(
+  admin: Admin,
+): Promise<Array<{ id: string; provider: string; health: string; detail: string }>> {
+  const pool = await loadPool(admin);
+  const results: Array<{ id: string; provider: string; health: string; detail: string }> = [];
+  for (const row of pool) {
+    const result = await checkProviderHealth(admin, row);
+    results.push({ id: row.id, provider: row.provider, ...result });
+    await logRoutingEvent(admin, {
+      providerId: row.id,
+      event: "health_check",
+      reason: result.health,
+      detail: result.detail,
+    });
+  }
+  return results;
+}
+
+/**
+ * Deterministic routing.
+ *
+ * Filters: enabled -> domain capability -> valid credentials -> health -> capacity.
+ * Ordering: configured priority, then least loaded, then lowest error rate, and
+ * finally a stable hash of the routing key so identical scores never flap.
+ */
+export async function selectProvider(
+  admin: Admin,
+  options: {
+    /** Routing key — the domain name keeps a domain on one provider. */
+    key: string;
+    /** Provider currently assigned; kept whenever it is still eligible. */
+    currentProviderId?: string | null;
+    /** Only consider providers with a domain API. */
+    requireDomainApi?: boolean;
+    /** Providers to exclude (failover). */
+    exclude?: string[];
+  },
+): Promise<SelectedProvider | null> {
+  const { DOMAIN_CAPABLE_PROVIDERS } = await import("@/lib/domain-providers/registry.server");
+  const pool = await loadPool(admin);
+  const exclude = new Set(options.exclude ?? []);
+
+  const eligible: PoolCandidate[] = [];
+  for (const row of pool) {
+    if (!row.is_enabled) continue;
+    if (exclude.has(row.id)) continue;
+    if (options.requireDomainApi && !DOMAIN_CAPABLE_PROVIDERS.includes(row.provider)) continue;
+    if (row.health_status === "down") continue;
+    if (!hasCapacity(row)) continue;
+    const creds = await credentialsFor(admin, row);
+    if (!creds) continue;
+    eligible.push({ row, credentials: creds.credentials, credentialSource: creds.source });
+  }
+
+  if (eligible.length === 0) {
+    // Last resort: a platform key for any domain-capable provider so the very
+    // first deployment can verify a domain before the pool is configured.
+    const { platformKeyFor } = await import("@/lib/managed-sending.server");
+    for (const provider of DOMAIN_CAPABLE_PROVIDERS) {
+      const envKey = platformKeyFor(provider);
+      if (envKey) {
+        return {
+          provider,
+          providerId: null,
+          credentials: { api_key: envKey },
+          mode: "live",
+          region: null,
+        };
+      }
+    }
+    return null;
+  }
+
+  // Stickiness first: never move a domain that is already on a healthy provider.
+  const current = options.currentProviderId
+    ? eligible.find((c) => c.row.id === options.currentProviderId)
+    : undefined;
+  const chosen = current ?? pickDeterministic(eligible, options.key);
+
+  return {
+    provider: chosen.row.provider,
+    providerId: chosen.row.id,
+    credentials: chosen.credentials,
+    mode: chosen.row.mode === "sandbox" ? "sandbox" : "live",
+    region: chosen.row.region,
+  };
+}
+
+function pickDeterministic(candidates: PoolCandidate[], key: string): PoolCandidate {
+  const scored = [...candidates].sort((a, b) => {
+    if (a.row.priority !== b.row.priority) return a.row.priority - b.row.priority;
+    const healthRank = (r: PoolProviderRow) =>
+      r.health_status === "healthy" ? 0 : r.health_status === "unknown" ? 1 : 2;
+    if (healthRank(a.row) !== healthRank(b.row)) return healthRank(a.row) - healthRank(b.row);
+    const loadDelta = loadFactor(a.row) - loadFactor(b.row);
+    if (Math.abs(loadDelta) > 0.05) return loadDelta;
+    const errDelta = errorRate(a.row) - errorRate(b.row);
+    if (Math.abs(errDelta) > 0.02) return errDelta;
+    return a.row.id.localeCompare(b.row.id);
+  });
+
+  // Everything in the top tier is equally good — hash the key to spread load
+  // deterministically instead of randomly.
+  const best = scored[0]!;
+  const tier = scored.filter(
+    (c) =>
+      c.row.priority === best.row.priority &&
+      Math.abs(loadFactor(c.row) - loadFactor(best.row)) <= 0.05,
+  );
+  return tier[stableHash(key) % tier.length]!;
+}
