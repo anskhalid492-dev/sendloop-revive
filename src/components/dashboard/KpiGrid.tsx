@@ -101,13 +101,6 @@ export function KpiGrid({
       decimals: 1,
     },
     {
-      key: "replies",
-      label: "Replies",
-      value: c?.replies ?? 0,
-      previous: p?.replies ?? null,
-      hint: "Prospect responses in your inbox",
-    },
-    {
       key: "replyRate",
       label: "Reply rate",
       value: rate(c?.replies ?? 0, c?.sent ?? 0),
