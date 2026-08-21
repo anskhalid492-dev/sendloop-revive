@@ -641,7 +641,8 @@ export async function applyWarmupDeliveryEvent(args: {
     jobPatch["placement_checked_at"] = new Date().toISOString();
   }
   if (Object.keys(jobPatch).length) {
-    await supabaseAdmin.from("warmup_jobs").update(jobPatch).eq("id", job.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabaseAdmin.from("warmup_jobs").update(jobPatch as any).eq("id", job.id);
   }
 
   const counter: Record<string, number> =
@@ -683,12 +684,15 @@ function warmupTokenFrom(input: {
 }): string | null {
   const headers = input.headers;
   if (headers && typeof headers === "object") {
-    const entries = Array.isArray(headers)
-      ? (headers as Array<Record<string, unknown>>).map((h) => [String(h["name"] ?? ""), String(h["value"] ?? "")])
+    const entries: Array<[string, string]> = Array.isArray(headers)
+      ? (headers as Array<Record<string, unknown>>).map((h) => [
+          String(h["name"] ?? ""),
+          String(h["value"] ?? ""),
+        ])
       : Object.entries(headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
     for (const [name, value] of entries) {
-      if (String(name).toLowerCase() === "x-munchreach-warmup-id" && value) {
-        return String(value).trim().toLowerCase();
+      if (name.toLowerCase() === "x-munchreach-warmup-id" && value) {
+        return value.trim().toLowerCase();
       }
     }
   }
@@ -729,11 +733,14 @@ function spamVerdict(input: { headers?: unknown; payload?: Record<string, unknow
 
   const headers = input.headers;
   if (headers && typeof headers === "object") {
-    const entries = Array.isArray(headers)
-      ? (headers as Array<Record<string, unknown>>).map((h) => [String(h["name"] ?? ""), String(h["value"] ?? "")])
+    const entries: Array<[string, string]> = Array.isArray(headers)
+      ? (headers as Array<Record<string, unknown>>).map((h) => [
+          String(h["name"] ?? ""),
+          String(h["value"] ?? ""),
+        ])
       : Object.entries(headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
     for (const [name, value] of entries) {
-      const key = String(name).toLowerCase();
+      const key = name.toLowerCase();
       if (key === "x-spam-flag") return /yes|true/i.test(value);
       if (key === "x-spam-status") return /^yes/i.test(value.trim());
       if (key === "x-spam-score") {
