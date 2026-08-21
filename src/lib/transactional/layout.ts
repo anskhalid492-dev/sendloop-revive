@@ -44,7 +44,13 @@ function blockHtml(block: EmailBlock): string {
     case "callout":
       return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr><td style="background:#f1f7fb;border-left:3px solid ${BRAND.color};border-radius:6px;padding:14px 16px;font-size:14px;line-height:1.6;color:${BRAND.ink}">${block.text}</td></tr></table>`;
     case "button":
-      return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px"><tr><td style="border-radius:8px;background:${BRAND.color}"><a href="${block.url}" style="display:inline-block;padding:13px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px">${block.label}</a></td></tr></table>`;
+      // Bulletproof CTA: VML fallback for Outlook, plus a visible link so the
+      // action is never lost when a client strips buttons or images.
+      return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 20px"><tr><td align="center" bgcolor="${BRAND.color}" style="border-radius:10px;background:${BRAND.color};box-shadow:0 2px 6px rgba(68,166,221,0.35)">
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${block.url}" style="height:46px;v-text-anchor:middle;width:260px" arcsize="20%" strokecolor="${BRAND.colorDark}" fillcolor="${BRAND.color}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold">${block.label}</center></v:roundrect><![endif]-->
+        <!--[if !mso]><!--><a href="${block.url}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px">${block.label}</a><!--<![endif]-->
+      </td></tr></table>
+      <p style="margin:0 0 20px;font-size:12px;line-height:1.6;color:${BRAND.muted};word-break:break-all">Button not working? Copy and paste this link into your browser:<br><a href="${block.url}" style="color:${BRAND.color};text-decoration:underline">${block.url}</a></p>`;
   }
 }
 
