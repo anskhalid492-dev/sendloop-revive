@@ -18,8 +18,11 @@ import { getDomainDnsRecords, verifySendingDomain } from "@/lib/domains.function
 import {
   DNS_STATUS_LABEL,
   DNS_STATUS_STYLE,
+  DOMAIN_STAGE_LABEL,
+  DOMAIN_STAGE_STYLE,
   RECORD_KIND_LABEL,
   type DnsRecordView,
+  type DomainStage,
 } from "@/lib/domains-model";
 import { cn } from "@/lib/utils";
 
@@ -98,24 +101,31 @@ function RecordRow({ record }: { record: DnsRecordView }) {
 }
 
 /** Customer-facing setup journey for a sending domain. */
-function SetupSteps({ records }: { records: DnsRecordView[] }) {
-  const status = (kind: DnsRecordView["kind"]) =>
-    records.find((record) => record.kind === kind)?.status ?? "pending";
-  const hasRecords = records.length > 0;
-  const spf = status("spf") === "verified";
-  const dkim = status("dkim") === "verified";
-  const dmarc = status("dmarc") === "verified";
-  const sendingReady = spf && dkim && dmarc;
+function SetupSteps({
+  records,
+  stage,
+  dnsVerified,
+  readyToSend,
+}: {
+  records: DnsRecordView[];
+  stage: DomainStage;
+  dnsVerified: boolean;
+  readyToSend: boolean;
+}) {
+  const kind = (k: DnsRecordView["kind"]) => records.filter((record) => record.kind === k);
+  const ok = (k: DnsRecordView["kind"]) => {
+    const group = kind(k);
+    return group.length > 0 && group.every((record) => record.status === "verified");
+  };
 
   const steps = [
     { label: "Add your domain", done: true },
-    { label: "Verify ownership", done: hasRecords },
-    { label: "Configure DNS records", done: hasRecords },
-    { label: "Verify SPF", done: spf },
-    { label: "Verify DKIM", done: dkim },
-    { label: "Verify DMARC", done: dmarc },
-    { label: "Enable sending", done: sendingReady },
-    { label: "Connect email accounts", done: false },
+    { label: "Publish DNS records", done: records.length > 0 },
+    { label: "SPF", done: ok("spf") || kind("spf").length === 0 },
+    { label: "DKIM", done: ok("dkim") },
+    { label: "DNS verified", done: dnsVerified },
+    { label: "Domain verification", done: readyToSend },
+    { label: "Ready to send", done: readyToSend },
   ];
   const complete = steps.filter((step) => step.done).length;
 
@@ -123,7 +133,14 @@ function SetupSteps({ records }: { records: DnsRecordView[] }) {
     <div className="rounded-lg border border-border/70 p-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold">Your domain setup</p>
-        <p className="text-xs text-muted-foreground">{complete}/8 complete</p>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn("text-[11px]", DOMAIN_STAGE_STYLE[stage])}>
+            {DOMAIN_STAGE_LABEL[stage]}
+          </Badge>
+          <p className="text-xs text-muted-foreground">
+            {complete}/{steps.length} complete
+          </p>
+        </div>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {steps.map((step, index) => (
@@ -141,6 +158,11 @@ function SetupSteps({ records }: { records: DnsRecordView[] }) {
           </span>
         ))}
       </div>
+      <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
+        <p>DNS setup: {dnsVerified ? "✓ Complete" : "⏳ In progress"}</p>
+        <p>Domain verification: {readyToSend ? "✓ Complete" : stage === "provider_verification" ? "⏳ Checking" : "—"}</p>
+        <p>Sending: {readyToSend ? "✓ Ready" : "Not yet"}</p>
+      </div>
     </div>
   );
 }
@@ -155,37 +177,53 @@ export function DnsSetupDialog({
   const queryClient = useQueryClient();
   const fetchRecords = useServerFn(getDomainDnsRecords);
   const verify = useServerFn(verifySendingDomain);
-  const [liveRecords, setLiveRecords] = useState<DnsRecordView[] | null>(null);
+  const [live, setLive] = useState<{
+    records: DnsRecordView[];
+    stage: DomainStage;
+    dnsVerified: boolean;
+    readyToSend: boolean;
+  } | null>(null);
 
   const recordsQuery = useQuery({
     queryKey: ["domain-dns", domainId],
     queryFn: () => fetchRecords({ data: { id: domainId as string } }),
     enabled: Boolean(domainId),
+    // Background rechecks while the domain is not ready yet.
+    refetchInterval: (query) => (query.state.data?.readyToSend ? false : 30_000),
   });
 
   const verifyMutation = useMutation({
     mutationFn: () => verify({ data: { id: domainId as string } }),
     onSuccess: async (result) => {
-      setLiveRecords(result.records);
-      if (result.dnsStatus === "verified")
-        toast.success("Domain verified — you can now connect an email account.");
+      setLive({
+        records: result.records,
+        stage: result.stage,
+        dnsVerified: result.dnsVerified,
+        readyToSend: result.readyToSend,
+      });
+      if (result.readyToSend)
+        toast.success("Domain verified and ready to send — you can now connect an email account.");
+      else if (result.dnsVerified)
+        toast.message("DNS is live. We are finishing verification automatically — check again shortly.");
       else
-        toast.error(
-          "Some required records are not live yet. DNS changes can take a few hours to propagate.",
-        );
+        toast.error("DNS changes are still propagating. Add the missing records and check again.");
       await queryClient.invalidateQueries({ queryKey: ["sending-domains"] });
       await queryClient.invalidateQueries({ queryKey: ["domain-dns", domainId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const records = liveRecords ?? recordsQuery.data?.records ?? [];
+  const view = live ?? recordsQuery.data ?? null;
+  const records = view?.records ?? [];
+  const stage: DomainStage = view?.stage ?? "pending_dns";
+  const dnsVerified = view?.dnsVerified ?? false;
+  const readyToSend = view?.readyToSend ?? false;
 
   return (
     <Dialog
       open={Boolean(domainId)}
       onOpenChange={(open) => {
-        if (!open) setLiveRecords(null);
+        if (!open) setLive(null);
         onOpenChange(open);
       }}
     >
@@ -193,12 +231,18 @@ export function DnsSetupDialog({
         <DialogHeader>
           <DialogTitle>Domain setup — {recordsQuery.data?.domain ?? "domain"}</DialogTitle>
           <DialogDescription>
-            Add these records in your domain's DNS settings, then run the check. MunchReach performs
-            a real DNS lookup — nothing is marked verified until the records are actually live.
+            Add these records at your DNS host, then click Verify domain. MunchReach checks DNS and
+            completes verification with MunchReach Email Infrastructure automatically — nothing is
+            marked verified until it really is.
           </DialogDescription>
         </DialogHeader>
 
-        <SetupSteps records={records} />
+        <SetupSteps
+          records={records}
+          stage={stage}
+          dnsVerified={dnsVerified}
+          readyToSend={readyToSend}
+        />
 
         <div className="overflow-hidden rounded-lg border border-border/70">
           {recordsQuery.isLoading ? (
@@ -212,7 +256,7 @@ export function DnsSetupDialog({
               No records available for this domain.
             </p>
           ) : (
-            records.map((record) => <RecordRow key={record.kind} record={record} />)
+            records.map((record) => <RecordRow key={record.id ?? record.kind} record={record} />)
           )}
         </div>
 
@@ -224,17 +268,23 @@ export function DnsSetupDialog({
             <li>Keep exactly one SPF record on the root domain — duplicates make SPF fail.</li>
             <li>Paste values exactly as shown; some DNS hosts add a trailing dot automatically.</li>
             <li>DNS changes can take up to a few hours to propagate. Check again after the TTL.</li>
+            <li>DNS changes are still propagating? Leave this open — we recheck automatically.</li>
             <li>Still stuck? Contact MunchReach support and we will review the domain with you.</li>
           </ul>
         </div>
 
         <DialogFooter className="sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            SPF, DKIM and DMARC are required. MX and the tracking record are optional.
+            Required records are marked below. DMARC, MX and tracking records are recommended but
+            optional.
           </p>
           <Button onClick={() => verifyMutation.mutate()} disabled={verifyMutation.isPending}>
             <RefreshCw className={cn("size-4", verifyMutation.isPending && "animate-spin")} />
-            {verifyMutation.isPending ? "Checking domain…" : "Check DNS again"}
+            {verifyMutation.isPending
+              ? "Verifying domain…"
+              : readyToSend
+                ? "Check again"
+                : "Verify domain"}
           </Button>
         </DialogFooter>
       </DialogContent>
