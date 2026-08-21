@@ -7207,6 +7207,10 @@ export type Database = {
         Args: { _member_id: string }
         Returns: undefined
       }
+      repair_delivery_state: {
+        Args: { _since?: string; _workspace_id?: string }
+        Returns: number
+      }
       request_referral_payout: {
         Args: {
           _amount_cents: number
