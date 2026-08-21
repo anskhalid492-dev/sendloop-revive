@@ -158,6 +158,17 @@ export const connectMailbox = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
+    {
+      const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+      await emitTransactionalEvent({
+        eventKey: "mailbox.connected",
+        userId: context.userId,
+        workspaceId: domain.workspace_id as string,
+        idempotencyKey: `mailbox.connected:${created.id as string}`,
+        variables: { "mailbox.email": data.email, "mailbox.status": "connected" },
+      });
+    }
+
     await recordCheck(client, {
       workspaceId: domain.workspace_id as string,
       accountId: created.id as string,
