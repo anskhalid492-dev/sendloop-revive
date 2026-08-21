@@ -279,3 +279,20 @@ export const listAdminNotifications = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+export const listUnmatchedEmails = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { listUnmatchedInbound } = await import("@/lib/unmatched-inbound.server");
+    return listUnmatchedInbound(50);
+  });
+
+export const retryUnmatchedEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { retryUnmatchedInbound } = await import("@/lib/unmatched-inbound.server");
+    return retryUnmatchedInbound(data.id);
+  });

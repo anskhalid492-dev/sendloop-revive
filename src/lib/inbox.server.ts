@@ -10,10 +10,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   buildThreadKey,
   classifyInbound,
+  normalizeSubject,
   previewOf,
   stripAngle,
   type ConversationStatus,
 } from "@/lib/inbox-model";
+
 
 export type InboundEmail = {
   from: string;
@@ -43,30 +45,105 @@ function lower(value: string): string {
   return value.trim().toLowerCase();
 }
 
-async function findCampaignMessage(db: Db, email: InboundEmail, prospect: string) {
-  const candidates = [stripAngle(email.inReplyTo), ...(email.references ?? []).map(stripAngle)]
+/** `anus+tok@Domain.com` -> `anus@domain.com`, so plain replies match mailboxes. */
+function baseAddress(value: string): string {
+  const [rawLocal, rawDomain] = lower(value).split("@");
+  const local = (rawLocal ?? "").split("+")[0] ?? "";
+  return rawDomain ? `${local}@${rawDomain}` : local;
+}
+
+/** Every Message-ID this reply points at, newest reference first. */
+function threadCandidates(email: InboundEmail): string[] {
+  const ids = [stripAngle(email.inReplyTo), ...[...(email.references ?? [])].reverse().map(stripAngle)]
     .filter(Boolean)
-    .slice(0, 20) as string[];
+    .map((id) => (id as string).trim());
+  return Array.from(new Set(ids)).slice(0, 20);
+}
+
+function inList(values: string[]): string {
+  return `(${values.map((v) => `"${v.replace(/"/g, "")}"`).join(",")})`;
+}
+
+const CAMPAIGN_MESSAGE_COLUMNS =
+  "id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject, to_email";
+
+/**
+ * Finds the outbound send this reply answers. Order: the Message-ID we stored
+ * when sending (provider id or our own id), then the newest email actually
+ * sent to this prospect from this mailbox. A routing token is never required.
+ */
+async function findCampaignMessage(
+  db: Db,
+  email: InboundEmail,
+  prospect: string,
+  mailboxWorkspaceId: string | null,
+) {
+  const candidates = threadCandidates(email);
 
   if (candidates.length) {
+    const list = inList(candidates);
     const { data } = await db
       .from("campaign_messages")
-      .select("id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject, to_email")
-      .in("provider_message_id", candidates)
+      .select(CAMPAIGN_MESSAGE_COLUMNS)
+      .or(`provider_message_id.in.${list},message_id.in.${list}`)
       .limit(1);
     if (data?.[0]) return data[0];
+
+    // The id may belong to a reply we sent from the inbox rather than a
+    // campaign step: that row carries the campaign message it belongs to.
+    const { data: viaConversation } = await db
+      .from("conversation_messages")
+      .select("campaign_message_id")
+      .or(`message_id.in.${list},provider_message_id.in.${list}`)
+      .not("campaign_message_id", "is", null)
+      .order("occurred_at", { ascending: false })
+      .limit(1);
+    const campaignMessageId = viaConversation?.[0]?.campaign_message_id as string | undefined;
+    if (campaignMessageId) {
+      const { data: linked } = await db
+        .from("campaign_messages")
+        .select(CAMPAIGN_MESSAGE_COLUMNS)
+        .eq("id", campaignMessageId)
+        .maybeSingle();
+      if (linked) return linked;
+    }
   }
 
   // No usable threading headers: fall back to the most recent email actually
-  // sent to this prospect from this mailbox address.
-  const { data: fallback } = await db
+  // sent to this prospect, preferring the workspace that owns the mailbox.
+  let query = db
     .from("campaign_messages")
-    .select("id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject, to_email")
+    .select(CAMPAIGN_MESSAGE_COLUMNS)
     .eq("to_email", prospect)
-    .eq("status", "sent")
+    .not("sent_at", "is", null)
     .order("sent_at", { ascending: false })
     .limit(1);
-  return fallback?.[0] ?? null;
+  if (mailboxWorkspaceId) query = query.eq("workspace_id", mailboxWorkspaceId);
+  const { data: fallback } = await query;
+  if (fallback?.[0]) return fallback[0];
+
+  if (mailboxWorkspaceId) {
+    const { data: anyWorkspace } = await db
+      .from("campaign_messages")
+      .select(CAMPAIGN_MESSAGE_COLUMNS)
+      .eq("to_email", prospect)
+      .not("sent_at", "is", null)
+      .order("sent_at", { ascending: false })
+      .limit(1);
+    return anyWorkspace?.[0] ?? null;
+  }
+  return null;
+}
+
+type ConversationRef = { id: string; status: string; message_count: number };
+
+async function loadConversation(db: Db, id: string): Promise<ConversationRef | null> {
+  const { data } = await db
+    .from("conversations")
+    .select("id, status, message_count, archived")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as ConversationRef | null) ?? null;
 }
 
 /**
@@ -76,12 +153,10 @@ async function findCampaignMessage(db: Db, email: InboundEmail, prospect: string
  * subject-derived thread key.
  */
 async function findConversationByHeaders(db: Db, email: InboundEmail, workspaceId: string) {
-  const candidates = [stripAngle(email.inReplyTo), ...(email.references ?? []).map(stripAngle)]
-    .filter(Boolean)
-    .slice(0, 20) as string[];
+  const candidates = threadCandidates(email);
   if (!candidates.length) return null;
 
-  const list = `(${candidates.map((c) => `"${c.replace(/"/g, "")}"`).join(",")})`;
+  const list = inList(candidates);
   const { data } = await db
     .from("conversation_messages")
     .select("conversation_id")
@@ -91,24 +166,87 @@ async function findConversationByHeaders(db: Db, email: InboundEmail, workspaceI
     .limit(1);
   const conversationId = data?.[0]?.conversation_id as string | undefined;
   if (!conversationId) return null;
-
-  const { data: conversation } = await db
-    .from("conversations")
-    .select("id, status, message_count, archived")
-    .eq("id", conversationId)
-    .maybeSingle();
-  return (conversation as { id: string; status: string; message_count: number } | null) ?? null;
+  return loadConversation(db, conversationId);
 }
 
+/**
+ * Last-resort threading when a reply carries no usable headers: the newest
+ * conversation with this prospect in this workspace whose subject matches once
+ * `Re:`/`Fwd:` prefixes are stripped, else simply the newest one.
+ */
+async function findConversationByParticipants(
+  db: Db,
+  workspaceId: string,
+  prospect: string,
+  subject: string,
+) {
+  const { data } = await db
+    .from("conversations")
+    .select("id, subject, last_message_at")
+    .eq("workspace_id", workspaceId)
+    .eq("prospect_email", prospect)
+    .order("last_message_at", { ascending: false })
+    .limit(20);
+  const rows = (data ?? []) as { id: string; subject: string | null }[];
+  if (!rows.length) return null;
+
+  const wanted = normalizeSubject(subject);
+  const bySubject = wanted ? rows.find((r) => normalizeSubject(r.subject) === wanted) : null;
+  const chosen = bySubject ?? rows[0];
+  return chosen ? loadConversation(db, chosen.id) : null;
+}
+
+/** Which workspace owns the mailbox the reply was delivered to. */
 async function resolveWorkspaceFromMailbox(db: Db, mailbox: string) {
+  const base = baseAddress(mailbox);
+  const filters = [
+    `from_email.ilike.${mailbox}`,
+    `reply_to.ilike.${mailbox}`,
+    `from_email.ilike.${base}`,
+    `reply_to.ilike.${base}`,
+  ];
   const { data } = await db
     .from("sending_accounts")
     .select("id, workspace_id")
-    .or(`from_email.eq.${mailbox},reply_to.eq.${mailbox}`)
+    .or(filters.join(","))
     .not("workspace_id", "is", null)
     .limit(1);
-  return data?.[0] ?? null;
+  if (data?.[0]) return data[0];
+
+  // Catch-all: the mailbox belongs to a sending domain we own.
+  const domain = base.split("@")[1];
+  if (!domain) return null;
+  const { data: byDomain } = await db
+    .from("sending_accounts")
+    .select("id, workspace_id")
+    .ilike("from_email", `%@${domain}`)
+    .not("workspace_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  return byDomain?.[0] ?? null;
 }
+
+/** Nothing matched: keep the email in the Unmatched inbox instead of dropping it. */
+async function storeUnmatched(db: Db, email: InboundEmail, reason: string) {
+  const messageId = stripAngle(email.messageId);
+  await db.from("unmatched_inbound_emails").upsert(
+    {
+      from_email: lower(email.from),
+      from_name: email.fromName ?? null,
+      to_email: lower(email.to),
+      subject: (email.subject ?? "").slice(0, 300),
+      body: (email.text ?? previewOf(email.html, 20000) ?? "").slice(0, 100000),
+      html: email.html ?? null,
+      message_id: messageId,
+      in_reply_to: stripAngle(email.inReplyTo),
+      reference_ids: (email.references ?? []).map((r) => stripAngle(r)).filter(Boolean) as string[],
+      reason: reason.slice(0, 300),
+      received_at: email.receivedAt ?? new Date().toISOString(),
+    },
+    { onConflict: "message_id", ignoreDuplicates: true },
+  );
+}
+
 
 /** Processes one inbound email end to end. Safe to call repeatedly. */
 export async function ingestInboundEmail(email: InboundEmail): Promise<IngestResult> {
@@ -125,23 +263,31 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     : receivedAt.toISOString();
   const messageId = stripAngle(email.messageId);
 
-  // Strongest signal first: the routed reply address we sent from.
+  // Routing token if one is present, but it is only a shortcut — a plain reply
+  // to a normal mailbox threads just as reliably through headers below.
   const { resolveRouteFromAddress } = await import("@/lib/inbound-routing.server");
   const route = await resolveRouteFromAddress(mailbox);
 
-  const campaignMessage = await findCampaignMessage(db, email, prospect);
-  let workspaceId = route?.workspace_id ?? campaignMessage?.workspace_id ?? null;
-  let sendingAccountId =
-    route?.sending_account_id ?? campaignMessage?.sending_account_id ?? null;
+  const mailboxAccount = await resolveWorkspaceFromMailbox(db, mailbox);
+  const campaignMessage = await findCampaignMessage(
+    db,
+    email,
+    prospect,
+    route?.workspace_id ?? mailboxAccount?.workspace_id ?? null,
+  );
+  const workspaceId =
+    route?.workspace_id ?? campaignMessage?.workspace_id ?? mailboxAccount?.workspace_id ?? null;
+  const sendingAccountId =
+    route?.sending_account_id ??
+    campaignMessage?.sending_account_id ??
+    mailboxAccount?.id ??
+    null;
 
   if (!workspaceId) {
-    const account = await resolveWorkspaceFromMailbox(db, mailbox);
-    if (account) {
-      workspaceId = account.workspace_id;
-      sendingAccountId = sendingAccountId ?? account.id;
-    }
+    await storeUnmatched(db, email, "No workspace matched this email");
+    return { status: "unmatched", reason: "No workspace matched this email" };
   }
-  if (!workspaceId) return { status: "unmatched", reason: "No workspace matched this email" };
+
 
   // Duplicate delivery of the very same email: stop before any side effect.
   if (messageId) {
@@ -187,20 +333,33 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   const campaignId = route?.campaign_id ?? campaignMessage?.campaign_id ?? null;
   const threadKey = buildThreadKey({ campaignId, prospectEmail: prospect, subject });
 
-  // The routing token can point at an exact thread (manual compose, replies),
-  // which beats subject-based thread keys.
-  let routedConversation: { id: string; status: string; message_count: number } | null = null;
+  // Thread resolution, strongest signal first:
+  // 1. routing token pointing at an exact thread
+  // 2. In-Reply-To / References matching a Message-ID we stored
+  // 3. the campaign send this reply answers
+  // 4. sender + recipient + subject matching an existing thread
+  let routedConversation: ConversationRef | null = null;
   if (route?.conversation_id) {
-    const { data } = await db
-      .from("conversations")
-      .select("id, status, message_count, archived")
-      .eq("id", route.conversation_id)
-      .maybeSingle();
-    routedConversation = (data as typeof routedConversation) ?? null;
+    routedConversation = await loadConversation(db, route.conversation_id);
   }
   if (!routedConversation) {
     routedConversation = await findConversationByHeaders(db, email, workspaceId);
   }
+  if (!routedConversation && campaignMessage?.id) {
+    const { data: viaSend } = await db
+      .from("conversation_messages")
+      .select("conversation_id")
+      .eq("workspace_id", workspaceId)
+      .eq("campaign_message_id", campaignMessage.id)
+      .order("occurred_at", { ascending: false })
+      .limit(1);
+    const id = viaSend?.[0]?.conversation_id as string | undefined;
+    if (id) routedConversation = await loadConversation(db, id);
+  }
+  if (!routedConversation) {
+    routedConversation = await findConversationByParticipants(db, workspaceId, prospect, subject);
+  }
+
 
   const { data: upserted, error: convError } = routedConversation
     ? { data: routedConversation, error: null }

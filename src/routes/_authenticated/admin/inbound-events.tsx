@@ -30,11 +30,14 @@ import { WebhookStatus } from "@/components/admin/WebhookStatus";
 import {
   getRoutingFailures,
   listEmailEvents,
+  listUnmatchedEmails,
   repairEventConversationLink,
   reprocessEmailEvent,
   retryEmailEvent,
+  retryUnmatchedEmail,
   runReconciliation,
 } from "@/lib/ops.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/inbound-events")({
   head: () => ({
@@ -124,6 +127,26 @@ function AdminInboundEventsPage() {
   const reprocess = useServerFn(reprocessEmailEvent);
   const reconcile = useServerFn(runReconciliation);
   const repairLink = useServerFn(repairEventConversationLink);
+  const fetchUnmatched = useServerFn(listUnmatchedEmails);
+  const retryUnmatched = useServerFn(retryUnmatchedEmail);
+
+  const unmatchedQuery = useQuery({
+    queryKey: ["unmatched-inbound"],
+    queryFn: () => fetchUnmatched({}),
+  });
+  const retryUnmatchedMutation = useMutation({
+    mutationFn: (id: string) => retryUnmatched({ data: { id } }),
+    onSuccess: (result: { status: string }) => {
+      toast[result.status === "unmatched" ? "error" : "success"](
+        result.status === "unmatched"
+          ? "Still no matching mailbox for this reply."
+          : "Reply moved into the unified inbox.",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["unmatched-inbound"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const [status, setStatus] = useState("all");
   const [eventType, setEventType] = useState("all");
@@ -263,7 +286,12 @@ function AdminInboundEventsPage() {
           <TabsTrigger value="routing">
             Routing failures{failures.length ? ` (${failures.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="unmatched">
+            Unmatched inbox
+            {unmatchedQuery.data?.rows.length ? ` (${unmatchedQuery.data.rows.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="reconciliation">Reconciliation</TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="events" className="mt-4">
@@ -550,7 +578,57 @@ function AdminInboundEventsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="unmatched" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Unmatched inbox</CardTitle>
+              <CardDescription>
+                Replies that arrived at an address no workspace owns. Nothing is lost — connect the
+                mailbox, then replay the email into the unified inbox.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {unmatchedQuery.isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : !unmatchedQuery.data?.rows.length ? (
+                <p className="text-sm text-muted-foreground">
+                  Nothing here — every reply reached a workspace inbox.
+                </p>
+              ) : (
+                unmatchedQuery.data.rows.map((row) => (
+                  <div key={row.id} className="rounded-lg border border-border p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">{row.from_email}</span>
+                      <span className="text-sm text-muted-foreground">→ {row.to_email}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {when(row.received_at)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm">{row.subject ?? "(no subject)"}</p>
+                    <p className="text-xs text-muted-foreground">{row.reason ?? "No match"}</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      {row.resolved_conversation_id ? (
+                        <InboxThreadLink conversationId={row.resolved_conversation_id} />
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled={retryUnmatchedMutation.isPending}
+                          onClick={() => retryUnmatchedMutation.mutate(row.id)}
+                        >
+                          <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                          Retry matching
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reconciliation" className="mt-4">
+
           <Card>
             <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
               <div>
