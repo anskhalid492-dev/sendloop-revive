@@ -166,7 +166,7 @@ export async function checkWorkspaceQuota(userId: string): Promise<void> {
     .from("workspaces")
     .select("id")
     .eq("owner_id", userId);
-  const workspaces = owned ?? [];
+  const workspaces = (owned ?? []) as { id: string }[];
   if (workspaces.length === 0) return;
 
   const entitlements = await Promise.all(workspaces.map((w) => getEntitlement(w.id)));
