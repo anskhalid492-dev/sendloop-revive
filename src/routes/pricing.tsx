@@ -331,6 +331,10 @@ const pricingFaqs = [
       a: "Yes. You can upgrade or downgrade at any time from your workspace settings. Prorated credits are applied automatically.",
     },
     {
+      q: "How are lead and email limits different?",
+      a: "Leads are a fixed storage capacity — the total number of contacts your workspace can hold at once. Emails are an allowance that resets at the start of every billing cycle.",
+    },
+    {
       q: "Do I need my own SMTP or email API?",
       a: "No. MunchReach manages the sending infrastructure behind the scenes. You add prospects, build your campaign and launch — we handle delivery.",
     },
@@ -339,16 +343,17 @@ const pricingFaqs = [
       a: "A lead contact is a unique email address stored in your workspace. We deduplicate by email across all lead lists.",
     },
     {
-      q: "Is there a free trial for paid plans?",
-      a: "Every new workspace starts on the Free plan. You can explore all core features, then upgrade when you need more volume or team seats.",
+      q: "What happens on the free trial?",
+      a: "The free trial includes a one-time allowance of leads and emails that does not reset. Upgrade whenever you need recurring monthly volume.",
+    },
+    {
+      q: "What happens when I hit a limit?",
+      a: "We warn you at 70%, 85% and 95% of an allowance. At 100% the related action is paused until your next cycle or an upgrade — nothing is deleted.",
     },
     {
       q: "Can I get a refund?",
       a: "We offer a 14-day refund on yearly plans if you haven't launched a campaign. Monthly plans can be cancelled anytime.",
     },
-    {
-      q: "What is included on the Agency plan?",
-      a: "Agency plans add white-label options, more workspaces and seats, priority support and higher sending volume for client work.",
-    },
   ];
+
 
