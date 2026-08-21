@@ -33,7 +33,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RECIPIENT_STATUS_LABELS } from "@/lib/campaign-model";
+import {
+  LEAD_DELIVERY_LABELS,
+  LEAD_DELIVERY_STATES,
+  LEAD_DELIVERY_STYLES,
+  type LeadDeliveryState,
+} from "@/lib/campaign-model";
 import { addLeadsToCampaign, updateCampaignRecipients } from "@/lib/campaigns.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
