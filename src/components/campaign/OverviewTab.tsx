@@ -17,14 +17,14 @@ function Metric({ label, value, hint }: { label: string; value: string | number;
 }
 
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
-  const { campaign, queue, steps, accounts, settings, leads } = builder;
+  const { campaign, queue, delivery, steps, accounts, settings, leads } = builder;
   if (!campaign || !settings) return null;
 
   const selected = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
   const warning = selected.filter((a) => a.paused || a.status === "failed");
   const dailyUsed = selected.reduce((sum, a) => sum + (a.sent_today ?? 0), 0);
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
-  const contacted = leads.filter((l) => l.status !== "pending").length;
+  const contacted = delivery?.contacted ?? leads.filter((l) => l.status !== "pending").length;
 
   const recentActivity = leads
     .filter((l) => l.last_sent_at)
@@ -57,14 +57,22 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Total leads" value={queue?.total ?? 0} />
+        <Metric label="Total leads" value={delivery?.totalLeads ?? queue?.total ?? 0} />
         <Metric label="Leads contacted" value={contacted} />
-        <Metric label="Emails sent" value={queue?.sent ?? 0} />
-        <Metric label="Replies" value={queue?.replied ?? 0} />
+        <Metric label="Emails sent" value={delivery?.sent ?? queue?.sent ?? 0} hint="Accepted by the sending infrastructure" />
+        <Metric
+          label="Delivered"
+          value={delivery?.delivered ?? 0}
+          hint="Confirmed in the recipient mailbox"
+        />
+        <Metric label="Opened" value={delivery?.opened ?? 0} />
+        <Metric label="Clicked" value={delivery?.clicked ?? 0} />
+        <Metric label="Replies" value={delivery?.replied ?? queue?.replied ?? 0} />
         <Metric label="Completed" value={queue?.completed ?? 0} />
-        <Metric label="Bounced" value={queue?.bounced ?? 0} />
-        <Metric label="Unsubscribed" value={queue?.unsubscribed ?? 0} />
-        <Metric label="Failed" value={queue?.failed ?? 0} />
+        <Metric label="Bounced" value={delivery?.bounced ?? queue?.bounced ?? 0} hint="Never counted as delivered" />
+        <Metric label="Delayed" value={delivery?.delayed ?? 0} hint="Retrying" />
+        <Metric label="Unsubscribed" value={delivery?.unsubscribed ?? queue?.unsubscribed ?? 0} />
+        <Metric label="Failed" value={delivery?.failed ?? queue?.failed ?? 0} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
