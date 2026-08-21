@@ -9,6 +9,8 @@ import {
   Loader2,
   Mail,
   MailOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Paperclip,
   Send,
   Tag as TagIcon,
@@ -50,6 +52,11 @@ import {
   updateConversation,
 } from "@/lib/inbox.functions";
 import { listTemplates } from "@/lib/templates.functions";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { ProspectPanel } from "@/components/inbox/ProspectPanel";
 import { cn } from "@/lib/utils";
 
