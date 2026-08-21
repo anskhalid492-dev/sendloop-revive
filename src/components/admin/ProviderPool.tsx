@@ -419,14 +419,14 @@ export function ProviderPool() {
             <div className="space-y-3 rounded-lg border border-border p-4">
               <p className="text-sm font-medium">Credentials</p>
               {definition.fields.map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <Label htmlFor={`cred-${field.key}`}>{field.label}</Label>
+                <div key={field.name} className="space-y-2">
+                  <Label htmlFor={`cred-${field.name}`}>{field.label}</Label>
                   <Input
-                    id={`cred-${field.key}`}
+                    id={`cred-${field.name}`}
                     type={field.secret ? "password" : "text"}
-                    value={credentials[field.key] ?? ""}
+                    value={credentials[field.name] ?? ""}
                     onChange={(e) =>
-                      setCredentials((prev) => ({ ...prev, [field.key]: e.target.value }))
+                      setCredentials((prev) => ({ ...prev, [field.name]: e.target.value }))
                     }
                     placeholder={field.placeholder ?? ""}
                   />
