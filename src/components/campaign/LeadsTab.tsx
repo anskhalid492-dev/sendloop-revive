@@ -66,7 +66,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
         const lead = row.lead;
         const haystack = `${lead?.email ?? ""} ${lead?.first_name ?? ""} ${lead?.last_name ?? ""}`;
         if (search && !haystack.toLowerCase().includes(search.toLowerCase())) return false;
-        if (status !== ANY && row.status !== status) return false;
+        if (status !== ANY && (row.deliveryState ?? "not_contacted") !== status) return false;
         if (company && !(lead?.company ?? "").toLowerCase().includes(company.toLowerCase()))
           return false;
         if (jobTitle && !(lead?.job_title ?? "").toLowerCase().includes(jobTitle.toLowerCase()))
