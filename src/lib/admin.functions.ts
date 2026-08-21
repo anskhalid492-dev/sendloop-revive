@@ -36,6 +36,27 @@ export type AdminProvider = {
   last_error: string | null;
   notes: string | null;
   created_at: string;
+  mode: string | null;
+  region: string | null;
+  health_status: string | null;
+  health_checked_at: string | null;
+  health_detail: string | null;
+  last_success_at: string | null;
+  success_count: number | null;
+  failure_count: number | null;
+  sent_hour: number | null;
+  sent_day: number | null;
+};
+
+export type ProviderRoutingEvent = {
+  id: string;
+  provider_id: string | null;
+  previous_provider_id: string | null;
+  domain: string | null;
+  event: string;
+  reason: string | null;
+  detail: string | null;
+  created_at: string;
 };
 
 export type AdminSendingAccount = {
@@ -94,6 +115,8 @@ export const saveProvider = createServerFn({ method: "POST" })
         dailyCapacity: z.number().int().min(0).max(1_000_000),
         hourlyCapacity: z.number().int().min(0).max(100_000),
         costPer1kCents: z.number().int().min(0).max(100_000),
+        mode: z.enum(["sandbox", "live"]).optional(),
+        region: z.string().trim().max(40).optional(),
         notes: z.string().trim().max(500).optional(),
         credentials: z.record(z.string(), z.string().min(1)).optional(),
       })
@@ -110,6 +133,8 @@ export const saveProvider = createServerFn({ method: "POST" })
       daily_capacity: data.dailyCapacity,
       hourly_capacity: data.hourlyCapacity,
       cost_per_1k_cents: data.costPer1kCents,
+      mode: data.mode ?? "live",
+      region: data.region || null,
       notes: data.notes || null,
     };
 
@@ -209,6 +234,34 @@ export const deleteProvider = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("email_providers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * Runs a live health probe against every provider in the global pool and
+ * persists the result. Routing consumes these health values automatically.
+ */
+export const runProviderPoolHealthCheck = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { checkPoolHealth } = await import("@/lib/provider-pool.server");
+    const results = await checkPoolHealth(supabaseAdmin);
+    return { ok: true, results };
+  });
+
+/** Global routing / failover audit trail. */
+export const listProviderRoutingEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { data, error } = await context.supabase
+      .from("provider_routing_events")
+      .select("id, provider_id, previous_provider_id, domain, event, reason, detail, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ProviderRoutingEvent[];
   });
 
 export const listAllSendingAccounts = createServerFn({ method: "GET" })

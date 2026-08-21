@@ -43,6 +43,7 @@ import { MxChecker } from "@/components/admin/MxChecker";
 import { EmailEventLog } from "@/components/admin/EmailEventLog";
 import { InboundTest } from "@/components/admin/InboundTest";
 import { InboundOpsSettings } from "@/components/admin/InboundOpsSettings";
+import { ProviderPool } from "@/components/admin/ProviderPool";
 import { deleteProvider, listProviders, saveProvider, testProvider } from "@/lib/admin.functions";
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
 
@@ -135,17 +136,23 @@ function AdminProvidersPage() {
   });
 
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
+    <Tabs defaultValue="pool" className="space-y-6">
       <TabsList>
+        <TabsTrigger value="pool">Sending pool</TabsTrigger>
         <TabsTrigger value="overview">All providers</TabsTrigger>
         <TabsTrigger value="email">Email &amp; sending setup</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="pool">
+        <ProviderPool />
+      </TabsContent>
 
       <TabsContent value="overview">
         <PlatformProviders />
       </TabsContent>
 
       <TabsContent value="email" className="space-y-6">
+
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">Email providers</h2>

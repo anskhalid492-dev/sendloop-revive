@@ -2759,52 +2759,88 @@ export type Database = {
           cost_per_1k_cents: number
           created_at: string
           daily_capacity: number
+          failure_count: number
+          health_checked_at: string | null
+          health_detail: string | null
+          health_status: string
           hourly_capacity: number
           id: string
           is_enabled: boolean
           last_error: string | null
+          last_success_at: string | null
           last_tested_at: string | null
+          mode: string
           name: string
           notes: string | null
           priority: number
           provider: Database["public"]["Enums"]["sending_provider"]
+          region: string | null
           reply_to_email: string | null
+          sent_day: number
+          sent_hour: number
           status: Database["public"]["Enums"]["connection_status"]
+          success_count: number
           updated_at: string
+          usage_day: string | null
+          usage_hour: string | null
         }
         Insert: {
           cost_per_1k_cents?: number
           created_at?: string
           daily_capacity?: number
+          failure_count?: number
+          health_checked_at?: string | null
+          health_detail?: string | null
+          health_status?: string
           hourly_capacity?: number
           id?: string
           is_enabled?: boolean
           last_error?: string | null
+          last_success_at?: string | null
           last_tested_at?: string | null
+          mode?: string
           name: string
           notes?: string | null
           priority?: number
           provider: Database["public"]["Enums"]["sending_provider"]
+          region?: string | null
           reply_to_email?: string | null
+          sent_day?: number
+          sent_hour?: number
           status?: Database["public"]["Enums"]["connection_status"]
+          success_count?: number
           updated_at?: string
+          usage_day?: string | null
+          usage_hour?: string | null
         }
         Update: {
           cost_per_1k_cents?: number
           created_at?: string
           daily_capacity?: number
+          failure_count?: number
+          health_checked_at?: string | null
+          health_detail?: string | null
+          health_status?: string
           hourly_capacity?: number
           id?: string
           is_enabled?: boolean
           last_error?: string | null
+          last_success_at?: string | null
           last_tested_at?: string | null
+          mode?: string
           name?: string
           notes?: string | null
           priority?: number
           provider?: Database["public"]["Enums"]["sending_provider"]
+          region?: string | null
           reply_to_email?: string | null
+          sent_day?: number
+          sent_hour?: number
           status?: Database["public"]["Enums"]["connection_status"]
+          success_count?: number
           updated_at?: string
+          usage_day?: string | null
+          usage_hour?: string | null
         }
         Relationships: []
       }
@@ -4068,6 +4104,74 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_routing_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          domain: string | null
+          domain_id: string | null
+          event: string
+          id: string
+          previous_provider_id: string | null
+          provider_id: string | null
+          reason: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          domain?: string | null
+          domain_id?: string | null
+          event: string
+          id?: string
+          previous_provider_id?: string | null
+          provider_id?: string | null
+          reason?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          domain?: string | null
+          domain_id?: string | null
+          event?: string
+          id?: string
+          previous_provider_id?: string | null
+          provider_id?: string | null
+          reason?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_routing_events_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "sending_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_routing_events_previous_provider_id_fkey"
+            columns: ["previous_provider_id"]
+            isOneToOne: false
+            referencedRelation: "email_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_routing_events_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "email_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_routing_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_attributions: {
         Row: {
           code: string
@@ -4938,10 +5042,12 @@ export type Database = {
           last_error: string | null
           mx_status: string
           provider: string | null
+          provider_assigned_at: string | null
           provider_checked_at: string | null
           provider_domain_id: string | null
           provider_error: string | null
           provider_id: string | null
+          provider_locked_until: string | null
           provider_records: Json
           provider_status: string
           ready_at: string | null
@@ -4969,10 +5075,12 @@ export type Database = {
           last_error?: string | null
           mx_status?: string
           provider?: string | null
+          provider_assigned_at?: string | null
           provider_checked_at?: string | null
           provider_domain_id?: string | null
           provider_error?: string | null
           provider_id?: string | null
+          provider_locked_until?: string | null
           provider_records?: Json
           provider_status?: string
           ready_at?: string | null
@@ -5000,10 +5108,12 @@ export type Database = {
           last_error?: string | null
           mx_status?: string
           provider?: string | null
+          provider_assigned_at?: string | null
           provider_checked_at?: string | null
           provider_domain_id?: string | null
           provider_error?: string | null
           provider_id?: string | null
+          provider_locked_until?: string | null
           provider_records?: Json
           provider_status?: string
           ready_at?: string | null
@@ -6872,6 +6982,10 @@ export type Database = {
       move_crm_contacts: {
         Args: { _lead_ids: string[]; _stage_id: string }
         Returns: number
+      }
+      provider_record_usage: {
+        Args: { _failed?: number; _provider_id: string; _sent?: number }
+        Returns: undefined
       }
       public_auth_settings: {
         Args: never
