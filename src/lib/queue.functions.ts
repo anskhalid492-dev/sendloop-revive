@@ -81,6 +81,19 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         .eq("campaign_id", data.campaignId),
     ]);
     if (messagesRes.error) throw new Error(messagesRes.error.message);
+    const { customerSafeMessage } = await import("@/lib/managed-sending.server");
+    // Strip vendor identity and raw provider errors before the queue reaches
+    // the customer; the untouched values stay in the database for admins.
+    messagesRes.data = (messagesRes.data ?? []).map((row) => ({
+      ...row,
+      provider: null,
+      last_error: (row as { last_error?: string | null }).last_error
+        ? customerSafeMessage(
+            (row as { last_error?: string | null }).last_error,
+            "This message could not be delivered. Please contact support.",
+          )
+        : null,
+    })) as never;
     if (countsRes.error) throw new Error(countsRes.error.message);
 
     const counts = Object.fromEntries(MESSAGE_STATUSES.map((s) => [s, 0])) as Record<
@@ -117,7 +130,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         accountId: id,
         label: account?.label ?? "Unknown mailbox",
         fromEmail: account?.from_email ?? "",
-        provider: account?.provider ?? null,
+        // Customers never see the underlying infrastructure vendor.
+        provider: null,
         total: mine.length,
         sent: mine.filter((r) => r.status === "sent").length,
         failed: mine.filter((r) => r.status === "failed").length,

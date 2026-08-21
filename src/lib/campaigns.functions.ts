@@ -700,29 +700,31 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         status: result.ok ? "accepted" : "rejected",
         error: result.ok ? null : result.message,
       };
-      const { error: diagnosticError } = await supabaseAdmin.from("campaign_test_sends").insert(diagnostic);
+      // The raw row keeps the real provider identity for admin diagnostics;
+      // the response returned to the customer is scrubbed of infrastructure.
+      await supabaseAdmin.from("campaign_test_sends").insert(diagnostic);
+      const { customerSafeMessage } = await import("@/lib/managed-sending.server");
       results.push({
         to,
         ok: result.ok,
         status: result.ok ? "accepted" : "rejected",
-        message: diagnosticError
-          ? `${result.message} Diagnostic logging failed: ${diagnosticError.message}`
-          : result.message,
+        message: result.ok
+          ? "MunchReach accepted the test email."
+          : customerSafeMessage(
+              result.message,
+              "MunchReach could not send this test email. Please contact support.",
+            ),
         requestId,
-        ...(result.requestId ? { providerRequestId: result.requestId } : {}),
         ...(result.messageId ? { providerMessageId: result.messageId } : {}),
-        ...(result.statusCode ? { statusCode: result.statusCode } : {}),
-        ...(result.providerResponse ? { providerResponse: result.providerResponse } : {}),
-        webhookStatus: "Waiting for provider webhook",
+        webhookStatus: "Waiting for delivery confirmation",
       });
     }
 
-    // The UI used to report success even when the provider rejected every
-    // recipient, which is why "sent" test emails never arrived. Surface the
-    // provider's own error instead.
+    // The UI used to report success even when every recipient was rejected,
+    // which is why "sent" test emails never arrived. Surface the failure.
     const failed = results.filter((r) => !r.ok);
     if (failed.length === results.length) {
-      throw new Error(failed[0]?.message ?? "The email provider rejected this test send");
+      throw new Error(failed[0]?.message ?? "MunchReach could not send this test email.");
     }
     return { results, accepted: results.length - failed.length, failed };
   });
@@ -757,7 +759,25 @@ export const listCampaignTestDiagnostics = createServerFn({ method: "GET" })
       : { data: [] };
 
     const { correlateTestSend } = await import("@/lib/test-send-status");
-    return (rows ?? []).map((row) => correlateTestSend(row, (events ?? []) as never));
+    const { customerSafeMessage } = await import("@/lib/managed-sending.server");
+    // The real provider identity stays in the database and Admin → Providers;
+    // customers only ever see MunchReach's own sending infrastructure.
+    return (rows ?? []).map((row) => {
+      const correlated = correlateTestSend(row, (events ?? []) as never);
+      return {
+        ...correlated,
+        provider: null,
+        provider_response: correlated.provider_response
+          ? customerSafeMessage(correlated.provider_response, "Delivery attempt recorded.")
+          : null,
+        error: correlated.error
+          ? customerSafeMessage(correlated.error, "The message could not be sent. Please contact support.")
+          : null,
+        webhookError: correlated.webhookError
+          ? customerSafeMessage(correlated.webhookError, "Delivery reported a failure.")
+          : null,
+      };
+    });
   });
 
 

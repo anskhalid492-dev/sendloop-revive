@@ -46,6 +46,13 @@ async function primaryWorkspace(client: Client, userId: string): Promise<string>
   return data.workspace_id as string;
 }
 
+const VENDOR_PATTERN = /\b(resend|mailgun|sendgrid|brevo|postmark|zeptomail|amazon ses|\bses\b|supabase)\b/gi;
+
+/** Replaces infrastructure vendor names with the MunchReach brand. */
+function scrubVendorText(text: string) {
+  return text.replace(VENDOR_PATTERN, "MunchReach");
+}
+
 function shape(row: Record<string, unknown>, counts: { total: number; active: number }): SendingDomain {
   const {
     workspace_id: _ws,
@@ -63,8 +70,13 @@ function shape(row: Record<string, unknown>, counts: { total: number; active: nu
     "mailboxCount" | "activeMailboxes" | "health" | "stage" | "readyToSend"
   >;
   const resolvedStage = (disabledAt ? "disabled" : ((stage as string) || "pending_dns")) as SendingDomain["stage"];
+  // Verification notes can carry infrastructure vendor text; customers see a
+  // neutral MunchReach message instead.
+  const rawError = (base as { last_error?: string | null }).last_error ?? null;
+  const safeError = rawError ? scrubVendorText(rawError) : null;
   return {
     ...base,
+    last_error: safeError,
     stage: resolvedStage,
     readyToSend: resolvedStage === "ready",
     mailboxCount: counts.total,
