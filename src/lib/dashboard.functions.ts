@@ -36,7 +36,8 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     const { supabase } = context;
     const workspaceId = data.workspaceId;
 
-    const [membership, leads, campaigns, recipients, accounts] = await Promise.all([
+    const [membership, leads, campaigns, recipients, accounts, domains, warmupEvents] =
+      await Promise.all([
       supabase
         .from("workspace_members")
         .select("role")
