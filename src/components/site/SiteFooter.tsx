@@ -14,6 +14,7 @@ import {
   Lock,
   Repeat,
   Send,
+  Sparkles,
   ShieldCheck,
   Users,
   Youtube,

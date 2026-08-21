@@ -17,6 +17,7 @@ import {
   Menu,
   Plug,
   Send,
+  Sparkles,
   ShieldCheck,
   Users,
   Workflow,
