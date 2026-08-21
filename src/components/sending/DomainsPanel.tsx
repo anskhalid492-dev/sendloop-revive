@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { removeSendingDomain, verifySendingDomain } from "@/lib/domains.functions";
 import {
-  DNS_STATUS_LABEL,
   DNS_STATUS_STYLE,
+  DOMAIN_STAGE_LABEL,
+  DOMAIN_STAGE_STYLE,
   type SendingDomain,
 } from "@/lib/domains-model";
 import { cn } from "@/lib/utils";
@@ -41,8 +42,10 @@ export function DomainsPanel({
     mutationFn: (id: string) => verify({ data: { id } }),
     onMutate: (id: string) => setBusyId(id),
     onSuccess: async (result) => {
-      if (result.dnsStatus === "verified") toast.success("DNS verified for this domain.");
-      else toast.error("Required DNS records are not live yet.");
+      if (result.readyToSend) toast.success("Domain verified — it is ready to send.");
+      else if (result.dnsVerified)
+        toast.message("DNS looks good. We are finishing verification — this can take a few minutes.");
+      else toast.error("DNS changes are still propagating. We will keep checking.");
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -116,8 +119,8 @@ export function DomainsPanel({
                 ))}
               </div>
 
-              <Badge variant="outline" className={cn("font-medium", DNS_STATUS_STYLE[domain.dns_status])}>
-                {DNS_STATUS_LABEL[domain.dns_status]}
+              <Badge variant="outline" className={cn("font-medium", DOMAIN_STAGE_STYLE[domain.stage])}>
+                {DOMAIN_STAGE_LABEL[domain.stage]}
               </Badge>
 
               <div className="ml-auto flex items-center gap-1.5">
@@ -128,14 +131,14 @@ export function DomainsPanel({
                   onClick={() => verifyMutation.mutate(domain.id)}
                 >
                   <RefreshCw className={cn("size-4", busyId === domain.id && "animate-spin")} />
-                  {domain.dns_status === "pending" ? "Verify" : "Re-verify DNS"}
+                  {domain.readyToSend ? "Re-check" : "Verify domain"}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => onOpenDns(domain.id)}>
                   <Settings2 className="size-4" /> DNS records
                 </Button>
                 <Button
                   size="sm"
-                  disabled={domain.dns_status !== "verified"}
+                  disabled={!domain.readyToSend}
                   onClick={() => onConnectMailbox(domain.id)}
                 >
                   Connect mailbox
@@ -152,8 +155,14 @@ export function DomainsPanel({
                 </Button>
               </div>
 
-              {domain.last_error && domain.dns_status !== "verified" ? (
-                <p className="w-full text-xs text-destructive">{domain.last_error}</p>
+              {!domain.readyToSend && domain.stage !== "pending_dns" ? (
+                <p className="w-full text-xs text-muted-foreground">
+                  {domain.stage === "provider_verification"
+                    ? "Finishing verification with MunchReach Email Infrastructure — this can take a few minutes."
+                    : domain.stage === "provider_error"
+                      ? "Your sending domain could not be verified yet. We will keep checking automatically."
+                      : "DNS changes are still propagating. Open DNS records to see what is missing."}
+                </p>
               ) : null}
             </li>
           ))}
