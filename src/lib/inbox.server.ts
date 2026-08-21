@@ -10,10 +10,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   buildThreadKey,
   classifyInbound,
+  normalizeSubject,
   previewOf,
   stripAngle,
   type ConversationStatus,
 } from "@/lib/inbox-model";
+
 
 export type InboundEmail = {
   from: string;
