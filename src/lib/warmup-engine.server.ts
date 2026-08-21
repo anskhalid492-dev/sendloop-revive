@@ -1209,7 +1209,16 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
       }
     }
 
-    // 3. Health ------------------------------------------------------------
+    // 3. Placement sweep ---------------------------------------------------
+    try {
+      await sweepPlacement(admin);
+    } catch (error) {
+      summary.errors.push(
+        `placement sweep: ${error instanceof Error ? error.message : "failed"}`,
+      );
+    }
+
+    // 4. Health ------------------------------------------------------------
     const touched = new Set(jobs.map((j) => j["sending_account_id"] as string));
     for (const accountId of touched) {
       try {
