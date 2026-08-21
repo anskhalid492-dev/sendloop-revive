@@ -142,18 +142,9 @@ function SignInPage() {
         </>
       )}
 
-      {googleQuery.data?.googleEnabled === false && (
-        <p className="mb-6 text-center text-xs text-muted-foreground">
-          Platform admin?{" "}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            className="font-medium text-primary hover:underline"
-          >
-            Continue with Google
-          </button>
-        </p>
-      )}
+      {/* When Google sign-in is switched off it stays hidden for everyone —
+          staff sign in with their email and password like any other account. */}
+
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
