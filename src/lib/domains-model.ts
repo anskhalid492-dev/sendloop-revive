@@ -5,10 +5,16 @@
  * infrastructure the customer owns and connects themselves.
  */
 
+import type { DomainStage } from "@/lib/domain-providers/types";
+
+export type { DomainStage };
+export { DOMAIN_STAGE_LABEL, DOMAIN_STAGE_STYLE, DOMAIN_INFRA_LABEL } from "@/lib/domain-providers/types";
+
 export type DnsStatus = "pending" | "verified" | "failed";
 
 export type DnsRecordView = {
-  kind: "spf" | "dkim" | "dmarc" | "mx" | "tracking";
+  id?: string;
+  kind: "spf" | "dkim" | "dmarc" | "mx" | "tracking" | "verification";
   type: "TXT" | "CNAME" | "MX";
   host: string;
   fqdn: string;
@@ -24,6 +30,9 @@ export type DnsRecordView = {
 
 export type SendingDomain = {
   id: string;
+  /** Customer-facing verification stage (never mentions a provider). */
+  stage: DomainStage;
+  readyToSend: boolean;
   domain: string;
   registrar: string | null;
   dkim_selector: string;
@@ -62,6 +71,7 @@ export const RECORD_KIND_LABEL: Record<DnsRecordView["kind"], string> = {
   dmarc: "DMARC",
   mx: "MX",
   tracking: "Tracking domain",
+  verification: "Domain verification",
 };
 
 /**

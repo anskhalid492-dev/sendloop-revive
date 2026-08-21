@@ -192,6 +192,30 @@ export const adminRecheckDomainDns = createServerFn({ method: "POST" })
     return adminRecheckDomain(context.userId, data.domainId);
   });
 
+/** Enable or disable a customer sending domain. */
+export const adminSetDomainEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ domainId: uuid, enabled: z.boolean() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { adminSetDomainEnabled: run } = await import("./admin-outreach.server");
+    return run(context.userId, data.domainId, data.enabled);
+  });
+
+/** Re-assign which sending infrastructure handles a domain. */
+export const adminSetDomainProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ domainId: uuid, providerId: z.string().uuid().nullable() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { adminSetDomainProvider: run } = await import("./admin-outreach.server");
+    return run(context.userId, data.domainId, data.providerId);
+  });
+
 /** Warmup status for every mailbox that has warmup configured. */
 export const adminListWarmup = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

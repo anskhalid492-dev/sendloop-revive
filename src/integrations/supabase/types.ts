@@ -4915,6 +4915,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          disabled_at: string | null
           dkim_selector: string
           dkim_status: string
           dmarc_status: string
@@ -4924,8 +4925,18 @@ export type Database = {
           last_checked_at: string | null
           last_error: string | null
           mx_status: string
+          provider: string | null
+          provider_checked_at: string | null
+          provider_domain_id: string | null
+          provider_error: string | null
+          provider_id: string | null
+          provider_records: Json
+          provider_status: string
+          ready_at: string | null
+          record_checks: Json
           registrar: string | null
           spf_status: string
+          stage: string
           tracking_host: string | null
           tracking_status: string
           updated_at: string
@@ -4935,6 +4946,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          disabled_at?: string | null
           dkim_selector: string
           dkim_status?: string
           dmarc_status?: string
@@ -4944,8 +4956,18 @@ export type Database = {
           last_checked_at?: string | null
           last_error?: string | null
           mx_status?: string
+          provider?: string | null
+          provider_checked_at?: string | null
+          provider_domain_id?: string | null
+          provider_error?: string | null
+          provider_id?: string | null
+          provider_records?: Json
+          provider_status?: string
+          ready_at?: string | null
+          record_checks?: Json
           registrar?: string | null
           spf_status?: string
+          stage?: string
           tracking_host?: string | null
           tracking_status?: string
           updated_at?: string
@@ -4955,6 +4977,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          disabled_at?: string | null
           dkim_selector?: string
           dkim_status?: string
           dmarc_status?: string
@@ -4964,8 +4987,18 @@ export type Database = {
           last_checked_at?: string | null
           last_error?: string | null
           mx_status?: string
+          provider?: string | null
+          provider_checked_at?: string | null
+          provider_domain_id?: string | null
+          provider_error?: string | null
+          provider_id?: string | null
+          provider_records?: Json
+          provider_status?: string
+          ready_at?: string | null
+          record_checks?: Json
           registrar?: string | null
           spf_status?: string
+          stage?: string
           tracking_host?: string | null
           tracking_status?: string
           updated_at?: string
@@ -6864,6 +6897,7 @@ export type Database = {
       run_ai_personalization_runner: { Args: never; Returns: undefined }
       run_automation_runner: { Args: never; Returns: undefined }
       run_campaign_scheduler: { Args: never; Returns: undefined }
+      run_domain_recheck_runner: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
       run_transactional_email_runner: { Args: never; Returns: undefined }
       run_warmup_runner: { Args: never; Returns: undefined }

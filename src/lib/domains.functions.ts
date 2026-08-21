@@ -10,11 +10,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { DnsRecordView, DnsStatus, SendingDomain } from "@/lib/domains-model";
+import type { DnsRecordView, DnsStatus, DomainStage, SendingDomain } from "@/lib/domains-model";
 import { domainHealth } from "@/lib/domains-model";
 
 const DOMAIN_COLUMNS =
-  "id, domain, registrar, dkim_selector, tracking_host, dns_status, spf_status, dkim_status, dmarc_status, mx_status, tracking_status, last_checked_at, verified_at, last_error, created_at, workspace_id";
+  "id, domain, registrar, dkim_selector, tracking_host, dns_status, spf_status, dkim_status, dmarc_status, mx_status, tracking_status, last_checked_at, verified_at, last_error, created_at, workspace_id, stage, provider, provider_id, provider_domain_id, provider_records, record_checks, disabled_at";
 
 const DOMAIN_RE = /^(?!-)[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
@@ -47,10 +47,26 @@ async function primaryWorkspace(client: Client, userId: string): Promise<string>
 }
 
 function shape(row: Record<string, unknown>, counts: { total: number; active: number }): SendingDomain {
-  const { workspace_id: _ws, ...rest } = row;
-  const base = rest as unknown as Omit<SendingDomain, "mailboxCount" | "activeMailboxes" | "health">;
+  const {
+    workspace_id: _ws,
+    provider: _provider,
+    provider_id: _providerId,
+    provider_domain_id: _providerDomainId,
+    provider_records: _providerRecords,
+    record_checks: _recordChecks,
+    disabled_at: disabledAt,
+    stage,
+    ...rest
+  } = row;
+  const base = rest as unknown as Omit<
+    SendingDomain,
+    "mailboxCount" | "activeMailboxes" | "health" | "stage" | "readyToSend"
+  >;
+  const resolvedStage = (disabledAt ? "disabled" : ((stage as string) || "pending_dns")) as SendingDomain["stage"];
   return {
     ...base,
+    stage: resolvedStage,
+    readyToSend: resolvedStage === "ready",
     mailboxCount: counts.total,
     activeMailboxes: counts.active,
     health: domainHealth(base),
@@ -119,155 +135,164 @@ export const addSendingDomain = createServerFn({ method: "POST" })
     return { id: created.id as string };
   });
 
-/** DNS records the customer must publish, plus the last verification outcome. */
+type DomainSetupView = {
+  domain: string;
+  stage: DomainStage;
+  records: DnsRecordView[];
+  dnsVerified: boolean;
+  providerAuthorized: boolean;
+  readyToSend: boolean;
+};
+
+const OWNED_COLUMNS =
+  "id, workspace_id, domain, dkim_selector, provider, provider_id, provider_domain_id, provider_records, record_checks, stage, disabled_at, dns_status, spf_status, dkim_status, dmarc_status, verified_at";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadOwnedDomain(client: Client, id: string): Promise<any> {
+  const { data: row, error } = await client
+    .from("sending_domains")
+    .select(OWNED_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Domain not found");
+  return row;
+}
+
+function toView(
+  records: Array<Record<string, unknown>>,
+  checks: Array<{ id: string; status: string; message?: string; observed?: string | null }>,
+): DnsRecordView[] {
+  const byId = new Map(checks.map((c) => [c.id, c]));
+  return records.map((raw) => {
+    const spec = raw as unknown as DnsRecordView & { id: string };
+    const check = byId.get(spec.id);
+    return {
+      ...spec,
+      status: (check?.status as DnsStatus) ?? "pending",
+      message: check?.message,
+      observed: check?.observed ?? null,
+    };
+  });
+}
+
+/**
+ * The DNS records the customer must publish. They are produced by the assigned
+ * sending infrastructure, so they always match whatever MunchReach uses today.
+ */
 export const getDomainDnsRecords = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }): Promise<{ domain: string; records: DnsRecordView[] }> => {
-    const client = context.supabase as Client;
-    const { data: row, error } = await client
-      .from("sending_domains")
-      .select(DOMAIN_COLUMNS)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row) throw new Error("Domain not found");
+  .handler(async ({ data, context }): Promise<DomainSetupView> => {
+    const row = await loadOwnedDomain(context.supabase as Client, data.id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { ensureProviderDomain } = await import("@/lib/domain-verification.server");
 
-    const { buildDnsRecords } = await import("@/lib/dns.server");
-    const statuses: Record<string, DnsStatus> = {
-      spf: row.spf_status,
-      dkim: row.dkim_status,
-      dmarc: row.dmarc_status,
-      mx: row.mx_status,
-      tracking: row.tracking_status,
+    let records = (row.provider_records ?? []) as Array<Record<string, unknown>>;
+    if (records.length === 0 && !row.disabled_at) {
+      const ensured = await ensureProviderDomain(supabaseAdmin, row);
+      records = (ensured?.records ?? []) as unknown as Array<Record<string, unknown>>;
+    }
+
+    const checks = (row.record_checks ?? []) as Array<{
+      id: string;
+      status: string;
+      message?: string;
+      observed?: string | null;
+    }>;
+    const stage = (row.disabled_at ? "disabled" : row.stage || "pending_dns") as DomainStage;
+    return {
+      domain: row.domain as string,
+      stage,
+      records: toView(records, checks),
+      dnsVerified: row.dns_status === "verified",
+      providerAuthorized: stage === "ready" || stage === "provider_verification",
+      readyToSend: stage === "ready",
     };
-    const records = buildDnsRecords(row.domain as string, row.dkim_selector as string).map(
-      (spec): DnsRecordView => ({
-        ...spec,
-        priority: spec.priority,
-        status: statuses[spec.kind] ?? "pending",
-      }),
-    );
-    return { domain: row.domain as string, records };
   });
 
-/** Performs a live DNS lookup and persists the real result. */
+/**
+ * Fully automatic verification: real DNS lookups, then automatic authorisation
+ * with the assigned sending infrastructure. No admin ever approves a domain.
+ */
 export const verifySendingDomain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
-  .handler(
-    async ({
-      data,
-      context,
-    }): Promise<{ dnsStatus: DnsStatus; records: DnsRecordView[] }> => {
-      const client = context.supabase as Client;
-      const { data: row, error } = await client
-        .from("sending_domains")
-        .select("id, domain, dkim_selector, workspace_id, dns_status, spf_status, dkim_status, dmarc_status, verified_at")
-        .eq("id", data.id)
+  .handler(async ({ data, context }): Promise<DomainSetupView & { dnsStatus: DnsStatus }> => {
+    const client = context.supabase as Client;
+    const row = await loadOwnedDomain(client, data.id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { runDomainVerification } = await import("@/lib/domain-verification.server");
+
+    const outcome = await runDomainVerification(supabaseAdmin, row);
+
+    const wasVerified = row.dns_status === "verified" || !!row.verified_at;
+    const brokenNow = (["spf", "dkim", "dmarc"] as const).filter((kind) => {
+      const before = row[`${kind}_status`];
+      const now = outcome.records.filter((r) => r.kind === kind);
+      return before === "verified" && now.length > 0 && now.some((r) => r.status === "failed");
+    });
+
+    if (wasVerified && brokenNow.length > 0) {
+      const { data: openAlert } = await supabaseAdmin
+        .from("domain_alerts")
+        .select("id")
+        .eq("domain_id", data.id)
+        .eq("kind", "auth_regression")
+        .is("resolved_at", null)
         .maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!row) throw new Error("Domain not found");
-
-      const { verifyDomainRecords } = await import("@/lib/dns.server");
-      const { records, results } = await verifyDomainRecords(
-        row.domain as string,
-        row.dkim_selector as string,
-      );
-      const byKind = new Map(results.map((r) => [r.kind, r]));
-      const status = (kind: string): DnsStatus => byKind.get(kind as never)?.status ?? "pending";
-
-      const coreVerified =
-        status("spf") === "verified" &&
-        status("dkim") === "verified" &&
-        status("dmarc") === "verified";
-      const dnsStatus: DnsStatus = coreVerified ? "verified" : "failed";
-      const failures = results
-        .filter((r) => r.status === "failed" && records.find((s) => s.kind === r.kind)?.required)
-        .map((r) => `${r.kind.toUpperCase()}: ${r.message}`);
-
-      const { error: updateError } = await client
-        .from("sending_domains")
-        .update({
-          spf_status: status("spf"),
-          dkim_status: status("dkim"),
-          dmarc_status: status("dmarc"),
-          mx_status: status("mx"),
-          tracking_status: status("tracking"),
-          dns_status: dnsStatus,
-          last_checked_at: new Date().toISOString(),
-          verified_at: coreVerified ? new Date().toISOString() : null,
-          last_error: failures.length ? failures.join(" · ") : null,
-        })
-        .eq("id", data.id);
-      if (updateError) throw new Error(updateError.message);
-
-      // Regression alert: authentication that was verified before and is now
-      // failing needs the customer's attention with a remediation checklist.
-      const wasVerified = row.dns_status === "verified" || !!row.verified_at;
-      const brokenNow = (["spf", "dkim", "dmarc"] as const).filter(
-        (kind) => row[`${kind}_status`] === "verified" && status(kind) === "failed",
-      );
-      if (wasVerified && brokenNow.length > 0) {
-        const { data: openAlert } = await client
-          .from("domain_alerts")
-          .select("id")
-          .eq("domain_id", data.id)
-          .eq("kind", "auth_regression")
-          .is("resolved_at", null)
-          .maybeSingle();
-        if (!openAlert) {
-          await client.from("domain_alerts").insert({
-            workspace_id: row.workspace_id,
-            domain_id: data.id,
-            kind: "auth_regression",
-            severity: "critical",
-            title: `${brokenNow.map((k) => k.toUpperCase()).join(", ")} verification failed on ${row.domain}`,
-            detail: failures.join(" · ") || "The records are no longer resolvable in DNS.",
-            records: brokenNow,
-          });
-        }
+      if (!openAlert) {
+        await supabaseAdmin.from("domain_alerts").insert({
+          workspace_id: row.workspace_id,
+          domain_id: data.id,
+          kind: "auth_regression",
+          severity: "critical",
+          title: `${brokenNow.map((k) => k.toUpperCase()).join(", ")} verification failed on ${row.domain}`,
+          detail: "The records are no longer resolvable in DNS.",
+          records: brokenNow,
+        });
+      }
+      const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+      await emitTransactionalEvent({
+        eventKey: "domain.verification_failed",
+        userId: context.userId,
+        workspaceId: row.workspace_id as string,
+        variables: { "domain.name": row.domain, "domain.status": "failed" },
+      });
+    } else if (outcome.readyToSend) {
+      if (!wasVerified) {
         const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
         await emitTransactionalEvent({
-          eventKey: "domain.verification_failed",
+          eventKey: "domain.verified",
           userId: context.userId,
           workspaceId: row.workspace_id as string,
-          variables: { "domain.name": row.domain, "domain.status": "failed" },
+          idempotencyKey: `domain.verified:${data.id}`,
+          variables: { "domain.name": row.domain, "domain.status": "verified" },
         });
-      } else if (coreVerified) {
-        if (!wasVerified) {
-          const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
-          await emitTransactionalEvent({
-            eventKey: "domain.verified",
-            userId: context.userId,
-            workspaceId: row.workspace_id as string,
-            idempotencyKey: `domain.verified:${data.id}`,
-            variables: { "domain.name": row.domain, "domain.status": "verified" },
-          });
-        }
-        await client
-          .from("domain_alerts")
-          .update({ resolved_at: new Date().toISOString() })
-          .eq("domain_id", data.id)
-          .eq("kind", "auth_regression")
-          .is("resolved_at", null);
       }
+      await supabaseAdmin
+        .from("domain_alerts")
+        .update({ resolved_at: new Date().toISOString() })
+        .eq("domain_id", data.id)
+        .eq("kind", "auth_regression")
+        .is("resolved_at", null);
+    }
 
-      return {
-        dnsStatus,
-        records: records.map((spec): DnsRecordView => {
-          const result = byKind.get(spec.kind);
-          return {
-            ...spec,
-            priority: spec.priority,
-            status: result?.status ?? "pending",
-            message: result?.message,
-            observed: result?.observed ?? null,
-          };
-        }),
-      };
-    },
-  );
+    return {
+      domain: row.domain as string,
+      stage: outcome.stage,
+      dnsStatus: outcome.dnsVerified ? "verified" : "failed",
+      dnsVerified: outcome.dnsVerified,
+      providerAuthorized: outcome.providerAuthorized,
+      readyToSend: outcome.readyToSend,
+      records: outcome.records.map((r) => ({
+        ...r,
+        status: r.status as DnsStatus,
+        message: r.message,
+        observed: r.observed ?? null,
+      })),
+    };
+  });
 
 export const removeSendingDomain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -282,6 +307,24 @@ export const removeSendingDomain = createServerFn({ method: "POST" })
     if ((count ?? 0) > 0) {
       throw new Error("Disconnect the mailboxes on this domain before removing it.");
     }
+
+    // Deactivate the domain at the assigned sending infrastructure first.
+    try {
+      const row = await loadOwnedDomain(client, data.id);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { resolveDomainProvider } = await import("@/lib/domain-verification.server");
+      const provider = await resolveDomainProvider(supabaseAdmin, {
+        provider: row.provider,
+        providerId: row.provider_id,
+      });
+      if (provider) {
+        const { getDomainAdapter } = await import("@/lib/domain-providers/registry.server");
+        await getDomainAdapter(provider.provider).removeDomain(provider.credentials, row.domain);
+      }
+    } catch (error) {
+      console.warn(`[domain-verification] provider cleanup failed: ${(error as Error).message}`);
+    }
+
     const { error } = await client.from("sending_domains").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
