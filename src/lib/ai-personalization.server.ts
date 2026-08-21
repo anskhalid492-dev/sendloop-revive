@@ -50,7 +50,6 @@ function provider(credentials: WorkspaceAiCredentials) {
   });
 }
 
-
 export type LeadRecord = {
   id: string;
   email: string;
@@ -75,12 +74,18 @@ export const LEAD_AI_COLUMNS =
  * Attach the most recent lead notes so "Lead notes" personalization has real
  * material. Notes live in their own table and are workspace-scoped by RLS.
  */
-export async function attachLeadNotes(supabase: Client, leads: LeadRecord[]): Promise<LeadRecord[]> {
+export async function attachLeadNotes(
+  supabase: Client,
+  leads: LeadRecord[],
+): Promise<LeadRecord[]> {
   if (!leads.length) return leads;
   const { data } = await supabase
     .from("lead_notes")
     .select("lead_id, body, created_at")
-    .in("lead_id", leads.map((l) => l.id))
+    .in(
+      "lead_id",
+      leads.map((l) => l.id),
+    )
     .order("created_at", { ascending: false });
   const byLead = new Map<string, string>();
   for (const row of (data ?? []) as Array<{ lead_id: string; body: string }>) {
@@ -106,7 +111,11 @@ export function leadFacts(
 ): Array<{ label: string; value: string }> {
   const custom = lead.custom_fields ?? {};
   const location = [lead.city, lead.state, lead.country].filter(Boolean).join(", ");
-  const candidates: Array<{ field: PersonalizationField; label: string; value: string | null | undefined }> = [
+  const candidates: Array<{
+    field: PersonalizationField;
+    label: string;
+    value: string | null | undefined;
+  }> = [
     { field: "first_name", label: "First name", value: lead.first_name },
     { field: "last_name", label: "Last name", value: lead.last_name },
     { field: "job_title", label: "Job title", value: lead.job_title },
@@ -194,7 +203,11 @@ function mapGatewayError(error: unknown): AiGatewayError {
       retryable: status === 429,
     });
   if (status === 403)
-    return new AiGatewayError({ status, message: "OpenAI blocked this request for your key.", retryable: false });
+    return new AiGatewayError({
+      status,
+      message: "OpenAI blocked this request for your key.",
+      retryable: false,
+    });
   if (status === 401)
     return new AiGatewayError({
       status,
@@ -202,7 +215,11 @@ function mapGatewayError(error: unknown): AiGatewayError {
       retryable: false,
     });
   if (status === 400)
-    return new AiGatewayError({ status, message: `OpenAI rejected the request: ${message}`, retryable: false });
+    return new AiGatewayError({
+      status,
+      message: `OpenAI rejected the request: ${message}`,
+      retryable: false,
+    });
   return new AiGatewayError({ status: status || 500, message, retryable: true });
 }
 
@@ -234,7 +251,6 @@ export async function generatePersonalization(
   } catch (error) {
     throw mapGatewayError(error);
   }
-
 
   const cleaned = text
     .replace(/^["'`]+|["'`]+$/g, "")
@@ -386,7 +402,14 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
   const state = (stateRow ?? null) as RunnerState | null;
 
   if (state?.locked_until && new Date(state.locked_until).getTime() > now.getTime()) {
-    return { claimed: 0, completed: 0, failed: 0, skipped: "another run is in progress", paused: null, probe: false };
+    return {
+      claimed: 0,
+      completed: 0,
+      failed: 0,
+      skipped: "another run is in progress",
+      paused: null,
+      probe: false,
+    };
   }
 
   const lockedUntil = new Date(now.getTime() + 4 * 60_000).toISOString();
@@ -396,7 +419,14 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
     .eq("key", RUNNER_KEY)
     .or(`locked_until.is.null,locked_until.lt.${now.toISOString()}`);
   if (lockError) {
-    return { claimed: 0, completed: 0, failed: 0, skipped: lockError.message, paused: null, probe: false };
+    return {
+      claimed: 0,
+      completed: 0,
+      failed: 0,
+      skipped: lockError.message,
+      paused: null,
+      probe: false,
+    };
   }
 
   const paused = state?.paused_reason ?? null;
@@ -444,7 +474,11 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         (c) =>
           [
             c.id,
-            { enabled: c.ai_enabled, config: normalizeAiConfig(c.ai_config), workspaceId: c.workspace_id },
+            {
+              enabled: c.ai_enabled,
+              config: normalizeAiConfig(c.ai_config),
+              workspaceId: c.workspace_id,
+            },
           ] as const,
       ),
     );
@@ -509,7 +543,11 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       }
 
       try {
-        const { content, model } = await generatePersonalization(settings.config, lead, credentials);
+        const { content, model } = await generatePersonalization(
+          settings.config,
+          lead,
+          credentials,
+        );
         await admin
           .from("ai_personalizations")
           .update({
@@ -552,7 +590,6 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         }
       }
     }
-
 
     return result;
   } finally {
