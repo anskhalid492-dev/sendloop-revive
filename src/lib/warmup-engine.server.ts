@@ -873,13 +873,25 @@ export async function recalculateHealth(
   const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
   const { data: stats } = await admin
     .from("warmup_daily_stats")
-    .select("day, sent, delivered, bounced, complained, failed, replied")
+    .select("day, sent, delivered, bounced, complained, failed, replied, inbox, spam, deferred, rejected, not_received")
     .eq("sending_account_id", accountId)
     .gte("day", since);
 
   const totals = (stats ?? []).reduce(
     (acc: Record<string, number>, row: Record<string, number>) => {
-      for (const key of ["sent", "delivered", "bounced", "complained", "failed", "replied"]) {
+      for (const key of [
+        "sent",
+        "delivered",
+        "bounced",
+        "complained",
+        "failed",
+        "replied",
+        "inbox",
+        "spam",
+        "deferred",
+        "rejected",
+        "not_received",
+      ]) {
         acc[key] = (acc[key] ?? 0) + (row[key] ?? 0);
       }
       return acc;
@@ -930,6 +942,60 @@ export async function recalculateHealth(
         impact: -failPenalty,
         detail: `${failRate.toFixed(1)}% of attempts were rejected by the provider.`,
       });
+    }
+
+    const placed = (totals["inbox"] ?? 0) + (totals["spam"] ?? 0);
+    if (placed > 0) {
+      const spamRate = ((totals["spam"] ?? 0) / placed) * 100;
+      const inboxRate = ((totals["inbox"] ?? 0) / placed) * 100;
+      const spamPenalty = Math.min(35, Math.round(spamRate * 0.7));
+      if (spamPenalty) {
+        score -= spamPenalty;
+        factors.push({
+          label: "Spam folder placement",
+          impact: -spamPenalty,
+          detail: `${spamRate.toFixed(1)}% of confirmed warmup arrivals were filtered to spam.`,
+        });
+      } else {
+        factors.push({
+          label: "Inbox placement",
+          impact: 0,
+          detail: `${inboxRate.toFixed(1)}% of confirmed warmup arrivals landed in the main inbox.`,
+        });
+      }
+    }
+
+    if (totals["not_received"]) {
+      const missRate = ((totals["not_received"] ?? 0) / sent) * 100;
+      const missPenalty = Math.min(20, Math.round(missRate * 0.4));
+      if (missPenalty) {
+        score -= missPenalty;
+        factors.push({
+          label: "Unconfirmed arrivals",
+          impact: -missPenalty,
+          detail: `${missRate.toFixed(1)}% of sends were never confirmed on the receiving mailbox.`,
+        });
+      }
+    }
+
+    if (totals["deferred"]) {
+      factors.push({
+        label: "Delayed by receiving servers",
+        impact: 0,
+        detail: `${totals["deferred"]} warmup message(s) were delayed before delivery.`,
+      });
+    }
+
+    if (totals["rejected"]) {
+      const rejectPenalty = Math.min(20, Math.round(((totals["rejected"] ?? 0) / sent) * 100 * 0.5));
+      if (rejectPenalty) {
+        score -= rejectPenalty;
+        factors.push({
+          label: "Rejected by receiving servers",
+          impact: -rejectPenalty,
+          detail: `${totals["rejected"]} warmup message(s) were rejected on delivery.`,
+        });
+      }
     }
 
     if (totals["delivered"]) {
