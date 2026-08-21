@@ -155,6 +155,23 @@ export async function recordProviderIncident(
   const { recordProviderUsage } = await import("@/lib/provider-pool.server");
   await recordProviderUsage(admin, providerId, rawError ? { failed: 1 } : { sent: 1 });
   if (!providerId) return;
+
+  // Real send outcomes are the primary health signal: log the operation, then
+  // recompute health from the rolling window so recoveries clear a bad status.
+  try {
+    const { recordProviderOperation, refreshProviderHealth } = await import(
+      "@/lib/provider-health.server"
+    );
+    await recordProviderOperation(admin, providerId, {
+      operation: "send",
+      ok: !rawError,
+      message: rawError,
+    });
+    await refreshProviderHealth(admin, providerId);
+  } catch {
+    /* diagnostics only — never block a send */
+  }
+
   try {
     await admin
       .from("email_providers")

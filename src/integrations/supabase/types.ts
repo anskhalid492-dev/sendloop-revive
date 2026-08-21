@@ -2762,11 +2762,14 @@ export type Database = {
           failure_count: number
           health_checked_at: string | null
           health_detail: string | null
+          health_reason: string | null
           health_status: string
           hourly_capacity: number
           id: string
           is_enabled: boolean
           last_error: string | null
+          last_failure_at: string | null
+          last_http_status: number | null
           last_success_at: string | null
           last_tested_at: string | null
           mode: string
@@ -2791,11 +2794,14 @@ export type Database = {
           failure_count?: number
           health_checked_at?: string | null
           health_detail?: string | null
+          health_reason?: string | null
           health_status?: string
           hourly_capacity?: number
           id?: string
           is_enabled?: boolean
           last_error?: string | null
+          last_failure_at?: string | null
+          last_http_status?: number | null
           last_success_at?: string | null
           last_tested_at?: string | null
           mode?: string
@@ -2820,11 +2826,14 @@ export type Database = {
           failure_count?: number
           health_checked_at?: string | null
           health_detail?: string | null
+          health_reason?: string | null
           health_status?: string
           hourly_capacity?: number
           id?: string
           is_enabled?: boolean
           last_error?: string | null
+          last_failure_at?: string | null
+          last_http_status?: number | null
           last_success_at?: string | null
           last_tested_at?: string | null
           mode?: string
@@ -4103,6 +4112,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      provider_health_events: {
+        Row: {
+          domain: string | null
+          error_code: string | null
+          http_status: number | null
+          id: string
+          message: string | null
+          occurred_at: string
+          ok: boolean
+          operation: string
+          provider_id: string
+        }
+        Insert: {
+          domain?: string | null
+          error_code?: string | null
+          http_status?: number | null
+          id?: string
+          message?: string | null
+          occurred_at?: string
+          ok: boolean
+          operation: string
+          provider_id: string
+        }
+        Update: {
+          domain?: string | null
+          error_code?: string | null
+          http_status?: number | null
+          id?: string
+          message?: string | null
+          occurred_at?: string
+          ok?: boolean
+          operation?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_health_events_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "email_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_routing_events: {
         Row: {

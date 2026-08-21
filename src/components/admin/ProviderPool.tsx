@@ -34,13 +34,22 @@ import {
 } from "@/components/ui/table";
 import {
   deleteProvider,
+  listProviderHealth,
   listProviderRoutingEvents,
   listProviders,
   runProviderPoolHealthCheck,
   saveProvider,
-  testProvider,
+  testProviderHealth,
 } from "@/lib/admin.functions";
+import { ProviderDiagnosticsDialog } from "@/components/admin/ProviderDiagnosticsDialog";
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
+
+const HEALTH_LABEL: Record<string, string> = {
+  healthy: "Healthy",
+  degraded: "Degraded",
+  down: "Unhealthy",
+  unknown: "Not measured",
+};
 
 const HEALTH_STYLES: Record<string, string> = {
   healthy: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
@@ -66,14 +75,21 @@ export function ProviderPool() {
   const fetchProviders = useServerFn(listProviders);
   const fetchEvents = useServerFn(listProviderRoutingEvents);
   const save = useServerFn(saveProvider);
-  const test = useServerFn(testProvider);
+  const test = useServerFn(testProviderHealth);
   const remove = useServerFn(deleteProvider);
   const health = useServerFn(runProviderPoolHealthCheck);
+  const fetchHealth = useServerFn(listProviderHealth);
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ["admin", "providers"],
     queryFn: () => fetchProviders(),
   });
+  const { data: healthRows = [] } = useQuery({
+    queryKey: ["admin", "provider-health"],
+    queryFn: () => fetchHealth(),
+    refetchInterval: 60_000,
+  });
+  const [diagnosticsFor, setDiagnosticsFor] = useState<{ id: string; name: string } | null>(null);
   const { data: events = [] } = useQuery({
     queryKey: ["admin", "provider-routing-events"],
     queryFn: () => fetchEvents(),
@@ -123,7 +139,7 @@ export function ProviderPool() {
   const testMutation = useMutation({
     mutationFn: (id: string) => test({ data: { id } }),
     onSuccess: (result) => {
-      toast[result.ok ? "success" : "error"](result.message ?? "Connection tested");
+      toast[result.probe.health === "healthy" ? "success" : "error"](result.probe.reason);
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -197,9 +213,9 @@ export function ProviderPool() {
             </TableHeader>
             <TableBody>
               {providers.map((p) => {
-                const ok = p.success_count ?? 0;
-                const bad = p.failure_count ?? 0;
-                const rate = ok + bad === 0 ? 0 : (bad / (ok + bad)) * 100;
+                const diag = healthRows.find((h) => h.providerId === p.id);
+                const rate = (diag?.errorRate ?? 0) * 100;
+                const level = diag?.health ?? p.health_status ?? "unknown";
                 return (
                   <TableRow key={p.id}>
                     <TableCell>
@@ -211,17 +227,26 @@ export function ProviderPool() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={HEALTH_STYLES[p.health_status ?? "unknown"]}
-                      >
-                        {p.health_status ?? "unknown"}
+                      <Badge variant="outline" className={HEALTH_STYLES[level]}>
+                        {HEALTH_LABEL[level] ?? level}
                       </Badge>
-                      {p.health_detail ? (
-                        <div className="mt-1 max-w-[220px] truncate text-xs text-muted-foreground">
-                          {p.health_detail}
+                      <div className="mt-1 max-w-[260px] text-xs text-muted-foreground">
+                        {diag?.reason ?? p.health_detail ?? "Not measured yet."}
+                      </div>
+                      {diag?.lastHttpStatus ? (
+                        <div className="text-xs text-muted-foreground">
+                          Last status {diag.lastHttpStatus}
+                          {diag.lastErrorCode ? ` · ${diag.lastErrorCode}` : ""}
                         </div>
                       ) : null}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={() => setDiagnosticsFor({ id: p.id, name: p.name })}
+                      >
+                        Why?
+                      </Button>
                     </TableCell>
                     <TableCell className="capitalize">{p.mode ?? "live"}</TableCell>
                     <TableCell>{p.priority}</TableCell>
@@ -238,9 +263,16 @@ export function ProviderPool() {
                         {(p.sent_day ?? 0).toLocaleString()} today
                       </div>
                     </TableCell>
-                    <TableCell>{rate.toFixed(1)}%</TableCell>
+                    <TableCell>
+                      {rate.toFixed(1)}%
+                      <div className="text-xs text-muted-foreground">
+                        {diag ? `${diag.failed} failed / ${diag.total} ops (${diag.windowHours}h)` : "no recent ops"}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {p.last_success_at
+                      {diag?.lastSuccessAt
+                        ? new Date(diag.lastSuccessAt).toLocaleString()
+                        : p.last_success_at
                         ? new Date(p.last_success_at).toLocaleString()
                         : p.last_tested_at
                           ? `tested ${new Date(p.last_tested_at).toLocaleString()}`
@@ -307,6 +339,17 @@ export function ProviderPool() {
           </ul>
         )}
       </div>
+
+      <ProviderDiagnosticsDialog
+        providerId={diagnosticsFor?.id ?? null}
+        providerName={diagnosticsFor?.name ?? ""}
+        open={Boolean(diagnosticsFor)}
+        onOpenChange={(next) => {
+          if (!next) setDiagnosticsFor(null);
+        }}
+      />
+
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
