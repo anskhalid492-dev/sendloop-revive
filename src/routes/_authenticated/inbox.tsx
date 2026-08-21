@@ -401,40 +401,33 @@ function Page() {
           </Button>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="hidden w-60 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex">
-            <div className="min-h-0 flex-1">{sidebar()}</div>
-            <div className="border-t border-border p-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled={!workspaceId}
-                onClick={() =>
-                  markAllRead({ data: { workspaceId: workspaceId! } })
-                    .then(() => {
-                      toast.success("Inbox marked as read");
-                      refreshAll();
-                    })
-                    .catch(() => toast.error("Couldn’t mark everything as read."))
-                }
-              >
-                <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
-              </Button>
+        {(() => {
+          const navPane = (
+            <div className="flex h-full min-h-0 flex-col border-r border-border bg-muted/30">
+              <div className="min-h-0 flex-1">{sidebar()}</div>
+              <div className="border-t border-border p-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={!workspaceId}
+                  onClick={() =>
+                    markAllRead({ data: { workspaceId: workspaceId! } })
+                      .then(() => {
+                        toast.success("Inbox marked as read");
+                        refreshAll();
+                      })
+                      .catch(() => toast.error("Couldn’t mark everything as read."))
+                  }
+                >
+                  <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
+                </Button>
+              </div>
             </div>
-          </div>
+          );
 
-          <div
-            className={`min-h-0 w-full shrink-0 border-r border-border md:w-[320px] xl:w-[380px] ${
-              selectedId ? "hidden md:block" : "block"
-            }`}
-          >
-            {folder === "drafts" ? draftsPane : listPane}
-          </div>
-
-
-          <div className={`min-h-0 min-w-0 flex-1 ${selectedId ? "block" : "hidden md:block"}`}>
-            {selectedId && workspaceId ? (
+          const readingPane =
+            selectedId && workspaceId ? (
               <ConversationView
                 key={selectedId}
                 conversationId={selectedId}
@@ -451,9 +444,48 @@ function Page() {
                   Pick a thread to read the full history and reply from the mailbox that sent it.
                 </p>
               </div>
-            )}
-          </div>
-        </div>
+            );
+
+          return (
+            <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+              {/* Desktop: three resizable panes so the reading pane can take all remaining width. */}
+              <ResizablePanelGroup
+                direction="horizontal"
+                autoSaveId="inbox-panes"
+                className="hidden min-h-0 lg:flex"
+              >
+                <ResizablePanel id="nav" order={1} defaultSize={16} minSize={12} maxSize={24}>
+                  {navPane}
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel id="list" order={2} defaultSize={24} minSize={16} maxSize={40}>
+                  <div className="h-full min-h-0 min-w-0">
+                    {folder === "drafts" ? draftsPane : listPane}
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel id="reading" order={3} defaultSize={60} minSize={30}>
+                  <div className="h-full min-h-0 min-w-0">{readingPane}</div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+
+              {/* Tablet and mobile: list and reading pane swap in place. */}
+              <div className="flex min-h-0 min-w-0 flex-1 lg:hidden">
+                <div
+                  className={`min-h-0 w-full shrink-0 border-r border-border md:w-[320px] ${
+                    selectedId ? "hidden md:block" : "block"
+                  }`}
+                >
+                  {folder === "drafts" ? draftsPane : listPane}
+                </div>
+                <div className={`min-h-0 min-w-0 flex-1 ${selectedId ? "block" : "hidden md:block"}`}>
+                  {readingPane}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
       </div>
 
       <ComposeDialog
