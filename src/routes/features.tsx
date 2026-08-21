@@ -150,7 +150,7 @@ function FeatureBlock({
       }
     >
       <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2">
-        <Reveal className={flip ? "lg:order-2" : undefined}>
+        <Reveal className={flip ? "lg:order-2" : ""}>
           <div className="flex items-center gap-3">
             <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
               <Icon className="size-5" />
@@ -178,7 +178,7 @@ function FeatureBlock({
           ) : null}
         </Reveal>
         {children ? (
-          <Reveal delay={80} className={flip ? "lg:order-1" : undefined}>
+          <Reveal delay={80} className={flip ? "lg:order-1" : ""}>
             <div className="min-w-0">{children}</div>
           </Reveal>
         ) : null}
