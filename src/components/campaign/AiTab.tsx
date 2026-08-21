@@ -66,6 +66,8 @@ import {
   updateAiPersonalization,
 } from "@/lib/ai-personalization.functions";
 import { cn } from "@/lib/utils";
+import { useSelectedWorkspaceId } from "@/hooks/useWorkspace";
+import { AiKeyCard } from "./AiKeyCard";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -77,6 +79,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export function AiTab({ builder }: { builder: CampaignBuilder }) {
   const { campaignId, steps, leads } = builder;
+  const workspaceId = useSelectedWorkspaceId();
   const queryClient = useQueryClient();
 
   const fetchSettings = useServerFn(getAiSettings);
@@ -221,6 +224,7 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="space-y-6">
+      <AiKeyCard workspaceId={workspaceId} />
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div className="space-y-1">
@@ -230,7 +234,7 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
             </CardTitle>
             <CardDescription>
               Write a unique opening line for every lead, generated from the data on their record.
-              No AI setup needed — it's included with your workspace.
+              Powered by your own OpenAI key, so you stay in control of the model and the cost.
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
