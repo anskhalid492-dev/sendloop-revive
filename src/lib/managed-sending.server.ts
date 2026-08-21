@@ -111,72 +111,39 @@ export function platformKeyFor(provider: string): string | null {
 }
 
 /**
- * Server-side provider selection.
+ * Server-side provider selection at send time.
  *
- * Customers never choose a provider. MunchReach picks one from the admin-managed
- * pool (`email_providers`) using enablement, priority and health, and falls
- * back to the mailbox's recorded provider only when the pool yields nothing.
+ * Customers never choose a provider. The MunchReach Provider Manager routes the
+ * send deterministically across the global pool (enabled, healthy, credentialed,
+ * within capacity, by priority), and only falls back to the mailbox's recorded
+ * provider when the pool yields nothing at all.
  */
 export async function resolveManagedProvider(
   admin: Admin,
   account: { provider: string; provider_id: string | null; from_email?: string },
 ): Promise<ManagedCredentials | null> {
-  const { readCredentials } = await import("@/lib/providers/adapter.server");
+  const { selectProvider } = await import("@/lib/provider-pool.server");
 
-  const { data: pool } = await admin
-    .from("email_providers")
-    .select("id, provider, is_enabled, priority, status")
-    .eq("is_enabled", true)
-    .order("priority", { ascending: true });
+  const key = (account.from_email ?? "").split("@")[1] ?? account.provider_id ?? "munchreach";
+  const selected = await selectProvider(admin, {
+    key,
+    currentProviderId: account.provider_id,
+    requireDomainApi: false,
+  });
 
-  const rows = (pool ?? []) as Array<{
-    id: string;
-    provider: string;
-    priority: number;
-    status: string | null;
-  }>;
-
-  // The mailbox's pinned provider wins when it is still enabled and healthy.
-  const ordered = [
-    ...rows.filter((r) => r.id === account.provider_id),
-    ...rows.filter((r) => r.id !== account.provider_id && r.status !== "failed"),
-    ...rows.filter((r) => r.id !== account.provider_id && r.status === "failed"),
-  ];
-
-  for (const row of ordered) {
-    const { data } = await admin
-      .from("email_provider_secrets")
-      .select("credentials_ciphertext")
-      .eq("provider_id", row.id)
-      .maybeSingle();
-    if (data?.credentials_ciphertext) {
-      try {
-        const credentials = readCredentials(data.credentials_ciphertext);
-        if (credentials && Object.keys(credentials).length > 0) {
-          return {
-            provider: row.provider,
-            providerId: row.id,
-            credentials,
-            source: "provider_secret",
-          };
-        }
-      } catch {
-        /* try the next provider in the pool */
-      }
-    }
-    const envKey = platformKeyFor(row.provider);
-    if (envKey) {
-      return {
-        provider: row.provider,
-        providerId: row.id,
-        credentials: { api_key: envKey },
-        source: "platform_env",
-      };
-    }
+  if (selected) {
+    return {
+      provider: selected.provider,
+      providerId: selected.providerId,
+      credentials: selected.credentials,
+      source: selected.providerId ? "provider_secret" : "platform_env",
+    };
   }
 
   return loadManagedProviderCredentials(admin, account);
 }
+
+
 
 /** Persists the raw provider failure for Admin → Providers. Never shown to customers. */
 export async function recordProviderIncident(
