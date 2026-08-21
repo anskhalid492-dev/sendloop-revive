@@ -139,6 +139,7 @@ function PricingPage() {
 function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
   const price = yearly ? plan.yearly_price : plan.monthly_price;
   const yearlyTotal = plan.yearly_price * 12;
+  const isTrial = plan.monthly_price === 0;
 
   const limits = [
     { icon: Building2, label: "Workspaces", value: plan.max_workspaces },
@@ -146,8 +147,7 @@ function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
     { icon: Zap, label: "Sending accounts", value: plan.max_sending_accounts },
   ];
 
-  const cta = plan.monthly_price === 0 ? "Start Free" : "Start Trial";
-
+  const cta = isTrial ? "Start Free Trial" : "Get Started";
 
   return (
     <div
@@ -186,7 +186,26 @@ function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
         <a href={"/signup"}>{cta}</a>
       </Button>
 
-      <ul className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
+      {/* Leads are a fixed capacity; emails are an allowance that resets each
+          billing cycle (a one-time total on the free trial). */}
+      <div className="mt-6 grid grid-cols-2 gap-3 border-t border-border pt-6">
+        <div className="rounded-xl bg-secondary/40 p-3">
+          <p className="text-lg font-bold leading-tight">
+            {plan.max_leads ? plan.max_leads.toLocaleString() : "Unlimited"}
+          </p>
+          <p className="text-[11px] text-muted-foreground">Lead contacts stored</p>
+        </div>
+        <div className="rounded-xl bg-secondary/40 p-3">
+          <p className="text-lg font-bold leading-tight">
+            {plan.max_emails_monthly ? plan.max_emails_monthly.toLocaleString() : "Unlimited"}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            {isTrial ? "Emails (total)" : "Emails / month"}
+          </p>
+        </div>
+      </div>
+
+      <ul className="mt-4 space-y-3 text-sm">
         {limits.map(({ icon: Icon, label, value }) =>
           value ? (
             <li key={label} className="flex items-center gap-2">
@@ -196,21 +215,8 @@ function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
             </li>
           ) : null,
         )}
-        {plan.max_leads ? (
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-primary" />
-            <span className="text-muted-foreground">Lead contacts:</span>
-            <span className="ml-auto font-medium">{plan.max_leads.toLocaleString()}</span>
-          </li>
-        ) : null}
-        {plan.max_emails_monthly ? (
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-primary" />
-            <span className="text-muted-foreground">Sends / month:</span>
-            <span className="ml-auto font-medium">{plan.max_emails_monthly.toLocaleString()}</span>
-          </li>
-        ) : null}
       </ul>
+
 
       <div className="mt-6 space-y-2">
         {plan.features
@@ -325,6 +331,10 @@ const pricingFaqs = [
       a: "Yes. You can upgrade or downgrade at any time from your workspace settings. Prorated credits are applied automatically.",
     },
     {
+      q: "How are lead and email limits different?",
+      a: "Leads are a fixed storage capacity — the total number of contacts your workspace can hold at once. Emails are an allowance that resets at the start of every billing cycle.",
+    },
+    {
       q: "Do I need my own SMTP or email API?",
       a: "No. MunchReach manages the sending infrastructure behind the scenes. You add prospects, build your campaign and launch — we handle delivery.",
     },
@@ -333,16 +343,17 @@ const pricingFaqs = [
       a: "A lead contact is a unique email address stored in your workspace. We deduplicate by email across all lead lists.",
     },
     {
-      q: "Is there a free trial for paid plans?",
-      a: "Every new workspace starts on the Free plan. You can explore all core features, then upgrade when you need more volume or team seats.",
+      q: "What happens on the free trial?",
+      a: "The free trial includes a one-time allowance of leads and emails that does not reset. Upgrade whenever you need recurring monthly volume.",
+    },
+    {
+      q: "What happens when I hit a limit?",
+      a: "We warn you at 70%, 85% and 95% of an allowance. At 100% the related action is paused until your next cycle or an upgrade — nothing is deleted.",
     },
     {
       q: "Can I get a refund?",
       a: "We offer a 14-day refund on yearly plans if you haven't launched a campaign. Monthly plans can be cancelled anytime.",
     },
-    {
-      q: "What is included on the Agency plan?",
-      a: "Agency plans add white-label options, more workspaces and seats, priority support and higher sending volume for client work.",
-    },
   ];
+
 

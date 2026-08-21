@@ -12,6 +12,56 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat().format(value);
 }
 
+type UsageRow = {
+  key: string;
+  label: string;
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  percent: number | null;
+};
+
+/** Escalating warning copy at 70 / 85 / 95 / 100 % of an allowance. */
+function usageWarning(percent: number | null) {
+  if (percent === null) return null;
+  if (percent >= 100) return { tone: "danger" as const, text: "Limit reached — upgrade to continue" };
+  if (percent >= 95) return { tone: "danger" as const, text: "95% used — almost out" };
+  if (percent >= 85) return { tone: "warn" as const, text: "85% used — consider upgrading" };
+  if (percent >= 70) return { tone: "warn" as const, text: "70% used" };
+  return null;
+}
+
+function LimitCard({ title, caption, row }: { title: string; caption: string; row: UsageRow | undefined }) {
+  if (!row) return null;
+  const percent = row.percent ?? 0;
+  const warning = usageWarning(row.percent);
+  const barTone =
+    percent >= 95 ? "[&>div]:bg-destructive" : percent >= 70 ? "[&>div]:bg-amber-500" : "";
+  return (
+    <div className="rounded-xl border bg-card/50 p-4">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-sm text-muted-foreground">
+          {formatNumber(row.used)}
+          {row.limit === null ? " / Unlimited" : ` / ${formatNumber(row.limit)}`}
+        </span>
+      </div>
+      <Progress value={percent} className={`mt-3 h-2 ${barTone}`} />
+      <div className="mt-2 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{caption}</span>
+        {warning ? (
+          <span className={warning.tone === "danger" ? "text-destructive" : "text-amber-600"}>
+            {warning.text}
+          </span>
+        ) : row.remaining !== null ? (
+          <span className="text-muted-foreground">{formatNumber(row.remaining)} left</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+
 /**
  * Customer-facing plan, usage and feature dashboard. Read-only mirror of the
  * server-side entitlement state — the UI never decides what is allowed.
@@ -35,6 +85,15 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
       ? Math.min(100, Math.round((data.credits.balance / data.credits.included) * 100))
       : null;
 
+  const leads = data.usage.find((u) => u.key === "leads");
+  const emails = data.usage.find((u) => u.key === "emails_monthly");
+  const other = data.usage.filter((u) => u.key !== "leads" && u.key !== "emails_monthly");
+  const resetLabel = data.period.resets
+    ? data.period.end
+      ? `Resets ${new Date(data.period.end).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+      : "Resets each billing cycle"
+    : "Total trial allowance — does not reset";
+
   return (
     <div className="space-y-6">
       <div className="surface-card p-6">
@@ -50,8 +109,9 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
               </Badge>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Billing period {new Date(data.period.start).toLocaleDateString()} –{" "}
-              {new Date(data.period.end).toLocaleDateString()}
+              {data.period.resets
+                ? `Billing cycle started ${new Date(data.period.start).toLocaleDateString()}`
+                : "Free trial — fixed lead and email allowance"}
             </p>
             {data.plan.inGrace && data.plan.accessUntil ? (
               <p className="mt-2 text-sm text-amber-600">
@@ -63,6 +123,15 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
           <Button asChild>
             <Link to="/pricing">Change plan</Link>
           </Button>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <LimitCard
+            title="Leads"
+            caption="Fixed workspace capacity"
+            row={leads}
+          />
+          <LimitCard title="Emails" caption={resetLabel} row={emails} />
         </div>
 
         {data.credits.included > 0 ? (
@@ -90,9 +159,9 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
       ) : null}
 
       <div className="surface-card p-6">
-        <h3 className="font-semibold">Usage this period</h3>
+        <h3 className="font-semibold">Other usage</h3>
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
-          {data.usage.map((row) => (
+          {other.map((row) => (
             <div key={row.key}>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{row.label}</span>
@@ -114,6 +183,7 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
           ))}
         </div>
       </div>
+
 
       <div className="surface-card p-6">
         <h3 className="font-semibold">Included features</h3>
