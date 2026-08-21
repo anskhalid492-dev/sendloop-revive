@@ -61,34 +61,46 @@ export function renderEmailLayout(input: LayoutInput): string {
     : "";
 
   return `<!doctype html>
-<html lang="en"><head>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 <title>${input.heading}</title>
 </head>
-<body style="margin:0;padding:0;background:#f5f7fa;-webkit-font-smoothing:antialiased">
+<body style="margin:0;padding:0;background:#eef3f8;-webkit-font-smoothing:antialiased">
 ${preheader}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:28px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f8;padding:32px 12px">
   <tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;border:1px solid #e6ecf2;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-      <tr><td style="padding:22px 28px;border-bottom:1px solid #eef2f6">
-        <span style="font-size:18px;font-weight:700;letter-spacing:-0.2px;color:${BRAND.ink}">Munch<span style="color:${BRAND.color}">Reach</span></span>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;border:1px solid #e2e9f1;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+      <tr><td style="height:4px;line-height:4px;font-size:0;background:${BRAND.color}">&nbsp;</td></tr>
+      <tr><td style="padding:24px 32px 20px;border-bottom:1px solid #eef2f6">
+        <a href="${BRAND.site}" style="text-decoration:none;color:${BRAND.ink}">
+          <img src="${BRAND.logoUrl}" width="150" height="32" alt="${BRAND.name}" style="display:block;border:0;outline:none;height:32px;width:auto;max-width:180px">
+        </a>
       </td></tr>
-      <tr><td style="padding:28px 28px 8px">
-        <h1 style="margin:0 0 14px;font-size:21px;line-height:1.3;font-weight:700;color:${BRAND.ink}">${input.heading}</h1>
+      <tr><td style="padding:32px 32px 8px">
+        <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:700;letter-spacing:-0.3px;color:${BRAND.ink}">${input.heading}</h1>
         ${input.blocks.map(blockHtml).join("\n        ")}
       </td></tr>
-      <tr><td style="padding:8px 28px 26px">
-        <hr style="border:none;border-top:1px solid #eef2f6;margin:0 0 16px">
-        <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:${BRAND.muted}">${input.reason}</p>
+      <tr><td style="padding:4px 32px 28px">
+        <hr style="border:none;border-top:1px solid #eef2f6;margin:0 0 18px">
+        <p style="margin:0 0 10px;font-size:12px;line-height:1.6;color:${BRAND.muted}">${input.reason}</p>
+        <p style="margin:0 0 10px;font-size:12px;line-height:1.6;color:${BRAND.muted}">
+          Need help? <a href="{{support_url}}" style="color:${BRAND.color};text-decoration:none;font-weight:600">Visit the help center</a> or reply to this email — a real person reads it.
+        </p>
         <p style="margin:0;font-size:12px;line-height:1.6;color:${BRAND.muted}">
-          Need help? <a href="{{support_url}}" style="color:${BRAND.color};text-decoration:none">Visit the help center</a> or reply to this email.<br>
-          ${BRAND.name} · <a href="{{dashboard_url}}" style="color:${BRAND.muted};text-decoration:underline">Dashboard</a> ·
-          <a href="https://munchreach.com/privacy" style="color:${BRAND.muted};text-decoration:underline">Privacy</a> ·
-          <a href="https://munchreach.com/terms" style="color:${BRAND.muted};text-decoration:underline">Terms</a>
+          <strong style="color:${BRAND.ink}">${BRAND.name}</strong> · ${BRAND_TAGLINE}<br>
+          <a href="{{dashboard_url}}" style="color:${BRAND.muted};text-decoration:underline">Dashboard</a> ·
+          <a href="${BRAND.site}/privacy" style="color:${BRAND.muted};text-decoration:underline">Privacy</a> ·
+          <a href="${BRAND.site}/terms" style="color:${BRAND.muted};text-decoration:underline">Terms</a> ·
+          <a href="mailto:${BRAND.support}" style="color:${BRAND.muted};text-decoration:underline">${BRAND.support}</a>
         </p>
       </td></tr>
     </table>
+    <p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#93a2b3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">© ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.</p>
   </td></tr>
 </table>
 </body></html>`;
