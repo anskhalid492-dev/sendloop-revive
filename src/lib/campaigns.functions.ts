@@ -908,7 +908,10 @@ export const launchCampaign = createServerFn({ method: "POST" })
     // Plan enforcement before anything is scheduled.
     const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
     await requireEntitlement(c.workspace_id, "campaigns");
+    // No allowance left means no email can leave, so refuse the launch outright.
+    await checkUsageLimit(c.workspace_id, "emails_monthly", 1);
     if (c.status !== "active") await checkUsageLimit(c.workspace_id, "active_campaigns", 1);
+
 
     // Validate against the persisted audience relationship, never frontend state.
     const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent, refreshReadiness } =
