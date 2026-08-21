@@ -85,13 +85,6 @@ export function KpiGrid({
       hint: "Delivered attempts from your mailboxes",
     },
     {
-      key: "delivered",
-      label: "Delivered",
-      value: c?.delivered ?? 0,
-      previous: p?.delivered ?? null,
-      hint: "Accepted by the recipient server",
-    },
-    {
       key: "deliveryRate",
       label: "Delivery rate",
       value: rate(c?.delivered ?? 0, c?.sent ?? 0),
@@ -99,13 +92,6 @@ export function KpiGrid({
       hint: "Delivered ÷ sent",
       suffix: "%",
       decimals: 1,
-    },
-    {
-      key: "replies",
-      label: "Replies",
-      value: c?.replies ?? 0,
-      previous: p?.replies ?? null,
-      hint: "Prospect responses in your inbox",
     },
     {
       key: "replyRate",
