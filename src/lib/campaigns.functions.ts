@@ -9,6 +9,7 @@ import {
   STEP_COLUMNS,
   AI_VARIABLE_TOKEN,
   renderEmailForLead,
+  senderExtras,
   resolveSpintax,
 
   type Campaign,
@@ -608,9 +609,10 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           .eq("lead_id", data.leadId)
           .eq("status", "completed")
           .maybeSingle();
-        const extras = snippet?.content
-          ? { [AI_VARIABLE_TOKEN]: snippet.content as string }
-          : {};
+        const extras = {
+          ...senderExtras(account as never),
+          ...(snippet?.content ? { [AI_VARIABLE_TOKEN]: snippet.content as string } : {}),
+        };
         const rendered = renderEmailForLead({ subject, body }, l, {
           customVariables: variables,
           extras,
@@ -799,7 +801,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
 
     const { data: accounts, error: aErr } = await context.supabase
       .from("sending_accounts")
-      .select("id, provider, status, customer_enabled, paused, daily_limit, sent_today")
+      .select("id, provider, status, customer_enabled, paused, daily_limit, sent_today, from_name, from_email")
       .in("id", c.sending_account_ids);
     if (aErr) throw new Error(aErr.message);
     const active = (accounts ?? []).filter(
@@ -913,6 +915,10 @@ export const launchCampaign = createServerFn({ method: "POST" })
       const accountById = new Map(
         (accounts ?? []).map((a) => [a.id, a as { id: string }] as const),
       );
+      const senderFor = (id: string | null) =>
+        senderExtras(
+          (accounts ?? []).find((a) => a.id === id) as never,
+        );
       const rows = fresh.map((lead) => ({
         campaign_id: c.id,
         workspace_id: c.workspace_id,
@@ -955,7 +961,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
               to_email: (lead as { email: string }).email,
               ...renderEmailForLead(firstStep, lead, {
                 customVariables: campaignVariables,
-                extras: ai.extras,
+                extras: { ...senderFor(recipient.sending_account_id), ...ai.extras },
               }),
 
               scheduled_at: firstSlot,
@@ -1040,7 +1046,10 @@ export const launchCampaign = createServerFn({ method: "POST" })
               to_email: lead.email,
               ...renderEmailForLead(firstStep, lead as never, {
                 customVariables: campaignVariables,
-                extras: ai.extras,
+                extras: {
+                  ...senderExtras((accounts ?? []).find((a) => a.id === accountId) as never),
+                  ...ai.extras,
+                },
               }),
 
               scheduled_at: firstSlot,
