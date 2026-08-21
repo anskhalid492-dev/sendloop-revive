@@ -31,6 +31,7 @@ import {
   WorkflowStrip,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "How long does warmup take?", a: "Two to four weeks for a brand new domain. Established domains often need only a week." },
@@ -222,7 +223,7 @@ function Page() {
       </Section>
       <TestimonialCarousel page="warmup" title="Deliverability, in their words" />
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="warmup" defaults={faqs} />
       </Section>
       <CtaBlock
         title="Warm your mailboxes before you scale"

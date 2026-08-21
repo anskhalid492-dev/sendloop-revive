@@ -11,7 +11,6 @@ import {
   FaqBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
-import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
   {
@@ -210,8 +209,6 @@ function ApiDocs() {
       <Section>
         <FaqBlock faqs={faqs}  />
       </Section>
-
-      <TestimonialCarousel page="api-docs" />
 
       <CtaBlock
         title="Build on top of MunchReach"

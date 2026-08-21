@@ -19,7 +19,6 @@ import {
   QuoteBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
-import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { CopyButton } from "@/components/site/CopyButton";
 import { Button } from "@/components/ui/button";
 
@@ -503,8 +502,6 @@ function Guide() {
           <FaqBlock faqs={faqs} title="Common questions" />
         </div>
       </section>
-
-      <TestimonialCarousel page="deliverability-guide" />
 
       <CtaBlock
         title="Check your setup in minutes"

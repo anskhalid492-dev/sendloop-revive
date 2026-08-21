@@ -38,3 +38,31 @@ export function placeholderAvatar(seed: string): string {
   const bg = palette[hash % palette.length];
   return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&radius=50`;
 }
+
+/**
+ * Guards the public site against unfinished seed rows: anything that still
+ * reads like a placeholder ("replace in admin", "Example Co", "Jane Doe") is
+ * never rendered as customer proof.
+ */
+const PLACEHOLDER_PATTERNS = [
+  /placeholder/i,
+  /replace in admin/i,
+  /\bexample (co|labs|agency|inc|company)\b/i,
+  /\bdummy\b/i,
+  /\blorem ipsum\b/i,
+  /\b(john|jane) doe\b/i,
+  /\bacme (inc|co|corp)\b/i,
+  /\byour name here\b/i,
+  /\btest (user|customer)\b/i,
+];
+
+export function isRealTestimonial(t: {
+  name: string;
+  role?: string | null;
+  company?: string | null;
+  testimonial: string;
+  result?: string | null;
+}): boolean {
+  const haystack = [t.name, t.role ?? "", t.company ?? "", t.testimonial, t.result ?? ""].join(" ");
+  return !PLACEHOLDER_PATTERNS.some((re) => re.test(haystack));
+}

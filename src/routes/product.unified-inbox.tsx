@@ -32,6 +32,7 @@ import {
 } from "@/components/site/MarketingPage";
 import { InboxPreview } from "@/components/site/InboxPreview";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "Which mailboxes are supported?", a: "Any IMAP mailbox plus Gmail and Outlook, alongside API providers used for sending." },
@@ -222,7 +223,7 @@ function Page() {
         />
       </Section>
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="unified-inbox" defaults={faqs} />
       </Section>
       <CtaBlock
         title="Bring every reply into one inbox"

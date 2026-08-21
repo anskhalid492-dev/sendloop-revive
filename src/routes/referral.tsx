@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getPublicReferralProgram } from "@/lib/referral.functions";
 import {
+import { PageFaqs } from "@/components/site/PageFaqs";
   PAYOUT_METHOD_LABELS,
   describeCommission,
   formatMoney,
@@ -212,7 +213,7 @@ function ReferralLanding() {
         {program?.terms ? <p className="mt-6 whitespace-pre-line text-sm text-muted-foreground">{program.terms}</p> : null}
       </Section>
 
-      <FaqBlock faqs={faqs} />
+      <PageFaqs page="referral" defaults={faqs} />
 
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="hero-glow surface-card px-6 py-14 text-center">

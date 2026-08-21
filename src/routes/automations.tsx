@@ -34,6 +34,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+import { PageFaqs } from "@/components/site/PageFaqs";
   Dialog,
   DialogContent,
   DialogDescription,
@@ -310,7 +311,7 @@ function Page() {
       </Section>
 
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="automations" defaults={faqs} />
       </Section>
 
       <CtaBlock

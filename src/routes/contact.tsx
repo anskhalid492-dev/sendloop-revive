@@ -17,6 +17,7 @@ import {
   metaFor,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   {
@@ -160,7 +161,7 @@ function Contact() {
       </Section>
 
       <Section>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="contact" defaults={faqs} />
       </Section>
 
       <TestimonialCarousel page="contact" />

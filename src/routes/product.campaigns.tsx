@@ -32,6 +32,7 @@ import {
   FeatureBento,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "How many steps can a sequence have?", a: "As many as you need. Most teams see the best results with three to five steps spread over two weeks." },
@@ -230,7 +231,7 @@ function Page() {
       </Section>
       <TestimonialCarousel page="campaigns" title="Teams shipping campaigns with MunchReach" />
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="campaigns" defaults={faqs} />
       </Section>
       <CtaBlock
         title="Launch your first campaign today"

@@ -3,7 +3,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Search, Sparkles, ShieldCheck, X } from "lucide-react";
 
 import { MarketingLayout, Section, FaqBlock, CtaBlock, metaFor } from "@/components/site/MarketingPage";
-import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { CopyButton } from "@/components/site/CopyButton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -343,8 +342,6 @@ function Templates() {
           .
         </p>
       </Section>
-
-      <TestimonialCarousel page="cold-email-templates" />
 
       <CtaBlock
         title="Load these into a live sequence"

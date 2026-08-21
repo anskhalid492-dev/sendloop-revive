@@ -31,6 +31,7 @@ import {
   WorkflowStrip,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "Does this replace Salesforce or HubSpot?", a: "For most outbound-led teams, yes — MunchReach's CRM covers pipeline, notes and tasks end to end. If you already run a CRM for closed-won accounting, sync instead of replacing it." },
@@ -205,7 +206,7 @@ function Page() {
         <StatStrip stats={stats} />
       </Section>
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="crm" defaults={faqs} />
       </Section>
       <CtaBlock title={"Keep pipeline where the conversation happens"} description={"Move from reply to meeting without exporting a single spreadsheet."} />
     </MarketingLayout>
