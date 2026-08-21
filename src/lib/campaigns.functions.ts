@@ -112,7 +112,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
 
-    const [stepsRes, variantsRes, recipientsRes] = await Promise.all([
+    const [stepsRes, variantsRes, recipientsRes, messagesRes] = await Promise.all([
       context.supabase
         .from("campaign_steps")
         .select(STEP_COLUMNS)
@@ -127,10 +127,19 @@ export const getCampaign = createServerFn({ method: "GET" })
         .from("campaign_recipients")
         .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
         .eq("campaign_id", data.id),
+      // Delivery truth comes from the per-message state the provider events
+      // write, never from the initial send response.
+      context.supabase
+        .from("campaign_messages")
+        .select(
+          "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
+        )
+        .eq("campaign_id", data.id),
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
     if (recipientsRes.error) throw new Error(recipientsRes.error.message);
+    if (messagesRes.error) throw new Error(messagesRes.error.message);
 
     const variants = (variantsRes.data ?? []) as unknown as CampaignStepVariant[];
     const steps = ((stepsRes.data ?? []) as unknown as CampaignStep[]).map((s) => ({
@@ -138,7 +147,22 @@ export const getCampaign = createServerFn({ method: "GET" })
       variants: variants.filter((v) => v.step_id === s.id),
     }));
     const recipients = recipientsRes.data ?? [];
+    const messages = (messagesRes.data ?? []) as Array<Record<string, string | null>>;
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
+
+    const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
+    const sentMessages = messages.filter((m) => m["sent_at"]);
+    const bounced = withTimestamp("bounced_at");
+    const failedMessages = messages.filter(
+      (m) => m["delivery_status"] === "failed" && !m["bounced_at"],
+    ).length;
+    // Delivered never includes a message that later bounced or failed.
+    const delivered = messages.filter(
+      (m) => m["delivered_at"] && !m["bounced_at"] && m["delivery_status"] !== "failed",
+    ).length;
+    const contactedLeads = new Set(
+      sentMessages.map((m) => m["lead_id"]).filter((v): v is string => Boolean(v)),
+    ).size;
 
     return {
       campaign: campaign as unknown as Campaign,
@@ -164,8 +188,24 @@ export const getCampaign = createServerFn({ method: "GET" })
             .filter((v): v is string => Boolean(v))
             .sort()[0] ?? null,
       },
+      delivery: {
+        totalLeads: recipients.length,
+        contacted: contactedLeads,
+        sent: sentMessages.length,
+        delivered,
+        delayed: messages.filter((m) => m["delivery_status"] === "delayed").length,
+        opened: withTimestamp("opened_at"),
+        clicked: withTimestamp("clicked_at"),
+        replied: withTimestamp("replied_at") || countBy("replied"),
+        bounced,
+        complained: withTimestamp("complained_at"),
+        unsubscribed: withTimestamp("unsubscribed_at") || countBy("unsubscribed"),
+        failed: failedMessages,
+        pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
+      },
     };
   });
+
 
 export const getCampaignLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
