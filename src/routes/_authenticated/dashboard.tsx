@@ -223,6 +223,10 @@ function DashboardPage() {
           ))}
         </div>
 
+        <EngagementOverview workspaceId={workspaceId ?? null} />
+
+
+
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <OutreachGraph
