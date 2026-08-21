@@ -10,6 +10,7 @@
 import { nextSendSlot } from "@/lib/campaign-schedule";
 import {
   renderEmailForLead,
+  senderExtras,
   resolveSpintax,
 
   type CustomVariable,
@@ -141,6 +142,25 @@ export async function scheduleFollowUps(
 
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
 
+  // {{sender_name}} / {{sender_email}} come from the mailbox each recipient is
+  // assigned to, so a rotated sequence signs off with the right person.
+  const accountIds = [
+    ...new Set(
+      recipients
+        .map((r: { sending_account_id: string | null }) => r.sending_account_id)
+        .filter((id: string | null): id is string => Boolean(id)),
+    ),
+  ];
+  const { data: senderRows } = accountIds.length
+    ? await supabase
+        .from("sending_accounts")
+        .select("id, from_name, from_email")
+        .in("id", accountIds)
+    : { data: [] as Array<{ id: string; from_name: string; from_email: string }> };
+  const senderById = new Map(
+    ((senderRows ?? []) as Array<{ id: string }>).map((a) => [a.id, a] as const),
+  );
+
   // Follow-ups reuse the AI snippet generated for this lead on this campaign, so
   // the whole sequence stays consistent instead of re-billing a generation.
   const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
@@ -211,7 +231,13 @@ export async function scheduleFollowUps(
       step_order: next.step_order,
       status: "scheduled",
       to_email: (lead as { email: string }).email,
-      ...renderEmailForLead(next, lead as never, { customVariables: variables, extras: ai.extras }),
+      ...renderEmailForLead(next, lead as never, {
+        customVariables: variables,
+        extras: {
+          ...senderExtras(senderById.get(recipient.sending_account_id ?? "") as never),
+          ...ai.extras,
+        },
+      }),
 
       scheduled_at: slot,
     });

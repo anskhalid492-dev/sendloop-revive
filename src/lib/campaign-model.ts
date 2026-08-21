@@ -170,6 +170,13 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
     ],
   },
   {
+    group: "Sender",
+    variables: [
+      { token: "sender_name", label: "Sender name" },
+      { token: "sender_email", label: "Sender email" },
+    ],
+  },
+  {
     group: "AI",
     variables: [{ token: AI_VARIABLE_TOKEN, label: "AI personalization" }],
   },
@@ -191,6 +198,27 @@ const VARIABLE_ALIASES: Record<string, string> = {
 
 /** Tokens the sending system fills in itself. */
 export const SYSTEM_VARIABLES = new Set(["unsubscribe_link", "sender_name", "sender_email"]);
+
+export type SenderLike = {
+  from_name?: string | null;
+  from_email?: string | null;
+  reply_to?: string | null;
+} | null | undefined;
+
+/**
+ * Values for the sender tokens ({{sender_name}}, {{sender_email}}), taken from
+ * the mailbox the email is actually sent from. Empty fields are omitted so an
+ * inline fallback (`{{sender_name | The team}}`) still applies.
+ */
+export function senderExtras(account: SenderLike): Record<string, string> {
+  const out: Record<string, string> = {};
+  const name = account?.from_name?.trim();
+  const email = account?.from_email?.trim();
+  if (name) out["sender_name"] = name;
+  else if (email) out["sender_name"] = email.split("@")[0] ?? "";
+  if (email) out["sender_email"] = email;
+  return out;
+}
 
 export function variableLabel(token: string): string {
   const canonical = VARIABLE_ALIASES[token] ?? token;
@@ -349,7 +377,11 @@ export function variableResolutionReport(
       const value = lead ? leadValue(lead, token) : undefined;
       let source: VariableResolution["source"];
       let resolved: string | null;
-      if (typeof extra === "string" && extra.trim()) {
+      if (typeof extra === "string" && extra.trim() && SYSTEM_VARIABLES.has(token)) {
+        // Sender tokens come from the mailbox, not the lead or the model.
+        source = "system";
+        resolved = extra.trim();
+      } else if (typeof extra === "string" && extra.trim()) {
         source = "ai";
         resolved = extra.trim();
       } else if (value) {
