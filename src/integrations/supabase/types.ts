@@ -758,6 +758,36 @@ export type Database = {
           },
         ]
       }
+      billing_provider_secrets: {
+        Row: {
+          ciphertext: string
+          created_at: string
+          environment: string
+          meta: Json
+          provider: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ciphertext: string
+          created_at?: string
+          environment: string
+          meta?: Json
+          provider: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ciphertext?: string
+          created_at?: string
+          environment?: string
+          meta?: Json
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       billing_providers: {
         Row: {
           created_at: string
