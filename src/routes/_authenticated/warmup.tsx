@@ -6,13 +6,16 @@ import { Activity, AlertTriangle, Flame, Pause, Play, Settings2 } from "lucide-r
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { WarmupAnalytics } from "@/components/warmup/WarmupAnalytics";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
 import { listWarmupAccounts, saveWarmupSettings } from "@/lib/warmup.functions";
 import { HEALTH_STATUS_LABEL, healthTone, type WarmupHealthStatus } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/warmup")({
   head: () => ({
