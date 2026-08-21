@@ -6141,6 +6141,56 @@ export type Database = {
           },
         ]
       }
+      workspace_ai_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          key_ciphertext: string
+          key_last4: string | null
+          last_error: string | null
+          model: string
+          provider: string
+          status: string
+          updated_at: string
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          key_ciphertext: string
+          key_last4?: string | null
+          last_error?: string | null
+          model?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          key_ciphertext?: string
+          key_last4?: string | null
+          last_error?: string | null
+          model?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_ai_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_credits: {
         Row: {
           allocated_total: number
