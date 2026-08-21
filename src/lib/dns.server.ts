@@ -198,3 +198,93 @@ export function makeDkimSelector(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(4));
   return `sl${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Generic checks for provider-issued DNS records                      */
+/* ------------------------------------------------------------------ */
+
+import type { ProviderDnsRecord } from "@/lib/domain-providers/types";
+
+export type ProviderRecordCheck = {
+  id: string;
+  status: DnsRecordStatus;
+  observed: string | null;
+  message: string;
+};
+
+/** Verifies an arbitrary provider-issued record against live DNS. */
+export async function checkProviderRecord(spec: ProviderDnsRecord): Promise<ProviderRecordCheck> {
+  const expected = clean(spec.value).replace(/\.$/, "");
+  try {
+    if (spec.type === "TXT") {
+      const answers = await resolve(spec.fqdn, "TXT");
+      const values = answers.map((a) => clean(a.data));
+      if (values.length === 0)
+        return { id: spec.id, status: "failed", observed: null, message: "No TXT record found." };
+      const include = expected.match(/include:([^\s]+)/)?.[1];
+      const hit = values.find((v) =>
+        include ? v.startsWith("v=spf1") && v.includes(`include:${include}`) : v === expected || v.includes(expected),
+      );
+      return hit
+        ? { id: spec.id, status: "verified", observed: hit, message: "Record found." }
+        : {
+            id: spec.id,
+            status: "failed",
+            observed: values[0] ?? null,
+            message: "A TXT record exists but the value does not match.",
+          };
+    }
+
+    if (spec.type === "CNAME") {
+      const answers = await resolve(spec.fqdn, "CNAME");
+      const target = answers.map((a) => clean(a.data).replace(/\.$/, "")).find((v) => v === expected);
+      return target
+        ? { id: spec.id, status: "verified", observed: target, message: "CNAME target matches." }
+        : {
+            id: spec.id,
+            status: "failed",
+            observed: answers[0] ? clean(answers[0].data) : null,
+            message: answers.length ? "CNAME exists but points somewhere else." : "No CNAME record found.",
+          };
+    }
+
+    const answers = await resolve(spec.fqdn, "MX");
+    const host = expected.split(/\s+/).pop() ?? expected;
+    const match = answers
+      .map((a) => clean(a.data).replace(/\.$/, "").split(/\s+/).pop() ?? "")
+      .find((h) => h === host);
+    return match
+      ? { id: spec.id, status: "verified", observed: match, message: "MX host matches." }
+      : {
+          id: spec.id,
+          status: "failed",
+          observed: answers[0] ? clean(answers[0].data) : null,
+          message: answers.length ? "MX records exist but none match." : "No MX record found.",
+        };
+  } catch (error) {
+    return { id: spec.id, status: "failed", observed: null, message: (error as Error).message };
+  }
+}
+
+export async function checkProviderRecords(
+  specs: ProviderDnsRecord[],
+): Promise<ProviderRecordCheck[]> {
+  return Promise.all(specs.map(checkProviderRecord));
+}
+
+/** Recommended DMARC policy record. Advisory only — never blocks verification. */
+export function recommendedDmarcRecord(domain: string): ProviderDnsRecord {
+  const d = domain.toLowerCase();
+  const rua = process.env["SENDING_DMARC_RUA"] || `dmarc@${d}`;
+  return {
+    id: `dmarc:_dmarc.${d}:TXT`,
+    kind: "dmarc",
+    type: "TXT",
+    host: "_dmarc",
+    fqdn: `_dmarc.${d}`,
+    value: `v=DMARC1; p=none; rua=mailto:${rua}; fo=1`,
+    ttl: 3600,
+    required: false,
+    purpose: "Publishes your alignment policy and reporting address (recommended).",
+  };
+}
