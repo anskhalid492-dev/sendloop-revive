@@ -1084,11 +1084,21 @@ export async function getAdminDomain(domainId: string) {
       verifiedAt: row.verified_at,
       lastError: row.last_error,
       createdAt: row.created_at,
+      provider: row.provider,
+      providerId: row.provider_id,
+      providerStatus: row.provider_status,
+      stage: row.disabled_at ? "disabled" : (row.stage ?? "pending_dns"),
+      disabledAt: row.disabled_at,
     },
-    records: buildDnsRecords(row.domain as string, row.dkim_selector as string).map((spec) => ({
-      ...spec,
-      status: statuses[spec.kind] ?? "pending",
-    })),
+    records: (((row.provider_records ?? []) as any[]).length
+      ? ((row.provider_records ?? []) as any[]).map((spec: any) => {
+          const check = ((row.record_checks ?? []) as any[]).find((c: any) => c.id === spec.id);
+          return { ...spec, status: check?.status ?? "pending", message: check?.message ?? null };
+        })
+      : buildDnsRecords(row.domain as string, row.dkim_selector as string).map((spec) => ({
+          ...spec,
+          status: statuses[spec.kind] ?? "pending",
+        }))),
     mailboxes: (mailboxes.data ?? []).map((m: any) => ({
       id: m.id,
       email: m.from_email,

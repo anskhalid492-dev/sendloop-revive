@@ -35,6 +35,7 @@ import {
   adminListDomains,
   adminOutreachFilters,
   adminRecheckDomainDns,
+  adminSetDomainEnabled,
 } from "@/lib/admin-outreach.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/domains")({
@@ -91,6 +92,16 @@ function AdminDomainsPage() {
     queryKey: ["admin", "outreach", "domain", openId],
     queryFn: () => getDomain({ data: { domainId: openId! } }),
     enabled: Boolean(openId),
+  });
+
+  const setEnabled = useServerFn(adminSetDomainEnabled);
+  const enabledMutation = useMutation({
+    mutationFn: (vars: { domainId: string; enabled: boolean }) => setEnabled({ data: vars }),
+    onSuccess: (result: any) => {
+      toast.success(result.enabled ? "Domain enabled" : "Domain disabled");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "outreach"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const recheckMutation = useMutation({
@@ -220,6 +231,10 @@ function AdminDomainsPage() {
               data={detailQuery.data}
               onRecheck={() => recheckMutation.mutate(detailQuery.data.domain.id)}
               rechecking={recheckMutation.isPending}
+              onToggleEnabled={(enabled) =>
+                enabledMutation.mutate({ domainId: detailQuery.data.domain.id, enabled })
+              }
+              toggling={enabledMutation.isPending}
             />
           ) : null}
         </SheetContent>
@@ -232,17 +247,30 @@ function DomainDetail({
   data,
   onRecheck,
   rechecking,
+  onToggleEnabled,
+  toggling,
 }: {
   data: any;
   onRecheck: () => void;
   rechecking: boolean;
+  onToggleEnabled: (enabled: boolean) => void;
+  toggling: boolean;
 }) {
   const d = data.domain;
+  const disabled = Boolean(d.disabledAt);
   return (
     <div className="mt-4 space-y-5 px-4 pb-8">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" disabled={rechecking} onClick={onRecheck}>
-          <RefreshCw className="mr-2 size-3.5" /> Re-check DNS
+          <RefreshCw className="mr-2 size-3.5" /> Re-run verification
+        </Button>
+        <Button
+          size="sm"
+          variant={disabled ? "default" : "outline"}
+          disabled={toggling}
+          onClick={() => onToggleEnabled(disabled)}
+        >
+          {disabled ? "Enable domain" : "Disable domain"}
         </Button>
       </div>
 
@@ -250,6 +278,9 @@ function DomainDetail({
         items={[
           { label: "Workspace", value: d.workspaceName },
           { label: "Status", value: <Pill tone={dnsTone(d.status)}>{d.status}</Pill> },
+          { label: "Stage", value: d.stage ?? "—" },
+          { label: "Provider", value: d.provider ?? "auto" },
+          { label: "Provider status", value: d.providerStatus ?? "—" },
           { label: "Registrar", value: d.registrar ?? "—" },
           { label: "Tracking host", value: d.trackingHost ?? "—" },
           { label: "Last checked", value: fmtDate(d.lastCheckedAt) },
