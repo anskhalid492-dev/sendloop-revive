@@ -132,6 +132,10 @@ export const connectIntegration = createServerFn({ method: "POST" })
 
     await requireWorkspaceRole(data.workspaceId, context.userId, true);
 
+    // Central plan gate — the catalog flag below is an extra per-integration rule.
+    const { requireEntitlement } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(data.workspaceId, "integrations");
+
     const meta = INTEGRATIONS_BY_SLUG[data.slug];
     if (!meta) throw new Error("Unknown integration.");
 

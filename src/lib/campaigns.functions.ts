@@ -209,6 +209,10 @@ export const createCampaign = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(data.workspaceId, "campaigns");
+    await checkUsageLimit(data.workspaceId, "campaigns", 1);
+
     const { data: campaign, error } = await context.supabase
       .from("campaigns")
       .insert({
@@ -770,6 +774,11 @@ export const launchCampaign = createServerFn({ method: "POST" })
     if (!campaign) throw new Error("Campaign not found");
     const c = campaign as unknown as Campaign;
 
+    // Plan enforcement before anything is scheduled.
+    const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(c.workspace_id, "campaigns");
+    if (c.status !== "active") await checkUsageLimit(c.workspace_id, "active_campaigns", 1);
+
     // Validate against the persisted audience relationship, never frontend state.
     const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent, refreshReadiness } =
       await import("@/lib/campaign-launch.server");
@@ -1132,6 +1141,18 @@ export const setCampaignStatus = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    if (data.status === "active") {
+      const { data: row } = await context.supabase
+        .from("campaigns")
+        .select("workspace_id, status")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (row && row.status !== "active") {
+        const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
+        await requireEntitlement(row.workspace_id, "campaigns");
+        await checkUsageLimit(row.workspace_id, "active_campaigns", 1);
+      }
+    }
     const { error } = await context.supabase
       .from("campaigns")
       .update({ status: data.status })

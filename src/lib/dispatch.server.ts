@@ -296,6 +296,13 @@ export async function dispatchDueMessages(
   const result = emptyResult();
   if (!due?.length) return result;
 
+  // Plan enforcement: sending is metered against the workspace plan. Both the
+  // gate and the counter live server-side so cron and API callers are covered.
+  const { consumeUsage, releaseUsage, EntitlementError } = await import(
+    "@/lib/billing/usage.server"
+  );
+  const workspaceId = due[0].workspace_id as string;
+
   // Bounced, complained and unsubscribed addresses are never emailed again.
   const suppressed = await suppressedSet(
     due[0].workspace_id,
@@ -366,6 +373,23 @@ export async function dispatchDueMessages(
       continue;
     }
 
+    // Atomic monthly-send reservation: concurrent dispatch runs can never
+    // push the workspace past its plan allowance.
+    try {
+      await consumeUsage(workspaceId, "emails_monthly", 1);
+    } catch (error) {
+      if (error instanceof EntitlementError) {
+        result.skipped += 1;
+        if (result.errors.length < 5) result.errors.push(error.message);
+        await supabase
+          .from("campaign_messages")
+          .update({ status: "pending", last_error: error.message.slice(0, 500) })
+          .eq("id", message.id);
+        continue;
+      }
+      throw error;
+    }
+
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
     // Replies must reach the inbox MunchReach tracks, not the raw mailbox.
@@ -401,6 +425,8 @@ export async function dispatchDueMessages(
 
 
     if (!send.ok) {
+      // Give the reserved allowance back: nothing left the platform.
+      await releaseUsage(workspaceId, "emails_monthly", 1);
       await fail(send.message);
       continue;
     }

@@ -5,6 +5,8 @@ import { Check } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
+import { UsageDashboard } from "@/components/billing/UsageDashboard";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { getPlans } from "@/lib/plans.functions";
 
 export const Route = createFileRoute("/_authenticated/billing")({
@@ -22,24 +24,14 @@ export const Route = createFileRoute("/_authenticated/billing")({
 });
 
 function BillingPage() {
+  const { workspace } = useWorkspace();
   const fetchPlans = useServerFn(getPlans);
   const plans = useQuery({ queryKey: ["plans"], queryFn: () => fetchPlans() });
 
   return (
     <AppShell title="Billing" description="Your subscription and usage">
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="surface-card p-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Current plan
-          </p>
-          <h2 className="mt-1 text-2xl font-bold">Free trial</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Upgrade any time to unlock more mailboxes, leads and monthly sending volume.
-          </p>
-          <Button asChild className="mt-4">
-            <Link to="/pricing">View all plans</Link>
-          </Button>
-        </div>
+        <UsageDashboard workspaceId={workspace?.id ?? null} />
 
         {plans.isLoading ? (
           <div className="h-52 animate-pulse rounded-xl bg-muted" />

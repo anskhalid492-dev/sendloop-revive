@@ -245,6 +245,10 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     if (accountError) throw new Error(accountError.message);
     if (!account) throw new Error("Mailbox not found");
 
+    // Warmup is a plan feature; enforced here so API callers cannot enable it.
+    const { requireEntitlement } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(account.workspace_id as string, "warmup");
+
     const { data: existing } = await client
       .from("warmup_settings")
       .select("id, enabled, started_at")

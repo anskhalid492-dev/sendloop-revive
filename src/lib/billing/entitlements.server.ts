@@ -2,17 +2,11 @@
  * Server-side entitlement checks: workspace → subscription → plan → limit.
  * Frontend gating is cosmetic; this is the enforcement point.
  */
-import { ENTITLED_STATES, type SubscriptionState } from "@/lib/billing/model";
+import { STATE_LABELS, type SubscriptionState } from "@/lib/billing/model";
+import { type PlanLimitKey } from "@/lib/billing/limit-keys";
 import { admin, getBillingSettings } from "@/lib/billing/core.server";
 
-export type PlanLimitKey =
-  | "max_users"
-  | "max_leads"
-  | "max_campaigns"
-  | "max_emails_monthly"
-  | "max_sending_accounts"
-  | "max_workspaces"
-  | "max_automations";
+export type { PlanLimitKey };
 
 export type PlanFlagKey =
   | "warmup_enabled"
@@ -27,6 +21,7 @@ export type Entitlement = {
   planId: string | null;
   planName: string;
   state: SubscriptionState | "none";
+  stateLabel: string;
   active: boolean;
   inGrace: boolean;
   accessUntil: string | null;
@@ -76,13 +71,27 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
   const rawState = (sub?.status as SubscriptionState | undefined) ?? null;
   const state: SubscriptionState | "none" = rawState ?? "none";
   const inGrace = Boolean(sub?.grace_until && new Date(sub.grace_until) > new Date());
-  const active = rawState !== null && (ENTITLED_STATES.includes(rawState) || inGrace);
+  // Access states are explicit. `past_due` / `payment_failed` only keep access
+  // while the admin-configured grace window is still open; cancelled, expired
+  // and paused subscriptions never do.
+  const alwaysEntitled: SubscriptionState[] = ["trialing", "active"];
+  const graceEntitled: SubscriptionState[] = ["past_due", "payment_failed"];
+  const withinAccessWindow =
+    rawState === "cancelled" && sub?.access_until
+      ? new Date(sub.access_until) > new Date()
+      : false;
+  const active =
+    rawState !== null &&
+    (alwaysEntitled.includes(rawState) ||
+      (graceEntitled.includes(rawState) && inGrace) ||
+      withinAccessWindow);
 
   return {
     workspaceId,
     planId: plan?.id ?? null,
     planName: plan?.name ?? "Free trial",
     state,
+    stateLabel: rawState ? STATE_LABELS[rawState] : "No subscription",
     active,
     inGrace,
     accessUntil: sub?.access_until ?? sub?.current_period_end ?? null,
@@ -90,6 +99,9 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
       max_users: plan?.max_users ?? null,
       max_leads: plan?.max_leads ?? null,
       max_campaigns: plan?.max_campaigns ?? null,
+      max_active_campaigns: plan?.max_active_campaigns ?? null,
+      max_domains: plan?.max_domains ?? null,
+      max_ai_monthly: plan?.max_ai_monthly ?? null,
       max_emails_monthly: plan?.max_emails_monthly ?? null,
       max_sending_accounts: plan?.max_sending_accounts ?? null,
       max_workspaces: plan?.max_workspaces ?? null,

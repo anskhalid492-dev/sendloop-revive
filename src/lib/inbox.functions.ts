@@ -517,6 +517,16 @@ export const sendConversationReply = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { data: conversation } = await context.supabase
+      .from("conversations")
+      .select("workspace_id")
+      .eq("id", data.conversationId)
+      .maybeSingle();
+    if (conversation?.workspace_id) {
+      const { requireEntitlement, consumeUsage } = await import("@/lib/billing/usage.server");
+      await requireEntitlement(conversation.workspace_id, "unified_inbox");
+      await consumeUsage(conversation.workspace_id, "emails_monthly", 1);
+    }
     const { sendReplyThroughMailbox } = await import("@/lib/inbox-send.server");
     return sendReplyThroughMailbox({
       supabase: context.supabase,

@@ -46,6 +46,9 @@ const LIMIT_LABELS: Record<PlanLimitKey, string> = {
   max_sending_accounts: "Sending accounts",
   max_workspaces: "Workspaces",
   max_automations: "Automations",
+  max_domains: "Sending domains",
+  max_active_campaigns: "Active campaigns",
+  max_ai_monthly: "AI personalizations this month",
 };
 
 async function countRows(table: string, workspaceId: string, since?: string) {
@@ -65,7 +68,7 @@ export async function loadWorkspaceDiagnostics(workspaceId: string): Promise<Wor
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
 
-  const [workspace, creditRow, members, leads, campaigns, accounts, automations, ledger, emails] =
+  const [workspace, creditRow, members, leads, campaigns, accounts, automations, domains, ledger, emails, activeCampaigns, aiUsed] =
     await Promise.all([
       db.from("workspaces").select("name").eq("id", workspaceId).maybeSingle(),
       db
@@ -78,6 +81,7 @@ export async function loadWorkspaceDiagnostics(workspaceId: string): Promise<Wor
       countRows("campaigns", workspaceId),
       countRows("sending_accounts", workspaceId),
       countRows("automations", workspaceId),
+      countRows("sending_domains", workspaceId),
       db
         .from("credit_ledger")
         .select("created_at, entry_type, amount, balance_after, reason")
@@ -90,6 +94,16 @@ export async function loadWorkspaceDiagnostics(workspaceId: string): Promise<Wor
         .eq("workspace_id", workspaceId)
         .eq("event_type", "sent")
         .gte("created_at", monthStart.toISOString()),
+      db
+        .from("campaigns")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active"),
+      db
+        .from("ai_personalizations")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+        .gte("created_at", monthStart.toISOString()),
     ]);
 
   const used: Record<PlanLimitKey, number> = {
@@ -100,6 +114,9 @@ export async function loadWorkspaceDiagnostics(workspaceId: string): Promise<Wor
     max_sending_accounts: accounts,
     max_automations: automations,
     max_workspaces: 1,
+    max_domains: domains,
+    max_active_campaigns: activeCampaigns.count ?? 0,
+    max_ai_monthly: aiUsed.count ?? 0,
   };
 
   const usage: UsageRow[] = (Object.keys(LIMIT_LABELS) as PlanLimitKey[]).map((key) => {

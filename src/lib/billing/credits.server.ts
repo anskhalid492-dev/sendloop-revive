@@ -106,6 +106,45 @@ export async function consumeCredits(input: {
   });
 }
 
+/**
+ * Allocates the plan's monthly credit grant exactly once per plan + period.
+ * Idempotent: the ledger reference is the dedupe key, so webhook retries and
+ * repeated renewals never double-grant.
+ */
+export async function allocatePlanCredits(input: {
+  workspaceId: string;
+  planId: string;
+  periodStart: string;
+}) {
+  const db = await admin();
+  const { data: plan } = await db
+    .from("plans")
+    .select("name, monthly_credits")
+    .eq("id", input.planId)
+    .maybeSingle();
+  const amount = Number((plan as any)?.monthly_credits ?? 0);
+  if (amount <= 0) return { granted: false as const };
+
+  const reference = `plan:${input.planId}:${input.periodStart.slice(0, 10)}`;
+  const { data: existing } = await db
+    .from("credit_ledger")
+    .select("id")
+    .eq("workspace_id", input.workspaceId)
+    .eq("reference", reference)
+    .maybeSingle();
+  if (existing) return { granted: false as const };
+
+  await applyCreditChange({
+    workspaceId: input.workspaceId,
+    amount,
+    entryType: "plan_allocation",
+    reason: `${(plan as any)?.name ?? "Plan"} monthly credits`,
+    reference,
+    actor: "system",
+  });
+  return { granted: true as const, amount };
+}
+
 export async function assertCredits(workspaceId: string, needed: number) {
   const balance = await getCreditBalance(workspaceId);
   if (balance.balance < needed)

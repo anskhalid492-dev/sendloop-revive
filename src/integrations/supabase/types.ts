@@ -3792,8 +3792,11 @@ export type Database = {
           is_active: boolean
           is_enterprise: boolean
           is_popular: boolean
+          max_active_campaigns: number | null
+          max_ai_monthly: number | null
           max_automations: number | null
           max_campaigns: number | null
+          max_domains: number | null
           max_emails_monthly: number | null
           max_leads: number | null
           max_sending_accounts: number | null
@@ -3807,6 +3810,7 @@ export type Database = {
           sort_order: number
           sso_enabled: boolean
           tagline: string | null
+          trial_days: number
           unified_inbox_enabled: boolean
           updated_at: string
           warmup_enabled: boolean
@@ -3822,8 +3826,11 @@ export type Database = {
           is_active?: boolean
           is_enterprise?: boolean
           is_popular?: boolean
+          max_active_campaigns?: number | null
+          max_ai_monthly?: number | null
           max_automations?: number | null
           max_campaigns?: number | null
+          max_domains?: number | null
           max_emails_monthly?: number | null
           max_leads?: number | null
           max_sending_accounts?: number | null
@@ -3837,6 +3844,7 @@ export type Database = {
           sort_order?: number
           sso_enabled?: boolean
           tagline?: string | null
+          trial_days?: number
           unified_inbox_enabled?: boolean
           updated_at?: string
           warmup_enabled?: boolean
@@ -3852,8 +3860,11 @@ export type Database = {
           is_active?: boolean
           is_enterprise?: boolean
           is_popular?: boolean
+          max_active_campaigns?: number | null
+          max_ai_monthly?: number | null
           max_automations?: number | null
           max_campaigns?: number | null
+          max_domains?: number | null
           max_emails_monthly?: number | null
           max_leads?: number | null
           max_sending_accounts?: number | null
@@ -3867,6 +3878,7 @@ export type Database = {
           sort_order?: number
           sso_enabled?: boolean
           tagline?: string | null
+          trial_days?: number
           unified_inbox_enabled?: boolean
           updated_at?: string
           warmup_enabled?: boolean
@@ -6473,6 +6485,38 @@ export type Database = {
           },
         ]
       }
+      workspace_usage_counters: {
+        Row: {
+          period_start: string
+          resource: string
+          updated_at: string
+          used: number
+          workspace_id: string
+        }
+        Insert: {
+          period_start: string
+          resource: string
+          updated_at?: string
+          used?: number
+          workspace_id: string
+        }
+        Update: {
+          period_start?: string
+          resource?: string
+          updated_at?: string
+          used?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_usage_counters_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           checklist_dismissed: boolean
@@ -6754,6 +6798,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      consume_workspace_usage: {
+        Args: {
+          _amount: number
+          _limit?: number
+          _period_start: string
+          _resource: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       delete_crm_stage: {
         Args: { _move_to: string; _stage_id: string }
         Returns: undefined
@@ -6879,6 +6933,15 @@ export type Database = {
           recurring: boolean
           terms: string
         }[]
+      }
+      release_workspace_usage: {
+        Args: {
+          _amount: number
+          _period_start: string
+          _resource: string
+          _workspace_id: string
+        }
+        Returns: undefined
       }
       remove_workspace_member: {
         Args: { _member_id: string }

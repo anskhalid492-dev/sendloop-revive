@@ -392,6 +392,10 @@ export const createLead = createServerFn({ method: "POST" })
     z.object({ workspaceId: z.string().uuid(), lead: leadWriteSchema }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    // Server-side plan enforcement (API callers included).
+    const { checkUsageLimit } = await import("@/lib/billing/usage.server");
+    await checkUsageLimit(data.workspaceId, "leads", 1);
+
     const { data: existing } = await context.supabase
       .from("leads")
       .select(sel("id"))
@@ -672,6 +676,10 @@ export const importLeads = createServerFn({ method: "POST" })
     }
 
     const toInsert = cleaned.filter((row) => !existingEmails.has(row["email"] as string));
+
+    // Imports must fit inside the plan's lead allowance.
+    const { checkUsageLimit } = await import("@/lib/billing/usage.server");
+    if (toInsert.length) await checkUsageLimit(data.workspaceId, "leads", toInsert.length);
 
     let inserted = 0;
     for (let i = 0; i < toInsert.length; i += 500) {
