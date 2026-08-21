@@ -206,7 +206,7 @@ export function ConversationView({
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center gap-2 border-b border-border p-3">
+        <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border p-3">
           {onBack ? (
             <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back to list">
               <ArrowLeft className="h-4 w-4" />
@@ -334,7 +334,7 @@ export function ConversationView({
           </Button>
         </header>
 
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
           <TagIcon className="h-3.5 w-3.5 text-muted-foreground" />
           {conversation.tags.map((tag) => (
             <Badge key={tag} variant="secondary" className="gap-1">
@@ -365,7 +365,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        <div className="min-h-[8rem] flex-1 space-y-3 overflow-y-auto p-4">
           {timeline.map((entry) =>
             entry.kind === "message" ? (
               <article
@@ -437,7 +437,7 @@ export function ConversationView({
           )}
         </div>
 
-        <Tabs defaultValue="reply" className="border-t border-border p-3">
+        <Tabs defaultValue="reply" className="max-h-[55%] shrink-0 overflow-y-auto border-t border-border p-3">
           <TabsList>
             <TabsTrigger value="reply">Reply</TabsTrigger>
             <TabsTrigger value="note">Internal note</TabsTrigger>
