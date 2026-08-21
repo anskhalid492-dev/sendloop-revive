@@ -135,6 +135,7 @@ import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/publ
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
 import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/billing/stripe'
+import { Route as ApiPublicCronProviderHealthRouteImport } from './routes/api/public/cron/provider-health'
 import { Route as ApiPublicCronRecheckDomainsRouteImport } from './routes/api/public/cron/recheck-domains'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunAiPersonalizationRouteImport } from './routes/api/public/cron/run-ai-personalization'
@@ -823,6 +824,12 @@ const ApiPublicBillingStripeRoute = ApiPublicBillingStripeRouteImport.update({
   path: '/api/public/billing/stripe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronProviderHealthRoute =
+  ApiPublicCronProviderHealthRouteImport.update({
+    id: '/api/public/cron/provider-health',
+    path: '/api/public/cron/provider-health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRecheckDomainsRoute =
   ApiPublicCronRecheckDomainsRouteImport.update({
     id: '/api/public/cron/recheck-domains',
@@ -1013,6 +1020,7 @@ export interface FileRoutesByFullPath {
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
+  '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
@@ -1149,6 +1157,7 @@ export interface FileRoutesByTo {
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
+  '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
@@ -1289,6 +1298,7 @@ export interface FileRoutesById {
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
+  '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
@@ -1429,6 +1439,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
+    | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
@@ -1565,6 +1576,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
+    | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
@@ -1704,6 +1716,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
+    | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
@@ -1774,6 +1787,7 @@ export interface RootRouteChildren {
   ApiPublicBillingLemonsqueezyRoute: typeof ApiPublicBillingLemonsqueezyRoute
   ApiPublicBillingPaddleRoute: typeof ApiPublicBillingPaddleRoute
   ApiPublicBillingStripeRoute: typeof ApiPublicBillingStripeRoute
+  ApiPublicCronProviderHealthRoute: typeof ApiPublicCronProviderHealthRoute
   ApiPublicCronRecheckDomainsRoute: typeof ApiPublicCronRecheckDomainsRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunAiPersonalizationRoute: typeof ApiPublicCronRunAiPersonalizationRoute
@@ -2671,6 +2685,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBillingStripeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/provider-health': {
+      id: '/api/public/cron/provider-health'
+      path: '/api/public/cron/provider-health'
+      fullPath: '/api/public/cron/provider-health'
+      preLoaderRoute: typeof ApiPublicCronProviderHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/recheck-domains': {
       id: '/api/public/cron/recheck-domains'
       path: '/api/public/cron/recheck-domains'
@@ -3008,6 +3029,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBillingLemonsqueezyRoute: ApiPublicBillingLemonsqueezyRoute,
   ApiPublicBillingPaddleRoute: ApiPublicBillingPaddleRoute,
   ApiPublicBillingStripeRoute: ApiPublicBillingStripeRoute,
+  ApiPublicCronProviderHealthRoute: ApiPublicCronProviderHealthRoute,
   ApiPublicCronRecheckDomainsRoute: ApiPublicCronRecheckDomainsRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunAiPersonalizationRoute:
