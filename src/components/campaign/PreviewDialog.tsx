@@ -121,7 +121,7 @@ function useResolved(
   const rawBody = variant?.body || step?.body || "";
 
   // Preview signs off with the mailbox the campaign actually sends from.
-  const sending = builder.campaign?.sendingAccountIds ?? [];
+  const sending = builder.campaign?.sending_account_ids ?? [];
   const account =
     builder.accounts.find((a) => sending.includes(a.id)) ?? builder.accounts[0] ?? null;
   const extras = {
