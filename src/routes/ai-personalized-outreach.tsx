@@ -1,40 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  ArrowRight,
   Braces,
   Building2,
-  Copy,
+  CheckCircle2,
   Gauge,
   KeyRound,
   ListChecks,
   MapPin,
   PenLine,
+  Send,
   ShieldCheck,
   Sparkles,
   UserRound,
-  Users,
-  Wallet,
+  Wand2,
 } from "lucide-react";
 
 import {
-  BeforeAfter,
-  BigPreview,
-  BulletList,
-  CtaBlock,
-  FeatureBento,
   MarketingLayout,
   MockPanel,
   MockRows,
-  PageHero,
-  PainPoints,
   Section,
-  SolutionSplit,
-  StepList,
-  UseCaseGrid,
   metaFor,
 } from "@/components/site/MarketingPage";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { Button } from "@/components/ui/button";
 
 const faqs = [
   {
@@ -78,25 +70,93 @@ export const Route = createFileRoute("/ai-personalized-outreach")({
   component: Page,
 });
 
-const painPoints = [
-  {
-    icon: Copy,
-    title: "Templates read like templates",
-    text: '"Hi {{first_name}}, I came across {{company}}" is the same email everyone else is sending this morning.',
-  },
-  {
-    icon: Gauge,
-    title: "Manual research does not scale",
-    text: "Researching each prospect properly takes minutes per lead, which caps a rep at a few dozen quality emails a day.",
-  },
-  {
-    icon: Wallet,
-    title: "AI add-ons get expensive",
-    text: "Per-credit AI pricing turns every experiment into a billing decision, so teams stop testing new angles.",
-  },
+/* ---------------------------------------------------------------- helpers */
+
+type Tint = "sky" | "amber" | "rose" | "mint" | "violet";
+
+const tintCard: Record<Tint, string> = {
+  sky: "bg-tint-sky text-tint-sky-foreground",
+  amber: "bg-tint-amber text-tint-amber-foreground",
+  rose: "bg-tint-rose text-tint-rose-foreground",
+  mint: "bg-tint-mint text-tint-mint-foreground",
+  violet: "bg-tint-violet text-tint-violet-foreground",
+};
+
+function ColorCard({
+  tint,
+  title,
+  text,
+  children,
+  className = "",
+}: {
+  tint: Tint;
+  title: string;
+  text: string;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-col overflow-hidden rounded-3xl p-7 ${tintCard[tint]} ${className}`}
+    >
+      <h3 className="text-xl font-bold tracking-tight">{title}</h3>
+      <p className="mt-2 max-w-md text-sm opacity-80">{text}</p>
+      {children ? <div className="mt-6 flex-1">{children}</div> : null}
+    </div>
+  );
+}
+
+/** Small email-like card used inside the colorful bento tiles. */
+function NoteCard({
+  from,
+  line,
+  tag,
+}: {
+  from: string;
+  line: string;
+  tag?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/40 bg-background/80 p-3 shadow-sm backdrop-blur">
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-xs font-semibold text-foreground">{from}</span>
+        {tag ? (
+          <span className="shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary">
+            {tag}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1.5 line-clamp-3 text-xs text-muted-foreground">{line}</p>
+    </div>
+  );
+}
+
+function BrowserFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-[var(--shadow-card)]">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-secondary/50 px-4 py-3">
+        <span className="size-2.5 rounded-full bg-destructive/50" />
+        <span className="size-2.5 rounded-full bg-warning/60" />
+        <span className="size-2.5 rounded-full bg-success/60" />
+        <span className="ml-3 truncate rounded-md bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
+          app.munchreach.com / campaigns / q4-outbound / ai
+        </span>
+      </div>
+      <div className="bg-background p-4 sm:p-6">{children}</div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ data */
+
+const heroChips = [
+  "Your own OpenAI key",
+  "Grounded in real lead data",
+  "Editable before send",
+  "No per-credit markup",
 ];
 
-const solutionRows = [
+const featureBlocks = [
   {
     eyebrow: "Your key, your model",
     title: "Connect your own OpenAI account in under a minute",
@@ -185,89 +245,49 @@ const solutionRows = [
 ];
 
 const signals = [
-  {
-    icon: UserRound,
-    title: "Person",
-    text: "First name, last name and job title, used naturally instead of dropped into a bracket.",
-  },
-  {
-    icon: Building2,
-    title: "Company",
-    text: "Company name, website and description when you have them on the record.",
-  },
-  {
-    icon: MapPin,
-    title: "Location",
-    text: "City, state and country for regional angles and timing references.",
-  },
-  {
-    icon: ListChecks,
-    title: "Industry",
-    text: "Industry field or your own equivalent custom field, when it is filled in.",
-  },
-  {
-    icon: PenLine,
-    title: "Lead notes",
-    text: "The latest note on the lead, so research your team already did gets reused.",
-  },
-  {
-    icon: Braces,
-    title: "Custom fields",
-    text: "Anything you imported with your CSV can be offered to the model as context.",
-  },
+  { icon: UserRound, title: "Person", text: "First name, last name and job title." },
+  { icon: Building2, title: "Company", text: "Company name, website and description." },
+  { icon: MapPin, title: "Location", text: "City, state and country for regional angles." },
+  { icon: ListChecks, title: "Industry", text: "Industry or your own equivalent field." },
+  { icon: PenLine, title: "Lead notes", text: "The latest note your team already wrote." },
+  { icon: Braces, title: "Custom fields", text: "Anything you imported with your CSV." },
 ];
 
 const steps = [
   {
+    icon: KeyRound,
     title: "Connect your OpenAI key",
     text: "Add the key once per workspace in the AI tab. We verify it with OpenAI before saving it.",
   },
   {
+    icon: Wand2,
     title: "Describe the angle",
-    text: "Write plain-English instructions, pick a tone, length and language, and choose which lead fields the model may use.",
+    text: "Plain-English instructions, tone, length and language — plus the lead fields the model may use.",
   },
   {
+    icon: Sparkles,
     title: "Preview on a real lead",
-    text: "Generate against an actual record from your list and refine the instructions until the output sounds like you.",
+    text: "Generate against an actual record from your list and refine until it sounds like you.",
   },
   {
+    icon: Gauge,
     title: "Generate for the whole list",
-    text: "Queue the campaign's recipients. A background worker processes them in small batches so nothing overloads your OpenAI account.",
+    text: "A background worker processes recipients in small batches so nothing overloads your account.",
   },
   {
+    icon: Send,
     title: "Review and launch",
-    text: "Edit anything that needs a human touch, then launch. The {{ai_personalization}} variable is replaced per lead at send time.",
+    text: "Edit what needs a human touch, then launch. The variable is replaced per lead at send time.",
   },
 ];
 
 const controls = [
-  "Three depth levels — light, balanced and deep — that change how much context the model receives",
-  "Five tones from professional to curious, plus any output language",
+  "Three depth levels — light, balanced and deep",
+  "Five tones from professional to curious, any output language",
   "Length caps of one line, two lines or a short paragraph",
-  "An example output field so the model matches your writing style",
-  "Fallback behaviour per campaign: fallback text, skip the variable, or hold the lead",
-  "Automatic retries and per-workspace rate handling so a busy list finishes cleanly",
-];
-
-const useCases = [
-  {
-    icon: Users,
-    audience: "Agencies",
-    scenario: "Run outbound for several clients, each with a different voice and offer.",
-    outcome: "Per-campaign instructions keep every client sounding like themselves.",
-  },
-  {
-    icon: Sparkles,
-    audience: "Founders",
-    scenario: "Send the first 200 cold emails yourself without spending a week researching.",
-    outcome: "Real openers per prospect in an afternoon, at OpenAI cost only.",
-  },
-  {
-    icon: ShieldCheck,
-    audience: "Sales teams",
-    scenario: "Need volume without risking a made-up claim reaching a buyer.",
-    outcome: "Grounded generation plus human approval before anything sends.",
-  },
+  "An example output field so the model matches your style",
+  "Per-campaign fallback: fallback text, skip, or hold the lead",
+  "Automatic retries and per-workspace rate handling",
 ];
 
 const beforeAfter = {
@@ -285,140 +305,399 @@ const beforeAfter = {
   ],
 };
 
+const relatedLinks = [
+  { to: "/features", title: "All features", text: "Everything included in the platform." },
+  { to: "/how-it-works", title: "How it works", text: "Domain setup to first reply." },
+  { to: "/integrations", title: "Integrations", text: "Sync lead data with your stack." },
+  { to: "/product/crm", title: "CRM", text: "Notes and custom fields become material." },
+  { to: "/product/campaigns", title: "Campaigns", text: "Sequences, follow-ups and sending." },
+  { to: "/pricing", title: "Pricing", text: "AI is billed by OpenAI, not by us." },
+];
+
+/* ------------------------------------------------------------------ page */
+
 function Page() {
   return (
     <MarketingLayout>
-      <PageHero
-        eyebrow="AI Personalization"
-        title="Cold email that sounds like you researched"
-        highlight="every single prospect"
-        description="Connect your own OpenAI key and MunchReach writes a unique opening line for each lead from the data on their record — reviewed by you, sent by your campaign."
-        secondaryCta="See Pricing"
-      />
+      {/* Hero */}
+      <section className="hero-glow relative overflow-hidden border-b border-border/60">
+        <div className="mx-auto max-w-6xl px-4 pt-20 pb-16 sm:px-6 sm:pt-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium tracking-wide text-primary uppercase">
+              <Sparkles className="size-3.5" /> AI Personalization
+            </span>
+            <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-6xl">
+              AI-powered cold outreach{" "}
+              <span className="text-gradient">personalization at scale</span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+              Connect your own OpenAI key and MunchReach writes a unique opening line for every
+              lead from the data on their record — reviewed by you, sent by your campaign.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button size="lg" asChild>
+                <Link to="/auth">
+                  Start for Free <ArrowRight className="ml-1 size-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/pricing">See Pricing</Link>
+              </Button>
+            </div>
+            <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+              {heroChips.map((chip) => (
+                <li key={chip} className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-primary" /> {chip}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-      <BigPreview title="Same campaign, different first line for every lead">
-        <MockPanel title="Step 1 · Intro email preview">
-          <MockRows
-            rows={[
-              {
-                left: "Maya · Head of Growth, Northwind Labs",
-                muted:
-                  "Hiring three SDRs this quarter usually means the outbound motion is about to get louder.",
-                right: "Generated",
-                badge: "Completed",
-              },
-              {
-                left: "Daniel · Founder, Brightpath",
-                muted:
-                  "Running growth and product at the same time is the part most founder-led teams underestimate.",
-                right: "Generated",
-                badge: "Completed",
-              },
-              {
-                left: "Tom · Sales Lead, Fielded",
-                muted:
-                  "Leading sales in Austin for a field-service platform is a very specific kind of busy.",
-                right: "Generated",
-                badge: "Completed",
-              },
-            ]}
-          />
-        </MockPanel>
-      </BigPreview>
+          <div className="mt-14">
+            <BrowserFrame>
+              <MockPanel title="Step 1 · Intro email preview">
+                <MockRows
+                  rows={[
+                    {
+                      left: "Maya · Head of Growth, Northwind Labs",
+                      muted:
+                        "Hiring three SDRs this quarter usually means the outbound motion is about to get louder.",
+                      right: "Generated",
+                      badge: "Completed",
+                    },
+                    {
+                      left: "Daniel · Founder, Brightpath",
+                      muted:
+                        "Running growth and product at the same time is the part most founder-led teams underestimate.",
+                      right: "Generated",
+                      badge: "Completed",
+                    },
+                    {
+                      left: "Tom · Sales Lead, Fielded",
+                      muted:
+                        "Leading sales in Austin for a field-service platform is a very specific kind of busy.",
+                      right: "Generated",
+                      badge: "Completed",
+                    },
+                  ]}
+                />
+              </MockPanel>
+            </BrowserFrame>
+          </div>
+        </div>
+      </section>
 
-      <Section title="Why personalization usually breaks down">
-        <PainPoints items={painPoints} />
-      </Section>
-
+      {/* Colorful bento */}
       <Section
-        title="How MunchReach does it differently"
-        description="Your AI account, your data, your final say."
+        title="Personalization that actually reads like research"
+        description="Four things that change the moment the AI works from real lead data instead of a template."
       >
-        <SolutionSplit rows={solutionRows} />
+        <div className="grid gap-4 md:grid-cols-2">
+          <ColorCard
+            tint="rose"
+            title="Stop sending the same email to everyone"
+            text="Every prospect gets an opener written from what is actually on their record — not a merge tag wrapped in the same sentence."
+          >
+            <div className="grid gap-2 sm:grid-cols-2">
+              <NoteCard
+                from="Maya · Northwind Labs"
+                line="Hiring three SDRs this quarter usually means the outbound motion is about to get louder."
+                tag="Unique"
+              />
+              <NoteCard
+                from="Daniel · Brightpath"
+                line="Running growth and product at once is the part most founder-led teams underestimate."
+                tag="Unique"
+              />
+              <NoteCard
+                from="Tom · Fielded"
+                line="Leading sales in Austin for a field-service platform is a very specific kind of busy."
+                tag="Unique"
+              />
+              <NoteCard
+                from="Priya · Loopwise"
+                line="Most ops teams inherit three tools that all claim to own the pipeline."
+                tag="Unique"
+              />
+            </div>
+          </ColorCard>
+
+          <ColorCard
+            tint="amber"
+            title="Create personalization your way"
+            text="Write plain-English instructions, choose a tone, a length and a language, then lock which lead fields the model is allowed to touch."
+          >
+            <div className="rounded-2xl border border-border/40 bg-background/80 p-4 backdrop-blur">
+              <p className="text-xs font-semibold text-foreground">Instructions</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                “Open with one observation about their hiring or product motion. Never mention
+                funding. Max two lines, curious tone.”
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["Curious", "2 lines", "English", "Balanced depth"].map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </ColorCard>
+
+          <ColorCard
+            tint="violet"
+            title="Personalize at volume without the research hours"
+            text="Queue an entire list and watch generation progress live in small, safe batches while you finish the rest of the campaign setup."
+          >
+            <div className="rounded-2xl border border-border/40 bg-background/80 p-4 backdrop-blur">
+              <div className="flex items-center justify-between text-xs font-medium text-foreground">
+                <span>Generating 1,248 leads</span>
+                <span className="text-primary">72%</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full w-[72%] rounded-full bg-primary" />
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                {[
+                  ["898", "Ready"],
+                  ["312", "In queue"],
+                  ["38", "Needs review"],
+                ].map(([n, l]) => (
+                  <div key={l} className="rounded-xl bg-muted/60 py-2">
+                    <p className="text-sm font-bold text-foreground">{n}</p>
+                    <p className="text-[11px] text-muted-foreground">{l}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ColorCard>
+
+          <ColorCard
+            tint="mint"
+            title="AI-assisted, human-approved"
+            text="Nothing leaves the platform unread. Edit, regenerate or hold any lead — the campaign sends only what you accepted."
+          >
+            <div className="space-y-2">
+              {[
+                ["maya@northwindlabs.com", "Approved"],
+                ["d.okafor@brightpath.io", "Edited by you"],
+                ["tom@fielded.co", "Held for review"],
+              ].map(([email, status]) => (
+                <div
+                  key={email}
+                  className="flex items-center justify-between rounded-xl border border-border/40 bg-background/80 px-3 py-2.5 backdrop-blur"
+                >
+                  <span className="truncate text-xs font-medium text-foreground">{email}</span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">{status}</span>
+                </div>
+              ))}
+            </div>
+          </ColorCard>
+        </div>
+
+        {/* Wide sky panel */}
+        <ColorCard
+          tint="sky"
+          title="Start sending personalized email campaigns today"
+          text="Connect a key, preview on a real lead from your list, and launch a sequence where every first line was written for that one person."
+          className="mt-4"
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["1", "Connect your key", "Verified with OpenAI before we store it."],
+              ["2", "Preview on a lead", "Refine until the copy sounds like you."],
+              ["3", "Launch the campaign", "Openers swap in per lead at send time."],
+            ].map(([n, t, d]) => (
+              <div
+                key={t}
+                className="rounded-2xl border border-border/40 bg-background/80 p-4 backdrop-blur"
+              >
+                <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                  {n}
+                </span>
+                <p className="mt-3 text-sm font-semibold text-foreground">{t}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{d}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5">
+            <Button asChild>
+              <Link to="/auth">
+                Start for Free <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
+          </div>
+        </ColorCard>
       </Section>
 
+      <TestimonialCarousel page="ai-personalization" title="What our customers are saying" />
+
+      {/* Feature blocks */}
+      <Section
+        title="Powerful features to elevate your outreach"
+        description="Your AI account, your data, your final say."
+        muted
+      >
+        <div className="space-y-6">
+          {featureBlocks.map((row, i) => (
+            <div
+              key={row.title}
+              className="grid items-center gap-8 rounded-3xl border border-border bg-card p-6 sm:p-8 lg:grid-cols-2"
+            >
+              <div className={i % 2 === 1 ? "lg:order-2" : ""}>
+                <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+                  {row.eyebrow}
+                </span>
+                <h3 className="mt-3 text-2xl font-bold tracking-tight">{row.title}</h3>
+                <p className="mt-3 text-sm text-muted-foreground">{row.text}</p>
+                <ul className="mt-5 space-y-2">
+                  {row.bullets.map((b) => (
+                    <li key={b} className="flex gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <span className="text-muted-foreground">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className={i % 2 === 1 ? "lg:order-1" : ""}>{row.visual}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Signals */}
       <Section
         title="Signals it can use"
         description="Only fields that actually hold data for that lead."
       >
-        <FeatureBento items={signals} />
-      </Section>
-
-      <Section title="From key to campaign in five steps" muted>
-        <StepList steps={steps} />
-      </Section>
-
-      <Section
-        title="Controls you keep"
-        description="Personalization you can tune, not a black box."
-      >
-        <BulletList items={controls} />
-      </Section>
-
-      <Section title="Before and after" description="What changes on your next send." muted>
-        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
-      </Section>
-
-      <Section title="Who it is for">
-        <UseCaseGrid items={useCases} />
-      </Section>
-
-      <Section title="Works with the rest of MunchReach" muted>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              to: "/features",
-              title: "All features",
-              text: "Everything included in the platform, in one place.",
-            },
-            {
-              to: "/product/campaigns",
-              title: "Campaigns",
-              text: "Drop the AI variable into any step of a sequence.",
-            },
-            {
-              to: "/how-it-works",
-              title: "How it works",
-              text: "The full path from domain setup to first reply.",
-            },
-            {
-              to: "/integrations",
-              title: "Integrations",
-              text: "Push and pull lead data from the tools you already use.",
-            },
-            {
-              to: "/product/crm",
-              title: "CRM",
-              text: "Notes and custom fields become personalization material.",
-            },
-            {
-              to: "/pricing",
-              title: "Pricing",
-              text: "Plans for sending — AI is billed by OpenAI, not by us.",
-            },
-          ].map((link) => (
+          {signals.map((s) => (
+            <div key={s.title} className="surface-card p-6">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                <s.icon className="size-5" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold">{s.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Steps */}
+      <Section title="From key to campaign in five steps" muted>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {steps.map((s, i) => (
+            <div key={s.title} className="surface-card p-5">
+              <div className="flex items-center justify-between">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                  <s.icon className="size-4.5" />
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground">0{i + 1}</span>
+              </div>
+              <h3 className="mt-4 text-sm font-semibold">{s.title}</h3>
+              <p className="mt-2 text-xs text-muted-foreground">{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Controls + before/after */}
+      <Section title="Controls you keep" description="Personalization you can tune, not a black box.">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="surface-card p-7">
+            <h3 className="text-lg font-semibold">Tuning</h3>
+            <ul className="mt-4 space-y-2.5">
+              {controls.map((c) => (
+                <li key={c} className="flex gap-2 text-sm">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span className="text-muted-foreground">{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl border border-border bg-secondary/40 p-6">
+              <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+                Before
+              </p>
+              <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+                {beforeAfter.before.map((b) => (
+                  <li key={b}>— {b}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-primary/30 bg-primary/5 p-6">
+              <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+                With MunchReach
+              </p>
+              <ul className="mt-4 space-y-3 text-sm">
+                {beforeAfter.after.map((b) => (
+                  <li key={b} className="flex gap-2">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span className="text-muted-foreground">{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Related */}
+      <Section
+        title="Integrate seamlessly with the rest of MunchReach"
+        description="Personalization plugs into the workflow you already run."
+        muted
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {relatedLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
-              className="rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/40"
+              className="group rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/40"
             >
-              <h3 className="text-base font-semibold">{link.title}</h3>
+              <h3 className="flex items-center justify-between text-base font-semibold">
+                {link.title}
+                <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </h3>
               <p className="mt-2 text-sm text-muted-foreground">{link.text}</p>
             </Link>
           ))}
         </div>
       </Section>
 
-      <TestimonialCarousel page="ai-personalization" title="Teams personalizing at scale" />
-
-      <Section muted>
+      <Section title="Everything else you need to know">
         <PageFaqs page="ai-personalization" defaults={faqs} />
       </Section>
 
-      <CtaBlock
-        title="Personalize your next campaign"
-        description="Connect your OpenAI key, preview on a real lead, and send openers worth replying to."
-      />
+      {/* Final CTA band */}
+      <section className="pb-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="rounded-3xl bg-[image:var(--gradient-brand)] px-6 py-14 text-center text-primary-foreground sm:px-12">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Personalize your next campaign
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm opacity-90 sm:text-base">
+              Connect your OpenAI key, preview on a real lead, and send openers worth replying to.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button size="lg" variant="secondary" asChild>
+                <Link to="/auth">Start for Free</Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                asChild
+              >
+                <Link to="/pricing">View Pricing</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
     </MarketingLayout>
   );
 }
