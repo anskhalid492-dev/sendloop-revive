@@ -60,8 +60,8 @@ function Metric({
 }: {
   label: string;
   value: string;
-  hint?: string;
-  tone?: string;
+  hint?: string | undefined;
+  tone?: string | undefined;
 }) {
   return (
     <div className="surface-card p-4">
