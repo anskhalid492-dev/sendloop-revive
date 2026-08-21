@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -333,10 +335,37 @@ export function useCampaignBuilder(campaignId: string) {
     [accountsQuery.data],
   );
 
+  // Delivery events arrive from the sending infrastructure at any moment, so
+  // the builder listens for row changes and refreshes its metrics live.
+  useEffect(() => {
+    if (!campaignId) return;
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
+    };
+    const channel = supabase
+      .channel(`campaign-live-${campaignId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "campaign_messages", filter: `campaign_id=eq.${campaignId}` },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "campaign_recipients", filter: `campaign_id=eq.${campaignId}` },
+        refresh,
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [campaignId, queryClient]);
+
   return {
     campaignId,
     campaign,
     queue: campaignQuery.data?.queue,
+    delivery: campaignQuery.data?.delivery,
     isLoading: campaignQuery.isLoading,
     steps,
     updateSteps,
