@@ -56,7 +56,7 @@ export async function saveBillingSettings(patch: Partial<BillingSettings>) {
   return next;
 }
 
-/** Reads a provider secret for one environment. Returns null when unset. */
+/** Reads a provider secret for one environment from the process env. */
 export function readSecret(base: string, environment: BillingEnvironment): string | null {
   const scoped = process.env[secretName(base, environment)];
   if (scoped && scoped.trim()) return scoped.trim();
@@ -71,32 +71,87 @@ export type ProviderCredentials = {
   storeId?: string | null;
 };
 
-export function providerCredentials(
+/** The env-var base name behind each credential field, per provider. */
+export const CREDENTIAL_FIELDS: Record<
+  BillingProvider,
+  { field: "apiKey" | "webhookSecret" | "storeId"; base: string }[]
+> = {
+  stripe: [
+    { field: "apiKey", base: "STRIPE_SECRET_KEY" },
+    { field: "webhookSecret", base: "STRIPE_WEBHOOK_SECRET" },
+  ],
+  paddle: [
+    { field: "apiKey", base: "PADDLE_API_KEY" },
+    { field: "webhookSecret", base: "PADDLE_WEBHOOK_SECRET" },
+  ],
+  lemonsqueezy: [
+    { field: "apiKey", base: "LEMONSQUEEZY_API_KEY" },
+    { field: "webhookSecret", base: "LEMONSQUEEZY_WEBHOOK_SECRET" },
+    { field: "storeId", base: "LEMONSQUEEZY_STORE_ID" },
+  ],
+};
+
+type StoredSecrets = Partial<Record<"apiKey" | "webhookSecret" | "storeId", string>>;
+
+/** Reads the encrypted, admin-entered credentials for one provider+environment. */
+export async function storedProviderSecrets(
   provider: BillingProvider,
   environment: BillingEnvironment,
-): ProviderCredentials {
+): Promise<StoredSecrets> {
+  try {
+    const db = await admin();
+    const { data } = await db
+      .from("billing_provider_secrets")
+      .select("ciphertext")
+      .eq("provider", provider)
+      .eq("environment", environment)
+      .maybeSingle();
+    if (!data?.ciphertext) return {};
+    const { decryptCredentials } = await import("@/lib/provider-credentials.server");
+    const plain = decryptCredentials<StoredSecrets>(data.ciphertext);
+    return plain ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Resolves credentials for a provider+environment.
+ * Admin-entered (encrypted, database-backed) values win; project environment
+ * variables remain a fallback so existing deployments keep working.
+ */
+export async function providerCredentials(
+  provider: BillingProvider,
+  environment: BillingEnvironment,
+): Promise<ProviderCredentials> {
+  const stored = await storedProviderSecrets(provider, environment);
+  const pick = (field: "apiKey" | "webhookSecret" | "storeId", base: string) => {
+    const value = stored[field];
+    if (value && value.trim()) return value.trim();
+    return readSecret(base, environment);
+  };
   switch (provider) {
     case "stripe":
       return {
-        apiKey: readSecret("STRIPE_SECRET_KEY", environment),
-        webhookSecret: readSecret("STRIPE_WEBHOOK_SECRET", environment),
+        apiKey: pick("apiKey", "STRIPE_SECRET_KEY"),
+        webhookSecret: pick("webhookSecret", "STRIPE_WEBHOOK_SECRET"),
       };
     case "paddle":
       return {
-        apiKey: readSecret("PADDLE_API_KEY", environment),
-        webhookSecret: readSecret("PADDLE_WEBHOOK_SECRET", environment),
+        apiKey: pick("apiKey", "PADDLE_API_KEY"),
+        webhookSecret: pick("webhookSecret", "PADDLE_WEBHOOK_SECRET"),
       };
     case "lemonsqueezy":
       return {
-        apiKey: readSecret("LEMONSQUEEZY_API_KEY", environment),
-        webhookSecret: readSecret("LEMONSQUEEZY_WEBHOOK_SECRET", environment),
-        storeId: readSecret("LEMONSQUEEZY_STORE_ID", environment),
+        apiKey: pick("apiKey", "LEMONSQUEEZY_API_KEY"),
+        webhookSecret: pick("webhookSecret", "LEMONSQUEEZY_WEBHOOK_SECRET"),
+        storeId: pick("storeId", "LEMONSQUEEZY_STORE_ID"),
       };
   }
 }
 
-export function isConfigured(provider: BillingProvider, environment: BillingEnvironment) {
-  const c = providerCredentials(provider, environment);
+export async function isConfigured(provider: BillingProvider, environment: BillingEnvironment) {
+  const c = await providerCredentials(provider, environment);
   const base = Boolean(c.apiKey) && Boolean(c.webhookSecret);
   return provider === "lemonsqueezy" ? base && Boolean(c.storeId) : base;
 }

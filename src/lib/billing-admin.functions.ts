@@ -168,3 +168,53 @@ export const clearBillingProviderError = createServerFn({ method: "POST" })
     await assertPlatformAdmin(context);
     return clearProviderError(data.provider, data.environment, context.userId);
   });
+
+const credentialValues = z
+  .object({
+    apiKey: z.string().max(400).optional(),
+    webhookSecret: z.string().max(400).optional(),
+    storeId: z.string().max(120).optional(),
+  })
+  .strict();
+
+export const getBillingProviderSecrets = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { loadProviderSecretStatus } = await import("@/lib/billing/secrets.server");
+    await assertPlatformAdmin(context);
+    return loadProviderSecretStatus();
+  });
+
+export const saveBillingProviderSecrets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      provider: BillingProvider;
+      environment: BillingEnvironment;
+      values: { apiKey?: string; webhookSecret?: string; storeId?: string };
+    }) => z.object({ provider: providerEnum, environment: envEnum, values: credentialValues }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { saveProviderSecrets } = await import("@/lib/billing/secrets.server");
+    await assertPlatformAdmin(context);
+    return saveProviderSecrets({
+      provider: data.provider,
+      environment: data.environment,
+      values: data.values,
+      userId: context.userId,
+    });
+  });
+
+export const clearBillingProviderSecrets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { provider: BillingProvider; environment: BillingEnvironment }) =>
+    z.object({ provider: providerEnum, environment: envEnum }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { clearProviderSecrets } = await import("@/lib/billing/secrets.server");
+    await assertPlatformAdmin(context);
+    return clearProviderSecrets(data.provider, data.environment, context.userId);
+  });

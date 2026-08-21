@@ -83,8 +83,8 @@ function iso(seconds: number | null | undefined) {
   return seconds ? new Date(seconds * 1000).toISOString() : null;
 }
 
-function credentialsOrThrow(provider: BillingProvider, env: BillingEnvironment) {
-  const c = providerCredentials(provider, env);
+async function credentialsOrThrow(provider: BillingProvider, env: BillingEnvironment) {
+  const c = await providerCredentials(provider, env);
   if (!c.apiKey) throw new BillingError(`${provider} ${env} API key is not configured`);
   return c;
 }
@@ -108,7 +108,7 @@ async function stripeCall(
   body?: Record<string, unknown>,
   method = "POST",
 ) {
-  const { apiKey } = credentialsOrThrow("stripe", env);
+  const { apiKey } = await credentialsOrThrow("stripe", env);
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
     headers: {
@@ -178,7 +178,7 @@ const stripe: ProviderAdapter = {
     return (session.url as string) ?? null;
   },
   async verify(env, rawBody, headers) {
-    const { webhookSecret } = providerCredentials("stripe", env);
+    const { webhookSecret } = await providerCredentials("stripe", env);
     const header = headers.get("stripe-signature") ?? "";
     const parts = Object.fromEntries(
       header.split(",").map((p) => {
@@ -293,7 +293,7 @@ async function paddleCall(
   body?: unknown,
   method = "POST",
 ) {
-  const { apiKey } = credentialsOrThrow("paddle", env);
+  const { apiKey } = await credentialsOrThrow("paddle", env);
   const res = await fetch(`${paddleBase(env)}/${path}`, {
     method,
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -352,7 +352,7 @@ const paddle: ProviderAdapter = {
     return res?.data?.urls?.general?.overview ?? null;
   },
   async verify(env, rawBody, headers) {
-    const { webhookSecret } = providerCredentials("paddle", env);
+    const { webhookSecret } = await providerCredentials("paddle", env);
     const header = headers.get("paddle-signature") ?? "";
     const parts = Object.fromEntries(
       header.split(";").map((p) => {
@@ -465,7 +465,7 @@ const paddle: ProviderAdapter = {
 /* ---------------------------------------------------------- Lemon Squeezy */
 
 async function lemonCall(env: BillingEnvironment, path: string, body?: unknown, method = "POST") {
-  const { apiKey } = credentialsOrThrow("lemonsqueezy", env);
+  const { apiKey } = await credentialsOrThrow("lemonsqueezy", env);
   const res = await fetch(`https://api.lemonsqueezy.com/v1/${path}`, {
     method,
     headers: {
@@ -494,7 +494,7 @@ const LEMON_STATUS: Record<string, SubscriptionState> = {
 const lemonsqueezy: ProviderAdapter = {
   id: "lemonsqueezy",
   async createCheckout(input) {
-    const creds = credentialsOrThrow("lemonsqueezy", input.environment);
+    const creds = await credentialsOrThrow("lemonsqueezy", input.environment);
     if (!creds.storeId) throw new BillingError("Lemon Squeezy store id is not configured");
     const res = await lemonCall(input.environment, "checkouts", {
       data: {
@@ -548,7 +548,7 @@ const lemonsqueezy: ProviderAdapter = {
     return res?.data?.attributes?.urls?.customer_portal ?? null;
   },
   async verify(env, rawBody, headers) {
-    const { webhookSecret } = providerCredentials("lemonsqueezy", env);
+    const { webhookSecret } = await providerCredentials("lemonsqueezy", env);
     const signature = headers.get("x-signature") ?? "";
     const base = { environment: env, eventId: "", eventType: "", payload: null as any };
     if (!webhookSecret) return { ...base, ok: false, error: "Webhook secret not configured" };

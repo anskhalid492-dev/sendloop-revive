@@ -46,7 +46,7 @@ export async function loadConsole() {
         provider,
         environment,
         enabled: row?.is_enabled === true,
-        configured: isConfigured(provider, environment),
+        configured: await isConfigured(provider, environment),
         lastWebhookAt: row?.last_webhook_at ?? null,
         lastError: row?.last_error ?? null,
       });
