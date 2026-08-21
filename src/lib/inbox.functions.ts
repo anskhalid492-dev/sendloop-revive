@@ -281,7 +281,7 @@ export const getConversation = createServerFn({ method: "GET" })
         ? context.supabase
             .from("leads")
             .select(
-              "id, email, first_name, last_name, company, job_title, phone, website, country, status, crm_stage, tags, last_activity_at",
+              "id, email, first_name, last_name, company, job_title, phone, website, linkedin_url, city, state, country, custom_fields, status, crm_stage, tags, last_activity_at",
             )
             .eq("id", conversation.lead_id)
             .maybeSingle()

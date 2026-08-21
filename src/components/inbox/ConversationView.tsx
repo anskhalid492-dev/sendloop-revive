@@ -51,6 +51,7 @@ import {
   sendConversationReply,
   updateConversation,
 } from "@/lib/inbox.functions";
+import { renderEmailForLead, senderExtras } from "@/lib/campaign-model";
 import { listTemplates } from "@/lib/templates.functions";
 import {
   ResizableHandle,
@@ -491,8 +492,16 @@ export function ConversationView({
                 onValueChange={(value) => {
                   const template = templates.find((t) => t.id === value);
                   if (!template) return;
-                  setSubject(template.subject);
-                  setBody(template.body);
+                  // Same renderer as Campaigns/Sequences: lead variables (and
+                  // their fallbacks) resolve immediately against the open lead,
+                  // so the composer never shows a raw {{token}}.
+                  const personalized = renderEmailForLead(
+                    { subject: template.subject, body: template.body },
+                    (data?.lead ?? { email: conversation.prospect_email }) as never,
+                    { extras: senderExtras(data?.account ?? null) },
+                  );
+                  setSubject(personalized.subject);
+                  setBody(personalized.body);
                 }}
               >
                 <SelectTrigger className="w-44" aria-label="Insert saved template">

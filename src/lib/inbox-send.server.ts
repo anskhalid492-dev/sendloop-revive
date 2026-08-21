@@ -69,6 +69,29 @@ export async function sendReplyThroughMailbox(args: {
   }
 
 
+  // Server-side variable resolution. Templates picked in the composer are
+  // already personalised client-side; this second pass is the guarantee that a
+  // raw {{token}} can never reach a prospect (stale draft, API caller, etc.).
+  // It uses the same renderer as Campaigns/Sequences.
+  const { renderEmailForLead, senderExtras } = await import("@/lib/campaign-model");
+  const { data: replyLead } = conversation.lead_id
+    ? await supabase
+        .from("leads")
+        .select(
+          "id, email, first_name, last_name, company, job_title, phone, website, linkedin_url, city, state, country, custom_fields",
+        )
+        .eq("id", conversation.lead_id)
+        .maybeSingle()
+    : { data: null };
+
+  const rendered = renderEmailForLead(
+    { subject: args.subject, body: args.body },
+    (replyLead ?? { email: conversation.prospect_email }) as never,
+    { extras: senderExtras(account) },
+  );
+  const subject = rendered.subject.trim() || args.subject;
+  const body = rendered.body;
+
   const { data: lastInbound } = await supabase
     .from("conversation_messages")
     .select("message_id, reference_ids")
@@ -117,8 +140,8 @@ export async function sendReplyThroughMailbox(args: {
     replyTo,
     to: conversation.prospect_email,
     cc: args.cc,
-    subject: args.subject,
-    text: args.body,
+    subject: subject,
+    text: body,
     attachments: args.attachments,
     // Real RFC threading headers keep the prospect's mail client (and our own
     // ingestion) on the same conversation.
@@ -151,8 +174,8 @@ export async function sendReplyThroughMailbox(args: {
       from_name: account.from_name,
       to_email: conversation.prospect_email,
       cc_emails: args.cc,
-      subject: args.subject,
-      body: args.body,
+      subject: subject,
+      body: body,
       message_id: stripAngle(send.messageId ?? null),
       in_reply_to: (lastInbound?.message_id as string | undefined) ?? null,
       reference_ids: references,
@@ -174,7 +197,7 @@ export async function sendReplyThroughMailbox(args: {
       message_count: (conversation.message_count ?? 0) + 1,
       last_message_at: nowIso,
       last_direction: "outbound",
-      last_preview: previewOf(args.body),
+      last_preview: previewOf(body),
     })
     .eq("id", conversation.id);
 

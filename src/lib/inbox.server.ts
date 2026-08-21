@@ -69,6 +69,37 @@ async function findCampaignMessage(db: Db, email: InboundEmail, prospect: string
   return fallback?.[0] ?? null;
 }
 
+/**
+ * RFC threading: In-Reply-To / References point at a Message-ID we already
+ * stored (campaign send or inbox reply). Matching those to the conversation is
+ * the most reliable way to keep a reply on the same thread, and beats the
+ * subject-derived thread key.
+ */
+async function findConversationByHeaders(db: Db, email: InboundEmail, workspaceId: string) {
+  const candidates = [stripAngle(email.inReplyTo), ...(email.references ?? []).map(stripAngle)]
+    .filter(Boolean)
+    .slice(0, 20) as string[];
+  if (!candidates.length) return null;
+
+  const list = `(${candidates.map((c) => `"${c.replace(/"/g, "")}"`).join(",")})`;
+  const { data } = await db
+    .from("conversation_messages")
+    .select("conversation_id")
+    .eq("workspace_id", workspaceId)
+    .or(`message_id.in.${list},provider_message_id.in.${list}`)
+    .order("occurred_at", { ascending: false })
+    .limit(1);
+  const conversationId = data?.[0]?.conversation_id as string | undefined;
+  if (!conversationId) return null;
+
+  const { data: conversation } = await db
+    .from("conversations")
+    .select("id, status, message_count, archived")
+    .eq("id", conversationId)
+    .maybeSingle();
+  return (conversation as { id: string; status: string; message_count: number } | null) ?? null;
+}
+
 async function resolveWorkspaceFromMailbox(db: Db, mailbox: string) {
   const { data } = await db
     .from("sending_accounts")
@@ -166,6 +197,9 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .eq("id", route.conversation_id)
       .maybeSingle();
     routedConversation = (data as typeof routedConversation) ?? null;
+  }
+  if (!routedConversation) {
+    routedConversation = await findConversationByHeaders(db, email, workspaceId);
   }
 
   const { data: upserted, error: convError } = routedConversation
