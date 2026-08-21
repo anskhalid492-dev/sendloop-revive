@@ -35,6 +35,7 @@ import {
   AI_VARIABLE_TOKEN,
   missingVariables,
   renderEmailForLead,
+  senderExtras,
   variableResolutionReport,
   type LeadLike,
 } from "@/lib/campaign-model";
@@ -119,7 +120,14 @@ function useResolved(
   const rawSubject = variant?.subject || step?.subject || "";
   const rawBody = variant?.body || step?.body || "";
 
-  const extras = aiSnippet ? { [AI_VARIABLE_TOKEN]: aiSnippet } : {};
+  // Preview signs off with the mailbox the campaign actually sends from.
+  const sending = builder.campaign?.sendingAccountIds ?? [];
+  const account =
+    builder.accounts.find((a) => sending.includes(a.id)) ?? builder.accounts[0] ?? null;
+  const extras = {
+    ...senderExtras(account as never),
+    ...(aiSnippet ? { [AI_VARIABLE_TOKEN]: aiSnippet } : {}),
+  };
   // One resolver for preview, test send and real delivery.
   const { subject, body } = renderEmailForLead(
     { subject: rawSubject, body: rawBody },
