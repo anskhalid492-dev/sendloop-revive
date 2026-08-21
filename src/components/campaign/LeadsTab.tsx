@@ -318,13 +318,22 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                   <TableCell className="whitespace-nowrap">{row.lead?.job_title ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.lead?.country ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-normal">
-                      {RECIPIENT_STATUS_LABELS[row.status] ?? row.status}
+                    <Badge
+                      variant="secondary"
+                      className={`font-normal ${LEAD_DELIVERY_STYLES[(row.deliveryState ?? "not_contacted") as LeadDeliveryState] ?? ""}`}
+                    >
+                      {LEAD_DELIVERY_LABELS[
+                        (row.deliveryState ?? "not_contacted") as LeadDeliveryState
+                      ] ?? row.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="tabular-nums">{row.current_step}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    {row.last_sent_at ? new Date(row.last_sent_at).toLocaleString() : "—"}
+                    {row.lastEventAt
+                      ? new Date(row.lastEventAt).toLocaleString()
+                      : row.last_sent_at
+                        ? new Date(row.last_sent_at).toLocaleString()
+                        : "—"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {accounts.find((a) => a.id === row.sending_account_id)?.from_email ?? "Auto"}
