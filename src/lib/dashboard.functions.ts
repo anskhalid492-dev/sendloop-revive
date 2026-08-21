@@ -117,6 +117,9 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     });
 
     const activity: ActivityItem[] = [
+    const accountLabel = new Map(accountRows.map((a) => [a.id, a.label || a.from_email]));
+
+    const activity: ActivityItem[] = [
       ...campaignRows
         .filter((c) => c.launched_at)
         .map((c) => ({
@@ -132,19 +135,45 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .map((r) => ({
           id: `reply-${r.id}`,
           kind: "reply",
-          title: "New reply",
+          title: "Reply received",
           detail: campaignRows.find((c) => c.id === r.campaign_id)?.name ?? "Campaign",
           at: r.updated_at,
         })),
+      ...domainRows
+        .filter((d) => d.verified_at || d.ready_at)
+        .map((d) => ({
+          id: `domain-${d.id}`,
+          kind: "domain",
+          title: "Domain verified",
+          detail: d.domain,
+          at: (d.ready_at ?? d.verified_at) as string,
+        })),
+      ...accountRows.map((a) => ({
+        id: `mailbox-${a.id}`,
+        kind: "mailbox",
+        title: "Mailbox connected",
+        detail: a.label || a.from_email,
+        at: a.created_at,
+      })),
+      ...warmupRows.map((w) => ({
+        id: `warmup-${w.id}`,
+        kind: "warmup",
+        title: `Warmup ${w.type.replace(/_/g, " ")}`,
+        detail: w.detail || accountLabel.get(w.sending_account_id) || "Warmup activity",
+        at: w.occurred_at,
+      })),
     ]
       .sort((a, b) => (a.at < b.at ? 1 : -1))
-      .slice(0, 8);
+      .slice(0, 10);
 
     const healthy = accountRows.filter((a) => a.health_score >= 80 && !a.paused).length;
     const warming = accountRows.filter((a) => a.warmup_status === "warming").length;
     const attention = accountRows.filter((a) => a.paused || a.health_score < 60).length;
+    const issues = accountRows.filter((a) => a.last_error || a.paused).length;
+    const domainsReady = domainRows.filter((d) => d.ready_at || d.verified_at).length;
 
     return {
+
       metrics: {
         leads: leads.count ?? 0,
         contacted,
