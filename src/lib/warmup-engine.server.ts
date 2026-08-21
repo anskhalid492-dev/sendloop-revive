@@ -590,7 +590,7 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
  * event does not belong to warmup so the campaign pipeline can handle it.
  */
 export async function applyWarmupDeliveryEvent(args: {
-  kind: "delivered" | "bounced" | "complained" | "deferred" | "replied";
+  kind: "delivered" | "bounced" | "complained" | "deferred" | "delayed" | "rejected" | "replied";
   providerMessageId: string | null;
   email: string | null;
   reason: string | null;
@@ -624,23 +624,40 @@ export async function applyWarmupDeliveryEvent(args: {
     bounced: "failed",
     complained: null,
     deferred: null,
+    delayed: null,
+    rejected: "failed",
     replied: "replied",
   };
   const nextStatus = statusMap[args.kind];
-  if (nextStatus) {
-    await supabaseAdmin.from("warmup_jobs").update({ status: nextStatus }).eq("id", job.id);
+  const jobPatch: Record<string, unknown> = {};
+  if (nextStatus) jobPatch["status"] = nextStatus;
+  if (args.kind === "complained") {
+    // A complaint is a confirmed spam placement from the receiving side.
+    jobPatch["placement"] = "spam";
+    jobPatch["placement_checked_at"] = new Date().toISOString();
+  }
+  if (args.kind === "bounced" || args.kind === "rejected") {
+    jobPatch["placement"] = "not_delivered";
+    jobPatch["placement_checked_at"] = new Date().toISOString();
+  }
+  if (Object.keys(jobPatch).length) {
+    await supabaseAdmin.from("warmup_jobs").update(jobPatch).eq("id", job.id);
   }
 
-  const counter =
+  const counter: Record<string, number> =
     args.kind === "delivered"
       ? { delivered: 1 }
       : args.kind === "bounced"
         ? { bounced: 1 }
         : args.kind === "complained"
-          ? { complained: 1 }
+          ? { complained: 1, spam: 1 }
           : args.kind === "replied"
             ? { replied: 1 }
-            : {};
+            : args.kind === "deferred" || args.kind === "delayed"
+              ? { deferred: 1 }
+              : args.kind === "rejected"
+                ? { rejected: 1 }
+                : {};
   if (Object.keys(counter).length) {
     await bumpStats(
       supabaseAdmin,
@@ -651,6 +668,193 @@ export async function applyWarmupDeliveryEvent(args: {
 
   await recalculateHealth(supabaseAdmin, job.sending_account_id);
   return true;
+}
+
+/* --------------------------------------------------- inbound placement */
+
+const TOKEN_RE = /MRW-([a-f0-9]{16,32})/i;
+
+/** Pulls the warmup reference out of headers or the message body. */
+function warmupTokenFrom(input: {
+  headers?: unknown;
+  subject?: string | null;
+  text?: string | null;
+  html?: string | null;
+}): string | null {
+  const headers = input.headers;
+  if (headers && typeof headers === "object") {
+    const entries = Array.isArray(headers)
+      ? (headers as Array<Record<string, unknown>>).map((h) => [String(h["name"] ?? ""), String(h["value"] ?? "")])
+      : Object.entries(headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
+    for (const [name, value] of entries) {
+      if (String(name).toLowerCase() === "x-munchreach-warmup-id" && value) {
+        return String(value).trim().toLowerCase();
+      }
+    }
+  }
+  for (const field of [input.text, input.html, input.subject]) {
+    const match = field ? TOKEN_RE.exec(field) : null;
+    if (match?.[1]) return match[1].toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * Reads the receiving side's spam verdict. Providers expose this differently;
+ * when no verdict is present we do not guess — placement stays `inbox` only
+ * when the receiving system reported no spam signal at all.
+ */
+function spamVerdict(input: { headers?: unknown; payload?: Record<string, unknown> }): boolean | null {
+  const raw = input.payload ?? {};
+  const source = (raw["data"] && typeof raw["data"] === "object" ? raw["data"] : raw) as Record<string, unknown>;
+  const flags = [
+    source["spam"],
+    source["is_spam"],
+    source["spam_flag"],
+    source["spamVerdict"],
+    (source["verdicts"] as Record<string, unknown> | undefined)?.["spam"],
+  ];
+  for (const flag of flags) {
+    if (typeof flag === "boolean") return flag;
+    if (typeof flag === "string") {
+      const value = flag.toLowerCase();
+      if (["true", "yes", "fail", "failed", "spam"].includes(value)) return true;
+      if (["false", "no", "pass", "passed", "ham"].includes(value)) return false;
+    }
+    if (flag && typeof flag === "object") {
+      const status = String((flag as Record<string, unknown>)["status"] ?? "").toLowerCase();
+      if (status) return status !== "pass";
+    }
+  }
+
+  const headers = input.headers;
+  if (headers && typeof headers === "object") {
+    const entries = Array.isArray(headers)
+      ? (headers as Array<Record<string, unknown>>).map((h) => [String(h["name"] ?? ""), String(h["value"] ?? "")])
+      : Object.entries(headers as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
+    for (const [name, value] of entries) {
+      const key = String(name).toLowerCase();
+      if (key === "x-spam-flag") return /yes|true/i.test(value);
+      if (key === "x-spam-status") return /^yes/i.test(value.trim());
+      if (key === "x-spam-score") {
+        const score = Number.parseFloat(value);
+        if (Number.isFinite(score)) return score >= 5;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Claims an inbound message that belongs to the warmup network and records
+ * where it landed. Returns false for ordinary customer mail so the normal
+ * inbox pipeline handles it.
+ */
+export async function applyWarmupInbound(input: {
+  from: string | null;
+  to: string | null;
+  subject?: string | null;
+  text?: string | null;
+  html?: string | null;
+  headers?: unknown;
+  payload?: Record<string, unknown>;
+}): Promise<boolean> {
+  const token = warmupTokenFrom(input);
+  if (!token) return false;
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: job } = await supabaseAdmin
+    .from("warmup_jobs")
+    .select("id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id")
+    .eq("warmup_token", token)
+    .maybeSingle();
+  if (!job) return false;
+
+  // Already classified: acknowledge the redelivery without double counting.
+  if (job.placement && job.placement !== "pending") return true;
+
+  const spam = spamVerdict(input);
+  const placement = spam === true ? "spam" : spam === false ? "inbox" : "received_unknown";
+  const now = new Date().toISOString();
+
+  await supabaseAdmin
+    .from("warmup_jobs")
+    .update({
+      placement,
+      placement_checked_at: now,
+      received_at: now,
+      status: job.status === "sent" || job.status === "processing" ? "delivered" : job.status,
+    })
+    .eq("id", job.id);
+
+  const fresh = await logEvent(supabaseAdmin, {
+    workspaceId: job.workspace_id,
+    accountId: job.sending_account_id,
+    jobId: job.id,
+    type: placement === "spam" ? "spam_placement" : "inbox_placement",
+    detail:
+      placement === "inbox"
+        ? `Landed in the main inbox of ${input.to ?? "the receiving mailbox"}.`
+        : placement === "spam"
+          ? `Filtered to spam at ${input.to ?? "the receiving mailbox"}.`
+          : `Received by ${input.to ?? "the receiving mailbox"} — folder not reported.`,
+    externalId: `warmup:placement:${token}`,
+    payload: { placement, to: input.to, from: input.from },
+  });
+
+  if (fresh) {
+    const counter: Record<string, number> =
+      placement === "spam" ? { spam: 1 } : placement === "inbox" ? { inbox: 1 } : {};
+    if (job.status !== "delivered") counter["delivered"] = 1;
+    if (Object.keys(counter).length) {
+      await bumpStats(
+        supabaseAdmin,
+        { workspaceId: job.workspace_id, accountId: job.sending_account_id },
+        counter,
+      );
+    }
+    await recalculateHealth(supabaseAdmin, job.sending_account_id);
+  }
+  return true;
+}
+
+/**
+ * Marks sent warmup mail that never showed up on the receiving side. Runs on
+ * every cycle so the dashboard never reports a delivery that did not happen.
+ */
+async function sweepPlacement(admin: Admin): Promise<number> {
+  const cutoff = new Date(Date.now() - PLACEMENT_WINDOW_MS).toISOString();
+  const { data: stale } = await admin
+    .from("warmup_jobs")
+    .select("id, workspace_id, sending_account_id")
+    .eq("placement", "pending")
+    .in("status", ["sent", "delivered"])
+    .not("processed_at", "is", null)
+    .lt("processed_at", cutoff)
+    .limit(200);
+
+  for (const job of (stale ?? []) as Array<Record<string, string>>) {
+    await admin
+      .from("warmup_jobs")
+      .update({ placement: "not_received", placement_checked_at: new Date().toISOString() })
+      .eq("id", job["id"]!);
+    const fresh = await logEvent(admin, {
+      workspaceId: job["workspace_id"]!,
+      accountId: job["sending_account_id"]!,
+      jobId: job["id"]!,
+      type: "not_received",
+      detail: "No arrival confirmed on the receiving mailbox within 45 minutes.",
+      externalId: `warmup:notreceived:${job["id"]}`,
+    });
+    if (fresh) {
+      await bumpStats(
+        admin,
+        { workspaceId: job["workspace_id"]!, accountId: job["sending_account_id"]! },
+        { not_received: 1 },
+      );
+    }
+  }
+  return (stale ?? []).length;
 }
 
 /* ------------------------------------------------------------ health score */
