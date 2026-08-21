@@ -219,8 +219,8 @@ function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
 
 
       <div className="mt-6 space-y-2">
-        {plan.features
-          .filter((f) => f.included)
+        {displayFeatures(plan)
+          .filter((f) => f.included && f.category !== "Workspace & users")
           .slice(0, 5)
           .map((f) => (
             <div key={f.id} className="flex items-start gap-2 text-sm">
@@ -233,8 +233,24 @@ function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
   );
 }
 
+/** Only display rows (feature_key === null) belong in the customer-facing table. */
+function displayFeatures(plan: Plan) {
+  return plan.features.filter((f) => !f.feature_key);
+}
+
 function ComparisonTable({ plans }: { plans: Plan[] }) {
-  const categories = Array.from(new Set(plans.flatMap((p) => p.features.map((f) => f.category))));
+  const categoryOrder = [
+    "Workspace & users",
+    "Leads & sending",
+    "Deliverability",
+    "Product",
+    "Support",
+  ];
+  const found = Array.from(new Set(plans.flatMap((p) => displayFeatures(p).map((f) => f.category))));
+  const categories = [
+    ...categoryOrder.filter((c) => found.includes(c)),
+    ...found.filter((c) => !categoryOrder.includes(c)),
+  ];
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -251,7 +267,8 @@ function ComparisonTable({ plans }: { plans: Plan[] }) {
         </thead>
         <tbody>
           {categories.map((category) => {
-            const rows = plans[0]?.features.filter((f) => f.category === category) ?? [];
+            const base = plans[0] ? displayFeatures(plans[0]) : [];
+            const rows = base.filter((f) => f.category === category);
             return (
               <FragmentGroup
                 key={category}
@@ -304,7 +321,7 @@ function FragmentGroup({
             </TooltipProvider>
           </td>
           {plans.map((plan) => {
-            const feature = plan.features.find((f) => f.name === row.name);
+            const feature = displayFeatures(plan).find((f) => f.name === row.name);
             return (
               <td key={plan.id} className="px-6 py-3.5 text-center">
                 {feature?.included ? (
