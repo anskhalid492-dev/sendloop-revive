@@ -137,6 +137,7 @@ import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/
 import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/billing/stripe'
 import { Route as ApiPublicCronProviderHealthRouteImport } from './routes/api/public/cron/provider-health'
 import { Route as ApiPublicCronRecheckDomainsRouteImport } from './routes/api/public/cron/recheck-domains'
+import { Route as ApiPublicCronReconcileDeliveryRouteImport } from './routes/api/public/cron/reconcile-delivery'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunAiPersonalizationRouteImport } from './routes/api/public/cron/run-ai-personalization'
 import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/public/cron/run-automations'
@@ -836,6 +837,12 @@ const ApiPublicCronRecheckDomainsRoute =
     path: '/api/public/cron/recheck-domains',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronReconcileDeliveryRoute =
+  ApiPublicCronReconcileDeliveryRouteImport.update({
+    id: '/api/public/cron/reconcile-delivery',
+    path: '/api/public/cron/reconcile-delivery',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRetryInboundRoute =
   ApiPublicCronRetryInboundRouteImport.update({
     id: '/api/public/cron/retry-inbound',
@@ -1022,6 +1029,7 @@ export interface FileRoutesByFullPath {
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
+  '/api/public/cron/reconcile-delivery': typeof ApiPublicCronReconcileDeliveryRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
@@ -1159,6 +1167,7 @@ export interface FileRoutesByTo {
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
+  '/api/public/cron/reconcile-delivery': typeof ApiPublicCronReconcileDeliveryRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
@@ -1300,6 +1309,7 @@ export interface FileRoutesById {
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
   '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
+  '/api/public/cron/reconcile-delivery': typeof ApiPublicCronReconcileDeliveryRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
@@ -1441,6 +1451,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/stripe'
     | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
+    | '/api/public/cron/reconcile-delivery'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
@@ -1578,6 +1589,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/stripe'
     | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
+    | '/api/public/cron/reconcile-delivery'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
@@ -1718,6 +1730,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/stripe'
     | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
+    | '/api/public/cron/reconcile-delivery'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
@@ -1789,6 +1802,7 @@ export interface RootRouteChildren {
   ApiPublicBillingStripeRoute: typeof ApiPublicBillingStripeRoute
   ApiPublicCronProviderHealthRoute: typeof ApiPublicCronProviderHealthRoute
   ApiPublicCronRecheckDomainsRoute: typeof ApiPublicCronRecheckDomainsRoute
+  ApiPublicCronReconcileDeliveryRoute: typeof ApiPublicCronReconcileDeliveryRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunAiPersonalizationRoute: typeof ApiPublicCronRunAiPersonalizationRoute
   ApiPublicCronRunAutomationsRoute: typeof ApiPublicCronRunAutomationsRoute
@@ -2699,6 +2713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRecheckDomainsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/reconcile-delivery': {
+      id: '/api/public/cron/reconcile-delivery'
+      path: '/api/public/cron/reconcile-delivery'
+      fullPath: '/api/public/cron/reconcile-delivery'
+      preLoaderRoute: typeof ApiPublicCronReconcileDeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/retry-inbound': {
       id: '/api/public/cron/retry-inbound'
       path: '/api/public/cron/retry-inbound'
@@ -3031,6 +3052,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBillingStripeRoute: ApiPublicBillingStripeRoute,
   ApiPublicCronProviderHealthRoute: ApiPublicCronProviderHealthRoute,
   ApiPublicCronRecheckDomainsRoute: ApiPublicCronRecheckDomainsRoute,
+  ApiPublicCronReconcileDeliveryRoute: ApiPublicCronReconcileDeliveryRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunAiPersonalizationRoute:
     ApiPublicCronRunAiPersonalizationRoute,
