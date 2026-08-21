@@ -228,7 +228,7 @@ async function checkRecord(spec: DnsRecordSpec): Promise<DnsCheckResult> {
   } catch (error) {
     return {
       kind: spec.kind,
-      status: "failed",
+      status: error instanceof TransientDnsError ? "pending" : "failed",
       observed: null,
       message: (error as Error).message,
     };
@@ -312,7 +312,12 @@ export async function checkProviderRecord(spec: ProviderDnsRecord): Promise<Prov
           message: answers.length ? "MX records exist but none match." : "No MX record found.",
         };
   } catch (error) {
-    return { id: spec.id, status: "failed", observed: null, message: (error as Error).message };
+    return {
+      id: spec.id,
+      status: error instanceof TransientDnsError ? "pending" : "failed",
+      observed: null,
+      message: (error as Error).message,
+    };
   }
 }
 
