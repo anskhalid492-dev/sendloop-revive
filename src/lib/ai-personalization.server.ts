@@ -1,13 +1,14 @@
 /**
  * Server-only AI personalization engine.
  *
- * The AI provider is managed by MunchReach: customers never supply or see any
- * model credentials. All generation happens here, behind server functions and
- * the background worker.
+ * Bring-your-own key: each workspace connects its own OpenAI API key and is
+ * billed by OpenAI directly. MunchReach never supplies model credentials — the
+ * key is decrypted here, used for the call, and never leaves the server.
  */
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 
+import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import {
   AI_TOKEN,
   normalizeAiConfig,
@@ -19,7 +20,6 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
-const MODEL = "google/gemini-3.7-flash";
 const RUNNER_KEY = "ai_personalization";
 /** Hard ceiling per worker run so a big list never becomes a request storm. */
 const BATCH_SIZE = 10;
@@ -36,15 +36,20 @@ export class AiGatewayError extends Error {
   }
 }
 
-function gateway() {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key) throw new AiGatewayError({ status: 401, message: "AI service is not configured.", retryable: false });
+function provider(credentials: WorkspaceAiCredentials) {
+  if (!credentials?.apiKey)
+    throw new AiGatewayError({
+      status: 401,
+      message: "No OpenAI API key is connected for this workspace.",
+      retryable: false,
+    });
   return createOpenAICompatible({
-    name: "munchreach-ai",
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    headers: { "Lovable-API-Key": key },
+    name: "openai",
+    baseURL: "https://api.openai.com/v1",
+    headers: { Authorization: `Bearer ${credentials.apiKey}` },
   });
 }
+
 
 export type LeadRecord = {
   id: string;
