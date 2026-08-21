@@ -29,6 +29,7 @@ import {
   FeatureBento,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "Are the templates free?", a: "Yes, the full library is included on every plan, with no cap on how many you insert into campaigns." },
@@ -162,7 +163,7 @@ function Page() {
         <BulletList items={["Templates for step one, bump and breakup emails", "Spintax variants to reduce fingerprinting", "Preview rendered against a real prospect", "Deliverability linting for spam trigger words", "Shared team folders", "Export and import templates as JSON"]} />
       </Section>
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="templates" defaults={faqs} />
       </Section>
       <CtaBlock title={"Start from a template that already works"} description={"Skip the blank page and launch a proven sequence today."} />
     </MarketingLayout>

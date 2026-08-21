@@ -156,14 +156,18 @@ export function SiteHeader() {
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
-  const topNav = topLinks.length
+  const allTopNav = topLinks.length
     ? topLinks
     : [
         { label: "Features", to: "/features" },
         { label: "Customer Reviews", to: "/customer-reviews" },
-        { label: "Blog", to: "/blog" },
         { label: "Pricing", to: "/pricing" },
+        { label: "Blog", to: "/blog" },
       ];
+  // "Features" sits before the Products/Resources menus; the rest follow them.
+  const leadNav = allTopNav.filter((l) => l.to === "/features");
+  const topNav = allTopNav.filter((l) => l.to !== "/features");
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
@@ -229,6 +233,9 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
+          {leadNav.map((link) => (
+            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
+          ))}
           <Trigger label="Products" active={menu === "products"} onOpen={() => openMenu("products")} />
           <Trigger label="Resources" active={menu === "resources"} onOpen={() => openMenu("resources")} />
           {topNav.map((link) => (
@@ -292,6 +299,16 @@ export function SiteHeader() {
             className="overflow-hidden border-t border-border/60 bg-background md:hidden"
           >
             <div className="mx-auto flex max-h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-1 overflow-y-auto px-4 py-4">
+              {leadNav.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-secondary"
+                >
+                  {link.label}
+                </Link>
+              ))}
               <MobileGroup label="Products" cards={[...coreCards, ...moreCards]} onNavigate={() => setOpen(false)} />
               <MobileGroup label="Resources" cards={resourceLinks} onNavigate={() => setOpen(false)} />
               <MobileGroup label="By use case" cards={useCaseLinks} onNavigate={() => setOpen(false)} />

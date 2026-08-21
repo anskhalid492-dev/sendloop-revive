@@ -15,6 +15,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Badge } from "@/components/ui/badge";
 import { INTEGRATIONS, INTEGRATION_CATEGORIES, categoryLabel } from "@/lib/integrations-catalog";
 import { cn } from "@/lib/utils";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   {
@@ -129,7 +130,7 @@ function IntegrationsDirectory() {
       <TestimonialCarousel page="integrations" />
 
       <Section>
-        <FaqBlock faqs={faqs} description="Questions about connecting MunchReach to your tools." />
+        <PageFaqs page="integrations" defaults={faqs} description="Questions about connecting MunchReach to your tools." />
       </Section>
 
       <CtaBlock

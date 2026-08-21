@@ -32,6 +32,7 @@ import {
   WorkflowStrip,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "Is open tracking reliable?", a: "Open tracking is directional because of privacy proxies like Apple Mail Privacy Protection. MunchReach filters known bots and highlights reply rate as the primary metric." },
@@ -204,7 +205,7 @@ function Page() {
         <BulletList items={["Custom tracking domains for open and click tracking", "Bot-click filtering for more accurate numbers", "Date range comparison against the previous period", "Per-list and per-segment reply rates", "CSV export of every underlying event", "Client-safe read-only report links"]} />
       </Section>
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="analytics" defaults={faqs} />
       </Section>
       <CtaBlock title={"Report on outcomes, not vanity metrics"} description={"See which sequence, step and mailbox actually books meetings."} />
     </MarketingLayout>

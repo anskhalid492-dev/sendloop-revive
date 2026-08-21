@@ -32,6 +32,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Button } from "@/components/ui/button";
 import dashboardPreview from "@/assets/dashboard-preview.jpg";
 import inboxPreview from "@/assets/inbox-preview.jpg";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   {
@@ -785,8 +786,8 @@ function Home() {
 
         {/* ------------------------------------------------------------- FAQ */}
         <section id="faq" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <FaqBlock
-            faqs={faqs}
+          <PageFaqs
+            page="home" defaults={faqs}
             title="Frequently Asked Questions"
             description="Everything you need to know about MunchReach."
           />

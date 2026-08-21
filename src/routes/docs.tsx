@@ -14,7 +14,6 @@ import {
   FaqBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
-import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 
 const faqs = [
   {
@@ -201,8 +200,6 @@ function Docs() {
       <Section>
         <FaqBlock faqs={faqs}  />
       </Section>
-
-      <TestimonialCarousel page="docs" />
 
       <CtaBlock
         title="Start sending in ten minutes"

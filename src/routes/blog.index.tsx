@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CONTENT_TYPE_LABELS, initials, type BlogPost } from "@/lib/blog-model";
 import { getBlogIndex, listBlogPosts, subscribeToNewsletter } from "@/lib/blog.functions";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   {
@@ -378,7 +379,7 @@ function BlogPage() {
       </Section>
 
       <Section>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="blog" defaults={faqs} />
       </Section>
 
       <CtaBlock

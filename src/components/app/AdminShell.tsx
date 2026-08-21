@@ -42,6 +42,8 @@ import {
   Route as RouteIcon,
   Webhook,
   KeyRound,
+  HelpCircle,
+
 
 } from "lucide-react";
 
@@ -121,6 +123,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/templates", label: "Templates", icon: FileText },
       { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
+      { to: "/admin/faqs", label: "Website FAQs", icon: HelpCircle },
       { to: "/admin/referrals", label: "Referral Program", icon: Gift },
       { to: "/admin/integrations", label: "Integrations", icon: Plug },
     ],

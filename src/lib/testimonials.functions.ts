@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { ReviewCategory } from "@/lib/reviews";
+import { isRealTestimonial, type ReviewCategory } from "@/lib/reviews";
 
 export type Testimonial = {
   id: string;
@@ -64,9 +64,11 @@ export const listTestimonials = createServerFn({ method: "GET" })
       .eq("active", true)
       .order("display_order", { ascending: true });
     if (error) return [] as Testimonial[];
-    const all = (rows ?? []) as Testimonial[];
-    const matching = all.filter((t) => t.pages.includes(data.page));
-    return (matching.length > 0 ? matching : all.filter((t) => t.featured)) as Testimonial[];
+    // Only testimonials explicitly assigned to this page are shown — no global
+    // fallback, so the same quotes never repeat across every marketing page.
+    return ((rows ?? []) as Testimonial[]).filter(
+      (t) => t.pages.includes(data.page) && isRealTestimonial(t),
+    );
   });
 
 /** Public: every published review, newest-ordered by admin display order. */
@@ -80,7 +82,7 @@ export const listPublicReviews = createServerFn({ method: "GET" }).handler(async
     .order("display_order", { ascending: true })
     .order("reviewed_on", { ascending: false });
   if (error) return [] as Testimonial[];
-  return (data ?? []) as Testimonial[];
+  return ((data ?? []) as Testimonial[]).filter(isRealTestimonial);
 });
 
 export type ReviewStats = {

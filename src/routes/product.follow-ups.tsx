@@ -29,6 +29,7 @@ import {
   WorkflowStrip,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "How many follow-ups should I send?", a: "Two to four typically captures most of the available replies without annoying prospects." },
@@ -180,7 +181,7 @@ function Page() {
         />
       </Section>
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="follow-ups" defaults={faqs} />
       </Section>
       <CtaBlock
         title="Never forget a follow-up again"

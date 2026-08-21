@@ -29,6 +29,7 @@ import {
   FeatureBento,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "Can one person belong to many workspaces?", a: "Yes, with a different role in each — an agency owner can be Admin in one client workspace and Analyst in another." },
@@ -160,7 +161,7 @@ function Page() {
         <BulletList items={["Unlimited workspaces per account", "Role changes take effect immediately", "Client viewers see reporting only", "Audit trail of member and role changes", "Per-workspace suppression and do-not-contact lists", "Transfer ownership without downtime"]} />
       </Section>
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="workspaces" defaults={faqs} />
       </Section>
       <CtaBlock title={"Run every client from one account"} description={"Isolated workspaces, clear roles and reporting your clients can trust."} />
     </MarketingLayout>

@@ -190,9 +190,11 @@ export function TestimonialCarousel({
           </p>
         </div>
 
-        <p className="mt-2 text-xs text-muted-foreground">
-          Profile illustrations are placeholders and do not depict specific individuals.
-        </p>
+        {items.some((t) => !t.avatar_url) ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Some profile images are illustrations and do not depict specific individuals.
+          </p>
+        ) : null}
 
         <div className="relative mt-8">
           <div className="sm:hidden">

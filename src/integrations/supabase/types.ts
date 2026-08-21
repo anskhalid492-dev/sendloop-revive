@@ -4822,6 +4822,42 @@ export type Database = {
           },
         ]
       }
+      site_faqs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          id: string
+          page_slug: string
+          published: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string
+          created_at?: string
+          id?: string
+          page_slug: string
+          published?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          id?: string
+          page_slug?: string
+          published?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_nav_items: {
         Row: {
           created_at: string

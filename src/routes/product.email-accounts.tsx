@@ -31,6 +31,7 @@ import {
   metaFor,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   { q: "Do I need to connect my own SMTP or provider?", a: "No. MunchReach is a managed platform — we run the sending infrastructure and assign healthy mailboxes to your workspace." },
@@ -221,7 +222,7 @@ function Page() {
       </Section>
       <TestimonialCarousel page="email-accounts" title="Sending health, in their words" />
       <Section muted>
-        <FaqBlock faqs={faqs} />
+        <PageFaqs page="email-accounts" defaults={faqs} />
       </Section>
       <CtaBlock
         title="Let MunchReach run your sending infrastructure"

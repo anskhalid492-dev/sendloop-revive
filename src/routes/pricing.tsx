@@ -25,6 +25,7 @@ import { MarketingLayout, PageHero, Section, FaqBlock } from "@/components/site/
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
 import { cn } from "@/lib/utils";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -107,7 +108,7 @@ function PricingPage() {
       </Section>
 
       <Section>
-        <FaqBlock faqs={pricingFaqs} />
+        <PageFaqs page="pricing" defaults={pricingFaqs} />
       </Section>
 
       <Section muted>

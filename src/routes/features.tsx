@@ -39,6 +39,7 @@ import { applySeoOverrides } from "@/lib/page-seo";
 import { BRAND_NAME } from "@/lib/branding";
 import dashboardPreview from "@/assets/dashboard-preview.jpg";
 import inboxPreview from "@/assets/inbox-preview.jpg";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const CANONICAL = "https://munchreach.com/features";
 const SEO_TITLE = "Features — The Complete MunchReach Outbound Platform";
@@ -797,7 +798,7 @@ function FeaturesPage() {
       <TestimonialCarousel page="features" />
 
       <Section muted>
-        <FaqBlock faqs={faqs} description="Common questions about the MunchReach feature set." />
+        <PageFaqs page="features" defaults={faqs} description="Common questions about the MunchReach feature set." />
       </Section>
 
       <CtaBlock
