@@ -256,7 +256,7 @@ export async function generatePersonalization(
     });
   }
 
-  return { content: cleaned.slice(0, 600), model: MODEL };
+  return { content: cleaned.slice(0, 600), model: credentials.model };
 }
 
 /** Stable fingerprint of the settings a stored snippet was generated with. */
