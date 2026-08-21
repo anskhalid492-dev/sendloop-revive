@@ -152,31 +152,50 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
       </div>
 
       <section className="surface-card p-5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <Activity className="size-4 text-primary" /> Recent activity
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Activity className="size-4 text-primary" /> Recent activity
+          </h2>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/70" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+            </span>
+            Live
+          </span>
+        </div>
         {recentActivity.length === 0 ? (
           <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="size-4" /> Nothing sent yet. Activity appears once the queue starts.
           </p>
         ) : (
-          <ul className="mt-4 space-y-3 text-sm">
-            {recentActivity.map((row) => (
-              <li key={row.id} className="flex items-center justify-between gap-3">
-                <span className="truncate">
-                  {row.lead?.email ?? "Lead"}{" "}
-                  <Badge variant="secondary" className="ml-1 font-normal capitalize">
-                    {row.status.replace("_", " ")}
-                  </Badge>
-                </span>
-                <span className="whitespace-nowrap text-xs text-muted-foreground">
-                  {new Date(row.last_sent_at!).toLocaleString()}
-                </span>
-              </li>
-            ))}
+          <ul className="mt-4 divide-y divide-border/60 text-sm">
+            {recentActivity.map((row) => {
+              const state = (row.deliveryState ?? "not_contacted") as LeadDeliveryState;
+              return (
+                <li key={row.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-medium">{row.lead?.email ?? "Lead"}</span>
+                    <Badge
+                      variant="secondary"
+                      className={`shrink-0 font-normal ${LEAD_DELIVERY_STYLES[state] ?? ""}`}
+                    >
+                      {LEAD_DELIVERY_LABELS[state] ?? state}
+                    </Badge>
+                  </span>
+                  <span
+                    className="whitespace-nowrap text-xs text-muted-foreground"
+                    title={new Date(row.lastEventAt ?? row.last_sent_at!).toLocaleString()}
+                  >
+                    {relativeTime(row.lastEventAt ?? row.last_sent_at)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
+
 
       <LaunchAuditTrail campaignId={campaign.id} />
     </div>
