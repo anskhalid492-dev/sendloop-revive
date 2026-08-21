@@ -81,8 +81,21 @@ export async function getMeteringPeriod(workspaceId: string): Promise<MeteringPe
     .limit(1)
     .maybeSingle();
 
+  // A free plan is always metered as a single lifetime allowance, even once a
+  // subscription row exists — otherwise the trial cap would silently reset.
+  let freePlan = true;
+  if (sub?.plan_id) {
+    const { data: plan } = await db
+      .from("plans")
+      .select("monthly_price")
+      .eq("id", sub.plan_id as string)
+      .maybeSingle();
+    freePlan = Number(plan?.monthly_price ?? 0) === 0;
+  }
+
   const paidStates = ["trialing", "active", "past_due", "payment_failed", "paused"];
-  if (sub && paidStates.includes(String(sub.status)) && sub.current_period_start) {
+  if (sub && !freePlan && paidStates.includes(String(sub.status)) && sub.current_period_start) {
+
     const start = new Date(sub.current_period_start as string);
     const end = sub.current_period_end ? new Date(sub.current_period_end as string) : null;
     // Roll forward if the provider webhook is late so a stale cycle never
