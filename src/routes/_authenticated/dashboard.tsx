@@ -17,6 +17,8 @@ import { SetupJourney } from "@/components/app/SetupJourney";
 import { getSetupProgress } from "@/lib/setup-progress.functions";
 import { countCompleted } from "@/lib/setup-journey";
 import { MetricCards } from "@/components/dashboard/MetricCards";
+import { EngagementOverview } from "@/components/analytics/EngagementOverview";
+
 
 import { OutreachGraph } from "@/components/dashboard/OutreachGraph";
 import { Button } from "@/components/ui/button";
@@ -222,6 +224,10 @@ function DashboardPage() {
             </motion.div>
           ))}
         </div>
+
+        <EngagementOverview workspaceId={workspaceId ?? null} />
+
+
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
