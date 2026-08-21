@@ -1,5 +1,5 @@
 /**
- * Correlates a logged test send with the provider webhook events that landed
+ * Correlates a logged test send with the delivery webhook events that landed
  * afterwards, so the UI reports accepted / delivered / bounced truthfully
  * instead of calling provider acceptance a delivery.
  */
@@ -75,7 +75,7 @@ export function correlateTestSend<T extends TestSendRow>(row: T, events: Webhook
 }
 
 export const TEST_SEND_LABEL: Record<TestSendOutcome, string> = {
-  rejected: "Rejected by provider",
+  rejected: "Rejected before delivery",
   accepted: "Accepted — awaiting delivery webhook",
   delivered: "Delivered",
   bounced: "Bounced",

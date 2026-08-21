@@ -713,7 +713,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         ...(result.messageId ? { providerMessageId: result.messageId } : {}),
         ...(result.statusCode ? { statusCode: result.statusCode } : {}),
         ...(result.providerResponse ? { providerResponse: result.providerResponse } : {}),
-        webhookStatus: "Waiting for provider webhook",
+        webhookStatus: "Waiting for delivery confirmation",
       });
     }
 
@@ -722,7 +722,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     // provider's own error instead.
     const failed = results.filter((r) => !r.ok);
     if (failed.length === results.length) {
-      throw new Error(failed[0]?.message ?? "The email provider rejected this test send");
+      throw new Error(failed[0]?.message ?? "MunchReach could not send this test email.");
     }
     return { results, accepted: results.length - failed.length, failed };
   });
@@ -757,7 +757,25 @@ export const listCampaignTestDiagnostics = createServerFn({ method: "GET" })
       : { data: [] };
 
     const { correlateTestSend } = await import("@/lib/test-send-status");
-    return (rows ?? []).map((row) => correlateTestSend(row, (events ?? []) as never));
+    const { customerSafeMessage } = await import("@/lib/managed-sending.server");
+    // The real provider identity stays in the database and Admin → Providers;
+    // customers only ever see MunchReach's own sending infrastructure.
+    return (rows ?? []).map((row) => {
+      const correlated = correlateTestSend(row, (events ?? []) as never);
+      return {
+        ...correlated,
+        provider: null,
+        provider_response: correlated.provider_response
+          ? customerSafeMessage(correlated.provider_response, "Delivery attempt recorded.")
+          : null,
+        error: correlated.error
+          ? customerSafeMessage(correlated.error, "The message could not be sent. Please contact support.")
+          : null,
+        webhookError: correlated.webhookError
+          ? customerSafeMessage(correlated.webhookError, "Delivery reported a failure.")
+          : null,
+      };
+    });
   });
 
 
