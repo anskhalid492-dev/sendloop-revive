@@ -295,14 +295,28 @@ export async function runDomainVerification(
     requiredRecords.every((r) => byId.get(r.id)?.status === "verified");
 
   // 2. Provider-side authorisation, only worth asking for once DNS is live.
+  //
+  // Providers answer the verify call asynchronously: the POST only means
+  // "check started". Polling the real provider status afterwards is what stops
+  // a DNS-verified domain from sitting on "Checking" forever — the database
+  // always receives the provider's actual verdict, never an assumed one.
   let providerState = { state: "pending" as string, detail: "Waiting for DNS records." };
   if (dnsVerified) {
     providerState = await adapter.authorizeDomain(provider.credentials, row.domain);
+
     if (providerState.state !== "verified") {
-      const status = await adapter.getDomainStatus(provider.credentials, row.domain);
-      if (status.state === "verified") providerState = status;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const status = await adapter.getDomainStatus(provider.credentials, row.domain);
+        if (status.state === "verified" || status.state === "failed") {
+          providerState = status;
+          break;
+        }
+        providerState = status.state === "unknown" ? providerState : status;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
     }
   }
+
 
   // 3. Sending readiness confirmed by the provider itself. A transient provider
   // error must not knock an already-ready domain back to "verifying".
