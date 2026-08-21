@@ -71,9 +71,31 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
     if (!lead) throw new Error("Lead not found.");
 
     const [withNotes] = await attachLeadNotes(context.supabase, [lead as never]);
+
+    // The preview runs on the workspace's own OpenAI key, exactly like sending.
+    const { data: campaign } = await context.supabase
+      .from("campaigns")
+      .select("workspace_id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (!campaign?.workspace_id) throw new Error("Campaign not found.");
+
+    const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const credentials = await workspaceAiCredentials(supabaseAdmin, campaign.workspace_id);
+    if (!credentials) {
+      return {
+        ok: false as const,
+        leadId: data.leadId,
+        message: "Connect your OpenAI API key to generate personalization.",
+        status: 401,
+      };
+    }
+
     try {
-      const { content } = await generatePersonalization(config, withNotes!);
+      const { content } = await generatePersonalization(config, withNotes!, credentials);
       return { ok: true as const, content, leadId: data.leadId };
+
     } catch (error) {
       const failure = error instanceof AiGatewayError ? error : null;
       return {
