@@ -85,6 +85,13 @@ export function KpiGrid({
       hint: "Delivered attempts from your mailboxes",
     },
     {
+      key: "delivered",
+      label: "Delivered",
+      value: c?.delivered ?? 0,
+      previous: p?.delivered ?? null,
+      hint: "Accepted by the recipient server",
+    },
+    {
       key: "deliveryRate",
       label: "Delivery rate",
       value: rate(c?.delivered ?? 0, c?.sent ?? 0),
