@@ -141,7 +141,8 @@ export async function processEventPayload(
         attachments: parsed.attachments ?? [],
       });
 
-      // Routing diagnostics: did the reply carry a token, and did it resolve?
+      // Routing diagnostics only. A token is never required: a reply without
+      // one threads through headers, the original send, or the participants.
       const toAddress = extractEmail(parsed.to);
       const { tokenFromAddress, resolveRouteFromAddress } = await import(
         "@/lib/inbound-routing.server"
@@ -151,11 +152,9 @@ export async function processEventPayload(
       const tokenStatus = !token ? "none" : route ? "matched" : "invalid";
       const failureCode =
         result.status === "unmatched"
-          ? tokenStatus === "invalid"
-            ? "invalid_token"
-            : tokenStatus === "none"
-              ? "no_token"
-              : "unmatched_thread"
+          ? (result.reason ?? "").toLowerCase().includes("workspace")
+            ? "unknown_mailbox"
+            : "unmatched_thread"
           : null;
 
       await finish(eventId, {
@@ -163,9 +162,10 @@ export async function processEventPayload(
         error: result.reason ?? null,
         conversation_id: result.conversationId ?? null,
         routing_token: token,
-        token_status: result.status === "unmatched" && tokenStatus === "matched" ? "unmatched" : tokenStatus,
+        token_status: tokenStatus,
         failure_code: failureCode,
       });
+
       return { status: result.status, eventId, conversationId: result.conversationId };
 
     }
