@@ -536,18 +536,30 @@ export const sendConversationReply = createServerFn({ method: "POST" })
       .select("workspace_id")
       .eq("id", data.conversationId)
       .maybeSingle();
+    let consumedWorkspace: string | null = null;
     if (conversation?.workspace_id) {
       const { requireEntitlement, consumeUsage } = await import("@/lib/billing/usage.server");
       await requireEntitlement(conversation.workspace_id, "unified_inbox");
       await consumeUsage(conversation.workspace_id, "emails_monthly", 1);
+      consumedWorkspace = conversation.workspace_id;
     }
     const { sendReplyThroughMailbox } = await import("@/lib/inbox-send.server");
-    return sendReplyThroughMailbox({
-      supabase: context.supabase,
-      userId: context.userId,
-      ...data,
-    });
+    try {
+      return await sendReplyThroughMailbox({
+        supabase: context.supabase,
+        userId: context.userId,
+        ...data,
+      });
+    } catch (error) {
+      // The allowance must not be burned when the email never left the platform.
+      if (consumedWorkspace) {
+        const { releaseUsage } = await import("@/lib/billing/usage.server");
+        await releaseUsage(consumedWorkspace, "emails_monthly", 1).catch(() => {});
+      }
+      throw error;
+    }
   });
+
 
 /* ------------------------------------------------------------------ *
  * Compose, drafts and sending accounts available to the inbox.
