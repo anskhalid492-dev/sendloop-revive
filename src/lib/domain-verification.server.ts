@@ -430,15 +430,25 @@ export async function assertDomainReadyToSend(
   const provider = await resolveDomainProvider(admin, {
     provider: row.provider,
     providerId: row.provider_id,
+    key: row.domain,
   });
   if (!provider) return { ok: false, detail: "No sending infrastructure is configured." };
 
   const { getDomainAdapter } = await import("@/lib/domain-providers/registry.server");
   const adapter = getDomainAdapter(provider.provider);
+
+  // Hold the domain on this provider while mail is actually going out, so a
+  // routing change can never swap infrastructure mid-send.
+  await admin
+    .from("sending_domains")
+    .update({ provider_locked_until: new Date(Date.now() + 15 * 60_000).toISOString() })
+    .eq("id", row.id);
+
   if (!adapter.supportsDomainApi) return { ok: true, detail: "Provider has no domain API; enforced at send." };
 
   const ready = await adapter.isReadyToSend(provider.credentials, domain).catch(() => false);
   return ready
     ? { ok: true, detail: `${domain} is authorised by the assigned infrastructure.` }
     : { ok: false, detail: `${domain} is no longer authorised by the assigned infrastructure.` };
+
 }
