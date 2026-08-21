@@ -33,7 +33,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RECIPIENT_STATUS_LABELS } from "@/lib/campaign-model";
+import {
+  LEAD_DELIVERY_LABELS,
+  LEAD_DELIVERY_STATES,
+  LEAD_DELIVERY_STYLES,
+  type LeadDeliveryState,
+} from "@/lib/campaign-model";
 import { addLeadsToCampaign, updateCampaignRecipients } from "@/lib/campaigns.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -61,7 +66,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
         const lead = row.lead;
         const haystack = `${lead?.email ?? ""} ${lead?.first_name ?? ""} ${lead?.last_name ?? ""}`;
         if (search && !haystack.toLowerCase().includes(search.toLowerCase())) return false;
-        if (status !== ANY && row.status !== status) return false;
+        if (status !== ANY && (row.deliveryState ?? "not_contacted") !== status) return false;
         if (company && !(lead?.company ?? "").toLowerCase().includes(company.toLowerCase()))
           return false;
         if (jobTitle && !(lead?.job_title ?? "").toLowerCase().includes(jobTitle.toLowerCase()))
@@ -107,7 +112,8 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           r.lead?.company ?? "",
           r.lead?.job_title ?? "",
           r.lead?.country ?? "",
-          r.status,
+          LEAD_DELIVERY_LABELS[(r.deliveryState ?? "not_contacted") as LeadDeliveryState] ??
+            r.status,
           r.current_step,
         ]
           .map((v) => `"${String(v).replace(/"/g, '""')}"`)
@@ -162,9 +168,9 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ANY}>Any status</SelectItem>
-              {Object.entries(RECIPIENT_STATUS_LABELS).map(([value, label]) => (
+              {LEAD_DELIVERY_STATES.map((value) => (
                 <SelectItem key={value} value={value}>
-                  {label}
+                  {LEAD_DELIVERY_LABELS[value]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -313,13 +319,22 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                   <TableCell className="whitespace-nowrap">{row.lead?.job_title ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.lead?.country ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-normal">
-                      {RECIPIENT_STATUS_LABELS[row.status] ?? row.status}
+                    <Badge
+                      variant="secondary"
+                      className={`font-normal ${LEAD_DELIVERY_STYLES[(row.deliveryState ?? "not_contacted") as LeadDeliveryState] ?? ""}`}
+                    >
+                      {LEAD_DELIVERY_LABELS[
+                        (row.deliveryState ?? "not_contacted") as LeadDeliveryState
+                      ] ?? row.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="tabular-nums">{row.current_step}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    {row.last_sent_at ? new Date(row.last_sent_at).toLocaleString() : "—"}
+                    {row.lastEventAt
+                      ? new Date(row.lastEventAt).toLocaleString()
+                      : row.last_sent_at
+                        ? new Date(row.last_sent_at).toLocaleString()
+                        : "—"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {accounts.find((a) => a.id === row.sending_account_id)?.from_email ?? "Auto"}

@@ -540,3 +540,57 @@ export const RECIPIENT_STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
   stopped: "Paused",
 };
+
+/**
+ * Live per-lead delivery state, derived from the actual message events
+ * (queued → sent → delivered → opened → clicked → replied, or a terminal
+ * bounce/failure). Strongest signal wins so a late "delivered" never hides a
+ * bounce.
+ */
+export const LEAD_DELIVERY_STATES = [
+  "not_contacted",
+  "queued",
+  "sent",
+  "delayed",
+  "delivered",
+  "opened",
+  "clicked",
+  "replied",
+  "unsubscribed",
+  "complained",
+  "bounced",
+  "failed",
+] as const;
+
+export type LeadDeliveryState = (typeof LEAD_DELIVERY_STATES)[number];
+
+export const LEAD_DELIVERY_LABELS: Record<LeadDeliveryState, string> = {
+  not_contacted: "Not contacted",
+  queued: "Queued",
+  sent: "Sent",
+  delayed: "Delayed",
+  delivered: "Delivered",
+  opened: "Opened",
+  clicked: "Clicked",
+  replied: "Replied",
+  unsubscribed: "Unsubscribed",
+  complained: "Complained",
+  bounced: "Bounced",
+  failed: "Failed",
+};
+
+export const LEAD_DELIVERY_STYLES: Record<LeadDeliveryState, string> = {
+  not_contacted: "bg-muted text-muted-foreground",
+  queued: "bg-muted text-muted-foreground",
+  sent: "bg-primary/10 text-primary",
+  delayed: "bg-amber-500/15 text-amber-600",
+  delivered: "bg-sky-500/15 text-sky-600",
+  opened: "bg-emerald-500/15 text-emerald-600",
+  clicked: "bg-emerald-500/20 text-emerald-700",
+  replied: "bg-emerald-600/20 text-emerald-700",
+  unsubscribed: "bg-amber-500/15 text-amber-600",
+  complained: "bg-destructive/15 text-destructive",
+  bounced: "bg-destructive/15 text-destructive",
+  failed: "bg-destructive/15 text-destructive",
+};
+
