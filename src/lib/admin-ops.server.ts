@@ -1303,3 +1303,48 @@ export async function loadAuditTargetTypes() {
   const { data } = await supabaseAdmin.from("admin_audit_log").select("target_type").limit(1000);
   return [...new Set((data ?? []).map((r: { target_type: string }) => r.target_type))].sort();
 }
+
+
+/**
+ * Usage audit trail: every allowance consumption, release and denial recorded
+ * by the database metering function.
+ */
+export async function loadUsageAudit(input: {
+  workspaceId?: string | undefined;
+  deniedOnly?: boolean;
+  limit?: number;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let query = supabaseAdmin
+    .from("usage_audit_log")
+    .select("id, workspace_id, resource, action, amount, allowed, used_after, limit_value, period_start, plan_name, reason, created_at")
+    .order("created_at", { ascending: false })
+    .limit(input.limit ?? 50);
+  if (input.workspaceId) query = query.eq("workspace_id", input.workspaceId);
+  if (input.deniedOnly) query = query.eq("allowed", false);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const ids = [...new Set(rows.map((r) => String(r["workspace_id"])))];
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data: ws } = await supabaseAdmin.from("workspaces").select("id, name").in("id", ids);
+    for (const w of (ws ?? []) as Array<{ id: string; name: string }>) names.set(w.id, w.name);
+  }
+  return rows.map((r) => ({
+    id: String(r["id"]),
+    workspaceId: String(r["workspace_id"]),
+    workspaceName: names.get(String(r["workspace_id"])) ?? "Unknown workspace",
+    resource: String(r["resource"]),
+    action: String(r["action"]),
+    amount: Number(r["amount"] ?? 0),
+    allowed: Boolean(r["allowed"]),
+    usedAfter: r["used_after"] === null ? null : Number(r["used_after"]),
+    limitValue: r["limit_value"] === null ? null : Number(r["limit_value"]),
+    periodStart: (r["period_start"] as string | null) ?? null,
+    planName: (r["plan_name"] as string | null) ?? null,
+    reason: (r["reason"] as string | null) ?? null,
+    createdAt: String(r["created_at"]),
+  }));
+}

@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { adminLoadUsage } from "@/lib/admin-ops.functions";
+import { adminLoadUsage, adminUsageAudit } from "@/lib/admin-ops.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/usage")({
@@ -62,6 +62,14 @@ function UsagePage() {
           to: new Date(`${range.to}T23:59:59.999Z`).toISOString(),
         },
       }),
+  });
+
+  const loadAudit = useServerFn(adminUsageAudit);
+  const [deniedOnly, setDeniedOnly] = useState(true);
+  const audit = useQuery({
+    queryKey: ["admin-usage-audit", deniedOnly],
+    queryFn: () => loadAudit({ data: { deniedOnly, limit: 100 } }),
+    refetchInterval: 60_000,
   });
 
   const totals = query.data?.totals;
@@ -184,6 +192,65 @@ function UsagePage() {
                 <TableRow>
                   <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                     No workspace usage in this range.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <div className="surface-card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+          <div>
+            <h3 className="text-sm font-semibold">Allowance audit trail</h3>
+            <p className="text-xs text-muted-foreground">
+              Every allowance reservation, refund and denial recorded by the metering engine.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setDeniedOnly((v) => !v)}>
+            {deniedOnly ? "Show all events" : "Show denials only"}
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Workspace</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Resource</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Used / limit</TableHead>
+                <TableHead>Reason</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(audit.data ?? []).map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                    {new Date(row.createdAt).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-sm">{row.workspaceName}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{row.planName ?? "—"}</TableCell>
+                  <TableCell className="text-xs">{row.resource}</TableCell>
+                  <TableCell>
+                    <Badge variant={row.allowed ? "outline" : "destructive"} className="text-[10px]">
+                      {row.action}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(row.amount)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-xs">
+                    {fmt(row.usedAfter)} / {row.limitValue === null ? "∞" : fmt(row.limitValue)}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{row.reason ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+              {!audit.isLoading && (audit.data ?? []).length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    No metering events recorded yet.
                   </TableCell>
                 </TableRow>
               ) : null}

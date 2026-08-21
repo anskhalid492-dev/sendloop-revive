@@ -590,12 +590,23 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       }
 
       // Plan enforcement: feature access + atomic monthly AI allowance.
-      const { requireEntitlement, consumeUsage, releaseUsage, EntitlementError } = await import(
-        "@/lib/billing/usage.server"
-      );
+      const { requireEntitlement, evaluateEntitlement, consumeUsage, EntitlementError } =
+        await import("@/lib/billing/usage.server");
       try {
         await requireEntitlement(settings.workspaceId, "ai_personalization");
-        await consumeUsage(settings.workspaceId, "ai_monthly", 1);
+        // Allowance is only CHECKED here. It is charged after a real
+        // generation, so validation failures and fallbacks stay free.
+        const decision = await evaluateEntitlement(settings.workspaceId, "ai_monthly", 1);
+        if (!decision.allowed) {
+          throw new EntitlementError({
+            code: "limit_reached",
+            planName: decision.planName,
+            resource: "ai_monthly",
+            used: decision.used,
+            limit: decision.limit,
+            message: `You've reached your AI personalization allowance for the ${decision.planName} plan (${decision.used.toLocaleString()} of ${(decision.limit ?? 0).toLocaleString()}). Upgrade your plan to keep generating.`,
+          });
+        }
       } catch (error) {
         if (error instanceof EntitlementError) {
           blockedWorkspaces.add(settings.workspaceId);
@@ -621,6 +632,10 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           lead,
           credentials,
         );
+        // Only a real model generation costs allowance; fallback copy is free.
+        if (quality !== "fallback") {
+          await consumeUsage(settings.workspaceId, "ai_monthly", 1, "ai_personalization");
+        }
         await admin
           .from("ai_personalizations")
           .update({
@@ -644,8 +659,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           result.paused = null;
         }
       } catch (error) {
-        // Nothing was generated: hand the reserved allowance back.
-        await releaseUsage(settings.workspaceId, "ai_monthly", 1);
+        // Nothing was charged unless a generation actually completed.
         const failure = error instanceof AiGatewayError ? error : mapGatewayError(error);
         const terminal = !failure.retryable || job.attempts >= 3;
         await admin

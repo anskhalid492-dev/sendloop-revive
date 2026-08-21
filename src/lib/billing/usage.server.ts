@@ -118,21 +118,39 @@ async function countRows(table: string, workspaceId: string, extra?: (q: any) =>
   return count ?? 0;
 }
 
-async function meteredUsed(workspaceId: string, resource: UsageResource) {
+/** UTC day key used for daily caps. */
+function dayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+async function counterValue(workspaceId: string, resource: string, periodKey: string) {
   const db = await admin();
-  const period = await getMeteringPeriod(workspaceId);
   const { data } = await db
     .from("workspace_usage_counters")
     .select("used")
     .eq("workspace_id", workspaceId)
     .eq("resource", resource)
-    .eq("period_start", period.key)
+    .eq("period_start", periodKey)
     .maybeSingle();
   return Number(data?.used ?? 0);
 }
 
+async function meteredUsed(workspaceId: string, resource: UsageResource) {
+  if (resource === "emails_daily" || resource === "warmup_daily") {
+    return counterValue(workspaceId, resource, dayKey());
+  }
+  const period = await getMeteringPeriod(workspaceId);
+  return counterValue(workspaceId, resource, period.key);
+}
 
-/** Current usage for one resource. */
+
+/**
+ * Current usage for one resource.
+ *
+ * Derived resources are ALWAYS counted from live rows, so deleting a lead,
+ * mailbox, domain or campaign frees capacity immediately and no counter can
+ * drift away from reality.
+ */
 export async function getUsage(workspaceId: string, resource: UsageResource): Promise<number> {
   switch (resource) {
     case "leads":
@@ -140,6 +158,8 @@ export async function getUsage(workspaceId: string, resource: UsageResource): Pr
     case "campaigns":
       return countRows("campaigns", workspaceId);
     case "active_campaigns":
+      // Only campaigns that are actually consuming an active slot. Completed,
+      // archived, paused and draft campaigns release the slot immediately.
       return countRows("campaigns", workspaceId, (q) => q.in("status", ["active", "scheduled"]));
     case "sending_accounts":
       return countRows("sending_accounts", workspaceId);
@@ -150,12 +170,15 @@ export async function getUsage(workspaceId: string, resource: UsageResource): Pr
     case "automations":
       return countRows("automations", workspaceId);
     case "emails_monthly":
+    case "emails_daily":
     case "ai_monthly":
+    case "warmup_daily":
       return meteredUsed(workspaceId, resource);
     default:
       return 0;
   }
 }
+
 
 /**
  * Workspace count is billed per owner, not per workspace, so it cannot live in
@@ -224,8 +247,22 @@ export async function checkUsageLimit(
   const entitlement = await getEntitlement(workspaceId);
   assertActive(entitlement, `add more ${def.unit}`);
 
+  // Metered resources are evaluated in the database so the monthly allowance,
+  // the daily cap and the billing period all come from one authoritative place.
+  if (def.kind === "metered") {
+    const decision = await evaluateEntitlement(workspaceId, resource, amount);
+    if (!decision.allowed) throw meterError(resource, { ...decision, planName: entitlement.planName });
+    return {
+      entitlement,
+      used: decision.used,
+      limit: decision.limit,
+      remaining: decision.remaining,
+    };
+  }
+
   const limit = limitFor(entitlement, resource);
   const used = await getUsage(workspaceId, resource);
+
   if (limit !== null && used + amount > limit) {
     throw new EntitlementError({
       code: "limit_reached",
@@ -247,63 +284,136 @@ export async function checkUsageLimit(
   };
 }
 
+export type MeterDecision = {
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  dailyUsed: number;
+  dailyLimit: number | null;
+  periodStart: string;
+  resets: boolean;
+  resetAt: string | null;
+  planName: string;
+  reason: "plan_limit" | "daily_limit" | null;
+};
+
+function toDecision(raw: unknown, fallbackPlan: string): MeterDecision {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    allowed: Boolean(r["allowed"]),
+    used: Number(r["used"] ?? 0),
+    limit: num(r["limit"]),
+    remaining: num(r["remaining"]),
+    dailyUsed: Number(r["daily_used"] ?? 0),
+    dailyLimit: num(r["daily_limit"]),
+    periodStart: String(r["period_start"] ?? ""),
+    resets: r["resets"] !== false,
+    resetAt: (r["reset_at"] as string | null) ?? null,
+    planName: (r["plan_name"] as string | null) ?? fallbackPlan,
+    reason: (r["reason"] as MeterDecision["reason"]) ?? null,
+  };
+}
+
+function meterError(resource: UsageResource, decision: MeterDecision): EntitlementError {
+  const def = resourceDefinition(resource);
+  const daily = decision.reason === "daily_limit";
+  const used = daily ? decision.dailyUsed : decision.used;
+  const limit = (daily ? decision.dailyLimit : decision.limit) ?? 0;
+  const message = daily
+    ? `You've reached your daily sending limit for the ${decision.planName} plan (${used.toLocaleString()} of ${limit.toLocaleString()} emails today). Sending resumes tomorrow, or upgrade your plan for a higher daily cap.`
+    : resource === "emails_monthly"
+      ? emailLimitMessage(decision.planName, used, limit)
+      : limitMessage(def.label, decision.planName, used, limit);
+  return new EntitlementError({
+    code: "limit_reached",
+    planName: decision.planName,
+    resource,
+    used,
+    limit,
+    message,
+  });
+}
+
+async function callMeter(
+  workspaceId: string,
+  resource: UsageResource,
+  amount: number,
+  dryRun: boolean,
+  reason?: string | null,
+): Promise<MeterDecision> {
+  const db = await admin();
+  const { getBillingSettings } = await import("@/lib/billing/core.server");
+  const settings = await getBillingSettings();
+  const { data, error } = await db.rpc("consume_workspace_usage_v2", {
+    _workspace_id: workspaceId,
+    _resource: resource,
+    _amount: Math.trunc(amount),
+    _environment: settings.environment,
+    _dry_run: dryRun,
+    _reason: reason ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return toDecision(data, "current");
+}
+
+/**
+ * Read-only entitlement evaluation for a metered resource. The plan, billing
+ * period and both caps are resolved inside the database, so no caller can ever
+ * meter against a stale limit.
+ */
+export async function evaluateEntitlement(
+  workspaceId: string,
+  resource: UsageResource,
+  amount = 1,
+): Promise<MeterDecision> {
+  return callMeter(workspaceId, resource, amount, true);
+}
+
 /**
  * Atomically reserves metered usage. Throws when the plan allowance is spent —
- * two concurrent jobs can never both slip past the cap.
+ * two concurrent jobs can never both slip past the cap. Monthly and daily caps
+ * are checked and reserved in the same database call.
  */
-export async function consumeUsage(workspaceId: string, resource: UsageResource, amount = 1) {
+export async function consumeUsage(
+  workspaceId: string,
+  resource: UsageResource,
+  amount = 1,
+  reason?: string,
+) {
   const def = resourceDefinition(resource);
   if (def.kind !== "metered") throw new Error(`Resource ${resource} is not metered`);
   if (amount <= 0) return { used: 0, limit: null as number | null, remaining: null as number | null };
 
   const entitlement = await getEntitlement(workspaceId);
   assertActive(entitlement, `keep using ${def.unit}`);
-  const limit = limitFor(entitlement, resource);
 
-  const db = await admin();
-  const period = await getMeteringPeriod(workspaceId);
-  const { data, error } = await db.rpc("consume_workspace_usage", {
-    _workspace_id: workspaceId,
-    _resource: resource,
-    _period_start: period.key,
-    _amount: Math.trunc(amount),
-    _limit: limit,
-  });
-
-  if (error) throw new Error(error.message);
-  const result = (data ?? {}) as { allowed: boolean; used: number; limit: number | null; remaining: number | null };
-  if (!result.allowed) {
-    throw new EntitlementError({
-      code: "limit_reached",
-      planName: entitlement.planName,
-      resource,
-      used: Number(result.used ?? 0),
-      limit,
-      message:
-        resource === "emails_monthly"
-          ? emailLimitMessage(entitlement.planName, Number(result.used ?? 0), limit ?? 0)
-          : limitMessage(def.label, entitlement.planName, Number(result.used ?? 0), limit ?? 0),
-    });
-  }
-  return {
-    used: Number(result.used ?? 0),
-    limit,
-    remaining: result.remaining === null || result.remaining === undefined ? null : Number(result.remaining),
-  };
+  const decision = await callMeter(workspaceId, resource, amount, false, reason ?? null);
+  if (!decision.allowed) throw meterError(resource, { ...decision, planName: entitlement.planName });
+  return { used: decision.used, limit: decision.limit, remaining: decision.remaining };
 }
 
 /** Gives back reserved usage when the downstream action failed. */
-export async function releaseUsage(workspaceId: string, resource: UsageResource, amount = 1) {
+export async function releaseUsage(
+  workspaceId: string,
+  resource: UsageResource,
+  amount = 1,
+  reason?: string,
+) {
   if (amount <= 0) return;
   const db = await admin();
-  const period = await getMeteringPeriod(workspaceId);
-  await db.rpc("release_workspace_usage", {
+  const { getBillingSettings } = await import("@/lib/billing/core.server");
+  const settings = await getBillingSettings();
+  await db.rpc("release_workspace_usage_v2", {
     _workspace_id: workspaceId,
     _resource: resource,
-    _period_start: period.key,
     _amount: Math.trunc(amount),
+    _environment: settings.environment,
+    _reason: reason ?? null,
   });
 }
+
 
 
 /** Feature gate: throws unless the active plan includes `featureKey`. */
@@ -353,7 +463,7 @@ export type UsageSnapshotRow = {
   key: UsageResource;
   label: string;
   unit: string;
-  period: "total" | "month";
+  period: "total" | "month" | "day";
   used: number;
   limit: number | null;
   remaining: number | null;
@@ -378,6 +488,8 @@ export type UsageSnapshot = {
   features: { key: string; label: string; category: string; enabled: boolean }[];
   usage: UsageSnapshotRow[];
   overLimitResources: string[];
+  /** Resources currently exceeding the plan after a downgrade. */
+  overages: { key: UsageResource; label: string; used: number; limit: number; excess: number }[];
 };
 
 /** Everything the customer usage dashboard renders. */
@@ -428,5 +540,15 @@ export async function getUsageSnapshot(workspaceId: string): Promise<UsageSnapsh
     })),
     usage,
     overLimitResources: usage.filter((u) => u.overLimit).map((u) => u.key),
+    overages: usage
+      .filter((u) => u.limit !== null && u.used > u.limit && u.period === "total")
+      .map((u) => ({
+        key: u.key,
+        label: u.label,
+        used: u.used,
+        limit: u.limit as number,
+        excess: u.used - (u.limit as number),
+      })),
   };
 }
+

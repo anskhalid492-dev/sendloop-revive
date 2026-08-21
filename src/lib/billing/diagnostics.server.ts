@@ -49,6 +49,8 @@ const LIMIT_LABELS: Record<PlanLimitKey, string> = {
   max_domains: "Sending domains",
   max_active_campaigns: "Active campaigns",
   max_ai_monthly: "AI personalizations this month",
+  max_emails_daily: "Emails sent today",
+  max_warmup_daily: "Warmup emails today",
 };
 
 async function countRows(table: string, workspaceId: string, since?: string) {
@@ -117,6 +119,8 @@ export async function loadWorkspaceDiagnostics(workspaceId: string): Promise<Wor
     max_domains: domains,
     max_active_campaigns: activeCampaigns.count ?? 0,
     max_ai_monthly: aiUsed.count ?? 0,
+    max_emails_daily: 0,
+    max_warmup_daily: 0,
   };
 
   const usage: UsageRow[] = (Object.keys(LIMIT_LABELS) as PlanLimitKey[]).map((key) => {

@@ -23,6 +23,8 @@ const PLAN_COLUMNS = [
   "max_leads",
   "max_campaigns",
   "max_emails_monthly",
+  "max_emails_daily",
+  "max_warmup_daily",
   "max_sending_accounts",
   "max_automations",
   "warmup_enabled",
@@ -91,6 +93,8 @@ const NUMERIC_FIELDS = [
   "max_leads",
   "max_campaigns",
   "max_emails_monthly",
+  "max_emails_daily",
+  "max_warmup_daily",
   "max_sending_accounts",
   "max_automations",
 ];
