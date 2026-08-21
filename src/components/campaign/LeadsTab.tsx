@@ -167,9 +167,9 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ANY}>Any status</SelectItem>
-              {Object.entries(RECIPIENT_STATUS_LABELS).map(([value, label]) => (
+              {LEAD_DELIVERY_STATES.map((value) => (
                 <SelectItem key={value} value={value}>
-                  {label}
+                  {LEAD_DELIVERY_LABELS[value]}
                 </SelectItem>
               ))}
             </SelectContent>
