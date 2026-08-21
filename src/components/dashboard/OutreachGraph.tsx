@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 export type SeriesPoint = {
   date: string;
   sent: number;
+  delivered: number;
   replies: number;
   positive: number;
   meetings: number;
@@ -28,6 +29,7 @@ const RANGES = [
 
 const LINES = [
   { key: "sent", label: "Emails sent", color: "var(--chart-1)" },
+  { key: "delivered", label: "Delivered", color: "var(--chart-5)" },
   { key: "replies", label: "Replies", color: "var(--chart-2)" },
   { key: "positive", label: "Positive replies", color: "var(--chart-3)" },
   { key: "meetings", label: "Meetings", color: "var(--chart-4)" },
@@ -50,7 +52,7 @@ export function OutreachGraph({
   onDaysChange: (days: number) => void;
   loading: boolean;
 }) {
-  const hasData = data.some((p) => p.sent || p.replies || p.positive || p.meetings);
+  const hasData = data.some((p) => p.sent || p.delivered || p.replies || p.positive || p.meetings);
 
   return (
     <div className="surface-card p-6">

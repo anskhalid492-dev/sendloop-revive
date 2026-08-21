@@ -3,33 +3,28 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Activity,
-  ArrowUpRight,
-  Inbox,
-  PenLine,
-  Send,
-  Upload,
-} from "lucide-react";
+import { Inbox, PenLine, Send, Upload, Users } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { SetupJourney } from "@/components/app/SetupJourney";
 import { getSetupProgress } from "@/lib/setup-progress.functions";
 import { countCompleted } from "@/lib/setup-journey";
-import { MetricCards } from "@/components/dashboard/MetricCards";
-
-
-
+import { KpiGrid } from "@/components/dashboard/KpiGrid";
 import { OutreachGraph } from "@/components/dashboard/OutreachGraph";
+import { CampaignPerformance } from "@/components/dashboard/CampaignPerformance";
+import { RecentRepliesCard } from "@/components/dashboard/RecentRepliesCard";
+import { SendingHealthCard } from "@/components/dashboard/SendingHealthCard";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { useWorkspace } from "@/hooks/useWorkspace";
 import {
-  getDashboardOverview,
-  getDashboardPulse,
-} from "@/lib/dashboard.functions";
-import { REPLY_SENTIMENT_LABELS } from "@/lib/reply-model";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { getDashboardOverview, getDashboardPulse } from "@/lib/dashboard.functions";
 import { dismissChecklist } from "@/lib/profile.functions";
 import { getMyProfile } from "@/lib/workspaces.functions";
 
@@ -55,10 +50,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 const QUICK_ACTIONS = [
-  { label: "Create campaign", to: "/campaigns", icon: Send },
   { label: "Import leads", to: "/leads", icon: Upload },
-  { label: "Compose email", to: "/inbox", icon: PenLine },
-  { label: "View inbox", to: "/inbox", icon: Inbox },
+  { label: "Open inbox", to: "/inbox", icon: Inbox },
+  { label: "Templates", to: "/templates", icon: PenLine },
+  { label: "CRM pipeline", to: "/crm", icon: Users },
+] as const;
+
+const RANGES = [
+  { value: "7", label: "Last 7 days" },
+  { value: "30", label: "Last 30 days" },
+  { value: "90", label: "Last 90 days" },
+  { value: "365", label: "Last 12 months" },
 ] as const;
 
 function greeting(date: Date) {
@@ -67,23 +69,6 @@ function greeting(date: Date) {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
-
-function relative(value: string) {
-  const diff = Date.now() - new Date(value).getTime();
-  const minutes = Math.round(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(value).toLocaleDateString();
-}
-
-const SENTIMENT_TONE: Record<string, string> = {
-  positive: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  neutral: "bg-muted text-muted-foreground",
-  negative: "bg-destructive/10 text-destructive",
-  out_of_office: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-};
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -131,17 +116,12 @@ function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
   });
 
-  const m = overview.data?.metrics;
-  const sending = overview.data?.sending;
   const setupComplete = setupProgress.data ? countCompleted(setupProgress.data) === 7 : false;
   const showChecklist =
     !(workspace as { checklist_dismissed?: boolean } | null)?.checklist_dismissed &&
     !setupComplete;
 
-
   const firstName = profile.data?.full_name?.split(" ")[0];
-  const capacity = sending?.dailyCapacity ?? 0;
-  const usedCapacity = capacity ? Math.round(((sending?.sentToday ?? 0) / capacity) * 100) : 0;
 
   return (
     <AppShell
@@ -149,35 +129,64 @@ function DashboardPage() {
       description="Workspace overview"
       actions={
         <>
+          <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+            <SelectTrigger className="h-9 w-[150px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RANGES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button asChild size="sm">
             <Link to="/campaigns">
               <Send className="size-4" /> New campaign
             </Link>
           </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link to="/leads">Import leads</Link>
-          </Button>
         </>
       }
     >
-      <div className="mx-auto max-w-6xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
+          className="flex flex-wrap items-end justify-between gap-4"
         >
-          <h2 className="text-2xl font-bold tracking-tight">
-            {greeting(now)}
-            {firstName ? `, ${firstName}` : ""}
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Here&apos;s what&apos;s happening with your outreach ·{" "}
-            {now.toLocaleDateString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">
+              {greeting(now)}
+              {firstName ? `, ${firstName}` : ""}
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {workspace ? `${workspace.name} · ` : ""}
+              {now.toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_ACTIONS.map((action, i) => (
+              <motion.div
+                key={action.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * i }}
+                whileHover={{ y: -2 }}
+              >
+                <Button asChild variant="outline" size="sm" className="h-9 text-xs">
+                  <Link to={action.to}>
+                    <action.icon className="size-3.5" /> {action.label}
+                  </Link>
+                </Button>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
 
         <AnimatePresence>
@@ -199,38 +208,22 @@ function DashboardPage() {
           ) : null}
         </AnimatePresence>
 
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-base font-semibold tracking-tight">Performance summary</h3>
+            <span className="text-xs text-muted-foreground">
+              Compared with the previous {days} days
+            </span>
+          </div>
+          <KpiGrid
+            loading={pulse.isLoading}
+            current={pulse.data?.current ?? null}
+            previous={pulse.data?.previous ?? null}
+          />
+        </section>
 
-        <MetricCards
-          loading={pulse.isLoading}
-          current={pulse.data?.current ?? null}
-          previous={pulse.data?.previous ?? null}
-          replyRate={m?.replyRate ?? 0}
-        />
-
-        <div className="flex flex-wrap gap-2">
-          {QUICK_ACTIONS.map((action, i) => (
-            <motion.div
-              key={action.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * i }}
-              whileHover={{ y: -2 }}
-            >
-              <Button asChild variant="outline" size="sm">
-                <Link to={action.to}>
-                  <action.icon className="size-4" /> {action.label}
-                </Link>
-              </Button>
-            </motion.div>
-          ))}
-        </div>
-
-        
-
-
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2">
             <OutreachGraph
               data={pulse.data?.series ?? []}
               days={days}
@@ -238,207 +231,20 @@ function DashboardPage() {
               loading={pulse.isLoading}
             />
           </div>
-
-          <div className="surface-card p-6">
-            <h3 className="text-lg font-semibold">Sending health</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Managed mailboxes assigned to this workspace.
-            </p>
-            <div className="mt-5 space-y-4 text-sm">
-              <div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Overall health</span>
-                  <span className="font-medium">{sending?.overallHealth ?? 0}%</span>
-                </div>
-                <Progress value={sending?.overallHealth ?? 0} className="mt-1.5 h-2" />
-              </div>
-              <div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Daily capacity used</span>
-                  <span className="font-medium">
-                    {sending?.sentToday ?? 0} / {capacity}
-                  </span>
-                </div>
-                <Progress value={usedCapacity} className="mt-1.5 h-2" />
-              </div>
-              <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-                {[
-                  { label: "Healthy", value: sending?.healthy ?? 0 },
-                  { label: "Warming", value: sending?.warming ?? 0 },
-                  { label: "Attention", value: sending?.attention ?? 0 },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-lg border border-border p-2">
-                    <div className="text-base font-semibold">{item.value}</div>
-                    <div className="text-[11px] text-muted-foreground">{item.label}</div>
-                  </div>
-                ))}
-              </div>
-              {(sending?.total ?? 0) === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No mailboxes assigned yet — MunchReach provisions them when your first campaign
-                  launches.
-                </p>
-              ) : null}
-            </div>
-          </div>
+          <SendingHealthCard
+            health={overview.data?.sending ?? null}
+            loading={overview.isLoading}
+          />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="surface-card p-6 lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Campaign performance</h3>
-              <Link
-                to="/campaigns"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-              >
-                View all <ArrowUpRight className="size-3.5" />
-              </Link>
-            </div>
-            {overview.data?.campaigns.length ? (
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="pb-2 font-medium">Campaign</th>
-                      <th className="pb-2 font-medium">Status</th>
-                      <th className="pb-2 text-right font-medium">Leads</th>
-                      <th className="pb-2 text-right font-medium">Sent</th>
-                      <th className="pb-2 text-right font-medium">Replies</th>
-                      <th className="pb-2 text-right font-medium">Reply rate</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {overview.data.campaigns.map((c, i) => (
-                      <motion.tr
-                        key={c.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className="transition-colors hover:bg-muted/50"
-                      >
-                        <td className="py-2 pr-3">
-                          <Link
-                            to="/campaigns/$campaignId"
-                            params={{ campaignId: c.id }}
-                            className="font-medium hover:underline"
-                          >
-                            {c.name}
-                          </Link>
-                          <Progress
-                            value={c.recipients ? (c.sent / c.recipients) * 100 : 0}
-                            className="mt-1 h-1 w-32"
-                          />
-                        </td>
-                        <td className="py-2 pr-3">
-                          <Badge variant="secondary">{c.status}</Badge>
-                        </td>
-                        <td className="py-2 text-right">{c.recipients}</td>
-                        <td className="py-2 text-right">{c.sent}</td>
-                        <td className="py-2 text-right">{c.replied}</td>
-                        <td className="py-2 text-right">
-                          {c.sent ? `${Math.round((c.replied / c.sent) * 1000) / 10}%` : "—"}
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="mt-6 text-sm text-muted-foreground">
-                No campaigns yet.{" "}
-                <Link to="/campaigns" className="text-primary hover:underline">
-                  Create your first campaign
-                </Link>
-                .
-              </p>
-            )}
-          </div>
+        <CampaignPerformance rows={pulse.data?.campaigns ?? []} loading={pulse.isLoading} />
 
-          <div className="surface-card p-6">
-            <h3 className="text-lg font-semibold">Recent replies</h3>
-            {pulse.data?.recentReplies.length ? (
-              <ul className="mt-4 space-y-4">
-                <AnimatePresence initial={false}>
-                  {pulse.data.recentReplies.map((reply) => (
-                    <motion.li
-                      key={reply.id}
-                      layout
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="border-b border-border/60 pb-3 last:border-0 last:pb-0"
-                    >
-                      <Link
-                        to="/inbox"
-                        {...(reply.conversationId
-                          ? { search: { conversation: reply.conversationId } as never }
-                          : {})}
-                        className="block"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium">{reply.prospect}</span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {relative(reply.at)}
-                          </span>
-                        </div>
-                        {reply.company ? (
-                          <p className="text-xs text-muted-foreground">{reply.company}</p>
-                        ) : null}
-                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                          {reply.preview || "(no preview)"}
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              SENTIMENT_TONE[reply.sentiment] ?? "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {REPLY_SENTIMENT_LABELS[reply.sentiment] ?? reply.sentiment}
-                          </span>
-                          {reply.campaign ? (
-                            <span className="truncate text-[11px] text-muted-foreground">
-                              {reply.campaign}
-                            </span>
-                          ) : null}
-                        </div>
-                      </Link>
-                    </motion.li>
-                  ))}
-                </AnimatePresence>
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Replies from your campaigns will appear here as they land in the unified inbox.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="surface-card p-6">
-          <h3 className="text-lg font-semibold">Activity</h3>
-          {overview.data?.activity.length ? (
-            <ul className="mt-4 space-y-4">
-              {overview.data.activity.map((a, i) => (
-                <motion.li
-                  key={a.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="flex gap-3"
-                >
-                  <Activity className="mt-0.5 size-4 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">{a.title}</p>
-                    <p className="text-xs text-muted-foreground">{a.detail}</p>
-                    <p className="text-[11px] text-muted-foreground/80">{relative(a.at)}</p>
-                  </div>
-                </motion.li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Launches, replies and sending events will show up here.
-            </p>
-          )}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <RecentRepliesCard
+            replies={pulse.data?.recentReplies ?? []}
+            loading={pulse.isLoading}
+          />
+          <ActivityFeed items={overview.data?.activity ?? []} loading={overview.isLoading} />
         </div>
       </div>
     </AppShell>
