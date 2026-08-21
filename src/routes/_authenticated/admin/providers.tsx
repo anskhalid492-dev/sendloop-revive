@@ -43,6 +43,7 @@ import { MxChecker } from "@/components/admin/MxChecker";
 import { EmailEventLog } from "@/components/admin/EmailEventLog";
 import { InboundTest } from "@/components/admin/InboundTest";
 import { InboundOpsSettings } from "@/components/admin/InboundOpsSettings";
+import { ProviderPool } from "@/components/admin/ProviderPool";
 import { deleteProvider, listProviders, saveProvider, testProvider } from "@/lib/admin.functions";
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
 
