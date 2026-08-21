@@ -24,7 +24,7 @@ export async function evaluateLaunchReadiness(
   const { data: campaign, error } = await supabase
     .from("campaigns")
     .select(
-      "id, workspace_id, list_id, sending_account_ids, send_days, send_start_hour, send_end_hour, status",
+      "id, workspace_id, list_id, sending_account_ids, send_days, send_start_hour, send_end_hour, status, ai_enabled, ai_config",
     )
     .eq("id", campaignId)
     .maybeSingle();
@@ -140,6 +140,36 @@ export async function evaluateLaunchReadiness(
       code: "sequence_incomplete",
       message: "Campaign sequence is incomplete — the first email needs a subject and a body.",
     });
+  }
+
+  // AI personalization: only blocks the launch when the campaign actually uses
+  // the AI variable AND chose to hold unpersonalized leads back.
+  if (campaign.ai_enabled) {
+    const { normalizeAiConfig, usesAiToken } = await import("@/lib/ai-personalization-model");
+    const aiConfig = normalizeAiConfig(campaign.ai_config);
+    const aiUsed = ((steps ?? []) as Array<Record<string, string>>).some(
+      (step) => usesAiToken(String(step["subject"] ?? "")) || usesAiToken(String(step["body"] ?? "")),
+    );
+    if (aiUsed && aiConfig.fallbackMode === "hold") {
+      const audienceIds = [...new Set([...queuedLeadIds, ...eligibleLeadIds])];
+      if (audienceIds.length) {
+        const { data: aiRows } = await supabase
+          .from("ai_personalizations")
+          .select("lead_id, status")
+          .eq("campaign_id", campaignId)
+          .eq("status", "completed");
+        const done = new Set(
+          ((aiRows ?? []) as Array<{ lead_id: string }>).map((row) => row.lead_id),
+        );
+        const missing = audienceIds.filter((id) => !done.has(id)).length;
+        if (missing > 0) {
+          issues.push({
+            code: "ai_pending",
+            message: `${missing} lead${missing === 1 ? "" : "s"} still need AI personalization. Generate it on the AI tab, or change the fallback so these leads can send without it.`,
+          });
+        }
+      }
+    }
   }
 
   // Schedule sanity
