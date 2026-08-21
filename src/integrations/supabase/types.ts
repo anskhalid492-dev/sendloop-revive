@@ -5215,6 +5215,235 @@ export type Database = {
         }
         Relationships: []
       }
+      transactional_emails: {
+        Row: {
+          attempts: number
+          bounce_reason: string | null
+          created_at: string
+          delivered_at: string | null
+          error: string | null
+          event_key: string
+          failed_at: string | null
+          from_email: string | null
+          html: string | null
+          id: string
+          idempotency_key: string | null
+          max_attempts: number
+          next_attempt_at: string
+          provider: string | null
+          provider_message_id: string | null
+          provider_status_code: number | null
+          queued_at: string
+          reply_to: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          template_version: number | null
+          test_mode: boolean
+          text_body: string | null
+          to_email: string
+          updated_at: string
+          user_id: string | null
+          variables: Json
+          workspace_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          bounce_reason?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          event_key: string
+          failed_at?: string | null
+          from_email?: string | null
+          html?: string | null
+          id?: string
+          idempotency_key?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          provider_status_code?: number | null
+          queued_at?: string
+          reply_to?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          template_version?: number | null
+          test_mode?: boolean
+          text_body?: string | null
+          to_email: string
+          updated_at?: string
+          user_id?: string | null
+          variables?: Json
+          workspace_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          bounce_reason?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          event_key?: string
+          failed_at?: string | null
+          from_email?: string | null
+          html?: string | null
+          id?: string
+          idempotency_key?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          provider_status_code?: number | null
+          queued_at?: string
+          reply_to?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          template_version?: number | null
+          test_mode?: boolean
+          text_body?: string | null
+          to_email?: string
+          updated_at?: string
+          user_id?: string | null
+          variables?: Json
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactional_emails_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "transactional_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactional_template_versions: {
+        Row: {
+          from_email: string | null
+          from_name: string | null
+          html: string
+          id: string
+          preheader: string | null
+          published_at: string
+          published_by: string | null
+          reply_to: string | null
+          subject: string
+          template_id: string
+          text_body: string | null
+          version: number
+        }
+        Insert: {
+          from_email?: string | null
+          from_name?: string | null
+          html: string
+          id?: string
+          preheader?: string | null
+          published_at?: string
+          published_by?: string | null
+          reply_to?: string | null
+          subject: string
+          template_id: string
+          text_body?: string | null
+          version: number
+        }
+        Update: {
+          from_email?: string | null
+          from_name?: string | null
+          html?: string
+          id?: string
+          preheader?: string | null
+          published_at?: string
+          published_by?: string | null
+          reply_to?: string | null
+          subject?: string
+          template_id?: string
+          text_body?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactional_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "transactional_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactional_templates: {
+        Row: {
+          category: string
+          created_at: string
+          draft: Json | null
+          enabled: boolean
+          event_key: string
+          from_email: string | null
+          from_name: string | null
+          html: string
+          id: string
+          is_default: boolean
+          name: string
+          preheader: string | null
+          reply_to: string | null
+          status: string
+          subject: string
+          text_body: string | null
+          updated_at: string
+          updated_by: string | null
+          variables: string[]
+          version: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          draft?: Json | null
+          enabled?: boolean
+          event_key: string
+          from_email?: string | null
+          from_name?: string | null
+          html: string
+          id?: string
+          is_default?: boolean
+          name: string
+          preheader?: string | null
+          reply_to?: string | null
+          status?: string
+          subject: string
+          text_body?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variables?: string[]
+          version?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          draft?: Json | null
+          enabled?: boolean
+          event_key?: string
+          from_email?: string | null
+          from_name?: string | null
+          html?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          preheader?: string | null
+          reply_to?: string | null
+          status?: string
+          subject?: string
+          text_body?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variables?: string[]
+          version?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -6357,6 +6586,7 @@ export type Database = {
       run_automation_runner: { Args: never; Returns: undefined }
       run_campaign_scheduler: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
+      run_transactional_email_runner: { Args: never; Returns: undefined }
       run_warmup_runner: { Args: never; Returns: undefined }
       sending_account_stats: {
         Args: { _account_ids: string[] }

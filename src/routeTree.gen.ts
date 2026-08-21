@@ -112,6 +112,7 @@ import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin/subscriptions'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
+import { Route as AuthenticatedAdminSystemEmailsRouteImport } from './routes/_authenticated/admin/system-emails'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
 import { Route as AuthenticatedAdminUsageRouteImport } from './routes/_authenticated/admin/usage'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
@@ -134,6 +135,7 @@ import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/public/cron/run-automations'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
+import { Route as ApiPublicCronRunTransactionalEmailRouteImport } from './routes/api/public/cron/run-transactional-email'
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
@@ -686,6 +688,12 @@ const AuthenticatedAdminSupportRoute =
     path: '/support',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSystemEmailsRoute =
+  AuthenticatedAdminSystemEmailsRouteImport.update({
+    id: '/system-emails',
+    path: '/system-emails',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminTemplatesRoute =
   AuthenticatedAdminTemplatesRouteImport.update({
     id: '/templates',
@@ -810,6 +818,12 @@ const ApiPublicCronRunCampaignsRoute =
   ApiPublicCronRunCampaignsRouteImport.update({
     id: '/api/public/cron/run-campaigns',
     path: '/api/public/cron/run-campaigns',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronRunTransactionalEmailRoute =
+  ApiPublicCronRunTransactionalEmailRouteImport.update({
+    id: '/api/public/cron/run-transactional-email',
+    path: '/api/public/cron/run-transactional-email',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronRunWarmupRoute = ApiPublicCronRunWarmupRouteImport.update({
@@ -942,6 +956,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
+  '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -965,6 +980,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
@@ -1071,6 +1087,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
+  '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -1094,6 +1111,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
@@ -1204,6 +1222,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
+  '/_authenticated/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/usage': typeof AuthenticatedAdminUsageRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -1227,6 +1246,7 @@ export interface FileRoutesById {
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
@@ -1337,6 +1357,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscriptions'
     | '/admin/support'
+    | '/admin/system-emails'
     | '/admin/templates'
     | '/admin/usage'
     | '/admin/users'
@@ -1360,6 +1381,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
@@ -1466,6 +1488,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscriptions'
     | '/admin/support'
+    | '/admin/system-emails'
     | '/admin/templates'
     | '/admin/usage'
     | '/admin/users'
@@ -1489,6 +1512,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
@@ -1598,6 +1622,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/support'
+    | '/_authenticated/admin/system-emails'
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/usage'
     | '/_authenticated/admin/users'
@@ -1621,6 +1646,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
@@ -1687,6 +1713,7 @@ export interface RootRouteChildren {
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunAutomationsRoute: typeof ApiPublicCronRunAutomationsRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
+  ApiPublicCronRunTransactionalEmailRoute: typeof ApiPublicCronRunTransactionalEmailRoute
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
@@ -2417,6 +2444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/system-emails': {
+      id: '/_authenticated/admin/system-emails'
+      path: '/system-emails'
+      fullPath: '/admin/system-emails'
+      preLoaderRoute: typeof AuthenticatedAdminSystemEmailsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/templates': {
       id: '/_authenticated/admin/templates'
       path: '/templates'
@@ -2571,6 +2605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRunCampaignsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/run-transactional-email': {
+      id: '/api/public/cron/run-transactional-email'
+      path: '/api/public/cron/run-transactional-email'
+      fullPath: '/api/public/cron/run-transactional-email'
+      preLoaderRoute: typeof ApiPublicCronRunTransactionalEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/run-warmup': {
       id: '/api/public/cron/run-warmup'
       path: '/api/public/cron/run-warmup'
@@ -2673,6 +2714,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
+  AuthenticatedAdminSystemEmailsRoute: typeof AuthenticatedAdminSystemEmailsRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
   AuthenticatedAdminUsageRoute: typeof AuthenticatedAdminUsageRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -2721,6 +2763,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
+    AuthenticatedAdminSystemEmailsRoute: AuthenticatedAdminSystemEmailsRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
     AuthenticatedAdminUsageRoute: AuthenticatedAdminUsageRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
@@ -2862,6 +2905,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunAutomationsRoute: ApiPublicCronRunAutomationsRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
+  ApiPublicCronRunTransactionalEmailRoute:
+    ApiPublicCronRunTransactionalEmailRoute,
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
