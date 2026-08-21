@@ -333,20 +333,33 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   const campaignId = route?.campaign_id ?? campaignMessage?.campaign_id ?? null;
   const threadKey = buildThreadKey({ campaignId, prospectEmail: prospect, subject });
 
-  // The routing token can point at an exact thread (manual compose, replies),
-  // which beats subject-based thread keys.
-  let routedConversation: { id: string; status: string; message_count: number } | null = null;
+  // Thread resolution, strongest signal first:
+  // 1. routing token pointing at an exact thread
+  // 2. In-Reply-To / References matching a Message-ID we stored
+  // 3. the campaign send this reply answers
+  // 4. sender + recipient + subject matching an existing thread
+  let routedConversation: ConversationRef | null = null;
   if (route?.conversation_id) {
-    const { data } = await db
-      .from("conversations")
-      .select("id, status, message_count, archived")
-      .eq("id", route.conversation_id)
-      .maybeSingle();
-    routedConversation = (data as typeof routedConversation) ?? null;
+    routedConversation = await loadConversation(db, route.conversation_id);
   }
   if (!routedConversation) {
     routedConversation = await findConversationByHeaders(db, email, workspaceId);
   }
+  if (!routedConversation && campaignMessage?.id) {
+    const { data: viaSend } = await db
+      .from("conversation_messages")
+      .select("conversation_id")
+      .eq("workspace_id", workspaceId)
+      .eq("campaign_message_id", campaignMessage.id)
+      .order("occurred_at", { ascending: false })
+      .limit(1);
+    const id = viaSend?.[0]?.conversation_id as string | undefined;
+    if (id) routedConversation = await loadConversation(db, id);
+  }
+  if (!routedConversation) {
+    routedConversation = await findConversationByParticipants(db, workspaceId, prospect, subject);
+  }
+
 
   const { data: upserted, error: convError } = routedConversation
     ? { data: routedConversation, error: null }
