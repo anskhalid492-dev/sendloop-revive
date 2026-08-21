@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, PROVIDER_LABELS, PROVIDER_REQUIREMENTS } from "@/lib/billing/model";
+import { BillingCredentialsDialog, type ProviderSecretStatus } from "@/components/admin/BillingCredentialsDialog";
 import {
   clearBillingProviderError,
   getBillingProviderHealth,
+  getBillingProviderSecrets,
   setBillingProviderEnabled,
   testBillingProviderConnection,
 } from "@/lib/billing-admin.functions";
@@ -86,10 +88,16 @@ function BillingProvidersPage() {
   const toggleProvider = useServerFn(setBillingProviderEnabled);
   const testConnection = useServerFn(testBillingProviderConnection);
   const clearError = useServerFn(clearBillingProviderError);
+  const fetchSecrets = useServerFn(getBillingProviderSecrets);
 
   const q = useQuery({ queryKey: ["admin-billing-provider-health"], queryFn: () => fetchHealth() });
+  const secretsQ = useQuery({
+    queryKey: ["admin-billing-provider-secrets"],
+    queryFn: () => fetchSecrets() as Promise<ProviderSecretStatus[]>,
+  });
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-billing-provider-health"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-billing-provider-secrets"] });
     queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
     queryClient.invalidateQueries({ queryKey: ["admin-billing-readiness"] });
   };
@@ -274,6 +282,14 @@ function BillingProvidersPage() {
                             ))}
                         </ul>
                       ) : null}
+
+                      <BillingCredentialsDialog
+                        provider={r.provider}
+                        environment={r.environment}
+                        status={(secretsQ.data ?? []).find(
+                          (s) => s.provider === r.provider && s.environment === r.environment,
+                        )}
+                      />
 
                       <div className="flex flex-wrap gap-2">
                         <Button
