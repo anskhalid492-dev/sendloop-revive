@@ -8,7 +8,6 @@ import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
-import { lovable } from "@/integrations/lovable";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { captureReferralCode } from "@/hooks/useReferralClaim";
 import { Button } from "@/components/ui/button";
