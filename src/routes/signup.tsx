@@ -143,6 +143,9 @@ function SignUpPage() {
       toast.error("Google sign-in is currently disabled. Please use your email and password.");
       return;
     }
+    // OAuth returns to the public origin, so remember where the visitor was
+    // heading (e.g. billing with a chosen plan) and resume after the session.
+    if (redirectTo) window.sessionStorage.setItem("munchreach.post-auth", redirectTo);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin },

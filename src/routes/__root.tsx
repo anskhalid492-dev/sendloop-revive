@@ -299,6 +299,12 @@ function RootComponent() {
       router.invalidate();
       if (event !== "SIGNED_OUT") {
         queryClient.invalidateQueries();
+        // Resume a pending destination captured before an OAuth round-trip.
+        const pending = window.sessionStorage.getItem("munchreach.post-auth");
+        if (pending && event === "SIGNED_IN") {
+          window.sessionStorage.removeItem("munchreach.post-auth");
+          router.navigate({ to: pending, replace: true });
+        }
         // Guarantee a profile row exists for every signed-in account, even if
         // the database signup trigger did not fire.
         void ensureProfile().catch(() => {});
