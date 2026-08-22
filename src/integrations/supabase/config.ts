@@ -51,5 +51,6 @@ export const SUPABASE_PUBLISHABLE_KEY =
 // Server-only service role key. Accepts either the platform-managed name or the
 // custom SB_SERVICE_ROLE_KEY secret, whichever is configured.
 export function getServiceRoleKey(): string | undefined {
-  return fromProcessEnv("SUPABASE_SERVICE_ROLE_KEY") ?? fromProcessEnv("SB_SERVICE_ROLE_KEY");
+  // Phase 6: SB_SERVICE_ROLE_KEY holds the NEW project key and takes priority.
+  return fromProcessEnv("SB_SERVICE_ROLE_KEY") ?? fromProcessEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
