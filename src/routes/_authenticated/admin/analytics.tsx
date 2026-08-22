@@ -315,10 +315,15 @@ function AdminAnalyticsPage() {
               <StatCard
                 label="Net revenue"
                 value={money(d.revenue.revenueCents, d.revenue.currency)}
-                hint={`Gross ${money(d.revenue.grossCents, d.revenue.currency)} · refunds ${money(
-                  d.revenue.refundCents,
+                hint={`Collected ${money(d.revenue.collectedCents, d.revenue.currency)} · recognised ${money(
+                  d.revenue.recognizedCents,
                   d.revenue.currency,
-                )}`}
+                )} · refunds ${money(d.revenue.refundCents, d.revenue.currency)}`}
+              />
+              <StatCard
+                label="MRR"
+                value={money(d.revenue.mrrCents, d.revenue.currency)}
+                hint={`ARR ${money(d.revenue.arrCents, d.revenue.currency)}`}
               />
               <StatCard label="Active subscriptions" value={num(d.revenue.activeSubscriptions)} />
               <StatCard label="New subscriptions" value={num(d.revenue.newSubscriptions)} />

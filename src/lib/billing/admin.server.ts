@@ -11,10 +11,10 @@ export async function loadConsole() {
     db.from("billing_providers").select("*"),
     db.from("plans").select("id, name, slug, monthly_price, yearly_price, sort_order").order("sort_order"),
     db.from("billing_plan_prices").select("*"),
-    db.from("billing_subscriptions").select("status, amount_cents, currency, billing_interval, environment"),
+    db.from("billing_subscriptions").select("id, status, amount_cents, currency, billing_interval, environment, current_period_start, created_at"),
     db
       .from("billing_transactions")
-      .select("amount_cents, kind, status, occurred_at, environment")
+      .select("amount_cents, kind, status, occurred_at, environment, subscription_id")
       .gte("occurred_at", new Date(Date.now() - 30 * 864e5).toISOString()),
     db.from("billing_invoices").select("id", { count: "exact", head: true }),
     db
@@ -32,9 +32,31 @@ export async function loadConsole() {
       sum + (s.billing_interval === "yearly" ? Math.round(s.amount_cents / 12) : s.amount_cents),
     0,
   );
-  const revenue30 = (tx.data ?? [])
-    .filter((t: any) => t.environment === settings.environment && t.status !== "failed")
-    .reduce((sum: number, t: any) => sum + (t.kind === "refund" ? -t.amount_cents : t.amount_cents), 0);
+  const windowStart = Date.now() - 30 * 864e5;
+  const collected = (tx.data ?? []).filter(
+    (t: any) => t.environment === settings.environment && t.status !== "failed",
+  );
+  const collectedCents = collected.reduce(
+    (sum: number, t: any) => sum + (t.kind === "refund" ? -t.amount_cents : t.amount_cents),
+    0,
+  );
+  // Manually granted plans never create a payment transaction, so recognise the
+  // portion of their subscription value that falls inside the 30-day window.
+  const collectedSubIds = new Set(
+    collected.map((t: any) => t.subscription_id).filter(Boolean) as string[],
+  );
+  const recognizedCents = activeSubs
+    .filter((s: any) => s.status !== "past_due" && !collectedSubIds.has(s.id))
+    .reduce((sum: number, s: any) => {
+      const monthly =
+        s.billing_interval === "yearly" ? s.amount_cents / 12 : (s.amount_cents ?? 0);
+      const periodStart = new Date(s.current_period_start ?? s.created_at).getTime();
+      // Periods charged up-front inside the window count in full.
+      if (periodStart >= windowStart) return sum + (s.amount_cents ?? 0);
+      const overlapDays = (Date.now() - windowStart) / 864e5;
+      return sum + (monthly * Math.min(overlapDays, 30.436875)) / 30.436875;
+    }, 0);
+  const revenue30 = Math.round(collectedCents + recognizedCents);
 
   const providers = [];
   for (const provider of BILLING_PROVIDERS) {
