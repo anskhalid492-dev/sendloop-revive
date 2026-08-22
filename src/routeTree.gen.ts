@@ -39,6 +39,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubprocessorsRouteImport } from './routes/subprocessors'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
@@ -300,6 +301,11 @@ const SubprocessorsRoute = SubprocessorsRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserGuideRoute = UserGuideRouteImport.update({
+  id: '/user-guide',
+  path: '/user-guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
@@ -955,6 +961,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -1098,6 +1105,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
@@ -1243,6 +1251,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -1389,6 +1398,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/subprocessors'
     | '/terms'
+    | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
     | '/admin'
@@ -1532,6 +1542,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/subprocessors'
     | '/terms'
+    | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
     | '/analytics'
@@ -1676,6 +1687,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/subprocessors'
     | '/terms'
+    | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
     | '/_authenticated/admin'
@@ -1822,6 +1834,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubprocessorsRoute: typeof SubprocessorsRoute
   TermsRoute: typeof TermsRoute
+  UserGuideRoute: typeof UserGuideRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WhyMunchreachRoute: typeof WhyMunchreachRoute
   BlogSlugRoute: typeof BlogSlugRoute
@@ -2077,6 +2090,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user-guide': {
+      id: '/user-guide'
+      path: '/user-guide'
+      fullPath: '/user-guide'
+      preLoaderRoute: typeof UserGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify-email': {
@@ -3104,6 +3124,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubprocessorsRoute: SubprocessorsRoute,
   TermsRoute: TermsRoute,
+  UserGuideRoute: UserGuideRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WhyMunchreachRoute: WhyMunchreachRoute,
   BlogSlugRoute: BlogSlugRoute,
