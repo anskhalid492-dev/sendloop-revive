@@ -18,6 +18,7 @@ type ResendRecord = {
   value?: string;
   ttl?: string | number;
   priority?: number;
+  status?: string;
 };
 type ResendDomain = {
   id?: string;
