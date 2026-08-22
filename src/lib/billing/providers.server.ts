@@ -102,18 +102,37 @@ function formEncode(obj: Record<string, unknown>, prefix = ""): string[] {
   return parts;
 }
 
-async function stripeCall(
+/**
+ * Pinned Stripe API version. Pinning keeps the payload shape stable no matter
+ * which default version the connected Stripe account is on, so the same code
+ * works for a brand-new live account and an older test account.
+ */
+const STRIPE_API_VERSION = "2024-06-20";
+
+export async function stripeCall(
   env: BillingEnvironment,
   path: string,
   body?: Record<string, unknown>,
   method = "POST",
+  idempotencyKey?: string,
 ) {
   const { apiKey } = await credentialsOrThrow("stripe", env);
+  // A test key must never be used for live traffic (or vice versa): the key
+  // prefix is authoritative, so a mis-filed credential fails loudly here
+  // instead of silently charging in the wrong mode.
+  const isLiveKey = apiKey.startsWith("sk_live_") || apiKey.startsWith("rk_live_");
+  if (env === "live" && !isLiveKey)
+    throw new BillingError("Stripe live mode is configured with a test secret key");
+  if (env === "test" && isLiveKey)
+    throw new BillingError("Stripe test mode is configured with a live secret key");
+
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Version": STRIPE_API_VERSION,
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     ...(body ? { body: formEncode(body).join("&") } : {}),
   });
@@ -121,6 +140,7 @@ async function stripeCall(
   if (!res.ok) throw new BillingError(json?.error?.message ?? `Stripe ${res.status}`);
   return json;
 }
+
 
 const STRIPE_STATUS: Record<string, SubscriptionState> = {
   trialing: "trialing",
