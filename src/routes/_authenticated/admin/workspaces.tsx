@@ -524,7 +524,7 @@ function WorkspaceDetailSheet({
             </TabsContent>
 
             <TabsContent value="billing" className="mt-4 space-y-5">
-              <WorkspacePlanPanel workspaceId={w.id} />
+              <WorkspacePlanPanel workspaceId={workspaceId!} />
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Current plan" value={w.subscription?.planName ?? w.planName} />
                 <Field label="Status" value={w.subscription?.status ?? null} />
