@@ -67,35 +67,96 @@ async function resendFetch<T>(path: string, init?: RequestInit): Promise<T | nul
   return (await response.json()) as T;
 }
 
-/** The reply-to address replies are expected to arrive on. */
-export async function resolveReplyDomain(): Promise<string | null> {
+/** Where the inbound domain under inspection came from, for the admin UI. */
+export type ReplyDomainSource =
+  | "platform_reply_to"
+  | "provider_override"
+  | "system_email"
+  | "fallback";
+
+export type ReplyDomainResolution = {
+  domain: string | null;
+  address: string | null;
+  source: ReplyDomainSource;
+  /** Human-readable explanation shown in Admin → Inbound events. */
+  label: string;
+};
+
+const FALLBACK_INBOUND_DOMAIN = "munchreach.com";
+
+function domainOf(address: string | null | undefined): string | null {
+  return address?.includes("@") ? address.split("@")[1]!.trim().toLowerCase() : null;
+}
+
+/**
+ * Resolves the platform inbound domain replies are expected to arrive on.
+ *
+ * Only platform-owned configuration is consulted: the admin reply-to setting,
+ * a provider-level override, then the system transactional sender. Customer
+ * `sending_accounts` are deliberately NOT used — those are tenant mailboxes on
+ * customer-owned domains and must never become the domain the platform checker
+ * monitors.
+ */
+export async function resolveReplyDomainDetailed(): Promise<ReplyDomainResolution> {
   const { data: setting } = await supabaseAdmin
     .from("platform_settings")
     .select("value")
     .eq("key", "reply_to")
     .maybeSingle();
-  const configured = ((setting?.value ?? {}) as { email?: string }).email;
-  if (configured?.includes("@")) return configured.split("@")[1]!.toLowerCase();
+  const configured = ((setting?.value ?? {}) as { email?: string }).email ?? null;
+  if (domainOf(configured)) {
+    return {
+      domain: domainOf(configured),
+      address: configured,
+      source: "platform_reply_to",
+      label: "Platform reply-to address (Admin → System emails)",
+    };
+  }
 
   const { data: provider } = await supabaseAdmin
     .from("email_providers")
-    .select("reply_to_email")
+    .select("name, reply_to_email")
     .not("reply_to_email", "is", null)
     .limit(1)
     .maybeSingle();
-  if (provider?.reply_to_email?.includes("@")) {
-    return provider.reply_to_email.split("@")[1]!.toLowerCase();
+  if (domainOf(provider?.reply_to_email)) {
+    return {
+      domain: domainOf(provider?.reply_to_email),
+      address: provider?.reply_to_email ?? null,
+      source: "provider_override",
+      label: `Provider reply-to override (${provider?.name ?? "provider"})`,
+    };
   }
 
-  const { data: account } = await supabaseAdmin
-    .from("sending_accounts")
-    .select("reply_to, from_email")
-    .order("created_at", { ascending: false })
-    .limit(1)
+  const { data: systemEmail } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "transactional_email")
     .maybeSingle();
-  const address = account?.reply_to || account?.from_email;
-  return address?.includes("@") ? address.split("@")[1]!.toLowerCase() : null;
+  const systemValue = (systemEmail?.value ?? {}) as { reply_to?: string; from_email?: string };
+  const systemAddress = systemValue.reply_to || systemValue.from_email || null;
+  if (domainOf(systemAddress)) {
+    return {
+      domain: domainOf(systemAddress),
+      address: systemAddress,
+      source: "system_email",
+      label: "System email sender address",
+    };
+  }
+
+  return {
+    domain: FALLBACK_INBOUND_DOMAIN,
+    address: null,
+    source: "fallback",
+    label: "Default MunchReach domain (no reply-to configured yet)",
+  };
 }
+
+/** The domain replies are expected to arrive on. */
+export async function resolveReplyDomain(): Promise<string | null> {
+  return (await resolveReplyDomainDetailed()).domain;
+}
+
 
 /**
  * Builds the inbound checklist: provider receiving flag, the MX record the
@@ -431,9 +492,17 @@ async function lookupMxRecords(domain: string): Promise<MxRecord[]> {
  * compares it with the exact host and priority the provider requires.
  */
 export async function checkMxRecords() {
-  const domain = await resolveReplyDomain();
+  const resolution = await resolveReplyDomainDetailed();
+  const domain = resolution.domain;
+  const configuredAs = {
+    configuredDomain: domain,
+    configuredAddress: resolution.address,
+    source: resolution.source,
+    sourceLabel: resolution.label,
+  };
   if (!domain) {
     return {
+      ...configuredAs,
       domain: null,
       host: null,
       status: "fail" as const,
@@ -471,6 +540,7 @@ export async function checkMxRecords() {
 
   if (!expected) {
     return {
+      ...configuredAs,
       domain: rootDomain,
       host,
       status: "unknown" as const,
@@ -483,11 +553,13 @@ export async function checkMxRecords() {
     };
   }
 
+
   const hit = found.find((r) => r.host === expected.host);
   const priorityOk = hit ? hit.priority === null || hit.priority === expected.priority : false;
   const status = lookupError ? ("fail" as const) : hit && priorityOk ? ("pass" as const) : ("fail" as const);
 
   return {
+    ...configuredAs,
     domain: rootDomain,
     host,
     status,
