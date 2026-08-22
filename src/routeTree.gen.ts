@@ -19,9 +19,12 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ContactSupportRouteImport } from './routes/contact-support'
+import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
 import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as DpaRouteImport } from './routes/dpa'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
@@ -29,12 +32,15 @@ import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReferralRouteImport } from './routes/referral'
+import { Route as RemoveMyDataRouteImport } from './routes/remove-my-data'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SubprocessorsRouteImport } from './routes/subprocessors'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
@@ -105,6 +111,7 @@ import { Route as AuthenticatedAdminPagesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
 import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authenticated/admin/plans'
 import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
+import { Route as AuthenticatedAdminPrivacyRequestsRouteImport } from './routes/_authenticated/admin/privacy-requests'
 import { Route as AuthenticatedAdminProductionRouteImport } from './routes/_authenticated/admin/production'
 import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
 import { Route as AuthenticatedAdminRedirectsRouteImport } from './routes/_authenticated/admin/redirects'
@@ -113,11 +120,13 @@ import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/admin/seo'
 import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authenticated/admin/seo-files'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminSubprocessorsRouteImport } from './routes/_authenticated/admin/subprocessors'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin/subscriptions'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedAdminSystemEmailsRouteImport } from './routes/_authenticated/admin/system-emails'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
 import { Route as AuthenticatedAdminUsageRouteImport } from './routes/_authenticated/admin/usage'
+import { Route as AuthenticatedAdminUserGuideRouteImport } from './routes/_authenticated/admin/user-guide'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminWarmupRouteImport } from './routes/_authenticated/admin/warmup'
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
@@ -198,6 +207,16 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactSupportRoute = ContactSupportRouteImport.update({
+  id: '/contact-support',
+  path: '/contact-support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiePolicyRoute = CookiePolicyRouteImport.update({
+  id: '/cookie-policy',
+  path: '/cookie-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomerReviewsRoute = CustomerReviewsRouteImport.update({
   id: '/customer-reviews',
   path: '/customer-reviews',
@@ -211,6 +230,11 @@ const DeliverabilityGuideRoute = DeliverabilityGuideRouteImport.update({
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DpaRoute = DpaRouteImport.update({
+  id: '/dpa',
+  path: '/dpa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeaturesRoute = FeaturesRouteImport.update({
@@ -248,6 +272,11 @@ const ReferralRoute = ReferralRouteImport.update({
   path: '/referral',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RemoveMyDataRoute = RemoveMyDataRouteImport.update({
+  id: '/remove-my-data',
+  path: '/remove-my-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -273,9 +302,19 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SubprocessorsRoute = SubprocessorsRouteImport.update({
+  id: '/subprocessors',
+  path: '/subprocessors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserGuideRoute = UserGuideRouteImport.update({
+  id: '/user-guide',
+  path: '/user-guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
@@ -652,6 +691,12 @@ const AuthenticatedAdminPoolRoute = AuthenticatedAdminPoolRouteImport.update({
   path: '/pool',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminPrivacyRequestsRoute =
+  AuthenticatedAdminPrivacyRequestsRouteImport.update({
+    id: '/privacy-requests',
+    path: '/privacy-requests',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminProductionRoute =
   AuthenticatedAdminProductionRouteImport.update({
     id: '/production',
@@ -699,6 +744,12 @@ const AuthenticatedAdminSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSubprocessorsRoute =
+  AuthenticatedAdminSubprocessorsRouteImport.update({
+    id: '/subprocessors',
+    path: '/subprocessors',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminSubscriptionsRoute =
   AuthenticatedAdminSubscriptionsRouteImport.update({
     id: '/subscriptions',
@@ -728,6 +779,12 @@ const AuthenticatedAdminUsageRoute = AuthenticatedAdminUsageRouteImport.update({
   path: '/usage',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminUserGuideRoute =
+  AuthenticatedAdminUserGuideRouteImport.update({
+    id: '/user-guide',
+    path: '/user-guide',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -911,9 +968,12 @@ export interface FileRoutesByFullPath {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/contact-support': typeof ContactSupportRoute
+  '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
+  '/dpa': typeof DpaRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
@@ -921,12 +981,15 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -996,6 +1059,7 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
   '/admin/production': typeof AuthenticatedAdminProductionRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
@@ -1004,11 +1068,13 @@ export interface FileRoutesByFullPath {
   '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
+  '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
@@ -1051,21 +1117,27 @@ export interface FileRoutesByTo {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/contact-support': typeof ContactSupportRoute
+  '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
+  '/dpa': typeof DpaRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/how-it-works': typeof HowItWorksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
@@ -1134,6 +1206,7 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
   '/admin/production': typeof AuthenticatedAdminProductionRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
@@ -1142,11 +1215,13 @@ export interface FileRoutesByTo {
   '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
+  '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
@@ -1191,9 +1266,12 @@ export interface FileRoutesById {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/contact-support': typeof ContactSupportRoute
+  '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
+  '/dpa': typeof DpaRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
@@ -1201,12 +1279,15 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -1276,6 +1357,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/_authenticated/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
   '/_authenticated/admin/production': typeof AuthenticatedAdminProductionRoute
   '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
   '/_authenticated/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
@@ -1284,11 +1366,13 @@ export interface FileRoutesById {
   '/_authenticated/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/_authenticated/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/usage': typeof AuthenticatedAdminUsageRoute
+  '/_authenticated/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
@@ -1333,9 +1417,12 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/contact-support'
+    | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
+    | '/dpa'
     | '/features'
     | '/forgot-password'
     | '/help-center'
@@ -1343,12 +1430,15 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
     | '/signin'
     | '/signup'
     | '/sitemap.xml'
+    | '/subprocessors'
     | '/terms'
+    | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
     | '/admin'
@@ -1418,6 +1508,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/pool'
+    | '/admin/privacy-requests'
     | '/admin/production'
     | '/admin/providers'
     | '/admin/redirects'
@@ -1426,11 +1517,13 @@ export interface FileRouteTypes {
     | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
+    | '/admin/subprocessors'
     | '/admin/subscriptions'
     | '/admin/support'
     | '/admin/system-emails'
     | '/admin/templates'
     | '/admin/usage'
+    | '/admin/user-guide'
     | '/admin/users'
     | '/admin/warmup'
     | '/admin/webhooks'
@@ -1473,21 +1566,27 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/contact-support'
+    | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
+    | '/dpa'
     | '/features'
     | '/forgot-password'
     | '/how-it-works'
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
     | '/signin'
     | '/signup'
     | '/sitemap.xml'
+    | '/subprocessors'
     | '/terms'
+    | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
     | '/analytics'
@@ -1556,6 +1655,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/pool'
+    | '/admin/privacy-requests'
     | '/admin/production'
     | '/admin/providers'
     | '/admin/redirects'
@@ -1564,11 +1664,13 @@ export interface FileRouteTypes {
     | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
+    | '/admin/subprocessors'
     | '/admin/subscriptions'
     | '/admin/support'
     | '/admin/system-emails'
     | '/admin/templates'
     | '/admin/usage'
+    | '/admin/user-guide'
     | '/admin/users'
     | '/admin/warmup'
     | '/admin/webhooks'
@@ -1612,9 +1714,12 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/contact-support'
+    | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
+    | '/dpa'
     | '/features'
     | '/forgot-password'
     | '/help-center'
@@ -1622,12 +1727,15 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
     | '/signin'
     | '/signup'
     | '/sitemap.xml'
+    | '/subprocessors'
     | '/terms'
+    | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
     | '/_authenticated/admin'
@@ -1697,6 +1805,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/plans'
     | '/_authenticated/admin/pool'
+    | '/_authenticated/admin/privacy-requests'
     | '/_authenticated/admin/production'
     | '/_authenticated/admin/providers'
     | '/_authenticated/admin/redirects'
@@ -1705,11 +1814,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/seo'
     | '/_authenticated/admin/seo-files'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/subprocessors'
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-emails'
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/usage'
+    | '/_authenticated/admin/user-guide'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/warmup'
     | '/_authenticated/admin/webhooks'
@@ -1754,9 +1865,12 @@ export interface RootRouteChildren {
   AutomationsRoute: typeof AutomationsRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
+  ContactSupportRoute: typeof ContactSupportRoute
+  CookiePolicyRoute: typeof CookiePolicyRoute
   CustomerReviewsRoute: typeof CustomerReviewsRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
   DocsRoute: typeof DocsRoute
+  DpaRoute: typeof DpaRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpCenterRoute: typeof HelpCenterRouteWithChildren
@@ -1764,12 +1878,15 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReferralRoute: typeof ReferralRoute
+  RemoveMyDataRoute: typeof RemoveMyDataRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SubprocessorsRoute: typeof SubprocessorsRoute
   TermsRoute: typeof TermsRoute
+  UserGuideRoute: typeof UserGuideRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WhyMunchreachRoute: typeof WhyMunchreachRoute
   BlogSlugRoute: typeof BlogSlugRoute
@@ -1887,6 +2004,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact-support': {
+      id: '/contact-support'
+      path: '/contact-support'
+      fullPath: '/contact-support'
+      preLoaderRoute: typeof ContactSupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie-policy': {
+      id: '/cookie-policy'
+      path: '/cookie-policy'
+      fullPath: '/cookie-policy'
+      preLoaderRoute: typeof CookiePolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/customer-reviews': {
       id: '/customer-reviews'
       path: '/customer-reviews'
@@ -1906,6 +2037,13 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dpa': {
+      id: '/dpa'
+      path: '/dpa'
+      fullPath: '/dpa'
+      preLoaderRoute: typeof DpaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/features': {
@@ -1957,6 +2095,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReferralRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/remove-my-data': {
+      id: '/remove-my-data'
+      path: '/remove-my-data'
+      fullPath: '/remove-my-data'
+      preLoaderRoute: typeof RemoveMyDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -1992,11 +2137,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/subprocessors': {
+      id: '/subprocessors'
+      path: '/subprocessors'
+      fullPath: '/subprocessors'
+      preLoaderRoute: typeof SubprocessorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user-guide': {
+      id: '/user-guide'
+      path: '/user-guide'
+      fullPath: '/user-guide'
+      preLoaderRoute: typeof UserGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify-email': {
@@ -2489,6 +2648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPoolRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/privacy-requests': {
+      id: '/_authenticated/admin/privacy-requests'
+      path: '/privacy-requests'
+      fullPath: '/admin/privacy-requests'
+      preLoaderRoute: typeof AuthenticatedAdminPrivacyRequestsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/production': {
       id: '/_authenticated/admin/production'
       path: '/production'
@@ -2545,6 +2711,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/subprocessors': {
+      id: '/_authenticated/admin/subprocessors'
+      path: '/subprocessors'
+      fullPath: '/admin/subprocessors'
+      preLoaderRoute: typeof AuthenticatedAdminSubprocessorsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/subscriptions': {
       id: '/_authenticated/admin/subscriptions'
       path: '/subscriptions'
@@ -2578,6 +2751,13 @@ declare module '@tanstack/react-router' {
       path: '/usage'
       fullPath: '/admin/usage'
       preLoaderRoute: typeof AuthenticatedAdminUsageRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/user-guide': {
+      id: '/_authenticated/admin/user-guide'
+      path: '/user-guide'
+      fullPath: '/admin/user-guide'
+      preLoaderRoute: typeof AuthenticatedAdminUserGuideRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/users': {
@@ -2849,6 +3029,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminPlansRoute: typeof AuthenticatedAdminPlansRoute
   AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
+  AuthenticatedAdminPrivacyRequestsRoute: typeof AuthenticatedAdminPrivacyRequestsRoute
   AuthenticatedAdminProductionRoute: typeof AuthenticatedAdminProductionRoute
   AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
   AuthenticatedAdminRedirectsRoute: typeof AuthenticatedAdminRedirectsRoute
@@ -2857,11 +3038,13 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRoute
   AuthenticatedAdminSeoFilesRoute: typeof AuthenticatedAdminSeoFilesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminSubprocessorsRoute: typeof AuthenticatedAdminSubprocessorsRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemEmailsRoute: typeof AuthenticatedAdminSystemEmailsRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
   AuthenticatedAdminUsageRoute: typeof AuthenticatedAdminUsageRoute
+  AuthenticatedAdminUserGuideRoute: typeof AuthenticatedAdminUserGuideRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminWarmupRoute: typeof AuthenticatedAdminWarmupRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
@@ -2900,6 +3083,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
     AuthenticatedAdminPlansRoute: AuthenticatedAdminPlansRoute,
     AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
+    AuthenticatedAdminPrivacyRequestsRoute:
+      AuthenticatedAdminPrivacyRequestsRoute,
     AuthenticatedAdminProductionRoute: AuthenticatedAdminProductionRoute,
     AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
     AuthenticatedAdminRedirectsRoute: AuthenticatedAdminRedirectsRoute,
@@ -2908,11 +3093,13 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRoute,
     AuthenticatedAdminSeoFilesRoute: AuthenticatedAdminSeoFilesRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+    AuthenticatedAdminSubprocessorsRoute: AuthenticatedAdminSubprocessorsRoute,
     AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminSystemEmailsRoute: AuthenticatedAdminSystemEmailsRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
     AuthenticatedAdminUsageRoute: AuthenticatedAdminUsageRoute,
+    AuthenticatedAdminUserGuideRoute: AuthenticatedAdminUserGuideRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
     AuthenticatedAdminWarmupRoute: AuthenticatedAdminWarmupRoute,
     AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
@@ -3004,9 +3191,12 @@ const rootRouteChildren: RootRouteChildren = {
   AutomationsRoute: AutomationsRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
+  ContactSupportRoute: ContactSupportRoute,
+  CookiePolicyRoute: CookiePolicyRoute,
   CustomerReviewsRoute: CustomerReviewsRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
   DocsRoute: DocsRoute,
+  DpaRoute: DpaRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpCenterRoute: HelpCenterRouteWithChildren,
@@ -3014,12 +3204,15 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReferralRoute: ReferralRoute,
+  RemoveMyDataRoute: RemoveMyDataRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SubprocessorsRoute: SubprocessorsRoute,
   TermsRoute: TermsRoute,
+  UserGuideRoute: UserGuideRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WhyMunchreachRoute: WhyMunchreachRoute,
   BlogSlugRoute: BlogSlugRoute,

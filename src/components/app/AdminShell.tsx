@@ -128,6 +128,14 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/integrations", label: "Integrations", icon: Plug },
     ],
   },
+  {
+    title: "Trust & Support",
+    items: [
+      { to: "/admin/subprocessors", label: "Subprocessors", icon: Server },
+      { to: "/admin/user-guide", label: "User Guide & Alerts", icon: FileText },
+      { to: "/admin/privacy-requests", label: "Privacy Requests", icon: Shield },
+    ],
+  },
 
   {
     title: "Platform",
