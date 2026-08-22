@@ -124,6 +124,7 @@ export async function findCampaignMessageForEvent(
     const { data } = await supabaseAdmin
       .from("campaign_messages")
       .select(columns)
+      .eq("message_type", "campaign")
       .eq("provider_message_id", providerMessageId)
       .limit(1);
     if (data?.[0]) return data[0] as never;
@@ -133,6 +134,7 @@ export async function findCampaignMessageForEvent(
     const { data } = await supabaseAdmin
       .from("campaign_messages")
       .select(columns)
+      .eq("message_type", "campaign")
       .eq("to_email", email.toLowerCase())
       .not("sent_at", "is", null)
       .order("sent_at", { ascending: false })

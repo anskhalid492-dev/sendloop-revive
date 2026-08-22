@@ -34,6 +34,7 @@ async function findMessage(providerMessageId: string | null, email: string | nul
   let query = supabaseAdmin
     .from("campaign_messages")
     .select("id, workspace_id, campaign_id, lead_id, sending_account_id, to_email")
+    .eq("message_type", "campaign")
     .order("sent_at", { ascending: false })
     .limit(1);
   query = providerMessageId
