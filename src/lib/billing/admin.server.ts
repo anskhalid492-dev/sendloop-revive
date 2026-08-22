@@ -11,10 +11,10 @@ export async function loadConsole() {
     db.from("billing_providers").select("*"),
     db.from("plans").select("id, name, slug, monthly_price, yearly_price, sort_order").order("sort_order"),
     db.from("billing_plan_prices").select("*"),
-    db.from("billing_subscriptions").select("status, amount_cents, currency, billing_interval, environment"),
+    db.from("billing_subscriptions").select("id, status, amount_cents, currency, billing_interval, environment, current_period_start, created_at"),
     db
       .from("billing_transactions")
-      .select("amount_cents, kind, status, occurred_at, environment")
+      .select("amount_cents, kind, status, occurred_at, environment, subscription_id")
       .gte("occurred_at", new Date(Date.now() - 30 * 864e5).toISOString()),
     db.from("billing_invoices").select("id", { count: "exact", head: true }),
     db
