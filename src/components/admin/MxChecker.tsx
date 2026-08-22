@@ -28,14 +28,23 @@ export function MxChecker() {
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-        <div>
+        <div className="min-w-0">
           <CardTitle>MX checker</CardTitle>
           <CardDescription>
-            {result?.host
-              ? `Resolving MX for ${result.host}`
-              : "Resolves the reply-to domain's MX records in real time."}
+            {result?.configuredDomain ? (
+              <>
+                Checking inbound email for:{" "}
+                <span className="font-mono text-foreground">{result.configuredDomain}</span>
+                {result.host && result.host !== result.configuredDomain ? (
+                  <> — resolving MX for <span className="font-mono">{result.host}</span></>
+                ) : null}
+              </>
+            ) : (
+              "No inbound domain is configured yet."
+            )}
           </CardDescription>
         </div>
+
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
