@@ -14,6 +14,7 @@ import {
   type AccountStatus,
   type EmailAccountRow,
   type EmailAccountSummary,
+  type WarmupAccountStats,
 } from "@/lib/sending-model";
 
 /** Untyped view of the request-scoped Supabase client (generated types lag the new columns). */
