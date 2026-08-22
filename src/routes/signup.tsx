@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/signup")({
+  /** `?redirect=/billing?plan=starter` preserves the plan a visitor picked. */
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
+    typeof search["redirect"] === "string" ? { redirect: search["redirect"] as string } : {},
   head: () => ({
     meta: [
       { title: "Create your free MunchReach account" },
@@ -56,8 +59,19 @@ function strength(pw: string) {
   return score;
 }
 
+function safeRedirect(target: string | undefined): string | null {
+  if (!target) return null;
+  if (!target.startsWith("/") || target.startsWith("//")) return null;
+  if (target.startsWith("/signin") || target.startsWith("/signup") || target.startsWith("/auth")) {
+    return null;
+  }
+  return target;
+}
+
 function SignUpPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const redirectTo = safeRedirect(search.redirect);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,13 +87,15 @@ function SignUpPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session) navigate({ to: redirectTo ?? "/dashboard", replace: true });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && event === "SIGNED_IN") navigate({ to: "/dashboard", replace: true });
+      if (session && event === "SIGNED_IN") {
+        navigate({ to: redirectTo ?? "/dashboard", replace: true });
+      }
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -107,8 +123,9 @@ function SignUpPage() {
       return;
     }
     if (data.session) {
-      // First signup: no workspace yet, so land straight in onboarding.
-      navigate({ to: "/onboarding", replace: true });
+      // First signup: no workspace yet, so land straight in onboarding unless a
+      // destination (e.g. billing with a chosen plan) was carried in.
+      navigate({ to: redirectTo ?? "/onboarding", replace: true });
       return;
     }
     navigate({ to: "/verify-email", search: { email: parsed.data.email } });
