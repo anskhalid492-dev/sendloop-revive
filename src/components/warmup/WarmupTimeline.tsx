@@ -200,7 +200,6 @@ export function WarmupTimeline({ accountId }: { accountId?: string | undefined }
           ...(accountId ? { accountId } : {}),
         },
       }),
-    refetchInterval: 60_000,
   });
 
   const messages = query.data?.messages ?? [];
