@@ -111,6 +111,7 @@ import { Route as AuthenticatedAdminPagesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
 import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authenticated/admin/plans'
 import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
+import { Route as AuthenticatedAdminPrivacyRequestsRouteImport } from './routes/_authenticated/admin/privacy-requests'
 import { Route as AuthenticatedAdminProductionRouteImport } from './routes/_authenticated/admin/production'
 import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
 import { Route as AuthenticatedAdminRedirectsRouteImport } from './routes/_authenticated/admin/redirects'
@@ -690,6 +691,12 @@ const AuthenticatedAdminPoolRoute = AuthenticatedAdminPoolRouteImport.update({
   path: '/pool',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminPrivacyRequestsRoute =
+  AuthenticatedAdminPrivacyRequestsRouteImport.update({
+    id: '/privacy-requests',
+    path: '/privacy-requests',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminProductionRoute =
   AuthenticatedAdminProductionRouteImport.update({
     id: '/production',
@@ -1052,6 +1059,7 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
   '/admin/production': typeof AuthenticatedAdminProductionRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
@@ -1198,6 +1206,7 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
   '/admin/production': typeof AuthenticatedAdminProductionRoute
   '/admin/providers': typeof AuthenticatedAdminProvidersRoute
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
@@ -1348,6 +1357,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
+  '/_authenticated/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
   '/_authenticated/admin/production': typeof AuthenticatedAdminProductionRoute
   '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
   '/_authenticated/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
@@ -1498,6 +1508,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/pool'
+    | '/admin/privacy-requests'
     | '/admin/production'
     | '/admin/providers'
     | '/admin/redirects'
@@ -1644,6 +1655,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/pool'
+    | '/admin/privacy-requests'
     | '/admin/production'
     | '/admin/providers'
     | '/admin/redirects'
@@ -1793,6 +1805,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/plans'
     | '/_authenticated/admin/pool'
+    | '/_authenticated/admin/privacy-requests'
     | '/_authenticated/admin/production'
     | '/_authenticated/admin/providers'
     | '/_authenticated/admin/redirects'
@@ -2635,6 +2648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPoolRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/privacy-requests': {
+      id: '/_authenticated/admin/privacy-requests'
+      path: '/privacy-requests'
+      fullPath: '/admin/privacy-requests'
+      preLoaderRoute: typeof AuthenticatedAdminPrivacyRequestsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/production': {
       id: '/_authenticated/admin/production'
       path: '/production'
@@ -3009,6 +3029,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminPlansRoute: typeof AuthenticatedAdminPlansRoute
   AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
+  AuthenticatedAdminPrivacyRequestsRoute: typeof AuthenticatedAdminPrivacyRequestsRoute
   AuthenticatedAdminProductionRoute: typeof AuthenticatedAdminProductionRoute
   AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
   AuthenticatedAdminRedirectsRoute: typeof AuthenticatedAdminRedirectsRoute
@@ -3062,6 +3083,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
     AuthenticatedAdminPlansRoute: AuthenticatedAdminPlansRoute,
     AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
+    AuthenticatedAdminPrivacyRequestsRoute:
+      AuthenticatedAdminPrivacyRequestsRoute,
     AuthenticatedAdminProductionRoute: AuthenticatedAdminProductionRoute,
     AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
     AuthenticatedAdminRedirectsRoute: AuthenticatedAdminRedirectsRoute,
