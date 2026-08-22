@@ -345,9 +345,17 @@ function AdminNavigationRoute() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>URL</Label>
-                  <Input value={draft.href} onChange={(e) => setDraft({ ...draft, href: e.target.value })} />
+                  <Input
+                    value={draft.href}
+                    placeholder={draft.location === "social" ? "https://…" : "/pricing"}
+                    onChange={(e) => setDraft({ ...draft, href: e.target.value })}
+                  />
                   {draftHrefError ? <p className="text-xs text-destructive">{draftHrefError}</p> : null}
-                  {linkedPage ? (
+                  {draft.location === "social" && !draft.href.trim() ? (
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to hide this platform from the footer.
+                    </p>
+                  ) : linkedPage ? (
                     <p className="text-xs text-muted-foreground">
                       Points to “{linkedPage.title}” ({linkedPage.status})
                     </p>
@@ -355,6 +363,7 @@ function AdminNavigationRoute() {
                     <p className="text-xs text-amber-500">No page registry entry matches this path.</p>
                   ) : null}
                 </div>
+
                 {draft.location === "header" ? (
                   <div className="space-y-1.5">
                     <Label>Menu group</Label>
