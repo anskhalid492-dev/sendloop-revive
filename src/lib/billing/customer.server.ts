@@ -9,7 +9,7 @@ function appUrl() {
   return (
     process.env["APP_URL"] ??
     process.env["VITE_APP_URL"] ??
-    "https://project--1068fd05-79ee-44fc-9230-0fbdfc76d42c.lovable.app"
+    "https://munchreach.com"
   );
 }
 

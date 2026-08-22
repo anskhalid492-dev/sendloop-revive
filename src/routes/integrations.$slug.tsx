@@ -33,7 +33,7 @@ export const Route = createFileRoute("/integrations/$slug")({
     return metaFor(
       `${meta.name} Integration — Cold Email Automation | MunchReach`,
       meta.description.slice(0, 155),
-      `https://sendloop.lovable.app/integrations/${meta.slug}`,
+      `https://munchreach.com/integrations/${meta.slug}`,
       meta.faqs,
     );
   },
