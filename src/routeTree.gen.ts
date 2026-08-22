@@ -36,6 +36,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SubprocessorsRouteImport } from './routes/subprocessors'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
@@ -283,6 +284,11 @@ const SignupRoute = SignupRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubprocessorsRoute = SubprocessorsRouteImport.update({
+  id: '/subprocessors',
+  path: '/subprocessors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -940,6 +946,7 @@ export interface FileRoutesByFullPath {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
@@ -1081,6 +1088,7 @@ export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
@@ -1224,6 +1232,7 @@ export interface FileRoutesById {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
@@ -1368,6 +1377,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/sitemap.xml'
+    | '/subprocessors'
     | '/terms'
     | '/verify-email'
     | '/why-munchreach'
@@ -1509,6 +1519,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/sitemap.xml'
+    | '/subprocessors'
     | '/terms'
     | '/verify-email'
     | '/why-munchreach'
@@ -1651,6 +1662,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/sitemap.xml'
+    | '/subprocessors'
     | '/terms'
     | '/verify-email'
     | '/why-munchreach'
@@ -1795,6 +1807,7 @@ export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SubprocessorsRoute: typeof SubprocessorsRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WhyMunchreachRoute: typeof WhyMunchreachRoute
@@ -2030,6 +2043,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subprocessors': {
+      id: '/subprocessors'
+      path: '/subprocessors'
+      fullPath: '/subprocessors'
+      preLoaderRoute: typeof SubprocessorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -3061,6 +3081,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SubprocessorsRoute: SubprocessorsRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WhyMunchreachRoute: WhyMunchreachRoute,
