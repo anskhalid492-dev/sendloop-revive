@@ -118,32 +118,6 @@ const socialIcons: Record<string, typeof Send> = {
   Facebook: Facebook,
 };
 
-const trustSignals = [
-  {
-    icon: ShieldCheck,
-    tone: "text-primary bg-primary/10",
-    title: "Enterprise-Grade Security",
-    body: "SOC 2-ready infrastructure and data protection.",
-  },
-  {
-    icon: Zap,
-    tone: "text-emerald-600 bg-emerald-500/10",
-    title: "99.9% Uptime",
-    body: "Reliable, fast & always available.",
-  },
-  {
-    icon: Heart,
-    tone: "text-violet-600 bg-violet-500/10",
-    title: "Loved by 1000+ Teams",
-    body: "Trusted by agencies, startups and enterprises.",
-  },
-  {
-    icon: Headphones,
-    tone: "text-amber-600 bg-amber-500/10",
-    title: "Global Support",
-    body: "Real humans, real fast support.",
-  },
-];
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -302,28 +276,6 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Trust bar */}
-        <div className="mt-12 grid gap-6 rounded-2xl border border-border bg-muted/30 p-6 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-border">
-          {trustSignals.map((s) => (
-            <div
-              key={s.title}
-              className="flex items-start gap-3 lg:px-5 lg:first:pl-0 lg:last:pr-0"
-            >
-              <span
-                className={cn(
-                  "flex size-11 shrink-0 items-center justify-center rounded-full",
-                  s.tone,
-                )}
-              >
-                <s.icon className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{s.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Bottom bar */}
