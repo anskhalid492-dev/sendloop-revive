@@ -63,11 +63,11 @@ const fallbackColumns = [
   {
     title: "Comparisons",
     links: [
-      { label: "MunchReach vs Instantly", href: "/compare/munchreach-vs-instantly" },
-      { label: "MunchReach vs Smartlead", href: "/compare/munchreach-vs-smartlead" },
-      { label: "MunchReach vs lemlist", href: "/compare/munchreach-vs-lemlist" },
-      { label: "MunchReach vs Apollo", href: "/compare/munchreach-vs-apollo" },
-      { label: "MunchReach vs Saleshandy", href: "/compare/munchreach-vs-saleshandy" },
+      { label: "vs Instantly", href: "/compare/munchreach-vs-instantly" },
+      { label: "vs Smartlead", href: "/compare/munchreach-vs-smartlead" },
+      { label: "vs lemlist", href: "/compare/munchreach-vs-lemlist" },
+      { label: "vs Apollo", href: "/compare/munchreach-vs-apollo" },
+      { label: "vs Saleshandy", href: "/compare/munchreach-vs-saleshandy" },
       { label: "MunchReach Alternatives", href: "/compare/munchreach-alternatives" },
     ],
   },
