@@ -127,10 +127,11 @@ function SignUpPage() {
       toast.error("Google sign-in is currently disabled. Please use your email and password.");
       return;
     }
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
-    if (result.error) toast.error("Google sign-up failed. Please try again.");
+    if (error) toast.error("Google sign-up failed. Please try again.");
   }
 
   const score = strength(password);
