@@ -18,12 +18,14 @@ type ResendRecord = {
   value?: string;
   ttl?: string | number;
   priority?: number;
+  status?: string;
 };
 type ResendDomain = {
   id?: string;
   name?: string;
   status?: string;
   records?: ResendRecord[];
+  capabilities?: { sending?: string; receiving?: string };
 };
 
 function headers(creds: ProviderCredentials) {
@@ -71,6 +73,27 @@ function mapState(status: string | undefined): ProviderDomainState["state"] {
   if (!s) return "unknown";
   return "pending";
 }
+
+/**
+ * Sending readiness only. The aggregate domain status also reflects the
+ * inbound/receiving MX record, which is optional for outbound mail: a domain
+ * whose DKIM + SPF records are all verified can send even when the aggregate
+ * status reads "partially_failed" because receiving is not configured.
+ */
+function sendingState(found: ResendDomain): ProviderDomainState["state"] {
+  const aggregate = mapState(found.status);
+  if (aggregate === "verified") return "verified";
+  const sendingRecords = (found.records ?? []).filter(
+    (r) => !(r.record ?? "").toLowerCase().includes("receiv"),
+  );
+  const allSendingVerified =
+    sendingRecords.length > 0 &&
+    sendingRecords.every((r) => (r.status ?? "").toLowerCase() === "verified");
+  const canSend = (found.capabilities?.sending ?? "").toLowerCase() === "enabled";
+  if (allSendingVerified && canSend) return "verified";
+  return aggregate;
+}
+
 
 async function findDomain(
   creds: ProviderCredentials,
@@ -140,7 +163,17 @@ export const resendDomainAdapter: DomainProviderAdapter = {
   async getDomainStatus(creds, domain) {
     const found = await findDomain(creds, domain);
     if (!found) return { state: "unknown", detail: "Domain is not registered with the provider." };
-    return { state: mapState(found.status), detail: `Provider status "${found.status ?? "unknown"}".` };
+    // The list endpoint omits per-record status, which is what decides whether
+    // the domain can send; read the detail record when we have an id.
+    let detailed: ResendDomain = found;
+    if (found.id) {
+      const res = await providerFetch(`${API}/domains/${found.id}`, { headers: headers(creds) });
+      if (res.ok && res.json) detailed = res.json as ResendDomain;
+    }
+    return {
+      state: sendingState(detailed),
+      detail: `Provider status "${detailed.status ?? "unknown"}".`,
+    };
   },
 
   async isReadyToSend(creds, domain) {
