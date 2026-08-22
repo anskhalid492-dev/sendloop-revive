@@ -10,6 +10,7 @@
  * Templates are content, never code. Customers never supply provider keys and
  * never see provider names.
  */
+import { registerOutboundMessage } from "@/lib/message-classification.server";
 import { DEFAULT_TEMPLATES, defaultTemplate } from "@/lib/transactional/catalog";
 import { htmlToText } from "@/lib/transactional/layout";
 import {
