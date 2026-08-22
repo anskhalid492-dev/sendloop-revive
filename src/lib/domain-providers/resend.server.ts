@@ -24,6 +24,7 @@ type ResendDomain = {
   name?: string;
   status?: string;
   records?: ResendRecord[];
+  capabilities?: { sending?: string; receiving?: string };
 };
 
 function headers(creds: ProviderCredentials) {
