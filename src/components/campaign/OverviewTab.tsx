@@ -1,4 +1,14 @@
-import { Activity, CircleAlert, Gauge, Mail, Users } from "lucide-react";
+import {
+  Activity,
+  CircleAlert,
+  Gauge,
+  Mail,
+  MousePointerClick,
+  Reply,
+  Send,
+  ShieldAlert,
+  Users,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,18 +18,9 @@ import {
   STEP_TYPE_LABELS,
   type LeadDeliveryState,
 } from "@/lib/campaign-model";
+import { cn } from "@/lib/utils";
 import { LaunchAuditTrail } from "./LaunchAuditTrail";
 import type { CampaignBuilder } from "./useCampaignBuilder";
-
-function Metric({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
-  return (
-    <div className="surface-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
-  );
-}
 
 /** Compact "2m ago" style stamp so the feed reads as live. */
 function relativeTime(value: string | null | undefined) {
@@ -37,6 +38,70 @@ function relativeTime(value: string | null | undefined) {
   return new Date(value).toLocaleDateString();
 }
 
+function rate(part: number, total: number) {
+  if (!total) return null;
+  return Math.round((part / total) * 1000) / 10;
+}
+
+function pct(value: number | null) {
+  return value === null ? "—" : `${value}%`;
+}
+
+/** Headline card: one number, its rate, and what the number actually means. */
+function HeadlineCard({
+  icon: Icon,
+  label,
+  value,
+  rateLabel,
+  hint,
+  tone,
+}: {
+  icon: typeof Send;
+  label: string;
+  value: number;
+  rateLabel?: string | undefined;
+  hint: string;
+  tone?: string | undefined;
+}) {
+  return (
+    <div className="surface-card p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <Icon className={cn("size-4 text-muted-foreground", tone)} />
+      </div>
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <p className={cn("text-2xl font-semibold tabular-nums", tone)}>{value}</p>
+        {rateLabel ? (
+          <span className="text-xs font-medium text-muted-foreground">{rateLabel}</span>
+        ) : null}
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: number;
+  hint?: string | undefined;
+  tone?: string | undefined;
+}) {
+  return (
+    <div className="rounded-lg border border-border/70 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className={cn("mt-0.5 text-lg font-semibold tabular-nums", tone)}>{value}</p>
+      {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const { campaign, queue, delivery, steps, accounts, settings, leads } = builder;
   if (!campaign || !settings) return null;
@@ -46,6 +111,30 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const dailyUsed = selected.reduce((sum, a) => sum + (a.sent_today ?? 0), 0);
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
   const contacted = delivery?.contacted ?? leads.filter((l) => l.status !== "pending").length;
+
+  const totalLeads = delivery?.totalLeads ?? queue?.total ?? 0;
+  const sent = delivery?.sent ?? queue?.sent ?? 0;
+  const delivered = delivery?.delivered ?? 0;
+  const opened = delivery?.opened ?? 0;
+  const clicked = delivery?.clicked ?? 0;
+  const replied = delivery?.replied ?? queue?.replied ?? 0;
+  const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
+  const failed = delivery?.failed ?? queue?.failed ?? 0;
+  const delayed = delivery?.delayed ?? 0;
+  const unsubscribed = delivery?.unsubscribed ?? queue?.unsubscribed ?? 0;
+  const completed = queue?.completed ?? 0;
+  const pending = queue?.pending ?? 0;
+
+  const progress = totalLeads ? Math.min(100, Math.round((contacted / totalLeads) * 100)) : 0;
+
+  // Funnel mix bar — proportions of the real send outcomes.
+  const funnel = [
+    { label: "Delivered", value: delivered, color: "bg-primary" },
+    { label: "Opened", value: opened, color: "bg-sky-500" },
+    { label: "Replied", value: replied, color: "bg-emerald-500" },
+    { label: "Bounced", value: bounced, color: "bg-destructive" },
+  ];
+  const funnelTotal = funnel.reduce((sum, f) => sum + f.value, 0);
 
   // Feed the activity list from the live per-lead delivery state (real message
   // events), not the recipient row status, so opens/bounces show up instantly.
@@ -58,49 +147,144 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
     })
     .slice(0, 8);
 
+  const statusTone =
+    campaign.status === "active"
+      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      : campaign.status === "paused"
+        ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+        : "bg-muted text-muted-foreground";
+
   return (
     <div className="space-y-6">
-      <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">Campaign</p>
-          <p className="text-lg font-semibold">{campaign.name}</p>
+      {/* Header: identity, status and delivery progress in one block */}
+      <section className="surface-card space-y-4 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-lg font-semibold">{campaign.name}</h2>
+              <Badge variant="secondary" className={cn("font-medium capitalize", statusTone)}>
+                {campaign.status}
+              </Badge>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {steps.length} step sequence · {selected.length} mailbox
+              {selected.length === 1 ? "" : "es"} ·{" "}
+              {campaign.launched_at
+                ? `started ${new Date(campaign.launched_at).toLocaleDateString()}`
+                : "not launched yet"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Next send</p>
+            <p className="text-sm font-semibold">
+              {queue?.nextSendAt ? new Date(queue.nextSendAt).toLocaleString() : "Not scheduled"}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Status</p>
-          <p className="text-lg font-semibold capitalize">{campaign.status}</p>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Started</p>
-          <p className="text-lg font-semibold">
-            {campaign.launched_at ? new Date(campaign.launched_at).toLocaleDateString() : "Not yet"}
-          </p>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Next send</p>
-          <p className="text-lg font-semibold">
-            {queue?.nextSendAt ? new Date(queue.nextSendAt).toLocaleString() : "Not scheduled"}
-          </p>
-        </div>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Total leads" value={delivery?.totalLeads ?? queue?.total ?? 0} />
-        <Metric label="Leads contacted" value={contacted} />
-        <Metric label="Emails sent" value={delivery?.sent ?? queue?.sent ?? 0} hint="Accepted by the sending infrastructure" />
-        <Metric
+        <div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {contacted} of {totalLeads} leads contacted
+            </span>
+            <span>{progress}%</span>
+          </div>
+          <Progress className="mt-1.5 h-2" value={progress} />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {pending} queued · {completed} finished the sequence
+          </p>
+        </div>
+      </section>
+
+      {/* Headline performance */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <HeadlineCard
+          icon={Send}
+          label="Emails sent"
+          value={sent}
+          hint="Accepted by the sending infrastructure"
+        />
+        <HeadlineCard
+          icon={Mail}
           label="Delivered"
-          value={delivery?.delivered ?? 0}
+          value={delivered}
+          rateLabel={pct(rate(delivered, sent))}
           hint="Confirmed in the recipient mailbox"
         />
-        <Metric label="Opened" value={delivery?.opened ?? 0} />
-        <Metric label="Clicked" value={delivery?.clicked ?? 0} />
-        <Metric label="Replies" value={delivery?.replied ?? queue?.replied ?? 0} />
-        <Metric label="Completed" value={queue?.completed ?? 0} />
-        <Metric label="Bounced" value={delivery?.bounced ?? queue?.bounced ?? 0} hint="Never counted as delivered" />
-        <Metric label="Delayed" value={delivery?.delayed ?? 0} hint="Retrying" />
-        <Metric label="Unsubscribed" value={delivery?.unsubscribed ?? queue?.unsubscribed ?? 0} />
-        <Metric label="Failed" value={delivery?.failed ?? queue?.failed ?? 0} />
+        <HeadlineCard
+          icon={MousePointerClick}
+          label="Opened"
+          value={opened}
+          rateLabel={pct(rate(opened, delivered || sent))}
+          hint={`${clicked} link click${clicked === 1 ? "" : "s"}`}
+        />
+        <HeadlineCard
+          icon={Reply}
+          label="Replies"
+          value={replied}
+          rateLabel={pct(rate(replied, delivered || sent))}
+          hint="Conversations started from this campaign"
+          tone={replied > 0 ? "text-emerald-600" : undefined}
+        />
       </div>
+
+      {/* Outcome mix + secondary counters */}
+      <section className="surface-card space-y-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Send outcomes</h2>
+          <span className="text-xs text-muted-foreground">
+            Bounce rate {pct(rate(bounced, sent))} · Unsubscribe rate{" "}
+            {pct(rate(unsubscribed, delivered || sent))}
+          </span>
+        </div>
+
+        {funnelTotal > 0 ? (
+          <>
+            <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              {funnel
+                .filter((f) => f.value > 0)
+                .map((f) => (
+                  <div
+                    key={f.label}
+                    className={f.color}
+                    style={{ width: `${(f.value / funnelTotal) * 100}%` }}
+                    title={`${f.label}: ${f.value}`}
+                  />
+                ))}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {funnel.map((f) => (
+                <span key={f.label} className="flex items-center gap-1.5">
+                  <span className={cn("size-2 rounded-full", f.color)} />
+                  {f.label} {f.value}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Outcome mix appears as soon as the first messages are delivered.
+          </p>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <MiniStat label="Total leads" value={totalLeads} />
+          <MiniStat label="Contacted" value={contacted} />
+          <MiniStat label="Clicked" value={clicked} />
+          <MiniStat
+            label="Bounced"
+            value={bounced}
+            hint="Never counted as delivered"
+            tone={bounced > 0 ? "text-destructive" : undefined}
+          />
+          <MiniStat label="Delayed" value={delayed} hint="Retrying" />
+          <MiniStat
+            label="Failed"
+            value={failed}
+            tone={failed > 0 ? "text-destructive" : undefined}
+          />
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface-card p-5">
@@ -108,27 +292,36 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
             <Mail className="size-4 text-primary" /> Sequence overview
           </h2>
           <ul className="mt-4 space-y-3">
-            {steps.map((step, index) => (
-              <li key={step.key} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex items-center gap-3">
-                  <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                    {index + 1}
-                  </span>
-                  <span>
-                    <span className="font-medium">{step.name || STEP_TYPE_LABELS[step.stepType]}</span>
-                    <span className="block text-xs text-muted-foreground">
-                      {STEP_TYPE_LABELS[step.stepType]}
-                      {index > 0
-                        ? ` · waits ${step.waitDays}d ${step.waitHours}h`
-                        : " · sends immediately"}
+            {steps.map((step, index) => {
+              const reached = queue?.byStep.find((s) => s.step === index + 1)?.reached ?? 0;
+              return (
+                <li key={step.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-3">
+                      <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                        {index + 1}
+                      </span>
+                      <span>
+                        <span className="font-medium">
+                          {step.name || STEP_TYPE_LABELS[step.stepType]}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {STEP_TYPE_LABELS[step.stepType]}
+                          {index > 0
+                            ? ` · waits ${step.waitDays}d ${step.waitHours}h`
+                            : " · sends immediately"}
+                        </span>
+                      </span>
                     </span>
-                  </span>
-                </span>
-                <span className="tabular-nums text-muted-foreground">
-                  {queue?.byStep.find((s) => s.step === index + 1)?.reached ?? 0} reached
-                </span>
-              </li>
-            ))}
+                    <span className="tabular-nums text-muted-foreground">{reached} reached</span>
+                  </div>
+                  <Progress
+                    className="h-1.5"
+                    value={totalLeads ? Math.min(100, (reached / totalLeads) * 100) : 0}
+                  />
+                </li>
+              );
+            })}
             {steps.length === 0 ? (
               <li className="text-sm text-muted-foreground">No steps yet.</li>
             ) : null}
@@ -150,11 +343,11 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
             </div>
             <div>
               <p className="text-muted-foreground">Queue size</p>
-              <p className="text-lg font-semibold">{queue?.pending ?? 0}</p>
+              <p className="text-lg font-semibold">{pending}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Failed sends</p>
-              <p className="text-lg font-semibold">{queue?.failed ?? 0}</p>
+              <p className="text-lg font-semibold">{failed}</p>
             </div>
           </div>
           <div>
@@ -173,6 +366,12 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
             <p className="flex items-center gap-2 text-xs text-amber-700">
               <CircleAlert className="size-3.5" />
               {warning.length} mailbox{warning.length > 1 ? "es need" : " needs"} attention.
+            </p>
+          ) : null}
+          {bounced > 0 && rate(bounced, sent) !== null && (rate(bounced, sent) ?? 0) > 3 ? (
+            <p className="flex items-center gap-2 text-xs text-destructive">
+              <ShieldAlert className="size-3.5" />
+              Bounce rate is above 3% — pause and clean the list before sending more.
             </p>
           ) : null}
         </section>
@@ -222,7 +421,6 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </ul>
         )}
       </section>
-
 
       <LaunchAuditTrail campaignId={campaign.id} />
     </div>

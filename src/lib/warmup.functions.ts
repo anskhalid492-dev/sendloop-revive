@@ -101,10 +101,16 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
     ]);
 
     const settingsById = new Map(
-      ((settings ?? []) as Array<Record<string, unknown>>).map((s) => [s["sending_account_id"] as string, s]),
+      ((settings ?? []) as Array<Record<string, unknown>>).map((s) => [
+        s["sending_account_id"] as string,
+        s,
+      ]),
     );
     const statsById = new Map(
-      ((stats ?? []) as Array<Record<string, unknown>>).map((s) => [s["sending_account_id"] as string, s]),
+      ((stats ?? []) as Array<Record<string, unknown>>).map((s) => [
+        s["sending_account_id"] as string,
+        s,
+      ]),
     );
 
     const rows: WarmupAccountRow[] = (accounts ?? []).map((a: Record<string, unknown>) => {
@@ -172,7 +178,11 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
         )
         .eq("id", data.id)
         .maybeSingle(),
-      client.from("warmup_settings").select(SETTINGS_COLUMNS).eq("sending_account_id", data.id).maybeSingle(),
+      client
+        .from("warmup_settings")
+        .select(SETTINGS_COLUMNS)
+        .eq("sending_account_id", data.id)
+        .maybeSingle(),
       client
         .from("warmup_daily_stats")
         .select(
@@ -291,7 +301,8 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     await client
       .from("sending_accounts")
       .update({
-        warmup_status: patch.enabled === undefined ? undefined : patch.enabled ? "warming" : "not_started",
+        warmup_status:
+          patch.enabled === undefined ? undefined : patch.enabled ? "warming" : "not_started",
         ...(patch.enabled ? { warmup_started_at: body["started_at"] } : {}),
       })
       .eq("id", accountId);
@@ -303,7 +314,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
 export const bulkSetWarmup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ ids: z.array(z.string().uuid()).min(1).max(100), enabled: z.boolean() }).parse(input),
+    z
+      .object({ ids: z.array(z.string().uuid()).min(1).max(100), enabled: z.boolean() })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
@@ -325,13 +338,15 @@ export const bulkSetWarmup = createServerFn({ method: "POST" })
         enabled: data.enabled,
         paused_by_system: false,
         pause_reason: null,
-        started_at: data.enabled ? (existing?.started_at ?? now) : existing?.started_at ?? null,
+        started_at: data.enabled ? (existing?.started_at ?? now) : (existing?.started_at ?? null),
       };
       const { error: writeError } = existing
         ? await client.from("warmup_settings").update(body).eq("id", existing.id)
-        : await client
-            .from("warmup_settings")
-            .insert({ ...body, workspace_id: account.workspace_id, sending_account_id: account.id });
+        : await client.from("warmup_settings").insert({
+            ...body,
+            workspace_id: account.workspace_id,
+            sending_account_id: account.id,
+          });
       if (writeError) throw new Error(writeError.message);
       changed += 1;
     }
@@ -348,7 +363,9 @@ export const bulkSetWarmup = createServerFn({ method: "POST" })
 export const listMailboxChecks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ id: z.string().uuid(), limit: z.number().int().min(5).max(100).default(25) }).parse(input),
+    z
+      .object({ id: z.string().uuid(), limit: z.number().int().min(5).max(100).default(25) })
+      .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ checks: MailboxCheck[] }> => {
     const { data: rows, error } = await (context.supabase as Client)
@@ -365,7 +382,9 @@ export const listMailboxChecks = createServerFn({ method: "GET" })
 export const getMailboxInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ id: z.string().uuid(), days: z.number().int().min(7).max(90).default(30) }).parse(input),
+    z
+      .object({ id: z.string().uuid(), days: z.number().int().min(7).max(90).default(30) })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
@@ -433,7 +452,9 @@ export const listDomainAlerts = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<{ alerts: DomainAlert[] }> => {
     const { data, error } = await (context.supabase as Client)
       .from("domain_alerts")
-      .select("id, domain_id, kind, severity, title, detail, records, resolved_at, created_at, sending_domains(domain)")
+      .select(
+        "id, domain_id, kind, severity, title, detail, records, resolved_at, created_at, sending_domains(domain)",
+      )
       .is("resolved_at", null)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -724,13 +745,15 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
       target: number | null;
       health_score: number | null;
     }>;
-    const settingsList = ((settingsRows ?? []) as Array<{
-      enabled: boolean | null;
-      mode: string | null;
-      max_volume: number | null;
-      ramp_days: number | null;
-      started_at: string | null;
-    }>).filter((row) => row.enabled);
+    const settingsList = (
+      (settingsRows ?? []) as Array<{
+        enabled: boolean | null;
+        mode: string | null;
+        max_volume: number | null;
+        ramp_days: number | null;
+        started_at: string | null;
+      }>
+    ).filter((row) => row.enabled);
     const targetsToday = todayRows
       .map((row) => row.target)
       .filter((value): value is number => typeof value === "number");
@@ -740,29 +763,24 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
     const healthToday = todayRows
       .map((row) => row.health_score)
       .filter((value): value is number => typeof value === "number");
-    const startedAt = settingsList
-      .map((row) => row.started_at)
-      .filter((value): value is string => Boolean(value))
-      .sort()[0] ?? null;
-    const rampDays = settingsList
-      .map((row) => row.ramp_days)
-      .filter((value): value is number => typeof value === "number")
-      .sort((a, b) => b - a)[0] ?? null;
+    const startedAt =
+      settingsList
+        .map((row) => row.started_at)
+        .filter((value): value is string => Boolean(value))
+        .sort()[0] ?? null;
+    const rampDays =
+      settingsList
+        .map((row) => row.ramp_days)
+        .filter((value): value is number => typeof value === "number")
+        .sort((a, b) => b - a)[0] ?? null;
 
     const current = {
       sentToday: todayRows.reduce((sum, row) => sum + (row.sent ?? 0), 0),
-      targetToday: targetsToday.length
-        ? targetsToday.reduce((sum, value) => sum + value, 0)
-        : null,
+      targetToday: targetsToday.length ? targetsToday.reduce((sum, value) => sum + value, 0) : null,
       dailyLimit: limits.length ? limits.reduce((sum, value) => sum + value, 0) : null,
-      stage: settingsList.length
-        ? (settingsList[0]?.mode ?? null)
-        : null,
+      stage: settingsList.length ? (settingsList[0]?.mode ?? null) : null,
       stageDay: startedAt
-        ? Math.max(
-            1,
-            Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) + 1,
-          )
+        ? Math.max(1, Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) + 1)
         : null,
       rampDays,
       lastActivityAt: (lastEvent?.created_at as string | undefined) ?? null,
@@ -795,5 +813,96 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         .map(([placement, count]) => ({ placement, count }))
         .sort((a, b) => b.count - a.count),
       days: data.days,
+    };
+  });
+
+export type WarmupTimelineEvent = {
+  id: string;
+  type: string;
+  detail: string | null;
+  provider: string | null;
+  occurred_at: string;
+};
+
+export type WarmupTimelineMessage = {
+  id: string;
+  from_email: string;
+  to_email: string;
+  subject: string;
+  status: string;
+  role: string | null;
+  placement: string | null;
+  provider_message_id: string | null;
+  attempts: number;
+  error: string | null;
+  scheduled_at: string | null;
+  processed_at: string | null;
+  received_at: string | null;
+  placement_checked_at: string | null;
+  created_at: string;
+  events: WarmupTimelineEvent[];
+};
+
+/**
+ * Per-message warmup run timeline. Every row is a real warmup job (created by
+ * the warmup engine only) together with the provider/inbound events recorded
+ * against it, so a single message can be traced from queued → sent → delivered
+ * → placement → bounce/reply.
+ */
+export const getWarmupTimeline = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        accountId: z.string().uuid().optional(),
+        status: z.enum(["all", "pending", "sent", "failed", "bounced", "replied"]).default("all"),
+        limit: z.number().int().min(10).max(200).default(50),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+
+    let query = client
+      .from("warmup_jobs")
+      .select(
+        "id, from_email, to_email, subject, status, role, placement, provider_message_id, attempts, error, scheduled_at, processed_at, received_at, placement_checked_at, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.accountId) query = query.eq("sending_account_id", data.accountId);
+    if (data.status !== "all") query = query.eq("status", data.status);
+
+    const { data: jobs, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const rows = (jobs ?? []) as Array<Omit<WarmupTimelineMessage, "events">>;
+    if (rows.length === 0) return { messages: [] as WarmupTimelineMessage[] };
+
+    const { data: events, error: eventsError } = await client
+      .from("warmup_events")
+      .select("id, job_id, type, detail, provider, occurred_at")
+      .in(
+        "job_id",
+        rows.map((row) => row.id),
+      )
+      .order("occurred_at", { ascending: true });
+    if (eventsError) throw new Error(eventsError.message);
+
+    const byJob = new Map<string, WarmupTimelineEvent[]>();
+    for (const raw of (events ?? []) as Array<WarmupTimelineEvent & { job_id: string }>) {
+      const list = byJob.get(raw.job_id) ?? [];
+      list.push({
+        id: raw.id,
+        type: raw.type,
+        detail: raw.detail,
+        provider: raw.provider,
+        occurred_at: raw.occurred_at,
+      });
+      byJob.set(raw.job_id, list);
+    }
+
+    return {
+      messages: rows.map((row) => ({ ...row, events: byJob.get(row.id) ?? [] })),
     };
   });

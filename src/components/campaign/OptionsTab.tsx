@@ -1,4 +1,4 @@
-import { BarChart3, Building2, MailX, ShieldCheck, Shuffle } from "lucide-react";
+import { BarChart3, Building2, Info, MailX, ShieldCheck, Shuffle } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,11 +16,13 @@ import type { CampaignBuilder } from "./useCampaignBuilder";
 function Toggle({
   title,
   description,
+  impact,
   checked,
   onChange,
 }: {
   title: string;
   description: string;
+  impact?: string | undefined;
   checked: boolean;
   onChange: (value: boolean) => void;
 }) {
@@ -29,6 +31,11 @@ function Toggle({
       <div className="min-w-0">
         <p className="text-sm font-medium">{title}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
+        {impact ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">When on:</span> {impact}
+          </p>
+        ) : null}
       </div>
       <Switch checked={checked} onCheckedChange={onChange} aria-label={title} />
     </div>
@@ -38,10 +45,12 @@ function Toggle({
 function Group({
   icon: Icon,
   title,
+  subtitle,
   children,
 }: {
   icon: typeof MailX;
   title: string;
+  subtitle: string;
   children: React.ReactNode;
 }) {
   return (
@@ -50,6 +59,7 @@ function Group({
         <Icon className="size-4 text-primary" />
         <h3 className="font-semibold">{title}</h3>
       </div>
+      <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
       <div className="mt-4 space-y-3">{children}</div>
     </section>
   );
@@ -63,6 +73,19 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      <section className="lg:col-span-2 flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-4">
+        <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+        <div className="text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">What these options control</p>
+          <p className="mt-1">
+            Options decide <span className="font-medium text-foreground">how</span> this campaign
+            sends, not what it says. Inbox rotation spreads volume across mailboxes, stop conditions
+            decide when a lead should stop receiving follow-ups, tracking controls what is measured
+            (and what deliverability cost you pay for it), and compliance keeps every send opt-out
+            friendly. Changes apply to messages that have not been sent yet.
+          </p>
+        </div>
+      </section>
       <section className="surface-card space-y-4 p-5 lg:col-span-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -104,9 +127,10 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {INBOX_ROTATION_STRATEGIES.find(
-                  (s) => s.value === settings.inboxRotationStrategy,
-                )?.hint}
+                {
+                  INBOX_ROTATION_STRATEGIES.find((s) => s.value === settings.inboxRotationStrategy)
+                    ?.hint
+                }
               </p>
             </div>
             <div className="space-y-1.5">
@@ -137,16 +161,22 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
         )}
       </section>
 
-      <Group icon={MailX} title="Stop conditions">
+      <Group
+        icon={MailX}
+        title="Stop conditions"
+        subtitle="Rules that remove a lead from the remaining sequence so nobody gets chased after they answer."
+      >
         <Toggle
           title="Stop when a lead replies"
           description="Remaining follow-ups are cancelled as soon as a reply lands."
+          impact="The lead moves to Replied, all queued steps for them are cancelled, and the thread appears in your Unified Inbox."
           checked={settings.stopOnReply}
           onChange={(v) => patchSettings({ stopOnReply: v })}
         />
         <Toggle
           title="Stop the whole company on reply"
           description="Pause every other contact at the same company when one person replies."
+          impact="Colleagues of the person who replied stop receiving the sequence, so you never pitch one company twice."
           checked={settings.stopOnCompanyReply}
           onChange={(v) => patchSettings({ stopOnCompanyReply: v })}
         />
@@ -158,63 +188,78 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
             min={1}
             max={50}
             value={settings.maxContactsPerCompany}
-            onChange={(e) =>
-              patchSettings({ maxContactsPerCompany: Number(e.target.value) || 1 })
-            }
+            onChange={(e) => patchSettings({ maxContactsPerCompany: Number(e.target.value) || 1 })}
           />
           <p className="text-xs text-muted-foreground">
-            Protects accounts from receiving the same pitch from several inboxes.
+            Caps how many people at the same company can enter this campaign, so an account never
+            receives the same pitch from several contacts at once.
           </p>
         </div>
       </Group>
 
-      <Group icon={BarChart3} title="Tracking">
+      <Group
+        icon={BarChart3}
+        title="Tracking"
+        subtitle="What this campaign measures. Every tracker adds a small deliverability cost, so only enable what you will act on."
+      >
         <Toggle
           title="Open tracking"
-          description="Adds an invisible pixel. Turn off for the best deliverability."
+          description="Adds an invisible pixel so opens are recorded."
+          impact="Open counts and open rate populate in Analytics. Some mailbox providers pre-load images, so treat opens as directional."
           checked={settings.openTracking}
           onChange={(v) => patchSettings({ openTracking: v })}
         />
         <Toggle
           title="Click tracking"
           description="Rewrites links so clicks are attributed to the campaign."
+          impact="Click counts appear per lead and per step. Rewritten links can slightly reduce inbox placement."
           checked={settings.clickTracking}
           onChange={(v) => patchSettings({ clickTracking: v })}
         />
         <Toggle
           title="Send plain text only"
           description="Strips HTML so emails look like a normal 1:1 message."
+          impact="Best deliverability option — no images, no styling, and open tracking cannot be applied."
           checked={settings.textOnly}
           onChange={(v) => patchSettings({ textOnly: v })}
         />
       </Group>
 
-      <Group icon={ShieldCheck} title="Compliance">
+      <Group
+        icon={ShieldCheck}
+        title="Compliance"
+        subtitle="Legal and reputation safeguards applied automatically to every message in the sequence."
+      >
         <Toggle
           title="Include unsubscribe link"
           description="Appends a one-click opt-out footer to every email in the sequence."
+          impact="Opt-outs are suppressed instantly across this workspace and never receive another campaign email."
           checked={settings.unsubscribeEnabled}
           onChange={(v) => patchSettings({ unsubscribeEnabled: v })}
         />
       </Group>
 
-      <Group icon={Building2} title="Deliverability checklist">
+      <Group
+        icon={Building2}
+        title="Deliverability checklist"
+        subtitle="A live read of your current option mix against cold-email best practice."
+      >
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li>
-            {settings.textOnly ? "✓" : "•"} Plain-text sending is{" "}
-            {settings.textOnly ? "on" : "off"} — plain text usually lands in the primary tab.
+            {settings.textOnly ? "✓" : "•"} Plain-text sending is {settings.textOnly ? "on" : "off"}{" "}
+            — plain text usually lands in the primary tab.
           </li>
           <li>
             {settings.openTracking ? "•" : "✓"} Open tracking is{" "}
             {settings.openTracking ? "on" : "off"} — tracking pixels can hurt inbox placement.
           </li>
           <li>
-            {settings.minDelayMinutes >= 2 ? "✓" : "•"} Minimum delay is{" "}
-            {settings.minDelayMinutes} min — 2 minutes or more looks human.
+            {settings.minDelayMinutes >= 2 ? "✓" : "•"} Minimum delay is {settings.minDelayMinutes}{" "}
+            min — 2 minutes or more looks human.
           </li>
           <li>
-            {settings.sendingAccountIds.length > 1 ? "✓" : "•"}{" "}
-            {settings.sendingAccountIds.length} mailbox
+            {settings.sendingAccountIds.length > 1 ? "✓" : "•"} {settings.sendingAccountIds.length}{" "}
+            mailbox
             {settings.sendingAccountIds.length === 1 ? "" : "es"} in rotation — more mailboxes
             spread the volume.
           </li>
