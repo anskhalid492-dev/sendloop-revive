@@ -242,35 +242,34 @@ const stripe: ProviderAdapter = {
     };
 
     if (event.eventType.startsWith("customer.subscription.")) {
-      const item = obj.items?.data?.[0];
-      const status: SubscriptionState =
-        event.eventType === "customer.subscription.deleted"
-          ? "cancelled"
-          : (STRIPE_STATUS[obj.status] ?? "active");
+      return { ...base, ...stripeSubscriptionEvent(obj, event.eventType) };
+    }
+
+    // A completed Checkout Session is the moment the customer paid. The
+    // subscription object itself is fetched and applied by the webhook
+    // pipeline; here we surface the workspace/plan mapping and the customer so
+    // nothing depends on event ordering.
+    if (
+      event.eventType === "checkout.session.completed" ||
+      event.eventType === "checkout.session.async_payment_succeeded"
+    ) {
       return {
         ...base,
-        workspaceId: obj.metadata?.workspace_id ?? null,
-        subscription: {
-          externalId: obj.id,
-          customerId: obj.customer ?? null,
-          status,
-          interval: item?.price?.recurring?.interval === "year" ? "yearly" : "monthly",
-          amountCents: item?.price?.unit_amount ?? 0,
-          currency: obj.currency ?? item?.price?.currency ?? "usd",
-          currentPeriodStart: iso(obj.current_period_start),
-          currentPeriodEnd: iso(obj.current_period_end),
-          trialEndsAt: iso(obj.trial_end),
-          cancelAtPeriodEnd: Boolean(obj.cancel_at_period_end),
-          cancelledAt: iso(obj.canceled_at),
-          priceId: item?.price?.id ?? null,
-        },
+        workspaceId: obj.metadata?.workspace_id ?? obj.client_reference_id ?? null,
+        planId: obj.metadata?.plan_id ?? null,
+        customerRef: obj.customer ?? null,
       };
     }
 
-    if (event.eventType === "invoice.paid" || event.eventType === "invoice.payment_failed") {
-      const paid = event.eventType === "invoice.paid";
+    if (
+      event.eventType === "invoice.paid" ||
+      event.eventType === "invoice.payment_succeeded" ||
+      event.eventType === "invoice.payment_failed"
+    ) {
+      const paid = event.eventType !== "invoice.payment_failed";
       return {
         ...base,
+        customerRef: obj.customer ?? null,
         invoice: {
           externalId: obj.id,
           number: obj.number ?? null,
@@ -292,6 +291,7 @@ const stripe: ProviderAdapter = {
         },
       };
     }
+
 
     if (event.eventType === "charge.refunded") {
       return {
