@@ -425,8 +425,9 @@ export function TeamTab({
       toast[res.emailSent ? "success" : "warning"](
         res.emailSent
           ? "Invitation sent"
-          : `Invitation created, but the email failed: ${res.emailError}`,
+          : "Invitation created — the email couldn't be delivered, so copy the invite link and share it directly.",
       );
+
       setOpen(false);
       setEmail("");
       setMessage("");
