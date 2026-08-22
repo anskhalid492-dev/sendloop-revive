@@ -276,14 +276,28 @@ export function BillingTab({
           </p>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div id="plans" ref={plansRef} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {(plansQuery.data ?? []).map((plan) => {
             const price =
               interval === "yearly" ? (plan as any).yearly_price ?? 0 : plan.monthly_price;
             const current = plan.id === billing.planId;
+            const picked = Boolean(highlightPlanSlug) && plan.slug === highlightPlanSlug;
             return (
-              <div key={plan.id} className="surface-card flex flex-col p-5">
-                <h3 className="font-semibold">{plan.name}</h3>
+              <div
+                key={plan.id}
+                className={
+                  "surface-card flex flex-col p-5" +
+                  (picked && !current ? " border-primary/60 ring-2 ring-primary/30" : "")
+                }
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold">{plan.name}</h3>
+                  {picked && !current ? (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Selected
+                    </Badge>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-2xl font-bold">
                   {formatMoney(price)}
                   <span className="text-sm font-normal text-muted-foreground">
@@ -297,11 +311,15 @@ export function BillingTab({
                 </ul>
                 <Button
                   className="mt-4"
-                  variant={current ? "outline" : "default"}
+                  variant={current || !picked ? (current ? "outline" : "default") : "default"}
                   disabled={current || available.length === 0 || checkoutMutation.isPending}
                   onClick={() => checkoutMutation.mutate(plan.id)}
                 >
-                  {current ? "Current plan" : `Choose ${plan.name}`}
+                  {current
+                    ? "Current plan"
+                    : checkoutMutation.isPending
+                      ? "Starting checkout…"
+                      : `Choose ${plan.name}`}
                 </Button>
               </div>
             );
