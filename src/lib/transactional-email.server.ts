@@ -619,7 +619,19 @@ export async function processTransactionalQueue(
             sent_at: new Date().toISOString(),
           })
           .eq("id", row.id);
+        await registerOutboundMessage(
+          {
+            providerMessageId: ("messageId" in outcome ? outcome.messageId : null) as string | null,
+            messageType: "transactional",
+            provider: outcome.provider,
+            toEmail: row.to_email,
+            refTable: "transactional_emails",
+            refId: row.id,
+          },
+          admin,
+        );
         continue;
+
       }
 
       const message = outcome.error ?? "Send failed";
