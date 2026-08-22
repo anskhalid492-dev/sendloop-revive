@@ -559,6 +559,7 @@ export async function checkMxRecords() {
   const status = lookupError ? ("fail" as const) : hit && priorityOk ? ("pass" as const) : ("fail" as const);
 
   return {
+    ...configuredAs,
     domain: rootDomain,
     host,
     status,
