@@ -74,6 +74,27 @@ function mapState(status: string | undefined): ProviderDomainState["state"] {
   return "pending";
 }
 
+/**
+ * Sending readiness only. The aggregate domain status also reflects the
+ * inbound/receiving MX record, which is optional for outbound mail: a domain
+ * whose DKIM + SPF records are all verified can send even when the aggregate
+ * status reads "partially_failed" because receiving is not configured.
+ */
+function sendingState(found: ResendDomain): ProviderDomainState["state"] {
+  const aggregate = mapState(found.status);
+  if (aggregate === "verified") return "verified";
+  const sendingRecords = (found.records ?? []).filter(
+    (r) => !(r.record ?? "").toLowerCase().includes("receiv"),
+  );
+  const allSendingVerified =
+    sendingRecords.length > 0 &&
+    sendingRecords.every((r) => (r.status ?? "").toLowerCase() === "verified");
+  const canSend = (found.capabilities?.sending ?? "").toLowerCase() === "enabled";
+  if (allSendingVerified && canSend) return "verified";
+  return aggregate;
+}
+
+
 async function findDomain(
   creds: ProviderCredentials,
   domain: string,
