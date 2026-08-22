@@ -7,13 +7,15 @@
 # Requires: bun, a Cloudflare account with munchreach.com as an active zone, and every
 # secret from .env.production.example already pushed with `wrangler secret put NAME`.
 #
-# PHASE 5A: the app must keep pointing at the CURRENT Supabase project
-# (ciaxsdojimcupxzpbpev). The safety check below aborts otherwise.
+# PHASE 6: the app must point at the NEW Supabase project
+# (rihgzkofoxcjljlbvbya). The OLD project (ciaxsdojimcupxzpbpev) stays untouched
+# as the rollback target — set EXPECTED_SUPABASE_PROJECT=ciaxsdojimcupxzpbpev to
+# redeploy the rollback build.
 set -euo pipefail
 
 WORKER_NAME="${WORKER_NAME:-munchreach}"
 DOMAIN="${DOMAIN:-munchreach.com}"
-EXPECTED_SUPABASE_PROJECT="${EXPECTED_SUPABASE_PROJECT:-ciaxsdojimcupxzpbpev}"
+EXPECTED_SUPABASE_PROJECT="${EXPECTED_SUPABASE_PROJECT:-rihgzkofoxcjljlbvbya}"
 
 echo "==> Safety check: Supabase project must be $EXPECTED_SUPABASE_PROJECT"
 CONFIGURED="${VITE_SUPABASE_PROJECT_ID:-${SUPABASE_PROJECT_ID:-}}"
@@ -22,10 +24,10 @@ if [ -z "$CONFIGURED" ] && [ -f .env ]; then
 fi
 if [ "$CONFIGURED" != "$EXPECTED_SUPABASE_PROJECT" ]; then
   echo "STOP: configured Supabase project is '$CONFIGURED', expected '$EXPECTED_SUPABASE_PROJECT'."
-  echo "      Database cutover must NOT happen in Phase 5A. Aborting."
+  echo "      Export VITE_SUPABASE_* / SUPABASE_* for the intended project before building. Aborting."
   exit 1
 fi
-echo "    ok — using CURRENT production Supabase ($CONFIGURED)"
+echo "    ok — building against Supabase project $CONFIGURED"
 
 echo "==> 1/4 Building production bundle"
 bun install --frozen-lockfile
@@ -87,6 +89,13 @@ check /api/public/media/smoke-test        "400 401 403 404"
 
 # Must NOT exist
 check /api/public/webhooks/stripe 404 POST '{}'
+
+echo "==> Backend binding check (client bundle must reference $CONFIGURED)"
+if grep -rqa "$CONFIGURED.supabase.co" dist/client; then
+  echo "  PASS client bundle points at $CONFIGURED"
+else
+  echo "  FAIL client bundle does not reference $CONFIGURED"; fail=1
+fi
 
 echo "==> Host headers (must show Cloudflare, not LiteSpeed/PHP)"
 curl -sI "https://$DOMAIN/" | grep -iE '^(server|x-powered-by|cf-ray)' || true
