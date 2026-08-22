@@ -637,7 +637,7 @@ export async function adminPlatformAnalytics(filters: AdminAnalyticsFilters) {
     scope(
       db()
         .from("billing_transactions")
-        .select("id, kind, status, amount_cents, currency, occurred_at")
+        .select("id, kind, status, amount_cents, currency, occurred_at, subscription_id")
         .gte("occurred_at", from)
         .lte("occurred_at", to)
         .limit(EVENT_LIMIT),
