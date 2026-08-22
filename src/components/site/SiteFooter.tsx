@@ -85,7 +85,7 @@ const fallbackColumns = [
       { label: "Terms", href: "/terms" },
       { label: "Acceptable Use", href: "/acceptable-use" },
       { label: "Cookie Policy", href: "/cookie-policy" },
-      label: "Subprocessors", href: "/subprocessors" },
+      { label: "Subprocessors", href: "/subprocessors" },
       { label: "DPA", href: "/dpa" },
       { label: "Remove My Data", href: "/remove-my-data" },
     ],
