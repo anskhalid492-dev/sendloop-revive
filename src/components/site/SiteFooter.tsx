@@ -7,8 +7,10 @@ import {
   FileText,
   Flame,
   Inbox,
+  Instagram,
   LayoutGrid,
   Linkedin,
+
   Lock,
   Repeat,
   Send,
@@ -92,12 +94,13 @@ const fallbackColumns = [
   },
 ];
 
-const fallbackSocial = [
-  { label: "LinkedIn", href: "#top" },
-  { label: "YouTube", href: "#top" },
-  { label: "X", href: "#top" },
-  { label: "Facebook", href: "#top" },
-];
+/** A social link only renders when staff have entered a real destination. */
+function hasRealHref(href: string | null | undefined) {
+  const value = (href ?? "").trim();
+  if (!value || value === "#" || value === "#top") return false;
+  return /^https?:\/\/\S+\.\S+/.test(value);
+}
+
 
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
@@ -114,12 +117,6 @@ const productIcons: Record<string, typeof Send> = {
   Templates: FileText,
 };
 
-const socialIcons: Record<string, typeof Send> = {
-  LinkedIn: Linkedin,
-  YouTube: Youtube,
-  Facebook: Facebook,
-};
-
 function XIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
@@ -127,6 +124,24 @@ function XIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+function DiscordIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M20.32 4.57A19.8 19.8 0 0 0 15.44 3l-.24.45c1.63.4 2.98 1.04 4.2 1.9a13.9 13.9 0 0 0-11.02-.44c-.35.14-.7.29-1.02.44.94-.67 2.1-1.3 3.6-1.75L10.63 3c-1.4.18-3.2.7-4.95 1.57C3.5 8.34 2.6 12.72 3.03 17.53a17.4 17.4 0 0 0 5.4 2.47l1.1-1.5c-.94-.32-1.8-.72-2.6-1.24.22-.15.43-.3.63-.46a12.4 12.4 0 0 0 10.87 0c.2.17.42.32.64.47-.8.51-1.66.91-2.6 1.23l1.09 1.5a17.4 17.4 0 0 0 5.4-2.47c.5-5.4-.85-9.74-2.64-12.96ZM8.98 15.13c-1.05 0-1.92-.96-1.92-2.14 0-1.19.85-2.15 1.92-2.15s1.94.97 1.92 2.15c0 1.18-.85 2.14-1.92 2.14Zm7.07 0c-1.06 0-1.92-.96-1.92-2.14 0-1.19.85-2.15 1.92-2.15s1.93.97 1.91 2.15c0 1.18-.84 2.14-1.91 2.14Z" />
+    </svg>
+  );
+}
+
+const socialIcons: Record<string, (props: { className?: string }) => React.ReactElement> = {
+  X: XIcon,
+  Instagram: (props) => <Instagram {...props} />,
+  YouTube: (props) => <Youtube {...props} />,
+  LinkedIn: (props) => <Linkedin {...props} />,
+  Facebook: (props) => <Facebook {...props} />,
+  Discord: DiscordIcon,
+};
+
 
 export function SiteFooter() {
   const content = useSiteContent();
@@ -155,9 +170,10 @@ export function SiteFooter() {
     return sorted.map(([title, links]) => ({ title, links }));
   })();
 
-  const social = content?.social?.length
-    ? content.social.map((s) => ({ label: s.label, href: s.href }))
-    : fallbackSocial;
+  const social = (content?.social ?? [])
+    .filter((s) => hasRealHref(s.href))
+    .map((s) => ({ label: s.label, href: s.href.trim() }));
+
 
   const tagline =
     content?.footerConfig?.tagline ??
@@ -191,21 +207,26 @@ export function SiteFooter() {
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">{tagline}</p>
 
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              {social.map((s) => {
-                const Icon = socialIcons[s.label];
-                return (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    aria-label={s.label}
-                    className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                  >
-                    {Icon ? <Icon className="size-4" /> : <XIcon className="size-4" />}
-                  </a>
-                );
-              })}
-            </div>
+            {social.length ? (
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                {social.map((s) => {
+                  const Icon = socialIcons[s.label] ?? ((p: { className?: string }) => <Send {...p} />);
+                  return (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      aria-label={s.label}
+                      className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Icon className="size-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+
 
             <div className="mt-7 rounded-2xl border border-border bg-muted/30 p-5">
               <h3 className="text-base font-semibold">Stay in the loop</h3>

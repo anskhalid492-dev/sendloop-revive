@@ -130,7 +130,7 @@ const navInput = z.object({
   location: z.enum(["header", "footer", "social"]),
   groupLabel: z.string().trim().max(80).nullable(),
   label: z.string().trim().min(1).max(80),
-  href: z.string().trim().min(1).max(600),
+  href: z.string().trim().max(600),
   description: z.string().trim().max(240).nullable(),
   icon: z.string().trim().max(60).nullable(),
   isExternal: z.boolean(),
@@ -145,21 +145,25 @@ export const saveNavItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { logContentChange } = await import("@/lib/site-content.server");
-    const hrefError = validateHref(data.href, data.isExternal);
+    const isSocial = data.location === "social";
+    const hrefError = validateHref(data.href, data.isExternal, isSocial);
     if (hrefError) throw new Error(hrefError);
+    // A social platform with no URL stays hidden instead of linking nowhere.
+    const isVisible = isSocial && !data.href.trim() ? false : data.isVisible;
 
     const db = context.supabase as any;
-    if (!data.isExternal) {
+    if (!data.isExternal && data.href.trim()) {
       const path = normalizePath(data.href.split("#")[0]!.split("?")[0]!);
       const { data: target } = await db
         .from("site_pages")
         .select("path, status")
         .eq("path", path)
         .maybeSingle();
-      if (target && target.status !== "published" && data.isVisible) {
+      if (target && target.status !== "published" && isVisible) {
         throw new Error(`${path} is ${target.status} — publish that page before linking to it`);
       }
     }
+
 
     const row = {
       location: data.location,
@@ -169,7 +173,7 @@ export const saveNavItem = createServerFn({ method: "POST" })
       description: data.description || null,
       icon: data.icon || null,
       is_external: data.isExternal,
-      is_visible: data.isVisible,
+      is_visible: isVisible,
       sort_order: data.sortOrder,
       updated_at: new Date().toISOString(),
     };

@@ -59,14 +59,15 @@ function emptyDraft(location: NavLocation, sortOrder: number): Draft {
     location,
     groupLabel: location === "header" ? "core" : location === "footer" ? "Product" : "",
     label: "",
-    href: "/",
+    href: location === "social" ? "" : "/",
     description: "",
     icon: "",
-    isExternal: false,
+    isExternal: location === "social",
     isVisible: true,
     sortOrder,
   };
 }
+
 
 function toDraft(item: NavItem): Draft {
   return {
@@ -163,8 +164,12 @@ function AdminNavigationRoute() {
     ]);
   };
 
-  const draftHrefError = draft ? validateHref(draft.href, draft.isExternal) : null;
-  const linkedPage = draft && !draft.isExternal ? pages.find((p: any) => p.path === draft.href.split("#")[0]) : null;
+  const draftHrefError = draft ? validateHref(draft.href, draft.isExternal, draft.location === "social") : null;
+  const linkedPage =
+    draft && !draft.isExternal && draft.href.trim()
+      ? pages.find((p: any) => p.path === draft.href.split("#")[0])
+      : null;
+
 
   function LinkGroup({ location, groupKey, title }: { location: NavLocation; groupKey: string | null; title: string }) {
     const items = nav
@@ -340,9 +345,17 @@ function AdminNavigationRoute() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>URL</Label>
-                  <Input value={draft.href} onChange={(e) => setDraft({ ...draft, href: e.target.value })} />
+                  <Input
+                    value={draft.href}
+                    placeholder={draft.location === "social" ? "https://…" : "/pricing"}
+                    onChange={(e) => setDraft({ ...draft, href: e.target.value })}
+                  />
                   {draftHrefError ? <p className="text-xs text-destructive">{draftHrefError}</p> : null}
-                  {linkedPage ? (
+                  {draft.location === "social" && !draft.href.trim() ? (
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to hide this platform from the footer.
+                    </p>
+                  ) : linkedPage ? (
                     <p className="text-xs text-muted-foreground">
                       Points to “{linkedPage.title}” ({linkedPage.status})
                     </p>
@@ -350,6 +363,7 @@ function AdminNavigationRoute() {
                     <p className="text-xs text-amber-500">No page registry entry matches this path.</p>
                   ) : null}
                 </div>
+
                 {draft.location === "header" ? (
                   <div className="space-y-1.5">
                     <Label>Menu group</Label>
