@@ -31,6 +31,7 @@ import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReferralRouteImport } from './routes/referral'
+import { Route as RemoveMyDataRouteImport } from './routes/remove-my-data'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SigninRouteImport } from './routes/signin'
@@ -259,6 +260,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const ReferralRoute = ReferralRouteImport.update({
   id: '/referral',
   path: '/referral',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RemoveMyDataRoute = RemoveMyDataRouteImport.update({
+  id: '/remove-my-data',
+  path: '/remove-my-data',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -941,6 +947,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
@@ -1083,6 +1090,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
@@ -1227,6 +1235,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
@@ -1372,6 +1381,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
     | '/signin'
@@ -1514,6 +1524,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
     | '/signin'
@@ -1657,6 +1668,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
     | '/signin'
@@ -1802,6 +1814,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReferralRoute: typeof ReferralRoute
+  RemoveMyDataRoute: typeof RemoveMyDataRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SigninRoute: typeof SigninRoute
@@ -2008,6 +2021,13 @@ declare module '@tanstack/react-router' {
       path: '/referral'
       fullPath: '/referral'
       preLoaderRoute: typeof ReferralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/remove-my-data': {
+      id: '/remove-my-data'
+      path: '/remove-my-data'
+      fullPath: '/remove-my-data'
+      preLoaderRoute: typeof RemoveMyDataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -3076,6 +3096,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReferralRoute: ReferralRoute,
+  RemoveMyDataRoute: RemoveMyDataRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SigninRoute: SigninRoute,
