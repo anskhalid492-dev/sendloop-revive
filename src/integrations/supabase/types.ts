@@ -7688,7 +7688,7 @@ export type Database = {
       app_role: "admin" | "support" | "user"
       billing_environment: "test" | "live"
       billing_interval: "monthly" | "yearly"
-      billing_provider: "stripe" | "paddle" | "lemonsqueezy"
+      billing_provider: "stripe" | "paddle" | "lemonsqueezy" | "manual"
       billing_sub_status:
         | "trialing"
         | "active"
@@ -7877,7 +7877,7 @@ export const Constants = {
       app_role: ["admin", "support", "user"],
       billing_environment: ["test", "live"],
       billing_interval: ["monthly", "yearly"],
-      billing_provider: ["stripe", "paddle", "lemonsqueezy"],
+      billing_provider: ["stripe", "paddle", "lemonsqueezy", "manual"],
       billing_sub_status: [
         "trialing",
         "active",
