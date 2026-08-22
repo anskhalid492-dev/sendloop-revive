@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
@@ -26,6 +26,35 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
 import { cn } from "@/lib/utils";
 import { PageFaqs } from "@/components/site/PageFaqs";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Every pricing CTA leads to the customer Billing / Upgrade page with the
+ * chosen plan preserved. Signed-out visitors go through sign-up first and are
+ * returned to the same billing destination afterwards.
+ */
+function useSignedIn() {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setSignedIn(Boolean(data.session));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+  return signedIn;
+}
+
+function planCtaHref(signedIn: boolean | null, planSlug?: string) {
+  const billing = planSlug ? `/billing?plan=${encodeURIComponent(planSlug)}` : "/billing";
+  return signedIn ? billing : `/signup?redirect=${encodeURIComponent(billing)}`;
+}
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -64,6 +93,7 @@ function plansQueryOptions() {
 function PricingPage() {
   const { data: plans } = useSuspenseQuery(plansQueryOptions());
   const [yearly, setYearly] = useState(true);
+  const signedIn = useSignedIn();
 
   return (
     <MarketingLayout>
@@ -93,7 +123,7 @@ function PricingPage() {
 
         <div className="mt-10 grid gap-6 lg:grid-cols-4">
           {plans.map((plan) => (
-            <PricingCard key={plan.id} plan={plan} yearly={yearly} />
+            <PricingCard key={plan.id} plan={plan} yearly={yearly} signedIn={signedIn} />
           ))}
         </div>
 
@@ -122,7 +152,7 @@ function PricingPage() {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>
-              <a href="/signup">Start for Free</a>
+              <a href={planCtaHref(signedIn)}>Start for Free</a>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <a href="/help-center">Visit Help Center</a>
@@ -136,7 +166,15 @@ function PricingPage() {
   );
 }
 
-function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
+function PricingCard({
+  plan,
+  yearly,
+  signedIn,
+}: {
+  plan: Plan;
+  yearly: boolean;
+  signedIn: boolean | null;
+}) {
   const price = yearly ? plan.yearly_price : plan.monthly_price;
   const yearlyTotal = plan.yearly_price * 12;
   const isTrial = plan.monthly_price === 0;
@@ -183,7 +221,7 @@ function PricingCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
       )}
 
       <Button className="mt-6 w-full" variant={plan.is_popular ? "default" : "outline"} asChild>
-        <a href={"/signup"}>{cta}</a>
+        <a href={planCtaHref(signedIn, plan.slug)}>{cta}</a>
       </Button>
 
       {/* Leads are a fixed capacity; emails are an allowance that resets each
