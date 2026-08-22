@@ -111,8 +111,20 @@ export function MxChecker() {
             </div>
 
             <p className="text-xs text-muted-foreground">
+              Source: {result?.sourceLabel ?? "—"}
+              {result?.configuredAddress ? ` (${result.configuredAddress})` : ""}
+            </p>
+            {result?.source === "fallback" ? (
+              <p className="text-xs text-muted-foreground">
+                Set a platform reply-to address in Admin → System emails to monitor a different
+                inbound domain.
+              </p>
+            ) : null}
+
+            <p className="text-xs text-muted-foreground">
               Checked {result?.checkedAt ? new Date(result.checkedAt).toLocaleString() : "—"}
             </p>
+
           </>
         )}
       </CardContent>
