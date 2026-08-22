@@ -41,6 +41,7 @@ import {
   adminSetUserSuspended,
   type AdminUserRow,
 } from "@/lib/admin-directory.functions";
+import { WorkspacePlanPanel } from "@/components/admin/WorkspacePlanPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({
@@ -471,6 +472,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: () => void }) {
   const fetchUser = useServerFn(adminGetUser);
+  const [planWorkspaceId, setPlanWorkspaceId] = useState("");
   const query = useQuery({
     queryKey: ["admin", "user", userId],
     queryFn: () => fetchUser({ data: { userId: userId! } }),
