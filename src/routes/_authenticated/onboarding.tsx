@@ -140,12 +140,10 @@ function OnboardingPage() {
   return (
     <div className="hero-glow flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-xl">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Send className="size-4" />
-          </span>
-          <span className="text-base font-bold tracking-tight">MunchReach</span>
+        <div className="mb-6 flex items-center justify-center">
+          <BrandLogo className="h-9" />
         </div>
+
 
         {/* Progress */}
         <div className="mb-6">
