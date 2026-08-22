@@ -1,0 +1,14 @@
+enums=13
+ext_pg_cron=1
+ext_pg_net=1
+ext_pgcrypto=1
+ext_uuid_ossp=1
+ext_vault=1
+foreign_keys=192
+functions=69
+indexes=300
+policies=233
+rls_enabled_tables=123
+tables=123
+triggers_all=822
+triggers_user=68
