@@ -224,11 +224,11 @@ function Home() {
               <Star className="size-4 fill-current" />
               #1 Cold Email Platform for Growth-Focused Teams
             </span>
-            <h1 className="mx-auto mt-6 max-w-5xl text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-balance sm:text-6xl lg:text-[4.75rem]">
-              Your Next Customer Could Be
-              <br className="hidden sm:block" />{" "}
-              <span className="text-gradient">One Email Away.</span>
-            </h1>
+            <h2 className="mx-auto mt-6 max-w-5xl text-[2.4rem] font-extrabold leading-[1.08] tracking-tight text-balance sm:text-[3.5rem] lg:text-[4.25rem]">
+              Your Next Customer
+              <br />
+              <span className="text-gradient">Could Be One Email Away.</span>
+            </h2>
             <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
               Build targeted campaigns, follow up automatically, and manage every prospect
               conversation in one place.

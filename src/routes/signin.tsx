@@ -108,6 +108,9 @@ function SignInPage() {
   });
 
   async function handleGoogle() {
+    if (search.redirect) {
+      window.sessionStorage.setItem("munchreach.post-auth", destination);
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin },

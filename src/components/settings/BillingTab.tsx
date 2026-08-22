@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ExternalLink } from "lucide-react";
@@ -46,10 +46,30 @@ function UsageRow({ label, used, limit }: { label: string; used: number; limit: 
   );
 }
 
-export function BillingTab({ workspaceId }: { workspaceId: string | null }) {
+export function BillingTab({
+  workspaceId,
+  highlightPlanSlug = null,
+}: {
+  workspaceId: string | null;
+  /** Plan slug carried over from the pricing page, highlighted on arrival. */
+  highlightPlanSlug?: string | null;
+}) {
   const queryClient = useQueryClient();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [provider, setProvider] = useState<BillingProvider | "">("");
+  const plansRef = useRef<HTMLDivElement | null>(null);
+
+  // Arriving from the pricing page with a chosen plan: bring the plan grid into
+  // view so the selection is obvious instead of buried below the usage panel.
+  useEffect(() => {
+    if (!highlightPlanSlug) return;
+    const id = window.setTimeout(
+      () => plansRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      350,
+    );
+    return () => window.clearTimeout(id);
+  }, [highlightPlanSlug]);
+
 
   const fetchBilling = useServerFn(getCustomerBilling);
   const fetchProviders = useServerFn(listCheckoutProviders);
@@ -269,14 +289,28 @@ export function BillingTab({ workspaceId }: { workspaceId: string | null }) {
           </p>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div id="plans" ref={plansRef} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {(plansQuery.data ?? []).map((plan) => {
             const price =
               interval === "yearly" ? (plan as any).yearly_price ?? 0 : plan.monthly_price;
             const current = plan.id === billing.planId;
+            const picked = Boolean(highlightPlanSlug) && plan.slug === highlightPlanSlug;
             return (
-              <div key={plan.id} className="surface-card flex flex-col p-5">
-                <h3 className="font-semibold">{plan.name}</h3>
+              <div
+                key={plan.id}
+                className={
+                  "surface-card flex flex-col p-5" +
+                  (picked && !current ? " border-primary/60 ring-2 ring-primary/30" : "")
+                }
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold">{plan.name}</h3>
+                  {picked && !current ? (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Selected
+                    </Badge>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-2xl font-bold">
                   {formatMoney(price)}
                   <span className="text-sm font-normal text-muted-foreground">
@@ -290,11 +324,15 @@ export function BillingTab({ workspaceId }: { workspaceId: string | null }) {
                 </ul>
                 <Button
                   className="mt-4"
-                  variant={current ? "outline" : "default"}
+                  variant={current || !picked ? (current ? "outline" : "default") : "default"}
                   disabled={current || available.length === 0 || checkoutMutation.isPending}
                   onClick={() => checkoutMutation.mutate(plan.id)}
                 >
-                  {current ? "Current plan" : `Choose ${plan.name}`}
+                  {current
+                    ? "Current plan"
+                    : checkoutMutation.isPending
+                      ? "Starting checkout…"
+                      : `Choose ${plan.name}`}
                 </Button>
               </div>
             );

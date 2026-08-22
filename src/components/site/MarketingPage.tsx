@@ -29,6 +29,7 @@ export function PageHero({
   highlight,
   description,
   primaryCta = "Start for Free",
+  primaryHref,
   secondaryCta,
   secondaryHref = "#product",
   children,
@@ -38,6 +39,8 @@ export function PageHero({
   highlight?: string;
   description: string;
   primaryCta?: string;
+  /** Overrides the primary CTA destination (defaults to the auth screen). */
+  primaryHref?: string;
   secondaryCta?: string;
   /** Anchor the secondary CTA scrolls to — defaults to the product preview. */
   secondaryHref?: string;
@@ -57,7 +60,11 @@ export function PageHero({
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button size="lg" asChild>
-            <Link to="/auth">{primaryCta}</Link>
+            {primaryHref ? (
+              <a href={primaryHref}>{primaryCta}</a>
+            ) : (
+              <Link to="/auth">{primaryCta}</Link>
+            )}
           </Button>
           <Button size="lg" variant="outline" asChild>
             <Link to="/pricing">{secondaryCta ?? "View Pricing"}</Link>
