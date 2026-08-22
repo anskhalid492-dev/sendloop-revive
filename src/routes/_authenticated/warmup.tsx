@@ -74,13 +74,15 @@ function WarmupPage() {
   const runNowFn = useServerFn(runWarmupNow);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
-  useWarmupRealtime();
+  const { connected: liveConnected } = useWarmupRealtime();
 
   const accountsQuery = useQuery({
     queryKey: ["warmup-accounts"],
     queryFn: () => fetchAccounts(),
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
+    // Health updates arrive over realtime; only fall back to polling if the
+    // live channel could not connect.
+    refetchInterval: liveConnected ? false : 30_000,
+    refetchOnWindowFocus: !liveConnected,
   });
   const rows = accountsQuery.data?.accounts ?? [];
 
