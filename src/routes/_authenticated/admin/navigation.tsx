@@ -163,8 +163,12 @@ function AdminNavigationRoute() {
     ]);
   };
 
-  const draftHrefError = draft ? validateHref(draft.href, draft.isExternal) : null;
-  const linkedPage = draft && !draft.isExternal ? pages.find((p: any) => p.path === draft.href.split("#")[0]) : null;
+  const draftHrefError = draft ? validateHref(draft.href, draft.isExternal, draft.location === "social") : null;
+  const linkedPage =
+    draft && !draft.isExternal && draft.href.trim()
+      ? pages.find((p: any) => p.path === draft.href.split("#")[0])
+      : null;
+
 
   function LinkGroup({ location, groupKey, title }: { location: NavLocation; groupKey: string | null; title: string }) {
     const items = nav
