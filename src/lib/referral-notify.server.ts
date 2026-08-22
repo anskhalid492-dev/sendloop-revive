@@ -122,7 +122,7 @@ export async function notifyReferrer(input: NotifyInput): Promise<void> {
     }
 
     if ((prefs?.email_enabled ?? true) && profile?.email) {
-      const base = process.env["PUBLIC_APP_URL"] ?? "https://sendloop.io";
+      const base = process.env["PUBLIC_APP_URL"] ?? "https://munchreach.com";
       await sendEmail(profile.email, title, message, `${base}/referrals`, ctaLabel);
     }
   } catch {
