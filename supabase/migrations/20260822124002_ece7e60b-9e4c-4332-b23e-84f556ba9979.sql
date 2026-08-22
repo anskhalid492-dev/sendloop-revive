@@ -1,0 +1,1 @@
+update public.plans set max_warmup_daily = 20 where slug = 'free' and coalesce(max_warmup_daily,0) = 0;

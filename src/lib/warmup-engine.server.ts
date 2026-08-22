@@ -304,23 +304,59 @@ function slots(settings: SettingsRow, count: number): Date[] {
   });
 }
 
+/** Human-readable state of a mailbox for the dashboard and the runner log. */
+export async function warmupBlockReason(
+  admin: Admin,
+  account: Pick<AccountRow, "id" | "workspace_id" | "provider_id" | "status" | "paused" | "customer_enabled"> & {
+    provider_id?: string | null;
+  },
+): Promise<string | null> {
+  if (account.paused) return "Mailbox is paused.";
+  if (!account.customer_enabled) return "Mailbox sending is switched off.";
+  if (account.status === "disabled") return "Mailbox is disabled.";
+  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
+  const credentials = await loadAccountCredentials(admin, {
+    id: account.id,
+    provider_id: account.provider_id ?? null,
+  });
+  if (!credentials) return "No sending credentials stored — reconnect this mailbox to start warmup.";
+  return null;
+}
+
+async function recordRunReason(admin: Admin, settingsId: string, reason: string | null) {
+  await admin
+    .from("warmup_settings")
+    .update({ last_run_reason: reason, last_run_at: new Date().toISOString() })
+    .eq("id", settingsId);
+}
+
 /**
- * Builds today's queue for one mailbox. Recipients are other warmup-enabled
- * mailboxes in the network — there is no synthetic recipient pool, so warmup
- * only runs once at least two mailboxes have opted in.
+ * Builds today's queue for one mailbox.
+ *
+ * Recipients are other warmup-enabled mailboxes in the network. When a
+ * workspace is still warming its first mailbox there is no peer available, so
+ * the engine falls back to solo warmup: the mailbox mails itself, which is a
+ * real send through the provider and a real arrival we can score for placement.
  */
 async function scheduleAccount(
   admin: Admin,
   account: AccountRow,
   settings: SettingsRow,
   peers: AccountRow[],
+  options?: { force?: boolean; maxNew?: number },
 ): Promise<{ scheduled: number; reason?: string }> {
+  const force = options?.force ?? false;
   const now = new Date();
-  if (!withinWindow(settings, now)) return { scheduled: 0, reason: "outside sending days" };
-  if (peers.length === 0) return { scheduled: 0, reason: "no warmup peers available" };
+  if (!force && !withinWindow(settings, now)) return { scheduled: 0, reason: "Outside the configured sending days." };
+
+  const blocked = await warmupBlockReason(admin, account);
+  if (blocked) return { scheduled: 0, reason: blocked };
+
+  // Solo warmup keeps a single-mailbox workspace operational.
+  const recipients: AccountRow[] = peers.length > 0 ? peers : [account];
 
   const target = dailyTarget(settings, settings.started_at, account.health_score);
-  if (target <= 0) return { scheduled: 0, reason: "target is zero" };
+  if (target <= 0) return { scheduled: 0, reason: "Today's warmup target is zero." };
 
   const day = today();
   const { count: already } = await admin
@@ -330,15 +366,24 @@ async function scheduleAccount(
     .eq("role", "initial")
     .gte("created_at", `${day}T00:00:00Z`);
 
-  const remaining = target - (already ?? 0);
-  if (remaining <= 0) return { scheduled: 0, reason: "daily target already scheduled" };
+  const done = already ?? 0;
+  // `maxNew` bounds one run (used by the manual test action); the daily target
+  // still bounds the day, so repeated runs never exceed the mailbox limit.
+  const remaining = Math.min(target - done, options?.maxNew ?? Number.MAX_SAFE_INTEGER);
+  if (remaining <= 0) {
+    return { scheduled: 0, reason: `Daily warmup limit reached (${done} of ${target} queued today).` };
+  }
 
   const times = slots(settings, remaining);
   let scheduled = 0;
   for (let i = 0; i < remaining; i += 1) {
-    const peer = peers[Math.floor(Math.random() * peers.length)]!;
+    // Slot index continues after what is already queued today, so re-running
+    // the scheduler tops the queue up instead of colliding on the same key.
+    const slot = done + i;
+    const peer = recipients[Math.floor(Math.random() * recipients.length)]!;
+    const solo = peer.id === account.id;
     const { subject, body } = buildWarmupMessage(account.from_name);
-    const threadKey = `wu_${account.id.slice(0, 8)}_${peer.id.slice(0, 8)}_${Date.now()}_${i}`;
+    const threadKey = `wu_${account.id.slice(0, 8)}_${peer.id.slice(0, 8)}_${Date.now()}_${slot}`;
 
     const { data: conversation } = await admin
       .from("warmup_conversations")
@@ -352,7 +397,7 @@ async function scheduleAccount(
       .select("id")
       .single();
 
-    const idempotencyKey = `${account.id}:${day}:${i}:initial`;
+    const idempotencyKey = `${account.id}:${day}:${slot}:initial`;
     const token = warmupToken();
     const { error } = await admin.from("warmup_jobs").insert({
       warmup_token: token,
@@ -365,7 +410,7 @@ async function scheduleAccount(
       to_email: peer.from_email,
       subject,
       body: withWarmupRef(body, token),
-      scheduled_at: times[i]!.toISOString(),
+      scheduled_at: force ? new Date().toISOString() : times[i]!.toISOString(),
       idempotency_key: idempotencyKey,
       provider: account.provider,
     });
@@ -378,7 +423,9 @@ async function scheduleAccount(
       workspaceId: account.workspace_id,
       accountId: account.id,
       type: "scheduled",
-      detail: `Queued warmup email to ${peer.from_email}`,
+      detail: solo
+        ? "Queued solo warmup email (no peer mailbox in the network yet)"
+        : `Queued warmup email to ${peer.from_email}`,
     });
   }
 
@@ -391,6 +438,7 @@ async function scheduleAccount(
   }
   return { scheduled };
 }
+
 
 /* ------------------------------------------------------------------ worker */
 
@@ -434,6 +482,11 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       summary.failed += 1;
       await bumpStats(admin, { workspaceId, accountId }, { failed: 1 });
     }
+    // Surface the real reason on the mailbox instead of a silent zero.
+    await admin
+      .from("warmup_settings")
+      .update({ last_run_reason: message.slice(0, 500), last_run_at: new Date().toISOString() })
+      .eq("sending_account_id", accountId);
   };
 
   if (!account) return fail("Mailbox no longer exists", false);
@@ -564,7 +617,11 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     .eq("id", accountId);
   summary.sent += 1;
 
-  if (job["role"] === "initial" && job["recipient_account_id"]) {
+  if (
+    job["role"] === "initial" &&
+    job["recipient_account_id"] &&
+    job["recipient_account_id"] !== job["sending_account_id"]
+  ) {
     await maybeQueueReply(admin, job);
   }
 }
@@ -1215,19 +1272,28 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
       for (const setting of settings) {
         const account = byId.get(setting.sending_account_id);
         if (!account) continue;
-        if (account.paused || !account.customer_enabled) continue;
+        if (account.paused || !account.customer_enabled) {
+          await recordRunReason(admin, setting.id, "Mailbox sending is paused or switched off.");
+          continue;
+        }
         const safe = await applySafety(admin, account, setting, summary);
         if (!safe) continue;
         const peers = eligible.filter((p) => p.id !== account.id);
         try {
           const res = await scheduleAccount(admin, account, setting, peers);
           summary.scheduled += res.scheduled;
-        } catch (error) {
-          summary.errors.push(
-            `schedule ${account.from_email}: ${error instanceof Error ? error.message : "failed"}`,
+          await recordRunReason(
+            admin,
+            setting.id,
+            res.scheduled > 0 ? null : (res.reason ?? null),
           );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "failed";
+          await recordRunReason(admin, setting.id, message);
+          summary.errors.push(`schedule ${account.from_email}: ${message}`);
         }
       }
+
     }
 
     // 2. Worker ------------------------------------------------------------
@@ -1272,4 +1338,121 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
   } finally {
     await releaseLease(admin, summary);
   }
+}
+
+/* --------------------------------------------------- single mailbox run */
+
+export type AccountRunResult = RunSummary & { accountId: string; reason: string | null };
+
+/**
+ * Runs the exact production warmup pipeline for one mailbox: schedule (bypassing
+ * the time-of-day window so the test is immediate), send through the provider
+ * abstraction, then recalculate health. Daily limits and plan allowances still
+ * apply, so repeated runs never exceed the mailbox's warmup target.
+ */
+export async function runWarmupForAccount(
+  admin: Admin,
+  accountId: string,
+  options?: { max?: number },
+): Promise<AccountRunResult> {
+  const summary = emptySummary();
+  const owner = `manual_${crypto.randomUUID().slice(0, 8)}`;
+  let reason: string | null = null;
+
+  const { data: account } = await admin
+    .from("sending_accounts")
+    .select(
+      "id, workspace_id, from_name, from_email, provider, provider_id, connection_method, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status",
+    )
+    .eq("id", accountId)
+    .maybeSingle();
+  if (!account) return { ...summary, ok: false, accountId, reason: "Mailbox not found." };
+
+  const { data: setting } = await admin
+    .from("warmup_settings")
+    .select(
+      "id, sending_account_id, workspace_id, enabled, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, started_at",
+    )
+    .eq("sending_account_id", accountId)
+    .maybeSingle();
+  if (!setting || !setting.enabled) {
+    return { ...summary, ok: false, accountId, reason: "Warmup is switched off for this mailbox." };
+  }
+  if (setting.paused_by_system) {
+    return { ...summary, ok: false, accountId, reason: "Warmup is paused by the safety system." };
+  }
+
+  const { data: peerRows } = await admin
+    .from("sending_accounts")
+    .select(
+      "id, workspace_id, from_name, from_email, provider, provider_id, connection_method, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status",
+    )
+    .neq("id", accountId)
+    .eq("paused", false)
+    .eq("customer_enabled", true);
+
+  const peerIds = ((peerRows ?? []) as AccountRow[]).map((p) => p.id);
+  let peers: AccountRow[] = [];
+  if (peerIds.length) {
+    const { data: peerSettings } = await admin
+      .from("warmup_settings")
+      .select("sending_account_id, enabled, paused_by_system")
+      .in("sending_account_id", peerIds);
+    const enabled = new Set(
+      ((peerSettings ?? []) as Array<Record<string, unknown>>)
+        .filter((r) => r["enabled"] && !r["paused_by_system"])
+        .map((r) => r["sending_account_id"] as string),
+    );
+    peers = ((peerRows ?? []) as AccountRow[]).filter(
+      (p) => enabled.has(p.id) && p.status !== "disabled",
+    );
+  }
+
+  try {
+    const res = await scheduleAccount(
+      admin,
+      account as AccountRow,
+      setting as SettingsRow,
+      peers,
+      { force: true, maxNew: options?.max ?? 1 },
+    );
+    summary.scheduled = res.scheduled;
+    reason = res.reason ?? null;
+  } catch (error) {
+    reason = error instanceof Error ? error.message : "Scheduling failed";
+    summary.errors.push(reason);
+  }
+
+  const { data: claimed, error: claimError } = await admin.rpc("claim_warmup_jobs_for_account", {
+    _worker: owner,
+    _limit: Math.min(options?.max ?? 5, 20),
+    _account: accountId,
+  });
+  if (claimError) summary.errors.push(`claim: ${claimError.message}`);
+  const jobs = (claimed ?? []) as Array<Record<string, unknown>>;
+  summary.claimed = jobs.length;
+
+  for (const job of jobs) {
+    try {
+      await processJob(admin, job, summary);
+    } catch (error) {
+      summary.errors.push(error instanceof Error ? error.message : "job failed");
+    }
+  }
+
+  if (summary.sent === 0 && !reason && summary.errors.length === 0 && jobs.length === 0) {
+    reason = "No warmup message was due to send.";
+  }
+
+  try {
+    await recalculateHealth(admin, accountId);
+    summary.healthUpdated = 1;
+  } catch {
+    /* best effort */
+  }
+
+  const finalReason = summary.sent > 0 ? null : (summary.errors[0] ?? reason);
+  await recordRunReason(admin, setting.id as string, finalReason);
+  summary.ok = summary.sent > 0 || summary.errors.length === 0;
+  return { ...summary, accountId, reason: finalReason };
 }
