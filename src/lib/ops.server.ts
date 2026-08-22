@@ -304,6 +304,17 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     .single();
 
   if (!send.ok) throw new Error(send.message || "The test email could not be sent.");
+  const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+  await registerOutboundMessage({
+    providerMessageId: send.ok ? (send.messageId ?? null) : null,
+    messageType: "admin_diagnostic",
+    provider: account.provider,
+    workspaceId: account.workspace_id ?? null,
+    sendingAccountId: account.id,
+    toEmail: args.toEmail,
+    refTable: "inbound_tests",
+    refId: row?.id ?? null,
+  });
   return { id: row?.id ?? null, replyTo, to: args.toEmail };
 }
 

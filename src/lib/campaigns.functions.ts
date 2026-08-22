@@ -814,6 +814,17 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       // The raw row keeps the real provider identity for admin diagnostics;
       // the response returned to the customer is scrubbed of infrastructure.
       await supabaseAdmin.from("campaign_test_sends").insert(diagnostic);
+      const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+      await registerOutboundMessage({
+        providerMessageId: result.messageId ?? null,
+        messageType: "admin_diagnostic",
+        provider: account.provider,
+        workspaceId: account.workspace_id,
+        sendingAccountId: account.id,
+        toEmail: to,
+        refTable: "campaign_test_sends",
+        refId: null,
+      });
       const { customerSafeMessage } = await import("@/lib/managed-sending.server");
       results.push({
         to,
