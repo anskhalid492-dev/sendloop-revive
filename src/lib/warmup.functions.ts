@@ -383,10 +383,12 @@ export const getMailboxInsights = createServerFn({ method: "GET" })
         .from("email_events")
         .select("event_type, created_at")
         .eq("sending_account_id", data.id)
+        .eq("message_type", "warmup")
         .gte("created_at", since),
       client
         .from("campaign_messages")
         .select("status, sent_at")
+        .eq("message_type", "campaign")
         .eq("sending_account_id", data.id)
         .gte("created_at", since),
     ]);
