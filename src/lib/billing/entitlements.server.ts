@@ -36,16 +36,28 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
   const db = await admin();
   const settings = await getBillingSettings();
 
-  const { data: sub } = await db
-    .from("billing_subscriptions")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .eq("environment", settings.environment)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const readSub = async () =>
+    (
+      await db
+        .from("billing_subscriptions")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .eq("environment", settings.environment)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    ).data as any;
+
+  let sub = await readSub();
+  // A staff-scheduled plan change becomes authoritative once its effective
+  // date passes; applying it here keeps entitlements truthful on every read.
+  if (sub?.pending_plan_id && sub.pending_effective_at && new Date(sub.pending_effective_at) <= new Date()) {
+    const { applyDuePendingPlan } = await import("@/lib/billing/manual-plan.server");
+    if (await applyDuePendingPlan(workspaceId)) sub = await readSub();
+  }
 
   const planId = sub?.plan_id ?? null;
+
   let plan: any = null;
   if (planId) {
     const { data } = await db.from("plans").select("*").eq("id", planId).maybeSingle();
