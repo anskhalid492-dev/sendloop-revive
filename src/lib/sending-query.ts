@@ -14,6 +14,7 @@ import {
   type AccountStatus,
   type EmailAccountRow,
   type EmailAccountSummary,
+  type WarmupAccountStats,
 } from "@/lib/sending-model";
 
 /** Untyped view of the request-scoped Supabase client (generated types lag the new columns). */
@@ -54,6 +55,52 @@ export async function loadAccountStats(
       lastSentAt: row.last_sent_at ?? null,
       lastReplyAt: row.last_reply_at ?? null,
     };
+  }
+  return map;
+}
+
+/**
+ * Real warmup activity per mailbox, read from the warmup daily rollups. Kept
+ * strictly separate from campaign sending stats.
+ */
+export async function loadWarmupStats(
+  client: Client,
+  ids: string[],
+): Promise<Record<string, WarmupAccountStats>> {
+  if (ids.length === 0) return {};
+  const { data, error } = await client
+    .from("warmup_daily_stats")
+    .select("sending_account_id, day, target, sent, delivered, replied, bounced, inbox, spam")
+    .in("sending_account_id", ids);
+  if (error) throw new Error(error.message);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const map: Record<string, WarmupAccountStats> = {};
+  for (const row of (data ?? []) as any[]) {
+    const id = row.sending_account_id as string;
+    const entry =
+      map[id] ??
+      (map[id] = {
+        sentToday: 0,
+        targetToday: 0,
+        sentTotal: 0,
+        delivered: 0,
+        replied: 0,
+        bounced: 0,
+        inbox: 0,
+        spam: 0,
+      });
+    const sent = Number(row.sent ?? 0);
+    entry.sentTotal += sent;
+    entry.delivered += Number(row.delivered ?? 0);
+    entry.replied += Number(row.replied ?? 0);
+    entry.bounced += Number(row.bounced ?? 0);
+    entry.inbox += Number(row.inbox ?? 0);
+    entry.spam += Number(row.spam ?? 0);
+    if (String(row.day ?? "").slice(0, 10) === today) {
+      entry.sentToday += sent;
+      entry.targetToday += Number(row.target ?? 0);
+    }
   }
   return map;
 }
@@ -173,10 +220,11 @@ export async function buildAccountPage(
   const total = rows.length;
   const start = (filters.page - 1) * filters.pageSize;
   const pageRows = rows.slice(start, start + filters.pageSize);
-  const stats = await loadAccountStats(
-    client,
-    pageRows.map((r) => r.id as string),
-  );
+  const pageIds = pageRows.map((r) => r.id as string);
+  const [stats, warmupStats] = await Promise.all([
+    loadAccountStats(client, pageIds),
+    loadWarmupStats(client, pageIds),
+  ]);
 
   const campaignsByAccount = new Map<string, { active: number; completed: number; total: number }>();
   for (const campaign of facets.campaigns) {
@@ -190,7 +238,7 @@ export async function buildAccountPage(
   }
 
   const accounts: EmailAccountRow[] = pageRows.map((row) =>
-    decorate(row, stats[row.id] ?? null, campaignsByAccount.get(row.id)),
+    decorate(row, stats[row.id] ?? null, campaignsByAccount.get(row.id), warmupStats[row.id] ?? null),
   );
 
   const domains = [...new Set(rows.map((r) => domainOf(r.from_email as string)).filter(Boolean))]
@@ -210,16 +258,18 @@ export function decorate(
   row: any,
   stats: AccountStats | null,
   campaigns?: { active: number; completed: number; total: number },
+  warmupStats: WarmupAccountStats | null = null,
 ): EmailAccountRow {
   const { workspace_id: _ignored, ...rest } = row;
   return {
-    ...(rest as Omit<EmailAccountRow, "domain" | "accountStatus" | "campaignCount" | "activeCampaigns" | "completedCampaigns" | "stats">),
+    ...(rest as Omit<EmailAccountRow, "domain" | "accountStatus" | "campaignCount" | "activeCampaigns" | "completedCampaigns" | "stats" | "warmupStats">),
     domain: domainOf(row.from_email as string),
     accountStatus: accountStatusOf(row),
     campaignCount: campaigns?.total ?? 0,
     activeCampaigns: campaigns?.active ?? 0,
     completedCampaigns: campaigns?.completed ?? 0,
     stats,
+    warmupStats,
   };
 }
 

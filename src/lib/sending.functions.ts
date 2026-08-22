@@ -16,6 +16,7 @@ import {
   buildAccountPage,
   loadAccountFacets,
   loadAccountStats,
+  loadWarmupStats,
   loadAllAccounts,
   decorate,
   type AccountPageResult,
@@ -74,12 +75,13 @@ export const getEmailAccountDetail = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Email account not found");
 
-    const [stats, facets] = await Promise.all([
+    const [stats, facets, warmupStats] = await Promise.all([
       loadAccountStats(context.supabase, [data.id]),
       loadAccountFacets(context.supabase),
+      loadWarmupStats(context.supabase, [data.id]),
     ]);
     return {
-      account: decorate(row, stats[data.id] ?? null),
+      account: decorate(row, stats[data.id] ?? null, undefined, warmupStats[data.id] ?? null),
       stats: stats[data.id] ?? null,
       campaigns: facets.campaigns.filter((c) => c.accountIds.includes(data.id)),
     };

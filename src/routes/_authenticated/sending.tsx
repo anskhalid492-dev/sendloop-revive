@@ -616,6 +616,7 @@ function EmailAccountsPage() {
                     <th className="px-3 py-2.5 font-medium">Status</th>
                     <th className="px-3 py-2.5 text-right font-medium">Sent today</th>
                     <th className="px-3 py-2.5 font-medium">Warmup</th>
+                    <th className="px-3 py-2.5 text-right font-medium">Warmup sent</th>
                     <th className="px-3 py-2.5 text-right font-medium">Health</th>
                     <th className="px-3 py-2.5 text-right font-medium">Reply rate</th>
                     <th className="px-3 py-2.5 text-right font-medium">Campaigns</th>
@@ -627,14 +628,14 @@ function EmailAccountsPage() {
                   {accountsQuery.isLoading ? (
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={index} className="border-b border-border/50">
-                        <td colSpan={10} className="px-3 py-3">
+                        <td colSpan={11} className="px-3 py-3">
                           <div className="h-5 animate-pulse rounded bg-muted" />
                         </td>
                       </tr>
                     ))
                   ) : accounts.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={11} className="px-3 py-10 text-center text-muted-foreground">
                         No accounts match your filters.
                       </td>
                     </tr>
@@ -703,6 +704,25 @@ function EmailAccountsPage() {
                                   : `${account.warmup_daily_target}/day target`}
                               </span>
                             </button>
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            {account.warmupStats && account.warmupStats.sentTotal > 0 ? (
+                              <>
+                                <span className="font-medium">
+                                  {account.warmupStats.sentToday}
+                                  {account.warmupStats.targetToday
+                                    ? ` / ${account.warmupStats.targetToday}`
+                                    : ""}
+                                </span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {account.warmupStats.sentTotal} total ·{" "}
+                                  {account.warmupStats.delivered} delivered ·{" "}
+                                  {account.warmupStats.replied} replied
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </td>
                           <td
                             className={cn(
