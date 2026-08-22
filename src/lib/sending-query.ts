@@ -220,10 +220,11 @@ export async function buildAccountPage(
   const total = rows.length;
   const start = (filters.page - 1) * filters.pageSize;
   const pageRows = rows.slice(start, start + filters.pageSize);
-  const stats = await loadAccountStats(
-    client,
-    pageRows.map((r) => r.id as string),
-  );
+  const pageIds = pageRows.map((r) => r.id as string);
+  const [stats, warmupStats] = await Promise.all([
+    loadAccountStats(client, pageIds),
+    loadWarmupStats(client, pageIds),
+  ]);
 
   const campaignsByAccount = new Map<string, { active: number; completed: number; total: number }>();
   for (const campaign of facets.campaigns) {
