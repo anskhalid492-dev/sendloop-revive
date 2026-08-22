@@ -17,6 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getSiteContent } from "@/lib/site-content.functions";
+import { ensureProfile } from "@/lib/profile.functions";
 import { getPlatformFlags } from "@/lib/platform-settings.functions";
 import { getGlobalSeo, setSiteContent } from "@/lib/page-seo";
 import { getPublicPlatformConfig } from "@/lib/platform-config.functions";
@@ -296,7 +297,12 @@ function RootComponent() {
       }
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (event !== "SIGNED_OUT") {
+        queryClient.invalidateQueries();
+        // Guarantee a profile row exists for every signed-in account, even if
+        // the database signup trigger did not fire.
+        void ensureProfile().catch(() => {});
+      }
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);

@@ -88,3 +88,39 @@ export const dismissChecklist = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Self-healing profile provisioning.
+ *
+ * The database trigger on sign-up can miss rows (for example when a user is
+ * created outside the normal signup form). The app calls this right after a
+ * session appears so every signed-in user always has a profile row.
+ */
+export const ensureProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: existing } = await context.supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (existing) return { created: false };
+
+    const claims = context.claims as Record<string, unknown> | null;
+    const meta = (claims?.["user_metadata"] ?? {}) as Record<string, unknown>;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("profiles").upsert(
+      {
+        id: context.userId,
+        email: (claims?.["email"] as string | undefined) ?? null,
+        full_name:
+          (meta["full_name"] as string | undefined) ??
+          (meta["name"] as string | undefined) ??
+          null,
+        avatar_url: (meta["avatar_url"] as string | undefined) ?? null,
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw new Error(error.message);
+    return { created: true };
+  });
