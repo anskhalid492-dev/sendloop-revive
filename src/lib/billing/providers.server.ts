@@ -173,7 +173,7 @@ const stripe: ProviderAdapter = {
         ? { customer: input.customerId, customer_update: { address: "auto", name: "auto" } }
         : {}),
       ...(!input.customerId && input.email ? { customer_email: input.email } : {}),
-      ...(!input.customerId ? { customer_creation: "always" } : {}),
+      // (subscription mode always creates/reuses a Stripe customer)
       line_items: { 0: { price: input.priceId, quantity: 1 } },
       metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
       subscription_data: {
