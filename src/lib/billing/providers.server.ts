@@ -153,6 +153,47 @@ const STRIPE_STATUS: Record<string, SubscriptionState> = {
   canceled: "cancelled",
 };
 
+/**
+ * Maps a raw Stripe subscription object onto the normalized shape. Shared by
+ * the webhook path and the post-checkout reconciliation fetch so both produce
+ * byte-identical records.
+ *
+ * Period timestamps live on the subscription in older API versions and on the
+ * subscription item in newer ones — both locations are read.
+ */
+export function stripeSubscriptionEvent(obj: any, eventType?: string) {
+  const item = obj?.items?.data?.[0];
+  const status: SubscriptionState =
+    eventType === "customer.subscription.deleted"
+      ? "cancelled"
+      : (STRIPE_STATUS[obj?.status] ?? "active");
+  const periodStart = obj?.current_period_start ?? item?.current_period_start ?? null;
+  const periodEnd = obj?.current_period_end ?? item?.current_period_end ?? null;
+  return {
+    workspaceId: (obj?.metadata?.workspace_id as string | undefined) ?? null,
+    planId: (obj?.metadata?.plan_id as string | undefined) ?? null,
+    subscription: {
+      externalId: obj?.id as string,
+      customerId: (typeof obj?.customer === "string" ? obj.customer : obj?.customer?.id) ?? null,
+      status,
+      interval: (item?.price?.recurring?.interval === "year" ? "yearly" : "monthly") as BillingInterval,
+      amountCents: item?.price?.unit_amount ?? 0,
+      currency: obj?.currency ?? item?.price?.currency ?? "usd",
+      currentPeriodStart: iso(periodStart),
+      currentPeriodEnd: iso(periodEnd),
+      trialEndsAt: iso(obj?.trial_end),
+      cancelAtPeriodEnd: Boolean(obj?.cancel_at_period_end),
+      cancelledAt: iso(obj?.canceled_at),
+      priceId: item?.price?.id ?? null,
+    },
+  };
+}
+
+/** Fetches a live subscription so post-checkout state never depends on event order. */
+export async function fetchStripeSubscription(env: BillingEnvironment, subscriptionId: string) {
+  return stripeCall(env, `subscriptions/${subscriptionId}`, undefined, "GET");
+}
+
 const stripe: ProviderAdapter = {
   id: "stripe",
   async createCheckout(input) {
