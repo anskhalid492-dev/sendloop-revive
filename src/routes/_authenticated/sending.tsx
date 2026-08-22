@@ -628,14 +628,14 @@ function EmailAccountsPage() {
                   {accountsQuery.isLoading ? (
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={index} className="border-b border-border/50">
-                        <td colSpan={10} className="px-3 py-3">
+                        <td colSpan={11} className="px-3 py-3">
                           <div className="h-5 animate-pulse rounded bg-muted" />
                         </td>
                       </tr>
                     ))
                   ) : accounts.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={11} className="px-3 py-10 text-center text-muted-foreground">
                         No accounts match your filters.
                       </td>
                     </tr>
