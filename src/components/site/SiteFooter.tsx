@@ -34,7 +34,7 @@ const fallbackColumns = [
     title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
-      { label: "AI Personalization", href: "/ai-personalized-outreach" },
+      { label: "AI", href: "/ai-personalized-outreach" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -79,11 +79,23 @@ const fallbackColumns = [
     ],
   },
   {
+    title: "Support",
+    links: [
+      { label: "User Guide & Alerts", href: "/user-guide" },
+      { label: "Contact Support", href: "/contact-support" },
+      { label: "Help Center", href: "/help-center" },
+    ],
+  },
+  {
     title: "Legal",
     links: [
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Acceptable Use Policy", href: "/acceptable-use" },
+      { label: "Cookie Policy", href: "/cookie-policy" },
+      { label: "Subprocessors", href: "/subprocessors" },
+      { label: "Data Processing Agreement", href: "/dpa" },
+      { label: "Remove My Data", href: "/remove-my-data" },
     ],
   },
 ];
@@ -98,6 +110,7 @@ const fallbackSocial = [
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
   Campaigns: Send,
+  AI: Sparkles,
   "AI Personalization": Sparkles,
   "Unified Inbox": Inbox,
   "Follow-Ups": Repeat,
@@ -138,7 +151,7 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
-    const order = ["Products", "Resources", "Comparisons", "Company", "Legal"];
+    const order = ["Products", "Resources", "Comparisons", "Company", "Support", "Legal"];
     const sorted = [...groups.entries()].sort((a, b) => {
       const ai = order.indexOf(a[0]);
       const bi = order.indexOf(b[0]);
@@ -244,7 +257,7 @@ export function SiteFooter() {
           </div>
 
           {/* Link columns */}
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {columns.map((col) => (
               <div key={col.title}>
                 <h3 className="text-base font-semibold">{col.title}</h3>
