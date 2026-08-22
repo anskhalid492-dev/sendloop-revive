@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { ArrowRight, ChevronRight, Clock, Linkedin, Link2, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +14,9 @@ import { NewsletterCard } from "@/components/blog/NewsletterCard";
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
     const result = await getBlogPost({ data: { slug: params.slug } });
+    if (!result.post && result.redirectTo) {
+      throw redirect({ to: "/blog/$slug", params: { slug: result.redirectTo }, replace: true });
+    }
     if (!result.post) throw notFound();
     return result;
   },

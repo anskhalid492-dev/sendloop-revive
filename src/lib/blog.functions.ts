@@ -444,7 +444,11 @@ export const setBlogPostStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
     const patch: Record<string, unknown> = { status: data.status };
-    if (data.status === "published") patch["published_at"] = data.publishedAt ?? new Date().toISOString();
+    if (data.status === "published") {
+      const wanted = data.publishedAt ? new Date(data.publishedAt) : null;
+      const usable = wanted && !Number.isNaN(wanted.getTime()) && wanted.getTime() <= Date.now() ? wanted : new Date();
+      patch["published_at"] = usable.toISOString();
+    }
     if (data.status === "scheduled" && data.publishedAt) patch["published_at"] = data.publishedAt;
     const { error } = await (context.supabase as any).from("blog_posts").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
