@@ -23,6 +23,7 @@ import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
 import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as DpaRouteImport } from './routes/dpa'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
@@ -217,6 +218,11 @@ const DeliverabilityGuideRoute = DeliverabilityGuideRouteImport.update({
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DpaRoute = DpaRouteImport.update({
+  id: '/dpa',
+  path: '/dpa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeaturesRoute = FeaturesRouteImport.update({
@@ -921,6 +927,7 @@ export interface FileRoutesByFullPath {
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
+  '/dpa': typeof DpaRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
@@ -1062,6 +1069,7 @@ export interface FileRoutesByTo {
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
+  '/dpa': typeof DpaRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -1203,6 +1211,7 @@ export interface FileRoutesById {
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
+  '/dpa': typeof DpaRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
@@ -1346,6 +1355,7 @@ export interface FileRouteTypes {
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
+    | '/dpa'
     | '/features'
     | '/forgot-password'
     | '/help-center'
@@ -1487,6 +1497,7 @@ export interface FileRouteTypes {
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
+    | '/dpa'
     | '/features'
     | '/forgot-password'
     | '/how-it-works'
@@ -1627,6 +1638,7 @@ export interface FileRouteTypes {
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
+    | '/dpa'
     | '/features'
     | '/forgot-password'
     | '/help-center'
@@ -1770,6 +1782,7 @@ export interface RootRouteChildren {
   CustomerReviewsRoute: typeof CustomerReviewsRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
   DocsRoute: typeof DocsRoute
+  DpaRoute: typeof DpaRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpCenterRoute: typeof HelpCenterRouteWithChildren
@@ -1926,6 +1939,13 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dpa': {
+      id: '/dpa'
+      path: '/dpa'
+      fullPath: '/dpa'
+      preLoaderRoute: typeof DpaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/features': {
@@ -3028,6 +3048,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomerReviewsRoute: CustomerReviewsRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
   DocsRoute: DocsRoute,
+  DpaRoute: DpaRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpCenterRoute: HelpCenterRouteWithChildren,
