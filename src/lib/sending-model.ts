@@ -39,6 +39,19 @@ export type EmailAccountRow = {
   activeCampaigns: number;
   completedCampaigns: number;
   stats: AccountStats | null;
+  warmupStats: WarmupAccountStats | null;
+};
+
+/** Real warmup sending activity for one mailbox (never mixed with campaign sends). */
+export type WarmupAccountStats = {
+  sentToday: number;
+  targetToday: number;
+  sentTotal: number;
+  delivered: number;
+  replied: number;
+  bounced: number;
+  inbox: number;
+  spam: number;
 };
 
 export type AccountStats = {
