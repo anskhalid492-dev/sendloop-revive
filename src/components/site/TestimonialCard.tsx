@@ -15,8 +15,8 @@ export function TestimonialCard({
   className,
 }: {
   testimonial: Testimonial;
-  featured?: boolean;
-  className?: string;
+  featured?: boolean | undefined;
+  className?: string | undefined;
 }) {
   return (
     <figure
