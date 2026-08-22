@@ -133,7 +133,7 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
-const socialIcons: Record<string, (props: { className?: string }) => JSX.Element> = {
+const socialIcons: Record<string, (props: { className?: string }) => React.ReactElement> = {
   X: XIcon,
   Instagram: (props) => <Instagram {...props} />,
   YouTube: (props) => <Youtube {...props} />,
