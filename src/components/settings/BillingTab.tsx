@@ -46,7 +46,14 @@ function UsageRow({ label, used, limit }: { label: string; used: number; limit: 
   );
 }
 
-export function BillingTab({ workspaceId }: { workspaceId: string | null }) {
+export function BillingTab({
+  workspaceId,
+  highlightPlanSlug = null,
+}: {
+  workspaceId: string | null;
+  /** Plan slug carried over from the pricing page, highlighted on arrival. */
+  highlightPlanSlug?: string | null;
+}) {
   const queryClient = useQueryClient();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [provider, setProvider] = useState<BillingProvider | "">("");
