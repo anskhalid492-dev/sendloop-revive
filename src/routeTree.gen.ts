@@ -125,6 +125,7 @@ import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSystemEmailsRouteImport } from './routes/_authenticated/admin/system-emails'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
 import { Route as AuthenticatedAdminUsageRouteImport } from './routes/_authenticated/admin/usage'
+import { Route as AuthenticatedAdminUserGuideRouteImport } from './routes/_authenticated/admin/user-guide'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminWarmupRouteImport } from './routes/_authenticated/admin/warmup'
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
@@ -771,6 +772,12 @@ const AuthenticatedAdminUsageRoute = AuthenticatedAdminUsageRouteImport.update({
   path: '/usage',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminUserGuideRoute =
+  AuthenticatedAdminUserGuideRouteImport.update({
+    id: '/user-guide',
+    path: '/user-guide',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -1059,6 +1066,7 @@ export interface FileRoutesByFullPath {
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
+  '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
@@ -1204,6 +1212,7 @@ export interface FileRoutesByTo {
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
+  '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
@@ -1353,6 +1362,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/usage': typeof AuthenticatedAdminUsageRoute
+  '/_authenticated/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/warmup': typeof AuthenticatedAdminWarmupRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
@@ -1502,6 +1512,7 @@ export interface FileRouteTypes {
     | '/admin/system-emails'
     | '/admin/templates'
     | '/admin/usage'
+    | '/admin/user-guide'
     | '/admin/users'
     | '/admin/warmup'
     | '/admin/webhooks'
@@ -1647,6 +1658,7 @@ export interface FileRouteTypes {
     | '/admin/system-emails'
     | '/admin/templates'
     | '/admin/usage'
+    | '/admin/user-guide'
     | '/admin/users'
     | '/admin/warmup'
     | '/admin/webhooks'
@@ -1795,6 +1807,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/system-emails'
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/usage'
+    | '/_authenticated/admin/user-guide'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/warmup'
     | '/_authenticated/admin/webhooks'
@@ -2720,6 +2733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsageRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/user-guide': {
+      id: '/_authenticated/admin/user-guide'
+      path: '/user-guide'
+      fullPath: '/admin/user-guide'
+      preLoaderRoute: typeof AuthenticatedAdminUserGuideRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/users'
@@ -3003,6 +3023,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminSystemEmailsRoute: typeof AuthenticatedAdminSystemEmailsRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
   AuthenticatedAdminUsageRoute: typeof AuthenticatedAdminUsageRoute
+  AuthenticatedAdminUserGuideRoute: typeof AuthenticatedAdminUserGuideRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminWarmupRoute: typeof AuthenticatedAdminWarmupRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
@@ -3055,6 +3076,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminSystemEmailsRoute: AuthenticatedAdminSystemEmailsRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
     AuthenticatedAdminUsageRoute: AuthenticatedAdminUsageRoute,
+    AuthenticatedAdminUserGuideRoute: AuthenticatedAdminUserGuideRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
     AuthenticatedAdminWarmupRoute: AuthenticatedAdminWarmupRoute,
     AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
