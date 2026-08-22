@@ -258,16 +258,18 @@ export function decorate(
   row: any,
   stats: AccountStats | null,
   campaigns?: { active: number; completed: number; total: number },
+  warmupStats: WarmupAccountStats | null = null,
 ): EmailAccountRow {
   const { workspace_id: _ignored, ...rest } = row;
   return {
-    ...(rest as Omit<EmailAccountRow, "domain" | "accountStatus" | "campaignCount" | "activeCampaigns" | "completedCampaigns" | "stats">),
+    ...(rest as Omit<EmailAccountRow, "domain" | "accountStatus" | "campaignCount" | "activeCampaigns" | "completedCampaigns" | "stats" | "warmupStats">),
     domain: domainOf(row.from_email as string),
     accountStatus: accountStatusOf(row),
     campaignCount: campaigns?.total ?? 0,
     activeCampaigns: campaigns?.active ?? 0,
     completedCampaigns: campaigns?.completed ?? 0,
     stats,
+    warmupStats,
   };
 }
 
