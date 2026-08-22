@@ -163,7 +163,17 @@ export const resendDomainAdapter: DomainProviderAdapter = {
   async getDomainStatus(creds, domain) {
     const found = await findDomain(creds, domain);
     if (!found) return { state: "unknown", detail: "Domain is not registered with the provider." };
-    return { state: mapState(found.status), detail: `Provider status "${found.status ?? "unknown"}".` };
+    // The list endpoint omits per-record status, which is what decides whether
+    // the domain can send; read the detail record when we have an id.
+    let detailed: ResendDomain = found;
+    if (found.id) {
+      const res = await providerFetch(`${API}/domains/${found.id}`, { headers: headers(creds) });
+      if (res.ok && res.json) detailed = res.json as ResendDomain;
+    }
+    return {
+      state: sendingState(detailed),
+      detail: `Provider status "${detailed.status ?? "unknown"}".`,
+    };
   },
 
   async isReadyToSend(creds, domain) {
