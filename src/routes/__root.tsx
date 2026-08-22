@@ -297,7 +297,12 @@ function RootComponent() {
       }
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (event !== "SIGNED_OUT") {
+        queryClient.invalidateQueries();
+        // Guarantee a profile row exists for every signed-in account, even if
+        // the database signup trigger did not fire.
+        void ensureProfile().catch(() => {});
+      }
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
