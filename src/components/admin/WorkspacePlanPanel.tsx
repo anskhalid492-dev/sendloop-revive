@@ -358,14 +358,13 @@ export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
                   </span>
                   <span className="font-medium text-muted-foreground">{targetPlan?.name}</span>
                   {KEY_LIMITS.map((key) => (
-                    <>
-                      <span key={`${key}-l`}>{LIMIT_LABELS[key]}</span>
-                      <span key={`${key}-a`}>{num(currentPlan?.limits[key] ?? data.limits[key])}</span>
-                      <span key={`${key}-b`} className="font-medium">
-                        {num(targetPlan?.limits[key] ?? null)}
-                      </span>
-                    </>
+                    <Fragment key={key}>
+                      <span>{LIMIT_LABELS[key]}</span>
+                      <span>{num(currentPlan?.limits[key] ?? data.limits[key])}</span>
+                      <span className="font-medium">{num(targetPlan?.limits[key] ?? null)}</span>
+                    </Fragment>
                   ))}
+
                 </div>
               </div>
             </AlertDialogDescription>
