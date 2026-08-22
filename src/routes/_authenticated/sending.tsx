@@ -705,6 +705,25 @@ function EmailAccountsPage() {
                               </span>
                             </button>
                           </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            {account.warmupStats && account.warmupStats.sentTotal > 0 ? (
+                              <>
+                                <span className="font-medium">
+                                  {account.warmupStats.sentToday}
+                                  {account.warmupStats.targetToday
+                                    ? ` / ${account.warmupStats.targetToday}`
+                                    : ""}
+                                </span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {account.warmupStats.sentTotal} total ·{" "}
+                                  {account.warmupStats.delivered} delivered ·{" "}
+                                  {account.warmupStats.replied} replied
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
                           <td
                             className={cn(
                               "px-3 py-2.5 text-right font-semibold tabular-nums",
