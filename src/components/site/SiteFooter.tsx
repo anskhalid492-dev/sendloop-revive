@@ -183,7 +183,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-background text-foreground">
       <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:gap-20">
           {/* Brand + newsletter */}
           <div>
             <div className="flex items-center gap-3">
@@ -249,22 +249,22 @@ export function SiteFooter() {
           </div>
 
           {/* Link columns */}
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {columns.map((col) => (
               <div key={col.title}>
-                <h3 className="text-base font-semibold">{col.title}</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-wide">{col.title}</h3>
                 <span className="mt-2 block h-0.5 w-7 rounded-full bg-primary" />
-                <ul className="mt-4 space-y-3">
+                <ul className="mt-4 space-y-2.5">
                   {col.links.map((l) => {
                     const Icon = col.title === "Products" ? productIcons[l.label] : undefined;
                     return (
                       <li key={`${col.title}-${l.label}`}>
                         <a
                           href={l.href}
-                          className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+                          className="flex items-start gap-2.5 text-sm leading-6 text-muted-foreground transition-colors hover:text-primary"
                         >
                           {Icon ? (
-                            <Icon className="size-4 shrink-0 text-muted-foreground/70" />
+                            <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground/70" />
                           ) : null}
                           {l.label}
                         </a>
