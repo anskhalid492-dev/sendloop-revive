@@ -119,6 +119,7 @@ import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/admin/seo'
 import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authenticated/admin/seo-files'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminSubprocessorsRouteImport } from './routes/_authenticated/admin/subprocessors'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin/subscriptions'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedAdminSystemEmailsRouteImport } from './routes/_authenticated/admin/system-emails'
@@ -735,6 +736,12 @@ const AuthenticatedAdminSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSubprocessorsRoute =
+  AuthenticatedAdminSubprocessorsRouteImport.update({
+    id: '/subprocessors',
+    path: '/subprocessors',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminSubscriptionsRoute =
   AuthenticatedAdminSubscriptionsRouteImport.update({
     id: '/subscriptions',
@@ -1046,6 +1053,7 @@ export interface FileRoutesByFullPath {
   '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
@@ -1190,6 +1198,7 @@ export interface FileRoutesByTo {
   '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
@@ -1338,6 +1347,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/_authenticated/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
@@ -1486,6 +1496,7 @@ export interface FileRouteTypes {
     | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
+    | '/admin/subprocessors'
     | '/admin/subscriptions'
     | '/admin/support'
     | '/admin/system-emails'
@@ -1630,6 +1641,7 @@ export interface FileRouteTypes {
     | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
+    | '/admin/subprocessors'
     | '/admin/subscriptions'
     | '/admin/support'
     | '/admin/system-emails'
@@ -1777,6 +1789,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/seo'
     | '/_authenticated/admin/seo-files'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/subprocessors'
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-emails'
@@ -2665,6 +2678,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/subprocessors': {
+      id: '/_authenticated/admin/subprocessors'
+      path: '/subprocessors'
+      fullPath: '/admin/subprocessors'
+      preLoaderRoute: typeof AuthenticatedAdminSubprocessorsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/subscriptions': {
       id: '/_authenticated/admin/subscriptions'
       path: '/subscriptions'
@@ -2977,6 +2997,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRoute
   AuthenticatedAdminSeoFilesRoute: typeof AuthenticatedAdminSeoFilesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminSubprocessorsRoute: typeof AuthenticatedAdminSubprocessorsRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemEmailsRoute: typeof AuthenticatedAdminSystemEmailsRoute
@@ -3028,6 +3049,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRoute,
     AuthenticatedAdminSeoFilesRoute: AuthenticatedAdminSeoFilesRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+    AuthenticatedAdminSubprocessorsRoute: AuthenticatedAdminSubprocessorsRoute,
     AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminSystemEmailsRoute: AuthenticatedAdminSystemEmailsRoute,
