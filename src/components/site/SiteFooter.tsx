@@ -207,21 +207,26 @@ export function SiteFooter() {
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">{tagline}</p>
 
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              {social.map((s) => {
-                const Icon = socialIcons[s.label];
-                return (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    aria-label={s.label}
-                    className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                  >
-                    {Icon ? <Icon className="size-4" /> : <XIcon className="size-4" />}
-                  </a>
-                );
-              })}
-            </div>
+            {social.length ? (
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                {social.map((s) => {
+                  const Icon = socialIcons[s.label] ?? ((p: { className?: string }) => <Send {...p} />);
+                  return (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      aria-label={s.label}
+                      className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Icon className="size-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+
 
             <div className="mt-7 rounded-2xl border border-border bg-muted/30 p-5">
               <h3 className="text-base font-semibold">Stay in the loop</h3>
