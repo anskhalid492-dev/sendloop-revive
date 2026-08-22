@@ -156,14 +156,24 @@ const STRIPE_STATUS: Record<string, SubscriptionState> = {
 const stripe: ProviderAdapter = {
   id: "stripe",
   async createCheckout(input) {
+    // Payment methods are NOT hard-coded: omitting `payment_method_types` makes
+    // Stripe Checkout offer exactly what the account has enabled in its
+    // dashboard payment-method settings (cards, wallets, bank debits, …) and
+    // filters them by currency/country automatically. Async methods finish
+    // through checkout.session.async_payment_succeeded, which is handled too.
     const session = await stripeCall(input.environment, "checkout/sessions", {
       mode: "subscription",
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       client_reference_id: input.workspaceId,
       allow_promotion_codes: "true",
-      ...(input.customerId ? { customer: input.customerId } : {}),
+      billing_address_collection: "auto",
+      payment_method_collection: "always",
+      ...(input.customerId
+        ? { customer: input.customerId, customer_update: { address: "auto", name: "auto" } }
+        : {}),
       ...(!input.customerId && input.email ? { customer_email: input.email } : {}),
+      ...(!input.customerId ? { customer_creation: "always" } : {}),
       line_items: { 0: { price: input.priceId, quantity: 1 } },
       metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
       subscription_data: {
@@ -172,6 +182,7 @@ const stripe: ProviderAdapter = {
     });
     return { url: session.url as string };
   },
+
   async cancel(env, subscriptionId, atPeriodEnd) {
     if (atPeriodEnd)
       await stripeCall(env, `subscriptions/${subscriptionId}`, { cancel_at_period_end: "true" });
