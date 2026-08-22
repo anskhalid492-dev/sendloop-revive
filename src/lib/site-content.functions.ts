@@ -130,7 +130,7 @@ const navInput = z.object({
   location: z.enum(["header", "footer", "social"]),
   groupLabel: z.string().trim().max(80).nullable(),
   label: z.string().trim().min(1).max(80),
-  href: z.string().trim().min(1).max(600),
+  href: z.string().trim().max(600),
   description: z.string().trim().max(240).nullable(),
   icon: z.string().trim().max(60).nullable(),
   isExternal: z.boolean(),
