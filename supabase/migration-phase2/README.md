@@ -20,7 +20,9 @@ no auth users, no storage objects, no secrets, no provider credentials.
 except for two safe edits: `CREATE SCHEMA public` → `IF NOT EXISTS`, and the
 removal of 120 GRANT/DEFAULT-PRIVILEGE lines targeting the Lovable-infrastructure
 roles `sandbox_exec` and `supabase_read_only_user`, which do not exist in a
-customer-owned project. No table, column, constraint, function, trigger, index,
+customer-owned project, plus the 12 `ALTER DEFAULT PRIVILEGES FOR ROLE
+supabase_admin IN SCHEMA public` lines, which the project-owner `postgres` role
+is not permitted to set and which Supabase already provisions by default. No table, column, constraint, function, trigger, index,
 policy or enum was altered. The 139 historical migrations in
 `supabase/migrations/` remain the audit trail; this consolidated dump is their
 exact end state and is the safe thing to replay (replaying 139 files in order
