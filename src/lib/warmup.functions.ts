@@ -471,6 +471,7 @@ export type WarmupAnalyticsPoint = {
   spam: number;
   bounced: number;
   complained: number;
+  failed: number;
   replied: number;
   not_received: number;
   deferred: number;
@@ -542,6 +543,7 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         spam: 0,
         bounced: 0,
         complained: 0,
+        failed: 0,
         replied: 0,
         not_received: 0,
         deferred: 0,
@@ -555,6 +557,17 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         delivered: null as number | null,
       },
       placement: [] as Array<{ placement: string; count: number }>,
+      current: {
+        sentToday: 0,
+        targetToday: null as number | null,
+        dailyLimit: null as number | null,
+        stage: null as string | null,
+        stageDay: null as number | null,
+        rampDays: null as number | null,
+        lastActivityAt: null as string | null,
+        healthScore: null as number | null,
+        enabledMailboxes: 0,
+      },
       days: data.days,
     };
     if (ids.length === 0) return empty;
@@ -615,6 +628,7 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
           spam: 0,
           bounced: 0,
           complained: 0,
+          failed: 0,
           replied: 0,
           not_received: 0,
           deferred: 0,
@@ -631,6 +645,7 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         "spam",
         "bounced",
         "complained",
+        "failed",
         "replied",
         "not_received",
         "deferred",
