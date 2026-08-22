@@ -1429,7 +1429,13 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
     }
 
     // 4. Health ------------------------------------------------------------
-    const touched = new Set(jobs.map((j) => j["sending_account_id"] as string));
+    // Health is refreshed for every mailbox with warmup enabled, not only the
+    // ones that sent this cycle, so the dashboard score keeps moving as
+    // delivery, placement and reply signals land after the send.
+    const touched = new Set<string>([
+      ...jobs.map((j) => j["sending_account_id"] as string),
+      ...settings.map((s) => s.sending_account_id),
+    ]);
     for (const accountId of touched) {
       try {
         await recalculateHealth(admin, accountId);

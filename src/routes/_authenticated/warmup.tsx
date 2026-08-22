@@ -79,7 +79,8 @@ function WarmupPage() {
   const accountsQuery = useQuery({
     queryKey: ["warmup-accounts"],
     queryFn: () => fetchAccounts(),
-    refetchInterval: 120_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
   const rows = accountsQuery.data?.accounts ?? [];
 
