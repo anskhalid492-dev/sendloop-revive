@@ -79,22 +79,14 @@ const fallbackColumns = [
     ],
   },
   {
-    title: "Support",
-    links: [
-      { label: "User Guide & Alerts", href: "/user-guide" },
-      { label: "Contact Support", href: "/contact-support" },
-      { label: "Help Center", href: "/help-center" },
-    ],
-  },
-  {
     title: "Legal",
     links: [
       { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
-      { label: "Acceptable Use Policy", href: "/acceptable-use" },
+      { label: "Terms", href: "/terms" },
+      { label: "Acceptable Use", href: "/acceptable-use" },
       { label: "Cookie Policy", href: "/cookie-policy" },
-      { label: "Subprocessors", href: "/subprocessors" },
-      { label: "Data Processing Agreement", href: "/dpa" },
+      label: "Subprocessors", href: "/subprocessors" },
+      { label: "DPA", href: "/dpa" },
       { label: "Remove My Data", href: "/remove-my-data" },
     ],
   },
