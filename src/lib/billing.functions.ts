@@ -28,6 +28,10 @@ export type CustomerBilling = {
   planName: string;
   state: SubscriptionState | "none";
   active: boolean;
+  /** "admin_grant" when staff provided the plan at no charge. */
+  planSource: "subscription" | "admin_grant";
+  grant: { planName: string; expiresAt: string | null } | null;
+
   provider: BillingProvider | null;
   interval: BillingInterval | null;
   amountCents: number;

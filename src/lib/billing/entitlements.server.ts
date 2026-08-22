@@ -16,6 +16,13 @@ export type PlanFlagKey =
   | "custom_branding"
   | "sso_enabled";
 
+export type EntitlementGrant = {
+  planName: string;
+  /** null = no expiry. */
+  expiresAt: string | null;
+  grantedAt: string;
+};
+
 export type Entitlement = {
   workspaceId: string;
   planId: string | null;
@@ -25,12 +32,17 @@ export type Entitlement = {
   active: boolean;
   inGrace: boolean;
   accessUntil: string | null;
+  /** Where the plan came from: the customer's subscription or a staff grant. */
+  source: "subscription" | "admin_grant";
+  /** Set while a staff-granted plan is overriding the normal entitlement. */
+  grant: EntitlementGrant | null;
   limits: Record<PlanLimitKey, number | null>;
   flags: Record<PlanFlagKey, boolean>;
   /** Admin-managed plan × feature matrix, keyed by feature key. */
   features: Record<string, boolean>;
   credits: { included: number; balance: number };
 };
+
 
 export async function getEntitlement(workspaceId: string): Promise<Entitlement> {
   const db = await admin();
@@ -92,21 +104,44 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
     rawState === "cancelled" && sub?.access_until
       ? new Date(sub.access_until) > new Date()
       : false;
-  const active =
+  const subscriptionActive =
     rawState !== null &&
     (alwaysEntitled.includes(rawState) ||
       (graceEntitled.includes(rawState) && inGrace) ||
       withinAccessWindow);
+
+  // A staff grant overrides the plan the subscription points at, without
+  // touching the subscription record itself. Expiry/revocation simply removes
+  // the override and the workspace falls back to its own plan.
+  const { activeGrantWithPlan } = await import("@/lib/billing/plan-grants.server");
+  const granted = await activeGrantWithPlan(workspaceId);
+  if (granted?.plan) plan = granted.plan;
+  const active = granted ? true : subscriptionActive;
 
   return {
     workspaceId,
     planId: plan?.id ?? null,
     planName: plan?.name ?? "Free trial",
     state,
-    stateLabel: rawState ? STATE_LABELS[rawState] : "No subscription",
+    stateLabel: granted
+      ? "Provided by MunchReach"
+      : rawState
+        ? STATE_LABELS[rawState]
+        : "No subscription",
     active,
     inGrace,
-    accessUntil: sub?.access_until ?? sub?.current_period_end ?? null,
+    accessUntil: granted
+      ? granted.row.expires_at
+      : (sub?.access_until ?? sub?.current_period_end ?? null),
+    source: granted ? ("admin_grant" as const) : ("subscription" as const),
+    grant: granted
+      ? {
+          planName: granted.plan?.name ?? "Plan",
+          expiresAt: granted.row.expires_at ?? null,
+          grantedAt: granted.row.created_at,
+        }
+      : null,
+
     limits: {
       max_users: plan?.max_users ?? null,
       max_leads: plan?.max_leads ?? null,
@@ -198,7 +233,7 @@ export async function assertFeatureKey(workspaceId: string, featureKey: string) 
   const label = definition?.label ?? featureKey;
   // Workspaces without any subscription record are on the default trial plan
   // and keep their current access; gating only applies once a plan is attached.
-  if (entitlement.state === "none") return entitlement;
+  if (entitlement.source === "subscription" && entitlement.state === "none") return entitlement;
   if (!entitlement.active)
     throw new Error(`Your subscription is ${entitlement.state}. Renew it to use ${label}.`);
   if (!entitlement.features[featureKey])
