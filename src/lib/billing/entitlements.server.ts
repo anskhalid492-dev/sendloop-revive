@@ -16,6 +16,13 @@ export type PlanFlagKey =
   | "custom_branding"
   | "sso_enabled";
 
+export type EntitlementGrant = {
+  planName: string;
+  /** null = no expiry. */
+  expiresAt: string | null;
+  grantedAt: string;
+};
+
 export type Entitlement = {
   workspaceId: string;
   planId: string | null;
@@ -25,12 +32,17 @@ export type Entitlement = {
   active: boolean;
   inGrace: boolean;
   accessUntil: string | null;
+  /** Where the plan came from: the customer's subscription or a staff grant. */
+  source: "subscription" | "admin_grant";
+  /** Set while a staff-granted plan is overriding the normal entitlement. */
+  grant: EntitlementGrant | null;
   limits: Record<PlanLimitKey, number | null>;
   flags: Record<PlanFlagKey, boolean>;
   /** Admin-managed plan × feature matrix, keyed by feature key. */
   features: Record<string, boolean>;
   credits: { included: number; balance: number };
 };
+
 
 export async function getEntitlement(workspaceId: string): Promise<Entitlement> {
   const db = await admin();
