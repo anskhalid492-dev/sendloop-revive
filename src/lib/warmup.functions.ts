@@ -695,6 +695,81 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
       bounce_rate: pct(m.bounced, m.sent),
     }));
 
+    // Live warmup state for the selected mailboxes: today's real volume, the
+    // configured allowance, the ramp stage and the last recorded activity.
+    const todayDay = new Date().toISOString().slice(0, 10);
+    const [{ data: todayStats }, { data: settingsRows }, { data: lastEvent }] = await Promise.all([
+      client
+        .from("warmup_daily_stats")
+        .select("sent, target, health_score")
+        .in("sending_account_id", ids)
+        .eq("day", todayDay),
+      client
+        .from("warmup_settings")
+        .select("enabled, mode, max_volume, ramp_days, started_at")
+        .in("sending_account_id", ids),
+      client
+        .from("warmup_events")
+        .select("created_at")
+        .in("sending_account_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const todayRows = (todayStats ?? []) as Array<{
+      sent: number | null;
+      target: number | null;
+      health_score: number | null;
+    }>;
+    const settingsList = ((settingsRows ?? []) as Array<{
+      enabled: boolean | null;
+      mode: string | null;
+      max_volume: number | null;
+      ramp_days: number | null;
+      started_at: string | null;
+    }>).filter((row) => row.enabled);
+    const targetsToday = todayRows
+      .map((row) => row.target)
+      .filter((value): value is number => typeof value === "number");
+    const limits = settingsList
+      .map((row) => row.max_volume)
+      .filter((value): value is number => typeof value === "number");
+    const healthToday = todayRows
+      .map((row) => row.health_score)
+      .filter((value): value is number => typeof value === "number");
+    const startedAt = settingsList
+      .map((row) => row.started_at)
+      .filter((value): value is string => Boolean(value))
+      .sort()[0] ?? null;
+    const rampDays = settingsList
+      .map((row) => row.ramp_days)
+      .filter((value): value is number => typeof value === "number")
+      .sort((a, b) => b - a)[0] ?? null;
+
+    const current = {
+      sentToday: todayRows.reduce((sum, row) => sum + (row.sent ?? 0), 0),
+      targetToday: targetsToday.length
+        ? targetsToday.reduce((sum, value) => sum + value, 0)
+        : null,
+      dailyLimit: limits.length ? limits.reduce((sum, value) => sum + value, 0) : null,
+      stage: settingsList.length
+        ? (settingsList[0]?.mode ?? null)
+        : null,
+      stageDay: startedAt
+        ? Math.max(
+            1,
+            Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) + 1,
+          )
+        : null,
+      rampDays,
+      lastActivityAt: (lastEvent?.created_at as string | undefined) ?? null,
+      healthScore: healthToday.length
+        ? Math.round(healthToday.reduce((sum, value) => sum + value, 0) / healthToday.length)
+        : null,
+      enabledMailboxes: settingsList.length,
+    };
+
     const placementCounts = new Map<string, number>();
     for (const job of (jobs ?? []) as Array<{ placement: string | null; status: string }>) {
       const key = job.placement ?? (job.status === "failed" ? "not_delivered" : "pending");
@@ -713,6 +788,7 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         bounce: pct(totals.bounced, totals.sent),
         delivered: pct(totals.delivered, totals.sent),
       },
+      current,
       placement: [...placementCounts.entries()]
         .map(([placement, count]) => ({ placement, count }))
         .sort((a, b) => b.count - a.count),
