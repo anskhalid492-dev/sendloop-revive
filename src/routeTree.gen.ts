@@ -19,6 +19,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ContactSupportRouteImport } from './routes/contact-support'
 import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
 import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
@@ -201,6 +202,11 @@ const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactSupportRoute = ContactSupportRouteImport.update({
+  id: '/contact-support',
+  path: '/contact-support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookiePolicyRoute = CookiePolicyRouteImport.update({
@@ -941,6 +947,7 @@ export interface FileRoutesByFullPath {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/contact-support': typeof ContactSupportRoute
   '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
@@ -1086,6 +1093,7 @@ export interface FileRoutesByTo {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/contact-support': typeof ContactSupportRoute
   '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
@@ -1231,6 +1239,7 @@ export interface FileRoutesById {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/contact-support': typeof ContactSupportRoute
   '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
@@ -1378,6 +1387,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/contact-support'
     | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
@@ -1523,6 +1533,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/contact-support'
     | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
@@ -1667,6 +1678,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/contact-support'
     | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
@@ -1814,6 +1826,7 @@ export interface RootRouteChildren {
   AutomationsRoute: typeof AutomationsRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
+  ContactSupportRoute: typeof ContactSupportRoute
   CookiePolicyRoute: typeof CookiePolicyRoute
   CustomerReviewsRoute: typeof CustomerReviewsRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
@@ -1950,6 +1963,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact-support': {
+      id: '/contact-support'
+      path: '/contact-support'
+      fullPath: '/contact-support'
+      preLoaderRoute: typeof ContactSupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookie-policy': {
@@ -3104,6 +3124,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutomationsRoute: AutomationsRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
+  ContactSupportRoute: ContactSupportRoute,
   CookiePolicyRoute: CookiePolicyRoute,
   CustomerReviewsRoute: CustomerReviewsRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
