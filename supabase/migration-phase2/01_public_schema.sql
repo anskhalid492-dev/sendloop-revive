@@ -11740,7 +11740,6 @@ GRANT USAGE ON SCHEMA public TO postgres;
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA public TO service_role;
-GRANT ALL ON SCHEMA public TO sandbox_exec;
 
 
 --
@@ -11795,7 +11794,6 @@ GRANT ALL ON FUNCTION public.analytics_timeseries(_workspace_id uuid, _from time
 GRANT ALL ON TABLE public.credit_ledger TO anon;
 GRANT ALL ON TABLE public.credit_ledger TO authenticated;
 GRANT ALL ON TABLE public.credit_ledger TO service_role;
-GRANT SELECT,INSERT ON TABLE public.credit_ledger TO sandbox_exec;
 
 
 --
@@ -11813,7 +11811,6 @@ GRANT ALL ON FUNCTION public.apply_credit_change(_workspace_id uuid, _amount big
 GRANT ALL ON TABLE public.ai_personalizations TO anon;
 GRANT ALL ON TABLE public.ai_personalizations TO authenticated;
 GRANT ALL ON TABLE public.ai_personalizations TO service_role;
-GRANT SELECT,INSERT ON TABLE public.ai_personalizations TO sandbox_exec;
 
 
 --
@@ -11831,7 +11828,6 @@ GRANT ALL ON FUNCTION public.claim_ai_personalization_jobs(_worker text, _limit 
 GRANT ALL ON TABLE public.automation_runs TO anon;
 GRANT ALL ON TABLE public.automation_runs TO authenticated;
 GRANT ALL ON TABLE public.automation_runs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.automation_runs TO sandbox_exec;
 
 
 --
@@ -11849,7 +11845,6 @@ GRANT ALL ON FUNCTION public.claim_automation_runs(_worker text, _limit integer)
 GRANT ALL ON TABLE public.warmup_jobs TO anon;
 GRANT ALL ON TABLE public.warmup_jobs TO authenticated;
 GRANT ALL ON TABLE public.warmup_jobs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_jobs TO sandbox_exec;
 
 
 --
@@ -11934,7 +11929,6 @@ GRANT ALL ON FUNCTION public.ensure_crm_stages(_workspace_id uuid) TO service_ro
 GRANT ALL ON TABLE public.referral_profiles TO anon;
 GRANT ALL ON TABLE public.referral_profiles TO authenticated;
 GRANT ALL ON TABLE public.referral_profiles TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_profiles TO sandbox_exec;
 
 
 --
@@ -12184,7 +12178,6 @@ GRANT ALL ON FUNCTION public.repair_delivery_state(_workspace_id uuid, _since ti
 GRANT ALL ON TABLE public.referral_payouts TO anon;
 GRANT ALL ON TABLE public.referral_payouts TO authenticated;
 GRANT ALL ON TABLE public.referral_payouts TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_payouts TO sandbox_exec;
 
 
 --
@@ -12411,7 +12404,6 @@ GRANT ALL ON FUNCTION public.workspace_team(_workspace_id uuid) TO service_role;
 GRANT ALL ON TABLE public.admin_audit_log TO anon;
 GRANT ALL ON TABLE public.admin_audit_log TO authenticated;
 GRANT ALL ON TABLE public.admin_audit_log TO service_role;
-GRANT SELECT,INSERT ON TABLE public.admin_audit_log TO sandbox_exec;
 
 
 --
@@ -12422,7 +12414,6 @@ GRANT SELECT ON TABLE public.admin_notifications TO authenticated;
 GRANT ALL ON TABLE public.admin_notifications TO service_role;
 GRANT ALL ON TABLE public.admin_notifications TO postgres;
 GRANT ALL ON TABLE public.admin_notifications TO supabase_admin;
-GRANT SELECT ON TABLE public.admin_notifications TO supabase_read_only_user;
 
 
 --
@@ -12432,7 +12423,6 @@ GRANT SELECT ON TABLE public.admin_notifications TO supabase_read_only_user;
 GRANT ALL ON TABLE public.ai_runner_state TO anon;
 GRANT ALL ON TABLE public.ai_runner_state TO authenticated;
 GRANT ALL ON TABLE public.ai_runner_state TO service_role;
-GRANT SELECT,INSERT ON TABLE public.ai_runner_state TO sandbox_exec;
 
 
 --
@@ -12442,7 +12432,6 @@ GRANT SELECT,INSERT ON TABLE public.ai_runner_state TO sandbox_exec;
 GRANT ALL ON TABLE public.automation_events TO anon;
 GRANT ALL ON TABLE public.automation_events TO authenticated;
 GRANT ALL ON TABLE public.automation_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.automation_events TO sandbox_exec;
 
 
 --
@@ -12452,7 +12441,6 @@ GRANT SELECT,INSERT ON TABLE public.automation_events TO sandbox_exec;
 GRANT ALL ON TABLE public.automation_run_steps TO anon;
 GRANT ALL ON TABLE public.automation_run_steps TO authenticated;
 GRANT ALL ON TABLE public.automation_run_steps TO service_role;
-GRANT SELECT,INSERT ON TABLE public.automation_run_steps TO sandbox_exec;
 
 
 --
@@ -12462,7 +12450,6 @@ GRANT SELECT,INSERT ON TABLE public.automation_run_steps TO sandbox_exec;
 GRANT ALL ON TABLE public.automation_steps TO anon;
 GRANT ALL ON TABLE public.automation_steps TO authenticated;
 GRANT ALL ON TABLE public.automation_steps TO service_role;
-GRANT SELECT,INSERT ON TABLE public.automation_steps TO sandbox_exec;
 
 
 --
@@ -12472,7 +12459,6 @@ GRANT SELECT,INSERT ON TABLE public.automation_steps TO sandbox_exec;
 GRANT ALL ON TABLE public.automations TO anon;
 GRANT ALL ON TABLE public.automations TO authenticated;
 GRANT ALL ON TABLE public.automations TO service_role;
-GRANT SELECT,INSERT ON TABLE public.automations TO sandbox_exec;
 
 
 --
@@ -12482,7 +12468,6 @@ GRANT SELECT,INSERT ON TABLE public.automations TO sandbox_exec;
 GRANT ALL ON TABLE public.billing_audit_log TO anon;
 GRANT ALL ON TABLE public.billing_audit_log TO authenticated;
 GRANT ALL ON TABLE public.billing_audit_log TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_audit_log TO sandbox_exec;
 
 
 --
@@ -12492,7 +12477,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_audit_log TO sandbox_exec;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_customers TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_customers TO authenticated;
 GRANT ALL ON TABLE public.billing_customers TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_customers TO sandbox_exec;
 
 
 --
@@ -12502,7 +12486,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_customers TO sandbox_exec;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_invoices TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_invoices TO authenticated;
 GRANT ALL ON TABLE public.billing_invoices TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_invoices TO sandbox_exec;
 
 
 --
@@ -12512,7 +12495,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_invoices TO sandbox_exec;
 GRANT ALL ON TABLE public.billing_plan_prices TO anon;
 GRANT ALL ON TABLE public.billing_plan_prices TO authenticated;
 GRANT ALL ON TABLE public.billing_plan_prices TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_plan_prices TO sandbox_exec;
 
 
 --
@@ -12522,7 +12504,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_plan_prices TO sandbox_exec;
 GRANT ALL ON TABLE public.billing_provider_secrets TO anon;
 GRANT ALL ON TABLE public.billing_provider_secrets TO authenticated;
 GRANT ALL ON TABLE public.billing_provider_secrets TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_provider_secrets TO sandbox_exec;
 
 
 --
@@ -12532,7 +12513,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_provider_secrets TO sandbox_exec;
 GRANT ALL ON TABLE public.billing_providers TO anon;
 GRANT ALL ON TABLE public.billing_providers TO authenticated;
 GRANT ALL ON TABLE public.billing_providers TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_providers TO sandbox_exec;
 
 
 --
@@ -12542,7 +12522,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_providers TO sandbox_exec;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_subscriptions TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_subscriptions TO authenticated;
 GRANT ALL ON TABLE public.billing_subscriptions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_subscriptions TO sandbox_exec;
 
 
 --
@@ -12552,7 +12531,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_subscriptions TO sandbox_exec;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_transactions TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.billing_transactions TO authenticated;
 GRANT ALL ON TABLE public.billing_transactions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_transactions TO sandbox_exec;
 
 
 --
@@ -12562,7 +12540,6 @@ GRANT SELECT,INSERT ON TABLE public.billing_transactions TO sandbox_exec;
 GRANT ALL ON TABLE public.billing_webhook_events TO anon;
 GRANT ALL ON TABLE public.billing_webhook_events TO authenticated;
 GRANT ALL ON TABLE public.billing_webhook_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.billing_webhook_events TO sandbox_exec;
 
 
 --
@@ -12590,7 +12567,6 @@ GRANT ALL ON TABLE public.blog_categories TO service_role;
 GRANT ALL ON TABLE public.blog_media TO anon;
 GRANT ALL ON TABLE public.blog_media TO authenticated;
 GRANT ALL ON TABLE public.blog_media TO service_role;
-GRANT SELECT,INSERT ON TABLE public.blog_media TO sandbox_exec;
 
 
 --
@@ -12600,7 +12576,6 @@ GRANT SELECT,INSERT ON TABLE public.blog_media TO sandbox_exec;
 GRANT ALL ON TABLE public.blog_post_slugs TO anon;
 GRANT ALL ON TABLE public.blog_post_slugs TO authenticated;
 GRANT ALL ON TABLE public.blog_post_slugs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.blog_post_slugs TO sandbox_exec;
 
 
 --
@@ -12619,7 +12594,6 @@ GRANT ALL ON TABLE public.blog_posts TO service_role;
 GRANT ALL ON TABLE public.campaign_launch_events TO anon;
 GRANT ALL ON TABLE public.campaign_launch_events TO authenticated;
 GRANT ALL ON TABLE public.campaign_launch_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.campaign_launch_events TO sandbox_exec;
 
 
 --
@@ -12630,7 +12604,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.campaign_messages TO authentic
 GRANT ALL ON TABLE public.campaign_messages TO service_role;
 GRANT ALL ON TABLE public.campaign_messages TO postgres;
 GRANT ALL ON TABLE public.campaign_messages TO supabase_admin;
-GRANT SELECT ON TABLE public.campaign_messages TO supabase_read_only_user;
 
 
 --
@@ -12641,7 +12614,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.campaign_recipients TO authent
 GRANT ALL ON TABLE public.campaign_recipients TO service_role;
 GRANT ALL ON TABLE public.campaign_recipients TO postgres;
 GRANT ALL ON TABLE public.campaign_recipients TO supabase_admin;
-GRANT SELECT ON TABLE public.campaign_recipients TO supabase_read_only_user;
 
 
 --
@@ -12652,7 +12624,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.campaign_replies TO authentica
 GRANT ALL ON TABLE public.campaign_replies TO service_role;
 GRANT ALL ON TABLE public.campaign_replies TO postgres;
 GRANT ALL ON TABLE public.campaign_replies TO supabase_admin;
-GRANT SELECT ON TABLE public.campaign_replies TO supabase_read_only_user;
 
 
 --
@@ -12663,7 +12634,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.campaign_step_variants TO auth
 GRANT ALL ON TABLE public.campaign_step_variants TO service_role;
 GRANT ALL ON TABLE public.campaign_step_variants TO postgres;
 GRANT ALL ON TABLE public.campaign_step_variants TO supabase_admin;
-GRANT SELECT ON TABLE public.campaign_step_variants TO supabase_read_only_user;
 
 
 --
@@ -12674,7 +12644,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.campaign_steps TO authenticate
 GRANT ALL ON TABLE public.campaign_steps TO service_role;
 GRANT ALL ON TABLE public.campaign_steps TO postgres;
 GRANT ALL ON TABLE public.campaign_steps TO supabase_admin;
-GRANT SELECT ON TABLE public.campaign_steps TO supabase_read_only_user;
 
 
 --
@@ -12684,7 +12653,6 @@ GRANT SELECT ON TABLE public.campaign_steps TO supabase_read_only_user;
 GRANT ALL ON TABLE public.campaign_test_sends TO anon;
 GRANT ALL ON TABLE public.campaign_test_sends TO authenticated;
 GRANT ALL ON TABLE public.campaign_test_sends TO service_role;
-GRANT SELECT,INSERT ON TABLE public.campaign_test_sends TO sandbox_exec;
 
 
 --
@@ -12695,7 +12663,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.campaigns TO authenticated;
 GRANT ALL ON TABLE public.campaigns TO service_role;
 GRANT ALL ON TABLE public.campaigns TO postgres;
 GRANT ALL ON TABLE public.campaigns TO supabase_admin;
-GRANT SELECT ON TABLE public.campaigns TO supabase_read_only_user;
 
 
 --
@@ -12706,7 +12673,6 @@ GRANT SELECT,INSERT ON TABLE public.conversation_events TO authenticated;
 GRANT ALL ON TABLE public.conversation_events TO service_role;
 GRANT ALL ON TABLE public.conversation_events TO postgres;
 GRANT ALL ON TABLE public.conversation_events TO supabase_admin;
-GRANT SELECT ON TABLE public.conversation_events TO supabase_read_only_user;
 
 
 --
@@ -12717,7 +12683,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.conversation_messages TO authe
 GRANT ALL ON TABLE public.conversation_messages TO service_role;
 GRANT ALL ON TABLE public.conversation_messages TO postgres;
 GRANT ALL ON TABLE public.conversation_messages TO supabase_admin;
-GRANT SELECT ON TABLE public.conversation_messages TO supabase_read_only_user;
 
 
 --
@@ -12728,7 +12693,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.conversation_notes TO authenti
 GRANT ALL ON TABLE public.conversation_notes TO service_role;
 GRANT ALL ON TABLE public.conversation_notes TO postgres;
 GRANT ALL ON TABLE public.conversation_notes TO supabase_admin;
-GRANT SELECT ON TABLE public.conversation_notes TO supabase_read_only_user;
 
 
 --
@@ -12739,7 +12703,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.conversations TO authenticated
 GRANT ALL ON TABLE public.conversations TO service_role;
 GRANT ALL ON TABLE public.conversations TO postgres;
 GRANT ALL ON TABLE public.conversations TO supabase_admin;
-GRANT SELECT ON TABLE public.conversations TO supabase_read_only_user;
 
 
 --
@@ -12749,7 +12712,6 @@ GRANT SELECT ON TABLE public.conversations TO supabase_read_only_user;
 GRANT ALL ON TABLE public.crm_stages TO anon;
 GRANT ALL ON TABLE public.crm_stages TO authenticated;
 GRANT ALL ON TABLE public.crm_stages TO service_role;
-GRANT SELECT,INSERT ON TABLE public.crm_stages TO sandbox_exec;
 
 
 --
@@ -12759,7 +12721,6 @@ GRANT SELECT,INSERT ON TABLE public.crm_stages TO sandbox_exec;
 GRANT ALL ON TABLE public.domain_alerts TO anon;
 GRANT ALL ON TABLE public.domain_alerts TO authenticated;
 GRANT ALL ON TABLE public.domain_alerts TO service_role;
-GRANT SELECT,INSERT ON TABLE public.domain_alerts TO sandbox_exec;
 
 
 --
@@ -12770,7 +12731,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.email_drafts TO authenticated;
 GRANT ALL ON TABLE public.email_drafts TO service_role;
 GRANT ALL ON TABLE public.email_drafts TO postgres;
 GRANT ALL ON TABLE public.email_drafts TO supabase_admin;
-GRANT SELECT ON TABLE public.email_drafts TO supabase_read_only_user;
 
 
 --
@@ -12780,7 +12740,6 @@ GRANT SELECT ON TABLE public.email_drafts TO supabase_read_only_user;
 GRANT ALL ON TABLE public.email_engagement_events TO anon;
 GRANT ALL ON TABLE public.email_engagement_events TO authenticated;
 GRANT ALL ON TABLE public.email_engagement_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.email_engagement_events TO sandbox_exec;
 
 
 --
@@ -12791,7 +12750,6 @@ GRANT SELECT ON TABLE public.email_events TO authenticated;
 GRANT ALL ON TABLE public.email_events TO service_role;
 GRANT ALL ON TABLE public.email_events TO postgres;
 GRANT ALL ON TABLE public.email_events TO supabase_admin;
-GRANT SELECT ON TABLE public.email_events TO supabase_read_only_user;
 
 
 --
@@ -12801,7 +12759,6 @@ GRANT SELECT ON TABLE public.email_events TO supabase_read_only_user;
 GRANT ALL ON TABLE public.email_provider_secrets TO service_role;
 GRANT ALL ON TABLE public.email_provider_secrets TO postgres;
 GRANT ALL ON TABLE public.email_provider_secrets TO supabase_admin;
-GRANT SELECT ON TABLE public.email_provider_secrets TO supabase_read_only_user;
 
 
 --
@@ -12812,7 +12769,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.email_providers TO authenticat
 GRANT ALL ON TABLE public.email_providers TO service_role;
 GRANT ALL ON TABLE public.email_providers TO postgres;
 GRANT ALL ON TABLE public.email_providers TO supabase_admin;
-GRANT SELECT ON TABLE public.email_providers TO supabase_read_only_user;
 
 
 --
@@ -12823,7 +12779,6 @@ GRANT SELECT ON TABLE public.email_suppressions TO authenticated;
 GRANT ALL ON TABLE public.email_suppressions TO service_role;
 GRANT ALL ON TABLE public.email_suppressions TO postgres;
 GRANT ALL ON TABLE public.email_suppressions TO supabase_admin;
-GRANT SELECT ON TABLE public.email_suppressions TO supabase_read_only_user;
 
 
 --
@@ -12834,7 +12789,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.email_templates TO authenticat
 GRANT ALL ON TABLE public.email_templates TO service_role;
 GRANT ALL ON TABLE public.email_templates TO postgres;
 GRANT ALL ON TABLE public.email_templates TO supabase_admin;
-GRANT SELECT ON TABLE public.email_templates TO supabase_read_only_user;
 
 
 --
@@ -12844,7 +12798,6 @@ GRANT SELECT ON TABLE public.email_templates TO supabase_read_only_user;
 GRANT ALL ON TABLE public.guide_articles TO anon;
 GRANT ALL ON TABLE public.guide_articles TO authenticated;
 GRANT ALL ON TABLE public.guide_articles TO service_role;
-GRANT SELECT,INSERT ON TABLE public.guide_articles TO sandbox_exec;
 
 
 --
@@ -12855,7 +12808,6 @@ GRANT SELECT ON TABLE public.inbound_event_actions TO authenticated;
 GRANT ALL ON TABLE public.inbound_event_actions TO service_role;
 GRANT ALL ON TABLE public.inbound_event_actions TO postgres;
 GRANT ALL ON TABLE public.inbound_event_actions TO supabase_admin;
-GRANT SELECT ON TABLE public.inbound_event_actions TO supabase_read_only_user;
 
 
 --
@@ -12865,7 +12817,6 @@ GRANT SELECT ON TABLE public.inbound_event_actions TO supabase_read_only_user;
 GRANT ALL ON TABLE public.inbound_routes TO service_role;
 GRANT ALL ON TABLE public.inbound_routes TO postgres;
 GRANT ALL ON TABLE public.inbound_routes TO supabase_admin;
-GRANT SELECT ON TABLE public.inbound_routes TO supabase_read_only_user;
 
 
 --
@@ -12875,7 +12826,6 @@ GRANT SELECT ON TABLE public.inbound_routes TO supabase_read_only_user;
 GRANT ALL ON TABLE public.inbound_tests TO service_role;
 GRANT ALL ON TABLE public.inbound_tests TO postgres;
 GRANT ALL ON TABLE public.inbound_tests TO supabase_admin;
-GRANT SELECT ON TABLE public.inbound_tests TO supabase_read_only_user;
 
 
 --
@@ -12885,7 +12835,6 @@ GRANT SELECT ON TABLE public.inbound_tests TO supabase_read_only_user;
 GRANT ALL ON TABLE public.integration_connections TO anon;
 GRANT ALL ON TABLE public.integration_connections TO authenticated;
 GRANT ALL ON TABLE public.integration_connections TO service_role;
-GRANT SELECT,INSERT ON TABLE public.integration_connections TO sandbox_exec;
 
 
 --
@@ -12895,7 +12844,6 @@ GRANT SELECT,INSERT ON TABLE public.integration_connections TO sandbox_exec;
 GRANT ALL ON TABLE public.integration_events TO anon;
 GRANT ALL ON TABLE public.integration_events TO authenticated;
 GRANT ALL ON TABLE public.integration_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.integration_events TO sandbox_exec;
 
 
 --
@@ -12905,7 +12853,6 @@ GRANT SELECT,INSERT ON TABLE public.integration_events TO sandbox_exec;
 GRANT ALL ON TABLE public.integration_secrets TO anon;
 GRANT ALL ON TABLE public.integration_secrets TO authenticated;
 GRANT ALL ON TABLE public.integration_secrets TO service_role;
-GRANT SELECT,INSERT ON TABLE public.integration_secrets TO sandbox_exec;
 
 
 --
@@ -12915,7 +12862,6 @@ GRANT SELECT,INSERT ON TABLE public.integration_secrets TO sandbox_exec;
 GRANT ALL ON TABLE public.integration_sync_logs TO anon;
 GRANT ALL ON TABLE public.integration_sync_logs TO authenticated;
 GRANT ALL ON TABLE public.integration_sync_logs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.integration_sync_logs TO sandbox_exec;
 
 
 --
@@ -12925,7 +12871,6 @@ GRANT SELECT,INSERT ON TABLE public.integration_sync_logs TO sandbox_exec;
 GRANT ALL ON TABLE public.integrations TO anon;
 GRANT ALL ON TABLE public.integrations TO authenticated;
 GRANT ALL ON TABLE public.integrations TO service_role;
-GRANT SELECT,INSERT ON TABLE public.integrations TO sandbox_exec;
 
 
 --
@@ -12936,7 +12881,6 @@ GRANT SELECT,INSERT ON TABLE public.lead_activities TO authenticated;
 GRANT ALL ON TABLE public.lead_activities TO service_role;
 GRANT ALL ON TABLE public.lead_activities TO postgres;
 GRANT ALL ON TABLE public.lead_activities TO supabase_admin;
-GRANT SELECT ON TABLE public.lead_activities TO supabase_read_only_user;
 
 
 --
@@ -12947,7 +12891,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.lead_lists TO authenticated;
 GRANT ALL ON TABLE public.lead_lists TO service_role;
 GRANT ALL ON TABLE public.lead_lists TO postgres;
 GRANT ALL ON TABLE public.lead_lists TO supabase_admin;
-GRANT SELECT ON TABLE public.lead_lists TO supabase_read_only_user;
 
 
 --
@@ -12958,7 +12901,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.lead_notes TO authenticated;
 GRANT ALL ON TABLE public.lead_notes TO service_role;
 GRANT ALL ON TABLE public.lead_notes TO postgres;
 GRANT ALL ON TABLE public.lead_notes TO supabase_admin;
-GRANT SELECT ON TABLE public.lead_notes TO supabase_read_only_user;
 
 
 --
@@ -12968,7 +12910,6 @@ GRANT SELECT ON TABLE public.lead_notes TO supabase_read_only_user;
 GRANT ALL ON TABLE public.lead_retention_runs TO anon;
 GRANT ALL ON TABLE public.lead_retention_runs TO authenticated;
 GRANT ALL ON TABLE public.lead_retention_runs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.lead_retention_runs TO sandbox_exec;
 
 
 --
@@ -12979,7 +12920,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.lead_tasks TO authenticated;
 GRANT ALL ON TABLE public.lead_tasks TO service_role;
 GRANT ALL ON TABLE public.lead_tasks TO postgres;
 GRANT ALL ON TABLE public.lead_tasks TO supabase_admin;
-GRANT SELECT ON TABLE public.lead_tasks TO supabase_read_only_user;
 
 
 --
@@ -12990,7 +12930,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.leads TO authenticated;
 GRANT ALL ON TABLE public.leads TO service_role;
 GRANT ALL ON TABLE public.leads TO postgres;
 GRANT ALL ON TABLE public.leads TO supabase_admin;
-GRANT SELECT ON TABLE public.leads TO supabase_read_only_user;
 
 
 --
@@ -13007,7 +12946,6 @@ GRANT ALL ON TABLE public.newsletter_subscribers TO service_role;
 GRANT ALL ON TABLE public.notification_preferences TO anon;
 GRANT ALL ON TABLE public.notification_preferences TO authenticated;
 GRANT ALL ON TABLE public.notification_preferences TO service_role;
-GRANT SELECT,INSERT ON TABLE public.notification_preferences TO sandbox_exec;
 
 
 --
@@ -13018,7 +12956,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.notifications TO authenticated
 GRANT ALL ON TABLE public.notifications TO service_role;
 GRANT ALL ON TABLE public.notifications TO postgres;
 GRANT ALL ON TABLE public.notifications TO supabase_admin;
-GRANT SELECT ON TABLE public.notifications TO supabase_read_only_user;
 
 
 --
@@ -13028,7 +12965,6 @@ GRANT SELECT ON TABLE public.notifications TO supabase_read_only_user;
 GRANT ALL ON TABLE public.outbound_messages TO anon;
 GRANT ALL ON TABLE public.outbound_messages TO authenticated;
 GRANT ALL ON TABLE public.outbound_messages TO service_role;
-GRANT SELECT,INSERT ON TABLE public.outbound_messages TO sandbox_exec;
 
 
 --
@@ -13040,7 +12976,6 @@ GRANT SELECT ON TABLE public.plan_features TO authenticated;
 GRANT ALL ON TABLE public.plan_features TO service_role;
 GRANT ALL ON TABLE public.plan_features TO postgres;
 GRANT ALL ON TABLE public.plan_features TO supabase_admin;
-GRANT SELECT ON TABLE public.plan_features TO supabase_read_only_user;
 
 
 --
@@ -13050,7 +12985,6 @@ GRANT SELECT ON TABLE public.plan_features TO supabase_read_only_user;
 GRANT ALL ON TABLE public.plan_grants TO anon;
 GRANT ALL ON TABLE public.plan_grants TO authenticated;
 GRANT ALL ON TABLE public.plan_grants TO service_role;
-GRANT SELECT,INSERT ON TABLE public.plan_grants TO sandbox_exec;
 
 
 --
@@ -13062,7 +12996,6 @@ GRANT SELECT ON TABLE public.plans TO authenticated;
 GRANT ALL ON TABLE public.plans TO service_role;
 GRANT ALL ON TABLE public.plans TO postgres;
 GRANT ALL ON TABLE public.plans TO supabase_admin;
-GRANT SELECT ON TABLE public.plans TO supabase_read_only_user;
 
 
 --
@@ -13072,7 +13005,6 @@ GRANT SELECT ON TABLE public.plans TO supabase_read_only_user;
 GRANT ALL ON TABLE public.platform_announcement_dismissals TO anon;
 GRANT ALL ON TABLE public.platform_announcement_dismissals TO authenticated;
 GRANT ALL ON TABLE public.platform_announcement_dismissals TO service_role;
-GRANT SELECT,INSERT ON TABLE public.platform_announcement_dismissals TO sandbox_exec;
 
 
 --
@@ -13082,7 +13014,6 @@ GRANT SELECT,INSERT ON TABLE public.platform_announcement_dismissals TO sandbox_
 GRANT ALL ON TABLE public.platform_announcements TO anon;
 GRANT ALL ON TABLE public.platform_announcements TO authenticated;
 GRANT ALL ON TABLE public.platform_announcements TO service_role;
-GRANT SELECT,INSERT ON TABLE public.platform_announcements TO sandbox_exec;
 
 
 --
@@ -13092,7 +13023,6 @@ GRANT SELECT,INSERT ON TABLE public.platform_announcements TO sandbox_exec;
 GRANT ALL ON TABLE public.platform_feature_flags TO anon;
 GRANT ALL ON TABLE public.platform_feature_flags TO authenticated;
 GRANT ALL ON TABLE public.platform_feature_flags TO service_role;
-GRANT SELECT,INSERT ON TABLE public.platform_feature_flags TO sandbox_exec;
 
 
 --
@@ -13103,7 +13033,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.platform_settings TO authentic
 GRANT ALL ON TABLE public.platform_settings TO service_role;
 GRANT ALL ON TABLE public.platform_settings TO postgres;
 GRANT ALL ON TABLE public.platform_settings TO supabase_admin;
-GRANT SELECT ON TABLE public.platform_settings TO supabase_read_only_user;
 
 
 --
@@ -13113,7 +13042,6 @@ GRANT SELECT ON TABLE public.platform_settings TO supabase_read_only_user;
 GRANT ALL ON TABLE public.privacy_requests TO anon;
 GRANT ALL ON TABLE public.privacy_requests TO authenticated;
 GRANT ALL ON TABLE public.privacy_requests TO service_role;
-GRANT SELECT,INSERT ON TABLE public.privacy_requests TO sandbox_exec;
 
 
 --
@@ -13124,7 +13052,6 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.profiles TO authenticated;
 GRANT ALL ON TABLE public.profiles TO service_role;
 GRANT ALL ON TABLE public.profiles TO postgres;
 GRANT ALL ON TABLE public.profiles TO supabase_admin;
-GRANT SELECT ON TABLE public.profiles TO supabase_read_only_user;
 
 
 --
@@ -13134,7 +13061,6 @@ GRANT SELECT ON TABLE public.profiles TO supabase_read_only_user;
 GRANT ALL ON TABLE public.provider_health_events TO anon;
 GRANT ALL ON TABLE public.provider_health_events TO authenticated;
 GRANT ALL ON TABLE public.provider_health_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.provider_health_events TO sandbox_exec;
 
 
 --
@@ -13144,7 +13070,6 @@ GRANT SELECT,INSERT ON TABLE public.provider_health_events TO sandbox_exec;
 GRANT ALL ON TABLE public.provider_routing_events TO anon;
 GRANT ALL ON TABLE public.provider_routing_events TO authenticated;
 GRANT ALL ON TABLE public.provider_routing_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.provider_routing_events TO sandbox_exec;
 
 
 --
@@ -13154,7 +13079,6 @@ GRANT SELECT,INSERT ON TABLE public.provider_routing_events TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_attributions TO anon;
 GRANT ALL ON TABLE public.referral_attributions TO authenticated;
 GRANT ALL ON TABLE public.referral_attributions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_attributions TO sandbox_exec;
 
 
 --
@@ -13164,7 +13088,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_attributions TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_audit_logs TO anon;
 GRANT ALL ON TABLE public.referral_audit_logs TO authenticated;
 GRANT ALL ON TABLE public.referral_audit_logs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_audit_logs TO sandbox_exec;
 
 
 --
@@ -13174,7 +13097,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_audit_logs TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_billing_events TO anon;
 GRANT ALL ON TABLE public.referral_billing_events TO authenticated;
 GRANT ALL ON TABLE public.referral_billing_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_billing_events TO sandbox_exec;
 
 
 --
@@ -13184,7 +13106,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_billing_events TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_clicks TO anon;
 GRANT ALL ON TABLE public.referral_clicks TO authenticated;
 GRANT ALL ON TABLE public.referral_clicks TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_clicks TO sandbox_exec;
 
 
 --
@@ -13194,7 +13115,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_clicks TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_commissions TO anon;
 GRANT ALL ON TABLE public.referral_commissions TO authenticated;
 GRANT ALL ON TABLE public.referral_commissions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_commissions TO sandbox_exec;
 
 
 --
@@ -13204,7 +13124,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_commissions TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_fraud_flags TO anon;
 GRANT ALL ON TABLE public.referral_fraud_flags TO authenticated;
 GRANT ALL ON TABLE public.referral_fraud_flags TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_fraud_flags TO sandbox_exec;
 
 
 --
@@ -13214,7 +13133,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_fraud_flags TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_programs TO anon;
 GRANT ALL ON TABLE public.referral_programs TO authenticated;
 GRANT ALL ON TABLE public.referral_programs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_programs TO sandbox_exec;
 
 
 --
@@ -13224,7 +13142,6 @@ GRANT SELECT,INSERT ON TABLE public.referral_programs TO sandbox_exec;
 GRANT ALL ON TABLE public.referral_webhook_events TO anon;
 GRANT ALL ON TABLE public.referral_webhook_events TO authenticated;
 GRANT ALL ON TABLE public.referral_webhook_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.referral_webhook_events TO sandbox_exec;
 
 
 --
@@ -13242,7 +13159,6 @@ GRANT ALL ON TABLE public.sending_account_audit TO service_role;
 GRANT ALL ON TABLE public.sending_account_checks TO anon;
 GRANT ALL ON TABLE public.sending_account_checks TO authenticated;
 GRANT ALL ON TABLE public.sending_account_checks TO service_role;
-GRANT SELECT,INSERT ON TABLE public.sending_account_checks TO sandbox_exec;
 
 
 --
@@ -13252,7 +13168,6 @@ GRANT SELECT,INSERT ON TABLE public.sending_account_checks TO sandbox_exec;
 GRANT ALL ON TABLE public.sending_account_secrets TO service_role;
 GRANT ALL ON TABLE public.sending_account_secrets TO postgres;
 GRANT ALL ON TABLE public.sending_account_secrets TO supabase_admin;
-GRANT SELECT ON TABLE public.sending_account_secrets TO supabase_read_only_user;
 
 
 --
@@ -13263,7 +13178,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sending_accounts TO authentica
 GRANT ALL ON TABLE public.sending_accounts TO service_role;
 GRANT ALL ON TABLE public.sending_accounts TO postgres;
 GRANT ALL ON TABLE public.sending_accounts TO supabase_admin;
-GRANT SELECT ON TABLE public.sending_accounts TO supabase_read_only_user;
 
 
 --
@@ -13281,7 +13195,6 @@ GRANT ALL ON TABLE public.sending_domains TO service_role;
 GRANT ALL ON TABLE public.service_alerts TO anon;
 GRANT ALL ON TABLE public.service_alerts TO authenticated;
 GRANT ALL ON TABLE public.service_alerts TO service_role;
-GRANT SELECT,INSERT ON TABLE public.service_alerts TO sandbox_exec;
 
 
 --
@@ -13291,7 +13204,6 @@ GRANT SELECT,INSERT ON TABLE public.service_alerts TO sandbox_exec;
 GRANT ALL ON TABLE public.site_faqs TO anon;
 GRANT ALL ON TABLE public.site_faqs TO authenticated;
 GRANT ALL ON TABLE public.site_faqs TO service_role;
-GRANT SELECT,INSERT ON TABLE public.site_faqs TO sandbox_exec;
 
 
 --
@@ -13301,7 +13213,6 @@ GRANT SELECT,INSERT ON TABLE public.site_faqs TO sandbox_exec;
 GRANT ALL ON TABLE public.site_nav_items TO anon;
 GRANT ALL ON TABLE public.site_nav_items TO authenticated;
 GRANT ALL ON TABLE public.site_nav_items TO service_role;
-GRANT SELECT,INSERT ON TABLE public.site_nav_items TO sandbox_exec;
 
 
 --
@@ -13311,7 +13222,6 @@ GRANT SELECT,INSERT ON TABLE public.site_nav_items TO sandbox_exec;
 GRANT ALL ON TABLE public.site_pages TO anon;
 GRANT ALL ON TABLE public.site_pages TO authenticated;
 GRANT ALL ON TABLE public.site_pages TO service_role;
-GRANT SELECT,INSERT ON TABLE public.site_pages TO sandbox_exec;
 
 
 --
@@ -13321,7 +13231,6 @@ GRANT SELECT,INSERT ON TABLE public.site_pages TO sandbox_exec;
 GRANT ALL ON TABLE public.site_redirects TO anon;
 GRANT ALL ON TABLE public.site_redirects TO authenticated;
 GRANT ALL ON TABLE public.site_redirects TO service_role;
-GRANT SELECT,INSERT ON TABLE public.site_redirects TO sandbox_exec;
 
 
 --
@@ -13331,7 +13240,6 @@ GRANT SELECT,INSERT ON TABLE public.site_redirects TO sandbox_exec;
 GRANT ALL ON TABLE public.site_settings TO anon;
 GRANT ALL ON TABLE public.site_settings TO authenticated;
 GRANT ALL ON TABLE public.site_settings TO service_role;
-GRANT SELECT,INSERT ON TABLE public.site_settings TO sandbox_exec;
 
 
 --
@@ -13341,7 +13249,6 @@ GRANT SELECT,INSERT ON TABLE public.site_settings TO sandbox_exec;
 GRANT ALL ON TABLE public.subprocessors TO anon;
 GRANT ALL ON TABLE public.subprocessors TO authenticated;
 GRANT ALL ON TABLE public.subprocessors TO service_role;
-GRANT SELECT,INSERT ON TABLE public.subprocessors TO sandbox_exec;
 
 
 --
@@ -13351,7 +13258,6 @@ GRANT SELECT,INSERT ON TABLE public.subprocessors TO sandbox_exec;
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.support_ticket_messages TO anon;
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.support_ticket_messages TO authenticated;
 GRANT ALL ON TABLE public.support_ticket_messages TO service_role;
-GRANT SELECT,INSERT ON TABLE public.support_ticket_messages TO sandbox_exec;
 
 
 --
@@ -13361,7 +13267,6 @@ GRANT SELECT,INSERT ON TABLE public.support_ticket_messages TO sandbox_exec;
 GRANT ALL ON TABLE public.support_tickets TO anon;
 GRANT ALL ON TABLE public.support_tickets TO authenticated;
 GRANT ALL ON TABLE public.support_tickets TO service_role;
-GRANT SELECT,INSERT ON TABLE public.support_tickets TO sandbox_exec;
 
 
 --
@@ -13372,7 +13277,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.template_uses TO authenticated
 GRANT ALL ON TABLE public.template_uses TO service_role;
 GRANT ALL ON TABLE public.template_uses TO postgres;
 GRANT ALL ON TABLE public.template_uses TO supabase_admin;
-GRANT SELECT ON TABLE public.template_uses TO supabase_read_only_user;
 
 
 --
@@ -13384,7 +13288,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.testimonials TO authenticated;
 GRANT ALL ON TABLE public.testimonials TO service_role;
 GRANT ALL ON TABLE public.testimonials TO postgres;
 GRANT ALL ON TABLE public.testimonials TO supabase_admin;
-GRANT SELECT ON TABLE public.testimonials TO supabase_read_only_user;
 
 
 --
@@ -13394,7 +13297,6 @@ GRANT SELECT ON TABLE public.testimonials TO supabase_read_only_user;
 GRANT ALL ON TABLE public.transactional_emails TO anon;
 GRANT ALL ON TABLE public.transactional_emails TO authenticated;
 GRANT ALL ON TABLE public.transactional_emails TO service_role;
-GRANT SELECT,INSERT ON TABLE public.transactional_emails TO sandbox_exec;
 
 
 --
@@ -13404,7 +13306,6 @@ GRANT SELECT,INSERT ON TABLE public.transactional_emails TO sandbox_exec;
 GRANT ALL ON TABLE public.transactional_template_versions TO anon;
 GRANT ALL ON TABLE public.transactional_template_versions TO authenticated;
 GRANT ALL ON TABLE public.transactional_template_versions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.transactional_template_versions TO sandbox_exec;
 
 
 --
@@ -13414,7 +13315,6 @@ GRANT SELECT,INSERT ON TABLE public.transactional_template_versions TO sandbox_e
 GRANT ALL ON TABLE public.transactional_templates TO anon;
 GRANT ALL ON TABLE public.transactional_templates TO authenticated;
 GRANT ALL ON TABLE public.transactional_templates TO service_role;
-GRANT SELECT,INSERT ON TABLE public.transactional_templates TO sandbox_exec;
 
 
 --
@@ -13424,7 +13324,6 @@ GRANT SELECT,INSERT ON TABLE public.transactional_templates TO sandbox_exec;
 GRANT ALL ON TABLE public.unmatched_inbound_emails TO anon;
 GRANT ALL ON TABLE public.unmatched_inbound_emails TO authenticated;
 GRANT ALL ON TABLE public.unmatched_inbound_emails TO service_role;
-GRANT SELECT,INSERT ON TABLE public.unmatched_inbound_emails TO sandbox_exec;
 
 
 --
@@ -13434,7 +13333,6 @@ GRANT SELECT,INSERT ON TABLE public.unmatched_inbound_emails TO sandbox_exec;
 GRANT ALL ON TABLE public.usage_audit_log TO anon;
 GRANT ALL ON TABLE public.usage_audit_log TO authenticated;
 GRANT ALL ON TABLE public.usage_audit_log TO service_role;
-GRANT SELECT,INSERT ON TABLE public.usage_audit_log TO sandbox_exec;
 
 
 --
@@ -13445,7 +13343,6 @@ GRANT SELECT ON TABLE public.user_roles TO authenticated;
 GRANT ALL ON TABLE public.user_roles TO service_role;
 GRANT ALL ON TABLE public.user_roles TO postgres;
 GRANT ALL ON TABLE public.user_roles TO supabase_admin;
-GRANT SELECT ON TABLE public.user_roles TO supabase_read_only_user;
 
 
 --
@@ -13455,7 +13352,6 @@ GRANT SELECT ON TABLE public.user_roles TO supabase_read_only_user;
 GRANT ALL ON TABLE public.warmup_conversations TO anon;
 GRANT ALL ON TABLE public.warmup_conversations TO authenticated;
 GRANT ALL ON TABLE public.warmup_conversations TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_conversations TO sandbox_exec;
 
 
 --
@@ -13465,7 +13361,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_conversations TO sandbox_exec;
 GRANT ALL ON TABLE public.warmup_daily_stats TO anon;
 GRANT ALL ON TABLE public.warmup_daily_stats TO authenticated;
 GRANT ALL ON TABLE public.warmup_daily_stats TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_daily_stats TO sandbox_exec;
 
 
 --
@@ -13475,7 +13370,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_daily_stats TO sandbox_exec;
 GRANT ALL ON TABLE public.warmup_events TO anon;
 GRANT ALL ON TABLE public.warmup_events TO authenticated;
 GRANT ALL ON TABLE public.warmup_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_events TO sandbox_exec;
 
 
 --
@@ -13485,7 +13379,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_events TO sandbox_exec;
 GRANT ALL ON TABLE public.warmup_health TO anon;
 GRANT ALL ON TABLE public.warmup_health TO authenticated;
 GRANT ALL ON TABLE public.warmup_health TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_health TO sandbox_exec;
 
 
 --
@@ -13495,7 +13388,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_health TO sandbox_exec;
 GRANT ALL ON TABLE public.warmup_recipients TO anon;
 GRANT ALL ON TABLE public.warmup_recipients TO authenticated;
 GRANT ALL ON TABLE public.warmup_recipients TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_recipients TO sandbox_exec;
 
 
 --
@@ -13505,7 +13397,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_recipients TO sandbox_exec;
 GRANT ALL ON TABLE public.warmup_runner_state TO anon;
 GRANT ALL ON TABLE public.warmup_runner_state TO authenticated;
 GRANT ALL ON TABLE public.warmup_runner_state TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_runner_state TO sandbox_exec;
 
 
 --
@@ -13515,7 +13406,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_runner_state TO sandbox_exec;
 GRANT ALL ON TABLE public.warmup_settings TO anon;
 GRANT ALL ON TABLE public.warmup_settings TO authenticated;
 GRANT ALL ON TABLE public.warmup_settings TO service_role;
-GRANT SELECT,INSERT ON TABLE public.warmup_settings TO sandbox_exec;
 
 
 --
@@ -13525,7 +13415,6 @@ GRANT SELECT,INSERT ON TABLE public.warmup_settings TO sandbox_exec;
 GRANT ALL ON TABLE public.workspace_activity TO anon;
 GRANT ALL ON TABLE public.workspace_activity TO authenticated;
 GRANT ALL ON TABLE public.workspace_activity TO service_role;
-GRANT SELECT,INSERT ON TABLE public.workspace_activity TO sandbox_exec;
 
 
 --
@@ -13535,7 +13424,6 @@ GRANT SELECT,INSERT ON TABLE public.workspace_activity TO sandbox_exec;
 GRANT ALL ON TABLE public.workspace_ai_keys TO anon;
 GRANT ALL ON TABLE public.workspace_ai_keys TO authenticated;
 GRANT ALL ON TABLE public.workspace_ai_keys TO service_role;
-GRANT SELECT,INSERT ON TABLE public.workspace_ai_keys TO sandbox_exec;
 
 
 --
@@ -13545,7 +13433,6 @@ GRANT SELECT,INSERT ON TABLE public.workspace_ai_keys TO sandbox_exec;
 GRANT ALL ON TABLE public.workspace_credits TO anon;
 GRANT ALL ON TABLE public.workspace_credits TO authenticated;
 GRANT ALL ON TABLE public.workspace_credits TO service_role;
-GRANT SELECT,INSERT ON TABLE public.workspace_credits TO sandbox_exec;
 
 
 --
@@ -13555,7 +13442,6 @@ GRANT SELECT,INSERT ON TABLE public.workspace_credits TO sandbox_exec;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.workspace_invitations TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.workspace_invitations TO authenticated;
 GRANT ALL ON TABLE public.workspace_invitations TO service_role;
-GRANT SELECT,INSERT ON TABLE public.workspace_invitations TO sandbox_exec;
 
 
 --
@@ -13566,7 +13452,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.workspace_members TO authentic
 GRANT ALL ON TABLE public.workspace_members TO service_role;
 GRANT ALL ON TABLE public.workspace_members TO postgres;
 GRANT ALL ON TABLE public.workspace_members TO supabase_admin;
-GRANT SELECT ON TABLE public.workspace_members TO supabase_read_only_user;
 
 
 --
@@ -13576,7 +13461,6 @@ GRANT SELECT ON TABLE public.workspace_members TO supabase_read_only_user;
 GRANT ALL ON TABLE public.workspace_subscriptions TO anon;
 GRANT ALL ON TABLE public.workspace_subscriptions TO authenticated;
 GRANT ALL ON TABLE public.workspace_subscriptions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.workspace_subscriptions TO sandbox_exec;
 
 
 --
@@ -13586,7 +13470,6 @@ GRANT SELECT,INSERT ON TABLE public.workspace_subscriptions TO sandbox_exec;
 GRANT ALL ON TABLE public.workspace_usage_counters TO anon;
 GRANT ALL ON TABLE public.workspace_usage_counters TO authenticated;
 GRANT ALL ON TABLE public.workspace_usage_counters TO service_role;
-GRANT SELECT,INSERT ON TABLE public.workspace_usage_counters TO sandbox_exec;
 
 
 --
@@ -13597,7 +13480,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.workspaces TO authenticated;
 GRANT ALL ON TABLE public.workspaces TO service_role;
 GRANT ALL ON TABLE public.workspaces TO postgres;
 GRANT ALL ON TABLE public.workspaces TO supabase_admin;
-GRANT SELECT ON TABLE public.workspaces TO supabase_read_only_user;
 
 
 --
