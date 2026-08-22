@@ -229,7 +229,7 @@ export function WarmupAnalytics() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             <Metric
               label="Warmup sent"
               value={String(data?.totals.sent ?? 0)}
