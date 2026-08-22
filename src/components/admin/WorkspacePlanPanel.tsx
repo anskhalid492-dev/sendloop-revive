@@ -67,6 +67,50 @@ function fmtDate(v: string | null) {
   return v ? new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—";
 }
 
+type PlanOption = {
+  id: string;
+  name: string;
+  isFree: boolean;
+  monthlyPrice: number;
+  limits: Record<string, number | null>;
+};
+
+type PanelData = {
+  plans: PlanOption[];
+  current: {
+    planId: string | null;
+    planName: string;
+    statusLabel: string;
+    interval: string | null;
+    amountCents: number;
+    currentPeriodEnd: string | null;
+    manualOverride: boolean;
+    manualAssignedAt: string | null;
+    manualAssignedByEmail: string | null;
+    manualNote: string | null;
+    pendingPlanId: string | null;
+    pendingPlanName: string | null;
+    pendingEffectiveAt: string | null;
+  };
+  limits: Record<string, number | null>;
+  usage: Array<{
+    key: string;
+    label: string;
+    used: number;
+    limit: number | null;
+    overLimit: boolean;
+  }>;
+  history: Array<{
+    id: string;
+    action: string;
+    at: string;
+    note: string | null;
+    fromPlan: string | null;
+    toPlan: string | null;
+    effect: string | null;
+  }>;
+};
+
 export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const load = useServerFn(getWorkspacePlanAdmin);
@@ -80,30 +124,33 @@ export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
 
   const query = useQuery({
     queryKey: ["admin", "workspace-plan", workspaceId],
-    queryFn: () => load({ data: { workspaceId } }),
+    queryFn: () => load({ data: { workspaceId } }) as Promise<PanelData>,
   });
 
-  const data = query.data;
+  const data = query.data as PanelData | undefined;
   const targetPlan = useMemo(
     () => data?.plans.find((p) => p.id === planId) ?? null,
     [data, planId],
   );
   const currentPlan = useMemo(
-    () => data?.plans.find((p) => p.id === data.current.planId) ?? null,
+    () => data?.plans.find((p) => p.id === data?.current.planId) ?? null,
     [data],
   );
 
   const mutation = useMutation({
-    mutationFn: () =>
-      assign({
+    mutationFn: () => {
+      const trimmed = reason.trim();
+      return assign({
         data: {
           workspaceId,
           planId: targetPlan && targetPlan.isFree ? null : planId,
-          interval: "monthly",
+          interval: "monthly" as const,
           effect,
-          reason: reason.trim() || undefined,
+          ...(trimmed ? { reason: trimmed } : {}),
         },
-      }),
+      });
+    },
+
     onSuccess: () => {
       toast.success(
         effect === "immediate" ? "Plan updated" : "Plan change scheduled for the next cycle",
