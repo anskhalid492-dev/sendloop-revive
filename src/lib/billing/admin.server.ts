@@ -32,9 +32,30 @@ export async function loadConsole() {
       sum + (s.billing_interval === "yearly" ? Math.round(s.amount_cents / 12) : s.amount_cents),
     0,
   );
-  const revenue30 = (tx.data ?? [])
-    .filter((t: any) => t.environment === settings.environment && t.status !== "failed")
-    .reduce((sum: number, t: any) => sum + (t.kind === "refund" ? -t.amount_cents : t.amount_cents), 0);
+  const windowStart = Date.now() - 30 * 864e5;
+  const collected = (tx.data ?? []).filter(
+    (t: any) => t.environment === settings.environment && t.status !== "failed",
+  );
+  const collectedCents = collected.reduce(
+    (sum: number, t: any) => sum + (t.kind === "refund" ? -t.amount_cents : t.amount_cents),
+    0,
+  );
+  // Manually granted plans never create a payment transaction, so recognise the
+  // portion of their subscription value that falls inside the 30-day window.
+  const collectedSubIds = new Set(
+    collected.map((t: any) => t.subscription_id).filter(Boolean) as string[],
+  );
+  const recognizedCents = activeSubs
+    .filter((s: any) => s.status !== "past_due" && !collectedSubIds.has(s.id))
+    .reduce((sum: number, s: any) => {
+      const monthly =
+        s.billing_interval === "yearly" ? s.amount_cents / 12 : (s.amount_cents ?? 0);
+      const startedAt = new Date(s.current_period_start ?? s.created_at).getTime();
+      const overlapDays = (Date.now() - Math.max(windowStart, startedAt)) / 864e5;
+      if (overlapDays <= 0) return sum;
+      return sum + (monthly * Math.min(overlapDays, 30.436875)) / 30.436875;
+    }, 0);
+  const revenue30 = Math.round(collectedCents + recognizedCents);
 
   const providers = [];
   for (const provider of BILLING_PROVIDERS) {
