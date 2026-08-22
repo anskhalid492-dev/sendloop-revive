@@ -459,10 +459,30 @@ export async function dispatchDueMessages(
         sent_at: sentAt,
         provider: account.provider,
         provider_message_id: send.messageId ?? null,
+        message_type: "campaign",
         last_error: null,
         attempts: (message.attempts ?? 0) + 1,
       })
       .eq("id", message.id);
+
+    // Explicit classification: provider events for this id can only ever move
+    // campaign statistics.
+    try {
+      const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+      await registerOutboundMessage({
+        providerMessageId: send.messageId ?? null,
+        messageType: "campaign",
+        provider: account.provider,
+        workspaceId: message.workspace_id,
+        sendingAccountId: account.id,
+        toEmail: message.to_email,
+        refTable: "campaign_messages",
+        refId: message.id,
+      });
+    } catch {
+      /* classification must never fail an already delivered send */
+    }
+
 
     if (message.recipient_id) {
       await supabase

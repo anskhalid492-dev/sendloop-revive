@@ -1335,6 +1335,7 @@ export type Database = {
           last_error: string | null
           last_event_at: string | null
           lead_id: string
+          message_type: string
           opened_at: string | null
           provider: string | null
           provider_message_id: string | null
@@ -1371,6 +1372,7 @@ export type Database = {
           last_error?: string | null
           last_event_at?: string | null
           lead_id: string
+          message_type?: string
           opened_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -1407,6 +1409,7 @@ export type Database = {
           last_error?: string | null
           last_event_at?: string | null
           lead_id?: string
+          message_type?: string
           opened_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -2669,6 +2672,7 @@ export type Database = {
           last_retry_at: string | null
           lead_id: string | null
           message_id: string | null
+          message_type: string | null
           payload: Json
           processed_at: string | null
           provider: string
@@ -2697,6 +2701,7 @@ export type Database = {
           last_retry_at?: string | null
           lead_id?: string | null
           message_id?: string | null
+          message_type?: string | null
           payload?: Json
           processed_at?: string | null
           provider?: string
@@ -2725,6 +2730,7 @@ export type Database = {
           last_retry_at?: string | null
           lead_id?: string | null
           message_id?: string | null
+          message_type?: string | null
           payload?: Json
           processed_at?: string | null
           provider?: string
@@ -3826,6 +3832,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      outbound_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message_type: string
+          provider: string | null
+          provider_message_id: string
+          ref_id: string | null
+          ref_table: string | null
+          sending_account_id: string | null
+          to_email: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_type: string
+          provider?: string | null
+          provider_message_id: string
+          ref_id?: string | null
+          ref_table?: string | null
+          sending_account_id?: string | null
+          to_email?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_type?: string
+          provider?: string | null
+          provider_message_id?: string
+          ref_id?: string | null
+          ref_table?: string | null
+          sending_account_id?: string | null
+          to_email?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       plan_features: {
         Row: {

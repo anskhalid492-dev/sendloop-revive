@@ -153,6 +153,22 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error("The email was sent but could not be saved. Refresh to confirm.");
   }
 
+  try {
+    const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+    await registerOutboundMessage({
+      providerMessageId: send.messageId ?? null,
+      messageType: "manual_reply",
+      provider: account.provider,
+      workspaceId: input.workspaceId,
+      sendingAccountId: account.id,
+      toEmail: to,
+      refTable: "conversation_messages",
+      refId: null,
+    });
+  } catch {
+    /* classification must never fail an already delivered send */
+  }
+
   await supabase
     .from("conversations")
     .update({ message_count: (conversation.message_count ?? 0) + 1 })

@@ -34,6 +34,7 @@ async function findMessage(providerMessageId: string | null, email: string | nul
   let query = supabaseAdmin
     .from("campaign_messages")
     .select("id, workspace_id, campaign_id, lead_id, sending_account_id, to_email")
+    .eq("message_type", "campaign")
     .order("sent_at", { ascending: false })
     .limit(1);
   query = providerMessageId
@@ -49,6 +50,12 @@ async function findMessage(providerMessageId: string | null, email: string | nul
  */
 export async function recordEngagement(args: Args): Promise<boolean> {
   const email = args.email?.toLowerCase() ?? null;
+  if (!args.providerMessageId) {
+    // Without a provider id we can only match by address; warmup network
+    // traffic must never be folded into campaign engagement.
+    const { isWarmupPeerAddress } = await import("@/lib/message-classification.server");
+    if (await isWarmupPeerAddress(email)) return false;
+  }
   const message = await findMessage(args.providerMessageId, email);
   if (!message?.workspace_id) return false;
 

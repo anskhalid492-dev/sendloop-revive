@@ -529,6 +529,25 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     })
     .eq("id", jobId);
 
+  // Classify the send as warmup up-front so provider events can never be
+  // attributed to campaign statistics.
+  const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+  await registerOutboundMessage(
+    {
+      providerMessageId: result.messageId ?? null,
+      messageType: "warmup",
+      provider,
+      workspaceId,
+      sendingAccountId: accountId,
+      toEmail: job["to_email"] as string,
+      refTable: "warmup_jobs",
+      refId: jobId,
+    },
+    admin,
+  );
+
+
+
   await logEvent(admin, {
     workspaceId,
     accountId,

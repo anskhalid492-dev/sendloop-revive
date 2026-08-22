@@ -111,7 +111,19 @@ export function WarmupAnalytics() {
   const data = query.data;
   const series = data?.series ?? [];
   const hasData = series.some((point) => point.sent > 0);
-  const pct = (value: number | null | undefined) => (value === null || value === undefined ? "—" : `${value}%`);
+  const pct = (value: number | null | undefined) =>
+    value === null || value === undefined ? "Not available" : `${value}%`;
+  const current = data?.current;
+  const relative = (iso: string | null | undefined) => {
+    if (!iso) return "Not available";
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.round(diff / 60_000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
+  };
 
   const placement = useMemo(
     () =>
@@ -164,6 +176,47 @@ export function WarmupAnalytics() {
         </div>
       </div>
 
+      {query.isLoading ? null : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <Metric
+            label="Warmup volume today"
+            value={String(current?.sentToday ?? 0)}
+            hint={
+              current?.targetToday !== null && current?.targetToday !== undefined
+                ? `target ${current.targetToday}`
+                : "Target not available"
+            }
+          />
+          <Metric
+            label="Warmup daily limit"
+            value={
+              current?.dailyLimit !== null && current?.dailyLimit !== undefined
+                ? String(current.dailyLimit)
+                : "Not available"
+            }
+            hint={`${current?.enabledMailboxes ?? 0} mailbox(es) warming`}
+          />
+          <Metric
+            label="Warmup stage"
+            value={current?.stage ? current.stage : "Not available"}
+            hint={
+              current?.stageDay
+                ? `day ${current.stageDay}${current.rampDays ? ` of ${current.rampDays}` : ""}`
+                : undefined
+            }
+          />
+          <Metric
+            label="Warmup health"
+            value={
+              current?.healthScore !== null && current?.healthScore !== undefined
+                ? String(current.healthScore)
+                : "Not available"
+            }
+          />
+          <Metric label="Last warmup activity" value={relative(current?.lastActivityAt)} />
+        </div>
+      )}
+
       {query.isLoading ? (
         <div className="h-64 animate-pulse rounded-xl bg-muted" />
       ) : !hasData ? (
@@ -176,7 +229,7 @@ export function WarmupAnalytics() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             <Metric
               label="Warmup sent"
               value={String(data?.totals.sent ?? 0)}
@@ -194,6 +247,11 @@ export function WarmupAnalytics() {
               tone={(data?.rates.spam ?? 0) > 5 ? "text-amber-600" : undefined}
             />
             <Metric label="Reply rate" value={pct(data?.rates.reply)} hint={`${data?.totals.replied ?? 0} replies`} />
+            <Metric
+              label="Delivery rate"
+              value={pct(data?.rates.delivered)}
+              hint={`${data?.totals.failed ?? 0} failed`}
+            />
             <Metric
               label="Bounce rate"
               value={pct(data?.rates.bounce)}

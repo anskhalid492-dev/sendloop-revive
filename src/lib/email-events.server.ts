@@ -170,86 +170,37 @@ export async function processEventPayload(
 
     }
 
-    if (kind === "opened" || kind === "clicked") {
-      const { recordEngagement } = await import("@/lib/engagement.server");
+    if (
+      kind === "opened" ||
+      kind === "clicked" ||
+      kind === "delayed" ||
+      kind === "rejected" ||
+      kind === "delivered" ||
+      kind === "bounced" ||
+      kind === "complained" ||
+      kind === "unsubscribed"
+    ) {
       const delivery = normalizeDelivery(payload);
-      const source = (payload["data"] as Record<string, unknown> | undefined) ?? payload;
-      const link = source["link"] ?? source["url"] ?? source["click"];
-      const url =
-        typeof link === "string"
-          ? link
-          : link && typeof link === "object"
-            ? String((link as Record<string, unknown>)["url"] ?? "") || null
-            : null;
+      const { classifyProviderMessage, isWarmupPeerAddress } = await import(
+        "@/lib/message-classification.server"
+      );
 
-      const recorded = await recordEngagement({
-        type: kind,
-        email: delivery.email,
-        providerMessageId: delivery.providerMessageId,
-        externalId: externalIdOf(payload, kind),
-        url,
-      });
-
-      if (recorded) {
-        const { findCampaignMessageForEvent, applyDeliveryState } = await import(
-          "@/lib/delivery-state.server"
-        );
-        const message = await findCampaignMessageForEvent(
-          delivery.providerMessageId,
-          delivery.email,
-        );
-        if (message) await applyDeliveryState({ message, state: kind });
+      // The provider message id is the only authority for what this event
+      // belongs to. Sender address, mailbox, provider and timing are never
+      // used to classify traffic.
+      let messageType = await classifyProviderMessage(delivery.providerMessageId);
+      if (!messageType && !delivery.providerMessageId) {
+        // Legacy providers that omit the id: address-based fallback is allowed
+        // only for traffic that is definitely not part of the warmup network.
+        messageType = (await isWarmupPeerAddress(delivery.email)) ? "warmup" : "campaign";
       }
 
-      await finish(eventId, {
-        status: recorded ? "processed" : "failed",
-        error: recorded ? null : "No matching send",
-      });
-      return { status: recorded ? "applied" : "unmatched", eventId };
-    }
-
-    if (kind === "delayed" || kind === "rejected") {
-      const { applyWarmupDeliveryEvent } = await import("@/lib/warmup-engine.server");
-      const delivery = normalizeDelivery(payload);
-      const claimed = await applyWarmupDeliveryEvent({
-        kind,
-        providerMessageId: delivery.providerMessageId,
-        email: delivery.email,
-        reason: delivery.reason,
-        externalId: `warmup:${kind}:${delivery.providerMessageId ?? ""}:${externalIdOf(payload, kind) ?? ""}`,
-        payload,
-      });
-      if (claimed) {
-        await finish(eventId, { status: "processed", error: null });
-        return { status: "applied", eventId };
-      }
-
-      // Campaign traffic: a delay is transient, a rejection is a hard failure.
-      const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
-      const outcome = await applyDeliveryEvent({
-        kind: kind === "delayed" ? "delayed" : "failed",
-        email: delivery.email,
-        providerMessageId: delivery.providerMessageId,
-        reason: delivery.reason,
-      });
-      await finish(eventId, {
-        status: outcome.status === "applied" ? "processed" : "ignored",
-        error: outcome.reason ?? null,
-        workspace_id: outcome.workspaceId ?? null,
-        lead_id: outcome.leadId ?? null,
-      });
-      return { status: outcome.status === "applied" ? "applied" : "ignored", eventId };
-    }
-
-
-    if (kind === "delivered" || kind === "bounced" || kind === "complained" || kind === "unsubscribed") {
-      const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
-      const delivery = normalizeDelivery(payload);
-
-      // Warmup traffic is tracked separately from campaign traffic. The warmup
-      // handler is idempotent and claims the event only when the provider
-      // message id belongs to a warmup job.
-      if (kind !== "unsubscribed") {
+      // ---------------------------------------------------------- warmup
+      if (messageType === "warmup") {
+        if (kind === "unsubscribed" || kind === "opened" || kind === "clicked") {
+          await finish(eventId, { status: "ignored", error: null, message_type: "warmup" });
+          return { status: "ignored", eventId };
+        }
         const { applyWarmupDeliveryEvent } = await import("@/lib/warmup-engine.server");
         const claimed = await applyWarmupDeliveryEvent({
           kind,
@@ -259,37 +210,111 @@ export async function processEventPayload(
           externalId: `warmup:${kind}:${delivery.providerMessageId ?? ""}:${externalIdOf(payload, kind) ?? ""}`,
           payload,
         });
-        if (claimed) {
-          await finish(eventId, { status: "processed", error: null });
-          return { status: "applied", eventId };
-        }
+        await finish(eventId, {
+          status: claimed ? "processed" : "ignored",
+          error: claimed ? null : "Warmup send not found",
+          message_type: "warmup",
+        });
+        return { status: claimed ? "applied" : "ignored", eventId };
       }
 
+      // ------------------------------------- transactional / diagnostics
+      if (
+        messageType === "transactional" ||
+        messageType === "admin_diagnostic" ||
+        messageType === "manual_reply"
+      ) {
+        if (messageType === "manual_reply" && delivery.providerMessageId) {
+          const status =
+            kind === "delivered" ? "delivered" : kind === "bounced" ? "bounced" : "sent";
+          await supabaseAdmin
+            .from("conversation_messages")
+            .update({ delivery_status: status, delivery_detail: delivery.reason })
+            .eq("provider_message_id", delivery.providerMessageId);
+        }
+        await finish(eventId, { status: "processed", error: null, message_type: messageType });
+        return { status: "applied", eventId };
+      }
+
+      // ------------------------------------------------------- unknown id
+      if (!messageType) {
+        await finish(eventId, {
+          status: "ignored",
+          error: "Event does not match any MunchReach send",
+          message_type: null,
+        });
+        return { status: "ignored", eventId };
+      }
+
+      // -------------------------------------------------------- campaign
+      if (kind === "opened" || kind === "clicked") {
+        const source = (payload["data"] as Record<string, unknown> | undefined) ?? payload;
+        const link = source["link"] ?? source["url"] ?? source["click"];
+        const url =
+          typeof link === "string"
+            ? link
+            : link && typeof link === "object"
+              ? String((link as Record<string, unknown>)["url"] ?? "") || null
+              : null;
+
+        const { recordEngagement } = await import("@/lib/engagement.server");
+        const recorded = await recordEngagement({
+          type: kind,
+          email: delivery.email,
+          providerMessageId: delivery.providerMessageId,
+          externalId: externalIdOf(payload, kind),
+          url,
+        });
+
+        if (recorded) {
+          const { findCampaignMessageForEvent, applyDeliveryState } = await import(
+            "@/lib/delivery-state.server"
+          );
+          const message = await findCampaignMessageForEvent(
+            delivery.providerMessageId,
+            delivery.email,
+          );
+          if (message) await applyDeliveryState({ message, state: kind });
+        }
+
+        await finish(eventId, {
+          status: recorded ? "processed" : "failed",
+          error: recorded ? null : "No matching send",
+          message_type: "campaign",
+        });
+        return { status: recorded ? "applied" : "unmatched", eventId };
+      }
+
+      const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
       const outcome = await applyDeliveryEvent({
-        kind,
+        kind: kind === "rejected" ? "failed" : kind,
         email: delivery.email,
         providerMessageId: delivery.providerMessageId,
         reason: delivery.reason,
       });
 
-      // Analytics reads from the normalised engagement log.
-      const { recordEngagement } = await import("@/lib/engagement.server");
-      await recordEngagement({
-        type: kind,
-        email: delivery.email,
-        providerMessageId: delivery.providerMessageId,
-        externalId: externalIdOf(payload, kind),
-        detail: delivery.reason,
-      });
+      if (kind !== "delayed" && kind !== "rejected") {
+        // Analytics reads from the normalised engagement log.
+        const { recordEngagement } = await import("@/lib/engagement.server");
+        await recordEngagement({
+          type: kind,
+          email: delivery.email,
+          providerMessageId: delivery.providerMessageId,
+          externalId: externalIdOf(payload, kind),
+          detail: delivery.reason,
+        });
+      }
 
       await finish(eventId, {
         status: outcome.status === "applied" ? "processed" : "failed",
         error: outcome.reason ?? null,
         workspace_id: outcome.workspaceId ?? null,
         lead_id: outcome.leadId ?? null,
+        message_type: "campaign",
       });
       return { status: outcome.status === "applied" ? "applied" : "unmatched", eventId };
     }
+
 
     await finish(eventId, { status: "ignored", error: null });
     return { status: "ignored", eventId };
