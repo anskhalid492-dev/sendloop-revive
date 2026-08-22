@@ -1,3 +1,4 @@
+import { SUPABASE_URL as PINNED_URL, SUPABASE_PUBLISHABLE_KEY as PINNED_ANON } from "@/integrations/supabase/config";
 /**
  * Server-only helpers backing the platform authentication settings.
  * Kept out of `auth-settings.functions.ts` so that module stays a thin
@@ -17,8 +18,8 @@ export async function assertAdmin(context: { supabase: any; userId: string }) {
 }
 
 export function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  return createClient<Database>(process.env["SUPABASE_URL"]!, key, {
+  const key = PINNED_ANON;
+  return createClient<Database>(PINNED_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => {
