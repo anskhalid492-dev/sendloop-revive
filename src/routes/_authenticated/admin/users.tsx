@@ -523,6 +523,32 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
               </p>
             </Section>
 
+            {u.workspaces.length > 0 ? (
+              <Section title="Plan">
+                <div className="space-y-2">
+                  {u.workspaces.length > 1 ? (
+                    <Select value={planWorkspaceId} onValueChange={setPlanWorkspaceId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select workspace" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {u.workspaces.map((w) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                  <WorkspacePlanPanel
+                    key={planWorkspaceId || u.workspaces[0]!.id}
+                    workspaceId={planWorkspaceId || u.workspaces[0]!.id}
+                  />
+                </div>
+              </Section>
+            ) : null}
+
+
             <Section title="Recent activity">
               {u.activity.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No recorded activity.</p>
