@@ -59,6 +59,52 @@ export async function loadAccountStats(
   return map;
 }
 
+/**
+ * Real warmup activity per mailbox, read from the warmup daily rollups. Kept
+ * strictly separate from campaign sending stats.
+ */
+export async function loadWarmupStats(
+  client: Client,
+  ids: string[],
+): Promise<Record<string, WarmupAccountStats>> {
+  if (ids.length === 0) return {};
+  const { data, error } = await client
+    .from("warmup_daily_stats")
+    .select("sending_account_id, day, target, sent, delivered, replied, bounced, inbox, spam")
+    .in("sending_account_id", ids);
+  if (error) throw new Error(error.message);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const map: Record<string, WarmupAccountStats> = {};
+  for (const row of (data ?? []) as any[]) {
+    const id = row.sending_account_id as string;
+    const entry =
+      map[id] ??
+      (map[id] = {
+        sentToday: 0,
+        targetToday: 0,
+        sentTotal: 0,
+        delivered: 0,
+        replied: 0,
+        bounced: 0,
+        inbox: 0,
+        spam: 0,
+      });
+    const sent = Number(row.sent ?? 0);
+    entry.sentTotal += sent;
+    entry.delivered += Number(row.delivered ?? 0);
+    entry.replied += Number(row.replied ?? 0);
+    entry.bounced += Number(row.bounced ?? 0);
+    entry.inbox += Number(row.inbox ?? 0);
+    entry.spam += Number(row.spam ?? 0);
+    if (String(row.day ?? "").slice(0, 10) === today) {
+      entry.sentToday += sent;
+      entry.targetToday += Number(row.target ?? 0);
+    }
+  }
+  return map;
+}
+
 export async function loadAccountFacets(client: Client): Promise<AccountFacets> {
   const { data, error } = await client
     .from("campaigns")
