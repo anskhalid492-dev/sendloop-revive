@@ -118,7 +118,6 @@ const socialIcons: Record<string, typeof Send> = {
   Facebook: Facebook,
 };
 
-
 function XIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
@@ -275,7 +274,6 @@ export function SiteFooter() {
             ))}
           </div>
         </div>
-
       </div>
 
       {/* Bottom bar */}
