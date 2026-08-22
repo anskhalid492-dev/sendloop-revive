@@ -168,9 +168,16 @@ export async function loadWorkspacePlanAdmin(workspaceId: string) {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const { listGrants } = await import("@/lib/billing/plan-grants.server");
+  const grants = await listGrants(workspaceId);
+  const activeGrant = grants.find((g) => g.status === "active") ?? null;
+
   return {
     workspace: { id: workspaceId, name: (workspace as any)?.name ?? "Workspace" },
     plans: (plans ?? []).map(planOption),
+    grant: activeGrant,
+    grants,
+
     current: {
       subscriptionId: sub?.id ?? null,
       planId: sub?.plan_id ?? entitlement.planId,
