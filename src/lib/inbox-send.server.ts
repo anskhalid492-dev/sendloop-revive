@@ -188,6 +188,22 @@ export async function sendReplyThroughMailbox(args: {
     .single();
   if (insertError) throw new Error("The reply was sent but could not be saved. Refresh to confirm.");
 
+  try {
+    const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+    await registerOutboundMessage({
+      providerMessageId: send.messageId ?? null,
+      messageType: "manual_reply",
+      provider: account.provider,
+      workspaceId: conversation.workspace_id,
+      sendingAccountId: account.id,
+      toEmail: conversation.prospect_email,
+      refTable: "conversation_messages",
+      refId: conversation.id,
+    });
+  } catch {
+    /* classification must never fail an already delivered send */
+  }
+
   await supabase
     .from("conversations")
     .update({
