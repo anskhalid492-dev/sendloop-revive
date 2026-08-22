@@ -847,6 +847,15 @@ export type Database = {
           grace_until: string | null
           id: string
           last_event_at: string | null
+          manual_assigned_at: string | null
+          manual_assigned_by: string | null
+          manual_note: string | null
+          manual_override: boolean
+          pending_effective_at: string | null
+          pending_interval:
+            | Database["public"]["Enums"]["billing_interval"]
+            | null
+          pending_plan_id: string | null
           plan_id: string | null
           provider: Database["public"]["Enums"]["billing_provider"]
           status: Database["public"]["Enums"]["billing_sub_status"]
@@ -870,6 +879,15 @@ export type Database = {
           grace_until?: string | null
           id?: string
           last_event_at?: string | null
+          manual_assigned_at?: string | null
+          manual_assigned_by?: string | null
+          manual_note?: string | null
+          manual_override?: boolean
+          pending_effective_at?: string | null
+          pending_interval?:
+            | Database["public"]["Enums"]["billing_interval"]
+            | null
+          pending_plan_id?: string | null
           plan_id?: string | null
           provider: Database["public"]["Enums"]["billing_provider"]
           status?: Database["public"]["Enums"]["billing_sub_status"]
@@ -893,6 +911,15 @@ export type Database = {
           grace_until?: string | null
           id?: string
           last_event_at?: string | null
+          manual_assigned_at?: string | null
+          manual_assigned_by?: string | null
+          manual_note?: string | null
+          manual_override?: boolean
+          pending_effective_at?: string | null
+          pending_interval?:
+            | Database["public"]["Enums"]["billing_interval"]
+            | null
+          pending_plan_id?: string | null
           plan_id?: string | null
           provider?: Database["public"]["Enums"]["billing_provider"]
           status?: Database["public"]["Enums"]["billing_sub_status"]
@@ -901,6 +928,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_pending_plan_id_fkey"
+            columns: ["pending_plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "billing_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
@@ -7688,7 +7722,7 @@ export type Database = {
       app_role: "admin" | "support" | "user"
       billing_environment: "test" | "live"
       billing_interval: "monthly" | "yearly"
-      billing_provider: "stripe" | "paddle" | "lemonsqueezy"
+      billing_provider: "stripe" | "paddle" | "lemonsqueezy" | "manual"
       billing_sub_status:
         | "trialing"
         | "active"
@@ -7877,7 +7911,7 @@ export const Constants = {
       app_role: ["admin", "support", "user"],
       billing_environment: ["test", "live"],
       billing_interval: ["monthly", "yearly"],
-      billing_provider: ["stripe", "paddle", "lemonsqueezy"],
+      billing_provider: ["stripe", "paddle", "lemonsqueezy", "manual"],
       billing_sub_status: [
         "trialing",
         "active",

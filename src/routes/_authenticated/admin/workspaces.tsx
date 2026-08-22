@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { WorkspacePlanPanel } from "@/components/admin/WorkspacePlanPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -523,6 +524,7 @@ function WorkspaceDetailSheet({
             </TabsContent>
 
             <TabsContent value="billing" className="mt-4 space-y-5">
+              <WorkspacePlanPanel workspaceId={workspaceId!} />
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Current plan" value={w.subscription?.planName ?? w.planName} />
                 <Field label="Status" value={w.subscription?.status ?? null} />

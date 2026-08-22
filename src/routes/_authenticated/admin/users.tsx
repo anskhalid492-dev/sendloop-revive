@@ -41,6 +41,7 @@ import {
   adminSetUserSuspended,
   type AdminUserRow,
 } from "@/lib/admin-directory.functions";
+import { WorkspacePlanPanel } from "@/components/admin/WorkspacePlanPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({
@@ -471,6 +472,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: () => void }) {
   const fetchUser = useServerFn(adminGetUser);
+  const [planWorkspaceId, setPlanWorkspaceId] = useState("");
   const query = useQuery({
     queryKey: ["admin", "user", userId],
     queryFn: () => fetchUser({ data: { userId: userId! } }),
@@ -522,6 +524,32 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                 {u.planName ? `${u.planName} · ${u.subscriptionStatus ?? "unknown"}` : "No data"}
               </p>
             </Section>
+
+            {u.workspaces.length > 0 ? (
+              <Section title="Plan">
+                <div className="space-y-2">
+                  {u.workspaces.length > 1 ? (
+                    <Select value={planWorkspaceId} onValueChange={setPlanWorkspaceId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select workspace" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {u.workspaces.map((w) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                  <WorkspacePlanPanel
+                    key={planWorkspaceId || u.workspaces[0]!.id}
+                    workspaceId={planWorkspaceId || u.workspaces[0]!.id}
+                  />
+                </div>
+              </Section>
+            ) : null}
+
 
             <Section title="Recent activity">
               {u.activity.length === 0 ? (
