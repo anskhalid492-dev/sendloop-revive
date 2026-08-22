@@ -148,8 +148,9 @@ export const saveNavItem = createServerFn({ method: "POST" })
     const isSocial = data.location === "social";
     const hrefError = validateHref(data.href, data.isExternal, isSocial);
     if (hrefError) throw new Error(hrefError);
-    // A social platform with no URL stays hidden instead of linking nowhere.
-    const isVisible = isSocial && !data.href.trim() ? false : data.isVisible;
+    // A social platform with no URL stays hidden instead of linking nowhere;
+    // entering a real URL turns the icon on so staff don't have to do it twice.
+    const isVisible = isSocial ? Boolean(data.href.trim()) && data.isVisible !== false : data.isVisible;
 
     const db = context.supabase as any;
     if (!data.isExternal && data.href.trim()) {

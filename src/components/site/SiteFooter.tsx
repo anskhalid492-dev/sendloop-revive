@@ -133,6 +133,8 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
+const SOCIAL_ORDER = ["X", "Instagram", "YouTube", "LinkedIn", "Facebook", "Discord"];
+
 const socialIcons: Record<string, (props: { className?: string }) => React.ReactElement> = {
   X: XIcon,
   Instagram: (props) => <Instagram {...props} />,
@@ -170,9 +172,18 @@ export function SiteFooter() {
     return sorted.map(([title, links]) => ({ title, links }));
   })();
 
+  // Fixed platform order; only enabled links with a real URL reach this list.
   const social = (content?.social ?? [])
     .filter((s) => hasRealHref(s.href))
-    .map((s) => ({ label: s.label, href: s.href.trim() }));
+    .map((s) => ({ label: s.label, href: s.href.trim() }))
+    .sort((a, b) => {
+      const ai = SOCIAL_ORDER.indexOf(a.label);
+      const bi = SOCIAL_ORDER.indexOf(b.label);
+      if (ai === -1 && bi === -1) return a.label.localeCompare(b.label);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
 
 
   const tagline =
