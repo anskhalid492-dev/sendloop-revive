@@ -28,6 +28,13 @@ export async function applyDeliveryEvent(args: {
   const nowIso = args.occurredAt ?? new Date().toISOString();
   const email = args.email?.toLowerCase() ?? null;
 
+  if (!args.providerMessageId) {
+    const { isWarmupPeerAddress } = await import("@/lib/message-classification.server");
+    if (await isWarmupPeerAddress(email)) {
+      return { status: "unmatched", reason: "Warmup traffic is tracked separately" };
+    }
+  }
+
   let query = db
     .from("campaign_messages")
     .select("id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, to_email")

@@ -50,6 +50,12 @@ async function findMessage(providerMessageId: string | null, email: string | nul
  */
 export async function recordEngagement(args: Args): Promise<boolean> {
   const email = args.email?.toLowerCase() ?? null;
+  if (!args.providerMessageId) {
+    // Without a provider id we can only match by address; warmup network
+    // traffic must never be folded into campaign engagement.
+    const { isWarmupPeerAddress } = await import("@/lib/message-classification.server");
+    if (await isWarmupPeerAddress(email)) return false;
+  }
   const message = await findMessage(args.providerMessageId, email);
   if (!message?.workspace_id) return false;
 
