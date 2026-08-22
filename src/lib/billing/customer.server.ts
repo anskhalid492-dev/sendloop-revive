@@ -89,6 +89,12 @@ export async function loadCustomerBilling(workspaceId: string) {
     planName: entitlement.planName,
     state: entitlement.state,
     active: entitlement.active,
+    // Staff-granted plans are shown as provided by MunchReach. Internal admin
+    // notes are deliberately never returned to the customer.
+    planSource: entitlement.source,
+    grant: entitlement.grant
+      ? { planName: entitlement.grant.planName, expiresAt: entitlement.grant.expiresAt }
+      : null,
     provider: (row?.provider as BillingProvider) ?? null,
     interval: (row?.billing_interval as BillingInterval) ?? null,
     amountCents: row?.amount_cents ?? 0,
