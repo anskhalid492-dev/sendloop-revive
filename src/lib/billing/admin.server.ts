@@ -50,9 +50,10 @@ export async function loadConsole() {
     .reduce((sum: number, s: any) => {
       const monthly =
         s.billing_interval === "yearly" ? s.amount_cents / 12 : (s.amount_cents ?? 0);
-      const startedAt = new Date(s.current_period_start ?? s.created_at).getTime();
-      const overlapDays = (Date.now() - Math.max(windowStart, startedAt)) / 864e5;
-      if (overlapDays <= 0) return sum;
+      const periodStart = new Date(s.current_period_start ?? s.created_at).getTime();
+      // Periods charged up-front inside the window count in full.
+      if (periodStart >= windowStart) return sum + (s.amount_cents ?? 0);
+      const overlapDays = (Date.now() - windowStart) / 864e5;
       return sum + (monthly * Math.min(overlapDays, 30.436875)) / 30.436875;
     }, 0);
   const revenue30 = Math.round(collectedCents + recognizedCents);

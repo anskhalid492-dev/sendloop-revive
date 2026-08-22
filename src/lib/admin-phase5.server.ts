@@ -817,31 +817,32 @@ export async function adminPlatformAnalytics(filters: AdminAnalyticsFilters) {
   const billableSubs = liveSubs.filter((s) => s.status === "active");
   const mrrCents = Math.round(billableSubs.reduce((sum, s) => sum + monthlyAmount(s), 0));
 
-  let recognizedCents = 0;
-  for (const s of billableSubs) {
-    const startedAt = new Date(s.current_period_start ?? s.created_at).getTime();
+  // A billing period is charged up-front, so the whole period amount is
+  // recognised when that period starts inside the selected range. Periods that
+  // started earlier are prorated across the part of the range they cover.
+  const recognizedFor = (s: any) => {
+    const periodStart = new Date(s.current_period_start ?? s.created_at).getTime();
     const endedAt = s.cancelled_at ? new Date(s.cancelled_at).getTime() : rangeEnd;
-    const overlapMs = Math.min(rangeEnd, endedAt) - Math.max(rangeStart, startedAt);
-    if (overlapMs <= 0) continue;
-    recognizedCents += (monthlyAmount(s) * (overlapMs / DAY)) / AVG_MONTH_DAYS;
-  }
-  recognizedCents = Math.round(recognizedCents);
+    if (endedAt < rangeStart) return 0;
+    if (periodStart >= rangeStart && periodStart <= rangeEnd) return s.amount_cents ?? 0;
+    const overlapMs = Math.min(rangeEnd, endedAt) - Math.max(rangeStart, periodStart);
+    if (overlapMs <= 0) return 0;
+    return (monthlyAmount(s) * (overlapMs / DAY)) / AVG_MONTH_DAYS;
+  };
+  const recognizedCents = Math.round(
+    billableSubs.reduce((sum, s) => sum + recognizedFor(s), 0),
+  );
 
   // Cash collected through a payment provider for those same subscriptions, so
   // recognised revenue is only added where no transaction already covers it.
   const collectedSubIds = new Set(
     succeeded.filter((t) => t.subscription_id).map((t) => t.subscription_id as string),
   );
-  let uncollectedRecognizedCents = 0;
-  for (const s of billableSubs) {
-    if (collectedSubIds.has(s.id)) continue;
-    const startedAt = new Date(s.current_period_start ?? s.created_at).getTime();
-    const endedAt = s.cancelled_at ? new Date(s.cancelled_at).getTime() : rangeEnd;
-    const overlapMs = Math.min(rangeEnd, endedAt) - Math.max(rangeStart, startedAt);
-    if (overlapMs <= 0) continue;
-    uncollectedRecognizedCents += (monthlyAmount(s) * (overlapMs / DAY)) / AVG_MONTH_DAYS;
-  }
-  uncollectedRecognizedCents = Math.round(uncollectedRecognizedCents);
+  const uncollectedRecognizedCents = Math.round(
+    billableSubs
+      .filter((s) => !collectedSubIds.has(s.id))
+      .reduce((sum, s) => sum + recognizedFor(s), 0),
+  );
 
   const grossCents = revenueCents + uncollectedRecognizedCents;
   const revenue = {
