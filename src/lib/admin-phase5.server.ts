@@ -789,16 +789,74 @@ export async function adminPlatformAnalytics(filters: AdminAnalyticsFilters) {
     .filter((t) => t.kind === "refund")
     .reduce((sum, t) => sum + (t.amount_cents ?? 0), 0);
   const subRows = (subscriptions.data ?? []) as any[];
+
+  // Recurring revenue. Manually granted / admin-assigned plans never produce a
+  // payment transaction, so cash alone reports $0 while a paid plan is live.
+  // We normalise every live subscription to a monthly amount (MRR) and
+  // recognise the share of it that falls inside the selected range.
+  const DAY = 24 * 60 * 60 * 1000;
+  const AVG_MONTH_DAYS = 30.436875;
+  const rangeStart = new Date(from).getTime();
+  const rangeEnd = new Date(to).getTime();
+  const monthlyAmount = (s: any) => {
+    const amount = s.amount_cents ?? 0;
+    switch (s.billing_interval) {
+      case "yearly":
+        return amount / 12;
+      case "quarterly":
+        return amount / 3;
+      case "weekly":
+        return (amount * 52) / 12;
+      case "daily":
+        return (amount * 365) / 12;
+      default:
+        return amount;
+    }
+  };
+  const liveSubs = subRows.filter((s) => s.status === "active" || s.status === "trialing");
+  const billableSubs = liveSubs.filter((s) => s.status === "active");
+  const mrrCents = Math.round(billableSubs.reduce((sum, s) => sum + monthlyAmount(s), 0));
+
+  let recognizedCents = 0;
+  for (const s of billableSubs) {
+    const startedAt = new Date(s.current_period_start ?? s.created_at).getTime();
+    const endedAt = s.cancelled_at ? new Date(s.cancelled_at).getTime() : rangeEnd;
+    const overlapMs = Math.min(rangeEnd, endedAt) - Math.max(rangeStart, startedAt);
+    if (overlapMs <= 0) continue;
+    recognizedCents += (monthlyAmount(s) * (overlapMs / DAY)) / AVG_MONTH_DAYS;
+  }
+  recognizedCents = Math.round(recognizedCents);
+
+  // Cash collected through a payment provider for those same subscriptions, so
+  // recognised revenue is only added where no transaction already covers it.
+  const collectedSubIds = new Set(
+    succeeded.filter((t) => t.subscription_id).map((t) => t.subscription_id as string),
+  );
+  let uncollectedRecognizedCents = 0;
+  for (const s of billableSubs) {
+    if (collectedSubIds.has(s.id)) continue;
+    const startedAt = new Date(s.current_period_start ?? s.created_at).getTime();
+    const endedAt = s.cancelled_at ? new Date(s.cancelled_at).getTime() : rangeEnd;
+    const overlapMs = Math.min(rangeEnd, endedAt) - Math.max(rangeStart, startedAt);
+    if (overlapMs <= 0) continue;
+    uncollectedRecognizedCents += (monthlyAmount(s) * (overlapMs / DAY)) / AVG_MONTH_DAYS;
+  }
+  uncollectedRecognizedCents = Math.round(uncollectedRecognizedCents);
+
+  const grossCents = revenueCents + uncollectedRecognizedCents;
   const revenue = {
-    revenueCents: revenueCents - refundCents,
-    grossCents: revenueCents,
+    revenueCents: grossCents - refundCents,
+    grossCents,
     refundCents,
-    currency: succeeded[0]?.currency ?? "usd",
+    collectedCents: revenueCents - refundCents,
+    recognizedCents,
+    mrrCents,
+    arrCents: mrrCents * 12,
+    currency: succeeded[0]?.currency ?? billableSubs[0]?.currency ?? "usd",
     transactions: txRows.length,
     failedPayments: txRows.filter((t) => t.status === "failed" || t.status === "payment_failed")
       .length,
-    activeSubscriptions: subRows.filter((s) => s.status === "active" || s.status === "trialing")
-      .length,
+    activeSubscriptions: liveSubs.length,
     newSubscriptions: subRows.filter((s) => s.created_at >= from && s.created_at <= to).length,
     cancellations: subRows.filter(
       (s) => s.cancelled_at && s.cancelled_at >= from && s.cancelled_at <= to,
