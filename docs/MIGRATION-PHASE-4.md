@@ -168,7 +168,7 @@ verify counts before starting the next. Row counts are source-of-truth targets.
 
 **LEVEL 3 (18 tables)**
 `leads` (33), `campaigns` (12), `sending_accounts` (2), `provider_routing_events` (147),
-`inbound_routes` is level 5 — here: `automation_steps` (6), `domain_alerts` (2),
+`automation_steps` (6), `domain_alerts` (2),
 `support_ticket_messages` (1), `template_uses` (2), `referral_audit_logs` (2),
 `billing_invoices`, `billing_transactions`, `blog_post_slugs`, `integration_events`,
 `integration_secrets`, `integration_sync_logs`, `referral_attributions`,
