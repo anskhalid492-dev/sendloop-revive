@@ -173,7 +173,7 @@ export const saveNavItem = createServerFn({ method: "POST" })
       description: data.description || null,
       icon: data.icon || null,
       is_external: data.isExternal,
-      is_visible: data.isVisible,
+      is_visible: isVisible,
       sort_order: data.sortOrder,
       updated_at: new Date().toISOString(),
     };
