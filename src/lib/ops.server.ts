@@ -492,9 +492,17 @@ async function lookupMxRecords(domain: string): Promise<MxRecord[]> {
  * compares it with the exact host and priority the provider requires.
  */
 export async function checkMxRecords() {
-  const domain = await resolveReplyDomain();
+  const resolution = await resolveReplyDomainDetailed();
+  const domain = resolution.domain;
+  const configuredAs = {
+    configuredDomain: domain,
+    configuredAddress: resolution.address,
+    source: resolution.source,
+    sourceLabel: resolution.label,
+  };
   if (!domain) {
     return {
+      ...configuredAs,
       domain: null,
       host: null,
       status: "fail" as const,
@@ -532,6 +540,7 @@ export async function checkMxRecords() {
 
   if (!expected) {
     return {
+      ...configuredAs,
       domain: rootDomain,
       host,
       status: "unknown" as const,
@@ -543,6 +552,7 @@ export async function checkMxRecords() {
       checkedAt: new Date().toISOString(),
     };
   }
+
 
   const hit = found.find((r) => r.host === expected.host);
   const priorityOk = hit ? hit.priority === null || hit.priority === expected.priority : false;
