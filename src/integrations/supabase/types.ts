@@ -3004,6 +3004,45 @@ export type Database = {
           },
         ]
       }
+      guide_articles: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          published: boolean
+          slug: string
+          sort_order: number
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug: string
+          sort_order?: number
+          summary?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug?: string
+          sort_order?: number
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inbound_event_actions: {
         Row: {
           action: string
@@ -4164,6 +4203,48 @@ export type Database = {
         }
         Relationships: []
       }
+      privacy_requests: {
+        Row: {
+          admin_notes: string | null
+          company: string | null
+          created_at: string
+          details: string
+          email: string
+          handled_at: string | null
+          id: string
+          name: string
+          request_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          company?: string | null
+          created_at?: string
+          details?: string
+          email: string
+          handled_at?: string | null
+          id?: string
+          name: string
+          request_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          company?: string | null
+          created_at?: string
+          details?: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          name?: string
+          request_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -5286,6 +5367,45 @@ export type Database = {
           },
         ]
       }
+      service_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          message: string
+          published: boolean
+          resolved_at: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          message?: string
+          published?: boolean
+          resolved_at?: string | null
+          starts_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          message?: string
+          published?: boolean
+          resolved_at?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_faqs: {
         Row: {
           answer: string
@@ -5504,6 +5624,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subprocessors: {
+        Row: {
+          created_at: string
+          data_processed: string
+          id: string
+          location: string
+          provider: string
+          published: boolean
+          purpose: string
+          service: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_processed?: string
+          id?: string
+          location?: string
+          provider: string
+          published?: boolean
+          purpose?: string
+          service?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_processed?: string
+          id?: string
+          location?: string
+          provider?: string
+          published?: boolean
+          purpose?: string
+          service?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_ticket_messages: {
         Row: {
           attachment_name: string | null
@@ -5556,12 +5718,16 @@ export type Database = {
           assigned_to: string | null
           category: string
           closed_at: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_workspace: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           customer_last_read_at: string | null
           id: string
           last_message_at: string
           priority: string
+          source: string
           staff_last_read_at: string | null
           status: string
           subject: string
@@ -5572,12 +5738,16 @@ export type Database = {
           assigned_to?: string | null
           category?: string
           closed_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_workspace?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           customer_last_read_at?: string | null
           id?: string
           last_message_at?: string
           priority?: string
+          source?: string
           staff_last_read_at?: string | null
           status?: string
           subject: string
@@ -5588,12 +5758,16 @@ export type Database = {
           assigned_to?: string | null
           category?: string
           closed_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_workspace?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           customer_last_read_at?: string | null
           id?: string
           last_message_at?: string
           priority?: string
+          source?: string
           staff_last_read_at?: string | null
           status?: string
           subject?: string
