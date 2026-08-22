@@ -224,23 +224,23 @@ function Home() {
               <Star className="size-4 fill-current" />
               #1 Cold Email Platform for Growth-Focused Teams
             </span>
-            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
-              Turn Cold Emails Into
-              <br />
-              <span className="text-gradient">Real Conversations</span>
+            <h1 className="mx-auto mt-6 max-w-5xl text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-balance sm:text-6xl lg:text-[4.75rem]">
+              Your Next Customer Could Be
+              <br className="hidden sm:block" />{" "}
+              <span className="text-gradient">One Email Away.</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-              Send personalized emails, automate follow-ups, manage replies, and track results — all
-              from one unified workspace.
+            <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Build targeted campaigns, follow up automatically, and manage every prospect
+              conversation in one place.
             </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button size="lg" className="rounded-xl px-7" asChild>
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <Button size="lg" className="rounded-xl px-8 shadow-lg shadow-primary/20" asChild>
                 <Link to="/signup">
-                  Start for Free
+                  Start Sending Free
                   <Send className="size-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="rounded-xl bg-card px-7" asChild>
+              <Button size="lg" variant="outline" className="rounded-xl bg-card px-8" asChild>
                 <a href="#how-it-works">
                   See How It Works
                   <PlayCircle className="size-4" />
