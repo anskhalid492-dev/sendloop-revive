@@ -116,7 +116,7 @@ export async function stripeCall(
   method = "POST",
   idempotencyKey?: string,
 ) {
-  const { apiKey } = await credentialsOrThrow("stripe", env);
+  const { apiKey } = (await credentialsOrThrow("stripe", env)) as { apiKey: string };
   // A test key must never be used for live traffic (or vice versa): the key
   // prefix is authoritative, so a mis-filed credential fails loudly here
   // instead of silently charging in the wrong mode.
