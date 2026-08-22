@@ -210,6 +210,9 @@ const stripe: ProviderAdapter = {
       allow_promotion_codes: "true",
       billing_address_collection: "auto",
       payment_method_collection: "always",
+      // Plans are priced in USD. Adaptive pricing would silently present the
+      // local currency (e.g. EUR) and charge a converted amount, so it is off.
+      adaptive_pricing: { enabled: "false" },
       ...(input.customerId
         ? { customer: input.customerId, customer_update: { address: "auto", name: "auto" } }
         : {}),
