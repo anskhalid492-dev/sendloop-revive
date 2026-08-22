@@ -22,7 +22,7 @@ import type {
 type Client = any;
 
 const SETTINGS_COLUMNS =
-  "id, sending_account_id, enabled, mode, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, timezone, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, pause_reason, paused_at, started_at";
+  "id, sending_account_id, enabled, mode, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, timezone, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, pause_reason, paused_at, started_at, last_run_reason, last_run_at";
 
 export type WarmupAccountRow = {
   id: string;
@@ -51,6 +51,15 @@ export type WarmupAccountRow = {
   dkim_status: string;
   dmarc_status: string;
   mx_status: string;
+  /** Clear mailbox state for the dashboard badge. */
+  state: "on" | "off" | "blocked";
+  block_reason: string | null;
+  failed_today: number;
+  delivery_rate: number | null;
+  ramp_day: number;
+  ramp_days: number;
+  daily_limit: number;
+  last_activity_at: string | null;
 };
 
 function statusOf(row: {
@@ -95,10 +104,23 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
-        .select("sending_account_id, target, sent, delivered, inbox, spam, bounced, replied")
+        .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied")
         .in("sending_account_id", ids)
         .eq("day", today),
     ]);
+
+    // Last real warmup activity per mailbox (send/delivery/bounce/reply event).
+    const { data: recentEvents } = await client
+      .from("warmup_events")
+      .select("sending_account_id, occurred_at")
+      .in("sending_account_id", ids)
+      .order("occurred_at", { ascending: false })
+      .limit(300);
+    const lastActivity = new Map<string, string>();
+    for (const row of (recentEvents ?? []) as Array<Record<string, unknown>>) {
+      const key = row["sending_account_id"] as string;
+      if (!lastActivity.has(key)) lastActivity.set(key, row["occurred_at"] as string);
+    }
 
     const settingsById = new Map(
       ((settings ?? []) as Array<Record<string, unknown>>).map((s) => [
@@ -125,6 +147,30 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         health_score: (a["health_score"] as number | null) ?? null,
       };
       const domainRel = a["sending_domains"] as { domain?: string } | null;
+      const sent = (stat?.["sent"] as number) ?? 0;
+      const delivered = (stat?.["delivered"] as number) ?? 0;
+      const startedAt = setting?.["started_at"] as string | null | undefined;
+      const rampDays = (setting?.["ramp_days"] as number) ?? 0;
+      const rampDay = startedAt
+        ? Math.min(
+            rampDays || 0,
+            Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) + 1,
+          )
+        : 0;
+      const blockReason = !base.warmup_enabled
+        ? null
+        : base.paused_by_system
+          ? ((setting?.["pause_reason"] as string | null) ?? "Warmup paused by the safety system.")
+          : base.paused || !base.customer_enabled
+            ? "Mailbox sending is paused."
+            : base.status === "failed"
+              ? "The mailbox connection test is failing."
+              : ((setting?.["last_run_reason"] as string | null) ?? null);
+      const state: "on" | "off" | "blocked" = !base.warmup_enabled
+        ? "off"
+        : base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
+          ? "blocked"
+          : "on";
       return {
         id: a["id"] as string,
         from_email: a["from_email"] as string,
@@ -152,6 +198,14 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         dkim_status: a["dkim_status"] as string,
         dmarc_status: a["dmarc_status"] as string,
         mx_status: a["mx_status"] as string,
+        state,
+        block_reason: blockReason,
+        failed_today: (stat?.["failed"] as number) ?? 0,
+        delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
+        ramp_day: rampDay,
+        ramp_days: rampDays,
+        daily_limit: (stat?.["target"] as number) ?? 0,
+        last_activity_at: lastActivity.get(a["id"] as string) ?? null,
       };
     });
 
@@ -904,5 +958,50 @@ export const getWarmupTimeline = createServerFn({ method: "GET" })
 
     return {
       messages: rows.map((row) => ({ ...row, events: byJob.get(row.id) ?? [] })),
+    };
+  });
+
+/**
+ * Runs the production warmup pipeline for a single mailbox right now.
+ *
+ * Same scheduler, same provider abstraction, same metering as the cron runner —
+ * it only bypasses the time-of-day window so the flow can be verified without
+ * waiting. Daily targets and plan allowances still cap it, so repeated runs
+ * cannot exceed the mailbox limit.
+ */
+export const runWarmupNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({ accountId: z.string().uuid(), max: z.number().int().min(1).max(10).optional() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    // RLS proves the caller may touch this mailbox before we escalate.
+    const { data: account, error } = await client
+      .from("sending_accounts")
+      .select("id, workspace_id, from_email")
+      .eq("id", data.accountId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!account) throw new Error("Mailbox not found");
+
+    const { requireEntitlement } = await import("@/lib/billing/usage.server");
+    await requireEntitlement(account.workspace_id as string, "warmup");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { runWarmupForAccount } = await import("@/lib/warmup-engine.server");
+    const result = await runWarmupForAccount(supabaseAdmin, data.accountId, {
+      max: data.max ?? 1,
+    });
+
+    return {
+      ok: result.sent > 0,
+      sent: result.sent,
+      scheduled: result.scheduled,
+      failed: result.failed,
+      reason: result.reason,
+      errors: result.errors,
     };
   });

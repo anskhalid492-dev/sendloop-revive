@@ -6491,6 +6491,8 @@ export type Database = {
           daily_increase: number
           enabled: boolean
           id: string
+          last_run_at: string | null
+          last_run_reason: string | null
           max_bounce_rate: number
           max_volume: number
           min_health_score: number
@@ -6504,6 +6506,7 @@ export type Database = {
           send_end_hour: number
           send_start_hour: number
           sending_account_id: string
+          solo_mode: boolean
           start_volume: number
           started_at: string | null
           timezone: string
@@ -6516,6 +6519,8 @@ export type Database = {
           daily_increase?: number
           enabled?: boolean
           id?: string
+          last_run_at?: string | null
+          last_run_reason?: string | null
           max_bounce_rate?: number
           max_volume?: number
           min_health_score?: number
@@ -6529,6 +6534,7 @@ export type Database = {
           send_end_hour?: number
           send_start_hour?: number
           sending_account_id: string
+          solo_mode?: boolean
           start_volume?: number
           started_at?: string | null
           timezone?: string
@@ -6541,6 +6547,8 @@ export type Database = {
           daily_increase?: number
           enabled?: boolean
           id?: string
+          last_run_at?: string | null
+          last_run_reason?: string | null
           max_bounce_rate?: number
           max_volume?: number
           min_health_score?: number
@@ -6554,6 +6562,7 @@ export type Database = {
           send_end_hour?: number
           send_start_hour?: number
           sending_account_id?: string
+          solo_mode?: boolean
           start_volume?: number
           started_at?: string | null
           timezone?: string
@@ -7134,6 +7143,44 @@ export type Database = {
       }
       claim_warmup_jobs: {
         Args: { _limit: number; _worker: string }
+        Returns: {
+          attempts: number
+          body: string
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          from_email: string
+          id: string
+          idempotency_key: string
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          placement: string
+          placement_checked_at: string | null
+          processed_at: string | null
+          provider: string | null
+          provider_message_id: string | null
+          received_at: string | null
+          recipient_account_id: string | null
+          role: string
+          scheduled_at: string
+          sending_account_id: string
+          status: string
+          subject: string
+          to_email: string
+          warmup_token: string | null
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "warmup_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_warmup_jobs_for_account: {
+        Args: { _account: string; _limit: number; _worker: string }
         Returns: {
           attempts: number
           body: string

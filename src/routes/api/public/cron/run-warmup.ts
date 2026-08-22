@@ -33,7 +33,7 @@ async function run(request: Request) {
     "";
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { runWarmupCycle } = await import("@/lib/warmup-engine.server");
+  const { runWarmupCycle, runWarmupForAccount } = await import("@/lib/warmup-engine.server");
 
   // The scheduler token lives in platform_settings (written by the cron
   // migration, readable only with the service role); env secrets stay
@@ -55,6 +55,12 @@ async function run(request: Request) {
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 40) : undefined;
 
   try {
+    // Single-mailbox run: the same production pipeline, forced to send now.
+    const accountId = url.searchParams.get("account");
+    if (accountId) {
+      const single = await runWarmupForAccount(supabaseAdmin, accountId, { max: limit ?? 1 });
+      return json(single, 200);
+    }
     const result = await runWarmupCycle(supabaseAdmin, limit ? { limit } : {});
     return json(result, 200);
   } catch (error) {

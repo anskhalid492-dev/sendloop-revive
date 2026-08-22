@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, AlertTriangle, Flame, Pause, Play, Settings2 } from "lucide-react";
+import { Activity, AlertTriangle, Flame, Pause, Play, Send, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
-import { listWarmupAccounts, saveWarmupSettings } from "@/lib/warmup.functions";
+import { listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
 import { HEALTH_STATUS_LABEL, healthTone, type WarmupHealthStatus } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +60,8 @@ function WarmupPage() {
   const queryClient = useQueryClient();
   const fetchAccounts = useServerFn(listWarmupAccounts);
   const saveFn = useServerFn(saveWarmupSettings);
+  const runNowFn = useServerFn(runWarmupNow);
+  const [runningId, setRunningId] = useState<string | null>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   useWarmupRealtime();
 
@@ -80,6 +82,19 @@ function WarmupPage() {
       saveFn({ data: { accountId: vars.accountId, enabled: vars.enabled, resume: vars.enabled } }),
     onSuccess: async (_r, vars) => {
       toast.success(vars.enabled ? "Warmup started" : "Warmup stopped");
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const runNowMutation = useMutation({
+    mutationFn: (accountId: string) => runNowFn({ data: { accountId } }),
+    onMutate: (accountId: string) => setRunningId(accountId),
+    onSettled: () => setRunningId(null),
+    onSuccess: async (result: { sent: number; failed: number; reason?: string | null }) => {
+      if (result.sent > 0) toast.success(`Warmup email sent (${result.sent})`);
+      else if (result.failed > 0) toast.error(result.reason ?? "Warmup send failed");
+      else toast.info(result.reason ?? "Nothing to send right now");
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -166,8 +181,32 @@ function WarmupPage() {
                       <p className="font-medium">{row.from_email}</p>
                       <p className="text-xs text-muted-foreground">
                         {row.domain} · Email Account
-                        {row.pause_reason ? ` · ${row.pause_reason}` : ""}
                       </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[11px] font-medium",
+                            row.state === "on"
+                              ? "border-emerald-500/40 text-emerald-600"
+                              : row.state === "blocked"
+                                ? "border-destructive/40 text-destructive"
+                                : "text-muted-foreground",
+                          )}
+                        >
+                          {row.state === "on" ? "Warming" : row.state === "blocked" ? "Blocked" : "Off"}
+                        </Badge>
+                        {row.failed_today > 0 ? (
+                          <span className="text-[11px] text-destructive">
+                            {row.failed_today} failed today
+                          </span>
+                        ) : null}
+                      </div>
+                      {row.block_reason || row.pause_reason ? (
+                        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                          {row.block_reason ?? row.pause_reason}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2.5">
                       <Badge
@@ -240,6 +279,15 @@ function WarmupPage() {
                               {row.paused_by_system ? "Resume" : "Start"}
                             </>
                           )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Send one warmup email now"
+                          disabled={runNowMutation.isPending && runningId === row.id}
+                          onClick={() => runNowMutation.mutate(row.id)}
+                        >
+                          <Send className="size-4" />
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => setSettingsId(row.id)}>
                           <Settings2 className="size-4" />
