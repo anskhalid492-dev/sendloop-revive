@@ -34,8 +34,8 @@ const COLUMNS =
   "id, name, role, company, bio, avatar_url, company_logo_url, testimonial, result, pages, featured, display_order, active, rating, category, verified, reviewed_on";
 
 function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || SUPABASE_PUBLISHABLE_KEY;
-  const url = process.env["SUPABASE_URL"] || SUPABASE_URL;
+  const key = SUPABASE_PUBLISHABLE_KEY;
+  const url = SUPABASE_URL;
   return import("@supabase/supabase-js").then(({ createClient }) =>
     createClient(url, key, {
       auth: { persistSession: false },

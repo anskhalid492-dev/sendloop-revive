@@ -20,8 +20,8 @@ export type SiteFaq = {
 export const FAQ_COLUMNS = "id, page_slug, question, answer, category, sort_order, published";
 
 export async function publicFaqClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || SUPABASE_PUBLISHABLE_KEY;
-  const url = process.env["SUPABASE_URL"] || SUPABASE_URL;
+  const key = SUPABASE_PUBLISHABLE_KEY;
+  const url = SUPABASE_URL;
   const { createClient } = await import("@supabase/supabase-js");
   return createClient(url, key, {
     auth: { persistSession: false },
