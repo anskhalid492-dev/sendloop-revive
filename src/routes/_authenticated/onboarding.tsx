@@ -9,13 +9,13 @@ import {
   Check,
   Circle,
   Rocket,
-  Send,
   Sparkles,
   Target,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
