@@ -260,6 +260,19 @@ export async function applyBillingEvent(
   let subscriptionRowId: string | null = null;
   let planId = event.planId ?? null;
 
+  // Events that carry no subscription (invoices, refunds) still belong to a
+  // workspace: resolve it through the provider customer id.
+  if (!workspaceId && event.customerRef) {
+    const { data: cust } = await db
+      .from("billing_customers")
+      .select("workspace_id")
+      .eq("provider", provider)
+      .eq("environment", env)
+      .eq("external_customer_id", event.customerRef)
+      .maybeSingle();
+    workspaceId = cust?.workspace_id ?? null;
+  }
+
   if (event.subscription) {
     const s = event.subscription;
     const { data: existing } = await db
@@ -282,9 +295,27 @@ export async function applyBillingEvent(
       workspaceId = cust?.workspace_id ?? null;
     }
 
+    // The price the subscription is actually billed on is authoritative — that
+    // is what survives an upgrade or downgrade made in the provider's portal.
+    // Checkout metadata is only the fallback for a price we have not mapped yet
+    // (and it then backfills the mapping so the next event resolves directly).
     const resolved = await resolvePlanId(provider, env, s.priceId);
-    planId = planId ?? resolved.planId ?? existing?.plan_id ?? null;
+    planId = resolved.planId ?? planId ?? existing?.plan_id ?? null;
+    if (!resolved.planId && planId && s.priceId) {
+      await db.from("billing_plan_prices").upsert(
+        {
+          plan_id: planId,
+          provider,
+          environment: env,
+          billing_interval: s.interval ?? "monthly",
+          external_price_id: s.priceId,
+          currency: (s.currency ?? "usd").toLowerCase(),
+        },
+        { onConflict: "plan_id,provider,environment,billing_interval" },
+      );
+    }
     const interval = s.interval ?? resolved.interval ?? existing?.billing_interval ?? "monthly";
+
 
     if (workspaceId) {
       const graceUntil =
