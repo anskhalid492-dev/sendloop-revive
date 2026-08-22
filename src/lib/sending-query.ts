@@ -238,7 +238,7 @@ export async function buildAccountPage(
   }
 
   const accounts: EmailAccountRow[] = pageRows.map((row) =>
-    decorate(row, stats[row.id] ?? null, campaignsByAccount.get(row.id)),
+    decorate(row, stats[row.id] ?? null, campaignsByAccount.get(row.id), warmupStats[row.id] ?? null),
   );
 
   const domains = [...new Set(rows.map((r) => domainOf(r.from_email as string)).filter(Boolean))]
