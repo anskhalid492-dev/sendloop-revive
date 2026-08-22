@@ -1,20 +1,20 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Check } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/app/AppShell";
-import { Button } from "@/components/ui/button";
-import { UsageDashboard } from "@/components/billing/UsageDashboard";
+import { BillingTab } from "@/components/settings/BillingTab";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { getPlans } from "@/lib/plans.functions";
 
 export const Route = createFileRoute("/_authenticated/billing")({
+  /** `?plan=<slug>` carries the plan a visitor picked on the pricing page. */
+  validateSearch: (search: Record<string, unknown>): { plan?: string } =>
+    typeof search["plan"] === "string" && search["plan"].length > 0
+      ? { plan: search["plan"] as string }
+      : {},
   head: () => ({
     meta: [
-      { title: "Billing — MunchReach" },
+      { title: "Billing & Upgrade — MunchReach" },
       { name: "description", content: "Manage your MunchReach subscription, plan and usage." },
-      { property: "og:title", content: "Billing — MunchReach" },
+      { property: "og:title", content: "Billing & Upgrade — MunchReach" },
       { property: "og:description", content: "Manage your MunchReach subscription and plan." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -25,40 +25,12 @@ export const Route = createFileRoute("/_authenticated/billing")({
 
 function BillingPage() {
   const { workspace } = useWorkspace();
-  const fetchPlans = useServerFn(getPlans);
-  const plans = useQuery({ queryKey: ["plans"], queryFn: () => fetchPlans() });
+  const { plan } = Route.useSearch();
 
   return (
-    <AppShell title="Billing" description="Your subscription and usage">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <UsageDashboard workspaceId={workspace?.id ?? null} />
-
-        {plans.isLoading ? (
-          <div className="h-52 animate-pulse rounded-xl bg-muted" />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {(plans.data ?? []).map((plan) => (
-              <div key={plan.id} className="surface-card flex flex-col p-5">
-                <h3 className="font-semibold">{plan.name}</h3>
-                <p className="mt-1 text-2xl font-bold">
-                  ${Math.round(plan.monthly_price / 100)}
-                  <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                </p>
-                <ul className="mt-4 flex-1 space-y-2 text-sm text-muted-foreground">
-                  {plan.features.slice(0, 4).map((f) => (
-                    <li key={f.id} className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                      <span>{f.name}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild variant="outline" className="mt-4">
-                  <Link to="/pricing">Choose {plan.name}</Link>
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
+    <AppShell title="Billing & Upgrade" description="Your plan, usage and invoices">
+      <div className="mx-auto max-w-5xl">
+        <BillingTab workspaceId={workspace?.id ?? null} highlightPlanSlug={plan ?? null} />
       </div>
     </AppShell>
   );
