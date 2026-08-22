@@ -645,7 +645,9 @@ export async function adminPlatformAnalytics(filters: AdminAnalyticsFilters) {
     scope(
       db()
         .from("billing_subscriptions")
-        .select("id, status, amount_cents, created_at, cancelled_at, plan_id")
+        .select(
+          "id, status, amount_cents, currency, billing_interval, manual_override, current_period_start, current_period_end, created_at, cancelled_at, plan_id",
+        )
         .limit(5000),
     ),
   ]);
