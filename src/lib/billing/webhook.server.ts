@@ -75,27 +75,47 @@ export async function handleBillingWebhook(provider: BillingProvider, request: R
 
   try {
     const normalized = adapter.normalize(verified);
-    if (normalized) {
-      if (normalized.workspaceId && normalized.subscription?.customerId) {
-        await linkCustomer(
-          provider,
-          verified.environment,
-          normalized.workspaceId,
-          normalized.subscription.customerId,
-        );
-      }
-      // Stripe checkout completion carries the workspace mapping only.
-      if (verified.eventType === "checkout.session.completed") {
-        const obj = verified.payload?.data?.object;
-        if (obj?.client_reference_id && obj?.customer)
-          await linkCustomer(provider, verified.environment, obj.client_reference_id, obj.customer);
-      }
-      await applyBillingEvent(provider, normalized);
-    } else if (verified.eventType === "checkout.session.completed") {
-      const obj = verified.payload?.data?.object;
-      if (obj?.client_reference_id && obj?.customer)
-        await linkCustomer(provider, verified.environment, obj.client_reference_id, obj.customer);
+    const sessionObj = verified.payload?.data?.object;
+    const isCheckoutCompletion =
+      provider === "stripe" &&
+      (verified.eventType === "checkout.session.completed" ||
+        verified.eventType === "checkout.session.async_payment_succeeded");
+
+    // The workspace ↔ provider customer link is written before anything else so
+    // later events (invoices, refunds) can always resolve their workspace.
+    const workspaceRef =
+      normalized?.workspaceId ?? sessionObj?.client_reference_id ?? sessionObj?.metadata?.workspace_id;
+    const customerRef =
+      normalized?.subscription?.customerId ?? normalized?.customerRef ?? sessionObj?.customer;
+    if (workspaceRef && customerRef)
+      await linkCustomer(provider, verified.environment, workspaceRef, customerRef);
+
+    if (normalized) await applyBillingEvent(provider, normalized);
+
+    // Checkout completion is the authoritative "the customer paid" signal, but
+    // the session payload has no subscription detail and Stripe does not
+    // guarantee event ordering. Fetching the subscription here means the plan
+    // upgrade never depends on customer.subscription.* arriving first.
+    if (isCheckoutCompletion && sessionObj?.mode === "subscription" && sessionObj?.subscription) {
+      const { fetchStripeSubscription, stripeSubscriptionEvent } = await import(
+        "@/lib/billing/providers.server"
+      );
+      const subId =
+        typeof sessionObj.subscription === "string"
+          ? sessionObj.subscription
+          : sessionObj.subscription?.id;
+      const live = await fetchStripeSubscription(verified.environment, subId);
+      const mapped = stripeSubscriptionEvent(live);
+      await applyBillingEvent(provider, {
+        eventId: `${verified.eventId}:subscription`,
+        eventType: "checkout.session.subscription_sync",
+        environment: verified.environment,
+        ...mapped,
+        workspaceId: mapped.workspaceId ?? workspaceRef ?? null,
+        planId: mapped.planId ?? normalized?.planId ?? null,
+      });
     }
+
     await finishWebhookDelivery(record.id, "processed");
     return new Response("ok", { status: 200 });
   } catch (error) {
