@@ -135,8 +135,27 @@ function toDraft(post: BlogPost & Record<string, any>): Draft {
     metaDescription: post.meta_description ?? "",
     canonicalUrl: post.canonical_url ?? "",
     ogImageUrl: post.og_image_url ?? "",
-    publishedAt: post.published_at ? String(post.published_at).slice(0, 16) : "",
+    publishedAt: toLocalInput(post.published_at),
   };
+}
+
+/**
+ * `datetime-local` inputs are naive local time; stored timestamps are UTC.
+ * Converting in both directions keeps a post from drifting into the future
+ * (and disappearing from the public site) every time an admin re-saves it.
+ */
+function toLocalInput(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function fromLocalInput(value: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function slugify(value: string) {
