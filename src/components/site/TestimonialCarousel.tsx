@@ -1,69 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Quote, Star } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import { placeholderAvatar } from "@/lib/reviews";
+import { TestimonialCard } from "@/components/site/TestimonialCard";
 import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions";
-
-function ReviewCard({ t }: { t: Testimonial }) {
-  return (
-    <figure className="rounded-2xl border border-border/70 bg-card p-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition-colors duration-200 hover:border-primary/30">
-      <div className="flex items-start gap-3">
-        <img
-          src={t.avatar_url || placeholderAvatar(`${t.id}-${t.name}`)}
-          alt={`${t.name}, ${t.role} at ${t.company}`}
-          className="size-12 shrink-0 rounded-full bg-secondary object-cover"
-          loading="lazy"
-          draggable={false}
-        />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{t.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {[t.role, t.company].filter(Boolean).join(", ")}
-          </p>
-          {t.bio ? (
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground/90">{t.bio}</p>
-          ) : null}
-        </div>
-        {t.company_logo_url ? (
-          <img
-            src={t.company_logo_url}
-            alt={`${t.company} logo`}
-            className="ml-auto h-5 w-auto shrink-0 opacity-70"
-            loading="lazy"
-            draggable={false}
-          />
-        ) : null}
-      </div>
-
-      <div className="mt-4 flex items-center gap-1" aria-label={`${t.rating} out of 5`}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className={cn(
-              "size-3.5",
-              i < t.rating ? "fill-primary text-primary" : "text-border",
-            )}
-            aria-hidden="true"
-          />
-        ))}
-      </div>
-
-      <Quote className="mt-3 size-5 text-primary/50" aria-hidden="true" />
-      <blockquote className="mt-2 text-sm leading-relaxed text-foreground/90">
-        “{t.testimonial}”
-      </blockquote>
-
-      {t.result ? (
-        <p className="mt-4 inline-flex w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          {t.result}
-        </p>
-      ) : null}
-    </figure>
-  );
-}
 
 /**
  * A vertical, drag-scrollable review column. The list is duplicated so the
@@ -145,7 +85,7 @@ function ReviewColumn({
       style={{ cursor: "grab", touchAction: "pan-x" }}
     >
       {loop.map((t, i) => (
-        <ReviewCard key={`${t.id}-${i}`} t={t} />
+        <TestimonialCard key={`${t.id}-${i}`} testimonial={t} />
       ))}
     </div>
   );
