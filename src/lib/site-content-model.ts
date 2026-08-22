@@ -107,10 +107,14 @@ export const CHANGEFREQS = [
   "never",
 ] as const;
 
-/** A link is publishable when it points somewhere real. */
-export function validateHref(href: string, isExternal: boolean): string | null {
+/**
+ * A link is publishable when it points somewhere real. Social slots may be left
+ * empty on purpose — an empty social URL simply hides that platform.
+ */
+export function validateHref(href: string, isExternal: boolean, allowEmpty = false): string | null {
   const value = href.trim();
-  if (!value) return "Link URL is required";
+  if (!value) return allowEmpty ? null : "Link URL is required";
+
   if (isExternal) {
     if (!/^https?:\/\/\S+\.\S+/.test(value)) return "External links must be a full https:// URL";
     return null;
