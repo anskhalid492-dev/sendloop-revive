@@ -115,6 +115,12 @@ const secondaryProducts: Card[] = [
 
 const resourceCards: Card[] = [
   {
+    label: "User Guide & Alerts",
+    to: "/user-guide",
+    text: "Product guides, incident notices and platform updates.",
+    icon: GraduationCap,
+  },
+  {
     label: "Blog",
     to: "/blog",
     text: "Cold email strategies, sales and outreach insights.",
