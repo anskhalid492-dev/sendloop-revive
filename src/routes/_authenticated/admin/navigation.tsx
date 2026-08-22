@@ -59,14 +59,15 @@ function emptyDraft(location: NavLocation, sortOrder: number): Draft {
     location,
     groupLabel: location === "header" ? "core" : location === "footer" ? "Product" : "",
     label: "",
-    href: "/",
+    href: location === "social" ? "" : "/",
     description: "",
     icon: "",
-    isExternal: false,
+    isExternal: location === "social",
     isVisible: true,
     sortOrder,
   };
 }
+
 
 function toDraft(item: NavItem): Draft {
   return {
