@@ -246,7 +246,7 @@ function AdminBlogRoute() {
           metaDescription: input.metaDescription || null,
           canonicalUrl: input.canonicalUrl || null,
           ogImageUrl: input.ogImageUrl || null,
-          publishedAt: input.publishedAt ? new Date(input.publishedAt).toISOString() : null,
+          publishedAt: fromLocalInput(input.publishedAt),
         },
       }),
     onSuccess: () => {
