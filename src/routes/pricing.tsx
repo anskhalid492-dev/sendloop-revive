@@ -103,6 +103,7 @@ function PricingPage() {
         highlight="powerful outreach"
         description="Start free and upgrade when you're ready. No hidden fees — just the features you need to send, track, and reply at scale."
         primaryCta="Start for Free"
+        primaryHref={planCtaHref(signedIn)}
         secondaryCta="Compare Plans"
         secondaryHref="#compare"
       />
