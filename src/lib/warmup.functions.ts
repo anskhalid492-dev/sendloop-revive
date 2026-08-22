@@ -797,3 +797,96 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
       days: data.days,
     };
   });
+
+export type WarmupTimelineEvent = {
+  id: string;
+  type: string;
+  detail: string | null;
+  provider: string | null;
+  occurred_at: string;
+};
+
+export type WarmupTimelineMessage = {
+  id: string;
+  from_email: string;
+  to_email: string;
+  subject: string;
+  status: string;
+  role: string | null;
+  placement: string | null;
+  provider_message_id: string | null;
+  attempts: number;
+  error: string | null;
+  scheduled_at: string | null;
+  processed_at: string | null;
+  received_at: string | null;
+  placement_checked_at: string | null;
+  created_at: string;
+  events: WarmupTimelineEvent[];
+};
+
+/**
+ * Per-message warmup run timeline. Every row is a real warmup job (created by
+ * the warmup engine only) together with the provider/inbound events recorded
+ * against it, so a single message can be traced from queued → sent → delivered
+ * → placement → bounce/reply.
+ */
+export const getWarmupTimeline = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        accountId: z.string().uuid().optional(),
+        status: z
+          .enum(["all", "pending", "sent", "failed", "bounced", "replied"])
+          .default("all"),
+        limit: z.number().int().min(10).max(200).default(50),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+
+    let query = client
+      .from("warmup_jobs")
+      .select(
+        "id, from_email, to_email, subject, status, role, placement, provider_message_id, attempts, error, scheduled_at, processed_at, received_at, placement_checked_at, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.accountId) query = query.eq("sending_account_id", data.accountId);
+    if (data.status !== "all") query = query.eq("status", data.status);
+
+    const { data: jobs, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const rows = (jobs ?? []) as Array<Omit<WarmupTimelineMessage, "events">>;
+    if (rows.length === 0) return { messages: [] as WarmupTimelineMessage[] };
+
+    const { data: events, error: eventsError } = await client
+      .from("warmup_events")
+      .select("id, job_id, type, detail, provider, occurred_at")
+      .in(
+        "job_id",
+        rows.map((row) => row.id),
+      )
+      .order("occurred_at", { ascending: true });
+    if (eventsError) throw new Error(eventsError.message);
+
+    const byJob = new Map<string, WarmupTimelineEvent[]>();
+    for (const raw of (events ?? []) as Array<WarmupTimelineEvent & { job_id: string }>) {
+      const list = byJob.get(raw.job_id) ?? [];
+      list.push({
+        id: raw.id,
+        type: raw.type,
+        detail: raw.detail,
+        provider: raw.provider,
+        occurred_at: raw.occurred_at,
+      });
+      byJob.set(raw.job_id, list);
+    }
+
+    return {
+      messages: rows.map((row) => ({ ...row, events: byJob.get(row.id) ?? [] })),
+    };
+  });
