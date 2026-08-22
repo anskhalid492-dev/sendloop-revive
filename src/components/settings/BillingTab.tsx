@@ -154,10 +154,18 @@ export function BillingTab({ workspaceId }: { workspaceId: string | null }) {
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold">{billing.planName}</h2>
               <Badge variant={billing.active ? "secondary" : "outline"}>
-                {STATE_LABELS[billing.state as keyof typeof STATE_LABELS] ?? "No subscription"}
+                {billing.grant
+                  ? "Provided by MunchReach"
+                  : (STATE_LABELS[billing.state as keyof typeof STATE_LABELS] ?? "No subscription")}
               </Badge>
               {billing.environment === "test" ? <Badge variant="outline">Test mode</Badge> : null}
             </div>
+            {billing.grant ? (
+              <p className="text-sm text-muted-foreground">
+                {billing.grant.planName} access provided by MunchReach — no charge
+                {billing.grant.expiresAt ? ` · until ${formatDate(billing.grant.expiresAt)}` : ""}
+              </p>
+            ) : null}
             <p className="text-sm text-muted-foreground">
               {billing.provider ? PROVIDER_LABELS[billing.provider] : "No payment method"} ·{" "}
               {billing.interval ?? "—"}
