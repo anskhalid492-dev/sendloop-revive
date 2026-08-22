@@ -16,6 +16,7 @@ import {
   buildAccountPage,
   loadAccountFacets,
   loadAccountStats,
+  loadWarmupStats,
   loadAllAccounts,
   decorate,
   type AccountPageResult,
