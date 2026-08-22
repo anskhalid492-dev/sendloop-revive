@@ -1180,6 +1180,35 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_post_slugs: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_post_slugs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           author_id: string | null
@@ -1368,7 +1397,7 @@ export type Database = {
           id: string
           last_error: string | null
           last_event_at: string | null
-          lead_id: string
+          lead_id: string | null
           message_type: string
           opened_at: string | null
           provider: string | null
@@ -1405,7 +1434,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           last_event_at?: string | null
-          lead_id: string
+          lead_id?: string | null
           message_type?: string
           opened_at?: string | null
           provider?: string | null
@@ -1442,7 +1471,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           last_event_at?: string | null
-          lead_id?: string
+          lead_id?: string | null
           message_type?: string
           opened_at?: string | null
           provider?: string | null
@@ -1597,7 +1626,7 @@ export type Database = {
           created_by: string | null
           from_email: string
           id: string
-          lead_id: string
+          lead_id: string | null
           message_id: string | null
           received_at: string
           sending_account_id: string | null
@@ -1613,7 +1642,7 @@ export type Database = {
           created_by?: string | null
           from_email: string
           id?: string
-          lead_id: string
+          lead_id?: string | null
           message_id?: string | null
           received_at?: string
           sending_account_id?: string | null
@@ -1629,7 +1658,7 @@ export type Database = {
           created_by?: string | null
           from_email?: string
           id?: string
-          lead_id?: string
+          lead_id?: string | null
           message_id?: string | null
           received_at?: string
           sending_account_id?: string | null
@@ -3630,6 +3659,47 @@ export type Database = {
           },
         ]
       }
+      lead_retention_runs: {
+        Row: {
+          batches: number
+          deleted_count: number
+          error: string | null
+          finished_at: string
+          id: string
+          started_at: string
+          status: string
+          workspace_id: string | null
+        }
+        Insert: {
+          batches?: number
+          deleted_count?: number
+          error?: string | null
+          finished_at?: string
+          id?: string
+          started_at?: string
+          status?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          batches?: number
+          deleted_count?: number
+          error?: string | null
+          finished_at?: string
+          id?: string
+          started_at?: string
+          status?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_retention_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_tasks: {
         Row: {
           completed: boolean
@@ -3702,6 +3772,7 @@ export type Database = {
           list_id: string | null
           owner_id: string | null
           phone: string | null
+          retention_expires_at: string
           stage_id: string | null
           state: string | null
           status: string
@@ -3730,6 +3801,7 @@ export type Database = {
           list_id?: string | null
           owner_id?: string | null
           phone?: string | null
+          retention_expires_at?: string
           stage_id?: string | null
           state?: string | null
           status?: string
@@ -3758,6 +3830,7 @@ export type Database = {
           list_id?: string | null
           owner_id?: string | null
           phone?: string | null
+          retention_expires_at?: string
           stage_id?: string | null
           state?: string | null
           status?: string
@@ -7676,6 +7749,7 @@ export type Database = {
           reviews: number
         }[]
       }
+      publish_due_blog_posts: { Args: never; Returns: number }
       referral_dashboard_stats: {
         Args: never
         Returns: {
@@ -7785,6 +7859,13 @@ export type Database = {
       run_delivery_reconcile_runner: { Args: never; Returns: undefined }
       run_domain_recheck_runner: { Args: never; Returns: undefined }
       run_inbound_retry: { Args: never; Returns: undefined }
+      run_lead_retention_cleanup: {
+        Args: { _batch_size?: number; _max_batches?: number }
+        Returns: {
+          out_deleted_count: number
+          out_workspace_id: string
+        }[]
+      }
       run_provider_health_runner: { Args: never; Returns: undefined }
       run_transactional_email_runner: { Args: never; Returns: undefined }
       run_warmup_runner: { Args: never; Returns: undefined }

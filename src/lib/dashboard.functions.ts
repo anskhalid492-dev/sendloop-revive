@@ -441,7 +441,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
     }
     for (const r of replyRows) {
       if (!inWindow(r.received_at, start)) continue;
-      const campaignId = r.campaign_id ?? campaignByLead.get(r.lead_id);
+      const campaignId = r.campaign_id ?? (r.lead_id ? campaignByLead.get(r.lead_id) : null);
       if (!campaignId) continue;
       const row = ensure(campaignId);
       row.replies += 1;
@@ -457,7 +457,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       .sort((a, b) => b.sent - a.sent || b.replies - a.replies)
       .slice(0, 6);
 
-    const leadIds = Array.from(new Set(replyRows.slice(0, 8).map((r) => r.lead_id)));
+    const leadIds = Array.from(new Set(replyRows.slice(0, 8).map((r) => r.lead_id).filter((x): x is string => Boolean(x))));
     const [leadLookup, conversationLookup] = await Promise.all([
       leadIds.length
         ? supabase
@@ -481,11 +481,11 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
     }
 
     const recentReplies: RecentReply[] = replyRows.slice(0, 8).map((r) => {
-      const lead = leadById.get(r.lead_id);
+      const lead = r.lead_id ? leadById.get(r.lead_id) : undefined;
       const name = [lead?.first_name, lead?.last_name].filter(Boolean).join(" ");
       return {
         id: r.id,
-        conversationId: conversationByLead.get(r.lead_id) ?? null,
+        conversationId: (r.lead_id ? conversationByLead.get(r.lead_id) : null) ?? null,
         prospect: name || lead?.email || r.from_email,
         company: lead?.company ?? null,
         subject: r.subject ?? null,

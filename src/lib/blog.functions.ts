@@ -163,13 +163,33 @@ export const getBlogIndex = createServerFn({ method: "GET" }).handler(
 /** Public: a single published post plus related posts. */
 export const getBlogPost = createServerFn({ method: "GET" })
   .inputValidator((input: { slug: string }) => z.object({ slug: z.string().min(1).max(200) }).parse(input))
-  .handler(async ({ data }): Promise<{ post: BlogPost | null; related: BlogPost[] }> => {
+  .handler(async ({ data }): Promise<{ post: BlogPost | null; related: BlogPost[]; redirectTo?: string }> => {
     const supabase = await publicClient();
-    const { data: post } = await (supabase as any)
+    let { data: post } = await (supabase as any)
       .from("blog_posts")
       .select(POST_COLUMNS)
       .eq("slug", data.slug)
       .maybeSingle();
+
+    // Old slug? Resolve through the slug history and tell the route to redirect
+    // to the canonical URL instead of rendering a 404.
+    if (!post) {
+      const { data: historic } = await (supabase as any)
+        .from("blog_post_slugs")
+        .select("post_id")
+        .eq("slug", data.slug)
+        .maybeSingle();
+      if (historic?.post_id) {
+        const { data: canonical } = await (supabase as any)
+          .from("blog_posts")
+          .select(POST_COLUMNS)
+          .eq("id", historic.post_id)
+          .maybeSingle();
+        if (canonical) {
+          return { post: null, related: [], redirectTo: (canonical as BlogPost).slug };
+        }
+      }
+    }
     if (!post) return { post: null, related: [] };
 
     const { data: pool } = await (supabase as any)
@@ -271,6 +291,27 @@ export const subscribeToNewsletter = createServerFn({ method: "POST" })
     return { ok: true, duplicate: false, message: "You are subscribed. Check your inbox soon." };
   });
 
+/** Returns a unique slug, suffixing -2, -3 ... when the base slug is taken. */
+async function uniqueSlug(client: any, base: string, ignoreId: string | null): Promise<string> {
+  let candidate = base;
+  for (let i = 2; i < 60; i += 1) {
+    let query = client.from("blog_posts").select("id").eq("slug", candidate).limit(1);
+    if (ignoreId) query = query.neq("id", ignoreId);
+    const { data: hit } = await query;
+    const taken = Array.isArray(hit) && hit.length > 0;
+    if (!taken) {
+      const { data: historic } = await client
+        .from("blog_post_slugs")
+        .select("post_id")
+        .eq("slug", candidate)
+        .maybeSingle();
+      if (!historic || (ignoreId && historic.post_id === ignoreId)) return candidate;
+    }
+    candidate = `${base}-${i}`;
+  }
+  return `${base}-${Date.now().toString(36)}`;
+}
+
 /* ------------------------------ Admin ------------------------------ */
 
 /** Admin: every post regardless of status. */
@@ -332,8 +373,24 @@ export const saveBlogPost = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
 
+    // Slugs must stay unique; silently suffix duplicates rather than failing.
+    const slug = await uniqueSlug(context.supabase, data.slug, data.id ?? null);
+
+    // A "published" post with a future timestamp is invisible to the public
+    // RLS policy. Clamp it to now — future dates belong to "scheduled".
+    const requested = data.publishedAt ? new Date(data.publishedAt) : null;
+    const valid = requested && !Number.isNaN(requested.getTime()) ? requested : null;
+    let publishedAt: string | null = valid ? valid.toISOString() : null;
+    if (data.status === "published") {
+      if (!publishedAt || new Date(publishedAt).getTime() > Date.now()) {
+        publishedAt = new Date().toISOString();
+      }
+    } else if (data.status === "draft" || data.status === "archived") {
+      publishedAt = valid ? valid.toISOString() : null;
+    }
+
     const row: Record<string, unknown> = {
-      slug: data.slug,
+      slug,
       title: data.title,
       subtitle: data.subtitle,
       excerpt: data.excerpt || data.subtitle,
@@ -352,9 +409,7 @@ export const saveBlogPost = createServerFn({ method: "POST" })
       meta_description: data.metaDescription || null,
       canonical_url: data.canonicalUrl || null,
       og_image_url: data.ogImageUrl || null,
-      published_at:
-        data.publishedAt ||
-        (data.status === "published" ? new Date().toISOString() : null),
+      published_at: publishedAt,
     };
 
     const query = data.id
@@ -389,7 +444,11 @@ export const setBlogPostStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
     const patch: Record<string, unknown> = { status: data.status };
-    if (data.status === "published") patch["published_at"] = data.publishedAt ?? new Date().toISOString();
+    if (data.status === "published") {
+      const wanted = data.publishedAt ? new Date(data.publishedAt) : null;
+      const usable = wanted && !Number.isNaN(wanted.getTime()) && wanted.getTime() <= Date.now() ? wanted : new Date();
+      patch["published_at"] = usable.toISOString();
+    }
     if (data.status === "scheduled" && data.publishedAt) patch["published_at"] = data.publishedAt;
     const { error } = await (context.supabase as any).from("blog_posts").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);

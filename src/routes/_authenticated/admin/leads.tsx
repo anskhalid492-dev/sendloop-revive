@@ -33,6 +33,7 @@ import {
   adminListLeads,
   adminOutreachFilters,
 } from "@/lib/admin-outreach.functions";
+import { LeadRetentionPanel } from "@/components/app/admin/LeadRetentionPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
   head: () => ({
@@ -143,6 +144,8 @@ function AdminLeadsPage() {
           </div>
         }
       />
+
+      <LeadRetentionPanel />
 
 
       <div className="grid gap-3 sm:grid-cols-3">
