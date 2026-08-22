@@ -62,12 +62,24 @@ export function WarmupRecipientPool() {
 
   const importMutation = useMutation({
     mutationFn: (csv: string) => importFn({ data: { csv } }),
-    onSuccess: async (r: { imported: number; skipped: number }) => {
-      toast.success(`Imported ${r.imported} recipient(s)${r.skipped ? `, ${r.skipped} skipped` : ""}`);
+    onSuccess: async (r: {
+      total: number;
+      imported: number;
+      duplicates: number;
+      invalid: number;
+      failed: number;
+    }) => {
+      toast.success(
+        `Imported ${r.imported} of ${r.total} row(s)` +
+          (r.duplicates ? ` · ${r.duplicates} duplicate` : "") +
+          (r.invalid ? ` · ${r.invalid} invalid` : "") +
+          (r.failed ? ` · ${r.failed} failed` : ""),
+      );
       await refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const addMutation = useMutation({
     mutationFn: () => addFn({ data: { email: email.trim(), name: name.trim() || null } }),

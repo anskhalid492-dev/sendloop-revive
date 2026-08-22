@@ -86,47 +86,119 @@ export async function listWarmupPool(search?: string | null): Promise<{
   };
 }
 
+export type WarmupImportReport = {
+  total: number;
+  imported: number;
+  duplicates: number;
+  invalid: number;
+  failed: number;
+};
+
 /** Parses a pasted CSV/list of recipients: `email[,name[,provider]]` per line. */
-export function parseRecipientList(raw: string): Array<{
-  email: string;
-  name: string | null;
-  provider: string | null;
-}> {
+export function parseRecipientList(raw: string): {
+  rows: Array<{ email: string; name: string | null; provider: string | null }>;
+  total: number;
+  invalid: number;
+  duplicates: number;
+} {
   const out = new Map<string, { email: string; name: string | null; provider: string | null }>();
+  let total = 0;
+  let invalid = 0;
+  let duplicates = 0;
   for (const line of raw.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+    total += 1;
     const parts = trimmed.split(/[,;\t]/).map((p) => p.trim().replace(/^"|"$/g, ""));
     const email = (parts.find((p) => EMAIL_RE.test(p)) ?? "").toLowerCase();
-    if (!email) continue; // header rows and junk are skipped silently
+    if (!email) {
+      // header rows count as neither valid nor invalid
+      if (!/^\s*e-?mail/i.test(trimmed)) invalid += 1;
+      continue;
+    }
+    if (out.has(email)) {
+      duplicates += 1;
+      continue;
+    }
     const rest = parts.filter((p) => p.toLowerCase() !== email);
-    out.set(email, { email, name: rest[0] ?? null, provider: rest[1] ?? null });
+    out.set(email, { email, name: rest[0] || null, provider: rest[1] || null });
   }
-  return Array.from(out.values());
+  return { rows: Array.from(out.values()), total, invalid, duplicates };
 }
 
+/**
+ * Bulk import into the GLOBAL warmup pool.
+ *
+ * Emails are normalized (trim + lowercase) and deduplicated in-file and against
+ * the existing pool before insert, so re-uploading the same CSV never creates
+ * duplicates. Uniqueness is enforced globally by the `lower(email)` unique
+ * index — the pool is platform infrastructure, never workspace-scoped.
+ */
 export async function importWarmupRecipients(
   raw: string,
   userId: string,
-): Promise<{ imported: number; skipped: number }> {
-  const rows = parseRecipientList(raw);
-  if (rows.length === 0) return { imported: 0, skipped: 0 };
-  const { data, error } = await supabaseAdmin
-    .from("warmup_recipients")
-    .upsert(
-      rows.map((r) => ({
-        email: r.email,
-        name: r.name,
-        mailbox_provider: r.provider,
-        created_by: userId,
-      })) as never,
-      { onConflict: "email", ignoreDuplicates: true },
-    )
-    .select("id");
-  if (error) throw new Error(error.message);
-  const imported = (data ?? []).length;
-  return { imported, skipped: rows.length - imported };
+): Promise<WarmupImportReport> {
+  const parsed = parseRecipientList(raw);
+  const report: WarmupImportReport = {
+    total: parsed.total,
+    imported: 0,
+    duplicates: parsed.duplicates,
+    invalid: parsed.invalid,
+    failed: 0,
+  };
+  if (parsed.rows.length === 0) return report;
+
+  const CHUNK = 500;
+  for (let i = 0; i < parsed.rows.length; i += CHUNK) {
+    const chunk = parsed.rows.slice(i, i + CHUNK);
+    const emails = chunk.map((r) => r.email);
+
+    const { data: existing, error: existErr } = await supabaseAdmin
+      .from("warmup_recipients")
+      .select("email")
+      .in("email", emails);
+    if (existErr) throw new Error(existErr.message);
+    const known = new Set(
+      ((existing ?? []) as Array<Record<string, unknown>>).map((r) =>
+        String(r["email"]).toLowerCase(),
+      ),
+    );
+
+    const fresh = chunk.filter((r) => !known.has(r.email));
+    report.duplicates += chunk.length - fresh.length;
+    if (fresh.length === 0) continue;
+
+    const payload = fresh.map((r) => ({
+      email: r.email,
+      name: r.name,
+      mailbox_provider: r.provider,
+      created_by: userId,
+    }));
+
+    const { data, error } = await supabaseAdmin
+      .from("warmup_recipients")
+      .insert(payload as never)
+      .select("id");
+
+    if (!error) {
+      report.imported += (data ?? []).length;
+      continue;
+    }
+
+    // Fall back to row-by-row so one bad address can't fail the whole batch.
+    for (const row of payload) {
+      const { error: rowErr } = await supabaseAdmin
+        .from("warmup_recipients")
+        .insert(row as never);
+      if (!rowErr) report.imported += 1;
+      else if (rowErr.code === "23505") report.duplicates += 1;
+      else report.failed += 1;
+    }
+  }
+
+  return report;
 }
+
 
 export async function addWarmupRecipient(input: {
   email: string;
