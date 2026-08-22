@@ -1,3 +1,4 @@
+import { SUPABASE_URL as PINNED_URL, SUPABASE_PUBLISHABLE_KEY as PINNED_ANON } from "@/integrations/supabase/config";
 /**
  * Referral program server functions.
  *
@@ -30,8 +31,8 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 /** Public program terms for the marketing page (no auth, no PII). */
 export const getPublicReferralProgram = createServerFn({ method: "GET" }).handler(async (): Promise<ReferralProgram | null> => {
   const { createClient } = await import("@supabase/supabase-js");
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  const client = createClient(process.env["SUPABASE_URL"]!, key, {
+  const key = PINNED_ANON;
+  const client = createClient(PINNED_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input: any, init: any) => {

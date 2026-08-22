@@ -1,3 +1,4 @@
+import { SUPABASE_URL as PINNED_URL, SUPABASE_PUBLISHABLE_KEY as PINNED_ANON } from "@/integrations/supabase/config";
 /**
  * Phase 9 — live production readiness verification.
  *
@@ -84,8 +85,8 @@ async function anonClient() {
 }
 
 async function authSettings(): Promise<Record<string, any> | null> {
-  const url = process.env["SUPABASE_URL"];
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+  const url = PINNED_URL;
+  const key = PINNED_ANON;
   if (!url || !key) return null;
   const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } });
   if (!res.ok) throw new Error(`Auth settings endpoint returned ${res.status}`);

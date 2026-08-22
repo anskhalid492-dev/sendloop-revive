@@ -13,8 +13,8 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/
 import { POST_COLUMNS, type BlogAuthor, type BlogCategory, type BlogPost } from "@/lib/blog-model";
 
 function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || SUPABASE_PUBLISHABLE_KEY;
-  const url = process.env["SUPABASE_URL"] || SUPABASE_URL;
+  const key = SUPABASE_PUBLISHABLE_KEY;
+  const url = SUPABASE_URL;
   return import("@supabase/supabase-js").then(({ createClient }) =>
     createClient(url, key, {
       auth: { persistSession: false },

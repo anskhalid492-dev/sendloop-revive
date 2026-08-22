@@ -45,8 +45,8 @@ export const DEFAULT_FOOTER: FooterConfig = {
 };
 
 export async function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || SUPABASE_PUBLISHABLE_KEY;
-  const url = process.env["SUPABASE_URL"] || SUPABASE_URL;
+  const key = SUPABASE_PUBLISHABLE_KEY;
+  const url = SUPABASE_URL;
   const { createClient } = await import("@supabase/supabase-js");
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
