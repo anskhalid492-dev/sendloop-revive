@@ -145,21 +145,25 @@ export const saveNavItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { logContentChange } = await import("@/lib/site-content.server");
-    const hrefError = validateHref(data.href, data.isExternal);
+    const isSocial = data.location === "social";
+    const hrefError = validateHref(data.href, data.isExternal, isSocial);
     if (hrefError) throw new Error(hrefError);
+    // A social platform with no URL stays hidden instead of linking nowhere.
+    const isVisible = isSocial && !data.href.trim() ? false : data.isVisible;
 
     const db = context.supabase as any;
-    if (!data.isExternal) {
+    if (!data.isExternal && data.href.trim()) {
       const path = normalizePath(data.href.split("#")[0]!.split("?")[0]!);
       const { data: target } = await db
         .from("site_pages")
         .select("path, status")
         .eq("path", path)
         .maybeSingle();
-      if (target && target.status !== "published" && data.isVisible) {
+      if (target && target.status !== "published" && isVisible) {
         throw new Error(`${path} is ${target.status} — publish that page before linking to it`);
       }
     }
+
 
     const row = {
       location: data.location,
