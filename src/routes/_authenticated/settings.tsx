@@ -260,6 +260,26 @@ function ProfileSection() {
     setPreview(URL.createObjectURL(file));
   }
 
+  /**
+   * The avatar reference is written straight from the authenticated browser
+   * client. Routing this through a server function added a round-trip that
+   * could stall behind the edge proxy and surface as an HTTP 504, while the
+   * storage upload itself had already succeeded.
+   */
+  async function setAvatarPath(userId: string, avatarPath: string | null) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: avatarPath })
+      .eq("id", userId);
+    if (error) throw new Error(error.message);
+  }
+
+  function refreshAvatarQueries() {
+    void queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
+    void queryClient.invalidateQueries({ queryKey: ["profile"] });
+    void queryClient.invalidateQueries({ queryKey: ["avatar-url"] });
+  }
+
   async function uploadAvatar() {
     if (!pendingFile || !profile.data) return;
     setUploading(true);
@@ -267,27 +287,28 @@ function ProfileSection() {
       const ext =
         pendingFile.type === "image/png" ? "png" : pendingFile.type === "image/webp" ? "webp" : "jpg";
       // Files live under a folder named after the user id; storage policies only
-      // allow a customer to read or write inside their own folder.
-      const path = `${profile.data.id}/avatar-${Date.now()}.${ext}`;
+      // allow a customer to read or write inside their own folder. The random
+      // suffix keeps every upload on a unique, cache-safe path.
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const path = `${profile.data.id}/avatar-${unique}.${ext}`;
       const { error } = await supabase.storage
         .from("avatars")
         .upload(path, pendingFile, { upsert: true, contentType: pendingFile.type });
       if (error) throw new Error(error.message);
 
       const previousPath = profile.data.avatar_url;
-      await saveProfile({ data: { avatar_url: path } });
-      if (previousPath && !previousPath.startsWith("http")) {
-        await supabase.storage.from("avatars").remove([previousPath]);
+      await setAvatarPath(profile.data.id, path);
+      if (previousPath && !previousPath.startsWith("http") && previousPath !== path) {
+        // Best effort cleanup; a leftover old file must never fail the upload.
+        void supabase.storage.from("avatars").remove([previousPath]);
       }
 
       setPendingFile(null);
       setPreview(null);
       toast.success("Profile picture updated");
-      void queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
-      void queryClient.invalidateQueries({ queryKey: ["avatar-url"] });
+      refreshAvatarQueries();
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error((e as Error).message || "Upload failed, please try again");
     } finally {
       setUploading(false);
     }
@@ -295,12 +316,20 @@ function ProfileSection() {
 
   async function removeAvatar() {
     const path = profile.data?.avatar_url;
-    if (!path) return;
-    if (!path.startsWith("http")) await supabase.storage.from("avatars").remove([path]);
-    await saveProfile({ data: { avatar_url: null } });
-    toast.success("Profile picture removed");
-    void queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
-    void queryClient.invalidateQueries({ queryKey: ["profile"] });
+    if (!path || !profile.data) return;
+    setUploading(true);
+    try {
+      await setAvatarPath(profile.data.id, null);
+      if (!path.startsWith("http")) {
+        void supabase.storage.from("avatars").remove([path]);
+      }
+      toast.success("Profile picture removed");
+      refreshAvatarQueries();
+    } catch (e) {
+      toast.error((e as Error).message || "Could not remove the picture");
+    } finally {
+      setUploading(false);
+    }
   }
 
   if (profile.isLoading) {
