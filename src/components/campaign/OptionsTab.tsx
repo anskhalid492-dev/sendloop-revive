@@ -203,12 +203,13 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
         subtitle="What this campaign measures. Every tracker adds a small deliverability cost, so only enable what you will act on."
       >
         <Toggle
-          title="Open tracking"
-          description="Adds an invisible pixel so opens are recorded."
-          impact="Open counts and open rate populate in Analytics. Some mailbox providers pre-load images, so treat opens as directional."
+          title="Open rate tracking"
+          description="Records when a recipient opens an email in this campaign."
+          impact="On: unique opens and open rate populate in Analytics. Off: no open events are stored and Analytics shows “Disabled” instead of 0%."
           checked={settings.openTracking}
           onChange={(v) => patchSettings({ openTracking: v })}
         />
+
         <Toggle
           title="Click tracking"
           description="Rewrites links so clicks are attributed to the campaign."

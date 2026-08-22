@@ -36,6 +36,7 @@ import {
   clickRate,
   formatCount,
   formatPct,
+  formatOpenRate,
   openRate,
   replyRate,
   unsubRate,
@@ -394,7 +395,7 @@ function AnalyticsPage() {
                       </td>
                       <td className="py-2 pr-3">{formatCount(row.sent)}</td>
                       <td className="py-2 pr-3">{formatCount(row.delivered)}</td>
-                      <td className="py-2 pr-3">{formatPct(openRate(row))}</td>
+                      <td className="py-2 pr-3">{formatOpenRate(row)}</td>
                       <td className="py-2 pr-3">{formatPct(clickRate(row))}</td>
                       <td className="py-2 pr-3">{formatPct(replyRate(row))}</td>
                       <td className="py-2 pr-3">{formatPct(bounceRate(row))}</td>

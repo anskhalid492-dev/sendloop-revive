@@ -37,6 +37,7 @@ import {
   adminOutreachFilters,
   adminWarmupControl,
 } from "@/lib/admin-outreach.functions";
+import { WarmupRecipientPool } from "@/components/admin/WarmupRecipientPool";
 
 export const Route = createFileRoute("/_authenticated/admin/warmup")({
   head: () => ({
@@ -117,6 +118,15 @@ function AdminWarmupPage() {
         description="Warmup state for every mailbox on the platform. Volumes, health scores and auto-pauses come from the warmup engine — admin controls only start, pause or stop it."
       />
 
+      <Tabs defaultValue="mailboxes">
+        <TabsList>
+          <TabsTrigger value="mailboxes">Mailboxes</TabsTrigger>
+          <TabsTrigger value="pool">Recipient pool</TabsTrigger>
+        </TabsList>
+        <TabsContent value="pool" className="pt-4">
+          <WarmupRecipientPool />
+        </TabsContent>
+        <TabsContent value="mailboxes" className="space-y-6 pt-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Mailboxes in warmup" value={num(rows.length)} />
         <StatCard label="Warming" value={num(warming)} />
@@ -247,6 +257,9 @@ function AdminWarmupPage() {
           </Table>
         )}
       </div>
+
+        </TabsContent>
+      </Tabs>
 
       <Sheet open={Boolean(openId)} onOpenChange={(open) => !open && setOpenId(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-3xl">

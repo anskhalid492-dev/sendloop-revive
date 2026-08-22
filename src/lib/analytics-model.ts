@@ -25,6 +25,8 @@ export type AnalyticsTimeseriesPoint = {
 
 export type AnalyticsCampaignRow = {
   campaignId: string;
+  /** False when the campaign has open tracking switched off. */
+  openTracking?: boolean;
   name: string;
   status: string;
   sent: number;
@@ -66,6 +68,16 @@ export const bounceRate = (r: RateBase & { bounced: number }) => rate(r.bounced,
 /** Unsubscribe rate = unsubscribes / delivered. */
 export const unsubRate = (r: RateBase & { unsubscribed: number }) =>
   rate(r.unsubscribed, r.delivered);
+
+/** Formats an open-rate cell, distinguishing "disabled" from "no data". */
+export function formatOpenRate(row: {
+  opens: number;
+  delivered: number;
+  openTracking?: boolean;
+}): string {
+  if (row.openTracking === false) return "Disabled";
+  return formatPct(rate(row.opens, row.delivered));
+}
 
 export function formatPct(value: number): string {
   return `${value.toFixed(value >= 10 ? 0 : 1)}%`;

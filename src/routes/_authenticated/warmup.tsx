@@ -56,6 +56,17 @@ function Stat({
   );
 }
 
+/**
+ * Placement is only known when a warmup mailbox actually reports arrival. With
+ * sends out but no placement signal yet we say so instead of showing a 0 that
+ * looks like a real result.
+ */
+function placement(value: number, counterpart: number, sent: number): string {
+  if (value > 0 || counterpart > 0) return String(value);
+  if (sent > 0) return "Not available";
+  return "—";
+}
+
 function WarmupPage() {
   const queryClient = useQueryClient();
   const fetchAccounts = useServerFn(listWarmupAccounts);
@@ -244,7 +255,7 @@ function WarmupPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-emerald-600">
-                      {row.inbox_today}
+                      {placement(row.inbox_today, row.spam_today, row.sent_today)}
                     </td>
                     <td
                       className={cn(
@@ -252,8 +263,9 @@ function WarmupPage() {
                         row.spam_today > 0 ? "text-amber-600" : "",
                       )}
                     >
-                      {row.spam_today}
+                      {placement(row.spam_today, row.inbox_today, row.sent_today)}
                     </td>
+
                     <td className="px-3 py-2.5 text-right tabular-nums">{row.bounced_today}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{row.replied_today}</td>
                     <td className="px-3 py-2.5">

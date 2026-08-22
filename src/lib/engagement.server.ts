@@ -59,6 +59,17 @@ export async function recordEngagement(args: Args): Promise<boolean> {
   const message = await findMessage(args.providerMessageId, email);
   if (!message?.workspace_id) return false;
 
+  // Open tracking is a per-campaign switch. With it off we never store an
+  // open event, so analytics can honestly report "Disabled" instead of 0%.
+  if (args.type === "opened" && message.campaign_id) {
+    const { data: campaign } = await supabaseAdmin
+      .from("campaigns")
+      .select("open_tracking")
+      .eq("id", message.campaign_id)
+      .maybeSingle();
+    if (campaign && campaign.open_tracking === false) return false;
+  }
+
   const externalId =
     args.externalId ??
     `${args.type}:${args.providerMessageId ?? message.id}:${args.url ?? ""}`;

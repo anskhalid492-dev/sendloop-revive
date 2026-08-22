@@ -50,7 +50,12 @@ export function CampaignDetailDialog({
             {[
               ["Sent", formatCount(row.sent)],
               ["Delivered", formatCount(row.delivered)],
-              ["Unique opens", `${formatCount(row.opens)} · ${formatPct(openRate(row))}`],
+              [
+                "Unique opens",
+                row.openTracking === false
+                  ? "Disabled"
+                  : `${formatCount(row.opens)} · ${formatPct(openRate(row))}`,
+              ],
               ["Unique clicks", `${formatCount(row.clicks)} · ${formatPct(clickRate(row))}`],
               ["Replies", `${formatCount(row.replies)} · ${formatPct(replyRate(row))}`],
               ["Bounced", `${formatCount(row.bounced)} · ${formatPct(bounceRate(row))}`],
