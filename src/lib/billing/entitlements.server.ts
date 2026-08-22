@@ -104,21 +104,44 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
     rawState === "cancelled" && sub?.access_until
       ? new Date(sub.access_until) > new Date()
       : false;
-  const active =
+  const subscriptionActive =
     rawState !== null &&
     (alwaysEntitled.includes(rawState) ||
       (graceEntitled.includes(rawState) && inGrace) ||
       withinAccessWindow);
+
+  // A staff grant overrides the plan the subscription points at, without
+  // touching the subscription record itself. Expiry/revocation simply removes
+  // the override and the workspace falls back to its own plan.
+  const { activeGrantWithPlan } = await import("@/lib/billing/plan-grants.server");
+  const granted = await activeGrantWithPlan(workspaceId);
+  if (granted?.plan) plan = granted.plan;
+  const active = granted ? true : subscriptionActive;
 
   return {
     workspaceId,
     planId: plan?.id ?? null,
     planName: plan?.name ?? "Free trial",
     state,
-    stateLabel: rawState ? STATE_LABELS[rawState] : "No subscription",
+    stateLabel: granted
+      ? "Provided by MunchReach"
+      : rawState
+        ? STATE_LABELS[rawState]
+        : "No subscription",
     active,
     inGrace,
-    accessUntil: sub?.access_until ?? sub?.current_period_end ?? null,
+    accessUntil: granted
+      ? granted.row.expires_at
+      : (sub?.access_until ?? sub?.current_period_end ?? null),
+    source: granted ? ("admin_grant" as const) : ("subscription" as const),
+    grant: granted
+      ? {
+          planName: granted.plan?.name ?? "Plan",
+          expiresAt: granted.row.expires_at ?? null,
+          grantedAt: granted.row.created_at,
+        }
+      : null,
+
     limits: {
       max_users: plan?.max_users ?? null,
       max_leads: plan?.max_leads ?? null,
