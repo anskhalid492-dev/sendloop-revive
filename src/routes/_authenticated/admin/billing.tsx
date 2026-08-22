@@ -27,8 +27,10 @@ import {
   listBillingRecords,
   retryBillingWebhook,
   setBillingProviderEnabled,
+  syncStripeCatalogue,
   updateBillingSettings,
   upsertPlanPrice,
+
 } from "@/lib/billing-admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/billing")({
@@ -534,10 +536,50 @@ function PlanPrices({
     interval: "monthly",
     externalPriceId: "",
   });
+  const queryClient = useQueryClient();
+  const runSync = useServerFn(syncStripeCatalogue);
+  const syncMutation = useMutation({
+    mutationFn: (environment: "test" | "live") => runSync({ data: { environment } }),
+    onSuccess: (res: any) => {
+      const created = res.plans.filter((p: any) => p.action === "created").length;
+      toast.success(
+        `Stripe ${res.environment} catalogue synced — ${created} price(s) created, ${res.plans.length - created} reused`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-billing-readiness"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Stripe sync failed"),
+  });
 
   return (
     <div className="space-y-4">
+      <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-5">
+        <div>
+          <p className="text-sm font-medium">Auto-create Stripe prices</p>
+          <p className="text-xs text-muted-foreground">
+            Creates a Stripe product and monthly/yearly price for every paid plan, then maps them
+            below. Safe to run repeatedly.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {(["test", "live"] as const).map((env) => (
+            <Button
+              key={env}
+              variant={env === "test" ? "default" : "outline"}
+              disabled={syncMutation.isPending}
+              onClick={() => syncMutation.mutate(env)}
+            >
+              {syncMutation.isPending && syncMutation.variables === env ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Sync {env}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="surface-card grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-6">
+
         <Select value={form.planId} onValueChange={(planId) => setForm((f) => ({ ...f, planId }))}>
           <SelectTrigger>
             <SelectValue placeholder="Plan" />

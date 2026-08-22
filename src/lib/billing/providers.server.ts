@@ -102,18 +102,37 @@ function formEncode(obj: Record<string, unknown>, prefix = ""): string[] {
   return parts;
 }
 
-async function stripeCall(
+/**
+ * Pinned Stripe API version. Pinning keeps the payload shape stable no matter
+ * which default version the connected Stripe account is on, so the same code
+ * works for a brand-new live account and an older test account.
+ */
+const STRIPE_API_VERSION = "2024-06-20";
+
+export async function stripeCall(
   env: BillingEnvironment,
   path: string,
   body?: Record<string, unknown>,
   method = "POST",
+  idempotencyKey?: string,
 ) {
-  const { apiKey } = await credentialsOrThrow("stripe", env);
+  const { apiKey } = (await credentialsOrThrow("stripe", env)) as { apiKey: string };
+  // A test key must never be used for live traffic (or vice versa): the key
+  // prefix is authoritative, so a mis-filed credential fails loudly here
+  // instead of silently charging in the wrong mode.
+  const isLiveKey = apiKey.startsWith("sk_live_") || apiKey.startsWith("rk_live_");
+  if (env === "live" && !isLiveKey)
+    throw new BillingError("Stripe live mode is configured with a test secret key");
+  if (env === "test" && isLiveKey)
+    throw new BillingError("Stripe test mode is configured with a live secret key");
+
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Version": STRIPE_API_VERSION,
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     ...(body ? { body: formEncode(body).join("&") } : {}),
   });
@@ -121,6 +140,7 @@ async function stripeCall(
   if (!res.ok) throw new BillingError(json?.error?.message ?? `Stripe ${res.status}`);
   return json;
 }
+
 
 const STRIPE_STATUS: Record<string, SubscriptionState> = {
   trialing: "trialing",
@@ -133,17 +153,68 @@ const STRIPE_STATUS: Record<string, SubscriptionState> = {
   canceled: "cancelled",
 };
 
+/**
+ * Maps a raw Stripe subscription object onto the normalized shape. Shared by
+ * the webhook path and the post-checkout reconciliation fetch so both produce
+ * byte-identical records.
+ *
+ * Period timestamps live on the subscription in older API versions and on the
+ * subscription item in newer ones — both locations are read.
+ */
+export function stripeSubscriptionEvent(obj: any, eventType?: string) {
+  const item = obj?.items?.data?.[0];
+  const status: SubscriptionState =
+    eventType === "customer.subscription.deleted"
+      ? "cancelled"
+      : (STRIPE_STATUS[obj?.status] ?? "active");
+  const periodStart = obj?.current_period_start ?? item?.current_period_start ?? null;
+  const periodEnd = obj?.current_period_end ?? item?.current_period_end ?? null;
+  return {
+    workspaceId: (obj?.metadata?.workspace_id as string | undefined) ?? null,
+    planId: (obj?.metadata?.plan_id as string | undefined) ?? null,
+    subscription: {
+      externalId: obj?.id as string,
+      customerId: (typeof obj?.customer === "string" ? obj.customer : obj?.customer?.id) ?? null,
+      status,
+      interval: (item?.price?.recurring?.interval === "year" ? "yearly" : "monthly") as BillingInterval,
+      amountCents: item?.price?.unit_amount ?? 0,
+      currency: obj?.currency ?? item?.price?.currency ?? "usd",
+      currentPeriodStart: iso(periodStart),
+      currentPeriodEnd: iso(periodEnd),
+      trialEndsAt: iso(obj?.trial_end),
+      cancelAtPeriodEnd: Boolean(obj?.cancel_at_period_end),
+      cancelledAt: iso(obj?.canceled_at),
+      priceId: item?.price?.id ?? null,
+    },
+  };
+}
+
+/** Fetches a live subscription so post-checkout state never depends on event order. */
+export async function fetchStripeSubscription(env: BillingEnvironment, subscriptionId: string) {
+  return stripeCall(env, `subscriptions/${subscriptionId}`, undefined, "GET");
+}
+
 const stripe: ProviderAdapter = {
   id: "stripe",
   async createCheckout(input) {
+    // Payment methods are NOT hard-coded: omitting `payment_method_types` makes
+    // Stripe Checkout offer exactly what the account has enabled in its
+    // dashboard payment-method settings (cards, wallets, bank debits, …) and
+    // filters them by currency/country automatically. Async methods finish
+    // through checkout.session.async_payment_succeeded, which is handled too.
     const session = await stripeCall(input.environment, "checkout/sessions", {
       mode: "subscription",
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       client_reference_id: input.workspaceId,
       allow_promotion_codes: "true",
-      ...(input.customerId ? { customer: input.customerId } : {}),
+      billing_address_collection: "auto",
+      payment_method_collection: "always",
+      ...(input.customerId
+        ? { customer: input.customerId, customer_update: { address: "auto", name: "auto" } }
+        : {}),
       ...(!input.customerId && input.email ? { customer_email: input.email } : {}),
+      // (subscription mode always creates/reuses a Stripe customer)
       line_items: { 0: { price: input.priceId, quantity: 1 } },
       metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
       subscription_data: {
@@ -152,6 +223,7 @@ const stripe: ProviderAdapter = {
     });
     return { url: session.url as string };
   },
+
   async cancel(env, subscriptionId, atPeriodEnd) {
     if (atPeriodEnd)
       await stripeCall(env, `subscriptions/${subscriptionId}`, { cancel_at_period_end: "true" });
@@ -211,35 +283,34 @@ const stripe: ProviderAdapter = {
     };
 
     if (event.eventType.startsWith("customer.subscription.")) {
-      const item = obj.items?.data?.[0];
-      const status: SubscriptionState =
-        event.eventType === "customer.subscription.deleted"
-          ? "cancelled"
-          : (STRIPE_STATUS[obj.status] ?? "active");
+      return { ...base, ...stripeSubscriptionEvent(obj, event.eventType) };
+    }
+
+    // A completed Checkout Session is the moment the customer paid. The
+    // subscription object itself is fetched and applied by the webhook
+    // pipeline; here we surface the workspace/plan mapping and the customer so
+    // nothing depends on event ordering.
+    if (
+      event.eventType === "checkout.session.completed" ||
+      event.eventType === "checkout.session.async_payment_succeeded"
+    ) {
       return {
         ...base,
-        workspaceId: obj.metadata?.workspace_id ?? null,
-        subscription: {
-          externalId: obj.id,
-          customerId: obj.customer ?? null,
-          status,
-          interval: item?.price?.recurring?.interval === "year" ? "yearly" : "monthly",
-          amountCents: item?.price?.unit_amount ?? 0,
-          currency: obj.currency ?? item?.price?.currency ?? "usd",
-          currentPeriodStart: iso(obj.current_period_start),
-          currentPeriodEnd: iso(obj.current_period_end),
-          trialEndsAt: iso(obj.trial_end),
-          cancelAtPeriodEnd: Boolean(obj.cancel_at_period_end),
-          cancelledAt: iso(obj.canceled_at),
-          priceId: item?.price?.id ?? null,
-        },
+        workspaceId: obj.metadata?.workspace_id ?? obj.client_reference_id ?? null,
+        planId: obj.metadata?.plan_id ?? null,
+        customerRef: obj.customer ?? null,
       };
     }
 
-    if (event.eventType === "invoice.paid" || event.eventType === "invoice.payment_failed") {
-      const paid = event.eventType === "invoice.paid";
+    if (
+      event.eventType === "invoice.paid" ||
+      event.eventType === "invoice.payment_succeeded" ||
+      event.eventType === "invoice.payment_failed"
+    ) {
+      const paid = event.eventType !== "invoice.payment_failed";
       return {
         ...base,
+        customerRef: obj.customer ?? null,
         invoice: {
           externalId: obj.id,
           number: obj.number ?? null,
@@ -261,6 +332,7 @@ const stripe: ProviderAdapter = {
         },
       };
     }
+
 
     if (event.eventType === "charge.refunded") {
       return {

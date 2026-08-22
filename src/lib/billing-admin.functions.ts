@@ -218,3 +218,21 @@ export const clearBillingProviderSecrets = createServerFn({ method: "POST" })
     await assertPlatformAdmin(context);
     return clearProviderSecrets(data.provider, data.environment, context.userId);
   });
+
+/**
+ * Creates the Stripe products/prices for every paid plan in one environment and
+ * records the plan ↔ price mapping. Idempotent: existing matching prices are
+ * reused.
+ */
+export const syncStripeCatalogue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { environment: BillingEnvironment }) =>
+    z.object({ environment: envEnum }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
+    const { syncStripePrices } = await import("@/lib/billing/stripe-sync.server");
+    await assertPlatformAdmin(context);
+    return syncStripePrices(data.environment, context.userId);
+  });
+
