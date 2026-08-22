@@ -158,9 +158,10 @@ export function SiteFooter() {
     return sorted.map(([title, links]) => ({ title, links }));
   })();
 
-  const social = content?.social?.length
-    ? content.social.map((s) => ({ label: s.label, href: s.href }))
-    : fallbackSocial;
+  const social = (content?.social ?? [])
+    .filter((s) => hasRealHref(s.href))
+    .map((s) => ({ label: s.label, href: s.href.trim() }));
+
 
   const tagline =
     content?.footerConfig?.tagline ??
