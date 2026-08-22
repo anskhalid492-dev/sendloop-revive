@@ -124,7 +124,21 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
       _to: new Date(data.to).toISOString(),
     });
     if (error) throw new Error(error.message);
+    // Open tracking is per campaign: when it is off we must show "Disabled"
+    // instead of a misleading 0% open rate.
+    const ids = ((rows ?? []) as Record<string, unknown>[]).map((r) => String(r["campaign_id"]));
+    const tracking = new Map<string, boolean>();
+    if (ids.length) {
+      const { data: campaigns } = await client
+        .from("campaigns")
+        .select("id, open_tracking")
+        .in("id", ids);
+      for (const c of (campaigns ?? []) as Array<Record<string, unknown>>) {
+        tracking.set(String(c["id"]), Boolean(c["open_tracking"]));
+      }
+    }
     return ((rows ?? []) as Record<string, unknown>[]).map((r) => ({
+      openTracking: tracking.get(String(r["campaign_id"])) ?? true,
       campaignId: String(r["campaign_id"]),
       name: String(r["campaign_name"] ?? "Untitled campaign"),
       status: String(r["status"] ?? "draft"),

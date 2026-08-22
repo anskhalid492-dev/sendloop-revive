@@ -6616,6 +6616,7 @@ export type Database = {
           next_attempt_at: string | null
           placement: string
           placement_checked_at: string | null
+          pool_recipient_id: string | null
           processed_at: string | null
           provider: string | null
           provider_message_id: string | null
@@ -6645,6 +6646,7 @@ export type Database = {
           next_attempt_at?: string | null
           placement?: string
           placement_checked_at?: string | null
+          pool_recipient_id?: string | null
           processed_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -6674,6 +6676,7 @@ export type Database = {
           next_attempt_at?: string | null
           placement?: string
           placement_checked_at?: string | null
+          pool_recipient_id?: string | null
           processed_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -6694,6 +6697,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "warmup_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_jobs_pool_recipient_id_fkey"
+            columns: ["pool_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_recipients"
             referencedColumns: ["id"]
           },
           {
@@ -6718,6 +6728,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      warmup_recipients: {
+        Row: {
+          bounce_count: number
+          created_at: string
+          created_by: string | null
+          email: string
+          enabled: boolean
+          id: string
+          last_bounce_at: string | null
+          last_error: string | null
+          last_received_at: string | null
+          last_sent_at: string | null
+          mailbox_provider: string | null
+          name: string | null
+          notes: string | null
+          received_count: number
+          reply_count: number
+          sent_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bounce_count?: number
+          created_at?: string
+          created_by?: string | null
+          email: string
+          enabled?: boolean
+          id?: string
+          last_bounce_at?: string | null
+          last_error?: string | null
+          last_received_at?: string | null
+          last_sent_at?: string | null
+          mailbox_provider?: string | null
+          name?: string | null
+          notes?: string | null
+          received_count?: number
+          reply_count?: number
+          sent_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bounce_count?: number
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          enabled?: boolean
+          id?: string
+          last_bounce_at?: string | null
+          last_error?: string | null
+          last_received_at?: string | null
+          last_sent_at?: string | null
+          mailbox_provider?: string | null
+          name?: string | null
+          notes?: string | null
+          received_count?: number
+          reply_count?: number
+          sent_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       warmup_runner_state: {
         Row: {
@@ -7426,6 +7499,7 @@ export type Database = {
           next_attempt_at: string | null
           placement: string
           placement_checked_at: string | null
+          pool_recipient_id: string | null
           processed_at: string | null
           provider: string | null
           provider_message_id: string | null
@@ -7464,6 +7538,7 @@ export type Database = {
           next_attempt_at: string | null
           placement: string
           placement_checked_at: string | null
+          pool_recipient_id: string | null
           processed_at: string | null
           provider: string | null
           provider_message_id: string | null

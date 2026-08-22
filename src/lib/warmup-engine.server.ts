@@ -352,8 +352,52 @@ async function scheduleAccount(
   const blocked = await warmupBlockReason(admin, account);
   if (blocked) return { scheduled: 0, reason: blocked };
 
-  // Solo warmup keeps a single-mailbox workspace operational.
-  const recipients: AccountRow[] = peers.length > 0 ? peers : [account];
+  // Recipient priority: the platform warmup pool (managed by admins), then
+  // other warmup mailboxes in the network, then solo warmup so a single
+  // mailbox workspace still produces real sends.
+  const { data: poolRows } = await admin
+    .from("warmup_recipients")
+    .select("id, email, last_sent_at")
+    .eq("enabled", true)
+    .eq("status", "active")
+    .order("last_sent_at", { ascending: true, nullsFirst: true })
+    .limit(200);
+
+  type Target =
+    | { kind: "pool"; id: string; email: string }
+    | { kind: "peer"; account: AccountRow };
+
+  let pool: Target[] = ((poolRows ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    kind: "pool" as const,
+    id: r["id"] as string,
+    email: r["email"] as string,
+  }));
+
+  // Avoid repeating the same sender -> recipient pair within a week.
+  if (pool.length > 1) {
+    const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    const { data: recent } = await admin
+      .from("warmup_jobs")
+      .select("to_email")
+      .eq("sending_account_id", account.id)
+      .gte("created_at", since)
+      .limit(500);
+    const used = new Set(
+      ((recent ?? []) as Array<Record<string, unknown>>).map((r) =>
+        String(r["to_email"] ?? "").toLowerCase(),
+      ),
+    );
+    const fresh = pool.filter((t) => t.kind === "pool" && !used.has(t.email.toLowerCase()));
+    if (fresh.length > 0) pool = fresh;
+  }
+
+  const recipients: Target[] =
+    pool.length > 0
+      ? pool
+      : peers.length > 0
+        ? peers.map((p) => ({ kind: "peer" as const, account: p }))
+        : [{ kind: "peer" as const, account }];
+
 
   const target = dailyTarget(settings, settings.started_at, account.health_score);
   if (target <= 0) return { scheduled: 0, reason: "Today's warmup target is zero." };
@@ -380,22 +424,33 @@ async function scheduleAccount(
     // Slot index continues after what is already queued today, so re-running
     // the scheduler tops the queue up instead of colliding on the same key.
     const slot = done + i;
-    const peer = recipients[Math.floor(Math.random() * recipients.length)]!;
-    const solo = peer.id === account.id;
+    // Round-robin rotation keeps the pool evenly used across the day.
+    const targetRow = recipients[(done + i) % recipients.length]!;
+    const toEmail =
+      targetRow.kind === "pool" ? targetRow.email : targetRow.account.from_email;
+    const peerAccountId = targetRow.kind === "peer" ? targetRow.account.id : null;
+    const poolRecipientId = targetRow.kind === "pool" ? targetRow.id : null;
+    const solo = peerAccountId === account.id;
     const { subject, body } = buildWarmupMessage(account.from_name);
-    const threadKey = `wu_${account.id.slice(0, 8)}_${peer.id.slice(0, 8)}_${Date.now()}_${slot}`;
+    const threadKey = `wu_${account.id.slice(0, 8)}_${(peerAccountId ?? poolRecipientId ?? "pool").slice(0, 8)}_${Date.now()}_${slot}`;
 
-    const { data: conversation } = await admin
-      .from("warmup_conversations")
-      .insert({
-        workspace_id: account.workspace_id,
-        sender_account_id: account.id,
-        recipient_account_id: peer.id,
-        subject,
-        thread_key: threadKey,
-      })
-      .select("id")
-      .single();
+    // Peer conversations are mailbox-to-mailbox; pool sends have no peer
+    // mailbox row, so they are tracked on the job alone.
+    let conversationId: string | null = null;
+    if (peerAccountId) {
+      const { data: conversation } = await admin
+        .from("warmup_conversations")
+        .insert({
+          workspace_id: account.workspace_id,
+          sender_account_id: account.id,
+          recipient_account_id: peerAccountId,
+          subject,
+          thread_key: threadKey,
+        })
+        .select("id")
+        .single();
+      conversationId = (conversation?.id as string | undefined) ?? null;
+    }
 
     const idempotencyKey = `${account.id}:${day}:${slot}:initial`;
     const token = warmupToken();
@@ -403,11 +458,12 @@ async function scheduleAccount(
       warmup_token: token,
       workspace_id: account.workspace_id,
       sending_account_id: account.id,
-      conversation_id: conversation?.id ?? null,
-      recipient_account_id: peer.id,
+      conversation_id: conversationId,
+      recipient_account_id: peerAccountId,
+      pool_recipient_id: poolRecipientId,
       role: "initial",
       from_email: account.from_email,
-      to_email: peer.from_email,
+      to_email: toEmail,
       subject,
       body: withWarmupRef(body, token),
       scheduled_at: force ? new Date().toISOString() : times[i]!.toISOString(),
@@ -425,8 +481,9 @@ async function scheduleAccount(
       type: "scheduled",
       detail: solo
         ? "Queued solo warmup email (no peer mailbox in the network yet)"
-        : `Queued warmup email to ${peer.from_email}`,
+        : `Queued warmup email to ${toEmail}`,
     });
+
   }
 
   if (scheduled > 0) {
@@ -611,6 +668,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     detail: `Accepted by ${provider} for ${job["to_email"]}`,
   });
   await bumpStats(admin, { workspaceId, accountId }, { sent: 1 });
+  await touchPoolRecipient(admin, job["pool_recipient_id"] as string | null, "sent");
   await admin
     .from("sending_accounts")
     .update({ last_sent_at: new Date().toISOString() })
@@ -678,6 +736,43 @@ async function maybeQueueReply(admin: Admin, job: Record<string, unknown>) {
  * Applies a provider delivery event to a warmup job. Returns false when the
  * event does not belong to warmup so the campaign pipeline can handle it.
  */
+/**
+ * Keeps the admin warmup pool activity counters in sync with real events.
+ * A hard bounce disables the recipient so the engine stops mailing it.
+ */
+export async function touchPoolRecipient(
+  admin: Admin,
+  recipientId: string | null | undefined,
+  event: "sent" | "bounced" | "replied" | "received",
+  detail?: string | null,
+): Promise<void> {
+  if (!recipientId) return;
+  const { data } = await admin
+    .from("warmup_recipients")
+    .select("sent_count, bounce_count, reply_count, received_count")
+    .eq("id", recipientId)
+    .maybeSingle();
+  if (!data) return;
+  const row = data as Record<string, number>;
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> =
+    event === "sent"
+      ? { sent_count: (row["sent_count"] ?? 0) + 1, last_sent_at: now }
+      : event === "bounced"
+        ? {
+            bounce_count: (row["bounce_count"] ?? 0) + 1,
+            last_bounce_at: now,
+            status: "bounced",
+            enabled: false,
+            last_error: detail?.slice(0, 300) ?? null,
+          }
+        : event === "replied"
+          ? { reply_count: (row["reply_count"] ?? 0) + 1 }
+          : { received_count: (row["received_count"] ?? 0) + 1, last_received_at: now };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await admin.from("warmup_recipients").update(patch as any).eq("id", recipientId);
+}
+
 export async function applyWarmupDeliveryEvent(args: {
   kind: "delivered" | "bounced" | "complained" | "deferred" | "delayed" | "rejected" | "replied";
   providerMessageId: string | null;
@@ -691,10 +786,11 @@ export async function applyWarmupDeliveryEvent(args: {
 
   const { data: job } = await supabaseAdmin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id, status, conversation_id")
+    .select("id, workspace_id, sending_account_id, status, conversation_id, pool_recipient_id")
     .eq("provider_message_id", args.providerMessageId)
     .maybeSingle();
   if (!job) return false;
+
 
   const fresh = await logEvent(supabaseAdmin, {
     workspaceId: job.workspace_id,
@@ -754,6 +850,15 @@ export async function applyWarmupDeliveryEvent(args: {
       { workspaceId: job.workspace_id, accountId: job.sending_account_id },
       counter,
     );
+  }
+
+  const poolId = (job as Record<string, unknown>)["pool_recipient_id"] as string | null;
+  if (args.kind === "bounced" || args.kind === "rejected") {
+    await touchPoolRecipient(supabaseAdmin, poolId, "bounced", args.reason);
+  } else if (args.kind === "replied") {
+    await touchPoolRecipient(supabaseAdmin, poolId, "replied");
+  } else if (args.kind === "delivered") {
+    await touchPoolRecipient(supabaseAdmin, poolId, "received");
   }
 
   await recalculateHealth(supabaseAdmin, job.sending_account_id);
