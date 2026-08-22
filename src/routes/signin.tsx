@@ -7,7 +7,6 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
-import { lovable } from "@/integrations/lovable";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -109,10 +108,11 @@ function SignInPage() {
   });
 
   async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
-    if (result.error) toast.error("Google sign-in failed. Please try again.");
+    if (error) toast.error("Google sign-in failed. Please try again.");
   }
 
   return (
