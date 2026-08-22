@@ -165,6 +165,9 @@ export type NormalizedBillingEvent = {
   environment: BillingEnvironment;
   workspaceId?: string | null;
   planId?: string | null;
+  /** Provider customer id, used to resolve the workspace when the event carries no subscription. */
+  customerRef?: string | null;
+
   subscription?: {
     externalId: string;
     customerId?: string | null;
