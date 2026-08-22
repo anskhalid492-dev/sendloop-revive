@@ -56,6 +56,17 @@ function Stat({
   );
 }
 
+/**
+ * Placement is only known when a warmup mailbox actually reports arrival. With
+ * sends out but no placement signal yet we say so instead of showing a 0 that
+ * looks like a real result.
+ */
+function placement(value: number, counterpart: number, sent: number): string {
+  if (value > 0 || counterpart > 0) return String(value);
+  if (sent > 0) return "Not available";
+  return "—";
+}
+
 function WarmupPage() {
   const queryClient = useQueryClient();
   const fetchAccounts = useServerFn(listWarmupAccounts);
