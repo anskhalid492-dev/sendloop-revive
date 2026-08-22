@@ -9,10 +9,11 @@ import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { Gift, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -323,6 +324,144 @@ export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
         </div>
       ) : null}
 
+
+      <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Gift className="h-4 w-4 text-primary" /> Plan grant
+          </p>
+          {data.grant ? (
+            <Badge className="bg-primary/15 text-primary hover:bg-primary/15">Admin granted</Badge>
+          ) : null}
+        </div>
+
+        {data.grant ? (
+          <div className="space-y-1 rounded-lg border bg-background p-3 text-sm">
+            <p>
+              <strong>{data.grant.planName}</strong> granted{" "}
+              {data.grant.grantedByEmail ? `by ${data.grant.grantedByEmail} ` : ""}on{" "}
+              {fmtDate(data.grant.grantedAt)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {data.grant.expiresAt
+                ? `Expires ${fmtDate(data.grant.expiresAt)} — the workspace then returns to its own plan.`
+                : "No expiry — active until revoked."}
+              {data.grant.reason ? ` · Note: ${data.grant.reason}` : ""}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => extendMutation.mutate()}
+                disabled={extendMutation.isPending}
+              >
+                {extendMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Apply new expiry
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => setRevoking(true)}>
+                Revoke plan grant
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            No grant active. The workspace uses its own subscription or trial.
+          </p>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Plan</Label>
+            <Select value={grantPlanId} onValueChange={setGrantPlanId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a plan to grant" />
+              </SelectTrigger>
+              <SelectContent>
+                {data.plans.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                    {p.isFree ? " — Free Trial" : ` — ${money(p.monthlyPrice)}/mo value`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Duration</Label>
+            <Select value={grantDuration} onValueChange={setGrantDuration}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GRANT_DURATIONS.map((d) => (
+                  <SelectItem key={d.value} value={d.value}>
+                    {d.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {grantDuration === "custom" ? (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Custom duration (days)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={3650}
+              value={customDays}
+              onChange={(e) => setCustomDays(e.target.value)}
+              className="max-w-[160px]"
+            />
+          </div>
+        ) : null}
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Reason / internal note</Label>
+          <Textarea
+            rows={2}
+            value={grantReason}
+            onChange={(e) => setGrantReason(e.target.value)}
+            placeholder="Internal only — never shown to the customer"
+          />
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          A grant activates the selected plan's limits, daily caps, credits and features
+          immediately. No payment is taken and the customer's real subscription history is left
+          untouched.
+        </p>
+
+        <Button
+          onClick={() => grantMutation.mutate()}
+          disabled={!grantPlanId || grantMutation.isPending || (grantDuration === "custom" && !grantDays)}
+        >
+          {grantMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {data.grant ? "Change grant" : "Grant plan"}
+        </Button>
+      </div>
+
+      {data.grants.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Grant history
+          </p>
+          <ul className="space-y-1 text-sm">
+            {data.grants.map((g) => (
+              <li key={g.id} className="flex justify-between gap-3 border-b py-1 last:border-0">
+                <span className="truncate">
+                  {g.planName} · {g.status}
+                  {g.expiresAt ? ` · expires ${fmtDate(g.expiresAt)}` : " · no expiry"}
+                  {g.reason ? ` · ${g.reason}` : ""}
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{fmtDate(g.grantedAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border p-3">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -433,6 +572,24 @@ export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
           </ul>
         </div>
       ) : null}
+
+      <AlertDialog open={revoking} onOpenChange={setRevoking}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke this plan grant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {data.grant?.planName} access ends immediately and the workspace returns to its own
+              subscription or trial. No customer data is deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep grant</AlertDialogCancel>
+            <AlertDialogAction onClick={() => revokeMutation.mutate()}>
+              Revoke grant
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
