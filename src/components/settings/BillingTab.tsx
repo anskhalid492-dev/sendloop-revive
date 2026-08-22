@@ -57,6 +57,19 @@ export function BillingTab({
   const queryClient = useQueryClient();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [provider, setProvider] = useState<BillingProvider | "">("");
+  const plansRef = useRef<HTMLDivElement | null>(null);
+
+  // Arriving from the pricing page with a chosen plan: bring the plan grid into
+  // view so the selection is obvious instead of buried below the usage panel.
+  useEffect(() => {
+    if (!highlightPlanSlug) return;
+    const id = window.setTimeout(
+      () => plansRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      350,
+    );
+    return () => window.clearTimeout(id);
+  }, [highlightPlanSlug]);
+
 
   const fetchBilling = useServerFn(getCustomerBilling);
   const fetchProviders = useServerFn(listCheckoutProviders);
