@@ -7,8 +7,10 @@ import {
   FileText,
   Flame,
   Inbox,
+  Instagram,
   LayoutGrid,
   Linkedin,
+
   Lock,
   Repeat,
   Send,
