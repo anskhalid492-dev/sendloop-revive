@@ -36,7 +36,20 @@ import {
   assignWorkspacePlan,
   cancelScheduledWorkspacePlan,
   getWorkspacePlanAdmin,
+  grantWorkspacePlan,
+  revokeWorkspacePlanGrant,
+  updateWorkspaceGrantExpiry,
 } from "@/lib/manual-plan.functions";
+
+/** Grant durations offered to staff; null = no expiry. */
+const GRANT_DURATIONS: { value: string; label: string; days: number | null }[] = [
+  { value: "7", label: "7 days", days: 7 },
+  { value: "14", label: "14 days", days: 14 },
+  { value: "30", label: "30 days", days: 30 },
+  { value: "90", label: "90 days", days: 90 },
+  { value: "custom", label: "Custom", days: null },
+  { value: "unlimited", label: "Unlimited / no expiry", days: null },
+];
 
 const LIMIT_LABELS: Record<string, string> = {
   max_emails_monthly: "Emails / month",
@@ -75,8 +88,23 @@ type PlanOption = {
   limits: Record<string, number | null>;
 };
 
+type Grant = {
+  id: string;
+  planId: string;
+  planName: string;
+  status: "active" | "revoked" | "expired";
+  startsAt: string;
+  expiresAt: string | null;
+  reason: string | null;
+  grantedByEmail: string | null;
+  grantedAt: string;
+  revokedAt: string | null;
+};
+
 type PanelData = {
   plans: PlanOption[];
+  grant: Grant | null;
+  grants: Grant[];
   current: {
     planId: string | null;
     planName: string;
@@ -122,6 +150,12 @@ export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
   const [reason, setReason] = useState("");
   const [confirming, setConfirming] = useState(false);
 
+  const [grantPlanId, setGrantPlanId] = useState<string>("");
+  const [grantDuration, setGrantDuration] = useState<string>("30");
+  const [customDays, setCustomDays] = useState<string>("60");
+  const [grantReason, setGrantReason] = useState("");
+  const [revoking, setRevoking] = useState(false);
+
   const query = useQuery({
     queryKey: ["admin", "workspace-plan", workspaceId],
     queryFn: () => load({ data: { workspaceId } }) as Promise<PanelData>,
@@ -159,6 +193,68 @@ export function WorkspacePlanPanel({ workspaceId }: { workspaceId: string }) {
       setPlanId("");
       void queryClient.invalidateQueries({ queryKey: ["admin", "workspace-plan", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const grantFn = useServerFn(grantWorkspacePlan);
+  const extendFn = useServerFn(updateWorkspaceGrantExpiry);
+  const revokeFn = useServerFn(revokeWorkspacePlanGrant);
+
+  const grantDays = (() => {
+    if (grantDuration === "unlimited") return null;
+    if (grantDuration === "custom") {
+      const n = Number.parseInt(customDays, 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    return Number.parseInt(grantDuration, 10);
+  })();
+
+  const refreshPlan = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "workspace-plan", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["admin"] });
+  };
+
+  const grantMutation = useMutation({
+    mutationFn: () => {
+      const trimmed = grantReason.trim();
+      return grantFn({
+        data: {
+          workspaceId,
+          planId: grantPlanId,
+          days: grantDays,
+          ...(trimmed ? { reason: trimmed } : {}),
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Plan granted — entitlements are active immediately");
+      setGrantReason("");
+      setGrantPlanId("");
+      refreshPlan();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const extendMutation = useMutation({
+    mutationFn: () => extendFn({ data: { workspaceId, days: grantDays } }),
+    onSuccess: () => {
+      toast.success("Grant expiry updated");
+      refreshPlan();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: () => {
+      const trimmed = grantReason.trim();
+      return revokeFn({ data: { workspaceId, ...(trimmed ? { reason: trimmed } : {}) } });
+    },
+    onSuccess: () => {
+      toast.success("Grant revoked — the customer is back on their own plan");
+      setRevoking(false);
+      setGrantReason("");
+      refreshPlan();
     },
     onError: (e: Error) => toast.error(e.message),
   });
