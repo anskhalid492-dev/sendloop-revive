@@ -7862,8 +7862,8 @@ export type Database = {
       run_lead_retention_cleanup: {
         Args: { _batch_size?: number; _max_batches?: number }
         Returns: {
-          deleted_count: number
-          workspace_id: string
+          out_deleted_count: number
+          out_workspace_id: string
         }[]
       }
       run_provider_health_runner: { Args: never; Returns: undefined }
