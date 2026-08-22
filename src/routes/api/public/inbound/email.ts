@@ -18,6 +18,11 @@ function json(body: unknown, status: number) {
 export const Route = createFileRoute("/api/public/inbound/email")({
   server: {
     handlers: {
+      GET: async () =>
+        new Response(
+          JSON.stringify({ ok: true, endpoint: "inbound-email-webhook", method: "POST" }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
       POST: async ({ request }) => {
         const rawBody = await request.text();
 
