@@ -19,6 +19,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
 import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
 import { Route as DocsRouteImport } from './routes/docs'
@@ -196,6 +197,11 @@ const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiePolicyRoute = CookiePolicyRouteImport.update({
+  id: '/cookie-policy',
+  path: '/cookie-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomerReviewsRoute = CustomerReviewsRouteImport.update({
@@ -911,6 +917,7 @@ export interface FileRoutesByFullPath {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
@@ -1051,6 +1058,7 @@ export interface FileRoutesByTo {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
@@ -1191,6 +1199,7 @@ export interface FileRoutesById {
   '/automations': typeof AutomationsRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
   '/customer-reviews': typeof CustomerReviewsRoute
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
@@ -1333,6 +1342,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
@@ -1473,6 +1483,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
@@ -1612,6 +1623,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/cold-email-templates'
     | '/contact'
+    | '/cookie-policy'
     | '/customer-reviews'
     | '/deliverability-guide'
     | '/docs'
@@ -1754,6 +1766,7 @@ export interface RootRouteChildren {
   AutomationsRoute: typeof AutomationsRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   ContactRoute: typeof ContactRoute
+  CookiePolicyRoute: typeof CookiePolicyRoute
   CustomerReviewsRoute: typeof CustomerReviewsRoute
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
   DocsRoute: typeof DocsRoute
@@ -1885,6 +1898,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie-policy': {
+      id: '/cookie-policy'
+      path: '/cookie-policy'
+      fullPath: '/cookie-policy'
+      preLoaderRoute: typeof CookiePolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customer-reviews': {
@@ -3004,6 +3024,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutomationsRoute: AutomationsRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   ContactRoute: ContactRoute,
+  CookiePolicyRoute: CookiePolicyRoute,
   CustomerReviewsRoute: CustomerReviewsRoute,
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
   DocsRoute: DocsRoute,
