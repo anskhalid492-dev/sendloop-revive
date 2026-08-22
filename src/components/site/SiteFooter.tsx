@@ -94,12 +94,13 @@ const fallbackColumns = [
   },
 ];
 
-const fallbackSocial = [
-  { label: "LinkedIn", href: "#top" },
-  { label: "YouTube", href: "#top" },
-  { label: "X", href: "#top" },
-  { label: "Facebook", href: "#top" },
-];
+/** A social link only renders when staff have entered a real destination. */
+function hasRealHref(href: string | null | undefined) {
+  const value = (href ?? "").trim();
+  if (!value || value === "#" || value === "#top") return false;
+  return /^https?:\/\/\S+\.\S+/.test(value);
+}
+
 
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
