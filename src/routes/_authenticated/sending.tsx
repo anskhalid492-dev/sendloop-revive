@@ -616,6 +616,7 @@ function EmailAccountsPage() {
                     <th className="px-3 py-2.5 font-medium">Status</th>
                     <th className="px-3 py-2.5 text-right font-medium">Sent today</th>
                     <th className="px-3 py-2.5 font-medium">Warmup</th>
+                    <th className="px-3 py-2.5 text-right font-medium">Warmup sent</th>
                     <th className="px-3 py-2.5 text-right font-medium">Health</th>
                     <th className="px-3 py-2.5 text-right font-medium">Reply rate</th>
                     <th className="px-3 py-2.5 text-right font-medium">Campaigns</th>
