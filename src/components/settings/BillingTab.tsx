@@ -46,6 +46,28 @@ function limitLabel(limit: number | null | undefined) {
   return limit.toLocaleString();
 }
 
+/** Customer-friendly state label — never exposes provider or environment details. */
+function customerStateLabel(state: string | null) {
+  switch (state) {
+    case "trialing":
+      return "Trial";
+    case "active":
+      return "Active";
+    case "past_due":
+      return "Past due";
+    case "payment_failed":
+      return "Payment failed";
+    case "paused":
+      return "Paused";
+    case "cancelled":
+      return "Cancelled";
+    case "expired":
+      return "Expired";
+    default:
+      return "No subscription";
+  }
+}
+
 /** Status → badge variant, so every row reads the same way across the table. */
 function StatusBadge({ status }: { status: string }) {
   const s = status.toLowerCase();
