@@ -39,8 +39,8 @@ export const listCampaigns = createServerFn({ method: "GET" })
     const { data: rows, error } = await campaignQuery;
     if (error) throw new Error(error.message);
 
-    const campaigns = ((rows ?? []) as Array<Record<string, unknown>>).map(
-      (r) => withCampaignDefaults(r) as unknown as Campaign,
+    const campaigns = ((rows ?? []) as unknown as Array<Record<string, unknown>>).map(
+      (r) => withCampaignDefaults(r as unknown as Record<string, unknown>) as unknown as Campaign,
     );
     if (campaigns.length === 0) return [] as Array<Campaign & { recipients: number; sent: number }>;
 
@@ -169,7 +169,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     ).size;
 
     return {
-      campaign: withCampaignDefaults(campaign as Record<string, unknown>) as unknown as Campaign,
+      campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
       steps,
       queue: {
         total: recipients.length,
@@ -561,7 +561,7 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
-    const c = withCampaignDefaults(campaign as Record<string, unknown>) as unknown as Campaign;
+    const c = withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign;
 
     const { data: list, error: listError } = await context.supabase
       .from("lead_lists")
@@ -926,7 +926,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
-    const c = withCampaignDefaults(campaign as Record<string, unknown>) as unknown as Campaign;
+    const c = withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign;
 
     // Plan enforcement before anything is scheduled.
     const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
@@ -1541,13 +1541,21 @@ export const getCampaignSendAllowance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const allowanceColumns = (await campaignLimitColumnsAvailable(context.supabase))
+      ? "workspace_id, email_send_limit, emails_sent_count, limit_reached_at"
+      : "workspace_id";
+    const { data: row, error } = await (context.supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          eq: (
+            k: string,
+            v: string,
+          ) => { maybeSingle: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }> };
+        };
+      };
+    })
       .from("campaigns")
-      .select(
-        (await campaignLimitColumnsAvailable(context.supabase))
-          ? "workspace_id, email_send_limit, emails_sent_count, limit_reached_at"
-          : "workspace_id",
-      )
+      .select(allowanceColumns)
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -1559,7 +1567,7 @@ export const getCampaignSendAllowance = createServerFn({ method: "GET" })
     const monthlyLimit = decision.limit;
     const monthlyUsed = decision.used;
     const monthlyRemaining = monthlyLimit === null ? null : Math.max(monthlyLimit - monthlyUsed, 0);
-    const limitRow = withCampaignDefaults(row as Record<string, unknown>) as Record<string, unknown>;
+    const limitRow = withCampaignDefaults(row as unknown as Record<string, unknown>) as Record<string, unknown>;
     const campaignLimit = (limitRow["email_send_limit"] as number | null) ?? 0;
     const campaignSent = (limitRow["emails_sent_count"] as number | null) ?? 0;
     const campaignRemaining = Math.max(campaignLimit - campaignSent, 0);
