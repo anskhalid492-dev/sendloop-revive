@@ -24,8 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatMoney, PROVIDER_LABELS, STATE_LABELS } from "@/lib/billing/model";
-import type { BillingInterval, BillingProvider } from "@/lib/billing/model";
+import { formatMoney } from "@/lib/billing/model";
+import type { BillingInterval } from "@/lib/billing/model";
 import {
   cancelSubscription,
   getCustomerBilling,
