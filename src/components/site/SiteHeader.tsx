@@ -139,6 +139,12 @@ const resourceCards: Card[] = [
     text: "Learn how to improve inbox placement.",
     icon: ShieldCheck,
   },
+  {
+    label: "Customer Reviews",
+    to: "/customer-reviews",
+    text: "See what MunchReach customers say about their outreach.",
+    icon: MessageSquareQuote,
+  },
   { label: "Documentation", to: "/docs", text: "Learn how MunchReach works.", icon: Compass },
   { label: "Help Center", to: "/help-center", text: "Get answers and support.", icon: LifeBuoy },
   {
@@ -245,9 +251,7 @@ export function SiteHeader() {
     "usecase",
     solutionNavLinks.map((l) => ({ label: l.label, to: l.to, text: "", icon: Compass })),
   );
-  const resourceLinks = toCards(headerRows, "resources", resourceCards).filter(
-    (c) => c.to !== "/customer-reviews",
-  );
+  const resourceLinks = toCards(headerRows, "resources", resourceCards);
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
