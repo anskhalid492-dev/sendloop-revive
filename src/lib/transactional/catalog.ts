@@ -215,7 +215,7 @@ const SPECS: Spec[] = [
     subject: "Your {{plan.name}} plan is active",
     preheader: "Subscription confirmed — here's what's included.",
     heading: "Your {{plan.name}} plan is active",
-    blocks: [p("Thanks {{user.first_name}} — {{workspace.name}} is now on the {{plan.name}} plan at {{plan.price}}."), p("Next payment: {{billing.next_payment_date}}."), cta("View billing", "{{dashboard_url}}")],
+    blocks: [p("Thanks {{user.first_name}} — {{workspace.name}} is now on the {{plan.name}} plan at {{plan.price}}."), p("Next payment: {{billing.next_payment_date}}."), cta("View billing", "{{billing_url}}")],
   },
   {
     eventKey: "payment.succeeded",
@@ -539,7 +539,7 @@ const SPECS: Spec[] = [
     subject: "We received your request ({{ticket.reference}})",
     preheader: "Our team is reviewing your support request.",
     heading: "We received your request",
-    blocks: [p("Hi {{user.first_name}}, thanks for contacting MunchReach support about “{{ticket.subject}}”. Reference {{ticket.reference}}."), p("We reply to most requests within one business day."), cta("View ticket", "{{support_url}}")],
+    blocks: [p("Hi {{user.first_name}}, thanks for contacting MunchReach support about “{{ticket.subject}}”. Reference {{ticket.reference}}."), p("We reply to most requests within one business day."), cta("View ticket", "{{ticket_url}}")],
   },
   {
     eventKey: "support.ticket.replied",
@@ -548,7 +548,7 @@ const SPECS: Spec[] = [
     subject: "Re: {{ticket.subject}} ({{ticket.reference}})",
     preheader: "There's a new reply on your support ticket.",
     heading: "New reply from MunchReach support",
-    blocks: [note("{{ticket.message}}"), cta("Open ticket", "{{support_url}}")],
+    blocks: [note("{{ticket.message}}"), cta("Open ticket", "{{ticket_url}}")],
   },
   {
     eventKey: "support.ticket.resolved",
@@ -557,7 +557,7 @@ const SPECS: Spec[] = [
     subject: "Your ticket {{ticket.reference}} is resolved",
     preheader: "We closed your support request.",
     heading: "Your ticket is resolved",
-    blocks: [p("We marked “{{ticket.subject}}” as resolved. Reply any time if the issue comes back."), cta("Reopen ticket", "{{support_url}}")],
+    blocks: [p("We marked “{{ticket.subject}}” as resolved. Reply any time if the issue comes back."), cta("Reopen ticket", "{{ticket_url}}")],
   },
   // ── Security ────────────────────────────────────────────────────────────
   {
