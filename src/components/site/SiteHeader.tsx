@@ -262,7 +262,7 @@ export function SiteHeader() {
           { label: "Features", to: "/features" },
           { label: "Pricing", to: "/pricing" },
         ]
-  ).filter((l) => l.to !== "/customer-reviews" && l.to !== "/lifetime");
+  ).filter((l) => ["/features", "/pricing"].includes(l.to));
   // Order: Features · Products · Pricing · Resources · Lifetime Deal.
   const leadNav = allTopNav.filter((l) => l.to === "/features");
   const midNav = allTopNav.filter((l) => l.to === "/pricing");
