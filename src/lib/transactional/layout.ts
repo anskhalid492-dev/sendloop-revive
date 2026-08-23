@@ -100,7 +100,7 @@ ${preheader}
         </p>
       </td></tr>
     </table>
-    <p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#93a2b3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">© ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.</p>
+    <p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#93a2b3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">© {{current_year}} ${BRAND.name}. All rights reserved.</p>
   </td></tr>
 </table>
 </body></html>`;
