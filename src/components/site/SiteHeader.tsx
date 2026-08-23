@@ -254,17 +254,18 @@ export function SiteHeader() {
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
-  const allTopNav = topLinks.length
-    ? topLinks
-    : [
-        { label: "Features", to: "/features" },
-        { label: "Customer Reviews", to: "/customer-reviews" },
-        { label: "Pricing", to: "/pricing" },
-        { label: "Blog", to: "/blog" },
-      ];
-  // "Features" sits before the Products/Resources menus; the rest follow them.
+  const allTopNav = (
+    topLinks.length
+      ? topLinks
+      : [
+          { label: "Features", to: "/features" },
+          { label: "Pricing", to: "/pricing" },
+        ]
+  ).filter((l) => l.to !== "/customer-reviews" && l.to !== "/lifetime");
+  // Order: Features · Products · Pricing · Resources · Lifetime Deal.
   const leadNav = allTopNav.filter((l) => l.to === "/features");
-  const topNav = allTopNav.filter((l) => l.to !== "/features");
+  const midNav = allTopNav.filter((l) => l.to === "/pricing");
+  const topNav = allTopNav.filter((l) => l.to !== "/features" && l.to !== "/pricing");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
