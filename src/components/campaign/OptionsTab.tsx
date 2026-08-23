@@ -82,8 +82,6 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
   if (!settings) return null;
 
   const allowance = allowanceQuery.data;
-  const fmt = (n: number | null | undefined) =>
-    n === null || n === undefined ? "Unlimited" : n.toLocaleString();
   const availableForCampaign =
     allowance?.monthlyRemaining === null
       ? null
