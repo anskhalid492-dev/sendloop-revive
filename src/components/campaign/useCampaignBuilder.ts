@@ -130,6 +130,13 @@ export function useCampaignBuilder(campaignId: string) {
   const campaignQuery = useQuery({
     queryKey: ["campaign", campaignId],
     queryFn: () => fetchCampaign({ data: { id: campaignId } }),
+    // The core record is required; retry transient failures a bounded number of
+    // times only, never forever, so the page can show a real error state.
+    retry: (attempt, error: Error) => {
+      const message = error?.message ?? "";
+      if (/not found|permission|denied|unauthor/i.test(message)) return false;
+      return attempt < 2;
+    },
   });
   const leadsQuery = useQuery({
     queryKey: ["campaign-leads", campaignId],
@@ -371,7 +378,9 @@ export function useCampaignBuilder(campaignId: string) {
     campaign,
     queue: campaignQuery.data?.queue,
     delivery: campaignQuery.data?.delivery,
-    isLoading: campaignQuery.isLoading,
+    isLoading: campaignQuery.isPending,
+    error: (campaignQuery.error as Error | null) ?? null,
+    refetch: () => campaignQuery.refetch(),
     steps,
     updateSteps,
     settings,
