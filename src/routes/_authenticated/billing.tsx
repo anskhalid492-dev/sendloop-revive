@@ -28,7 +28,7 @@ function BillingPage() {
   const { plan } = Route.useSearch();
 
   return (
-    <AppShell title="Billing & Upgrade" description="Your plan, usage and invoices">
+    <AppShell title="Billing & Upgrade" description="Manage your plan, billing and payment history.">
       <div className="mx-auto max-w-5xl">
         <BillingTab workspaceId={workspace?.id ?? null} highlightPlanSlug={plan ?? null} />
       </div>
