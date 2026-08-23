@@ -23,8 +23,8 @@ import {
 export const Route = createFileRoute("/api-docs")({
   head: () =>
     metaFor(
-      "MunchReach API Documentation",
-      "MunchReach API documentation for building integrations, automating workflows, managing campaigns, leads, conversations, and more.",
+      "Cold Email API for Outreach Automation | MunchReach",
+      "Connect MunchReach to your workflow with our outreach API and build custom automations around campaigns, leads, and email activity.",
       "/api-docs",
     ),
   component: ApiDocs,

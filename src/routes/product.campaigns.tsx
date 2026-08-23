@@ -46,8 +46,8 @@ const faqs = [
 export const Route = createFileRoute("/product/campaigns")({
   head: () =>
     metaFor(
-      "Cold Email Campaign & Sequence Builder — MunchReach",
-      "Build multi-step cold email campaigns with branching, A/B variants and mailbox rotation that protects deliverability.",
+      "Cold Email Campaigns That Convert | MunchReach",
+      "Build targeted cold email campaigns, automate follow-ups, and manage your outreach from one powerful workspace with MunchReach.",
       "/product/campaigns",
       faqs,
     ),
