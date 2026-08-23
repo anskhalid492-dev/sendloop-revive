@@ -65,7 +65,7 @@ export const upsertPlanPrice = createServerFn({ method: "POST" })
           planId: z.string().uuid(),
           provider: providerEnum,
           environment: envEnum,
-          interval: z.enum(["monthly", "yearly"]),
+          interval: z.enum(["monthly", "yearly", "lifetime"]),
           externalPriceId: z.string().min(1).max(200),
           currency: z.string().min(3).max(8).optional(),
         })
