@@ -11,7 +11,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { SUPPORT_PRIORITIES, SUPPORT_STATUSES } from "@/lib/support-model";
 
-async function assertStaff(context: { supabase: any; userId: string }) {
+async function assertStaff(context: { supabase: any; userId: string; claims?: Record<string, any> }) {
   const [admin, support] = await Promise.all([
     context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
     context.supabase.rpc("has_role", { _user_id: context.userId, _role: "support" }),
@@ -19,6 +19,9 @@ async function assertStaff(context: { supabase: any; userId: string }) {
   if (admin.error) throw new Error(admin.error.message);
   if (support.error) throw new Error(support.error.message);
   if (!admin.data && !support.data) throw new Error("Forbidden: support role required");
+  // Session revocation + MFA enforcement applies to support staff too.
+  const { enforceAdminSessionPolicy } = await import("@/lib/admin-access.server");
+  await enforceAdminSessionPolicy(context, { action: "support console" });
 }
 
 export type AdminTicket = {
