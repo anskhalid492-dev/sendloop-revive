@@ -129,39 +129,60 @@ const followUpFlow = [
   { label: "Reply received", meta: "Sequence stops" },
 ];
 
+const HOME_TITLE = "MunchReach — Turn Cold Emails Into Conversations";
+const HOME_DESCRIPTION =
+  "Build cold email campaigns, automate follow-ups, manage every reply and track outreach from one workspace. Sending is fully managed.";
+
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "MunchReach — Turn Cold Emails Into Real Conversations" },
-      {
-        name: "description",
-        content:
-          "Build cold email campaigns, automate follow-ups, manage every reply and track outreach from one workspace. MunchReach handles the sending for you.",
-      },
-      { property: "og:title", content: "MunchReach — Turn Cold Emails Into Real Conversations" },
-      {
-        property: "og:description",
-        content:
-          "Campaigns, automated follow-ups, a unified inbox, warmup, CRM and analytics in one workspace — with sending fully managed by MunchReach.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((f) => ({
-            "@type": "Question",
-            name: f.q,
-            acceptedAnswer: { "@type": "Answer", text: f.a },
-          })),
-        }),
-      },
-    ],
-  }),
+  head: () =>
+    applySeoOverrides("/", {
+      meta: [
+        { title: HOME_TITLE },
+        { name: "description", content: HOME_DESCRIPTION },
+        { property: "og:title", content: HOME_TITLE },
+        { property: "og:description", content: HOME_DESCRIPTION },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: SITE_URL },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: HOME_TITLE },
+        { name: "twitter:description", content: HOME_DESCRIPTION },
+      ],
+      links: [{ rel: "canonical", href: SITE_URL }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "MunchReach",
+            url: SITE_URL,
+            logo: `${SITE_URL}/favicon.png`,
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "MunchReach",
+            url: SITE_URL,
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqs.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+          }),
+        },
+      ],
+    }),
+
   component: Home,
 });
 
