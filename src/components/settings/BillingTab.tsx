@@ -432,23 +432,6 @@ export function BillingTab({
                 <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
-            {available.length > 1 ? (
-              <Select
-                value={provider || available[0]!.provider}
-                onValueChange={(v) => setProvider(v as BillingProvider)}
-              >
-                <SelectTrigger className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {available.map((p) => (
-                    <SelectItem key={p.provider} value={p.provider}>
-                      {PROVIDER_LABELS[p.provider]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
           </div>
         </div>
 
