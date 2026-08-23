@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -6,97 +6,13 @@ import { TestimonialCard } from "@/components/site/TestimonialCard";
 import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions";
 
 /**
- * A vertical, drag-scrollable review column. The list is duplicated so the
- * gentle auto-scroll can wrap seamlessly; dragging pauses the motion.
+ * The single testimonial section used across the whole marketing site:
+ * a calm three-column grid of review cards, identical on every page.
  */
-function ReviewColumn({
-  items,
-  speed,
-  direction,
-}: {
-  items: Testimonial[];
-  speed: number;
-  direction: 1 | -1;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
-  const drag = useRef<{ y: number; top: number } | null>(null);
-
-  // Seamless wrap: keep scrollTop inside the first copy of the list.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || paused) return;
-    let raf = 0;
-    let last = performance.now();
-    const tick = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      const half = el.scrollHeight / 2;
-      let next = el.scrollTop + direction * speed * dt;
-      if (next >= half) next -= half;
-      if (next < 0) next += half;
-      el.scrollTop = next;
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [paused, speed, direction]);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    drag.current = { y: e.clientY, top: el.scrollTop };
-    setPaused(true);
-    el.setPointerCapture(e.pointerId);
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const el = ref.current;
-    if (!el || !drag.current) return;
-    const half = el.scrollHeight / 2;
-    let next = drag.current.top - (e.clientY - drag.current.y);
-    if (next >= half) next -= half;
-    if (next < 0) next += half;
-    el.scrollTop = next;
-  };
-  const endDrag = (e: React.PointerEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    drag.current = null;
-    try {
-      el.releasePointerCapture(e.pointerId);
-    } catch {
-      /* pointer already released */
-    }
-    setPaused(false);
-  };
-
-  const loop = [...items, ...items];
-
-  return (
-    <div
-      ref={ref}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => !drag.current && setPaused(false)}
-      className="flex max-h-[34rem] flex-col gap-5 overflow-y-auto overscroll-contain select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      style={{ cursor: "grab", touchAction: "pan-x" }}
-    >
-      {loop.map((t, i) => (
-        <TestimonialCard key={`${t.id}-${i}`} testimonial={t} />
-      ))}
-    </div>
-  );
-}
-
 export function TestimonialCarousel({
-  page,
-  title = "What teams say about MunchReach",
   description,
 }: {
-  page: string;
+  page?: string;
   title?: string;
   description?: string;
   /** Kept for API compatibility with existing pages. */
@@ -104,60 +20,27 @@ export function TestimonialCarousel({
 }) {
   const fetchTestimonials = useServerFn(listTestimonials);
   const { data } = useQuery({
-    queryKey: ["testimonials", page],
-    queryFn: () => fetchTestimonials({ data: { page } }),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Every page shows the homepage review set when it has no page-specific ones.
-  const { data: homeData } = useQuery({
     queryKey: ["testimonials", "home"],
     queryFn: () => fetchTestimonials({ data: { page: "home" } }),
     staleTime: 5 * 60 * 1000,
-    enabled: page !== "home" && (data?.length ?? 0) === 0,
   });
 
-  const items = useMemo(
-    () => (data && data.length > 0 ? data : (homeData ?? [])),
-    [data, homeData],
-  );
-
-
-  // Spread reviews across three columns that drift in alternating directions.
-  const columns = useMemo(() => {
-    const cols: Testimonial[][] = [[], [], []];
-    items.forEach((t, i) => cols[i % 3]!.push(t));
-    return cols.filter((c) => c.length > 0);
-  }, [items]);
+  const items = useMemo<Testimonial[]>(() => (data ?? []).slice(0, 9), [data]);
 
   if (items.length === 0) return null;
 
   return (
     <section className="border-y border-border/60 bg-secondary/30 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="max-w-2xl">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
-          {description ? (
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">{description}</p>
-          ) : null}
-        </div>
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Loved By Outreach Teams</h2>
+        {description ? (
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">{description}</p>
+        ) : null}
 
-        <div className="relative mt-8">
-          <div className="sm:hidden">
-            <ReviewColumn items={items} speed={18} direction={1} />
-          </div>
-          <div className="hidden gap-5 sm:grid sm:grid-cols-3">
-            {columns.map((col, i) => (
-              <ReviewColumn
-                key={i}
-                items={col}
-                speed={18 + i * 5}
-                direction={i % 2 === 0 ? 1 : -1}
-              />
-            ))}
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-secondary/60 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-secondary/60 to-transparent" />
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((t) => (
+            <TestimonialCard key={t.id} testimonial={t} />
+          ))}
         </div>
       </div>
     </section>
