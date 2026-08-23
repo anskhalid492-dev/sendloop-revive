@@ -69,6 +69,8 @@
   --color-tint-mint-foreground: var(--tint-mint-foreground);
   --color-tint-violet: var(--tint-violet);
   --color-tint-violet-foreground: var(--tint-violet-foreground);
+  --animate-scroll-up: scroll-up 40s linear infinite;
+  --animate-scroll-down: scroll-down 40s linear infinite;
 }
 
 :root {
