@@ -1562,7 +1562,7 @@ export const getCampaignSendAllowance = createServerFn({ method: "GET" })
     if (!row) throw new Error("Campaign not found");
 
     const { evaluateEntitlement } = await import("@/lib/billing/usage.server");
-    const decision = await evaluateEntitlement(row.workspace_id as string, "emails_monthly", 1);
+    const decision = await evaluateEntitlement(row['workspace_id'] as string, "emails_monthly", 1);
 
     const monthlyLimit = decision.limit;
     const monthlyUsed = decision.used;
