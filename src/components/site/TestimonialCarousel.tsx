@@ -5,9 +5,46 @@ import { useServerFn } from "@tanstack/react-start";
 import { TestimonialCard } from "@/components/site/TestimonialCard";
 import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions";
 
+function chunkColumns<T>(items: T[], columns: number): T[][] {
+  const result: T[][] = Array.from({ length: columns }, () => []);
+  items.forEach((item, i) => {
+    result[i % columns].push(item);
+  });
+  return result;
+}
+
+function ColumnTrack({
+  items,
+  direction,
+  durationSeconds,
+}: {
+  items: Testimonial[];
+  direction: "up" | "down";
+  durationSeconds: number;
+}) {
+  if (items.length === 0) return null;
+
+  const doubled = [...items, ...items];
+  const animationClass = direction === "up" ? "animate-scroll-up" : "animate-scroll-down";
+
+  return (
+    <div className="relative h-full overflow-hidden">
+      <div
+        className={`flex flex-col gap-5 ${animationClass}`}
+        style={{ animationDuration: `${durationSeconds}s` }}
+      >
+        {doubled.map((t, index) => (
+          <TestimonialCard key={`${t.id}-${index}`} testimonial={t} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * The single testimonial section used across the whole marketing site:
- * a calm three-column grid of review cards, identical on every page.
+ * three vertical columns of review cards that scroll up and down in an
+ * infinite loop (column 1 up, column 2 down, column 3 up).
  */
 export function TestimonialCarousel({
   description,
@@ -29,6 +66,8 @@ export function TestimonialCarousel({
 
   if (items.length === 0) return null;
 
+  const columns = chunkColumns(items, 3);
+
   return (
     <section className="border-y border-border/60 bg-secondary/30 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -37,10 +76,13 @@ export function TestimonialCarousel({
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">{description}</p>
         ) : null}
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((t) => (
-            <TestimonialCard key={t.id} testimonial={t} />
-          ))}
+        <div
+          className="mt-8 grid h-[640px] gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          aria-label="Customer testimonials"
+        >
+          <ColumnTrack items={columns[0]} direction="up" durationSeconds={36} />
+          <ColumnTrack items={columns[1]} direction="down" durationSeconds={42} />
+          <ColumnTrack items={columns[2]} direction="up" durationSeconds={38} />
         </div>
       </div>
     </section>
