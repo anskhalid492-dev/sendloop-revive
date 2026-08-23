@@ -137,16 +137,10 @@ export function TestimonialCarousel({
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            {description ?? "Drag any column up or down to read more stories."}
-          </p>
+          {description ? (
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">{description}</p>
+          ) : null}
         </div>
-
-        {items.some((t) => !t.avatar_url) ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Some profile images are illustrations and do not depict specific individuals.
-          </p>
-        ) : null}
 
         <div className="relative mt-8">
           <div className="sm:hidden">
