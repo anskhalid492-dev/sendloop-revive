@@ -22,8 +22,11 @@ import { admin, providerCredentials } from "@/lib/billing/core.server";
 export type PlanIdCheck = {
   planId: string;
   planName: string;
+  /** "lifetime" plans map a single one-time price instead of monthly/yearly. */
+  billingType: "recurring" | "lifetime";
   monthly: { value: string | null; ok: boolean; problem: string | null };
   yearly: { value: string | null; ok: boolean; problem: string | null };
+  lifetime: { value: string | null; ok: boolean; problem: string | null };
 };
 
 export type ProviderReadiness = {
@@ -42,10 +45,18 @@ async function paidPlans() {
   const db = await admin();
   const { data } = await db
     .from("plans")
-    .select("id, name, monthly_price, yearly_price, is_enterprise, sort_order")
+    .select(
+      "id, name, monthly_price, yearly_price, one_time_price, billing_type, is_enterprise, is_active, sort_order",
+    )
     .order("sort_order");
+  // Lifetime plans are paid plans too — they simply carry a one-time price
+  // instead of a monthly/yearly one, so they need a price mapping as well.
   return (data ?? []).filter(
-    (p: any) => !p.is_enterprise && ((p.monthly_price ?? 0) > 0 || (p.yearly_price ?? 0) > 0),
+    (p: any) =>
+      !p.is_enterprise &&
+      ((p.monthly_price ?? 0) > 0 ||
+        (p.yearly_price ?? 0) > 0 ||
+        (p.billing_type === "lifetime" && (p.one_time_price ?? 0) > 0)),
   );
 }
 
@@ -94,7 +105,8 @@ export async function evaluateProvider(
     missing.push(secretName("LEMONSQUEEZY_STORE_ID", environment));
 
   const planChecks: PlanIdCheck[] = plans.map((plan: any) => {
-    const find = (interval: "monthly" | "yearly") =>
+    const isLifetime = plan.billing_type === "lifetime";
+    const find = (interval: "monthly" | "yearly" | "lifetime") =>
       prices.find(
         (p: any) =>
           p.plan_id === plan.id &&
@@ -103,14 +115,24 @@ export async function evaluateProvider(
           p.billing_interval === interval,
       )?.external_price_id ?? null;
     const monthly =
-      (plan.monthly_price ?? 0) > 0
+      !isLifetime && (plan.monthly_price ?? 0) > 0
         ? checkId(provider, find("monthly"))
         : { value: null, ok: true, problem: null };
     const yearly =
-      (plan.yearly_price ?? 0) > 0
+      !isLifetime && (plan.yearly_price ?? 0) > 0
         ? checkId(provider, find("yearly"))
         : { value: null, ok: true, problem: null };
-    return { planId: plan.id, planName: plan.name, monthly, yearly };
+    const lifetime = isLifetime
+      ? checkId(provider, find("lifetime"))
+      : { value: null, ok: true, problem: null };
+    return {
+      planId: plan.id,
+      planName: plan.name,
+      billingType: isLifetime ? ("lifetime" as const) : ("recurring" as const),
+      monthly,
+      yearly,
+      lifetime,
+    };
   });
 
   const scopedHooks = hooks.filter(
@@ -120,13 +142,16 @@ export async function evaluateProvider(
     (r: any) => r.provider === provider && r.environment === environment,
   );
 
-  const planIdsOk = planChecks.length > 0 && planChecks.every((p) => p.monthly.ok && p.yearly.ok);
+  const planIdsOk =
+    planChecks.length > 0 &&
+    planChecks.every((p) => p.monthly.ok && p.yearly.ok && p.lifetime.ok);
   const blockers: string[] = [];
   if (missing.length) blockers.push(`Missing credentials: ${missing.join(", ")}`);
   if (planChecks.length === 0) blockers.push("No paid plans configured yet.");
   for (const p of planChecks) {
     if (!p.monthly.ok) blockers.push(`${p.planName} · monthly — ${p.monthly.problem}`);
     if (!p.yearly.ok) blockers.push(`${p.planName} · yearly — ${p.yearly.problem}`);
+    if (!p.lifetime.ok) blockers.push(`${p.planName} · lifetime — ${p.lifetime.problem}`);
   }
 
   return {
