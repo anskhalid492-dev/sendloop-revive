@@ -296,6 +296,22 @@ export async function dispatchDueMessages(
   const result = emptyResult();
   if (!due?.length) return result;
 
+  // Campaign daily sending limit (campaigns.daily_cap): counted across every
+  // email this campaign sends today, follow-ups included.
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const [{ data: campaignRow }, { count: sentTodayCount }] = await Promise.all([
+    supabase.from("campaigns").select("daily_cap").eq("id", options.campaignId).maybeSingle(),
+    supabase
+      .from("campaign_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", options.campaignId)
+      .eq("status", "sent")
+      .gte("sent_at", dayStart.toISOString()),
+  ]);
+  const dailyCap = Number((campaignRow as { daily_cap?: number } | null)?.daily_cap ?? 0);
+  let sentTodaySoFar = Number(sentTodayCount ?? 0);
+
   // Plan enforcement: sending is metered against the workspace plan. Both the
   // gate and the counter live server-side so cron and API callers are covered.
   const { consumeUsage, releaseUsage, EntitlementError } = await import(
@@ -367,6 +383,15 @@ export async function dispatchDueMessages(
       result.skipped += 1;
       continue;
     }
+    // Whichever limit is lowest wins; the daily cap is checked before the
+    // mailbox, campaign-total and plan reservations below.
+    if (dailyCap > 0 && sentTodaySoFar >= dailyCap) {
+      result.skipped += 1;
+      if (result.errors.length < 5)
+        result.errors.push(`Daily sending limit reached (${dailyCap} emails/day).`);
+      break;
+    }
+
     const usedNow = sentPerAccount.get(account.id) ?? 0;
     if ((account.sent_today ?? 0) + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
