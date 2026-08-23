@@ -37,6 +37,7 @@ export const TEMPLATE_VARIABLES = [
   "support_url",
   "action_url",
   "brand.name",
+  "current_year",
 ] as const;
 
 export type TemplateVariable = (typeof TEMPLATE_VARIABLES)[number];
@@ -75,6 +76,8 @@ export const SAMPLE_VARIABLES: Record<string, string> = {
   "support_url": "https://app.munchreach.com/help",
   "action_url": "https://app.munchreach.com/dashboard",
   "brand.name": "MunchReach",
+  // Resolved at render time; the value here is only a preview placeholder.
+  "current_year": String(new Date().getFullYear()),
 };
 
 const TOKEN_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
