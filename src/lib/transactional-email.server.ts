@@ -335,6 +335,15 @@ export async function renderTemplate(
     replyTo: draft?.reply_to ?? stored?.reply_to ?? settings.reply_to,
   };
 
+  // The copyright year must always come from the current date. Templates that
+  // were stored with a baked-in year (module-scope evaluation can resolve to
+  // 1970 on the edge runtime) are normalised here before substitution.
+  const currentYear = String(new Date().getFullYear());
+  const withYear = (value: string) => value.replace(/©\s*(?:19|20)\d{2}/g, `© ${currentYear}`);
+  source.html = withYear(source.html);
+  source.text = withYear(source.text);
+  variables = { ...variables, current_year: currentYear };
+
   const used = extractVariables(source.subject, source.html, source.text);
   const missingVariables = used.filter((key) => {
     const value = variables[key];
