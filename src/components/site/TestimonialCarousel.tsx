@@ -8,7 +8,8 @@ import { listTestimonials, type Testimonial } from "@/lib/testimonials.functions
 function chunkColumns<T>(items: T[], columns: number): T[][] {
   const result: T[][] = Array.from({ length: columns }, () => []);
   items.forEach((item, i) => {
-    result[i % columns].push(item);
+    const col = result[i % columns];
+    if (col) col.push(item);
   });
   return result;
 }
