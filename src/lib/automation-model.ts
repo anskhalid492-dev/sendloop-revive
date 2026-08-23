@@ -23,7 +23,7 @@ export type AutomationRow = {
   trigger_config: JsonObject;
   condition_logic: "and" | "or";
   version: number;
-  webhook_token: string | null;
+  webhook_token?: string | null;
   last_run_at: string | null;
   created_by: string | null;
   created_at: string;

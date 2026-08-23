@@ -25,7 +25,7 @@ type Client = any;
 const sel = (s: string) => s;
 
 const AUTOMATION_COLUMNS =
-  "id, workspace_id, name, description, status, trigger_type, trigger_config, condition_logic, version, webhook_token, last_run_at, created_by, created_at, updated_at";
+  "id, workspace_id, name, description, status, trigger_type, trigger_config, condition_logic, version, last_run_at, created_by, created_at, updated_at";
 
 const stepInput = z.object({
   kind: z.enum(["condition", "action", "wait", "branch"]),
@@ -205,13 +205,20 @@ export const createAutomation = createServerFn({ method: "POST" })
         description: data.description ?? null,
         trigger_type: data.triggerType,
         status: "draft",
-        webhook_token: token,
-        webhook_secret: secret,
         created_by: context.userId,
       })
       .select(sel(AUTOMATION_COLUMNS))
       .single();
     if (error) throw new Error(error.message);
+
+    {
+      // Webhook credentials are never written or read by the customer session.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin
+        .from("automations")
+        .update({ webhook_token: token, webhook_secret: secret })
+        .eq("id", created.id);
+    }
 
     if (data.steps.length) {
       const rows = data.steps.map((s, index) => ({
@@ -351,13 +358,22 @@ export const duplicateAutomation = createServerFn({ method: "POST" })
         trigger_config: source.trigger_config,
         condition_logic: source.condition_logic,
         status: "draft",
-        webhook_token: crypto.randomUUID().replace(/-/g, ""),
-        webhook_secret: crypto.randomUUID().replace(/-/g, ""),
         created_by: context.userId,
       })
       .select(sel("id"))
       .single();
     if (error) throw new Error(error.message);
+
+    {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin
+        .from("automations")
+        .update({
+          webhook_token: crypto.randomUUID().replace(/-/g, ""),
+          webhook_secret: crypto.randomUUID().replace(/-/g, ""),
+        })
+        .eq("id", created.id);
+    }
 
     const { data: steps } = await client
       .from("automation_steps")
@@ -548,13 +564,22 @@ export const getAutomationWebhook = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    // Only the public token is ever returned — the signing secret stays server side.
-    const { data: automation } = await client
+    // Membership is proven with the caller's own session (RLS applies)...
+    const { data: owned } = await client
       .from("automations")
-      .select(sel("webhook_token"))
+      .select(sel("id"))
       .eq("id", data.automationId)
       .eq("workspace_id", data.workspaceId)
       .maybeSingle();
-    if (!automation) throw new Error("Automation not found");
+    if (!owned) throw new Error("Automation not found");
+
+    // ...only then is the token read server-side. The signing secret is never returned.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: automation } = await supabaseAdmin
+      .from("automations")
+      .select("webhook_token")
+      .eq("id", data.automationId)
+      .maybeSingle();
+    if (!automation?.webhook_token) throw new Error("Automation not found");
     return { path: `/api/public/automations/${automation.webhook_token}` };
   });

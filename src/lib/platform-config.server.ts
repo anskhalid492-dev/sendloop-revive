@@ -336,9 +336,8 @@ const EMPTY_CONFIG: PublicPlatformConfig = {
 
 /** Non-secret configuration for pre-auth surfaces (branding, consent, limits). */
 export async function readPublicConfig(): Promise<PublicPlatformConfig> {
-  const { publicClient } = await import("@/lib/site-content.server");
-  const db = await publicClient();
-  const { data, error } = await db.rpc("public_platform_config" as never);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("public_platform_config" as never);
   if (error) throw new Error(error.message);
   const raw = (data ?? {}) as Partial<PublicPlatformConfig>;
   return { ...EMPTY_CONFIG, ...raw };

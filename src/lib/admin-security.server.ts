@@ -288,7 +288,8 @@ export async function assertRecentAuth(context: AdminContext, action: string) {
 /* ------------------------------------------------------------------ */
 
 export async function hasAdminPermission(context: AdminContext, permission: AdminPermission) {
-  const { data, error } = await context.supabase.rpc("has_admin_permission", {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("has_admin_permission", {
     _user_id: context.userId,
     _permission: permission,
   });

@@ -95,8 +95,8 @@ export type ReviewStats = {
 
 /** Public: aggregate-only social proof. Never returns individual records. */
 export const getReviewStats = createServerFn({ method: "GET" }).handler(async (): Promise<ReviewStats> => {
-  const supabase = await publicClient();
-  const { data, error } = await supabase.rpc("public_review_stats");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("public_review_stats");
   const row = (Array.isArray(data) ? data[0] : data) as
     | { customers: number; emails_sent: number; campaigns: number; average_rating: number | null; reviews: number }
     | undefined;
