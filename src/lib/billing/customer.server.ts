@@ -229,7 +229,16 @@ async function activeSubscription(workspaceId: string, opts?: { recurringOnly?: 
     .eq("environment", settings.environment)
     .order("updated_at", { ascending: false })
     .limit(10);
-  const all = rows ?? [];
+  const all = (rows ?? []) as Array<Record<string, unknown> & {
+    id: string;
+    provider: string;
+    status: string | null;
+    billing_interval: string | null;
+    external_subscription_id: string;
+    cancel_at_period_end: boolean | null;
+    access_until: string | null;
+    current_period_end: string | null;
+  }>;
   if (all.length === 0) throw new Error("No active subscription for this workspace.");
   if (!opts?.recurringOnly) return all[0]!;
 
