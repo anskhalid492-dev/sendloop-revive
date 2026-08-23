@@ -104,7 +104,6 @@ export function BillingTab({
 }) {
   const queryClient = useQueryClient();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
-  const [provider, setProvider] = useState<BillingProvider | "">("");
   const plansRef = useRef<HTMLDivElement | null>(null);
 
   // Arriving from the pricing page with a chosen plan: bring the plan grid into
