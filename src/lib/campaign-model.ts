@@ -113,8 +113,54 @@ export type CampaignStep = {
   variants?: CampaignStepVariant[];
 };
 
-export const CAMPAIGN_COLUMNS =
-  "id, workspace_id, name, description, list_id, sending_account_ids, timezone, send_days, send_start_hour, send_end_hour, daily_cap, stop_on_reply, status, launched_at, created_at, tags, start_at, end_at, min_delay_minutes, random_delay_minutes, max_per_hour, business_days_only, open_tracking, click_tracking, text_only, stop_on_company_reply, max_contacts_per_company, email_send_limit, emails_sent_count, limit_reached_at, unsubscribe_enabled, inbox_rotation_enabled, inbox_rotation_strategy, rotation_daily_cap_per_inbox, custom_variables";
+/**
+ * Columns that exist on every deployment of the campaigns table.
+ */
+export const CAMPAIGN_BASE_COLUMNS =
+  "id, workspace_id, name, description, list_id, sending_account_ids, timezone, send_days, send_start_hour, send_end_hour, daily_cap, stop_on_reply, status, launched_at, created_at, tags, start_at, end_at, min_delay_minutes, random_delay_minutes, max_per_hour, business_days_only, open_tracking, click_tracking, text_only, stop_on_company_reply, max_contacts_per_company, unsubscribe_enabled, inbox_rotation_enabled, inbox_rotation_strategy, rotation_daily_cap_per_inbox, custom_variables";
+
+/** Per-campaign send-limit columns; may be absent on a backend that has not run the limit migration. */
+export const CAMPAIGN_LIMIT_COLUMNS = "email_send_limit, emails_sent_count, limit_reached_at";
+
+export const CAMPAIGN_COLUMNS = `${CAMPAIGN_BASE_COLUMNS}, ${CAMPAIGN_LIMIT_COLUMNS}`;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyClient = any;
+
+let limitColumnsSupported: boolean | null = null;
+
+/**
+ * Probes once whether the connected backend has the campaign send-limit
+ * columns. Without this a backend missing the migration makes every campaign
+ * read fail with "column campaigns.email_send_limit does not exist".
+ */
+export async function campaignLimitColumnsAvailable(client: AnyClient): Promise<boolean> {
+  if (limitColumnsSupported !== null) return limitColumnsSupported;
+  const { error } = await client.from("campaigns").select("email_send_limit").limit(1);
+  const missing =
+    Boolean(error) &&
+    (error.code === "42703" || String(error.message ?? "").includes("email_send_limit"));
+  limitColumnsSupported = !missing;
+  return limitColumnsSupported;
+}
+
+/** Column list to select for campaigns on the currently connected backend. */
+export async function campaignColumns(client: AnyClient): Promise<string> {
+  return (await campaignLimitColumnsAvailable(client))
+    ? CAMPAIGN_COLUMNS
+    : CAMPAIGN_BASE_COLUMNS;
+}
+
+/** Fills defaults for limit columns when the backend does not have them yet. */
+export function withCampaignDefaults<T extends Record<string, unknown>>(row: T): T {
+  return {
+    email_send_limit: 1000,
+    emails_sent_count: 0,
+    limit_reached_at: null,
+    ...row,
+  } as T;
+}
+
 
 export const STEP_COLUMNS =
   "id, step_order, subject, body, wait_days, wait_hours, name, step_type, delay_minutes, same_thread, config";
