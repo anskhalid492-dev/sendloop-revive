@@ -335,6 +335,10 @@ export function metaFor(
   path?: string,
   faqs?: { q: string; a: string }[],
 ) {
+  // Crawlers need an absolute self-referencing URL; the admin override table is
+  // still keyed by the relative path.
+  const relative = path ? (/^https?:\/\//i.test(path) ? new URL(path).pathname : path) : undefined;
+  const absolute = path ? absoluteUrl(path) : undefined;
   const head = {
     meta: [
       { title },
@@ -343,9 +347,11 @@ export function metaFor(
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      ...(path ? [{ property: "og:url", content: path }] : []),
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+      ...(absolute ? [{ property: "og:url", content: absolute }] : []),
     ],
-    ...(path ? { links: [{ rel: "canonical", href: path }] } : {}),
+    ...(absolute ? { links: [{ rel: "canonical", href: absolute }] } : {}),
     ...(faqs && faqs.length
       ? {
           scripts: [
@@ -366,8 +372,9 @@ export function metaFor(
       : {}),
   };
   // Admin-managed SEO records override what the page declares in code.
-  return path ? applySeoOverrides(path, head) : head;
+  return relative ? applySeoOverrides(relative, head) : head;
 }
+
 
 
 /* ---------------------------------------------------------------------- */
