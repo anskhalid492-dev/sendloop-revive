@@ -937,7 +937,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
     const limitsSupported = await campaignLimitColumnsAvailable(context.supabase);
     const campaignLimit = c.email_send_limit ?? 0;
     if (limitsSupported && campaignLimit <= 0) {
-      throw new Error("Set an email sending limit greater than 0 before launching this campaign.");
+      throw new Error("Choose how many emails this campaign can send before launching.");
     }
     if (limitsSupported) {
       const { evaluateEntitlement } = await import("@/lib/billing/usage.server");
@@ -946,10 +946,11 @@ export const launchCampaign = createServerFn({ method: "POST" })
       const alreadySent = c.emails_sent_count ?? 0;
       if (remaining !== null && campaignLimit - alreadySent > remaining) {
         throw new Error(
-          `This campaign's limit (${campaignLimit.toLocaleString()} emails) exceeds your remaining monthly allowance of ${remaining.toLocaleString()} emails. Lower the campaign limit or upgrade your plan.`,
+          `You only have ${remaining.toLocaleString()} emails available this month.`,
         );
       }
     }
+
     if (c.status !== "active") await checkUsageLimit(c.workspace_id, "active_campaigns", 1);
 
 
