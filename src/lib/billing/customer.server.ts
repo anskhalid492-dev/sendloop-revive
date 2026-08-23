@@ -214,19 +214,49 @@ export async function createCheckoutSession(input: {
   return result;
 }
 
-async function activeSubscription(workspaceId: string) {
+/**
+ * The recurring subscription we can act on. Lifetime purchases are stored in the
+ * same table but have no cancellable provider subscription, so they are excluded
+ * here and reported with a clear, customer-safe message instead.
+ */
+async function activeSubscription(workspaceId: string, opts?: { recurringOnly?: boolean }) {
   const db = await admin();
   const settings = await getBillingSettings();
-  const { data } = await db
+  const { data: rows } = await db
     .from("billing_subscriptions")
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("environment", settings.environment)
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) throw new Error("No active subscription for this workspace.");
-  return data;
+    .limit(10);
+  const all = (rows ?? []) as Array<Record<string, unknown> & {
+    id: string;
+    provider: string;
+    status: string | null;
+    billing_interval: string | null;
+    external_subscription_id: string;
+    cancel_at_period_end: boolean | null;
+    access_until: string | null;
+    current_period_end: string | null;
+  }>;
+  if (all.length === 0) throw new Error("No active subscription for this workspace.");
+  if (!opts?.recurringOnly) return all[0]!;
+
+  const recurring = all.find(
+    (r) =>
+      r.billing_interval !== "lifetime" &&
+      typeof r.external_subscription_id === "string" &&
+      r.external_subscription_id.length > 0 &&
+      !r.external_subscription_id.startsWith("lifetime_") &&
+      r.status !== "cancelled" &&
+      r.status !== "expired",
+  );
+  if (!recurring) {
+    if (all.some((r) => r.billing_interval === "lifetime"))
+      throw new Error("Lifetime access is a one-time purchase — there is no subscription to cancel.");
+    throw new Error("No active subscription for this workspace.");
+  }
+  return recurring;
 }
 
 export async function changePlan(input: {
@@ -235,7 +265,7 @@ export async function changePlan(input: {
   interval: BillingInterval;
   userId: string;
 }) {
-  const sub = await activeSubscription(input.workspaceId);
+  const sub = await activeSubscription(input.workspaceId, { recurringOnly: true });
   const settings = await getBillingSettings();
   const provider = sub.provider as BillingProvider;
   const priceId = await priceFor(provider, settings.environment, input.planId, input.interval);
@@ -255,15 +285,53 @@ export async function changePlan(input: {
   return { ok: true };
 }
 
+/**
+ * Cancel a recurring subscription. Defaults to cancel-at-period-end so paid
+ * access and entitlements are never revoked early — webhooks stay the source of
+ * truth and flip the row to `cancelled` when the period actually ends. The local
+ * flag is mirrored immediately so the billing page reflects the change without
+ * waiting for the provider callback.
+ */
 export async function cancelForWorkspace(workspaceId: string, userId: string, immediately: boolean) {
-  const sub = await activeSubscription(workspaceId);
+  const sub = await activeSubscription(workspaceId, { recurringOnly: true });
   const settings = await getBillingSettings();
   const provider = sub.provider as BillingProvider;
-  await getBillingAdapter(provider).cancel(
-    settings.environment,
-    sub.external_subscription_id,
-    !immediately,
-  );
+
+  // Idempotent: a second click must not hit the provider again.
+  if (!immediately && sub.cancel_at_period_end === true) {
+    return {
+      ok: true,
+      alreadyScheduled: true,
+      cancelAtPeriodEnd: true,
+      accessUntil: (sub.access_until as string | null) ?? (sub.current_period_end as string | null),
+    };
+  }
+
+  try {
+    await getBillingAdapter(provider).cancel(
+      settings.environment,
+      sub.external_subscription_id,
+      !immediately,
+    );
+  } catch (error) {
+    console.error("[billing] cancel failed", {
+      workspaceId,
+      provider,
+      environment: settings.environment,
+      subscriptionId: sub.external_subscription_id,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error("We couldn't cancel your subscription. Please try again.");
+  }
+
+  const db = await admin();
+  if (!immediately) {
+    await db
+      .from("billing_subscriptions")
+      .update({ cancel_at_period_end: true, updated_at: new Date().toISOString() })
+      .eq("id", sub.id);
+  }
+
   await writeAudit({
     workspaceId,
     userId,
@@ -271,14 +339,40 @@ export async function cancelForWorkspace(workspaceId: string, userId: string, im
     environment: settings.environment,
     action: immediately ? "subscription.cancel_now" : "subscription.cancel_at_period_end",
   });
-  return { ok: true };
+  return {
+    ok: true,
+    alreadyScheduled: false,
+    cancelAtPeriodEnd: !immediately,
+    accessUntil: (sub.access_until as string | null) ?? (sub.current_period_end as string | null),
+  };
 }
 
+/** Remove a scheduled cancellation. No-op when nothing is scheduled. */
 export async function resumeForWorkspace(workspaceId: string, userId: string) {
-  const sub = await activeSubscription(workspaceId);
+  const sub = await activeSubscription(workspaceId, { recurringOnly: true });
   const settings = await getBillingSettings();
   const provider = sub.provider as BillingProvider;
-  await getBillingAdapter(provider).resume(settings.environment, sub.external_subscription_id);
+  if (sub.cancel_at_period_end !== true) return { ok: true, alreadyActive: true };
+
+  try {
+    await getBillingAdapter(provider).resume(settings.environment, sub.external_subscription_id);
+  } catch (error) {
+    console.error("[billing] resume failed", {
+      workspaceId,
+      provider,
+      environment: settings.environment,
+      subscriptionId: sub.external_subscription_id,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error("We couldn't resume your subscription. Please try again.");
+  }
+
+  const db = await admin();
+  await db
+    .from("billing_subscriptions")
+    .update({ cancel_at_period_end: false, updated_at: new Date().toISOString() })
+    .eq("id", sub.id);
+
   await writeAudit({
     workspaceId,
     userId,
@@ -286,7 +380,7 @@ export async function resumeForWorkspace(workspaceId: string, userId: string) {
     environment: settings.environment,
     action: "subscription.resume",
   });
-  return { ok: true };
+  return { ok: true, alreadyActive: false };
 }
 
 export async function portalForWorkspace(workspaceId: string, returnUrl: string) {
@@ -294,7 +388,7 @@ export async function portalForWorkspace(workspaceId: string, returnUrl: string)
   const settings = await getBillingSettings();
   const provider = sub.provider as BillingProvider;
   const url = await getBillingAdapter(provider).portalUrl(settings.environment, {
-    customerId: sub.external_customer_id ?? null,
+    customerId: (sub["external_customer_id"] as string | null) ?? null,
     subscriptionId: sub.external_subscription_id ?? null,
     returnUrl,
   });

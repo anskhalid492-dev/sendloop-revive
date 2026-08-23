@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -108,6 +118,8 @@ export function BillingTab({
     return () => window.clearTimeout(id);
   }, [highlightPlanSlug]);
 
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
   const fetchBilling = useServerFn(getCustomerBilling);
   const fetchProviders = useServerFn(listCheckoutProviders);
   const fetchPlans = useServerFn(getPlans);
@@ -157,8 +169,12 @@ export function BillingTab({
 
   const cancelMutation = useMutation({
     mutationFn: () => cancel({ data: { workspaceId: workspaceId! } }),
-    onSuccess: () => {
-      toast.success("Cancellation scheduled for the end of the period");
+    onSuccess: (r) => {
+      setConfirmCancel(false);
+      // Clicking twice must not read as a second cancellation.
+      if ((r as { alreadyScheduled?: boolean })?.alreadyScheduled)
+        toast.info("Cancellation already scheduled");
+      else toast.success("Cancellation scheduled — your plan stays active until the period ends");
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -294,6 +310,17 @@ export function BillingTab({
           </div>
         ) : null}
 
+        {!isLifetime && billing.cancelAtPeriodEnd ? (
+          <div className="mx-6 mb-4 mt-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
+            <p className="font-medium">Cancellation scheduled</p>
+            <p className="mt-1 text-muted-foreground">
+              Your plan remains active until{" "}
+              {formatDate(billing.accessUntil ?? billing.nextBillingAt)}. You won't be charged
+              again.
+            </p>
+          </div>
+        ) : null}
+
         {!isLifetime && (billing.state === "past_due" || billing.state === "payment_failed") ? (
           <div className="mx-6 mb-4 mt-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
             Your last payment failed. Update your payment method to keep sending
@@ -313,7 +340,7 @@ export function BillingTab({
           {!isLifetime && billing.active && !billing.cancelAtPeriodEnd && hasSubscription ? (
             <Button
               variant="outline"
-              onClick={() => cancelMutation.mutate()}
+              onClick={() => setConfirmCancel(true)}
               disabled={cancelMutation.isPending}
             >
               Cancel subscription
@@ -325,10 +352,41 @@ export function BillingTab({
               onClick={() => resumeMutation.mutate()}
               disabled={resumeMutation.isPending}
             >
+              {resumeMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               Resume subscription
             </Button>
           ) : null}
         </div>
+
+        <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel your MunchReach subscription?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Your subscription will remain active until the end of your current billing period
+                {billing.accessUntil || billing.nextBillingAt
+                  ? ` (${formatDate(billing.accessUntil ?? billing.nextBillingAt)})`
+                  : ""}
+                . You won't be charged again.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={cancelMutation.isPending}>
+                Keep subscription
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  cancelMutation.mutate();
+                }}
+                disabled={cancelMutation.isPending}
+              >
+                {cancelMutation.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                Cancel subscription
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
 
       {/* ---------- Plans ---------- */}
