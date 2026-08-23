@@ -148,12 +148,6 @@ const resourceCards: Card[] = [
     icon: Plug,
   },
   {
-    label: "Customer Reviews",
-    to: "/customer-reviews",
-    text: "See what MunchReach customers say about their outreach.",
-    icon: MessageSquareQuote,
-  },
-  {
     label: "Referral Program",
     to: "/referral",
     text: "Earn commission for every team you bring to MunchReach.",
@@ -251,7 +245,9 @@ export function SiteHeader() {
     "usecase",
     solutionNavLinks.map((l) => ({ label: l.label, to: l.to, text: "", icon: Compass })),
   );
-  const resourceLinks = toCards(headerRows, "resources", resourceCards);
+  const resourceLinks = toCards(headerRows, "resources", resourceCards).filter(
+    (c) => c.to !== "/customer-reviews",
+  );
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
