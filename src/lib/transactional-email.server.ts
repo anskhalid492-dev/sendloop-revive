@@ -407,7 +407,10 @@ function withGlobals(variables: Record<string, unknown>): Record<string, unknown
     "brand.name": "MunchReach",
     dashboard_url: `${app}/dashboard`,
     login_url: `${app}/auth`,
-    support_url: `${app}/help`,
+    // Real, published routes — a 404 in a transactional email reads as broken.
+    support_url: `${app}/help-center`,
+    ticket_url: `${app}/support`,
+    billing_url: `${app}/billing`,
     action_url: `${app}/dashboard`,
     ...variables,
   };
