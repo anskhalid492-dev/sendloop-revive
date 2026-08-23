@@ -9,12 +9,17 @@ import {
   AlertTriangle,
   ListX,
   Repeat2,
+  Gauge,
+  Sparkles,
+  ListChecks,
+  BarChart3,
+  Inbox,
+  Copy,
 } from "lucide-react";
 
 import {
   BulletList,
   CtaBlock,
-  FaqBlock,
   MarketingLayout,
   MockBars,
   MockPanel,
@@ -27,6 +32,8 @@ import {
   SolutionSplit,
   StatStrip,
   StepList,
+  DocSection,
+  Prose,
   metaFor,
   BigPreview,
   FeatureBento,
@@ -37,17 +44,19 @@ import { PageFaqs } from "@/components/site/PageFaqs";
 const faqs = [
   { q: "How many steps can a sequence have?", a: "As many as you need. Most teams see the best results with three to five steps spread over two weeks." },
   { q: "Do follow-ups stop when someone replies?", a: "Yes. Reply, bounce and unsubscribe stop the sequence instantly, and you can add custom stop conditions." },
+  { q: "What is the campaign sending limit?", a: "It is the total number of emails one campaign may send, follow-ups included. The campaign stops automatically when it reaches that number." },
+  { q: "What is the daily limit shortcut?", a: "Every campaign row has a gauge icon that opens the daily sending limit. Set how many emails that campaign may send per day and save it without opening the campaign." },
+  { q: "Which limit wins if they conflict?", a: "Always the lowest one: the campaign daily limit, the campaign total limit, your monthly plan allowance and the capacity of your connected mailboxes." },
   { q: "Can I rotate multiple mailboxes in one campaign?", a: "Yes. Assign several sending accounts and MunchReach distributes volume based on the limits and weights you set." },
+  { q: "Can I personalise every email with AI?", a: "Yes. Add your own OpenAI key in the campaign AI tab and insert the AI personalization variable into any step; a safe fallback is used when data is missing." },
   { q: "Can I test subject lines?", a: "Yes. Add variants to any step and the winner is promoted automatically once enough data is collected." },
-  { q: "Will rotation hurt my domain reputation?", a: "No — rotation respects each mailbox's warmed-up daily cap, so no single account ever gets overloaded." },
-  { q: "Can I clone a winning campaign for a new list?", a: "Yes. Duplicate any campaign, swap the audience, and MunchReach resets analytics while keeping your sequence logic." },
 ];
 
 export const Route = createFileRoute("/product/campaigns")({
   head: () =>
     metaFor(
       "Cold Email Campaigns That Convert | MunchReach",
-      "Build targeted cold email campaigns, automate follow-ups, and manage your outreach from one powerful workspace with MunchReach.",
+      "Build multi-step cold email campaigns with follow-ups, mailbox rotation, AI personalization, send limits and live analytics — all in one workspace.",
       "/product/campaigns",
       faqs,
     ),
@@ -57,7 +66,7 @@ export const Route = createFileRoute("/product/campaigns")({
 const painPoints = [
   { icon: ListX, title: "Spreadsheet chaos", text: "Tracking who got which email, and when, across a dozen tabs is unmanageable past 50 prospects." },
   { icon: AlertTriangle, title: "One mailbox, one ceiling", text: "Sending everything from a single account throttles volume and puts your whole domain reputation at risk." },
-  { icon: Repeat2, title: "Guessing what works", text: "Without built-in testing, you never know if a different subject line or angle would have doubled replies." },
+  { icon: Repeat2, title: "No control over volume", text: "Without a real limit, a single campaign can eat your whole monthly allowance in a morning." },
 ];
 
 const solutionRows = [
@@ -78,6 +87,28 @@ const solutionRows = [
             { left: "Step 2 · Value follow-up", right: "Day 3", badge: "Sent" },
             { left: "Step 3 · Case study (opened branch)", right: "Day 6", badge: "Queued" },
             { left: "Step 4 · Breakup email", right: "Day 11", badge: "Scheduled" },
+          ]}
+        />
+      </MockPanel>
+    ),
+  },
+  {
+    eyebrow: "Sending limits",
+    title: "You decide how much each campaign sends",
+    text: "Set a total sending limit for the campaign and a daily limit you can change straight from the campaigns table. Follow-ups count toward both, and sending stops on its own when a limit is reached.",
+    bullets: [
+      "Total campaign limit, follow-ups included",
+      "One-click daily limit with live usage",
+      "Lowest limit always wins — campaign, plan or mailbox",
+    ],
+    visual: (
+      <MockPanel title="Daily sending limit — Q4 Outbound">
+        <MockRows
+          rows={[
+            { left: "Daily limit", muted: "Follow-ups included", right: "500 / day", badge: "Saved" },
+            { left: "Used today", right: "125 / 500", badge: "Sending" },
+            { left: "Mailbox capacity", muted: "3 accounts connected", right: "200 / day", badge: "Ceiling" },
+            { left: "Monthly allowance left", right: "7,500 emails", badge: "Plan" },
           ]}
         />
       </MockPanel>
@@ -125,59 +156,143 @@ const solutionRows = [
 const features = [
   { icon: Layers, title: "Visual sequence builder", text: "Drag steps, set delays in minutes, hours or days, and preview the full journey per prospect." },
   { icon: Split, title: "Conditional branching", text: "Branch on opened, clicked, replied, bounced or no-activity and send a different message to each path." },
-  { icon: Clock, title: "Sending windows", text: "Restrict sends to business hours in the prospect's timezone and skip weekends and holidays." },
+  { icon: Gauge, title: "Campaign send limits", text: "Set a total limit and a daily limit per campaign. Follow-ups count, and sending stops automatically at the cap." },
+  { icon: Clock, title: "Schedule & throughput", text: "Choose sending days, a sending window and delays, then see the real per-hour, per-day and per-week throughput before you launch." },
+  { icon: Sparkles, title: "AI personalization", text: "Bring your own OpenAI key and insert an AI-written opening line into any step, with a safe fallback when data is missing." },
   { icon: Beaker, title: "A/B/n testing", text: "Test up to five subject lines or bodies per step and auto-promote the winner by reply rate." },
   { icon: Shuffle, title: "Mailbox rotation", text: "Spread volume across connected accounts with per-account daily caps, weights and warmup-aware throttling." },
-  { icon: ShieldCheck, title: "Safety guardrails", text: "Automatic stop on reply, bounce or unsubscribe plus workspace-wide suppression lists." },
+  { icon: ListChecks, title: "Launch readiness checks", text: "A pre-flight bar confirms mailboxes, leads, steps, schedule and limits before the campaign can go live." },
+  { icon: Inbox, title: "Live send queue", text: "Watch every queued, sent, failed and skipped message in real time with the reason for each outcome." },
+  { icon: BarChart3, title: "Campaign analytics", text: "Sent, replies, reply rate, positive replies and meetings booked per campaign — from real send data only." },
+  { icon: Copy, title: "Duplicate & bulk actions", text: "Clone a winning sequence for a new list, or pause, resume, archive and delete campaigns in bulk." },
+  { icon: ShieldCheck, title: "Safety guardrails", text: "Automatic stop on reply, bounce or unsubscribe plus workspace-wide suppression and duplicate checks." },
 ];
 
 const steps = [
   { title: "Pick your audience", text: "Select a lead list or filter by tags, industry, status and custom fields." },
   { title: "Write step one", text: "Use variables, spintax and AI icebreakers with safe fallbacks for missing data." },
   { title: "Add follow-ups", text: "Chain conditional steps with your own delays and stop rules." },
+  { title: "Set your limits", text: "Choose the total campaign limit and the daily limit; the monthly allowance is applied for you." },
   { title: "Launch and monitor", text: "Sends run server-side while opens, clicks and replies stream into analytics." },
+];
+
+const guide = [
+  {
+    heading: "1. Create the campaign",
+    body: [
+      "Go to Campaigns and choose New campaign. Give it a name you will recognise later — the client, the offer or the quarter — and add a short description so your team knows who it targets.",
+      "The campaign opens in draft. Nothing is sent until you launch it, so you can leave it and come back at any time.",
+    ],
+  },
+  {
+    heading: "2. Add leads",
+    body: [
+      "In the Leads tab, pick an existing list or filter your leads by tag, status, industry or any custom field. Duplicates and suppressed addresses are removed before launch, so the same person is never contacted twice from your workspace.",
+      "Every field you import — first name, company, role, website — becomes a variable you can use in your emails.",
+    ],
+  },
+  {
+    heading: "3. Write the sequence",
+    body: [
+      "Step one is your first email. Add follow-up steps below it and set the delay for each one; three to five steps over two weeks works for most teams.",
+      "Insert variables like {{firstName}} or {{company}}, add spintax for natural variation, and add up to five subject-line variants per step if you want to test angles. Use Preview to see a real prospect's version of each email before you send.",
+    ],
+  },
+  {
+    heading: "4. Choose sending accounts",
+    body: [
+      "In the Accounts tab, select one or more connected mailboxes. Adding several mailboxes spreads the volume so no single account is pushed past its warmed-up daily cap.",
+      "Only mailboxes on verified domains can send, and mailboxes still in warmup contribute the volume their current ramp allows.",
+    ],
+  },
+  {
+    heading: "5. Set the schedule and limits",
+    body: [
+      "In the Schedule tab, pick your sending days, your sending window and the delay between emails. The throughput estimate shows how many emails that plan produces per hour, per day and per week — and tells you when your mailbox capacity, not your choice, is the limiting factor.",
+      "In Options, set the total campaign sending limit: how many emails this campaign may ever send, follow-ups included. You can also set a daily limit and change it any time from the gauge icon in the campaigns table.",
+    ],
+  },
+  {
+    heading: "6. Launch and watch it run",
+    body: [
+      "The launch readiness bar confirms you have leads, at least one step, a sending account, a schedule and a limit. Once everything is green, launch.",
+      "The Queue tab shows every message as it is scheduled, sent, skipped or failed. Replies land in the Unified Inbox, stop the follow-ups for that lead automatically and update the lead in your CRM.",
+    ],
+  },
+];
+
+const limitGroups = [
+  {
+    title: "Campaign daily limit",
+    items: [
+      "Set from the gauge icon in the campaigns table",
+      "Shows today's usage as you send",
+      "Follow-ups count toward it",
+      "Save and it applies to the very next send",
+    ],
+  },
+  {
+    title: "Campaign total limit",
+    items: [
+      "The total emails this campaign may ever send",
+      "Includes every follow-up step",
+      "Campaign stops itself at the limit",
+      "Raise it any time to keep sending",
+    ],
+  },
+  {
+    title: "Plan and mailbox ceilings",
+    items: [
+      "Your monthly plan allowance is applied automatically",
+      "Each mailbox keeps its own warmed-up daily cap",
+      "Warmup traffic never touches campaign volume",
+      "The lowest applicable limit always wins",
+    ],
+  },
 ];
 
 const bullets = [
   "Unlimited steps per sequence",
   "Spintax and custom variables with fallbacks",
-  "Per-campaign daily send limits and ramp-up",
+  "Total and daily sending limits per campaign, follow-ups included",
+  "Throughput estimate before you launch",
+  "AI personalization with your own key",
   "Duplicate and suppression checks before launch",
-  "Pause, resume, clone and archive any campaign",
+  "Pause, resume, clone and archive any campaign — one at a time or in bulk",
   "Timezone-aware scheduling per prospect",
 ];
 
 const beforeAfter = {
   before: [
-  "Sequences live in spreadsheets and nobody knows who got which email",
-  "One mailbox caps you at ~50 sends a day before reputation slips",
-  "Follow-ups keep firing after a prospect already replied",
-  "Subject lines are picked by opinion, never tested"
-],
+    "Sequences live in spreadsheets and nobody knows who got which email",
+    "One mailbox caps you at ~50 sends a day before reputation slips",
+    "Follow-ups keep firing after a prospect already replied",
+    "A single campaign burns through the whole month's sending allowance",
+  ],
   after: [
-  "Every step, delay and branch is visible on one timeline",
-  "Volume spreads across warmed mailboxes with per-account caps",
-  "Reply, bounce and unsubscribe stop the sequence instantly",
-  "A/B/n variants promote the winner on reply rate automatically"
-],
+    "Every step, delay and branch is visible on one timeline",
+    "Volume spreads across warmed mailboxes with per-account caps",
+    "Reply, bounce and unsubscribe stop the sequence instantly",
+    "Daily and total limits keep every campaign inside your plan",
+  ],
 };
 
 const useCases = [
   {
-    "audience": "Founders selling early",
-    "scenario": "You are the only rep and need 20 conversations a week without living in your inbox.",
-    "outcome": "Launch a 4-step sequence in under 10 minutes."
+    audience: "Founders selling early",
+    scenario: "You are the only rep and need 20 conversations a week without living in your inbox.",
+    outcome: "Launch a 4-step sequence in under 10 minutes.",
   },
   {
-    "audience": "Outbound teams",
-    "scenario": "Five reps, shared lists and overlapping prospects across dozens of campaigns.",
-    "outcome": "Workspace-wide dedupe and suppression before every send."
+    audience: "Outbound teams",
+    scenario: "Five reps, shared lists and overlapping prospects across dozens of campaigns.",
+    outcome: "Workspace-wide dedupe, suppression and per-campaign limits before every send.",
   },
   {
-    "audience": "Lead gen agencies",
-    "scenario": "Separate client sequences, mailboxes and reporting that must never mix.",
-    "outcome": "One workspace per client with isolated data and mailboxes."
-  }
+    audience: "Lead gen agencies",
+    scenario: "Separate client sequences, mailboxes and reporting that must never mix.",
+    outcome: "One workspace per client with isolated data, mailboxes and sending caps.",
+  },
 ];
 
 function Page() {
@@ -187,21 +302,21 @@ function Page() {
         eyebrow="Campaigns"
         title="Multi-step cold email"
         highlight="campaigns that convert"
-        description="Build sequences with delays, conditions and A/B variants, rotate across mailboxes, and launch to thousands of prospects without hurting deliverability."
+        description="Build sequences with delays, conditions and A/B variants, personalise with AI, rotate across mailboxes and control exactly how much each campaign sends."
         secondaryCta="Explore Campaigns"
         secondaryHref="#product"
       />
       <BigPreview
         eyebrow="Campaign builder"
         title="See the campaign builder"
-        description="Sequence steps, variants, mailbox rotation and schedule in one screen."
+        description="Sequence steps, variants, mailbox rotation, limits and schedule in one screen."
       >
         <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
       </BigPreview>
       <Section title="Why cold email campaigns stall">
         <PainPoints items={painPoints} />
       </Section>
-      <Section title="How MunchReach solves it" description="One builder for sequencing, testing and mailbox rotation.">
+      <Section title="How MunchReach solves it" description="One builder for sequencing, limits, testing and mailbox rotation.">
         <SolutionSplit rows={solutionRows} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
@@ -209,6 +324,19 @@ function Page() {
         <div className="mt-12">
           <StepList steps={steps} />
         </div>
+      </Section>
+      <Section
+        title="Quick start guide"
+        description="From an empty workspace to a live campaign in six steps."
+        muted
+      >
+        <Prose sections={guide} />
+      </Section>
+      <Section
+        title="How sending limits work together"
+        description="You choose the numbers; MunchReach applies the lowest one automatically."
+      >
+        <DocSection groups={limitGroups} />
       </Section>
       <Section title="Details that matter" muted>
         <BulletList items={bullets} />
@@ -235,7 +363,7 @@ function Page() {
       </Section>
       <CtaBlock
         title="Launch your first campaign today"
-        description="Connect a provider, import a list and send your first sequence in under ten minutes."
+        description="Connect a mailbox, import a list and send your first sequence in under ten minutes."
       />
     </MarketingLayout>
   );
