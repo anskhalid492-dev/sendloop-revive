@@ -46,8 +46,8 @@ const faqs = [
 export const Route = createFileRoute("/product/unified-inbox")({
   head: () =>
     metaFor(
-      "Unified Inbox for Cold Email Replies — MunchReach",
-      "One shared inbox for every mailbox, with AI reply labels, thread history, assignment and internal notes.",
+      "Unified Inbox for Cold Email Replies | MunchReach",
+      "Manage prospect replies, conversations, and follow-ups from one unified inbox built for modern cold email outreach.",
       "/product/unified-inbox",
       faqs,
     ),

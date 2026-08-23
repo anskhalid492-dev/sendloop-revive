@@ -62,8 +62,8 @@ const faqs = [
 export const Route = createFileRoute("/ai-personalized-outreach")({
   head: () =>
     metaFor(
-      "AI Cold Email Personalization With Your OpenAI Key",
-      "Write a unique opener for every prospect with your own OpenAI key. Real lead data, full editing control, no per-credit markup.",
+      "AI-Personalized Cold Outreach | MunchReach",
+      "Personalize cold emails with AI, create more relevant messages, and scale personalized outreach without writing every email manually.",
       "/ai-personalized-outreach",
       faqs,
     ),

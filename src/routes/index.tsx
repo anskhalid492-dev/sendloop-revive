@@ -131,9 +131,9 @@ const followUpFlow = [
   { label: "Reply received", meta: "Sequence stops" },
 ];
 
-const HOME_TITLE = "MunchReach — Turn Cold Emails Into Conversations";
+const HOME_TITLE = "MunchReach: The All-in-One Cold Outreach Platform";
 const HOME_DESCRIPTION =
-  "Build cold email campaigns, automate follow-ups, manage every reply and track outreach from one workspace. Sending is fully managed.";
+  "Build targeted cold email campaigns, automate follow-ups, manage leads and replies, and grow your pipeline with MunchReach, all in one platform.";
 
 export const Route = createFileRoute("/")({
   head: () =>

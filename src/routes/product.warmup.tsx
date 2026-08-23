@@ -45,8 +45,8 @@ const faqs = [
 export const Route = createFileRoute("/product/warmup")({
   head: () =>
     metaFor(
-      "Email Warmup & Deliverability Protection",
-      "Warm up new mailboxes gradually with real conversations, spam-folder rescue and live deliverability monitoring.",
+      "Cold Email Warmup: Better Deliverability | MunchReach",
+      "Warm up your email accounts, monitor mailbox health, and build a stronger sending reputation before scaling your cold outreach.",
       "/product/warmup",
       faqs,
     ),

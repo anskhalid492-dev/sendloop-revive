@@ -138,8 +138,8 @@ const faqs = [
 export const Route = createFileRoute("/automations")({
   head: () =>
     metaFor(
-      "Email Outreach Automations — MunchReach",
-      "Trigger follow-ups, CRM updates, tasks and notifications automatically from campaign, lead and inbox activity with MunchReach Automations.",
+      "Cold Email Automation That Saves Time | MunchReach",
+      "Automate repetitive outreach tasks, follow-ups, and workflows so your campaigns keep moving without manual work.",
       "/automations",
       faqs,
     ),

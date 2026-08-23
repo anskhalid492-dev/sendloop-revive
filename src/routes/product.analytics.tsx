@@ -45,8 +45,8 @@ const faqs = [
 
 export const Route = createFileRoute("/product/analytics")({
   head: () => metaFor(
-    "Cold Email Analytics & Reporting — MunchReach",
-    "Dashboards for opens, clicks, replies, bounces and meetings by campaign, step, variant, mailbox and teammate.",
+    "Cold Email Analytics & Campaign Tracking | MunchReach",
+    "Track campaign performance, email activity, replies, and engagement to understand what's working across your outreach campaigns.",
     "/product/analytics",
     faqs,
   ),

@@ -42,8 +42,8 @@ const faqs = [
 
 export const Route = createFileRoute("/product/workspaces")({
   head: () => metaFor(
-    "Multi-Client Workspaces & Team Roles — MunchReach",
-    "Run every client in its own workspace with isolated data, granular roles, invitations and per-workspace reporting.",
+    "Manage Outreach Teams & Workspaces | MunchReach",
+    "Organize campaigns, leads, sending accounts, and team activity with dedicated MunchReach workspaces.",
     "/product/workspaces",
     faqs,
   ),

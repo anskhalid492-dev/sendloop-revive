@@ -42,8 +42,8 @@ const faqs = [
 
 export const Route = createFileRoute("/product/templates")({
   head: () => metaFor(
-    "Cold Email Templates Library — MunchReach",
-    "Proven cold email templates with variables, spintax and AI personalization, ready to drop into any sequence.",
+    "Cold Email Templates for Better Outreach | MunchReach",
+    "Create, save, and reuse cold email templates to launch campaigns faster and keep your outreach messaging consistent.",
     "/product/templates",
     faqs,
   ),
