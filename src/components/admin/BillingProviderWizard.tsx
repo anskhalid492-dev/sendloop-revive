@@ -17,11 +17,15 @@ import {
   type BillingProvider,
 } from "@/lib/billing/model";
 
+type PlanCell = { value: string | null; ok: boolean; problem: string | null };
+
 type PlanCheck = {
   planId: string;
   planName: string;
-  monthly: { value: string | null; ok: boolean; problem: string | null };
-  yearly: { value: string | null; ok: boolean; problem: string | null };
+  billingType?: "recurring" | "lifetime";
+  monthly: PlanCell;
+  yearly: PlanCell;
+  lifetime?: PlanCell;
 };
 
 export type Readiness = {
@@ -85,7 +89,7 @@ export function BillingProviderWizard({
     planId: string;
     provider: BillingProvider;
     environment: BillingEnvironment;
-    interval: "monthly" | "yearly";
+    interval: "monthly" | "yearly" | "lifetime";
     externalPriceId: string;
   }) => void;
   onToggleProvider: (v: {
@@ -207,25 +211,39 @@ export function BillingProviderWizard({
           {state.plans.length === 0 ? (
             <p className="text-sm text-muted-foreground">No paid plans configured yet.</p>
           ) : null}
-          {state.plans.map((plan) => (
+          {state.plans.map((plan) => {
+            const isLifetime = plan.billingType === "lifetime";
+            // Lifetime plans map exactly one non-recurring price; recurring
+            // plans keep their existing monthly + yearly fields untouched.
+            const intervals = isLifetime
+              ? (["lifetime"] as const)
+              : (["monthly", "yearly"] as const);
+            const complete = isLifetime
+              ? Boolean(plan.lifetime?.ok)
+              : plan.monthly.ok && plan.yearly.ok;
+            return (
             <div key={plan.planId} className="rounded-lg border border-border/60 p-3">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">{plan.planName}</span>
-                {plan.monthly.ok && plan.yearly.ok ? (
-                  <Badge variant="secondary">Complete</Badge>
-                ) : (
-                  <Badge variant="destructive">Incomplete</Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {isLifetime ? <Badge variant="outline">Lifetime / one-time</Badge> : null}
+                  {complete ? (
+                    <Badge variant="secondary">Complete</Badge>
+                  ) : (
+                    <Badge variant="destructive">Missing</Badge>
+                  )}
+                </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(["monthly", "yearly"] as const).map((interval) => {
-                  const cell = plan[interval];
+              <div className={`grid gap-3 ${isLifetime ? "" : "sm:grid-cols-2"}`}>
+                {intervals.map((interval) => {
+                  const cell = (interval === "lifetime" ? plan.lifetime : plan[interval]) as PlanCell;
                   const key = `${provider}:${environment}:${plan.planId}:${interval}`;
                   const value = drafts[key] ?? cell.value ?? "";
                   return (
                     <div key={interval} className="space-y-1">
                       <label className="text-xs uppercase text-muted-foreground">
-                        {interval} {rule.label}
+                        {interval === "lifetime" ? `${environment} one-time` : interval}{" "}
+                        {rule.label}
                       </label>
                       <div className="flex gap-2">
                         <Input
@@ -261,7 +279,8 @@ export function BillingProviderWizard({
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
