@@ -1,4 +1,8 @@
-import { BarChart3, Building2, Info, MailX, ShieldCheck, Shuffle } from "lucide-react";
+import { BarChart3, Building2, Gauge, Info, MailX, ShieldCheck, Shuffle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+
+import { getCampaignSendAllowance } from "@/lib/campaigns.functions";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,7 +71,27 @@ function Group({
 
 export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
   const { settings, patchSettings } = builder;
+  const campaignId = builder.campaign?.id ?? "";
+  const fetchAllowance = useServerFn(getCampaignSendAllowance);
+  const allowanceQuery = useQuery({
+    queryKey: ["campaign-send-allowance", campaignId],
+    queryFn: () => fetchAllowance({ data: { id: campaignId } }),
+    enabled: Boolean(campaignId),
+    refetchInterval: 60_000,
+  });
   if (!settings) return null;
+
+  const allowance = allowanceQuery.data;
+  const fmt = (n: number | null | undefined) =>
+    n === null || n === undefined ? "Unlimited" : n.toLocaleString();
+  const availableForCampaign =
+    allowance?.monthlyRemaining === null
+      ? null
+      : Math.max((allowance?.monthlyRemaining ?? 0) - (allowance?.campaignSent ?? 0), 0);
+  const overAllowance =
+    availableForCampaign !== null && settings.emailSendLimit > availableForCampaign;
+  const limitReached =
+    Boolean(allowance) && (allowance?.campaignSent ?? 0) >= (allowance?.campaignLimit ?? 0);
 
   const selectedAccountCount = settings.sendingAccountIds.length;
 
@@ -159,6 +183,79 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
             burn its reputation quickly on larger lists.
           </p>
         )}
+      </section>
+
+      <section className="surface-card space-y-4 p-5 lg:col-span-2">
+        <div>
+          <h3 className="flex items-center gap-2 font-semibold">
+            <Gauge className="size-4 text-primary" />
+            Email sending limit
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Choose the maximum number of emails this campaign can send.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="email-send-limit">Maximum emails for this campaign</Label>
+            <Input
+              id="email-send-limit"
+              type="number"
+              min={1}
+              max={1000000}
+              value={settings.emailSendLimit}
+              onChange={(e) =>
+                patchSettings({
+                  emailSendLimit: Math.min(1000000, Math.max(1, Math.trunc(Number(e.target.value) || 1))),
+                })
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Counts every email this campaign sends, follow-ups included. Sending stops as soon as
+              the limit is reached.
+            </p>
+            {overAllowance ? (
+              <p className="text-xs font-medium text-destructive">
+                This exceeds your available monthly allowance ({fmt(availableForCampaign)}). Lower the
+                limit before launching.
+              </p>
+            ) : null}
+          </div>
+
+          <dl className="space-y-2 rounded-lg border border-border bg-muted/30 p-4 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Monthly email limit</dt>
+              <dd className="font-medium">{fmt(allowance?.monthlyLimit)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Used this month</dt>
+              <dd className="font-medium">{fmt(allowance?.monthlyUsed ?? 0)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Remaining</dt>
+              <dd className="font-medium">{fmt(allowance?.monthlyRemaining)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Available for this campaign</dt>
+              <dd className="font-medium">{fmt(availableForCampaign)}</dd>
+            </div>
+            <div className="flex justify-between gap-3 border-t border-border pt-2">
+              <dt className="text-muted-foreground">Sent by this campaign</dt>
+              <dd className="font-medium">
+                {(allowance?.campaignSent ?? 0).toLocaleString()} of{" "}
+                {(allowance?.campaignLimit ?? settings.emailSendLimit).toLocaleString()}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        {limitReached ? (
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm font-medium text-destructive">
+            Limit reached — this campaign sent {(allowance?.campaignSent ?? 0).toLocaleString()} emails
+            and has stopped sending. Raise the limit to continue.
+          </p>
+        ) : null}
       </section>
 
       <Group
