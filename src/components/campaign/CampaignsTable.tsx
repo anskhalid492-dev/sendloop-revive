@@ -45,6 +45,7 @@ import {
   accountOnline,
   type CampaignOverviewRow,
 } from "@/lib/campaign-overview";
+import { DailyLimitPopover } from "@/components/campaign/DailyLimitPopover";
 
 type SortKey = "name" | "leads" | "sent" | "replyRate" | "positiveReplies" | "meetings" | "status";
 
@@ -230,7 +231,7 @@ export function CampaignsTable({
       ) : null}
 
       <div className="surface-card overflow-x-auto">
-        <Table className="min-w-[1080px]">
+        <Table className="min-w-[1160px]">
           <TableHeader>
             <TableRow>
               {onBulkAction ? (
@@ -264,6 +265,7 @@ export function CampaignsTable({
               <TableHead>
                 <SortButton label="Status" sortKey="status" active={sortKey === "status"} dir={dir} onSort={onSort} />
               </TableHead>
+              <TableHead className="text-center">Daily Limit</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -325,6 +327,11 @@ export function CampaignsTable({
                     </span>
                   </TableCell>
                   <TableCell>
+                    <div className="flex justify-center">
+                      <DailyLimitPopover row={row} />
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="outline" size="icon" asChild title="Analytics">
                         <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
@@ -382,7 +389,7 @@ export function CampaignsTable({
             })}
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={onBulkAction ? 10 : 9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={onBulkAction ? 11 : 10} className="py-10 text-center text-sm text-muted-foreground">
                   No campaigns match this search.
                 </TableCell>
               </TableRow>

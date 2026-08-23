@@ -13,6 +13,7 @@ export type CampaignOverviewAccount = {
   customer_enabled: boolean;
   status: string;
   warmup_status: string;
+  daily_limit?: number | null;
 };
 
 export type CampaignOverviewRow = {
@@ -33,6 +34,12 @@ export type CampaignOverviewRow = {
   replyRate: number;
   positiveReplies: number;
   meetings: number;
+  /** Customer-chosen campaign daily sending limit (campaigns.daily_cap). */
+  dailyCap: number;
+  /** Emails this campaign already sent today. */
+  sentToday: number;
+  /** Combined daily capacity of the mailboxes attached to this campaign. */
+  mailboxDailyCapacity: number;
 };
 
 type CampaignInput = {
@@ -44,12 +51,13 @@ type CampaignInput = {
   created_at: string;
   launched_at: string | null;
   sending_account_ids: string[] | null;
+  daily_cap?: number | null;
 };
 
 type Inputs = {
   campaigns: CampaignInput[];
   recipients: Array<{ campaign_id: string; lead_id: string | null }>;
-  messages: Array<{ campaign_id: string; status: string; to_email: string | null }>;
+  messages: Array<{ campaign_id: string; status: string; to_email: string | null; sent_at?: string | null }>;
   replies: Array<{ campaign_id: string | null; lead_id: string | null; from_email: string; sentiment: string }>;
   meetings: Array<{ campaign_id: string | null; lead_id: string | null; prospect_email: string; status: string }>;
   accounts: CampaignOverviewAccount[];
@@ -90,6 +98,11 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
     const recipients = input.recipients.filter((r) => r.campaign_id === c.id);
     const messages = input.messages.filter((m) => m.campaign_id === c.id);
     const sent = messages.filter((m) => m.status === "sent").length;
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const sentToday = messages.filter(
+      (m) => m.status === "sent" && m.sent_at && new Date(m.sent_at).getTime() >= dayStart.getTime(),
+    ).length;
     const failed = messages.filter((m) => m.status === "failed").length;
 
     const replyKeys = new Set(
@@ -129,6 +142,12 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       replyRate: sent > 0 ? (replyKeys.size / sent) * 100 : 0,
       positiveReplies: positiveKeys.size,
       meetings: meetingKeys.size,
+      dailyCap: Number(c.daily_cap ?? 0),
+      sentToday,
+      mailboxDailyCapacity: (c.sending_account_ids ?? []).reduce(
+        (sum, id) => sum + Number(accountById.get(id)?.daily_limit ?? 0),
+        0,
+      ),
     };
   });
 }
