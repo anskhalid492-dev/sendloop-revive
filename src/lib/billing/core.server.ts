@@ -273,15 +273,21 @@ export async function applyBillingEvent(
     workspaceId = cust?.workspace_id ?? null;
   }
 
+  let previousPlanId: string | null = null;
+  let previousStatus: string | null = null;
+
   if (event.subscription) {
     const s = event.subscription;
     const { data: existing } = await db
       .from("billing_subscriptions")
-      .select("id, workspace_id, plan_id, billing_interval")
+      .select("id, workspace_id, plan_id, billing_interval, status")
       .eq("provider", provider)
       .eq("environment", env)
       .eq("external_subscription_id", s.externalId)
       .maybeSingle();
+
+    previousPlanId = (existing?.plan_id as string | null) ?? null;
+    previousStatus = (existing?.status as string | null) ?? null;
 
     if (!workspaceId && existing?.workspace_id) workspaceId = existing.workspace_id;
     if (!workspaceId && s.customerId) {
@@ -452,6 +458,20 @@ export async function applyBillingEvent(
       },
       { onConflict: "provider,environment,external_invoice_id" },
     );
+  }
+
+  // Automatic customer notification (welcome/upgrade/invoice/payment/refund).
+  // Only production-environment events email customers.
+  if (workspaceId && env === settings.environment) {
+    const { notifyBillingEvent } = await import("@/lib/billing/notifications.server");
+    await notifyBillingEvent(db, {
+      provider,
+      event,
+      workspaceId,
+      planId,
+      previousPlanId,
+      previousStatus,
+    });
   }
 
   return { workspaceId };
