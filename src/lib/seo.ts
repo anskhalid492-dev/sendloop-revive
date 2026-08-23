@@ -35,3 +35,6 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
 
 /** Applied to utility pages that must never be indexed but may pass link equity. */
 export const NOINDEX_META = { name: "robots", content: "noindex, follow" };
+
+/** Applied behind authentication — nothing in the app shell should be crawled. */
+export const NOINDEX_META_STRICT = { name: "robots", content: "noindex, nofollow" };
