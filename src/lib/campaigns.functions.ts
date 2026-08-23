@@ -1504,3 +1504,43 @@ export const bulkCampaignAction = createServerFn({ method: "POST" })
     }
     return { action: data.action, succeeded, failed };
   });
+
+/**
+ * Live sending-allowance context for one campaign: the plan's monthly email
+ * allowance, what this workspace already used, and what this campaign already
+ * sent. The UI renders this; enforcement always re-reads it server-side.
+ */
+export const getCampaignSendAllowance = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("campaigns")
+      .select("workspace_id, email_send_limit, emails_sent_count, limit_reached_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Campaign not found");
+
+    const { evaluateEntitlement } = await import("@/lib/billing/usage.server");
+    const decision = await evaluateEntitlement(row.workspace_id as string, "emails_monthly", 1);
+
+    const monthlyLimit = decision.limit;
+    const monthlyUsed = decision.used;
+    const monthlyRemaining = monthlyLimit === null ? null : Math.max(monthlyLimit - monthlyUsed, 0);
+    const campaignLimit = row.email_send_limit ?? 0;
+    const campaignSent = row.emails_sent_count ?? 0;
+    const campaignRemaining = Math.max(campaignLimit - campaignSent, 0);
+
+    return {
+      monthlyLimit,
+      monthlyUsed,
+      monthlyRemaining,
+      campaignLimit,
+      campaignSent,
+      campaignRemaining,
+      limitReachedAt: (row.limit_reached_at as string | null) ?? null,
+      effectiveRemaining:
+        monthlyRemaining === null ? campaignRemaining : Math.min(campaignRemaining, monthlyRemaining),
+    };
+  });
