@@ -118,6 +118,7 @@ import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminRedirectsRouteImport } from './routes/_authenticated/admin/redirects'
 import { Route as AuthenticatedAdminReferralsRouteImport } from './routes/_authenticated/admin/referrals'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
+import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authenticated/admin/security'
 import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/admin/seo'
 import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authenticated/admin/seo-files'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
@@ -733,6 +734,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSecurityRoute =
+  AuthenticatedAdminSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminSeoRoute = AuthenticatedAdminSeoRouteImport.update({
   id: '/seo',
   path: '/seo',
@@ -1072,6 +1079,7 @@ export interface FileRoutesByFullPath {
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1220,6 +1228,7 @@ export interface FileRoutesByTo {
   '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1372,6 +1381,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
   '/_authenticated/admin/referrals': typeof AuthenticatedAdminReferralsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/_authenticated/admin/seo': typeof AuthenticatedAdminSeoRoute
   '/_authenticated/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1524,6 +1534,7 @@ export interface FileRouteTypes {
     | '/admin/redirects'
     | '/admin/referrals'
     | '/admin/reviews'
+    | '/admin/security'
     | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
@@ -1672,6 +1683,7 @@ export interface FileRouteTypes {
     | '/admin/redirects'
     | '/admin/referrals'
     | '/admin/reviews'
+    | '/admin/security'
     | '/admin/seo'
     | '/admin/seo-files'
     | '/admin/settings'
@@ -1823,6 +1835,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/redirects'
     | '/_authenticated/admin/referrals'
     | '/_authenticated/admin/reviews'
+    | '/_authenticated/admin/security'
     | '/_authenticated/admin/seo'
     | '/_authenticated/admin/seo-files'
     | '/_authenticated/admin/settings'
@@ -2710,6 +2723,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/security': {
+      id: '/_authenticated/admin/security'
+      path: '/security'
+      fullPath: '/admin/security'
+      preLoaderRoute: typeof AuthenticatedAdminSecurityRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/seo': {
       id: '/_authenticated/admin/seo'
       path: '/seo'
@@ -3055,6 +3075,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminRedirectsRoute: typeof AuthenticatedAdminRedirectsRoute
   AuthenticatedAdminReferralsRoute: typeof AuthenticatedAdminReferralsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
+  AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
   AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRoute
   AuthenticatedAdminSeoFilesRoute: typeof AuthenticatedAdminSeoFilesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -3110,6 +3131,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminRedirectsRoute: AuthenticatedAdminRedirectsRoute,
     AuthenticatedAdminReferralsRoute: AuthenticatedAdminReferralsRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
+    AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
     AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRoute,
     AuthenticatedAdminSeoFilesRoute: AuthenticatedAdminSeoFilesRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,

@@ -1,10 +1,14 @@
 import { createFileRoute, isRedirect, Link, Outlet, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 
 import { AdminShell } from "@/components/app/AdminShell";
+import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { getAdminIdentity } from "@/lib/admin-dashboard.functions";
+import { getAdminSecurityIdentity } from "@/lib/admin-security.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   // Server-verified gate: getAdminIdentity resolves the platform role from
@@ -44,6 +48,30 @@ function AdminDenied() {
 }
 
 function AdminLayout() {
+  // Server-verified MFA state. Privileged server functions reject AAL1
+  // sessions independently; this only decides what the UI shows.
+  const loadIdentity = useServerFn(getAdminSecurityIdentity);
+  const identity = useQuery({
+    queryKey: ["admin-security-identity"],
+    queryFn: () => loadIdentity({}),
+    retry: false,
+  });
+
+  const mfa = (identity.data as any)?.mfa as
+    | { enrolled: boolean; satisfied: boolean }
+    | null
+    | undefined;
+
+  if (identity.isError) return <AdminDenied />;
+
+  if (mfa && !mfa.satisfied) {
+    return (
+      <AdminShell title="Admin" description="MunchReach platform administration">
+        <AdminMfaGate enrolled={mfa.enrolled} onSatisfied={() => identity.refetch()} />
+      </AdminShell>
+    );
+  }
+
   return (
     <AdminShell title="Admin" description="MunchReach platform administration">
       <Outlet />
