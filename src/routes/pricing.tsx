@@ -91,7 +91,11 @@ function plansQueryOptions() {
 }
 
 function PricingPage() {
-  const { data: plans } = useSuspenseQuery(plansQueryOptions());
+  const { data: allPlans } = useSuspenseQuery(plansQueryOptions());
+  // Lifetime deals live on their own landing page and never appear here.
+  const plans = allPlans.filter(
+    (p) => p.public_on_pricing_page !== false && p.billing_type !== "lifetime",
+  );
   const [yearly, setYearly] = useState(true);
   const signedIn = useSignedIn();
 

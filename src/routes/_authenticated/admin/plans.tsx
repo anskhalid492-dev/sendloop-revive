@@ -41,6 +41,8 @@ export const Route = createFileRoute("/_authenticated/admin/plans")({
 const NUMBER_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "monthly_price", label: "Monthly price (cents)" },
   { key: "yearly_price", label: "Annual price (cents)" },
+  { key: "one_time_price", label: "One-time price (cents)", hint: "Lifetime plans only." },
+  { key: "compare_at_price", label: "Compare-at price (cents)", hint: "Crossed-out reference price." },
   { key: "monthly_credits", label: "Credits included / month" },
   { key: "max_users", label: "Member limit" },
   { key: "max_workspaces", label: "Workspace limit" },
@@ -58,6 +60,7 @@ const FLAG_FIELDS: { key: string; label: string }[] = [
   { key: "is_active", label: "Active (visible for checkout)" },
   { key: "is_popular", label: "Highlighted as popular" },
   { key: "is_enterprise", label: "Enterprise (contact sales)" },
+  { key: "public_on_pricing_page", label: "Show on public pricing page" },
 ];
 
 type PlanDraft = Record<string, any>;
@@ -73,6 +76,8 @@ function emptyDraft(): PlanDraft {
     monthly_credits: 0,
     sort_order: 100,
     is_active: true,
+    billing_type: "recurring",
+    public_on_pricing_page: true,
   };
 }
 
@@ -181,7 +186,11 @@ function AdminPlansPage() {
                 <tr key={plan.id} className="border-b border-border/40 last:border-0">
                   <td className="px-4 py-3">
                     <div className="font-medium">{plan["name"]}</div>
-                    <div className="text-xs text-muted-foreground">{plan["slug"]}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {plan["slug"]}
+                      {plan["billing_type"] === "lifetime" ? " · lifetime" : ""}
+                      {plan["public_on_pricing_page"] === false ? " · hidden" : ""}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -197,7 +206,11 @@ function AdminPlansPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">{formatMoney(plan["monthly_price"] ?? 0)}</td>
-                  <td className="px-4 py-3">{formatMoney(plan["yearly_price"] ?? 0)}</td>
+                  <td className="px-4 py-3">
+                    {plan["billing_type"] === "lifetime"
+                      ? `${formatMoney(plan["one_time_price"] ?? 0)} once`
+                      : formatMoney(plan["yearly_price"] ?? 0)}
+                  </td>
                   <td className="px-4 py-3">{formatCredits(plan["monthly_credits"] ?? 0)}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {plan["max_users"] ?? "∞"} members · {plan["max_campaigns"] ?? "∞"} campaigns ·{" "}
@@ -246,6 +259,24 @@ function AdminPlansPage() {
                   <Input
                     value={editing["slug"] ?? ""}
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Plan type">
+                  <select
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={editing["billing_type"] ?? "recurring"}
+                    onChange={(e) => setEditing({ ...editing, billing_type: e.target.value })}
+                  >
+                    <option value="recurring">Recurring subscription</option>
+                    <option value="lifetime">Lifetime (one-time payment)</option>
+                  </select>
+                </Field>
+                <Field label="Tagline (short)">
+                  <Input
+                    value={editing["tagline"] ?? ""}
+                    onChange={(e) => setEditing({ ...editing, tagline: e.target.value })}
                   />
                 </Field>
               </div>

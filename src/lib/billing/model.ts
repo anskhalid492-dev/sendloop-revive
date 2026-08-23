@@ -8,7 +8,7 @@ export type BillingProvider = (typeof BILLING_PROVIDERS)[number];
 export const BILLING_ENVIRONMENTS = ["test", "live"] as const;
 export type BillingEnvironment = (typeof BILLING_ENVIRONMENTS)[number];
 
-export type BillingInterval = "monthly" | "yearly";
+export type BillingInterval = "monthly" | "yearly" | "lifetime";
 
 export const SUBSCRIPTION_STATES = [
   "trialing",

@@ -158,7 +158,23 @@ export async function createCheckoutSession(input: {
   if (!option?.available)
     throw new Error("This payment method is not available right now. Please try another option.");
 
-  const priceId = await priceFor(input.provider, settings.environment, input.planId, input.interval);
+  // Lifetime plans are charged once. The plan row is authoritative here so a
+  // recurring interval can never be used to buy a lifetime deal (or vice versa).
+  const { data: planRow } = await db
+    .from("plans")
+    .select("id, name, billing_type, is_active")
+    .eq("id", input.planId)
+    .maybeSingle();
+  if (!planRow?.is_active) throw new Error("This plan is not available right now.");
+  const lifetime = planRow.billing_type === "lifetime";
+  const interval: BillingInterval = lifetime ? "lifetime" : input.interval;
+  if (lifetime) {
+    const entitlement = await getEntitlement(input.workspaceId);
+    if (entitlement.planId === input.planId && entitlement.active)
+      throw new Error("This workspace already has lifetime access.");
+  }
+
+  const priceId = await priceFor(input.provider, settings.environment, input.planId, interval);
   const { data: customer } = await db
     .from("billing_customers")
     .select("external_customer_id, email")
@@ -179,10 +195,11 @@ export async function createCheckoutSession(input: {
     priceId,
     workspaceId: input.workspaceId,
     planId: input.planId,
-    interval: input.interval,
+    interval,
+    mode: lifetime ? ("payment" as const) : ("subscription" as const),
     email: customer?.email ?? profile?.email ?? null,
     customerId: customer?.external_customer_id ?? null,
-    successUrl: `${base}/settings?tab=billing&checkout=success`,
+    successUrl: `${base}/settings?tab=billing&checkout=success${lifetime ? "&lifetime=1" : ""}`,
     cancelUrl: `${base}/settings?tab=billing&checkout=cancelled`,
   });
 
@@ -192,7 +209,7 @@ export async function createCheckoutSession(input: {
     provider: input.provider,
     environment: settings.environment,
     action: "checkout.started",
-    detail: { planId: input.planId, interval: input.interval },
+    detail: { planId: input.planId, interval },
   });
   return result;
 }

@@ -105,7 +105,7 @@ export const startCheckout = createServerFn({ method: "POST" })
       .object({
         workspaceId: z.string().uuid(),
         planId: z.string().uuid(),
-        interval: z.enum(["monthly", "yearly"]),
+        interval: z.enum(["monthly", "yearly", "lifetime"]),
         provider: z.enum(["stripe", "paddle", "lemonsqueezy"]),
       })
       .parse(d),

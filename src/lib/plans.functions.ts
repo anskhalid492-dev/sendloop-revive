@@ -22,6 +22,12 @@ export type Plan = {
   sort_order: number;
   monthly_price: number;
   yearly_price: number;
+  /** "recurring" (default) or "lifetime" for one-time purchases. */
+  billing_type: string | null;
+  one_time_price: number | null;
+  compare_at_price: number | null;
+  /** Lifetime deals are hidden from the public pricing page. */
+  public_on_pricing_page: boolean;
   is_popular: boolean;
   is_enterprise: boolean;
   max_workspaces: number | null;
