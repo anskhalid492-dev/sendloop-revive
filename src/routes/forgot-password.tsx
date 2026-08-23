@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/supabase/client";
+import { requestPasswordResetEmail } from "@/lib/auth-email.functions";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,15 +35,19 @@ function ForgotPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await requestPasswordResetEmail({
+        data: {
+          email: email.trim(),
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      });
+      setSent(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send the reset email.");
+    } finally {
+      setLoading(false);
     }
-    setSent(true);
   }
 
   return (

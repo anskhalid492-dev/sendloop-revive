@@ -122,5 +122,25 @@ export const ensureProfile = createServerFn({ method: "POST" })
       { onConflict: "id" },
     );
     if (error) throw new Error(error.message);
+
+    // Welcome email for genuinely new accounts only (never for backfilled
+    // profiles of long-existing users).
+    try {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+      const createdAt = authUser?.user?.created_at ? Date.parse(authUser.user.created_at) : 0;
+      if (createdAt && Date.now() - createdAt < 24 * 60 * 60 * 1000) {
+        const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+        await emitTransactionalEvent({
+          eventKey: "user.created",
+          userId: context.userId,
+          to: (claims?.["email"] as string | undefined) ?? null,
+          idempotencyKey: `user.created:${context.userId}`,
+          immediate: true,
+        });
+      }
+    } catch {
+      /* a welcome email must never block sign-in */
+    }
+
     return { created: true };
   });
