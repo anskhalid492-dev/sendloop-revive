@@ -340,6 +340,9 @@ export function SiteHeader() {
             active={menu === "products"}
             onOpen={() => openMenu("products")}
           />
+          {midNav.map((link) => (
+            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
+          ))}
           <Trigger
             label="Resources"
             active={menu === "resources"}
@@ -348,7 +351,9 @@ export function SiteHeader() {
           {topNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
           ))}
+          <LifetimeDealLink onHover={() => setMenu(null)} />
         </nav>
+
 
         <div className="hidden shrink-0 items-center gap-2 md:flex">
           {signedIn ? (
