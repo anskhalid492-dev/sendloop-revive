@@ -72,7 +72,7 @@ export function TestimonialCarousel({
 
   if (items.length === 0) return null;
 
-  const columns = chunkColumns(items, 3);
+  const columns = getThreeColumns(items);
 
   return (
     <section className="border-y border-border/60 bg-secondary/30 py-16">
