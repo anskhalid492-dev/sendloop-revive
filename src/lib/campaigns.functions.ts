@@ -74,17 +74,17 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
         scope(
           context.supabase
             .from("campaigns")
-            .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids")
+            .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
             .order("created_at", { ascending: false }),
         ),
         scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")),
-        scope(context.supabase.from("campaign_messages").select("campaign_id, status, to_email")),
+        scope(context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at")),
         scope(context.supabase.from("campaign_replies").select("campaign_id, lead_id, from_email, sentiment")),
         scope(context.supabase.from("conversations").select("campaign_id, lead_id, prospect_email, status")),
         scope(
           context.supabase
             .from("sending_accounts")
-            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status"),
+            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status, daily_limit"),
         ),
       ]);
 
@@ -103,6 +103,32 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     });
   });
 
+
+/**
+ * Quick daily-limit shortcut from the campaigns table.
+ *
+ * Writes the same `campaigns.daily_cap` field the schedule tab and the sending
+ * backend already use — there is no second limit system.
+ */
+export const setCampaignDailyLimit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({ id: z.string().uuid(), dailyCap: z.number().int().min(1).max(10000) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    // RLS scopes the update to campaigns the caller's workspace owns.
+    const { data: row, error } = await context.supabase
+      .from("campaigns")
+      .update({ daily_cap: data.dailyCap })
+      .eq("id", data.id)
+      .select("id, daily_cap")
+      .maybeSingle();
+    if (error) throw new Error("We could not save that daily limit. Please try again.");
+    if (!row) throw new Error("Campaign not found.");
+    return { id: row.id as string, dailyCap: Number(row.daily_cap ?? data.dailyCap) };
+  });
 
 export const getCampaign = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
