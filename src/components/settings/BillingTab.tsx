@@ -24,8 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatMoney, PROVIDER_LABELS, STATE_LABELS } from "@/lib/billing/model";
-import type { BillingInterval, BillingProvider } from "@/lib/billing/model";
+import { formatMoney } from "@/lib/billing/model";
+import type { BillingInterval } from "@/lib/billing/model";
 import {
   cancelSubscription,
   getCustomerBilling,
@@ -44,6 +44,28 @@ function formatDate(value: string | null) {
 function limitLabel(limit: number | null | undefined) {
   if (limit === null || limit === undefined || limit < 0) return "Unlimited";
   return limit.toLocaleString();
+}
+
+/** Customer-friendly state label — never exposes provider or environment details. */
+function customerStateLabel(state: string | null) {
+  switch (state) {
+    case "trialing":
+      return "Trial";
+    case "active":
+      return "Active";
+    case "past_due":
+      return "Past due";
+    case "payment_failed":
+      return "Payment failed";
+    case "paused":
+      return "Paused";
+    case "cancelled":
+      return "Cancelled";
+    case "expired":
+      return "Expired";
+    default:
+      return "No subscription";
+  }
 }
 
 /** Status → badge variant, so every row reads the same way across the table. */
@@ -104,7 +126,6 @@ export function BillingTab({
 }) {
   const queryClient = useQueryClient();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
-  const [provider, setProvider] = useState<BillingProvider | "">("");
   const plansRef = useRef<HTMLDivElement | null>(null);
 
   // Arriving from the pricing page with a chosen plan: bring the plan grid into
@@ -148,7 +169,7 @@ export function BillingTab({
           workspaceId: workspaceId!,
           planId: plan.id,
           interval: isLifetimePlan(plan) ? "lifetime" : interval,
-          provider: (provider || available[0]?.provider || "stripe") as BillingProvider,
+          provider: (available[0]?.provider || "stripe") as import("@/lib/billing/model").BillingProvider,
         },
       }),
     onSuccess: (r) => {
@@ -162,7 +183,7 @@ export function BillingTab({
       portal({ data: { workspaceId: workspaceId!, returnUrl: window.location.href } }),
     onSuccess: (r) => {
       if (r.url) window.location.href = r.url;
-      else toast.info("Your provider does not offer a self-serve portal. Contact support.");
+      else toast.info("Online billing management is not available for this plan. Contact support.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -223,14 +244,14 @@ export function BillingTab({
 
   const periodSuffix = billing.interval === "yearly" ? "/yr" : "/mo";
   const billingTypeLabel = isLifetime
-    ? "Lifetime"
+    ? "One-time payment"
     : billing.interval === "yearly"
-      ? "Yearly"
+      ? "Annual plan"
       : billing.interval === "monthly"
-        ? "Monthly"
+        ? "Monthly plan"
         : billing.grant
           ? "Provided by MunchReach"
-          : "Free";
+          : "Free plan";
 
   // "Never" is reserved for lifetime access. Anything else falls back to the
   // real date, or an em dash when there simply is nothing to show.
@@ -258,10 +279,10 @@ export function BillingTab({
               <Badge variant={billing.active ? "secondary" : "outline"}>
                 {billing.grant
                   ? "Provided by MunchReach"
-                  : (STATE_LABELS[billing.state as keyof typeof STATE_LABELS] ?? "No subscription")}
+                  : billing.active
+                    ? "Active"
+                    : customerStateLabel(billing.state)}
               </Badge>
-              {isLifetime ? <Badge variant="outline">Lifetime</Badge> : null}
-              {billing.environment === "test" ? <Badge variant="outline">Test mode</Badge> : null}
             </div>
             {billing.grant ? (
               <p className="text-sm text-muted-foreground">
@@ -270,8 +291,13 @@ export function BillingTab({
               </p>
             ) : null}
             <p className="text-sm text-muted-foreground">
-              {billing.provider ? PROVIDER_LABELS[billing.provider] : "No payment method"} ·{" "}
-              {billingTypeLabel.toLowerCase()}
+              {isLifetime
+                ? "One-time payment"
+                : billing.interval === "yearly"
+                  ? "Annual plan"
+                  : billing.interval === "monthly"
+                    ? "Monthly plan"
+                    : "Free plan"}
               {!isLifetime && billing.cancelAtPeriodEnd ? " · cancels at period end" : ""}
             </p>
           </div>
@@ -283,7 +309,7 @@ export function BillingTab({
               ) : null}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {isLifetime ? "One-time payment" : hasSubscription ? "Recurring" : "No charge"}
+              {isLifetime ? "One-time payment" : hasSubscription ? billingTypeLabel : "Free plan"}
             </p>
           </div>
         </div>
@@ -406,23 +432,6 @@ export function BillingTab({
                 <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
-            {available.length > 1 ? (
-              <Select
-                value={provider || available[0]!.provider}
-                onValueChange={(v) => setProvider(v as BillingProvider)}
-              >
-                <SelectTrigger className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {available.map((p) => (
-                    <SelectItem key={p.provider} value={p.provider}>
-                      {PROVIDER_LABELS[p.provider]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
           </div>
         </div>
 
