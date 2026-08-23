@@ -4,6 +4,7 @@ import { CheckCircle2, X as XIcon, type LucideIcon } from "lucide-react";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { applySeoOverrides } from "@/lib/page-seo";
+import { absoluteUrl } from "@/lib/seo";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
 import {
