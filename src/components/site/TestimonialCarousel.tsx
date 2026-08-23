@@ -14,6 +14,11 @@ function chunkColumns<T>(items: T[], columns: number): T[][] {
   return result;
 }
 
+function getThreeColumns<T>(items: T[]): [T[], T[], T[]] {
+  const cols = chunkColumns(items, 3);
+  return [cols[0] ?? [], cols[1] ?? [], cols[2] ?? []];
+}
+
 function ColumnTrack({
   items,
   direction,
