@@ -6,7 +6,8 @@
  * the provider event has been applied. It never throws: a notification failure
  * must never fail webhook processing.
  */
-import type { BillingProvider, NormalizedBillingEvent } from "@/lib/billing/model";
+import type { BillingProvider } from "@/lib/billing/model";
+import type { NormalizedBillingEvent } from "@/lib/billing/core.server";
 import { emitTransactionalEvent } from "@/lib/transactional-events.server";
 
 type Db = Awaited<ReturnType<typeof import("@/lib/billing/core.server").admin>>;

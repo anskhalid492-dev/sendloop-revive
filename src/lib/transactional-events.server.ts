@@ -5,7 +5,10 @@
  * It never talks to a provider, never builds HTML and never throws: a failed
  * notification must not fail the user's action.
  */
-import { triggerTransactionalEmail } from "@/lib/transactional-email.server";
+import {
+  processTransactionalQueue,
+  triggerTransactionalEmail,
+} from "@/lib/transactional-email.server";
 
 export type EmitInput = {
   eventKey: string;
@@ -14,6 +17,8 @@ export type EmitInput = {
   workspaceId?: string | null;
   variables?: Record<string, unknown>;
   idempotencyKey?: string | null;
+  /** Send right away instead of waiting for the queue runner. */
+  immediate?: boolean;
 };
 
 /** Resolves recipient + name/workspace context, then queues the email. */
@@ -51,7 +56,7 @@ export async function emitTransactionalEvent(input: EmitInput): Promise<void> {
 
     if (!to) return;
 
-    await triggerTransactionalEmail(supabaseAdmin, {
+    const queued = await triggerTransactionalEmail(supabaseAdmin, {
       eventKey: input.eventKey,
       to,
       variables,
@@ -59,6 +64,12 @@ export async function emitTransactionalEvent(input: EmitInput): Promise<void> {
       workspaceId: input.workspaceId ?? null,
       userId: input.userId ?? null,
     });
+
+    // Time-critical emails (password reset, billing) must not wait for the
+    // queue cron; drain the queue straight away.
+    if (input.immediate && queued.queued) {
+      await processTransactionalQueue(supabaseAdmin, { limit: 5 });
+    }
   } catch (error) {
     console.error("transactional event failed", input.eventKey, error);
   }
