@@ -309,7 +309,7 @@ export function BillingTab({
               ) : null}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {isLifetime ? "One-time payment" : hasSubscription ? "Recurring" : "No charge"}
+              {isLifetime ? "One-time payment" : hasSubscription ? billingTypeLabel : "Free plan"}
             </p>
           </div>
         </div>
