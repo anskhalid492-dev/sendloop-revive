@@ -30,20 +30,8 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 
 /** Public program terms for the marketing page (no auth, no PII). */
 export const getPublicReferralProgram = createServerFn({ method: "GET" }).handler(async (): Promise<ReferralProgram | null> => {
-  const { createClient } = await import("@supabase/supabase-js");
-  const key = PINNED_ANON;
-  const client = createClient(PINNED_URL, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input: any, init: any) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) h.delete("Authorization");
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-  const { data } = await client.rpc("referral_program_public");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.rpc("referral_program_public");
   const row = Array.isArray(data) ? data[0] : data;
   return (row as ReferralProgram) ?? null;
 });
@@ -63,7 +51,7 @@ export const getReferralOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<ReferralOverview> => {
     const { supabase } = context;
     const [{ data: programRows }, { data: profile }] = await Promise.all([
-      supabase.rpc("referral_program_public"),
+      (await import("@/integrations/supabase/client.server")).supabaseAdmin.rpc("referral_program_public"),
       supabase.from("referral_profiles").select("*").eq("user_id", context.userId).maybeSingle(),
     ]);
     const program = ((Array.isArray(programRows) ? programRows[0] : programRows) ?? null) as ReferralProgram;
