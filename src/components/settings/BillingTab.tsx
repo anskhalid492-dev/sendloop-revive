@@ -183,7 +183,7 @@ export function BillingTab({
       portal({ data: { workspaceId: workspaceId!, returnUrl: window.location.href } }),
     onSuccess: (r) => {
       if (r.url) window.location.href = r.url;
-      else toast.info("Your provider does not offer a self-serve portal. Contact support.");
+      else toast.info("Online billing management is not available for this plan. Contact support.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
