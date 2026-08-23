@@ -24,6 +24,7 @@ import {
   resumeSubscription,
   startCheckout,
 } from "@/lib/billing.functions";
+import { isLifetimePlan, lifetimePriceCents } from "@/lib/billing/lifetime";
 import { getPlans } from "@/lib/plans.functions";
 
 function formatDate(value: string | null) {
@@ -98,7 +99,7 @@ export function BillingTab({
         data: {
           workspaceId: workspaceId!,
           planId: plan.id,
-          interval: plan.billing_type === "lifetime" ? "lifetime" : interval,
+          interval: isLifetimePlan(plan) ? "lifetime" : interval,
           provider: (provider ||
             available[0]?.provider ||
             "stripe") as BillingProvider,
@@ -293,12 +294,12 @@ export function BillingTab({
           {(plansQuery.data ?? [])
             .filter(
               (plan) =>
-                plan.billing_type !== "lifetime" || plan.slug === highlightPlanSlug,
+                !isLifetimePlan(plan) || plan.slug === highlightPlanSlug,
             )
             .map((plan) => {
-            const isLifetime = plan.billing_type === "lifetime";
+            const isLifetime = isLifetimePlan(plan);
             const price = isLifetime
-              ? (plan.one_time_price ?? 0)
+              ? lifetimePriceCents(plan)
               : interval === "yearly"
                 ? ((plan as any).yearly_price ?? 0)
                 : plan.monthly_price;
