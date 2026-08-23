@@ -24,11 +24,12 @@ export async function assertWorkspaceBillingManager(
   if (!data) throw new Error("Forbidden: only workspace owners and admins can manage billing");
 }
 
-export async function assertPlatformAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: admin role required");
+export async function assertPlatformAdmin(
+  context: { supabase: any; userId: string; claims?: Record<string, any> },
+  options: { permission?: any; sensitive?: boolean; action?: string } = {},
+) {
+  // Delegates to the single admin guard: role + session revocation + MFA
+  // (+ recent re-authentication for sensitive operations).
+  const { assertSuperAdmin } = await import("@/lib/admin-access.server");
+  await assertSuperAdmin(context, options);
 }
