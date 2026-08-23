@@ -130,6 +130,25 @@ export async function savePlanPrice(
   const rule = PROVIDER_ID_RULES[input.provider];
   if (!rule.test(input.externalPriceId))
     throw new Error(`Invalid ${rule.label} for ${input.provider}: ${rule.hint}`);
+
+  // A lifetime plan may only be mapped to a genuinely one-time Stripe price —
+  // saving a recurring price here would silently turn the deal into a
+  // subscription at checkout.
+  if (input.provider === "stripe" && input.interval === "lifetime") {
+    const { stripeCall } = await import("@/lib/billing/providers.server");
+    const price = await stripeCall(
+      input.environment,
+      `prices/${encodeURIComponent(input.externalPriceId)}`,
+      undefined,
+      "GET",
+    );
+    if (price?.recurring)
+      throw new Error(
+        "That Stripe price is recurring. The lifetime plan needs a one-time (non-recurring) price.",
+      );
+    if (price?.active === false) throw new Error("That Stripe price is archived in Stripe.");
+  }
+
   const db = await admin();
   const { error } = await db.from("billing_plan_prices").upsert(
     {
