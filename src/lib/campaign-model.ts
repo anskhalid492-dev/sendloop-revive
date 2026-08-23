@@ -38,6 +38,9 @@ export type Campaign = {
   text_only: boolean;
   stop_on_company_reply: boolean;
   max_contacts_per_company: number;
+  email_send_limit: number;
+  emails_sent_count: number;
+  limit_reached_at: string | null;
   unsubscribe_enabled: boolean;
   inbox_rotation_enabled: boolean;
   inbox_rotation_strategy: InboxRotationStrategy;
@@ -111,7 +114,7 @@ export type CampaignStep = {
 };
 
 export const CAMPAIGN_COLUMNS =
-  "id, workspace_id, name, description, list_id, sending_account_ids, timezone, send_days, send_start_hour, send_end_hour, daily_cap, stop_on_reply, status, launched_at, created_at, tags, start_at, end_at, min_delay_minutes, random_delay_minutes, max_per_hour, business_days_only, open_tracking, click_tracking, text_only, stop_on_company_reply, max_contacts_per_company, unsubscribe_enabled, inbox_rotation_enabled, inbox_rotation_strategy, rotation_daily_cap_per_inbox, custom_variables";
+  "id, workspace_id, name, description, list_id, sending_account_ids, timezone, send_days, send_start_hour, send_end_hour, daily_cap, stop_on_reply, status, launched_at, created_at, tags, start_at, end_at, min_delay_minutes, random_delay_minutes, max_per_hour, business_days_only, open_tracking, click_tracking, text_only, stop_on_company_reply, max_contacts_per_company, email_send_limit, emails_sent_count, limit_reached_at, unsubscribe_enabled, inbox_rotation_enabled, inbox_rotation_strategy, rotation_daily_cap_per_inbox, custom_variables";
 
 export const STEP_COLUMNS =
   "id, step_order, subject, body, wait_days, wait_hours, name, step_type, delay_minutes, same_thread, config";
