@@ -183,8 +183,8 @@ export async function revokeAdminSession(sessionRowId: string, actorId: string) 
 
 export async function revokeAllAdminSessions(input: {
   actorId: string;
-  targetUserId?: string;
-  keepCurrentSessionOfClaims?: AdminClaims;
+  targetUserId?: string | undefined;
+  keepCurrentSessionOfClaims?: AdminClaims | undefined;
 }) {
   const db = supabaseAdmin as any;
   let query = db
