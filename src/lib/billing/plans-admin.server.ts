@@ -14,6 +14,10 @@ const PLAN_COLUMNS = [
   "sort_order",
   "monthly_price",
   "yearly_price",
+  "one_time_price",
+  "compare_at_price",
+  "billing_type",
+  "public_on_pricing_page",
   "is_popular",
   "is_enterprise",
   "is_active",
@@ -97,6 +101,8 @@ const NUMERIC_FIELDS = [
   "max_warmup_daily",
   "max_sending_accounts",
   "max_automations",
+  "one_time_price",
+  "compare_at_price",
 ];
 const BOOLEAN_FIELDS = [
   "is_popular",
@@ -109,8 +115,9 @@ const BOOLEAN_FIELDS = [
   "priority_support",
   "custom_branding",
   "sso_enabled",
+  "public_on_pricing_page",
 ];
-const TEXT_FIELDS = ["name", "slug", "description", "tagline"];
+const TEXT_FIELDS = ["name", "slug", "description", "tagline", "billing_type"];
 
 function sanitizePlanInput(patch: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
@@ -121,6 +128,12 @@ function sanitizePlanInput(patch: Record<string, unknown>) {
     else if (BOOLEAN_FIELDS.includes(key)) out[key] = Boolean(value);
   }
   if (typeof out["name"] === "string" && !out["name"].trim()) throw new Error("Plan name is required.");
+  if (out["billing_type"] !== undefined) {
+    const type = out["billing_type"] === null ? "recurring" : String(out["billing_type"]);
+    if (type !== "recurring" && type !== "lifetime")
+      throw new Error("Plan type must be recurring or lifetime.");
+    out["billing_type"] = type;
+  }
   return out;
 }
 

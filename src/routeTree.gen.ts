@@ -29,6 +29,7 @@ import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as LifetimeRouteImport } from './routes/lifetime'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReferralRouteImport } from './routes/referral'
@@ -255,6 +256,11 @@ const HelpCenterRoute = HelpCenterRouteImport.update({
 const HowItWorksRoute = HowItWorksRouteImport.update({
   id: '/how-it-works',
   path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LifetimeRoute = LifetimeRouteImport.update({
+  id: '/lifetime',
+  path: '/lifetime',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -978,6 +984,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
+  '/lifetime': typeof LifetimeRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
@@ -1126,6 +1133,7 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/lifetime': typeof LifetimeRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
@@ -1276,6 +1284,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
+  '/lifetime': typeof LifetimeRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
@@ -1427,6 +1436,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/help-center'
     | '/how-it-works'
+    | '/lifetime'
     | '/pricing'
     | '/privacy'
     | '/referral'
@@ -1575,6 +1585,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/forgot-password'
     | '/how-it-works'
+    | '/lifetime'
     | '/pricing'
     | '/privacy'
     | '/referral'
@@ -1724,6 +1735,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/help-center'
     | '/how-it-works'
+    | '/lifetime'
     | '/pricing'
     | '/privacy'
     | '/referral'
@@ -1875,6 +1887,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpCenterRoute: typeof HelpCenterRouteWithChildren
   HowItWorksRoute: typeof HowItWorksRoute
+  LifetimeRoute: typeof LifetimeRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReferralRoute: typeof ReferralRoute
@@ -2072,6 +2085,13 @@ declare module '@tanstack/react-router' {
       path: '/how-it-works'
       fullPath: '/how-it-works'
       preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lifetime': {
+      id: '/lifetime'
+      path: '/lifetime'
+      fullPath: '/lifetime'
+      preLoaderRoute: typeof LifetimeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -3201,6 +3221,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpCenterRoute: HelpCenterRouteWithChildren,
   HowItWorksRoute: HowItWorksRoute,
+  LifetimeRoute: LifetimeRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReferralRoute: ReferralRoute,

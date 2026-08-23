@@ -22,6 +22,8 @@ type PlanRow = {
   yearly_price: number | null;
   is_active: boolean;
   sort_order: number | null;
+  billing_type: string | null;
+  one_time_price: number | null;
 };
 
 export type StripeSyncResult = {
@@ -39,6 +41,7 @@ export type StripeSyncResult = {
 
 /** Monthly cents charged for a plan on the given cycle (yearly is billed once, 12x). */
 function amountFor(plan: PlanRow, interval: BillingInterval) {
+  if (interval === "lifetime") return plan.one_time_price ?? 0;
   if (interval === "monthly") return plan.monthly_price ?? 0;
   const perMonth = plan.yearly_price ?? plan.monthly_price ?? 0;
   return perMonth * 12;
@@ -74,11 +77,9 @@ async function existingPriceIsValid(
 ) {
   try {
     const price = await stripeCall(env, `prices/${priceId}`, undefined, "GET");
-    return (
-      price?.active === true &&
-      price?.unit_amount === amountCents &&
-      price?.recurring?.interval === (interval === "yearly" ? "year" : "month")
-    );
+    if (price?.active !== true || price?.unit_amount !== amountCents) return false;
+    if (interval === "lifetime") return !price?.recurring;
+    return price?.recurring?.interval === (interval === "yearly" ? "year" : "month");
   } catch {
     return false;
   }
@@ -98,7 +99,9 @@ export async function syncStripePrices(
   const db = await admin();
   const { data: plans } = await db
     .from("plans")
-    .select("id, name, slug, description, monthly_price, yearly_price, is_active, sort_order")
+    .select(
+      "id, name, slug, description, monthly_price, yearly_price, is_active, sort_order, billing_type, one_time_price",
+    )
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
@@ -106,14 +109,15 @@ export async function syncStripePrices(
   const intervals: BillingInterval[] = ["monthly", "yearly"];
 
   for (const plan of (plans ?? []) as PlanRow[]) {
-    const monthly = plan.monthly_price ?? 0;
-    if (monthly <= 0) {
+    const lifetime = plan.billing_type === "lifetime";
+    const anchorAmount = lifetime ? (plan.one_time_price ?? 0) : (plan.monthly_price ?? 0);
+    if (anchorAmount <= 0) {
       result.skipped.push({ planName: plan.name, reason: "Free plan — no Stripe price needed" });
       continue;
     }
     const productId = await findOrCreateProduct(environment, plan);
 
-    for (const interval of intervals) {
+    for (const interval of lifetime ? (["lifetime"] as BillingInterval[]) : intervals) {
       const amountCents = amountFor(plan, interval);
       if (amountCents <= 0) continue;
 
@@ -145,7 +149,9 @@ export async function syncStripePrices(
         product: productId,
         currency: "usd",
         unit_amount: amountCents,
-        recurring: { interval: interval === "yearly" ? "year" : "month" },
+        ...(interval === "lifetime"
+          ? {}
+          : { recurring: { interval: interval === "yearly" ? "year" : "month" } }),
         metadata: { munchreach_plan_id: plan.id, munchreach_interval: interval },
       });
 

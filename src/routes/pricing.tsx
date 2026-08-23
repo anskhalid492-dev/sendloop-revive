@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/tooltip";
 import { MarketingLayout, PageHero, Section, FaqBlock } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { isLifetimePlan } from "@/lib/billing/lifetime";
 import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
 import { cn } from "@/lib/utils";
 import { PageFaqs } from "@/components/site/PageFaqs";
@@ -91,7 +92,11 @@ function plansQueryOptions() {
 }
 
 function PricingPage() {
-  const { data: plans } = useSuspenseQuery(plansQueryOptions());
+  const { data: allPlans } = useSuspenseQuery(plansQueryOptions());
+  // Lifetime deals live on their own landing page and never appear here.
+  const plans = allPlans.filter(
+    (p) => p.public_on_pricing_page !== false && !isLifetimePlan(p),
+  );
   const [yearly, setYearly] = useState(true);
   const signedIn = useSignedIn();
 

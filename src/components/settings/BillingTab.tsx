@@ -24,6 +24,7 @@ import {
   resumeSubscription,
   startCheckout,
 } from "@/lib/billing.functions";
+import { isLifetimePlan, lifetimePriceCents } from "@/lib/billing/lifetime";
 import { getPlans } from "@/lib/plans.functions";
 
 function formatDate(value: string | null) {
@@ -93,12 +94,12 @@ export function BillingTab({
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["billing-overview"] });
 
   const checkoutMutation = useMutation({
-    mutationFn: (planId: string) =>
+    mutationFn: (plan: { id: string; billing_type?: string | null }) =>
       checkout({
         data: {
           workspaceId: workspaceId!,
-          planId,
-          interval,
+          planId: plan.id,
+          interval: isLifetimePlan(plan) ? "lifetime" : interval,
           provider: (provider ||
             available[0]?.provider ||
             "stripe") as BillingProvider,
@@ -290,9 +291,18 @@ export function BillingTab({
         ) : null}
 
         <div id="plans" ref={plansRef} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {(plansQuery.data ?? []).map((plan) => {
-            const price =
-              interval === "yearly" ? (plan as any).yearly_price ?? 0 : plan.monthly_price;
+          {(plansQuery.data ?? [])
+            .filter(
+              (plan) =>
+                !isLifetimePlan(plan) || plan.slug === highlightPlanSlug,
+            )
+            .map((plan) => {
+            const isLifetime = isLifetimePlan(plan);
+            const price = isLifetime
+              ? lifetimePriceCents(plan)
+              : interval === "yearly"
+                ? ((plan as any).yearly_price ?? 0)
+                : plan.monthly_price;
             const current = plan.id === billing.planId;
             const picked = Boolean(highlightPlanSlug) && plan.slug === highlightPlanSlug;
             return (
@@ -314,7 +324,7 @@ export function BillingTab({
                 <p className="mt-1 text-2xl font-bold">
                   {formatMoney(price)}
                   <span className="text-sm font-normal text-muted-foreground">
-                    /{interval === "yearly" ? "yr" : "mo"}
+                    {isLifetime ? " one-time" : `/${interval === "yearly" ? "yr" : "mo"}`}
                   </span>
                 </p>
                 <ul className="mt-4 flex-1 space-y-1 text-sm text-muted-foreground">
@@ -326,13 +336,15 @@ export function BillingTab({
                   className="mt-4"
                   variant={current || !picked ? (current ? "outline" : "default") : "default"}
                   disabled={current || available.length === 0 || checkoutMutation.isPending}
-                  onClick={() => checkoutMutation.mutate(plan.id)}
+                  onClick={() => checkoutMutation.mutate(plan)}
                 >
                   {current
                     ? "Current plan"
                     : checkoutMutation.isPending
                       ? "Starting checkout…"
-                      : `Choose ${plan.name}`}
+                      : isLifetime
+                        ? "Get lifetime access"
+                        : `Choose ${plan.name}`}
                 </Button>
               </div>
             );

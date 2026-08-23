@@ -31,6 +31,8 @@ export type CheckoutInput = {
   customerId: string | null;
   successUrl: string;
   cancelUrl: string;
+  /** "payment" is used for one-time lifetime purchases. Defaults to subscription. */
+  mode?: "subscription" | "payment";
 };
 
 export type VerifiedWebhook = {
@@ -202,8 +204,9 @@ const stripe: ProviderAdapter = {
     // dashboard payment-method settings (cards, wallets, bank debits, …) and
     // filters them by currency/country automatically. Async methods finish
     // through checkout.session.async_payment_succeeded, which is handled too.
+    const oneTime = input.mode === "payment" || input.interval === "lifetime";
     const session = await stripeCall(input.environment, "checkout/sessions", {
-      mode: "subscription",
+      mode: oneTime ? "payment" : "subscription",
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       client_reference_id: input.workspaceId,
@@ -217,12 +220,27 @@ const stripe: ProviderAdapter = {
         ? { customer: input.customerId, customer_update: { address: "auto", name: "auto" } }
         : {}),
       ...(!input.customerId && input.email ? { customer_email: input.email } : {}),
-      // (subscription mode always creates/reuses a Stripe customer)
+      // One-time (lifetime) checkouts still need a Stripe customer so invoices,
+      // refunds and later upgrades resolve back to the same workspace.
+      ...(oneTime ? { customer_creation: input.customerId ? undefined : "always" } : {}),
       line_items: { 0: { price: input.priceId, quantity: 1 } },
-      metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
-      subscription_data: {
-        metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
+      metadata: {
+        workspace_id: input.workspaceId,
+        plan_id: input.planId,
+        billing_interval: input.interval,
       },
+      ...(oneTime
+        ? {
+            invoice_creation: { enabled: "true" },
+            payment_intent_data: {
+              metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
+            },
+          }
+        : {
+            subscription_data: {
+              metadata: { workspace_id: input.workspaceId, plan_id: input.planId },
+            },
+          }),
     });
     return { url: session.url as string };
   },

@@ -4126,6 +4126,8 @@ export type Database = {
         Row: {
           analytics_enabled: boolean
           api_access: boolean
+          billing_type: string
+          compare_at_price: number | null
           created_at: string
           custom_branding: boolean
           description: string | null
@@ -4148,7 +4150,9 @@ export type Database = {
           monthly_credits: number
           monthly_price: number
           name: string
+          one_time_price: number | null
           priority_support: boolean
+          public_on_pricing_page: boolean
           slug: string
           sort_order: number
           sso_enabled: boolean
@@ -4162,6 +4166,8 @@ export type Database = {
         Insert: {
           analytics_enabled?: boolean
           api_access?: boolean
+          billing_type?: string
+          compare_at_price?: number | null
           created_at?: string
           custom_branding?: boolean
           description?: string | null
@@ -4184,7 +4190,9 @@ export type Database = {
           monthly_credits?: number
           monthly_price?: number
           name: string
+          one_time_price?: number | null
           priority_support?: boolean
+          public_on_pricing_page?: boolean
           slug: string
           sort_order?: number
           sso_enabled?: boolean
@@ -4198,6 +4206,8 @@ export type Database = {
         Update: {
           analytics_enabled?: boolean
           api_access?: boolean
+          billing_type?: string
+          compare_at_price?: number | null
           created_at?: string
           custom_branding?: boolean
           description?: string | null
@@ -4220,7 +4230,9 @@ export type Database = {
           monthly_credits?: number
           monthly_price?: number
           name?: string
+          one_time_price?: number | null
           priority_support?: boolean
+          public_on_pricing_page?: boolean
           slug?: string
           sort_order?: number
           sso_enabled?: boolean
@@ -7937,7 +7949,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "support" | "user"
       billing_environment: "test" | "live"
-      billing_interval: "monthly" | "yearly"
+      billing_interval: "monthly" | "yearly" | "lifetime"
       billing_provider: "stripe" | "paddle" | "lemonsqueezy" | "manual"
       billing_sub_status:
         | "trialing"
@@ -8126,7 +8138,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "support", "user"],
       billing_environment: ["test", "live"],
-      billing_interval: ["monthly", "yearly"],
+      billing_interval: ["monthly", "yearly", "lifetime"],
       billing_provider: ["stripe", "paddle", "lemonsqueezy", "manual"],
       billing_sub_status: [
         "trialing",
