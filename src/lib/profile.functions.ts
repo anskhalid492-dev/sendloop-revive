@@ -99,28 +99,51 @@ export const dismissChecklist = createServerFn({ method: "POST" })
 export const ensureProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const claims = context.claims as Record<string, unknown> | null;
+    const meta = (claims?.["user_metadata"] ?? {}) as Record<string, unknown>;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const { data: existing } = await context.supabase
       .from("profiles")
       .select("id")
       .eq("id", context.userId)
       .maybeSingle();
-    if (existing) return { created: false };
 
-    const claims = context.claims as Record<string, unknown> | null;
-    const meta = (claims?.["user_metadata"] ?? {}) as Record<string, unknown>;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("profiles").upsert(
-      {
-        id: context.userId,
-        email: (claims?.["email"] as string | undefined) ?? null,
-        full_name:
-          (meta["full_name"] as string | undefined) ??
-          (meta["name"] as string | undefined) ??
-          null,
-        avatar_url: (meta["avatar_url"] as string | undefined) ?? null,
-      },
-      { onConflict: "id" },
-    );
-    if (error) throw new Error(error.message);
-    return { created: true };
+    if (!existing) {
+      const { error } = await supabaseAdmin.from("profiles").upsert(
+        {
+          id: context.userId,
+          email: (claims?.["email"] as string | undefined) ?? null,
+          full_name:
+            (meta["full_name"] as string | undefined) ??
+            (meta["name"] as string | undefined) ??
+            null,
+          avatar_url: (meta["avatar_url"] as string | undefined) ?? null,
+        },
+        { onConflict: "id" },
+      );
+      if (error) throw new Error(error.message);
+    }
+
+
+    // Welcome email for genuinely new accounts only (never for backfilled
+    // profiles of long-existing users).
+    try {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+      const createdAt = authUser?.user?.created_at ? Date.parse(authUser.user.created_at) : 0;
+      if (createdAt && Date.now() - createdAt < 24 * 60 * 60 * 1000) {
+        const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
+        await emitTransactionalEvent({
+          eventKey: "user.created",
+          userId: context.userId,
+          to: (claims?.["email"] as string | undefined) ?? null,
+          idempotencyKey: `user.created:${context.userId}`,
+          immediate: true,
+        });
+      }
+    } catch {
+      /* a welcome email must never block sign-in */
+    }
+
+    return { created: !existing };
   });
