@@ -36,7 +36,8 @@ export function publicClient() {
 
 /** Reads the public switch through the security-definer RPC. */
 export async function readGoogleEnabled(): Promise<boolean> {
-  const { data } = await publicClient().rpc("public_auth_settings");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.rpc("public_auth_settings");
   const row = Array.isArray(data) ? data[0] : data;
   return (row as { google_enabled?: boolean } | null)?.google_enabled ?? true;
 }
