@@ -373,11 +373,36 @@ export async function dispatchDueMessages(
       continue;
     }
 
+    // Atomic campaign-level reservation: the customer-chosen campaign limit
+    // covers every email this campaign generates, follow-ups included.
+    const reservation = (await supabaseAdmin.rpc("reserve_campaign_send", {
+      _campaign_id: message.campaign_id as string,
+    })) as { data: { allowed?: boolean; sent?: number; limit?: number } | null; error: { message: string } | null };
+    if (reservation.error) throw new Error(reservation.error.message);
+    if (!reservation.data?.allowed) {
+      const reached = `Campaign email limit reached (${reservation.data?.sent ?? 0} of ${reservation.data?.limit ?? 0} emails sent).`;
+      result.skipped += 1;
+      if (result.errors.length < 5) result.errors.push(reached);
+      await supabase
+        .from("campaign_messages")
+        .update({ status: "cancelled", last_error: reached.slice(0, 500) })
+        .eq("id", message.id);
+      // Stop the campaign so nothing else is attempted for it.
+      await supabase
+        .from("campaigns")
+        .update({ status: "paused" })
+        .eq("id", message.campaign_id)
+        .eq("status", "active");
+      break;
+    }
+
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
     try {
       await consumeUsage(message.workspace_id as string, "emails_monthly", 1, "campaign_send");
     } catch (error) {
+      // Plan allowance is spent: give the campaign reservation back.
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       if (error instanceof EntitlementError) {
         result.skipped += 1;
         if (result.errors.length < 5) result.errors.push(error.message);
@@ -427,6 +452,7 @@ export async function dispatchDueMessages(
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       await fail(send.message);
       continue;
     }

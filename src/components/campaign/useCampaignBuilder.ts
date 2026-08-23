@@ -63,6 +63,7 @@ export type CampaignSettings = {
   textOnly: boolean;
   stopOnCompanyReply: boolean;
   maxContactsPerCompany: number;
+  emailSendLimit: number;
   unsubscribeEnabled: boolean;
   inboxRotationEnabled: boolean;
   inboxRotationStrategy: InboxRotationStrategy;
@@ -189,6 +190,7 @@ export function useCampaignBuilder(campaignId: string) {
       textOnly: c.text_only,
       stopOnCompanyReply: c.stop_on_company_reply,
       maxContactsPerCompany: c.max_contacts_per_company,
+      emailSendLimit: c.email_send_limit ?? 1000,
       unsubscribeEnabled: c.unsubscribe_enabled,
       inboxRotationEnabled: c.inbox_rotation_enabled ?? true,
       inboxRotationStrategy: c.inbox_rotation_strategy ?? "round_robin",
@@ -258,6 +260,7 @@ export function useCampaignBuilder(campaignId: string) {
           textOnly: settings.textOnly,
           stopOnCompanyReply: settings.stopOnCompanyReply,
           maxContactsPerCompany: settings.maxContactsPerCompany,
+          emailSendLimit: settings.emailSendLimit,
           unsubscribeEnabled: settings.unsubscribeEnabled,
           inboxRotationEnabled: settings.inboxRotationEnabled,
           inboxRotationStrategy: settings.inboxRotationStrategy,

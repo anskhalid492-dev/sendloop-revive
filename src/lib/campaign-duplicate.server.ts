@@ -52,6 +52,7 @@ export async function duplicateCampaignRow(
       text_only: c.text_only,
       stop_on_company_reply: c.stop_on_company_reply,
       max_contacts_per_company: c.max_contacts_per_company,
+      email_send_limit: c.email_send_limit,
       unsubscribe_enabled: c.unsubscribe_enabled,
       inbox_rotation_enabled: c.inbox_rotation_enabled,
       inbox_rotation_strategy: c.inbox_rotation_strategy,
