@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { REVIEW_CATEGORIES, compactNumber } from "@/lib/reviews";
 import { getReviewStats, listPublicReviews } from "@/lib/testimonials.functions";
+import { absoluteUrl } from "@/lib/seo";
 
-const TITLE = "Customer Reviews | MunchReach";
+const TITLE = "MunchReach Customer Reviews & Ratings";
 const DESCRIPTION =
-  "Read verified MunchReach customer reviews from agencies, SaaS teams, sales teams and recruiters using MunchReach for cold email outreach, deliverability and reply management.";
+  "Verified reviews from agencies, SaaS teams and recruiters using MunchReach for cold email outreach, deliverability and replies.";
 
 export const Route = createFileRoute("/customer-reviews")({
   loader: async () => ({
@@ -29,10 +30,12 @@ export const Route = createFileRoute("/customer-reviews")({
         { property: "og:title", content: TITLE },
         { property: "og:description", content: DESCRIPTION },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: "/customer-reviews" },
+        { property: "og:url", content: absoluteUrl("/customer-reviews") },
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: TITLE },
+        { name: "twitter:description", content: DESCRIPTION },
       ],
-      links: [{ rel: "canonical", href: "/customer-reviews" }],
+      links: [{ rel: "canonical", href: absoluteUrl("/customer-reviews") }],
       ...(rating && stats && stats.reviews > 0
         ? {
             scripts: [
@@ -43,6 +46,8 @@ export const Route = createFileRoute("/customer-reviews")({
                   "@type": "Product",
                   name: "MunchReach",
                   description: DESCRIPTION,
+                  url: absoluteUrl("/customer-reviews"),
+                  brand: { "@type": "Brand", name: "MunchReach" },
                   aggregateRating: {
                     "@type": "AggregateRating",
                     ratingValue: rating,
