@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CONTENT_TYPE_LABELS, formatBlogDate, initials } from "@/lib/blog-model";
 import { getBlogPost } from "@/lib/blog.functions";
 import { NewsletterCard } from "@/components/blog/NewsletterCard";
+import { SITE_URL, absoluteUrl, breadcrumbJsonLd, NOINDEX_META } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
