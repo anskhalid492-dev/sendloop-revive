@@ -25,7 +25,22 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
+// Baseline security headers. Deliberately no enforcing CSP: the app loads
+// Stripe, Supabase and remote fonts, and a wrong policy would break checkout.
+const securityHeaders = createMiddleware().server(async ({ next }) => {
+  const result: any = await next();
+  const response: Response | undefined = result?.response;
+  if (response?.headers) {
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    response.headers.set("X-Frame-Options", "SAMEORIGIN");
+    response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  return result;
+});
+
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, csrfMiddleware, securityHeaders],
 }));
