@@ -923,6 +923,22 @@ export const launchCampaign = createServerFn({ method: "POST" })
     await requireEntitlement(c.workspace_id, "campaigns");
     // No allowance left means no email can leave, so refuse the launch outright.
     await checkUsageLimit(c.workspace_id, "emails_monthly", 1);
+    // The campaign-level cap must be a real, sendable number before launch.
+    const campaignLimit = c.email_send_limit ?? 0;
+    if (campaignLimit <= 0) {
+      throw new Error("Set an email sending limit greater than 0 before launching this campaign.");
+    }
+    {
+      const { evaluateEntitlement } = await import("@/lib/billing/usage.server");
+      const decision = await evaluateEntitlement(c.workspace_id, "emails_monthly", 1);
+      const remaining = decision.limit === null ? null : Math.max(decision.limit - decision.used, 0);
+      const alreadySent = c.emails_sent_count ?? 0;
+      if (remaining !== null && campaignLimit - alreadySent > remaining) {
+        throw new Error(
+          `This campaign's limit (${campaignLimit.toLocaleString()} emails) exceeds your remaining monthly allowance of ${remaining.toLocaleString()} emails. Lower the campaign limit or upgrade your plan.`,
+        );
+      }
+    }
     if (c.status !== "active") await checkUsageLimit(c.workspace_id, "active_campaigns", 1);
 
 
