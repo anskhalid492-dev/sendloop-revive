@@ -89,6 +89,123 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_permission_grants: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      admin_rate_limits: {
+        Row: {
+          bucket: string
+          hits: number
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      admin_security_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          email: string | null
+          event_type: string
+          id: string
+          ip: string | null
+          result: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          email?: string | null
+          event_type: string
+          id?: string
+          ip?: string | null
+          result?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip?: string | null
+          result?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_sessions: {
+        Row: {
+          aal: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          last_seen_at: string
+          revoked_at: string | null
+          revoked_by: string | null
+          session_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          aal?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          session_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          aal?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_personalizations: {
         Row: {
           accepted: boolean
@@ -7408,6 +7525,10 @@ export type Database = {
     }
     Functions: {
       accept_workspace_invitation: { Args: { _token: string }; Returns: string }
+      admin_rate_limit_hit: {
+        Args: { _bucket: string; _limit: number; _window_seconds: number }
+        Returns: Json
+      }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
         Returns: {
@@ -7695,6 +7816,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      has_admin_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
