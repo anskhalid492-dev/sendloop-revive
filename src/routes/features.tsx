@@ -56,9 +56,9 @@ import { BRAND_NAME } from "@/lib/branding";
 import dashboardPreview from "@/assets/dashboard-preview.jpg";
 
 const CANONICAL = "https://munchreach.com/features";
-const SEO_TITLE = "MunchReach Features — Cold Email & Outreach Automation";
+const SEO_TITLE = "Features — Cold Email & Outreach Automation";
 const SEO_DESCRIPTION =
-  "See every MunchReach feature: campaigns, lead management, automated follow-ups, unified inbox, email accounts, warmup, AI personalization, automations, analytics, CRM and API.";
+  "Campaigns, follow-ups, unified inbox, warmup, AI personalization, CRM, automations and analytics — every MunchReach feature explained.";
 
 const faqs = [
   {

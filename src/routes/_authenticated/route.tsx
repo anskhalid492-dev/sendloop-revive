@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
+import { NOINDEX_META_STRICT } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -11,5 +12,6 @@ export const Route = createFileRoute("/_authenticated")({
     }
     return { user: data.user };
   },
+  head: () => ({ meta: [NOINDEX_META_STRICT] }),
   component: () => <Outlet />,
 });

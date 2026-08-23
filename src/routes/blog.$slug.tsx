@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CONTENT_TYPE_LABELS, formatBlogDate, initials } from "@/lib/blog-model";
 import { getBlogPost } from "@/lib/blog.functions";
 import { NewsletterCard } from "@/components/blog/NewsletterCard";
+import { SITE_URL, absoluteUrl, breadcrumbJsonLd, NOINDEX_META } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
@@ -22,10 +23,14 @@ export const Route = createFileRoute("/blog/$slug")({
   },
   head: ({ params, loaderData }) => {
     const post = loaderData?.post;
-    if (!post) return { meta: [{ title: "Article — MunchReach Blog" }] };
+    if (!post) {
+      return { meta: [{ title: "Article — MunchReach Blog" }, NOINDEX_META] };
+    }
     const title = post.seo_title || `${post.title} — MunchReach Blog`;
     const description = post.meta_description || post.excerpt || post.subtitle;
     const path = `/blog/${params.slug}`;
+    const url = absoluteUrl(path);
+    const canonical = post.canonical_url ? absoluteUrl(post.canonical_url) : url;
     const image = post.og_image_url || post.cover_image_url;
     return {
       meta: [
@@ -34,23 +39,27 @@ export const Route = createFileRoute("/blog/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
-        { property: "og:url", content: path },
+        { property: "og:url", content: url },
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
         ...(post.author ? [{ name: "author", content: post.author.name }] : []),
         ...(image
           ? [
-              { property: "og:image", content: image },
-              { name: "twitter:image", content: image },
+              { property: "og:image", content: absoluteUrl(image) },
+              { name: "twitter:image", content: absoluteUrl(image) },
             ]
           : []),
       ],
-      links: [{ rel: "canonical", href: post.canonical_url || path }],
+      links: [{ rel: "canonical", href: canonical }],
       scripts: [
         {
           type: "application/ld+json",
           children: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "Article",
+            "@type": "BlogPosting",
+            mainEntityOfPage: { "@type": "WebPage", "@id": url },
+            url,
             headline: post.title,
             description,
             articleSection: post.category?.name,
@@ -58,34 +67,21 @@ export const Route = createFileRoute("/blog/$slug")({
             datePublished: post.published_at,
             dateModified: post.updated_at,
             author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
-            publisher: { "@type": "Organization", name: "MunchReach" },
-            ...(image ? { image } : {}),
+            publisher: { "@type": "Organization", name: "MunchReach", url: SITE_URL },
+            ...(image ? { image: absoluteUrl(image) } : {}),
           }),
         },
-        {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Blog", item: "/blog" },
-              ...(post.category
-                ? [
-                    {
-                      "@type": "ListItem",
-                      position: 2,
-                      name: post.category.name,
-                      item: `/blog/category/${post.category.slug}`,
-                    },
-                  ]
-                : []),
-              { "@type": "ListItem", position: post.category ? 3 : 2, name: post.title, item: path },
-            ],
-          }),
-        },
+        breadcrumbJsonLd([
+          { name: "Blog", path: "/blog" },
+          ...(post.category
+            ? [{ name: post.category.name, path: `/blog/category/${post.category.slug}` }]
+            : []),
+          { name: post.title, path },
+        ]),
       ],
     };
   },
+
   notFoundComponent: () => (
     <MarketingLayout>
       <Section title="Article not found" description="That article does not exist or is no longer published.">

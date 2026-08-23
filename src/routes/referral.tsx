@@ -71,8 +71,8 @@ export const Route = createFileRoute("/referral")({
   loader: ({ context }) => context.queryClient.ensureQueryData(programQuery),
   head: () =>
     metaFor(
-      "MunchReach Referral Program — Earn recurring commission",
-      "Refer teams to MunchReach and earn commission on real, verified payments. Transparent tracking, live dashboard, reversal-safe balances and manual-reviewed payouts.",
+      "MunchReach Referral Program — Earn Commission",
+      "Refer teams and earn commission on verified payments, with transparent tracking, a live dashboard and reviewed payouts.",
       "/referral",
       faqs,
     ),

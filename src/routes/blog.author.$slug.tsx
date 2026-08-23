@@ -5,6 +5,7 @@ import { MarketingLayout, Section } from "@/components/site/MarketingPage";
 import { Button } from "@/components/ui/button";
 import { initials } from "@/lib/blog-model";
 import { getBlogAuthor } from "@/lib/blog.functions";
+import { absoluteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog/author/$slug")({
   loader: async ({ params }) => {
@@ -24,10 +25,10 @@ export const Route = createFileRoute("/blog/author/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "profile" },
-        { property: "og:url", content: path },
+        { property: "og:url", content: absoluteUrl(path) },
         { name: "twitter:card", content: "summary_large_image" },
       ],
-      links: [{ rel: "canonical", href: path }],
+      links: [{ rel: "canonical", href: absoluteUrl(path) }],
     };
   },
   notFoundComponent: () => (

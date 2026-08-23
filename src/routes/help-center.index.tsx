@@ -31,8 +31,8 @@ import {
 export const Route = createFileRoute("/help-center/")({
   head: () =>
     metaFor(
-      "MunchReach Help Center",
-      "Search MunchReach help articles on campaigns, email accounts, deliverability, warmup, the unified inbox, CRM, analytics, integrations, billing and workspace settings.",
+      "MunchReach Help Center — Guides & Answers",
+      "Search help articles on campaigns, email accounts, deliverability, warmup, the unified inbox, CRM, analytics and billing.",
       "/help-center",
     ),
   component: HelpCenter,

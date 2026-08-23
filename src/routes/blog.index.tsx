@@ -39,8 +39,8 @@ export const Route = createFileRoute("/blog/")({
   loader: () => getBlogIndex(),
   head: () =>
     metaFor(
-      "MunchReach Blog — Cold Email, Deliverability & Outbound Growth",
-      "Practical strategies, guides, templates and insights to help you send better cold emails, improve deliverability and generate more conversations.",
+      "Cold Email Blog — Deliverability & Outbound Growth",
+      "Guides, templates and strategies to send better cold emails, protect deliverability and start more conversations.",
       "/blog",
       faqs,
     ),

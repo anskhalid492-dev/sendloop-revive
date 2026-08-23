@@ -45,7 +45,7 @@ const faqs = [
 export const Route = createFileRoute("/product/email-accounts")({
   head: () =>
     metaFor(
-      "Managed Email Accounts & Sending Health — MunchReach",
+      "Managed Email Accounts & Sending Health",
       "MunchReach runs your sending infrastructure. Monitor managed email accounts, daily limits, rotation and health from one screen.",
       "/product/email-accounts",
       faqs,

@@ -29,8 +29,8 @@ export const Route = createFileRoute("/solutions/$slug")({
       };
     }
     return metaFor(
-      `${content.nav} — Cold Email Outreach | MunchReach`,
-      content.description,
+      `${content.nav} — Outreach | MunchReach`,
+      content.description.slice(0, 150),
       `https://munchreach.com/solutions/${content.slug}`,
       content.faqs,
     );

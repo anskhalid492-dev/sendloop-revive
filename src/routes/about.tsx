@@ -28,7 +28,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 export const Route = createFileRoute("/about")({
   head: () =>
     metaFor(
-      "About MunchReach — Why We Built It and Where It's Going",
+      "About MunchReach — Our Story and Roadmap",
       "MunchReach started inside a five-person outbound agency drowning in mailboxes. This is the story, what we learned, and what we're building next.",
       "/about",
     ),

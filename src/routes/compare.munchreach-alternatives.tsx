@@ -45,8 +45,8 @@ const pillars = [
 export const Route = createFileRoute("/compare/munchreach-alternatives")({
   head: () =>
     metaFor(
-      "MunchReach Alternatives — Compare Cold Email Platforms (2026)",
-      "A neutral guide to MunchReach alternatives: Instantly, Smartlead, lemlist, Apollo and Saleshandy compared on sending, deliverability, warmup, inbox, CRM and automations.",
+      "MunchReach Alternatives — Cold Email Tools Compared",
+      "A neutral look at Instantly, Smartlead, lemlist, Apollo and Saleshandy on sending, deliverability, warmup, inbox and CRM.",
       "/compare/munchreach-alternatives",
       faqs,
     ),

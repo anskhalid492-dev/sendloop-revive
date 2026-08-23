@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { acceptInvitation } from "@/lib/workspace-team.functions";
+import { NOINDEX_META } from "@/lib/seo";
 
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/invite/$token")({
       { property: "og:description", content: "Join your team's MunchReach workspace." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      NOINDEX_META,
     ],
   }),
   component: InvitePage,

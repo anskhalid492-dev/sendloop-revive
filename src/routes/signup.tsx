@@ -13,6 +13,7 @@ import { captureReferralCode } from "@/hooks/useReferralClaim";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { absoluteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/signup")({
   /** `?redirect=/billing?plan=starter` preserves the plan a visitor picked. */
@@ -33,7 +34,9 @@ export const Route = createFileRoute("/signup")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: absoluteUrl("/signup") },
     ],
+    links: [{ rel: "canonical", href: absoluteUrl("/signup") }],
   }),
   component: SignUpPage,
 });

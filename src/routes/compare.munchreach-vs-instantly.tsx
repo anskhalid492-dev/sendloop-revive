@@ -9,8 +9,8 @@ const data = COMPARISONS["munchreach-vs-instantly"]!;
 export const Route = createFileRoute("/compare/munchreach-vs-instantly")({
   head: () =>
     metaFor(
-      "MunchReach vs Instantly — Honest Cold Email Platform Comparison",
-      "Compare MunchReach and Instantly across campaigns, sending infrastructure, warmup, unified inbox, CRM, automations and analytics. Reviewed August 2026.",
+      "MunchReach vs Instantly — Cold Email Comparison",
+      "Compare campaigns, sending infrastructure, warmup, unified inbox, CRM, automations and analytics before picking a platform.",
       "/compare/munchreach-vs-instantly",
       data.faqs,
     ),

@@ -28,6 +28,8 @@ import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
 import { cn } from "@/lib/utils";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { supabase } from "@/integrations/supabase/client";
+import { applySeoOverrides } from "@/lib/page-seo";
+import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo";
 
 /**
  * Every pricing CTA leads to the customer Billing / Upgrade page with the
@@ -57,32 +59,71 @@ function planCtaHref(signedIn: boolean | null, planSlug?: string) {
   return signedIn ? billing : `/signup?redirect=${encodeURIComponent(billing)}`;
 }
 
+const PRICING_TITLE = "MunchReach Pricing — Plans From Free to Agency";
+const PRICING_DESCRIPTION =
+  "Transparent cold email pricing. Start free, then scale sending, leads and mailboxes with a monthly or yearly plan that fits your team.";
+
 export const Route = createFileRoute("/pricing")({
-  head: () => ({
-    meta: [
-      { title: "Pricing — MunchReach" },
-      {
-        name: "description",
-        content:
-          "Simple, transparent pricing for cold email outreach. Start free, then scale with Starter, Growth or Agency plans.",
-      },
-      { property: "og:title", content: "Pricing — MunchReach" },
-      {
-        property: "og:description",
-        content:
-          "Simple, transparent pricing for cold email outreach. Start free, then scale with Starter, Growth or Agency plans.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    // Offers are built from the live plan records only — nothing is invented.
+    const offers = (((loaderData as { plans?: Plan[] } | undefined)?.plans ?? []) as Plan[])
+      .filter((p) => !p.is_enterprise && typeof p.monthly_price === "number")
+      .map((p) => ({
+        "@type": "Offer",
+        name: p.name,
+        price: (p.monthly_price / 100).toFixed(2),
+        priceCurrency: "USD",
+        url: absoluteUrl("/pricing"),
+      }));
+
+    return applySeoOverrides("/pricing", {
+      meta: [
+        { title: PRICING_TITLE },
+        { name: "description", content: PRICING_DESCRIPTION },
+        { property: "og:title", content: PRICING_TITLE },
+        { property: "og:description", content: PRICING_DESCRIPTION },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: absoluteUrl("/pricing") },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: PRICING_TITLE },
+        { name: "twitter:description", content: PRICING_DESCRIPTION },
+      ],
+      links: [{ rel: "canonical", href: absoluteUrl("/pricing") }],
+      scripts: offers.length
+        ? [
+            {
+              type: "application/ld+json",
+              children: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Product",
+                name: "MunchReach",
+                description: PRICING_DESCRIPTION,
+                url: absoluteUrl("/pricing"),
+                brand: { "@type": "Brand", name: "MunchReach" },
+                offers,
+              }),
+            },
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Pricing", path: "/pricing" },
+            ]),
+          ]
+        : [
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Pricing", path: "/pricing" },
+            ]),
+          ],
+    });
+  },
   loader: async ({ context }) => {
     const query = plansQueryOptions();
-    await context.queryClient.ensureQueryData(query);
-    return { queryKey: query.queryKey };
+    const plans = await context.queryClient.ensureQueryData(query);
+    return { queryKey: query.queryKey, plans };
   },
   component: PricingPage,
 });
+
 
 function plansQueryOptions() {
   return {

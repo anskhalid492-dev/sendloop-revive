@@ -281,7 +281,7 @@ export const Route = createFileRoute("/lifetime")({
       {
         name: "description",
         content:
-          "Get MunchReach Lifetime and run targeted cold email campaigns, automate follow-ups, manage replies, and grow your outbound pipeline with one simple payment.",
+          "Run cold email campaigns, follow-ups, warmup and a unified inbox for one payment. MunchReach Lifetime, no recurring subscription.",
       },
       { property: "og:title", content: "MunchReach Lifetime Deal — Get Lifetime Access" },
       {
