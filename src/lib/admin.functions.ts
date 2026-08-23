@@ -13,13 +13,14 @@ import { PROVIDER_IDS } from "@/lib/providers/registry";
 
 const providerEnum = z.enum(PROVIDER_IDS);
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: admin role required");
+async function assertAdmin(
+  context: { supabase: any; userId: string; claims?: Record<string, any> },
+  options: { sensitive?: boolean; action?: string } = {},
+) {
+  // Single hardened guard: platform role + admin session revocation + MFA
+  // (+ recent re-authentication for sensitive operations).
+  const { assertSuperAdmin } = await import("@/lib/admin-access.server");
+  await assertSuperAdmin(context, options);
 }
 
 export type AdminProvider = {
@@ -123,7 +124,7 @@ export const saveProvider = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context, { sensitive: true, action: "change email provider credentials" });
 
     const row = {
       provider: data.provider,
@@ -230,7 +231,7 @@ export const deleteProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context, { sensitive: true, action: "delete email provider" });
     const { error } = await context.supabase.from("email_providers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -391,7 +392,7 @@ export const deleteSendingAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context, { sensitive: true, action: "delete sending account" });
     const { error } = await context.supabase.from("sending_accounts").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -723,7 +724,7 @@ export const saveReplyToSettings = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context, { sensitive: true, action: "change system email configuration" });
     const { error } = await context.supabase.from("platform_settings").upsert(
       {
         key: "reply_to",
@@ -798,7 +799,7 @@ export const registerInboundWebhook = createServerFn({ method: "POST" })
     z.object({ baseUrl: z.string().trim().url().max(300) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context, { sensitive: true, action: "change inbound webhook configuration" });
     const key = process.env["RESEND_API_KEY"];
     const secret = process.env["INBOUND_EMAIL_SECRET"];
     if (!key) throw new Error("No sending provider API key is configured.");
@@ -823,7 +824,7 @@ export const deleteInboundWebhook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().trim().min(3).max(100) }).parse(input))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context, { sensitive: true, action: "delete inbound webhook" });
     const key = process.env["RESEND_API_KEY"];
     if (!key) throw new Error("No sending provider API key is configured.");
     const response = await fetch(`https://api.resend.com/webhooks/${data.id}`, {
