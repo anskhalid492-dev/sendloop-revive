@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import { MarketingLayout, Section, FaqBlock, faqJsonLd } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { getPlans, type Plan } from "@/lib/plans.functions";
+import {
+  LIFETIME_PLAN_SLUG,
+  isLifetimePlan,
+  lifetimeCompareAtCents,
+  lifetimePriceCents,
+} from "@/lib/billing/lifetime";
 import { formatMoney } from "@/lib/billing/model";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -115,16 +121,15 @@ function LifetimePage() {
   const signedIn = useSignedIn();
 
   const plan: Plan | undefined =
-    plans.find((p) => p.billing_type === "lifetime" && p.slug === "lifetime") ??
-    plans.find((p) => p.billing_type === "lifetime");
+    plans.find((p) => p.slug === LIFETIME_PLAN_SLUG) ?? plans.find((p) => isLifetimePlan(p));
 
-  const priceCents = plan?.one_time_price ?? 0;
-  const compareCents = plan?.compare_at_price ?? 0;
-  const billingHref = `/billing?plan=${encodeURIComponent(plan?.slug ?? "lifetime")}`;
+  const priceCents = lifetimePriceCents(plan);
+  const compareCents = lifetimeCompareAtCents(plan);
+  const billingHref = `/billing?plan=${encodeURIComponent(plan?.slug ?? LIFETIME_PLAN_SLUG)}`;
   const ctaHref = signedIn ? billingHref : `/signup?redirect=${encodeURIComponent(billingHref)}`;
 
   const monthlyPlans = plans.filter(
-    (p) => p.billing_type !== "lifetime" && p.public_on_pricing_page !== false && p.monthly_price > 0,
+    (p) => !isLifetimePlan(p) && p.public_on_pricing_page !== false && p.monthly_price > 0,
   );
   const reference = monthlyPlans[0];
 
