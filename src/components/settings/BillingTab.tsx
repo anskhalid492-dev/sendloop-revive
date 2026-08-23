@@ -147,7 +147,7 @@ export function BillingTab({
           workspaceId: workspaceId!,
           planId: plan.id,
           interval: isLifetimePlan(plan) ? "lifetime" : interval,
-          provider: (provider || available[0]?.provider || "stripe") as BillingProvider,
+          provider: (available[0]?.provider || "stripe") as import("@/lib/billing/model").BillingProvider,
         },
       }),
     onSuccess: (r) => {
