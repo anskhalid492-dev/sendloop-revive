@@ -26,8 +26,8 @@ export const Route = createFileRoute("/help-center/$slug")({
     }
     const { article } = loaderData;
     return metaFor(
-      `${article.title} | MunchReach Help Center`,
-      article.description,
+      `${article.title} — MunchReach Help`,
+      article.description.slice(0, 150),
       `/help-center/${params.slug}`,
     );
   },
