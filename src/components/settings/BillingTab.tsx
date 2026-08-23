@@ -279,10 +279,10 @@ export function BillingTab({
               <Badge variant={billing.active ? "secondary" : "outline"}>
                 {billing.grant
                   ? "Provided by MunchReach"
-                  : (STATE_LABELS[billing.state as keyof typeof STATE_LABELS] ?? "No subscription")}
+                  : billing.active
+                    ? "Active"
+                    : customerStateLabel(billing.state)}
               </Badge>
-              {isLifetime ? <Badge variant="outline">Lifetime</Badge> : null}
-              {billing.environment === "test" ? <Badge variant="outline">Test mode</Badge> : null}
             </div>
             {billing.grant ? (
               <p className="text-sm text-muted-foreground">
@@ -291,8 +291,13 @@ export function BillingTab({
               </p>
             ) : null}
             <p className="text-sm text-muted-foreground">
-              {billing.provider ? PROVIDER_LABELS[billing.provider] : "No payment method"} ·{" "}
-              {billingTypeLabel.toLowerCase()}
+              {isLifetime
+                ? "One-time payment"
+                : billing.interval === "yearly"
+                  ? "Annual plan"
+                  : billing.interval === "monthly"
+                    ? "Monthly plan"
+                    : "Free plan"}
               {!isLifetime && billing.cancelAtPeriodEnd ? " · cancels at period end" : ""}
             </p>
           </div>
