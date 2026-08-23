@@ -398,7 +398,7 @@ function FeaturesPage() {
           "Realtime updates",
         ]}
         cta="Explore Unified Inbox"
-        ctaTo="/products/unified-inbox"
+        ctaTo="/product/unified-inbox"
         muted
         flip
       >
