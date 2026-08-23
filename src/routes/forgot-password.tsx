@@ -8,6 +8,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NOINDEX_META } from "@/lib/seo";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/forgot-password")({
       { property: "og:description", content: "Get a secure password reset link by email." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      NOINDEX_META,
     ],
   }),
   component: ForgotPasswordPage,

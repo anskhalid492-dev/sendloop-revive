@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { absoluteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/signin")({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
@@ -31,7 +32,9 @@ export const Route = createFileRoute("/signin")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: absoluteUrl("/signin") },
     ],
+    links: [{ rel: "canonical", href: absoluteUrl("/signin") }],
   }),
   component: SignInPage,
 });

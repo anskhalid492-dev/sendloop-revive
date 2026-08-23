@@ -7,6 +7,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
+import { NOINDEX_META } from "@/lib/seo";
 
 const searchSchema = z.object({ email: z.string().email().optional() });
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/verify-email")({
       { property: "og:description", content: "Confirm your email to activate your workspace." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      NOINDEX_META,
     ],
   }),
   component: VerifyEmailPage,

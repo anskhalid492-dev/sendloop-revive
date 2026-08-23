@@ -7,6 +7,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NOINDEX_META } from "@/lib/seo";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/reset-password")({
       { property: "og:description", content: "Choose a new password for your MunchReach account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      NOINDEX_META,
     ],
   }),
   component: ResetPasswordPage,
