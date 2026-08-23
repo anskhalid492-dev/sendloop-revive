@@ -2057,11 +2057,14 @@ export type Database = {
           daily_cap: number
           description: string | null
           eligible_count: number
+          email_send_limit: number
+          emails_sent_count: number
           end_at: string | null
           id: string
           inbox_rotation_enabled: boolean
           inbox_rotation_strategy: string
           launched_at: string | null
+          limit_reached_at: string | null
           list_id: string | null
           max_contacts_per_company: number
           max_per_hour: number
@@ -2100,11 +2103,14 @@ export type Database = {
           daily_cap?: number
           description?: string | null
           eligible_count?: number
+          email_send_limit?: number
+          emails_sent_count?: number
           end_at?: string | null
           id?: string
           inbox_rotation_enabled?: boolean
           inbox_rotation_strategy?: string
           launched_at?: string | null
+          limit_reached_at?: string | null
           list_id?: string | null
           max_contacts_per_company?: number
           max_per_hour?: number
@@ -2143,11 +2149,14 @@ export type Database = {
           daily_cap?: number
           description?: string | null
           eligible_count?: number
+          email_send_limit?: number
+          emails_sent_count?: number
           end_at?: string | null
           id?: string
           inbox_rotation_enabled?: boolean
           inbox_rotation_strategy?: string
           launched_at?: string | null
+          limit_reached_at?: string | null
           list_id?: string | null
           max_contacts_per_company?: number
           max_per_hour?: number
@@ -7922,6 +7931,10 @@ export type Database = {
           terms: string
         }[]
       }
+      release_campaign_send: {
+        Args: { _campaign_id: string }
+        Returns: undefined
+      }
       release_workspace_usage: {
         Args: {
           _amount: number
@@ -7986,6 +7999,7 @@ export type Database = {
           token: string
         }[]
       }
+      reserve_campaign_send: { Args: { _campaign_id: string }; Returns: Json }
       revoke_workspace_invitation: {
         Args: { _invitation_id: string }
         Returns: undefined
