@@ -28,6 +28,8 @@ import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
 import { cn } from "@/lib/utils";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { supabase } from "@/integrations/supabase/client";
+import { applySeoOverrides } from "@/lib/page-seo";
+import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo";
 
 /**
  * Every pricing CTA leads to the customer Billing / Upgrade page with the
@@ -64,7 +66,7 @@ const PRICING_DESCRIPTION =
 export const Route = createFileRoute("/pricing")({
   head: ({ loaderData }) => {
     // Offers are built from the live plan records only — nothing is invented.
-    const offers = (loaderData?.plans ?? [])
+    const offers = ((loaderData?.plans ?? []) as Plan[])
       .filter((p) => !p.is_enterprise && typeof p.monthly_price === "number")
       .map((p) => ({
         "@type": "Offer",
