@@ -36,7 +36,7 @@ function ColumnTrack({
   return (
     <div className="relative h-full overflow-hidden">
       <div
-        className={`flex flex-col gap-5 ${animationClass}`}
+        className={`flex flex-col gap-5 ${animationClass} hover:[animation-play-state:paused]`}
         style={{ animationDuration: `${durationSeconds}s` }}
       >
         {doubled.map((t, index) => (
