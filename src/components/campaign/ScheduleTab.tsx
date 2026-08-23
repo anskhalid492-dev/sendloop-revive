@@ -298,6 +298,16 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Your daily volume</dt>
+              <dd className="font-medium tabular-nums">{selectedDaily.toLocaleString()}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Mailbox capacity / day</dt>
+              <dd className="font-medium tabular-nums">
+                {mailboxDailyCeiling > 0 ? mailboxDailyCeiling.toLocaleString() : "No mailboxes selected"}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Sending days / week</dt>
               <dd className="font-medium tabular-nums">{settings.sendDays.length}</dd>
             </div>
@@ -306,24 +316,26 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
               <dd className="font-medium tabular-nums">{windowHours}h</dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-muted-foreground">Max per hour</dt>
-              <dd className="font-medium tabular-nums">{perHourCeiling}</dd>
+              <dt className="text-muted-foreground">Estimated per hour</dt>
+              <dd className="font-medium tabular-nums">{hourly.toLocaleString()}</dd>
             </div>
             <div className="flex items-center justify-between border-t border-border pt-3">
               <dt className="text-muted-foreground">Emails per sending day</dt>
-              <dd className="font-semibold tabular-nums">{theoreticalDaily}</dd>
+              <dd className="font-semibold tabular-nums">{effectiveDaily.toLocaleString()}</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Emails per week</dt>
-              <dd className="font-semibold tabular-nums">
-                {theoreticalDaily * settings.sendDays.length}
-              </dd>
+              <dd className="font-semibold tabular-nums">{weekly.toLocaleString()}</dd>
             </div>
           </dl>
           <p className="mt-4 text-xs text-muted-foreground">
-            MunchReach still respects the limits of the managed mailboxes assigned to your workspace,
-            so real volume can be lower than this ceiling.
+            {cappedByMailboxes
+              ? `You selected ${selectedDaily.toLocaleString()} emails a day, but the mailboxes on this campaign can only handle ${effectiveDaily.toLocaleString()} a day right now. Add or select more mailboxes to reach your target.`
+              : mailboxDailyCeiling > 0
+                ? "Your selected daily volume fits inside the capacity of the mailboxes on this campaign."
+                : "Select mailboxes on the Accounts tab to see the real sending ceiling for this campaign."}
           </p>
+
         </div>
       </aside>
     </div>
