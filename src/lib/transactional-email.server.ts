@@ -303,6 +303,25 @@ export type RenderedEmail = {
   missingVariables: string[];
 };
 
+/**
+ * Guards against dead anchors. A token that is missing (or was dropped by the
+ * whitelist) substitutes to an empty string, which would otherwise ship
+ * `href=""` — a link that reloads the message instead of opening the app. Any
+ * empty, relative or leftover-token link is rewritten to an absolute URL, and
+ * the visible "copy this link" text is kept in sync.
+ */
+function repairLinks(value: string, fallback: string): string {
+  return value
+    .replace(/href="\s*"/gi, `href="${fallback}"`)
+    .replace(/href="(?!https?:|mailto:|tel:)([^"]*)"/gi, (_full, url: string) => {
+      const trimmed = String(url).trim();
+      if (trimmed.startsWith("/")) return `href="${baseUrl()}${trimmed}"`;
+      return `href="${fallback}"`;
+    })
+    .replace(/href="([^"]*\{\{[^"]*)"/gi, `href="${fallback}"`)
+    .replace(/(>|\s)(https?:\/\/)?\{\{[a-zA-Z0-9_.]+\}\}/g, `$1${fallback}`);
+}
+
 export async function renderTemplate(
   admin: Admin,
   eventKey: string,
@@ -350,12 +369,17 @@ export async function renderTemplate(
     return value === undefined || value === null || String(value).length === 0;
   });
 
+  const fallbackLink = String(variables["dashboard_url"] ?? baseUrl());
+
   return {
     template: stored,
     rendered: {
       subject: renderTemplateString(source.subject, variables, "text").trim(),
-      html: renderTemplateString(source.html, variables, "html"),
-      text: renderTemplateString(source.text || htmlToText(source.html), variables, "text"),
+      html: repairLinks(renderTemplateString(source.html, variables, "html"), fallbackLink),
+      text: repairLinks(
+        renderTemplateString(source.text || htmlToText(source.html), variables, "text"),
+        fallbackLink,
+      ),
       fromName: source.fromName,
       fromEmail: source.fromEmail,
       replyTo: source.replyTo,
