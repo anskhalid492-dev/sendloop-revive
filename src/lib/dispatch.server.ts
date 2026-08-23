@@ -377,9 +377,20 @@ export async function dispatchDueMessages(
     // covers every email this campaign generates, follow-ups included.
     const reservation = (await supabaseAdmin.rpc("reserve_campaign_send", {
       _campaign_id: message.campaign_id as string,
-    })) as { data: { allowed?: boolean; sent?: number; limit?: number } | null; error: { message: string } | null };
-    if (reservation.error) throw new Error(reservation.error.message);
-    if (!reservation.data?.allowed) {
+    })) as {
+      data: { allowed?: boolean; sent?: number; limit?: number } | null;
+      error: { message: string; code?: string } | null;
+    };
+    // A backend that has not run the campaign-limit migration has no reservation
+    // function; plan-level metering below still governs every send.
+    const campaignLimitsAvailable = !(
+      reservation.error &&
+      (reservation.error.code === "PGRST202" ||
+        /reserve_campaign_send/.test(reservation.error.message ?? ""))
+    );
+    if (reservation.error && campaignLimitsAvailable) throw new Error(reservation.error.message);
+    if (campaignLimitsAvailable && !reservation.data?.allowed) {
+
       const reached = `Campaign email limit reached (${reservation.data?.sent ?? 0} of ${reservation.data?.limit ?? 0} emails sent).`;
       result.skipped += 1;
       if (result.errors.length < 5) result.errors.push(reached);
