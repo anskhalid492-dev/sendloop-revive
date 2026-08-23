@@ -145,5 +145,5 @@ export const ensureProfile = createServerFn({ method: "POST" })
       /* a welcome email must never block sign-in */
     }
 
-    return { created: true };
+    return { created: !existing };
   });
