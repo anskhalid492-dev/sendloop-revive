@@ -82,7 +82,7 @@ function CampaignWorkspace() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (builder.isLoading || !builder.campaign || !builder.settings) {
+  if (builder.isLoading) {
     return (
       <AppShell title="Campaign">
         <div className="flex items-center justify-center py-24">
@@ -91,6 +91,49 @@ function CampaignWorkspace() {
       </AppShell>
     );
   }
+
+  if (builder.error || !builder.campaign) {
+    const message = builder.error?.message ?? "";
+    const notFound = /not found/i.test(message) || (!builder.error && !builder.campaign);
+    const denied = /permission|denied|unauthor|forbidden|row-level/i.test(message);
+    const title = notFound
+      ? "Campaign not found"
+      : denied
+        ? "You don't have access to this campaign"
+        : "We couldn't load this campaign";
+    const body = notFound
+      ? "This campaign may have been deleted, or the link points to a campaign in another workspace."
+      : denied
+        ? "Your workspace role doesn't allow access to this campaign. Ask a workspace owner for access."
+        : "Something went wrong while loading the campaign. Please try again in a moment.";
+    return (
+      <AppShell title="Campaign">
+        <div className="mx-auto max-w-md py-24 text-center">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <Button variant="outline" onClick={() => void navigate({ to: "/campaigns" })}>
+              Back to Campaigns
+            </Button>
+            {!notFound && !denied ? (
+              <Button onClick={() => void builder.refetch()}>Retry</Button>
+            ) : null}
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!builder.settings) {
+    return (
+      <AppShell title="Campaign">
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      </AppShell>
+    );
+  }
+
 
   return (
     <AppShell title={builder.campaign.name}>
