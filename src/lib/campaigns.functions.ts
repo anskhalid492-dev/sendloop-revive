@@ -39,7 +39,9 @@ export const listCampaigns = createServerFn({ method: "GET" })
     const { data: rows, error } = await campaignQuery;
     if (error) throw new Error(error.message);
 
-    const campaigns = (rows ?? []) as unknown as Campaign[];
+    const campaigns = ((rows ?? []) as Array<Record<string, unknown>>).map(
+      (r) => withCampaignDefaults(r) as unknown as Campaign,
+    );
     if (campaigns.length === 0) return [] as Array<Campaign & { recipients: number; sent: number }>;
 
     let recipientQuery = context.supabase.from("campaign_recipients").select("campaign_id, status");
@@ -167,7 +169,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     ).size;
 
     return {
-      campaign: campaign as unknown as Campaign,
+      campaign: withCampaignDefaults(campaign as Record<string, unknown>) as unknown as Campaign,
       steps,
       queue: {
         total: recipients.length,
@@ -430,6 +432,12 @@ export const updateCampaign = createServerFn({ method: "POST" })
       const value = (data as Record<string, unknown>)[key];
       if (key !== "id" && value !== undefined) patch[column] = value;
     }
+    if (
+      patch["email_send_limit"] !== undefined &&
+      !(await campaignLimitColumnsAvailable(context.supabase))
+    ) {
+      delete patch["email_send_limit"];
+    }
     if (Object.keys(patch).length === 0) return { ok: true, readiness: null };
 
     const { error } = await context.supabase
@@ -553,7 +561,7 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
-    const c = campaign as unknown as Campaign;
+    const c = withCampaignDefaults(campaign as Record<string, unknown>) as unknown as Campaign;
 
     const { data: list, error: listError } = await context.supabase
       .from("lead_lists")
@@ -918,7 +926,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
-    const c = campaign as unknown as Campaign;
+    const c = withCampaignDefaults(campaign as Record<string, unknown>) as unknown as Campaign;
 
     // Plan enforcement before anything is scheduled.
     const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
@@ -926,11 +934,12 @@ export const launchCampaign = createServerFn({ method: "POST" })
     // No allowance left means no email can leave, so refuse the launch outright.
     await checkUsageLimit(c.workspace_id, "emails_monthly", 1);
     // The campaign-level cap must be a real, sendable number before launch.
+    const limitsSupported = await campaignLimitColumnsAvailable(context.supabase);
     const campaignLimit = c.email_send_limit ?? 0;
-    if (campaignLimit <= 0) {
+    if (limitsSupported && campaignLimit <= 0) {
       throw new Error("Set an email sending limit greater than 0 before launching this campaign.");
     }
-    {
+    if (limitsSupported) {
       const { evaluateEntitlement } = await import("@/lib/billing/usage.server");
       const decision = await evaluateEntitlement(c.workspace_id, "emails_monthly", 1);
       const remaining = decision.limit === null ? null : Math.max(decision.limit - decision.used, 0);
@@ -1534,7 +1543,11 @@ export const getCampaignSendAllowance = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("campaigns")
-      .select("workspace_id, email_send_limit, emails_sent_count, limit_reached_at")
+      .select(
+        (await campaignLimitColumnsAvailable(context.supabase))
+          ? "workspace_id, email_send_limit, emails_sent_count, limit_reached_at"
+          : "workspace_id",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -1546,8 +1559,9 @@ export const getCampaignSendAllowance = createServerFn({ method: "GET" })
     const monthlyLimit = decision.limit;
     const monthlyUsed = decision.used;
     const monthlyRemaining = monthlyLimit === null ? null : Math.max(monthlyLimit - monthlyUsed, 0);
-    const campaignLimit = row.email_send_limit ?? 0;
-    const campaignSent = row.emails_sent_count ?? 0;
+    const limitRow = withCampaignDefaults(row as Record<string, unknown>) as Record<string, unknown>;
+    const campaignLimit = (limitRow["email_send_limit"] as number | null) ?? 0;
+    const campaignSent = (limitRow["emails_sent_count"] as number | null) ?? 0;
     const campaignRemaining = Math.max(campaignLimit - campaignSent, 0);
 
     return {
@@ -1557,7 +1571,7 @@ export const getCampaignSendAllowance = createServerFn({ method: "GET" })
       campaignLimit,
       campaignSent,
       campaignRemaining,
-      limitReachedAt: (row.limit_reached_at as string | null) ?? null,
+      limitReachedAt: (limitRow["limit_reached_at"] as string | null) ?? null,
       effectiveRemaining:
         monthlyRemaining === null ? campaignRemaining : Math.min(campaignRemaining, monthlyRemaining),
     };
