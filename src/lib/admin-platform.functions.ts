@@ -38,7 +38,7 @@ export const adminTestPlatformProvider = createServerFn({ method: "POST" })
   .inputValidator((d: z.infer<typeof testInput>) => testInput.parse(d))
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "test platform provider credentials" });
     const { testPlatformProvider } = await import("@/lib/admin-platform.server");
     return testPlatformProvider({ ...data, userId: context.userId });
   });
@@ -50,7 +50,7 @@ export const adminSetSendingProviderEnabled = createServerFn({ method: "POST" })
   .inputValidator((d: z.infer<typeof toggleInput>) => toggleInput.parse(d))
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "change sending infrastructure" });
     const { setSendingProviderEnabled } = await import("@/lib/admin-platform.server");
     return setSendingProviderEnabled(data.id, data.enabled);
   });
@@ -62,7 +62,7 @@ export const adminSetSendingProviderPriority = createServerFn({ method: "POST" }
   .inputValidator((d: z.infer<typeof priorityInput>) => priorityInput.parse(d))
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "change sending infrastructure" });
     const { setSendingProviderPriority } = await import("@/lib/admin-platform.server");
     return setSendingProviderPriority(data.id, data.priority);
   });

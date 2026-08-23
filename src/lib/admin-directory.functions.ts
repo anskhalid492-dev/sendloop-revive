@@ -43,7 +43,7 @@ export const adminSetUserSuspended = createServerFn({ method: "POST" })
   .inputValidator((input) => suspendInput.parse(input))
   .handler(async ({ data, context }) => {
     const { assertSuperAdmin } = await import("./admin-access.server");
-    await assertSuperAdmin(context);
+    await assertSuperAdmin(context, { sensitive: true, action: "suspend or restore a user" });
     const { setUserSuspended } = await import("./admin-directory.server");
     return setUserSuspended(context.userId, data.id, data.suspended, data.reason ?? null);
   });
@@ -75,7 +75,7 @@ export const adminSetWorkspaceSuspended = createServerFn({ method: "POST" })
   .inputValidator((input) => suspendInput.parse(input))
   .handler(async ({ data, context }) => {
     const { assertSuperAdmin } = await import("./admin-access.server");
-    await assertSuperAdmin(context);
+    await assertSuperAdmin(context, { sensitive: true, action: "suspend or restore a workspace" });
     const { setWorkspaceSuspended } = await import("./admin-directory.server");
     return setWorkspaceSuspended(context.userId, data.id, data.suspended, data.reason ?? null);
   });

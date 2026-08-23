@@ -31,7 +31,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { saveBillingSettings, writeAudit } = await import("@/lib/billing/core.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "change platform billing settings" });
     const next = await saveBillingSettings(data as Record<string, unknown>);
     await writeAudit({ userId: context.userId, action: "settings.updated", detail: data });
     return next;
@@ -45,7 +45,7 @@ export const setBillingProviderEnabled = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { setProviderEnabled } = await import("@/lib/billing/admin.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "change billing provider" });
     return setProviderEnabled(data.provider, data.environment, data.enabled, context.userId);
   });
 
@@ -74,7 +74,7 @@ export const upsertPlanPrice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { savePlanPrice } = await import("@/lib/billing/admin.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "change plan pricing" });
     return savePlanPrice(data, context.userId);
   });
 
@@ -84,7 +84,7 @@ export const deletePlanPrice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { removePlanPrice } = await import("@/lib/billing/admin.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "delete plan pricing" });
     return removePlanPrice(data.id, context.userId);
   });
 
@@ -198,7 +198,7 @@ export const saveBillingProviderSecrets = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { saveProviderSecrets } = await import("@/lib/billing/secrets.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "change billing provider credentials" });
     return saveProviderSecrets({
       provider: data.provider,
       environment: data.environment,
@@ -215,7 +215,7 @@ export const clearBillingProviderSecrets = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { clearProviderSecrets } = await import("@/lib/billing/secrets.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "clear billing provider credentials" });
     return clearProviderSecrets(data.provider, data.environment, context.userId);
   });
 
@@ -232,7 +232,7 @@ export const syncStripeCatalogue = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
     const { syncStripePrices } = await import("@/lib/billing/stripe-sync.server");
-    await assertPlatformAdmin(context);
+    await assertPlatformAdmin(context, { sensitive: true, action: "sync billing catalogue" });
     return syncStripePrices(data.environment, context.userId);
   });
 
