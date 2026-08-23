@@ -5,7 +5,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
 import { nextSendSlot } from "@/lib/campaign-schedule";
 import {
-  CAMPAIGN_COLUMNS,
+  campaignColumns,
+  campaignLimitColumnsAvailable,
+  withCampaignDefaults,
   STEP_COLUMNS,
   AI_VARIABLE_TOKEN,
   renderEmailForLead,
@@ -29,7 +31,7 @@ export const listCampaigns = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let campaignQuery = context.supabase
       .from("campaigns")
-      .select(CAMPAIGN_COLUMNS)
+      .select(await campaignColumns(context.supabase))
       .order("created_at", { ascending: false });
     // Platform admins can read every campaign through RLS; scope reads to the
     // active workspace so pickers never offer cross-workspace campaigns.
@@ -106,7 +108,7 @@ export const getCampaign = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: campaign, error } = await context.supabase
       .from("campaigns")
-      .select(CAMPAIGN_COLUMNS)
+      .select(await campaignColumns(context.supabase))
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -546,7 +548,7 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: campaign, error } = await context.supabase
       .from("campaigns")
-      .select(CAMPAIGN_COLUMNS)
+      .select(await campaignColumns(context.supabase))
       .eq("id", data.campaignId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -911,7 +913,7 @@ export const launchCampaign = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: campaign, error } = await context.supabase
       .from("campaigns")
-      .select(CAMPAIGN_COLUMNS)
+      .select(await campaignColumns(context.supabase))
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
