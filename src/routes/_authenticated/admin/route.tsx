@@ -1,10 +1,14 @@
 import { createFileRoute, isRedirect, Link, Outlet, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 
 import { AdminShell } from "@/components/app/AdminShell";
+import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { getAdminIdentity } from "@/lib/admin-dashboard.functions";
+import { getAdminSecurityIdentity } from "@/lib/admin-security.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   // Server-verified gate: getAdminIdentity resolves the platform role from
