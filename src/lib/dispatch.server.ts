@@ -494,6 +494,7 @@ export async function dispatchDueMessages(
     }
 
     result.sent += 1;
+    sentTodaySoFar += 1;
     sentPerAccount.set(account.id, usedNow + 1);
     const sentAt = new Date().toISOString();
     try {
