@@ -151,6 +151,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/billing-providers", label: "Billing Providers", icon: CreditCard },
       { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
       { to: "/admin/audit", label: "Change Audit Log", icon: Shield },
+      { to: "/admin/security", label: "Security & Sessions", icon: Shield },
       { to: "/admin/logs", label: "Logs", icon: ScrollText },
       { to: "/admin/usage", label: "Usage & Metering", icon: BarChart3 },
       { to: "/admin/production", label: "Production Checklist", icon: Shield },
