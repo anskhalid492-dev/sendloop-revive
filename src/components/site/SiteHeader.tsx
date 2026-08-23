@@ -436,7 +436,7 @@ export function SiteHeader() {
                 cards={useCaseLinks}
                 onNavigate={() => setOpen(false)}
               />
-              {topNav.map((link) => (
+              {[...midNav, ...topNav].map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
@@ -446,6 +446,15 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                to="/lifetime"
+                onClick={() => setOpen(false)}
+                className="mt-1 inline-flex items-center gap-2 self-start rounded-full border border-primary/25 bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary"
+              >
+                <Crown className="size-4 text-tint-amber-foreground" />
+                Lifetime Deal
+              </Link>
+
               <div className="mt-3 flex flex-col gap-2">
                 {signedIn ? (
                   <Button asChild>
