@@ -109,7 +109,19 @@ export function TestimonialCarousel({
     staleTime: 5 * 60 * 1000,
   });
 
-  const items = useMemo(() => data ?? [], [data]);
+  // Every page shows the homepage review set when it has no page-specific ones.
+  const { data: homeData } = useQuery({
+    queryKey: ["testimonials", "home"],
+    queryFn: () => fetchTestimonials({ data: { page: "home" } }),
+    staleTime: 5 * 60 * 1000,
+    enabled: page !== "home" && (data?.length ?? 0) === 0,
+  });
+
+  const items = useMemo(
+    () => (data && data.length > 0 ? data : (homeData ?? [])),
+    [data, homeData],
+  );
+
 
   // Spread reviews across three columns that drift in alternating directions.
   const columns = useMemo(() => {
