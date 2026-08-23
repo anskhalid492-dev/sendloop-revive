@@ -7,6 +7,7 @@ import {
   BookOpen,
   Building2,
   ChevronDown,
+  Crown,
   Compass,
   FileText,
   Flame,
@@ -147,12 +148,6 @@ const resourceCards: Card[] = [
     icon: Plug,
   },
   {
-    label: "Customer Reviews",
-    to: "/customer-reviews",
-    text: "See what MunchReach customers say about their outreach.",
-    icon: MessageSquareQuote,
-  },
-  {
     label: "Referral Program",
     to: "/referral",
     text: "Earn commission for every team you bring to MunchReach.",
@@ -250,21 +245,24 @@ export function SiteHeader() {
     "usecase",
     solutionNavLinks.map((l) => ({ label: l.label, to: l.to, text: "", icon: Compass })),
   );
-  const resourceLinks = toCards(headerRows, "resources", resourceCards);
+  const resourceLinks = toCards(headerRows, "resources", resourceCards).filter(
+    (c) => c.to !== "/customer-reviews",
+  );
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
-  const allTopNav = topLinks.length
-    ? topLinks
-    : [
-        { label: "Features", to: "/features" },
-        { label: "Customer Reviews", to: "/customer-reviews" },
-        { label: "Pricing", to: "/pricing" },
-        { label: "Blog", to: "/blog" },
-      ];
-  // "Features" sits before the Products/Resources menus; the rest follow them.
+  const allTopNav = (
+    topLinks.length
+      ? topLinks
+      : [
+          { label: "Features", to: "/features" },
+          { label: "Pricing", to: "/pricing" },
+        ]
+  ).filter((l) => ["/features", "/pricing"].includes(l.to));
+  // Order: Features · Products · Pricing · Resources · Lifetime Deal.
   const leadNav = allTopNav.filter((l) => l.to === "/features");
-  const topNav = allTopNav.filter((l) => l.to !== "/features");
+  const midNav = allTopNav.filter((l) => l.to === "/pricing");
+  const topNav = allTopNav.filter((l) => l.to !== "/features" && l.to !== "/pricing");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
@@ -339,6 +337,9 @@ export function SiteHeader() {
             active={menu === "products"}
             onOpen={() => openMenu("products")}
           />
+          {midNav.map((link) => (
+            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
+          ))}
           <Trigger
             label="Resources"
             active={menu === "resources"}
@@ -347,7 +348,9 @@ export function SiteHeader() {
           {topNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
           ))}
+          <LifetimeDealLink onHover={() => setMenu(null)} />
         </nav>
+
 
         <div className="hidden shrink-0 items-center gap-2 md:flex">
           {signedIn ? (
@@ -430,7 +433,7 @@ export function SiteHeader() {
                 cards={useCaseLinks}
                 onNavigate={() => setOpen(false)}
               />
-              {topNav.map((link) => (
+              {[...midNav, ...topNav].map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
@@ -440,6 +443,15 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                to="/lifetime"
+                onClick={() => setOpen(false)}
+                className="mt-1 inline-flex items-center gap-2 self-start rounded-full border border-primary/25 bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary"
+              >
+                <Crown className="size-4 text-tint-amber-foreground" />
+                Lifetime Deal
+              </Link>
+
               <div className="mt-3 flex flex-col gap-2">
                 {signedIn ? (
                   <Button asChild>
@@ -684,5 +696,21 @@ function MobileGroup({
         ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * Highlighted top-nav entry for the Lifetime Deal offer.
+ */
+function LifetimeDealLink({ onHover }: { onHover: () => void }) {
+  return (
+    <Link
+      to="/lifetime"
+      onMouseEnter={onHover}
+      className="ml-1 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/15"
+    >
+      <Crown className="size-4 text-tint-amber-foreground" />
+      Lifetime Deal
+    </Link>
   );
 }
