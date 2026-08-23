@@ -55,7 +55,7 @@ function toLocalInput(value: string | null) {
 }
 
 export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
-  const { settings, patchSettings } = builder;
+  const { settings, patchSettings, accounts } = builder;
   if (!settings) return null;
 
   const toggleDay = (day: number) => {
@@ -66,11 +66,28 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
   };
 
   const windowHours = Math.max(0, settings.sendEndHour - settings.sendStartHour);
-  const perHourCeiling = Math.min(
-    settings.maxPerHour,
-    settings.minDelayMinutes > 0 ? Math.floor(60 / settings.minDelayMinutes) : settings.maxPerHour,
-  );
-  const theoreticalDaily = Math.min(settings.dailyCap, windowHours * perHourCeiling);
+
+  // Mailbox ceiling: what the selected mailboxes can actually handle.
+  const selectedAccounts = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
+  const mailboxDailyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
+  const mailboxHourlyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.hourly_limit ?? 0), 0);
+
+  // Customer-selected volume first — mailbox capacity only ever trims it.
+  const selectedDaily = Math.max(0, settings.dailyCap);
+  let effectiveDaily = mailboxDailyCeiling > 0
+    ? Math.min(selectedDaily, mailboxDailyCeiling)
+    : selectedDaily;
+
+  // Hourly throughput is derived from the daily volume spread over the window.
+  let hourly = windowHours > 0 ? Math.ceil(effectiveDaily / windowHours) : effectiveDaily;
+  if (mailboxHourlyCeiling > 0 && hourly > mailboxHourlyCeiling) {
+    hourly = mailboxHourlyCeiling;
+    if (windowHours > 0) effectiveDaily = Math.min(effectiveDaily, hourly * windowHours);
+  }
+
+  const cappedByMailboxes = effectiveDaily < selectedDaily;
+  const weekly = effectiveDaily * settings.sendDays.length;
+
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
