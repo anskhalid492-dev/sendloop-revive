@@ -39,8 +39,8 @@ const faqs = [
 export const Route = createFileRoute("/integrations/")({
   head: () =>
     metaFor(
-      "Integrations — Connect MunchReach to your stack | MunchReach",
-      "Connect MunchReach to OpenAI, Slack, Zapier, Make, HubSpot, GoHighLevel, Calendly and Google Sheets. Encrypted credentials, event logs and two-way automation.",
+      "Integrations — Connect MunchReach to Your Stack",
+      "Connect OpenAI, Slack, Zapier, Make, HubSpot, GoHighLevel, Calendly and Google Sheets with encrypted credentials and logs.",
       "https://munchreach.com/integrations",
       faqs,
     ),

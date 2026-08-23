@@ -9,7 +9,7 @@ const data = COMPARISONS["munchreach-vs-apollo"]!;
 export const Route = createFileRoute("/compare/munchreach-vs-apollo")({
   head: () =>
     metaFor(
-      "MunchReach vs Apollo — Email Execution or Contact Database?",
+      "MunchReach vs Apollo — Cold Email or Contact Data?",
       "Compare MunchReach and Apollo on cold email sending, deliverability and warmup, unified inbox, CRM, automations, analytics and prospect data.",
       "/compare/munchreach-vs-apollo",
       data.faqs,

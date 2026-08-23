@@ -35,7 +35,7 @@ export const Route = createFileRoute("/deliverability-guide")({
   head: () =>
     metaFor(
       "Cold Email Deliverability Guide | MunchReach",
-      "A complete cold email deliverability guide: domain setup, SPF, DKIM and DMARC, mailbox setup, warmup, sending volume, list quality, bounces, unsubscribes, reply management and monitoring.",
+      "Domain setup, SPF, DKIM and DMARC, warmup, sending volume, list quality, bounces and monitoring in one practical playbook.",
       "/deliverability-guide",
       faqs,
     ),

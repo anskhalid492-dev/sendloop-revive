@@ -39,7 +39,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 export const Route = createFileRoute("/why-munchreach")({
   head: () =>
     metaFor(
-      "Why MunchReach — One Workspace Instead of Six Outbound Tools",
+      "Why MunchReach — One Outbound Workspace",
       "Campaigns, unified inbox, CRM, warmup, analytics and automation on infrastructure you own. See why outbound teams consolidate on MunchReach.",
       "/why-munchreach",
     ),

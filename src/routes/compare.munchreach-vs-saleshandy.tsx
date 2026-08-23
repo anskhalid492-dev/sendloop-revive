@@ -9,7 +9,7 @@ const data = COMPARISONS["munchreach-vs-saleshandy"]!;
 export const Route = createFileRoute("/compare/munchreach-vs-saleshandy")({
   head: () =>
     metaFor(
-      "MunchReach vs Saleshandy — Cold Email Platform Comparison",
+      "MunchReach vs Saleshandy — Cold Email Compared",
       "Compare MunchReach and Saleshandy on sequences, mailbox rotation, warmup, deliverability controls, unified inbox, CRM, automations and reporting.",
       "/compare/munchreach-vs-saleshandy",
       data.faqs,

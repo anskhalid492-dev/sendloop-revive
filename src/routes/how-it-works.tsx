@@ -33,7 +33,7 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 export const Route = createFileRoute("/how-it-works")({
   head: () =>
     metaFor(
-      "How MunchReach Works — From Setup to Replies in 12 Steps",
+      "How MunchReach Works — Setup to First Replies",
       "Workspace, domain, DNS, mailboxes, leads, campaign, AI personalization, launch, inbox, analytics, CRM and automation — the full MunchReach journey.",
       "/how-it-works",
     ),
