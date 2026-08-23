@@ -1,5 +1,5 @@
 /** Shared campaign duplication used by the single and bulk actions. */
-import { CAMPAIGN_COLUMNS, STEP_COLUMNS, type Campaign } from "@/lib/campaign-model";
+import { campaignColumns, withCampaignDefaults, STEP_COLUMNS, type Campaign } from "@/lib/campaign-model";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -20,12 +20,12 @@ export async function duplicateCampaignRow(
 
   const { data: source, error } = await client
     .from("campaigns")
-    .select(CAMPAIGN_COLUMNS)
+    .select(await campaignColumns(client))
     .eq("id", options.id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!source) throw new Error("Campaign not found");
-  const c = source as unknown as Campaign;
+  const c = withCampaignDefaults(source as Record<string, unknown>) as unknown as Campaign;
 
   const { data: created, error: cErr } = await client
     .from("campaigns")
