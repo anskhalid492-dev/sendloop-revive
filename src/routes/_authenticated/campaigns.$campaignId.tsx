@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Button } from "@/components/ui/button";
 import { CampaignHeader, type CampaignTab } from "@/components/campaign/CampaignHeader";
 import { OverviewTab } from "@/components/campaign/OverviewTab";
 import { LeadsTab } from "@/components/campaign/LeadsTab";
