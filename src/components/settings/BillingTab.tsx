@@ -244,14 +244,14 @@ export function BillingTab({
 
   const periodSuffix = billing.interval === "yearly" ? "/yr" : "/mo";
   const billingTypeLabel = isLifetime
-    ? "Lifetime"
+    ? "One-time payment"
     : billing.interval === "yearly"
-      ? "Yearly"
+      ? "Annual plan"
       : billing.interval === "monthly"
-        ? "Monthly"
+        ? "Monthly plan"
         : billing.grant
           ? "Provided by MunchReach"
-          : "Free";
+          : "Free plan";
 
   // "Never" is reserved for lifetime access. Anything else falls back to the
   // real date, or an em dash when there simply is nothing to show.
