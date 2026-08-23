@@ -7,6 +7,7 @@ import {
   BookOpen,
   Building2,
   ChevronDown,
+  Crown,
   Compass,
   FileText,
   Flame,
@@ -699,5 +700,21 @@ function MobileGroup({
         ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * Highlighted top-nav entry for the Lifetime Deal offer.
+ */
+function LifetimeDealLink({ onHover }: { onHover: () => void }) {
+  return (
+    <Link
+      to="/lifetime"
+      onMouseEnter={onHover}
+      className="ml-1 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/15"
+    >
+      <Crown className="size-4 text-tint-amber-foreground" />
+      Lifetime Deal
+    </Link>
   );
 }
