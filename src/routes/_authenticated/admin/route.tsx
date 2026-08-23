@@ -48,6 +48,30 @@ function AdminDenied() {
 }
 
 function AdminLayout() {
+  // Server-verified MFA state. Privileged server functions reject AAL1
+  // sessions independently; this only decides what the UI shows.
+  const loadIdentity = useServerFn(getAdminSecurityIdentity);
+  const identity = useQuery({
+    queryKey: ["admin-security-identity"],
+    queryFn: () => loadIdentity({}),
+    retry: false,
+  });
+
+  const mfa = (identity.data as any)?.mfa as
+    | { enrolled: boolean; satisfied: boolean }
+    | null
+    | undefined;
+
+  if (identity.isError) return <AdminDenied />;
+
+  if (mfa && !mfa.satisfied) {
+    return (
+      <AdminShell title="Admin" description="MunchReach platform administration">
+        <AdminMfaGate enrolled={mfa.enrolled} onSatisfied={() => identity.refetch()} />
+      </AdminShell>
+    );
+  }
+
   return (
     <AdminShell title="Admin" description="MunchReach platform administration">
       <Outlet />
