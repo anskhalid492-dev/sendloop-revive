@@ -388,7 +388,7 @@ export async function portalForWorkspace(workspaceId: string, returnUrl: string)
   const settings = await getBillingSettings();
   const provider = sub.provider as BillingProvider;
   const url = await getBillingAdapter(provider).portalUrl(settings.environment, {
-    customerId: sub.external_customer_id ?? null,
+    customerId: (sub["external_customer_id"] as string | null) ?? null,
     subscriptionId: sub.external_subscription_id ?? null,
     returnUrl,
   });
