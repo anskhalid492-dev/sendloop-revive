@@ -66,7 +66,7 @@ const PRICING_DESCRIPTION =
 export const Route = createFileRoute("/pricing")({
   head: ({ loaderData }) => {
     // Offers are built from the live plan records only — nothing is invented.
-    const offers = ((loaderData?.plans ?? []) as Plan[])
+    const offers = (((loaderData as { plans?: Plan[] } | undefined)?.plans ?? []) as Plan[])
       .filter((p) => !p.is_enterprise && typeof p.monthly_price === "number")
       .map((p) => ({
         "@type": "Offer",
