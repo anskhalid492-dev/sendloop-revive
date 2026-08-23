@@ -148,7 +148,12 @@ export async function readPublicFlags() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.rpc("public_platform_flags");
   if (error) throw new Error(error.message);
-  const row = (Array.isArray(data) ? data[0] : data) ?? {};
+  const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as {
+    maintenance_mode?: boolean;
+    maintenance_message?: string;
+    registration_enabled?: boolean;
+    google_enabled?: boolean;
+  };
   return {
     maintenanceMode: Boolean(row.maintenance_mode),
     maintenanceMessage: String(row.maintenance_message ?? ""),
