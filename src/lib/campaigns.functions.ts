@@ -182,6 +182,7 @@ export const getCampaign = createServerFn({ method: "GET" })
       variants: variants.filter((v) => v.step_id === s.id),
     }));
     const recipients = recipientsRes.data ?? [];
+    const totalRecipients = recipientCountRes.count ?? recipients.length;
     const messages = (messagesRes.data ?? []) as Array<Record<string, string | null>>;
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
@@ -203,7 +204,7 @@ export const getCampaign = createServerFn({ method: "GET" })
       campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
       steps,
       queue: {
-        total: recipients.length,
+        total: totalRecipients,
         pending: countBy("pending"),
         inProgress: countBy("in_progress"),
         completed: countBy("completed"),
@@ -224,7 +225,7 @@ export const getCampaign = createServerFn({ method: "GET" })
             .sort()[0] ?? null,
       },
       delivery: {
-        totalLeads: recipients.length,
+        totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentMessages.length,
         delivered,
