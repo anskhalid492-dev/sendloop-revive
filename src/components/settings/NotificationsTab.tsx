@@ -24,6 +24,11 @@ const ITEMS: Array<{ key: keyof NotificationPreferences; label: string; hint: st
   { key: "warmup_alerts", label: "Warmup alerts", hint: "Warmup pauses or health drops." },
   { key: "team_activity", label: "Team activity", hint: "Invitations, joins and role changes." },
   { key: "support_updates", label: "Support updates", hint: "A reply lands on one of your tickets." },
+  {
+    key: "positive_reply_notifications",
+    label: "Positive reply notifications",
+    hint: "Get an email whenever a prospect sends a positive reply to one of your campaigns.",
+  },
   { key: "referral_updates", label: "Referral updates", hint: "New referral signups, commission decisions and payouts." },
 ];
 

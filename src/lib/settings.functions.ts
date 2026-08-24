@@ -18,6 +18,7 @@ export const NOTIFICATION_KEYS = [
   "team_activity",
   "support_updates",
   "referral_updates",
+  "positive_reply_notifications",
 ] as const;
 
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
@@ -36,6 +37,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   team_activity: true,
   support_updates: true,
   referral_updates: true,
+  positive_reply_notifications: true,
   email_enabled: true,
   in_app_enabled: true,
 };
@@ -67,6 +69,7 @@ const preferencesSchema = z.object({
   team_activity: z.boolean(),
   support_updates: z.boolean(),
   referral_updates: z.boolean(),
+  positive_reply_notifications: z.boolean(),
   email_enabled: z.boolean(),
   in_app_enabled: z.boolean(),
 });
@@ -78,8 +81,21 @@ export const saveNotificationPreferences = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("notification_preferences")
       .upsert({ user_id: context.userId, ...data }, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // A newer preference column may not exist yet on this database. Save the
+      // rest instead of failing the whole form.
+      if (error.code === "42703") {
+        const { positive_reply_notifications: _unused, ...rest } = data;
+        const retry = await context.supabase
+          .from("notification_preferences")
+          .upsert({ user_id: context.userId, ...rest }, { onConflict: "user_id" });
+        if (retry.error) throw new Error(retry.error.message);
+        return { ok: true };
+      }
+      throw new Error(error.message);
+    }
     return { ok: true };
+
   });
 
 export type BillingOverview = {
