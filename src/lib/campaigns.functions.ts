@@ -185,7 +185,14 @@ export const getCampaign = createServerFn({ method: "GET" })
         .select("id, step_id, label, subject, body, weight")
         .eq("campaign_id", data.id)
         .order("label", { ascending: true }),
-      fetchAllRows<{ id: string; status: string }>(() =>
+      fetchAllRows<{
+        id: string;
+        status: string;
+        current_step: number | null;
+        next_send_at: string | null;
+        last_sent_at: string | null;
+        lead_id: string;
+      }>(() =>
         context.supabase
           .from("campaign_recipients")
           .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
