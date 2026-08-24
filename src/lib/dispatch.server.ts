@@ -255,7 +255,7 @@ export async function scheduleFollowUps(
       sending_account_id: recipient.sending_account_id,
       step_order: next.step_order,
       status: "scheduled",
-      to_email: (lead as { email: string }).email,
+      to_email: (lead as unknown as { email: string }).email,
       ...renderEmailForLead(next, lead as never, {
         customVariables: variables,
         extras: {
