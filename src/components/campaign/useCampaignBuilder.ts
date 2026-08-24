@@ -142,7 +142,10 @@ export function useCampaignBuilder(campaignId: string) {
     queryKey: ["campaign-leads", campaignId],
     queryFn: () => fetchLeads({ data: { campaignId } }),
     // Realtime drives most updates; this is the safety net for missed events.
-    refetchInterval: 30_000,
+    // Polling stops while the query is erroring so a broken read never turns
+    // into an endless refetch loop.
+    refetchInterval: (query) => (query.state.error ? false : 30_000),
+    retry: 1,
   });
   const campaignWorkspaceId = campaignQuery.data?.campaign.workspace_id;
   const listsQuery = useQuery({
@@ -397,7 +400,8 @@ export function useCampaignBuilder(campaignId: string) {
     refetchReadiness: () =>
       queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] }),
     leads: leadsQuery.data ?? [],
-    leadsLoading: leadsQuery.isLoading,
+    leadsLoading: leadsQuery.isPending,
+    leadsError: (leadsQuery.error as Error | null) ?? null,
     refetchLeads: () => queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] }),
   };
 }

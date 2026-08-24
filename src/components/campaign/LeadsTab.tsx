@@ -45,7 +45,7 @@ import type { CampaignBuilder } from "./useCampaignBuilder";
 const ANY = "__any__";
 
 export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
-  const { campaignId, leads, leadsLoading, lists, accounts, refetchLeads } = builder;
+  const { campaignId, leads, leadsLoading, leadsError, lists, accounts, refetchLeads } = builder;
   const addFn = useServerFn(addLeadsToCampaign);
   const updateFn = useServerFn(updateCampaignRecipients);
 
@@ -83,8 +83,13 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const add = useMutation({
     mutationFn: () => addFn({ data: { campaignId, listId: addListId } }),
     onSuccess: async (result) => {
-      toast.success(`Added ${result.added} leads (${result.skipped} already in the campaign).`);
+      toast.success(
+        result.added > 0
+          ? `${result.added.toLocaleString()} leads added${result.skipped ? ` (${result.skipped.toLocaleString()} already in the campaign)` : ""}.`
+          : "Those leads are already in this campaign.",
+      );
       setAddOpen(false);
+      setAddListId("");
       await refetchLeads();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -287,14 +292,31 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           <TableBody>
             {leadsLoading ? (
               <TableRow>
-                <TableCell colSpan={11} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
+                <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
+                  <Loader2 className="mx-auto mb-2 size-4 animate-spin" />
+                  Loading campaign leads...
+                </TableCell>
+              </TableRow>
+            ) : leadsError ? (
+              <TableRow>
+                <TableCell colSpan={11} className="py-10 text-center text-sm">
+                  <p className="text-muted-foreground">Couldn't load campaign leads.</p>
+                  <Button
+                    className="mt-3"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void refetchLeads()}
+                  >
+                    Try again
+                  </Button>
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
-                  No leads in this campaign yet. Add them from a lead list.
+                  {leads.length === 0
+                    ? "No leads in this campaign yet. Add them from a lead list."
+                    : "No leads match the current filters."}
                 </TableCell>
               </TableRow>
             ) : (
