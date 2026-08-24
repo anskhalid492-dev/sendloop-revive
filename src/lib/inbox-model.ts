@@ -173,10 +173,17 @@ const UNSUB_PATTERNS = [/unsubscribe/i, /remove me from your list/i, /stop email
 const NEGATIVE_PATTERNS = [/not interested/i, /no thanks/i, /we're all set/i, /do not contact/i];
 const POSITIVE_PATTERNS = [
   /interested/i,
-  /sounds good/i,
-  /let's (talk|chat|connect)/i,
-  /book a (call|time|meeting)/i,
-  /happy to (chat|talk)/i,
+  /sounds (good|great|interesting|promising)/i,
+  /let'?s (talk|chat|connect|schedule|set ?up|do it|discuss)/i,
+  /(book|schedule|set ?up) a (call|time|meeting|demo|chat)/i,
+  /happy to (chat|talk|connect|learn more)/i,
+  /(send|share) (me )?(more|the|some) ?(info|information|details|deck|pricing|numbers)?/i,
+  /tell me more/i,
+  /can we (discuss|chat|talk|connect|meet|jump on)/i,
+  /(i'?m|i am) (available|free|open|keen|in)\b/i,
+  /would love to (chat|talk|connect|learn)/i,
+  /works for me/i,
+  /count me in/i,
 ];
 
 /** Best-effort classification of an inbound reply; never blocks ingestion. */
