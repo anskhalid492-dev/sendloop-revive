@@ -1,8 +1,19 @@
-import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { Download, Filter, Loader2, Pause, Play, Plus, Trash2, Upload } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Filter,
+  Loader2,
+  Pause,
+  Play,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -35,19 +46,37 @@ import {
 } from "@/components/ui/table";
 import {
   LEAD_DELIVERY_LABELS,
-  LEAD_DELIVERY_STATES,
   LEAD_DELIVERY_STYLES,
   type LeadDeliveryState,
 } from "@/lib/campaign-model";
-import { addLeadsToCampaign, updateCampaignRecipients } from "@/lib/campaigns.functions";
+import {
+  addLeadsToCampaign,
+  getCampaignLeads,
+  updateCampaignRecipients,
+} from "@/lib/campaigns.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const ANY = "__any__";
+const PAGE_SIZE = 50;
+
+/** Recipient lifecycle values — real columns, so they filter in the database. */
+const RECIPIENT_STATUS_OPTIONS = [
+  ["pending", "Pending"],
+  ["in_progress", "In progress"],
+  ["completed", "Completed"],
+  ["replied", "Replied"],
+  ["bounced", "Bounced"],
+  ["unsubscribed", "Unsubscribed"],
+  ["failed", "Failed"],
+  ["stopped", "Stopped"],
+] as const;
 
 export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
-  const { campaignId, leads, leadsLoading, leadsError, lists, accounts, refetchLeads } = builder;
+  const { campaignId, lists, accounts } = builder;
   const addFn = useServerFn(addLeadsToCampaign);
   const updateFn = useServerFn(updateCampaignRecipients);
+  const fetchLeads = useServerFn(getCampaignLeads);
+  const queryClient = useQueryClient();
 
   const [selected, setSelected] = useState<string[]>([]);
   const [addOpen, setAddOpen] = useState(false);
@@ -59,26 +88,59 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const [location, setLocation] = useState("");
   const [step, setStep] = useState(ANY);
   const [accountId, setAccountId] = useState(ANY);
+  const [page, setPage] = useState(1);
 
-  const filtered = useMemo(
-    () =>
-      leads.filter((row) => {
-        const lead = row.lead;
-        const haystack = `${lead?.email ?? ""} ${lead?.first_name ?? ""} ${lead?.last_name ?? ""}`;
-        if (search && !haystack.toLowerCase().includes(search.toLowerCase())) return false;
-        if (status !== ANY && (row.deliveryState ?? "not_contacted") !== status) return false;
-        if (company && !(lead?.company ?? "").toLowerCase().includes(company.toLowerCase()))
-          return false;
-        if (jobTitle && !(lead?.job_title ?? "").toLowerCase().includes(jobTitle.toLowerCase()))
-          return false;
-        if (location && !(lead?.country ?? "").toLowerCase().includes(location.toLowerCase()))
-          return false;
-        if (step !== ANY && String(row.current_step) !== step) return false;
-        if (accountId !== ANY && row.sending_account_id !== accountId) return false;
-        return true;
-      }),
-    [leads, search, status, company, jobTitle, location, step, accountId],
-  );
+  // Debounce the free-text filters so typing doesn't fire a request per keypress.
+  const [debounced, setDebounced] = useState({ search: "", company: "", jobTitle: "", location: "" });
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced({ search, company, jobTitle, location }), 300);
+    return () => clearTimeout(t);
+  }, [search, company, jobTitle, location]);
+
+  const filters = {
+    campaignId,
+    page,
+    pageSize: PAGE_SIZE,
+    ...(debounced.search ? { search: debounced.search } : {}),
+    ...(debounced.company ? { company: debounced.company } : {}),
+    ...(debounced.jobTitle ? { jobTitle: debounced.jobTitle } : {}),
+    ...(debounced.location ? { location: debounced.location } : {}),
+    ...(status !== ANY ? { status: status as "pending" } : {}),
+    ...(step !== ANY ? { step: Number(step) } : {}),
+    ...(accountId !== ANY ? { accountId } : {}),
+  };
+
+  // Filters change the population, so go back to the first page.
+  useEffect(() => {
+    setPage(1);
+    setSelected([]);
+  }, [debounced, status, step, accountId]);
+
+  const leadsQuery = useQuery({
+    queryKey: ["campaign-leads-page", filters],
+    queryFn: () => fetchLeads({ data: filters }),
+    // Realtime drives most updates; this is the safety net for missed events.
+    refetchInterval: (query) => (query.state.error ? false : 30_000),
+    retry: 1,
+    placeholderData: (prev) => prev,
+  });
+
+  const rows = leadsQuery.data?.rows ?? [];
+  const total = leadsQuery.data?.total ?? 0;
+  const matching = leadsQuery.data?.matching ?? 0;
+  const leadsError = (leadsQuery.error as Error | null) ?? null;
+  const pageCount = Math.max(1, Math.ceil(matching / PAGE_SIZE));
+  const filtersActive =
+    Boolean(debounced.search || debounced.company || debounced.jobTitle || debounced.location) ||
+    status !== ANY ||
+    step !== ANY ||
+    accountId !== ANY;
+
+  const refetchLeads = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["campaign-leads-page"] });
+    await queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
+    await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+  };
 
   const add = useMutation({
     mutationFn: () => addFn({ data: { campaignId, listId: addListId } }),
@@ -106,9 +168,10 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  /** Exports the current page — the browser never holds the whole audience. */
   const exportCsv = () => {
     const header = "email,first_name,last_name,company,job_title,location,status,current_step\n";
-    const rows = filtered
+    const body = rows
       .map((r) =>
         [
           r.lead?.email ?? "",
@@ -119,29 +182,30 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           r.lead?.country ?? "",
           LEAD_DELIVERY_LABELS[(r.deliveryState ?? "not_contacted") as LeadDeliveryState] ??
             r.status,
-          r.current_step,
+          r.current_step ?? 0,
         ]
           .map((v) => `"${String(v).replace(/"/g, '""')}"`)
           .join(","),
       )
       .join("\n");
-    const url = URL.createObjectURL(new Blob([header + rows], { type: "text/csv" }));
+    const url = URL.createObjectURL(new Blob([header + body], { type: "text/csv" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "campaign-leads.csv";
+    a.download = `campaign-leads-page-${page}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const allChecked = filtered.length > 0 && selected.length === filtered.length;
+  const allChecked = rows.length > 0 && rows.every((r) => selected.includes(r.id));
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">{leads.length.toLocaleString()} leads</h2>
+          <h2 className="text-lg font-semibold">{total.toLocaleString()} leads</h2>
           <p className="text-sm text-muted-foreground">
-            {filtered.length.toLocaleString()} match the current filters
+            {matching.toLocaleString()} match the current filters
+            {matching > 0 ? ` · showing ${rows.length.toLocaleString()} on page ${page} of ${pageCount}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -162,7 +226,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name or email"
+            placeholder="Name, email or company"
           />
         </div>
         <div>
@@ -173,9 +237,9 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ANY}>Any status</SelectItem>
-              {LEAD_DELIVERY_STATES.map((value) => (
+              {RECIPIENT_STATUS_OPTIONS.map(([value, label]) => (
                 <SelectItem key={value} value={value}>
-                  {LEAD_DELIVERY_LABELS[value]}
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -246,7 +310,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             <Filter className="mr-1.5 size-3.5" /> Reset
           </Button>
           <Button variant="ghost" size="sm" onClick={exportCsv}>
-            <Download className="mr-1.5 size-3.5" /> Export
+            <Download className="mr-1.5 size-3.5" /> Export page
           </Button>
         </div>
       </div>
@@ -272,9 +336,9 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             <TableRow>
               <TableHead className="w-10">
                 <Checkbox
-                  aria-label="Select all leads"
+                  aria-label="Select all leads on this page"
                   checked={allChecked}
-                  onCheckedChange={(v) => setSelected(v ? filtered.map((r) => r.id) : [])}
+                  onCheckedChange={(v) => setSelected(v ? rows.map((r) => r.id) : [])}
                 />
               </TableHead>
               <TableHead>Name</TableHead>
@@ -290,7 +354,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leadsLoading ? (
+            {leadsQuery.isPending ? (
               <TableRow>
                 <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
                   <Loader2 className="mx-auto mb-2 size-4 animate-spin" />
@@ -311,16 +375,18 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                   </Button>
                 </TableCell>
               </TableRow>
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
-                  {leads.length === 0
+                  {total === 0
                     ? "No leads in this campaign yet. Add them from a lead list."
-                    : "No leads match the current filters."}
+                    : filtersActive
+                      ? "No leads match the current filters."
+                      : "No leads on this page."}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((row) => (
+              rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
                     <Checkbox
@@ -350,7 +416,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                       ] ?? row.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="tabular-nums">{row.current_step}</TableCell>
+                  <TableCell className="tabular-nums">{row.current_step ?? 0}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {row.lastEventAt
                       ? new Date(row.lastEventAt).toLocaleString()
@@ -370,6 +436,38 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           </TableBody>
         </Table>
       </div>
+
+      {matching > PAGE_SIZE ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="text-muted-foreground">
+            Page {page} of {pageCount} · {matching.toLocaleString()} leads
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || leadsQuery.isFetching}
+              onClick={() => {
+                setSelected([]);
+                setPage((p) => Math.max(1, p - 1));
+              }}
+            >
+              <ChevronLeft className="mr-1 size-3.5" /> Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pageCount || leadsQuery.isFetching}
+              onClick={() => {
+                setSelected([]);
+                setPage((p) => Math.min(pageCount, p + 1));
+              }}
+            >
+              Next <ChevronRight className="ml-1 size-3.5" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
