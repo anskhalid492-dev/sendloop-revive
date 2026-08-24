@@ -100,6 +100,18 @@ export function DailyLimitPopover({
           <p className="font-medium tabular-nums">
             {numberFmt.format(row.sentToday)} / {numberFmt.format(row.dailyCap || 0)} emails
           </p>
+          <p className="text-muted-foreground">
+            Remaining today:{" "}
+            <span className="font-medium tabular-nums text-foreground">
+              {row.dailyCap > 0
+                ? numberFmt.format(Math.max(0, row.dailyCap - row.sentToday))
+                : "—"}
+            </span>
+          </p>
+          <p className="text-muted-foreground">
+            Total leads: {numberFmt.format(row.leads)} · pending{" "}
+            {numberFmt.format(Math.max(0, row.leads - row.sent))}
+          </p>
           {row.mailboxDailyCapacity > 0 ? (
             <p className="text-muted-foreground">
               Actual available capacity: {numberFmt.format(capacity)}/day from your connected
