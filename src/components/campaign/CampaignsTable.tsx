@@ -331,8 +331,13 @@ export function CampaignsTable({
                     />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sentToday)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {numberFmt.format(Math.max(0, row.leads - row.sent))}
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title="Daily sending limit minus emails sent today"
+                  >
+                    {row.dailyCap > 0
+                      ? numberFmt.format(Math.max(0, row.dailyCap - row.sentToday))
+                      : "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
                   <TableCell>
