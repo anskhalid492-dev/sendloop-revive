@@ -36,6 +36,20 @@ export function useSelectedWorkspaceId() {
   );
 }
 
+/**
+ * The workspace the user is actually working in.
+ *
+ * `useSelectedWorkspaceId` is null until the user picks a workspace in the
+ * switcher, so components must not use it as their workspace scope: they would
+ * render a permanently disabled UI for anyone who never touched the switcher.
+ * This resolves the stored selection and falls back to the first workspace the
+ * user is a member of, exactly like `useWorkspace()`.
+ */
+export function useActiveWorkspaceId(): string | null {
+  const { workspace } = useWorkspace();
+  return workspace?.id ?? null;
+}
+
 export function useWorkspace() {
   const queryClient = useQueryClient();
   const fetchWorkspaces = useServerFn(getMyWorkspaces);
