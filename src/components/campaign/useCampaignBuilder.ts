@@ -138,9 +138,12 @@ export function useCampaignBuilder(campaignId: string) {
       return attempt < 2;
     },
   });
+  // Sample page only: the Leads tab paginates on its own and the campaign
+  // totals come from exact server-side counts, so the browser never downloads
+  // the whole audience.
   const leadsQuery = useQuery({
-    queryKey: ["campaign-leads", campaignId],
-    queryFn: () => fetchLeads({ data: { campaignId } }),
+    queryKey: ["campaign-leads", campaignId, "sample"],
+    queryFn: () => fetchLeads({ data: { campaignId, page: 1, pageSize: 100 } }),
     // Realtime drives most updates; this is the safety net for missed events.
     // Polling stops while the query is erroring so a broken read never turns
     // into an endless refetch loop.
@@ -399,7 +402,8 @@ export function useCampaignBuilder(campaignId: string) {
     readinessLoading: readinessQuery.isLoading,
     refetchReadiness: () =>
       queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] }),
-    leads: leadsQuery.data ?? [],
+    leads: leadsQuery.data?.rows ?? [],
+    leadsTotal: leadsQuery.data?.total ?? 0,
     leadsLoading: leadsQuery.isPending,
     leadsError: (leadsQuery.error as Error | null) ?? null,
     refetchLeads: () => queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] }),
