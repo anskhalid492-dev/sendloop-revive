@@ -15,6 +15,8 @@ import {
   type LeadColumnId,
   type LeadRow,
 } from "@/lib/lead-model";
+import { isSelected, toggleSelection, type LeadSelection } from "@/lib/leads-query";
+
 
 const SORT_MAP: Partial<Record<LeadColumnId, string>> = {
   name: "first_name",
@@ -42,8 +44,8 @@ export function LeadTable({
   isError,
   errorMessage,
   onRetry,
-  selected,
-  onSelectedChange,
+  selection,
+  onSelectionChange,
   sortBy,
   sortDir,
   onSort,
@@ -59,8 +61,8 @@ export function LeadTable({
   isError: boolean;
   errorMessage?: string | undefined;
   onRetry: () => void;
-  selected: string[];
-  onSelectedChange: (ids: string[]) => void;
+  selection: LeadSelection;
+  onSelectionChange: (selection: LeadSelection) => void;
   sortBy: string;
   sortDir: "asc" | "desc";
   onSort: (column: string) => void;
@@ -70,6 +72,7 @@ export function LeadTable({
   onOpenLead: (id: string) => void;
   emptyHint: string;
 }) {
+
   const [widths, setWidths] = useState<Record<string, number>>(() =>
     Object.fromEntries(LEAD_COLUMNS.map((c) => [c.id, c.width])),
   );
@@ -94,7 +97,7 @@ export function LeadTable({
     };
   }, [onMouseMove]);
 
-  const allSelected = rows.length > 0 && rows.every((r) => selected.includes(r.id));
+  const allSelected = rows.length > 0 && rows.every((r) => isSelected(selection, r.id));
   const pages = Math.max(1, Math.ceil(total / pageSize));
 
   if (isError) {
@@ -148,13 +151,12 @@ export function LeadTable({
                 <Checkbox
                   aria-label="Select all leads on this page"
                   checked={allSelected}
-                  onCheckedChange={(checked) =>
-                    onSelectedChange(
-                      checked
-                        ? Array.from(new Set([...selected, ...rows.map((r) => r.id)]))
-                        : selected.filter((id) => !rows.some((r) => r.id === id)),
-                    )
-                  }
+                  onCheckedChange={(checked) => {
+                    let next = selection;
+                    for (const row of rows) next = toggleSelection(next, row.id, Boolean(checked));
+                    onSelectionChange(next);
+                  }}
+
                 />
               </th>
               {LEAD_COLUMNS.map((col) => {
@@ -206,7 +208,7 @@ export function LeadTable({
           </thead>
           <tbody>
             {rows.map((lead) => {
-              const checked = selected.includes(lead.id);
+              const checked = isSelected(selection, lead.id);
               return (
                 <tr
                   key={lead.id}
@@ -220,10 +222,9 @@ export function LeadTable({
                       aria-label={`Select ${lead.email}`}
                       checked={checked}
                       onCheckedChange={(value) =>
-                        onSelectedChange(
-                          value ? [...selected, lead.id] : selected.filter((id) => id !== lead.id),
-                        )
+                        onSelectionChange(toggleSelection(selection, lead.id, Boolean(value)))
                       }
+
                     />
                   </td>
                   <td className="truncate px-3 py-2 font-medium">

@@ -41,6 +41,11 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { LEAD_STATUSES, leadLocation, leadName, type LeadFilters } from "@/lib/lead-model";
 import { listCampaigns } from "@/lib/campaigns.functions";
 import {
+  EMPTY_SELECTION,
+  selectionCount,
+  type LeadSelection,
+} from "@/lib/leads-query";
+import {
   bulkLeadAction,
   createLead,
   listLeadLists,
@@ -93,7 +98,7 @@ function LeadsPage() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selection, setSelection] = useState<LeadSelection>(EMPTY_SELECTION);
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -151,6 +156,14 @@ function LeadsPage() {
 
   const rows = leads.data?.rows ?? [];
   const total = leads.data?.total ?? 0;
+  const selectedCount = selectionCount(selection, total);
+  const allMatchingSelected = selection.mode === "all" && selection.excluded.length === 0;
+
+  // Filters sent with bulk actions so the server resolves the same population.
+  const bulkFilters = useMemo(() => {
+    const { page: _p, pageSize: _s, sortBy: _b, sortDir: _d, ...rest } = query;
+    return rest;
+  }, [query]);
 
   const campaignOptions = (campaigns.data ?? []).map((c: { id: string; name: string }) => ({
     id: c.id,
@@ -165,10 +178,24 @@ function LeadsPage() {
 
   const bulk = useMutation({
     mutationFn: (vars: Record<string, unknown>) =>
-      bulkFn({ data: { ids: selected, workspaceId, ...vars } as never }),
-    onSuccess: () => {
-      toast.success("Leads updated");
-      setSelected([]);
+      bulkFn({
+        data: { selection, filters: bulkFilters, workspaceId, ...vars } as never,
+      }),
+    onSuccess: (result) => {
+      const failed = result?.failed ?? 0;
+      const detail = (result?.reasons ?? [])
+        .map((r: { count: number; reason: string }) => `${r.count} ${r.reason.toLowerCase()}`)
+        .join(", ");
+      if (failed > 0) {
+        toast.warning(`Updated: ${result.affected} · Failed: ${failed}`, {
+          description: detail || undefined,
+        });
+      } else {
+        toast.success(`Updated: ${result?.affected ?? 0} leads`, {
+          description: detail || undefined,
+        });
+      }
+      setSelection(EMPTY_SELECTION);
       setBulkDialog(null);
       setBulkValue("");
       refresh();
@@ -202,7 +229,10 @@ function LeadsPage() {
   });
 
   const exportCsv = () => {
-    const source = selected.length ? rows.filter((r) => selected.includes(r.id)) : rows;
+    const source =
+      selection.mode === "ids" && selection.ids.length
+        ? rows.filter((r) => selection.ids.includes(r.id))
+        : rows;
     if (source.length === 0) {
       toast.error("Nothing to export on this page");
       return;
@@ -268,7 +298,7 @@ function LeadsPage() {
           onSelect={(id) => {
             setActiveList(id);
             setPage(1);
-            setSelected([]);
+            setSelection(EMPTY_SELECTION);
           }}
           workspaceId={workspaceId}
         />
@@ -318,9 +348,23 @@ function LeadsPage() {
             />
           ) : null}
 
-          {selected.length > 0 ? (
+          {selectedCount > 0 ? (
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3">
-              <p className="text-sm font-medium">{selected.length} selected</p>
+              <p className="text-sm font-medium">
+                {allMatchingSelected
+                  ? `All ${total.toLocaleString()} leads selected`
+                  : `${selectedCount.toLocaleString()} leads selected`}
+              </p>
+              {!allMatchingSelected && total > selectedCount ? (
+                <Button
+                  size="sm"
+                  variant="link"
+                  className="h-auto p-0"
+                  onClick={() => setSelection({ mode: "all", excluded: [] })}
+                >
+                  Select all {total.toLocaleString()} leads
+                </Button>
+              ) : null}
               <div className="ml-auto flex flex-wrap gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -397,7 +441,7 @@ function LeadsPage() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
+                <Button size="sm" variant="ghost" onClick={() => setSelection(EMPTY_SELECTION)}>
                   Clear
                 </Button>
               </div>
@@ -411,8 +455,8 @@ function LeadsPage() {
             isError={leads.isError}
             errorMessage={(leads.error as Error | null)?.message}
             onRetry={() => void leads.refetch()}
-            selected={selected}
-            onSelectedChange={setSelected}
+            selection={selection}
+            onSelectionChange={setSelection}
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={onSort}
@@ -502,7 +546,9 @@ function LeadsPage() {
                       : "Add to campaign"
                     : "Set status"}
             </DialogTitle>
-            <DialogDescription>Applies to {selected.length} selected leads.</DialogDescription>
+            <DialogDescription>
+              Applies to {selectedCount.toLocaleString()} selected leads.
+            </DialogDescription>
           </DialogHeader>
 
           {bulkDialog === "tag" ? (

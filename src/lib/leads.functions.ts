@@ -85,19 +85,30 @@ export const listLeadLists = createServerFn({ method: "GET" })
       .returns<Array<{ id: string; name: string; description: string | null; created_at: string }>>();
     if (error) throw new Error(error.message);
 
-    let leadCountQuery = context.supabase
-      .from("leads")
-      .select(sel("list_id"));
-    if (input.workspaceId) leadCountQuery = leadCountQuery.eq("workspace_id", input.workspaceId);
-    const { data: leadRows, error: countError } = await leadCountQuery
-      .returns<Array<{ list_id: string | null }>>();
-    if (countError) throw new Error(countError.message);
+    const lists = data ?? [];
 
-    return (data ?? []).map((list) => ({
+    // Counts come from exact head counts per list. Selecting every lead row and
+    // counting client-side silently truncated at PostgREST's row ceiling, which
+    // is why large lists reported 0 leads.
+    const counts = await Promise.all(
+      lists.map(async (list) => {
+        let countQuery = context.supabase
+          .from("leads")
+          .select(sel("id"), { count: "exact", head: true })
+          .eq("list_id", list.id);
+        if (input.workspaceId) countQuery = countQuery.eq("workspace_id", input.workspaceId);
+        const { count, error: countError } = await countQuery;
+        if (countError) throw new Error(countError.message);
+        return count ?? 0;
+      }),
+    );
+
+    return lists.map((list, index) => ({
       ...list,
-      leadCount: (leadRows ?? []).filter((l) => l.list_id === list.id).length,
+      leadCount: counts[index] ?? 0,
     })) as LeadList[];
   });
+
 
 export const createLeadList = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -168,25 +179,17 @@ export const deleteLeadList = createServerFn({ method: "POST" })
 
 /* ------------------------------------------------------------------ leads */
 
-function escapeLike(value: string) {
-  return value.replace(/[%,()]/g, " ").trim();
-}
-
 export const listLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => listInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     const input: ListInput = data;
+    const { applyLeadFilters } = await import("@/lib/leads-query");
+    const { resolveCampaignLeadIds } = await import("@/lib/leads-bulk.server");
 
     let restrictIds: string[] | null = null;
     if (input.campaignId) {
-      const { data: recipients, error } = await context.supabase
-        .from("campaign_recipients")
-        .select(sel("lead_id"))
-        .eq("campaign_id", input.campaignId)
-        .returns<Array<{ lead_id: string }>>();
-      if (error) throw new Error(error.message);
-      restrictIds = (recipients ?? []).map((r) => r.lead_id);
+      restrictIds = await resolveCampaignLeadIds(context.supabase, input.campaignId);
       if (restrictIds.length === 0) return { rows: [] as LeadRow[], total: 0 };
     }
 
@@ -195,39 +198,14 @@ export const listLeads = createServerFn({ method: "POST" })
       .select(sel(LEAD_SELECT), { count: "exact" })
       .order(input.sortBy, { ascending: input.sortDir === "asc", nullsFirst: false });
 
-    if (input.workspaceId) query = query.eq("workspace_id", input.workspaceId);
-    if (input.listId) query = query.eq("list_id", input.listId);
-    if (restrictIds) query = query.in("id", restrictIds);
-    if (input.statuses?.length) query = query.in("status", input.statuses);
-    if (input.tags?.length) query = query.contains("tags", input.tags);
-    if (input.email) query = query.ilike("email", `%${escapeLike(input.email)}%`);
-    if (input.company) query = query.ilike("company", `%${escapeLike(input.company)}%`);
-    if (input.jobTitle) query = query.ilike("job_title", `%${escapeLike(input.jobTitle)}%`);
-    if (input.createdFrom) query = query.gte("created_at", input.createdFrom);
-    if (input.createdTo) query = query.lte("created_at", `${input.createdTo}T23:59:59`);
-    if (input.name) {
-      const term = escapeLike(input.name);
-      query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%`);
-    }
-    if (input.location) {
-      const term = escapeLike(input.location);
-      query = query.or(`city.ilike.%${term}%,state.ilike.%${term}%,country.ilike.%${term}%`);
-    }
-    if (input.search) {
-      const term = escapeLike(input.search);
-      query = query.or(
-        `email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%,company.ilike.%${term}%`,
-      );
-    }
-    if (input.customKey && input.customValue) {
-      query = query.contains("custom_fields", { [input.customKey]: input.customValue });
-    }
+    query = applyLeadFilters(query, { ...input, campaignId: undefined }, restrictIds);
 
     const from = (input.page - 1) * input.pageSize;
     const { data: rows, count, error } = await query
       .range(from, from + input.pageSize - 1)
       .returns<LeadRow[]>();
     if (error) throw new Error(error.message);
+
 
     const leads = (rows ?? []) as LeadRow[];
     if (leads.length === 0) return { rows: leads, total: count ?? 0 };
@@ -448,8 +426,16 @@ export const deleteLead = createServerFn({ method: "POST" })
 
 /* ----------------------------------------------------------- bulk actions */
 
+const selectionSchema = z.union([
+  z.object({ mode: z.literal("ids"), ids: z.array(z.string().uuid()).max(5000) }),
+  z.object({ mode: z.literal("all"), excluded: z.array(z.string().uuid()).max(5000).default([]) }),
+]);
+
 const bulkSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(2000),
+  /** Either an explicit id set, or "everything the current filters match". */
+  selection: selectionSchema,
+  /** The exact filters the customer is looking at; re-applied server-side. */
+  filters: filtersSchema.default({}),
   action: z.enum([
     "add_to_list",
     "remove_from_list",
@@ -460,83 +446,170 @@ const bulkSchema = z.object({
     "remove_from_campaign",
     "delete",
   ]),
-  listId: z.string().uuid().optional(),
+  listId: z.string().uuid().nullable().optional(),
   campaignId: z.string().uuid().optional(),
   tag: z.string().trim().max(40).optional(),
   status: z.string().trim().max(40).optional(),
   workspaceId: z.string().uuid().optional(),
 });
 
+export type BulkLeadResult = {
+  affected: number;
+  failed: number;
+  reasons: Array<{ count: number; reason: string }>;
+};
+
 export const bulkLeadAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => bulkSchema.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<BulkLeadResult> => {
     const { supabase } = context;
+    const { resolveSelectionIds } = await import("@/lib/leads-bulk.server");
+
+    const filters = { ...data.filters, ...(data.workspaceId ? { workspaceId: data.workspaceId } : {}) };
+
+    // Never trust ids from the browser: they are re-resolved through the
+    // caller's own RLS-scoped client with the active filters applied.
+    const ids = await resolveSelectionIds(supabase, filters, data.selection);
+
+    const requested =
+      data.selection.mode === "ids" ? data.selection.ids.length : ids.length;
+    const reasons: Array<{ count: number; reason: string }> = [];
+    const dropped = Math.max(0, requested - ids.length);
+    if (dropped > 0) {
+      reasons.push({ count: dropped, reason: "Not available in your workspace anymore" });
+    }
+    if (ids.length === 0) return { affected: 0, failed: dropped, reasons };
+
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 200) chunks.push(ids.slice(i, i + 200));
 
     if (data.action === "delete") {
-      const { error } = await supabase.from("leads").delete().in("id", data.ids);
-      if (error) throw new Error(error.message);
-      return { affected: data.ids.length };
+      let affected = 0;
+      for (const chunk of chunks) {
+        const { data: rows, error } = await supabase
+          .from("leads")
+          .delete()
+          .in("id", chunk)
+          .select(sel("id"))
+          .returns<Array<{ id: string }>>();
+        if (error) throw new Error(error.message);
+        affected += (rows ?? []).length;
+      }
+      return { affected, failed: dropped + (ids.length - affected), reasons };
     }
 
     if (data.action === "add_to_list" || data.action === "remove_from_list") {
-      const listId = data.action === "add_to_list" ? data.listId : null;
-      if (data.action === "add_to_list" && !listId) throw new Error("Pick a list first");
-      const { error } = await supabase
-        .from("leads")
-        .update({ list_id: listId ?? null })
-        .in("id", data.ids);
-      if (error) throw new Error(error.message);
-      return { affected: data.ids.length };
+      let listId: string | null = null;
+      if (data.action === "add_to_list") {
+        if (!data.listId) throw new Error("Pick a list first");
+        // Destination list must be readable by the caller and live in the same
+        // workspace as every lead being moved.
+        const { data: list, error: listErr } = await supabase
+          .from("lead_lists")
+          .select(sel("id, workspace_id"))
+          .eq("id", data.listId)
+          .maybeSingle();
+        if (listErr) throw new Error(listErr.message);
+        if (!list) throw new Error("That list is not available in your workspace");
+        const listWorkspaceId = (list as unknown as { workspace_id: string }).workspace_id;
+        listId = data.listId;
+
+        for (const chunk of chunks) {
+          const { data: rows, error } = await supabase
+            .from("leads")
+            .select(sel("id, workspace_id"))
+            .in("id", chunk)
+            .neq("workspace_id", listWorkspaceId)
+            .returns<Array<{ id: string }>>();
+          if (error) throw new Error(error.message);
+          if ((rows ?? []).length) {
+            throw new Error("Those leads belong to a different workspace than the destination list");
+          }
+        }
+      }
+
+      let affected = 0;
+      for (const chunk of chunks) {
+        const { data: rows, error } = await supabase
+          .from("leads")
+          .update({ list_id: listId })
+          .in("id", chunk)
+          .select(sel("id"))
+          .returns<Array<{ id: string }>>();
+        if (error) throw new Error(error.message);
+        affected += (rows ?? []).length;
+      }
+      const failed = dropped + (ids.length - affected);
+      if (ids.length - affected > 0) {
+        reasons.push({ count: ids.length - affected, reason: "Update rejected by workspace rules" });
+      }
+      return { affected, failed, reasons };
     }
 
     if (data.action === "set_status") {
       if (!data.status) throw new Error("Pick a status first");
-      const { error } = await supabase
-        .from("leads")
-        .update({ status: data.status })
-        .in("id", data.ids);
-      if (error) throw new Error(error.message);
-      return { affected: data.ids.length };
+      let affected = 0;
+      for (const chunk of chunks) {
+        const { data: rows, error } = await supabase
+          .from("leads")
+          .update({ status: data.status })
+          .in("id", chunk)
+          .select(sel("id"))
+          .returns<Array<{ id: string }>>();
+        if (error) throw new Error(error.message);
+        affected += (rows ?? []).length;
+      }
+      return { affected, failed: dropped + (ids.length - affected), reasons };
     }
 
     if (data.action === "add_tag" || data.action === "remove_tag") {
       const tag = data.tag?.trim();
       if (!tag) throw new Error("Enter a tag first");
-      const { data: rows, error } = await supabase
-        .from("leads")
-        .select(sel("id, tags"))
-        .in("id", data.ids)
-        .returns<Array<{ id: string; tags: string[] | null }>>();
-      if (error) throw new Error(error.message);
-      for (const row of rows ?? []) {
-        const current = row.tags ?? [];
-        const next =
-          data.action === "add_tag"
-            ? current.includes(tag)
-              ? current
-              : [...current, tag]
-            : current.filter((t) => t !== tag);
-        if (next === current) continue;
-        const { error: upErr } = await supabase
+      let affected = 0;
+      for (const chunk of chunks) {
+        const { data: rows, error } = await supabase
           .from("leads")
-          .update({ tags: next })
-          .eq("id", row.id);
-        if (upErr) throw new Error(upErr.message);
+          .select(sel("id, tags"))
+          .in("id", chunk)
+          .returns<Array<{ id: string; tags: string[] | null }>>();
+        if (error) throw new Error(error.message);
+        for (const row of rows ?? []) {
+          const current = row.tags ?? [];
+          const next =
+            data.action === "add_tag"
+              ? current.includes(tag)
+                ? current
+                : [...current, tag]
+              : current.filter((t) => t !== tag);
+          if (next === current) continue;
+          const { error: upErr } = await supabase
+            .from("leads")
+            .update({ tags: next })
+            .eq("id", row.id);
+          if (upErr) throw new Error(upErr.message);
+          affected += 1;
+        }
       }
-      return { affected: (rows ?? []).length };
+      return { affected, failed: dropped, reasons };
     }
 
     if (!data.campaignId) throw new Error("Pick a campaign first");
 
     if (data.action === "remove_from_campaign") {
-      const { error } = await supabase
-        .from("campaign_recipients")
-        .delete()
-        .eq("campaign_id", data.campaignId)
-        .in("lead_id", data.ids);
-      if (error) throw new Error(error.message);
-      return { affected: data.ids.length };
+      let affected = 0;
+      for (const chunk of chunks) {
+        const { data: rows, error } = await supabase
+          .from("campaign_recipients")
+          .delete()
+          .eq("campaign_id", data.campaignId)
+          .in("lead_id", chunk)
+          .select(sel("id"))
+          .returns<Array<{ id: string }>>();
+        if (error) throw new Error(error.message);
+        affected += (rows ?? []).length;
+      }
+      return { affected, failed: dropped, reasons };
     }
 
     const { data: campaign, error: cErr } = await supabase
@@ -548,45 +621,49 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
     if (!campaign) throw new Error("Campaign not found");
     const campaignWorkspaceId = (campaign as unknown as { workspace_id: string }).workspace_id;
 
-    // Every selected lead must live in the campaign's workspace, otherwise the
-    // recipient insert would cross tenants (and RLS would reject it).
-    const { data: leadRows, error: lErr } = await supabase
-      .from("leads")
-      .select(sel("id, workspace_id"))
-      .in("id", data.ids)
-      .returns<Array<{ id: string; workspace_id: string }>>();
-    if (lErr) throw new Error(lErr.message);
-    if ((leadRows ?? []).length !== data.ids.length) throw new Error("Some leads are no longer available");
-    if ((leadRows ?? []).some((l) => l.workspace_id !== campaignWorkspaceId)) {
-      throw new Error("That campaign belongs to a different workspace");
-    }
+    let affected = 0;
+    let skipped = 0;
+    for (const chunk of chunks) {
+      // Every selected lead must live in the campaign's workspace, otherwise the
+      // recipient insert would cross tenants (and RLS would reject it).
+      const { data: leadRows, error: lErr } = await supabase
+        .from("leads")
+        .select(sel("id, workspace_id"))
+        .in("id", chunk)
+        .returns<Array<{ id: string; workspace_id: string }>>();
+      if (lErr) throw new Error(lErr.message);
+      if ((leadRows ?? []).some((l) => l.workspace_id !== campaignWorkspaceId)) {
+        throw new Error("That campaign belongs to a different workspace");
+      }
 
-
-    const { data: existing } = await supabase
-      .from("campaign_recipients")
-      .select(sel("lead_id"))
-      .eq("campaign_id", data.campaignId)
-      .in("lead_id", data.ids)
-      .returns<Array<{ lead_id: string }>>();
-    const already = new Set((existing ?? []).map((r) => r.lead_id));
-    const toInsert = data.ids
-      .filter((id) => !already.has(id))
-      .map((id) => ({
-        campaign_id: data.campaignId!,
-        workspace_id: (campaign as unknown as { workspace_id: string }).workspace_id,
-        lead_id: id,
-        current_step: 0,
-        status: "pending" as const,
-      }));
-
-    for (let i = 0; i < toInsert.length; i += 500) {
+      const { data: existing } = await supabase
+        .from("campaign_recipients")
+        .select(sel("lead_id"))
+        .eq("campaign_id", data.campaignId)
+        .in("lead_id", chunk)
+        .returns<Array<{ lead_id: string }>>();
+      const already = new Set((existing ?? []).map((r) => r.lead_id));
+      const toInsert = chunk
+        .filter((id) => !already.has(id))
+        .map((id) => ({
+          campaign_id: data.campaignId!,
+          workspace_id: campaignWorkspaceId,
+          lead_id: id,
+          current_step: 0,
+          status: "pending" as const,
+        }));
+      skipped += chunk.length - toInsert.length;
+      if (toInsert.length === 0) continue;
       const { error } = await supabase
         .from("campaign_recipients")
-        .insert(toInsert.slice(i, i + 500) as never);
+        .insert(toInsert as never);
       if (error) throw new Error(error.message);
+      affected += toInsert.length;
     }
-    return { affected: toInsert.length };
+    if (skipped > 0) reasons.push({ count: skipped, reason: "Already in this campaign" });
+    return { affected, failed: dropped, reasons };
   });
+
 
 /* ---------------------------------------------------------------- import */
 
