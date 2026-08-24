@@ -142,7 +142,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
 
-    const [stepsRes, variantsRes, recipientsRes, messagesRes] = await Promise.all([
+    const [stepsRes, variantsRes, recipientsRes, messagesRes, recipientCountRes] = await Promise.all([
       context.supabase
         .from("campaign_steps")
         .select(STEP_COLUMNS)
