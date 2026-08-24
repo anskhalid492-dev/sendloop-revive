@@ -24,6 +24,25 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
   const usedToday = selected.reduce((sum, a) => sum + (a.sent_today ?? 0), 0);
 
+  // Eligible = usable by this workspace right now: enabled, not paused, not failed/disabled.
+  const eligible = accounts.filter(
+    (a) => a.customer_enabled && !a.paused && a.status !== "failed" && a.status !== "disabled",
+  );
+  const eligibleIds = eligible.map((a) => a.id);
+  const selectedEligible = eligibleIds.filter((id) => selectedIds.includes(id));
+  const allSelected = eligibleIds.length > 0 && selectedEligible.length === eligibleIds.length;
+  const someSelected = selectedEligible.length > 0 && !allSelected;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      // Deselect every mailbox (including any ineligible leftovers).
+      patchSettings({ sendingAccountIds: [] });
+      return;
+    }
+    const merged = Array.from(new Set([...selectedIds, ...eligibleIds]));
+    patchSettings({ sendingAccountIds: merged });
+  };
+
   return (
     <div className="space-y-5">
       <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-5">
@@ -49,6 +68,23 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
           </div>
         </div>
       </div>
+
+      {eligible.length > 0 ? (
+        <div className="surface-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium">
+            <Checkbox
+              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+              onCheckedChange={toggleAll}
+              aria-label={allSelected ? "Deselect all inboxes" : "Select all inboxes"}
+            />
+            {allSelected ? "Deselect all" : "Select all inboxes"}
+          </label>
+          <p className="text-xs text-muted-foreground">
+            {selectedEligible.length} of {eligibleIds.length} eligible inboxes selected
+          </p>
+        </div>
+      ) : null}
+
 
       {accounts.length === 0 ? (
         <div className="surface-card flex flex-col items-center gap-3 p-12 text-center">
