@@ -250,9 +250,13 @@ export function CampaignsTable({
               <TableHead className="text-right">
                 <SortButton label="Leads" sortKey="leads" active={sortKey === "leads"} dir={dir} onSort={onSort} />
               </TableHead>
+              <TableHead className="text-right">Daily sending limit</TableHead>
+              <TableHead className="text-right">Sent today</TableHead>
+              <TableHead className="text-right">Remaining</TableHead>
               <TableHead className="text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
               </TableHead>
+
               <TableHead className="text-right">
                 <SortButton label="Reply Rate" sortKey="replyRate" active={sortKey === "replyRate"} dir={dir} onSort={onSort} />
               </TableHead>
