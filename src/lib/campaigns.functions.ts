@@ -74,36 +74,58 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     // read all tenants' rows through RLS).
     const scope = <T>(q: T): T => (ws ? (q as { eq: (c: string, v: string) => T }).eq("workspace_id", ws) : q);
 
-    const [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes] =
-      await Promise.all([
-        scope(
-          context.supabase
-            .from("campaigns")
-            .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
-            .order("created_at", { ascending: false }),
-        ),
-        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")),
-        scope(context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at")),
-        scope(context.supabase.from("campaign_replies").select("campaign_id, lead_id, from_email, sentiment")),
-        scope(context.supabase.from("conversations").select("campaign_id, lead_id, prospect_email, status")),
-        scope(
-          context.supabase
-            .from("sending_accounts")
-            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status, daily_limit"),
-        ),
-      ]);
+    // Every per-campaign aggregate is derived from these rows, so they must be
+    // read completely: a plain select() stops at 1,000 rows and made large
+    // audiences (e.g. 1,259 recipients) report as 1,000.
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
 
-    const failure = [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes].find(
-      (r) => r.error,
-    );
+    const [campaignsRes, recipients, messages, replies, meetings, accountsRes] = await Promise.all([
+      scope(
+        context.supabase
+          .from("campaigns")
+          .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
+          .order("created_at", { ascending: false }),
+      ),
+      fetchAllRows(() =>
+        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")).order("id", {
+          ascending: true,
+        }),
+      ),
+      fetchAllRows(() =>
+        scope(
+          context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at"),
+        ).order("id", { ascending: true }),
+      ),
+      fetchAllRows(() =>
+        scope(
+          context.supabase
+            .from("campaign_replies")
+            .select("campaign_id, lead_id, from_email, sentiment"),
+        ).order("id", { ascending: true }),
+      ),
+      fetchAllRows(() =>
+        scope(
+          context.supabase
+            .from("conversations")
+            .select("campaign_id, lead_id, prospect_email, status"),
+        ).order("id", { ascending: true }),
+      ),
+      scope(
+        context.supabase
+          .from("sending_accounts")
+          .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status, daily_limit"),
+      ),
+    ]);
+
+    const failure = [campaignsRes, accountsRes].find((r) => r.error);
     if (failure?.error) throw new Error(failure.error.message);
 
     return buildCampaignOverview({
       campaigns: (campaignsRes.data ?? []) as never,
-      recipients: (recipientsRes.data ?? []) as never,
-      messages: (messagesRes.data ?? []) as never,
-      replies: (repliesRes.data ?? []) as never,
-      meetings: (conversationsRes.data ?? []) as never,
+      recipients: recipients as never,
+      messages: messages as never,
+      replies: replies as never,
+      meetings: meetings as never,
       accounts: (accountsRes.data ?? []) as never,
     });
   });
