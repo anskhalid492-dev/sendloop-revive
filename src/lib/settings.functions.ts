@@ -81,8 +81,21 @@ export const saveNotificationPreferences = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("notification_preferences")
       .upsert({ user_id: context.userId, ...data }, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // A newer preference column may not exist yet on this database. Save the
+      // rest instead of failing the whole form.
+      if (error.code === "42703") {
+        const { positive_reply_notifications: _unused, ...rest } = data;
+        const retry = await context.supabase
+          .from("notification_preferences")
+          .upsert({ user_id: context.userId, ...rest }, { onConflict: "user_id" });
+        if (retry.error) throw new Error(retry.error.message);
+        return { ok: true };
+      }
+      throw new Error(error.message);
+    }
     return { ok: true };
+
   });
 
 export type BillingOverview = {
