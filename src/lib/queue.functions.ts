@@ -73,12 +73,25 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     if (data.status) query = query.eq("status", data.status);
     if (data.search) query = query.ilike("to_email", `%${data.search}%`);
 
-    const [messagesRes, countsRes] = await Promise.all([
-      query,
-      context.supabase
+    // Counts are exact server-side COUNTs. A plain select() is capped at 1,000
+    // rows by PostgREST, which silently under-reported large queues (a 1,259
+    // recipient campaign showed a total of exactly 1,000).
+    const countFor = async (filter?: { status?: MessageStatus; accountId?: string }) => {
+      let q = context.supabase
         .from("campaign_messages")
-        .select("status, sending_account_id")
-        .eq("campaign_id", data.campaignId),
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", data.campaignId);
+      if (filter?.status) q = q.eq("status", filter.status);
+      if (filter?.accountId) q = q.eq("sending_account_id", filter.accountId);
+      const { count, error } = await q;
+      if (error) throw new Error(error.message);
+      return Number(count ?? 0);
+    };
+
+    const [messagesRes, statusCounts, total] = await Promise.all([
+      query,
+      Promise.all(MESSAGE_STATUSES.map((status) => countFor({ status }))),
+      countFor(),
     ]);
     if (messagesRes.error) throw new Error(messagesRes.error.message);
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
@@ -94,24 +107,20 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
           )
         : null,
     })) as never;
-    if (countsRes.error) throw new Error(countsRes.error.message);
 
-    const counts = Object.fromEntries(MESSAGE_STATUSES.map((s) => [s, 0])) as Record<
-      MessageStatus,
-      number
-    >;
-    for (const row of countsRes.data ?? []) {
-      const status = row.status as MessageStatus;
-      if (status in counts) counts[status] += 1;
-    }
+    const counts = Object.fromEntries(
+      MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
+    ) as Record<MessageStatus, number>;
 
-    // Send log: which mailbox each message went through, plus a per-mailbox
-    // breakdown so rotation is visible at a glance.
-    const rows = (countsRes.data ?? []) as Array<{
-      status: string;
-      sending_account_id: string | null;
-    }>;
-    const accountIds = [...new Set(rows.map((r) => r.sending_account_id).filter(Boolean))] as string[];
+    // Send log: per-mailbox rotation breakdown, also from exact counts. The
+    // candidate mailboxes come from the campaign's own rotation list.
+    const { data: campaignRow, error: cErr } = await context.supabase
+      .from("campaigns")
+      .select("sending_account_ids")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    const accountIds = ((campaignRow?.sending_account_ids ?? []) as string[]).filter(Boolean);
 
     let accounts: MailboxInfo[] = [];
     if (accountIds.length) {
@@ -123,20 +132,28 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       accounts = (accRows ?? []) as unknown as MailboxInfo[];
     }
 
-    const byMailbox = accountIds.map((id) => {
-      const mine = rows.filter((r) => r.sending_account_id === id);
-      const account = accounts.find((a) => a.id === id) ?? null;
-      return {
-        accountId: id,
-        label: account?.label ?? "Unknown mailbox",
-        fromEmail: account?.from_email ?? "",
-        // Customers never see the underlying infrastructure vendor.
-        provider: null,
-        total: mine.length,
-        sent: mine.filter((r) => r.status === "sent").length,
-        failed: mine.filter((r) => r.status === "failed").length,
-      };
-    });
+    const byMailbox = (
+      await Promise.all(
+        accountIds.map(async (id) => {
+          const [mailboxTotal, sent, failed] = await Promise.all([
+            countFor({ accountId: id }),
+            countFor({ accountId: id, status: "sent" }),
+            countFor({ accountId: id, status: "failed" }),
+          ]);
+          const account = accounts.find((a) => a.id === id) ?? null;
+          return {
+            accountId: id,
+            label: account?.label ?? "Unknown mailbox",
+            fromEmail: account?.from_email ?? "",
+            // Customers never see the underlying infrastructure vendor.
+            provider: null,
+            total: mailboxTotal,
+            sent,
+            failed,
+          };
+        }),
+      )
+    ).filter((m) => m.total > 0);
     byMailbox.sort((a, b) => b.total - a.total);
 
     // Reply tracking: which queued messages have earned a response.
@@ -165,7 +182,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     return {
       messages: (messagesRes.data ?? []) as unknown as QueueMessage[],
       counts,
-      total: rows.length,
+      total,
       accounts,
       byMailbox,
       replies,

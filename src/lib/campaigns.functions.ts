@@ -44,19 +44,24 @@ export const listCampaigns = createServerFn({ method: "GET" })
     );
     if (campaigns.length === 0) return [] as Array<Campaign & { recipients: number; sent: number }>;
 
-    let recipientQuery = context.supabase.from("campaign_recipients").select("campaign_id, status");
-    if (data?.workspaceId) recipientQuery = recipientQuery.eq("workspace_id", data.workspaceId);
-    const { data: recipients, error: rErr } = await recipientQuery;
-    if (rErr) throw new Error(rErr.message);
-
-    return campaigns.map((c) => {
-      const rows = (recipients ?? []).filter((r) => r.campaign_id === c.id);
-      return {
-        ...c,
-        recipients: rows.length,
-        sent: rows.filter((r) => r.status !== "pending").length,
-      };
-    });
+    // Exact server-side counts per campaign. Reading every recipient row and
+    // counting in JS silently capped at PostgREST's 1,000-row ceiling, so
+    // campaigns with a larger audience under-reported their totals.
+    const counted = await Promise.all(
+      campaigns.map(async (c) => {
+        const base = () =>
+          context.supabase
+            .from("campaign_recipients")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", c.id);
+        const [totalRes, pendingRes] = await Promise.all([base(), base().eq("status", "pending")]);
+        if (totalRes.error) throw new Error(totalRes.error.message);
+        if (pendingRes.error) throw new Error(pendingRes.error.message);
+        const total = Number(totalRes.count ?? 0);
+        return { ...c, recipients: total, sent: total - Number(pendingRes.count ?? 0) };
+      }),
+    );
+    return counted;
   });
 
 export const listCampaignsOverview = createServerFn({ method: "GET" })
@@ -69,36 +74,58 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     // read all tenants' rows through RLS).
     const scope = <T>(q: T): T => (ws ? (q as { eq: (c: string, v: string) => T }).eq("workspace_id", ws) : q);
 
-    const [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes] =
-      await Promise.all([
-        scope(
-          context.supabase
-            .from("campaigns")
-            .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
-            .order("created_at", { ascending: false }),
-        ),
-        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")),
-        scope(context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at")),
-        scope(context.supabase.from("campaign_replies").select("campaign_id, lead_id, from_email, sentiment")),
-        scope(context.supabase.from("conversations").select("campaign_id, lead_id, prospect_email, status")),
-        scope(
-          context.supabase
-            .from("sending_accounts")
-            .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status, daily_limit"),
-        ),
-      ]);
+    // Every per-campaign aggregate is derived from these rows, so they must be
+    // read completely: a plain select() stops at 1,000 rows and made large
+    // audiences (e.g. 1,259 recipients) report as 1,000.
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
 
-    const failure = [campaignsRes, recipientsRes, messagesRes, repliesRes, conversationsRes, accountsRes].find(
-      (r) => r.error,
-    );
+    const [campaignsRes, recipients, messages, replies, meetings, accountsRes] = await Promise.all([
+      scope(
+        context.supabase
+          .from("campaigns")
+          .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
+          .order("created_at", { ascending: false }),
+      ),
+      fetchAllRows(() =>
+        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")).order("id", {
+          ascending: true,
+        }),
+      ),
+      fetchAllRows(() =>
+        scope(
+          context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at"),
+        ).order("id", { ascending: true }),
+      ),
+      fetchAllRows(() =>
+        scope(
+          context.supabase
+            .from("campaign_replies")
+            .select("campaign_id, lead_id, from_email, sentiment"),
+        ).order("id", { ascending: true }),
+      ),
+      fetchAllRows(() =>
+        scope(
+          context.supabase
+            .from("conversations")
+            .select("campaign_id, lead_id, prospect_email, status"),
+        ).order("id", { ascending: true }),
+      ),
+      scope(
+        context.supabase
+          .from("sending_accounts")
+          .select("id, from_email, from_name, paused, customer_enabled, status, warmup_status, daily_limit"),
+      ),
+    ]);
+
+    const failure = [campaignsRes, accountsRes].find((r) => r.error);
     if (failure?.error) throw new Error(failure.error.message);
 
     return buildCampaignOverview({
       campaigns: (campaignsRes.data ?? []) as never,
-      recipients: (recipientsRes.data ?? []) as never,
-      messages: (messagesRes.data ?? []) as never,
-      replies: (repliesRes.data ?? []) as never,
-      meetings: (conversationsRes.data ?? []) as never,
+      recipients: recipients as never,
+      messages: messages as never,
+      replies: replies as never,
+      meetings: meetings as never,
       accounts: (accountsRes.data ?? []) as never,
     });
   });
@@ -142,7 +169,12 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
 
-    const [stepsRes, variantsRes, recipientsRes, messagesRes, recipientCountRes] = await Promise.all([
+    // Recipients and messages are paged: a plain select() stops at 1,000 rows,
+    // so every status count and engagement metric of a larger campaign was
+    // computed from a truncated set.
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
+
+    const [stepsRes, variantsRes, recipients, messages, recipientCountRes] = await Promise.all([
       context.supabase
         .from("campaign_steps")
         .select(STEP_COLUMNS)
@@ -153,18 +185,31 @@ export const getCampaign = createServerFn({ method: "GET" })
         .select("id, step_id, label, subject, body, weight")
         .eq("campaign_id", data.id)
         .order("label", { ascending: true }),
-      context.supabase
-        .from("campaign_recipients")
-        .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
-        .eq("campaign_id", data.id),
+      fetchAllRows<{
+        id: string;
+        status: string;
+        current_step: number | null;
+        next_send_at: string | null;
+        last_sent_at: string | null;
+        lead_id: string;
+      }>(() =>
+        context.supabase
+          .from("campaign_recipients")
+          .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
+          .eq("campaign_id", data.id)
+          .order("id", { ascending: true }),
+      ),
       // Delivery truth comes from the per-message state the provider events
       // write, never from the initial send response.
-      context.supabase
-        .from("campaign_messages")
-        .select(
-          "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
-        )
-        .eq("campaign_id", data.id),
+      fetchAllRows<Record<string, string | null>>(() =>
+        context.supabase
+          .from("campaign_messages")
+          .select(
+            "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
+          )
+          .eq("campaign_id", data.id)
+          .order("id", { ascending: true }),
+      ),
       // Exact recipient total, immune to the 1,000-row read cap.
       context.supabase
         .from("campaign_recipients")
@@ -173,17 +218,13 @@ export const getCampaign = createServerFn({ method: "GET" })
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
-    if (recipientsRes.error) throw new Error(recipientsRes.error.message);
-    if (messagesRes.error) throw new Error(messagesRes.error.message);
 
     const variants = (variantsRes.data ?? []) as unknown as CampaignStepVariant[];
     const steps = ((stepsRes.data ?? []) as unknown as CampaignStep[]).map((s) => ({
       ...s,
       variants: variants.filter((v) => v.step_id === s.id),
     }));
-    const recipients = recipientsRes.data ?? [];
     const totalRecipients = recipientCountRes.count ?? recipients.length;
-    const messages = (messagesRes.data ?? []) as Array<Record<string, string | null>>;
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
     const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
@@ -216,7 +257,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         sent: recipients.filter((r) => r.last_sent_at).length,
         byStep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => ({
           step,
-          reached: recipients.filter((r) => r.current_step >= step).length,
+          reached: recipients.filter((r) => (r.current_step ?? 0) >= step).length,
         })),
         nextSendAt:
           recipients

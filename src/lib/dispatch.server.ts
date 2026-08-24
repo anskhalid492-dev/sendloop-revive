@@ -93,19 +93,42 @@ export async function scheduleFollowUps(
   const steps = (stepRows ?? []) as StepRow[];
   if (steps.length < 2) return { scheduled: 0, completed: 0 };
 
-  const { data: recipients } = await supabase
-    .from("campaign_recipients")
-    .select("id, lead_id, status, current_step, sending_account_id, last_sent_at")
-    .eq("campaign_id", campaignId)
-    .in("status", ["pending", "in_progress"]);
-  if (!recipients?.length) return { scheduled: 0, completed: 0 };
+  // Paged + chunked: a plain select() stops at 1,000 rows and a single
+  // `in.(...)` filter with ~1,000 UUIDs is rejected as a bad request, so large
+  // campaigns silently lost their follow-ups.
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+
+  const recipients = await fetchAllRows<{
+    id: string;
+    lead_id: string;
+    status: string;
+    current_step: number;
+    sending_account_id: string | null;
+    last_sent_at: string | null;
+  }>(() =>
+    supabase
+      .from("campaign_recipients")
+      .select("id, lead_id, status, current_step, sending_account_id, last_sent_at")
+      .eq("campaign_id", campaignId)
+      .in("status", ["pending", "in_progress"])
+      .order("id", { ascending: true }),
+  );
+  if (!recipients.length) return { scheduled: 0, completed: 0 };
 
   const recipientIds = recipients.map((r: { id: string }) => r.id);
-  const { data: messages } = await supabase
-    .from("campaign_messages")
-    .select("recipient_id, step_order, status, sent_at")
-    .eq("campaign_id", campaignId)
-    .in("recipient_id", recipientIds);
+  const messages = await fetchByIds<{
+    recipient_id: string | null;
+    step_order: number;
+    status: string;
+    sent_at: string | null;
+  }>(recipientIds, (ids) =>
+    supabase
+      .from("campaign_messages")
+      .select("recipient_id, step_order, status, sent_at")
+      .eq("campaign_id", campaignId)
+      .in("recipient_id", ids),
+  );
+
 
   const byRecipient = new Map<
     string,
@@ -132,13 +155,15 @@ export async function scheduleFollowUps(
   }
 
   const leadIds = recipients.map((r: { lead_id: string }) => r.lead_id);
-  const { data: leads } = await supabase
-    .from("leads")
-    .select(
-      "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-    )
-    .in("id", leadIds);
-  const leadById = new Map((leads ?? []).map((l: { id: string }) => [l.id, l] as const));
+  const leads = await fetchByIds<{ id: string }>(leadIds, (ids) =>
+    supabase
+      .from("leads")
+      .select(
+        "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+      )
+      .in("id", ids),
+  );
+  const leadById = new Map(leads.map((l: { id: string }) => [l.id, l] as const));
 
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
 
@@ -230,7 +255,7 @@ export async function scheduleFollowUps(
       sending_account_id: recipient.sending_account_id,
       step_order: next.step_order,
       status: "scheduled",
-      to_email: (lead as { email: string }).email,
+      to_email: (lead as unknown as { email: string }).email,
       ...renderEmailForLead(next, lead as never, {
         customVariables: variables,
         extras: {
