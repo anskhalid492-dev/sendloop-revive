@@ -319,7 +319,15 @@ export function CampaignsTable({
                     )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.sentToday)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {numberFmt.format(Math.max(0, row.leads - row.sent))}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
+
                   <TableCell className="text-right tabular-nums">{row.replyRate.toFixed(1)}%</TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.positiveReplies)}</TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.meetings)}</TableCell>
