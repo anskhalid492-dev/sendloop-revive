@@ -145,21 +145,21 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           id: `domain-${d.id}`,
           kind: "domain",
           title: "Domain verified",
-          detail: d.domain,
+          detail: `${d.domain} is verified and ready to send.`,
           at: (d.ready_at ?? d.verified_at) as string,
         })),
+      // Customer-facing wording only: provider names, provider responses and
+      // message ids stay in the database and admin logs untouched.
       ...accountRows.map((a) => ({
         id: `mailbox-${a.id}`,
         kind: "mailbox",
-        title: "Mailbox connected",
-        detail: a.label || a.from_email,
+        ...mailboxActivityCopy(a.label || a.from_email),
         at: a.created_at,
       })),
       ...warmupRows.map((w) => ({
         id: `warmup-${w.id}`,
         kind: "warmup",
-        title: `Warmup ${w.type.replace(/_/g, " ")}`,
-        detail: w.detail || accountLabel.get(w.sending_account_id) || "Warmup activity",
+        ...warmupActivityCopy(w.type, w.detail, accountLabel.get(w.sending_account_id) ?? null),
         at: w.occurred_at,
       })),
     ]
