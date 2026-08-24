@@ -252,13 +252,27 @@ export const getCampaignLeads = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!recipients?.length) return [];
 
-    const [leadsRes, msgRes] = await Promise.all([
-      context.supabase
-        .from("leads")
-        .select(
-          "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-        )
-        .in("id", recipients.map((r) => r.lead_id)),
+    // PostgREST puts `id=in.(...)` in the query string, so a single request with
+    // ~1,000 UUIDs blows past the max URL length and comes back as a hard 400.
+    // Fetching in chunks keeps every request well inside that limit.
+    const LEAD_CHUNK = 150;
+    const leadIds = [...new Set(recipients.map((r) => r.lead_id))];
+    const leadChunks: string[][] = [];
+    for (let i = 0; i < leadIds.length; i += LEAD_CHUNK) {
+      leadChunks.push(leadIds.slice(i, i + LEAD_CHUNK));
+    }
+
+    const [leadChunkResults, msgRes] = await Promise.all([
+      Promise.all(
+        leadChunks.map((chunk) =>
+          context.supabase
+            .from("leads")
+            .select(
+              "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+            )
+            .in("id", chunk),
+        ),
+      ),
       context.supabase
         .from("campaign_messages")
         .select(
@@ -267,7 +281,12 @@ export const getCampaignLeads = createServerFn({ method: "GET" })
         .eq("campaign_id", data.campaignId)
         .limit(5000),
     ]);
+    const leadsRes = {
+      data: leadChunkResults.flatMap((res) => res.data ?? []),
+      error: leadChunkResults.find((res) => res.error)?.error ?? null,
+    };
     if (leadsRes.error) throw new Error(leadsRes.error.message);
+
     if (msgRes.error) throw new Error(msgRes.error.message);
 
     const byId = new Map((leadsRes.data ?? []).map((l) => [l.id, l]));
@@ -600,22 +619,53 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
       throw new Error("That lead list belongs to a different workspace");
     }
 
-    const [leadsRes, existingRes] = await Promise.all([
-      context.supabase
-        .from("leads")
-        .select("id, workspace_id")
-        .eq("list_id", data.listId)
-        .eq("workspace_id", c.workspace_id),
-      context.supabase
-        .from("campaign_recipients")
-        .select("lead_id")
-        .eq("campaign_id", data.campaignId),
-    ]);
-    if (leadsRes.error) throw new Error(leadsRes.error.message);
-    if (existingRes.error) throw new Error(existingRes.error.message);
+    // PostgREST caps rows per request (1,000 by default), so both sides are read
+    // page by page. Without this a 10,000-lead list would only ever attach the
+    // first page, and the dedupe set would miss existing recipients.
+    const PAGE = 1000;
+    const readAllPages = async <T>(
+      run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+    ): Promise<T[]> => {
+      const out: T[] = [];
+      for (let page = 0; page < 200; page += 1) {
+        const from = page * PAGE;
+        const { data: rows, error: pageError } = await run(from, from + PAGE - 1);
+        if (pageError) throw new Error(pageError.message);
+        const batch = rows ?? [];
+        out.push(...batch);
+        if (batch.length < PAGE) break;
+      }
+      return out;
+    };
 
-    const already = new Set((existingRes.data ?? []).map((r) => r.lead_id));
-    const fresh = (leadsRes.data ?? []).filter((l) => !already.has(l.id));
+    const [listLeads, existingRecipients] = await Promise.all([
+      readAllPages<{ id: string; workspace_id: string }>((from, to) =>
+        context.supabase
+          .from("leads")
+          .select("id, workspace_id")
+          .eq("list_id", data.listId)
+          .eq("workspace_id", c.workspace_id)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      readAllPages<{ lead_id: string }>((from, to) =>
+        context.supabase
+          .from("campaign_recipients")
+          .select("lead_id")
+          .eq("campaign_id", data.campaignId)
+          .order("lead_id", { ascending: true })
+          .range(from, to),
+      ),
+    ]);
+
+    const already = new Set(existingRecipients.map((r) => r.lead_id));
+    const seen = new Set<string>();
+    const fresh = listLeads.filter((l) => {
+      if (already.has(l.id) || seen.has(l.id)) return false;
+      seen.add(l.id);
+      return true;
+    });
+
     const accounts = c.sending_account_ids;
 
     const slot = nextSendSlot(new Date(), {
@@ -664,7 +714,7 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
         .eq("id", data.campaignId);
     }
 
-    return { added: fresh.length, skipped: (leadsRes.data ?? []).length - fresh.length };
+    return { added: fresh.length, skipped: listLeads.length - fresh.length };
   });
 
 export const updateCampaignRecipients = createServerFn({ method: "POST" })
