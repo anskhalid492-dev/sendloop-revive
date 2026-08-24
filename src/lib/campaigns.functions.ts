@@ -1129,15 +1129,19 @@ export const launchCampaign = createServerFn({ method: "POST" })
     // campaign's fallback rule — and with "hold" they are not materialised at
     // all, so no weaker email ever goes out ahead of its personalization.
     const { campaignAiSettings, aiExtras } = await import("@/lib/ai-personalization.server");
+    // URL-safe id filters + full pagination: see supabase-batch for why.
+    const { fetchByIds, fetchAllRows } = await import("@/lib/supabase-batch");
     const aiSettings = await campaignAiSettings(context.supabase, c.id);
     const aiContent = new Map<string, string>();
     if (aiSettings.enabled) {
-      const { data: aiRows } = await context.supabase
-        .from("ai_personalizations")
-        .select("lead_id, content")
-        .eq("campaign_id", c.id)
-        .eq("status", "completed");
-      for (const row of (aiRows ?? []) as Array<{ lead_id: string; content: string | null }>) {
+      const aiRows = await fetchAllRows<{ lead_id: string; content: string | null }>(() =>
+        context.supabase
+          .from("ai_personalizations")
+          .select("lead_id, content")
+          .eq("campaign_id", c.id)
+          .eq("status", "completed"),
+      );
+      for (const row of aiRows) {
         if (row.content?.trim()) aiContent.set(row.lead_id, row.content.trim());
       }
     }
