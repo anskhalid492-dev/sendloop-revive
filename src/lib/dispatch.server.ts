@@ -93,19 +93,42 @@ export async function scheduleFollowUps(
   const steps = (stepRows ?? []) as StepRow[];
   if (steps.length < 2) return { scheduled: 0, completed: 0 };
 
-  const { data: recipients } = await supabase
-    .from("campaign_recipients")
-    .select("id, lead_id, status, current_step, sending_account_id, last_sent_at")
-    .eq("campaign_id", campaignId)
-    .in("status", ["pending", "in_progress"]);
-  if (!recipients?.length) return { scheduled: 0, completed: 0 };
+  // Paged + chunked: a plain select() stops at 1,000 rows and a single
+  // `in.(...)` filter with ~1,000 UUIDs is rejected as a bad request, so large
+  // campaigns silently lost their follow-ups.
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+
+  const recipients = await fetchAllRows<{
+    id: string;
+    lead_id: string;
+    status: string;
+    current_step: number;
+    sending_account_id: string | null;
+    last_sent_at: string | null;
+  }>(() =>
+    supabase
+      .from("campaign_recipients")
+      .select("id, lead_id, status, current_step, sending_account_id, last_sent_at")
+      .eq("campaign_id", campaignId)
+      .in("status", ["pending", "in_progress"])
+      .order("id", { ascending: true }),
+  );
+  if (!recipients.length) return { scheduled: 0, completed: 0 };
 
   const recipientIds = recipients.map((r: { id: string }) => r.id);
-  const { data: messages } = await supabase
-    .from("campaign_messages")
-    .select("recipient_id, step_order, status, sent_at")
-    .eq("campaign_id", campaignId)
-    .in("recipient_id", recipientIds);
+  const messages = await fetchByIds<{
+    recipient_id: string | null;
+    step_order: number;
+    status: string;
+    sent_at: string | null;
+  }>(recipientIds, (ids) =>
+    supabase
+      .from("campaign_messages")
+      .select("recipient_id, step_order, status, sent_at")
+      .eq("campaign_id", campaignId)
+      .in("recipient_id", ids),
+  );
+
 
   const byRecipient = new Map<
     string,
