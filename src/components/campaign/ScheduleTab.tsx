@@ -55,8 +55,13 @@ function toLocalInput(value: string | null) {
 }
 
 export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
-  const { settings, patchSettings, accounts } = builder;
+  const { settings, patchSettings, accounts, delivery, leadTotal } = builder;
   if (!settings) return null;
+
+  // Server-returned truth: emails this campaign sent today, and the leads still
+  // waiting. Remaining daily capacity is limit − sent today, never lead-based.
+  const sentToday = delivery?.sentToday ?? 0;
+  const totalLeads = delivery?.totalLeads ?? leadTotal ?? 0;
 
   const toggleDay = (day: number) => {
     const next = settings.sendDays.includes(day)
