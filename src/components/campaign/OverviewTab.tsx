@@ -111,6 +111,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const dailyUsed = selected.reduce((sum, a) => sum + (a.sent_today ?? 0), 0);
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
   const contacted = delivery?.contacted ?? leads.filter((l) => l.status !== "pending").length;
+  // Emails this campaign already sent today (campaign-scoped, not mailbox-wide).
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const campaignSentToday = leads.filter((l) => {
+    const at = l.last_sent_at ? new Date(l.last_sent_at) : null;
+    return at ? at.getTime() >= todayStart.getTime() : false;
+  }).length;
+
 
   const totalLeads = delivery?.totalLeads ?? queue?.total ?? 0;
   const sent = delivery?.sent ?? queue?.sent ?? 0;
