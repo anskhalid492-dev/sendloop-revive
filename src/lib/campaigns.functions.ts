@@ -169,7 +169,12 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
 
-    const [stepsRes, variantsRes, recipientsRes, messagesRes, recipientCountRes] = await Promise.all([
+    // Recipients and messages are paged: a plain select() stops at 1,000 rows,
+    // so every status count and engagement metric of a larger campaign was
+    // computed from a truncated set.
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
+
+    const [stepsRes, variantsRes, recipients, messages, recipientCountRes] = await Promise.all([
       context.supabase
         .from("campaign_steps")
         .select(STEP_COLUMNS)
@@ -180,18 +185,24 @@ export const getCampaign = createServerFn({ method: "GET" })
         .select("id, step_id, label, subject, body, weight")
         .eq("campaign_id", data.id)
         .order("label", { ascending: true }),
-      context.supabase
-        .from("campaign_recipients")
-        .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
-        .eq("campaign_id", data.id),
+      fetchAllRows<{ id: string; status: string }>(() =>
+        context.supabase
+          .from("campaign_recipients")
+          .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
+          .eq("campaign_id", data.id)
+          .order("id", { ascending: true }),
+      ),
       // Delivery truth comes from the per-message state the provider events
       // write, never from the initial send response.
-      context.supabase
-        .from("campaign_messages")
-        .select(
-          "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
-        )
-        .eq("campaign_id", data.id),
+      fetchAllRows<Record<string, string | null>>(() =>
+        context.supabase
+          .from("campaign_messages")
+          .select(
+            "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
+          )
+          .eq("campaign_id", data.id)
+          .order("id", { ascending: true }),
+      ),
       // Exact recipient total, immune to the 1,000-row read cap.
       context.supabase
         .from("campaign_recipients")
@@ -200,17 +211,13 @@ export const getCampaign = createServerFn({ method: "GET" })
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
-    if (recipientsRes.error) throw new Error(recipientsRes.error.message);
-    if (messagesRes.error) throw new Error(messagesRes.error.message);
 
     const variants = (variantsRes.data ?? []) as unknown as CampaignStepVariant[];
     const steps = ((stepsRes.data ?? []) as unknown as CampaignStep[]).map((s) => ({
       ...s,
       variants: variants.filter((v) => v.step_id === s.id),
     }));
-    const recipients = recipientsRes.data ?? [];
     const totalRecipients = recipientCountRes.count ?? recipients.length;
-    const messages = (messagesRes.data ?? []) as Array<Record<string, string | null>>;
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
     const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
