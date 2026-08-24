@@ -27,6 +27,8 @@ import {
   type PublicPlatformConfigShape,
 } from "@/lib/platform-config-store";
 import { CookieConsentBanner } from "@/components/platform/CookieConsentBanner";
+import { NotFoundPage } from "@/components/site/NotFoundPage";
+
 
 
 function NotFoundComponent() {
