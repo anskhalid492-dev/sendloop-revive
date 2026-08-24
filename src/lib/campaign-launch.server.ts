@@ -84,15 +84,14 @@ export async function evaluateLaunchReadiness(
       });
     } else {
       listName = list.name;
-      const { data: leadRows, error: leadErr } = await supabase
-        .from("leads")
-        .select("id")
-        .eq("list_id", campaign.list_id)
-        .in("status", LEAD_ELIGIBLE_STATUSES as unknown as string[]);
-      if (leadErr) throw new Error(leadErr.message);
-      eligibleLeadIds = ((leadRows ?? []) as Array<{ id: string }>)
-        .map((l) => l.id)
-        .filter((id) => !queuedLeadIds.has(id));
+      const leadRows = await fetchAllRows<{ id: string }>(() =>
+        supabase
+          .from("leads")
+          .select("id")
+          .eq("list_id", campaign.list_id)
+          .in("status", LEAD_ELIGIBLE_STATUSES as unknown as string[]),
+      );
+      eligibleLeadIds = leadRows.map((l) => l.id).filter((id) => !queuedLeadIds.has(id));
 
       if (eligibleLeadIds.length === 0 && alreadyQueued === 0) {
         issues.push({
