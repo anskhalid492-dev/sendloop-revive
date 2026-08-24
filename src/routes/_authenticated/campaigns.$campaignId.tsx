@@ -17,7 +17,6 @@ import { AccountsTab } from "@/components/campaign/AccountsTab";
 import { OptionsTab } from "@/components/campaign/OptionsTab";
 import { QueueTab } from "@/components/campaign/QueueTab";
 import { AnalyticsTab } from "@/components/campaign/AnalyticsTab";
-import { CostTab } from "@/components/campaign/CostTab";
 import { SettingsTab } from "@/components/campaign/SettingsTab";
 import { PreviewDialog, TestSendDialog } from "@/components/campaign/PreviewDialog";
 import { useCampaignBuilder } from "@/components/campaign/useCampaignBuilder";
@@ -165,7 +164,6 @@ function CampaignWorkspace() {
         {tab === "Options" ? <OptionsTab builder={builder} /> : null}
         {tab === "Queue" ? <QueueTab builder={builder} /> : null}
         {tab === "Analytics" ? <AnalyticsTab builder={builder} /> : null}
-        {tab === "Cost" ? <CostTab builder={builder} /> : null}
         {tab === "Settings" ? <SettingsTab builder={builder} /> : null}
       </div>
 

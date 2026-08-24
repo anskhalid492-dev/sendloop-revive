@@ -38,7 +38,6 @@ export const CAMPAIGN_TABS = [
   "Options",
   "Queue",
   "Analytics",
-  "Cost",
   "Settings",
 ] as const;
 
