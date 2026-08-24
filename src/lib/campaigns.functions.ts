@@ -284,117 +284,164 @@ export const getCampaign = createServerFn({ method: "GET" })
   });
 
 
-export const getCampaignLeads = createServerFn({ method: "GET" })
+export type CampaignLeadRow = {
+  id: string;
+  status: string;
+  current_step: number | null;
+  next_send_at: string | null;
+  last_sent_at: string | null;
+  sending_account_id: string | null;
+  created_at: string;
+  lead_id: string;
+  lead: Record<string, unknown> | null;
+  deliveryState: string;
+  lastEventAt: string | null;
+};
+
+const RECIPIENT_STATUSES = [
+  "pending",
+  "in_progress",
+  "completed",
+  "replied",
+  "bounced",
+  "unsubscribed",
+  "failed",
+  "stopped",
+] as const;
+
+const LEAD_EMBED =
+  "leads!inner(id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields)";
+
+/**
+ * Campaign leads, read one page at a time.
+ *
+ * Totals are exact server-side COUNTs over `campaign_recipients` (the single
+ * source of truth) so a campaign with 1,259 recipients never reports 1,000, and
+ * the browser only ever receives the rows it displays.
+ */
+export const getCampaignLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ campaignId: z.string().uuid() }).parse(input))
+  .inputValidator((input) =>
+    z
+      .object({
+        campaignId: z.string().uuid(),
+        page: z.number().int().min(1).default(1),
+        pageSize: z.number().int().min(1).max(200).default(50),
+        search: z.string().trim().max(120).optional(),
+        company: z.string().trim().max(120).optional(),
+        jobTitle: z.string().trim().max(120).optional(),
+        location: z.string().trim().max(120).optional(),
+        status: z.enum(RECIPIENT_STATUSES).optional(),
+        step: z.number().int().min(0).max(20).optional(),
+        accountId: z.string().uuid().optional(),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
-    const { data: recipients, error } = await context.supabase
-      .from("campaign_recipients")
-      .select(
-        "id, status, current_step, next_send_at, last_sent_at, sending_account_id, created_at, lead_id",
-      )
-      .eq("campaign_id", data.campaignId)
-      .order("created_at", { ascending: false })
-      .limit(1000);
-    if (error) throw new Error(error.message);
-    if (!recipients?.length) return [];
+    const like = (value: string) => `%${value.replace(/[%,()]/g, " ").trim()}%`;
 
-    // PostgREST puts `id=in.(...)` in the query string, so a single request with
-    // ~1,000 UUIDs blows past the max URL length and comes back as a hard 400.
-    // Fetching in chunks keeps every request well inside that limit.
-    const LEAD_CHUNK = 150;
-    const leadIds = [...new Set(recipients.map((r) => r.lead_id))];
-    const leadChunks: string[][] = [];
-    for (let i = 0; i < leadIds.length; i += LEAD_CHUNK) {
-      leadChunks.push(leadIds.slice(i, i + LEAD_CHUNK));
-    }
-
-    const [leadChunkResults, msgRes] = await Promise.all([
-      Promise.all(
-        leadChunks.map((chunk) =>
-          context.supabase
-            .from("leads")
-            .select(
-              "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-            )
-            .in("id", chunk),
-        ),
-      ),
-      context.supabase
-        .from("campaign_messages")
-        .select(
-          "recipient_id, lead_id, status, delivery_status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, replied_at, unsubscribed_at, complained_at, bounced_at, failed_at, last_event_at",
-        )
-        .eq("campaign_id", data.campaignId)
-        .limit(5000),
-    ]);
-    const leadsRes = {
-      data: leadChunkResults.flatMap((res) => res.data ?? []),
-      error: leadChunkResults.find((res) => res.error)?.error ?? null,
-    };
-    if (leadsRes.error) throw new Error(leadsRes.error.message);
-
-    if (msgRes.error) throw new Error(msgRes.error.message);
-
-    const byId = new Map((leadsRes.data ?? []).map((l) => [l.id, l]));
-
-    // Live per-lead state: strongest signal across all of the lead's messages,
-    // computed from real event timestamps only.
-    const RANK: Record<string, number> = {
-      not_contacted: 0,
-      queued: 1,
-      sent: 2,
-      delayed: 3,
-      delivered: 4,
-      opened: 5,
-      clicked: 6,
-      replied: 7,
-      unsubscribed: 8,
-      complained: 9,
-      bounced: 10,
-      failed: 10,
-    };
-
-    type Msg = Record<string, string | null>;
-    const stateOf = (m: Msg): string => {
-      if (m["bounced_at"] || m["delivery_status"] === "bounced") return "bounced";
-      if (m["failed_at"] || m["status"] === "failed") return "failed";
-      if (m["complained_at"]) return "complained";
-      if (m["unsubscribed_at"]) return "unsubscribed";
-      if (m["replied_at"]) return "replied";
-      if (m["clicked_at"]) return "clicked";
-      if (m["opened_at"]) return "opened";
-      if (m["delivered_at"]) return "delivered";
-      if (m["delayed_at"]) return "delayed";
-      if (m["sent_at"] || m["status"] === "sent") return "sent";
-      if (m["status"] === "cancelled") return "not_contacted";
-      return "queued";
-    };
-
-    const live = new Map<string, { state: string; at: string | null }>();
-    for (const raw of (msgRes.data ?? []) as unknown as Msg[]) {
-      const key = raw["recipient_id"] ?? `lead:${raw["lead_id"]}`;
-      if (!key) continue;
-      const state = stateOf(raw);
-      const at = raw["last_event_at"] ?? raw["sent_at"] ?? raw["scheduled_at"] ?? null;
-      const prev = live.get(key);
-      if (!prev || (RANK[state] ?? 0) > (RANK[prev.state] ?? 0)) {
-        live.set(key, { state, at });
-      } else if (at && prev.at && at > prev.at) {
-        live.set(key, { state: prev.state, at });
+    // Filters run in the database (including on the embedded lead columns), so
+    // the count and the page always describe the same population.
+    const applyFilters = <T>(builder: T): T => {
+      let q = builder as unknown as {
+        eq: (c: string, v: unknown) => typeof q;
+        ilike: (c: string, v: string) => typeof q;
+        or: (f: string, opts?: { referencedTable: string }) => typeof q;
+      };
+      q = q.eq("campaign_id", data.campaignId);
+      if (data.status) q = q.eq("status", data.status);
+      if (data.step !== undefined) q = q.eq("current_step", data.step);
+      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
+      if (data.company) q = q.ilike("leads.company", like(data.company));
+      if (data.jobTitle) q = q.ilike("leads.job_title", like(data.jobTitle));
+      if (data.location) {
+        const term = like(data.location);
+        q = q.or(`country.ilike.${term},city.ilike.${term},state.ilike.${term}`, {
+          referencedTable: "leads",
+        });
       }
+      if (data.search) {
+        const term = like(data.search);
+        q = q.or(
+          `email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term},company.ilike.${term}`,
+          { referencedTable: "leads" },
+        );
+      }
+      return q as unknown as T;
+    };
+
+    const from = (data.page - 1) * data.pageSize;
+
+    const [pageRes, totalRes] = await Promise.all([
+      applyFilters(
+        context.supabase
+          .from("campaign_recipients")
+          .select(
+            sel(
+              `id, status, current_step, next_send_at, last_sent_at, sending_account_id, created_at, lead_id, ${LEAD_EMBED}`,
+            ),
+            { count: "exact" },
+          )
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true }),
+      ).range(from, from + data.pageSize - 1),
+      // Unfiltered audience size, always exact.
+      context.supabase
+        .from("campaign_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", data.campaignId),
+    ]);
+    if (pageRes.error) throw new Error(pageRes.error.message);
+
+    const recipients = (pageRes.data ?? []) as unknown as Array<
+      Omit<CampaignLeadRow, "lead" | "deliveryState" | "lastEventAt"> & {
+        leads: Record<string, unknown> | null;
+      }
+    >;
+
+    // Live delivery state for the visible page only: messages are fetched by
+    // this page's recipient ids, never for the whole campaign.
+    let live = new Map<string, { state: string; at: string | null }>();
+    if (recipients.length) {
+      const { fetchByIds } = await import("@/lib/supabase-batch");
+      const { aggregateDeliveryStates } = await import("@/lib/campaign-delivery-state");
+      const messages = await fetchByIds<Record<string, string | null>>(
+        recipients.map((r) => r.id),
+        (ids) =>
+          context.supabase
+            .from("campaign_messages")
+            .select(
+              "recipient_id, lead_id, status, delivery_status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, replied_at, unsubscribed_at, complained_at, bounced_at, failed_at, last_event_at",
+            )
+            .eq("campaign_id", data.campaignId)
+            .in("recipient_id", ids),
+      );
+      live = aggregateDeliveryStates(messages);
     }
 
-    return recipients.map((r) => {
+    const rows: CampaignLeadRow[] = recipients.map((r) => {
       const hit = live.get(r.id) ?? live.get(`lead:${r.lead_id}`) ?? null;
+      const { leads, ...rest } = r;
       return {
-        ...r,
-        lead: byId.get(r.lead_id) ?? null,
+        ...rest,
+        lead: leads,
         deliveryState: hit?.state ?? "not_contacted",
         lastEventAt: hit?.at ?? r.last_sent_at ?? null,
       };
     });
+
+    const matching = pageRes.count ?? rows.length;
+    return {
+      rows,
+      /** Rows matching the active filters (exact). */
+      matching,
+      /** Every recipient attached to the campaign (exact). */
+      total: totalRes.count ?? matching,
+      page: data.page,
+      pageSize: data.pageSize,
+    };
   });
+
 
 
 export const createCampaign = createServerFn({ method: "POST" })
