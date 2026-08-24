@@ -182,7 +182,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     return {
       messages: (messagesRes.data ?? []) as unknown as QueueMessage[],
       counts,
-      total: rows.length,
+      total,
       accounts,
       byMailbox,
       replies,
