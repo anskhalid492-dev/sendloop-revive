@@ -277,7 +277,7 @@ export function CampaignsTable({
                       />
                     </TableCell>
                   ) : null}
-                  <TableCell className="max-w-0">
+                  <TableCell className="w-[24%] max-w-[24%]">
                     <Link
                       to="/campaigns/$campaignId"
                       params={{ campaignId: row.id }}
