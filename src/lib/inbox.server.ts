@@ -455,6 +455,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     detected,
     receivedIso,
     dedupeKey: messageId ?? inserted.id,
+    replyBody: body,
   });
 
   return { status: "created", conversationId: conversation.id, messageId: inserted.id };
@@ -473,6 +474,7 @@ async function applyReplyAutomation(args: {
   detected: ConversationStatus | null;
   receivedIso: string;
   dedupeKey: string;
+  replyBody: string;
 }) {
   const { db, workspaceId, conversationId, leadId, campaignId, campaignMessage } = args;
 
@@ -656,6 +658,21 @@ async function applyReplyAutomation(args: {
     }
   } catch {
     /* automations must never break inbound processing */
+  }
+
+  // Positive replies also notify the customer by system email. Best-effort:
+  // the notifier never throws, so the reply stays intact either way.
+  if (args.detected === "interested") {
+    const { notifyPositiveReply } = await import("@/lib/positive-reply-notify.server");
+    await notifyPositiveReply({
+      workspaceId,
+      conversationId,
+      inboundMessageId: args.dedupeKey,
+      leadId: leadId ?? null,
+      campaignId: campaignId ?? null,
+      leadEmail: args.prospect,
+      replyBody: args.replyBody,
+    });
   }
 }
 
