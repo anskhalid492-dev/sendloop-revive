@@ -4019,6 +4019,7 @@ export type Database = {
           email_enabled: boolean
           in_app_enabled: boolean
           new_replies: boolean
+          positive_reply_notifications: boolean
           referral_updates: boolean
           support_updates: boolean
           team_activity: boolean
@@ -4034,6 +4035,7 @@ export type Database = {
           email_enabled?: boolean
           in_app_enabled?: boolean
           new_replies?: boolean
+          positive_reply_notifications?: boolean
           referral_updates?: boolean
           support_updates?: boolean
           team_activity?: boolean
@@ -4049,6 +4051,7 @@ export type Database = {
           email_enabled?: boolean
           in_app_enabled?: boolean
           new_replies?: boolean
+          positive_reply_notifications?: boolean
           referral_updates?: boolean
           support_updates?: boolean
           team_activity?: boolean
