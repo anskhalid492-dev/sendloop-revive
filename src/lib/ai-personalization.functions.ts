@@ -379,52 +379,55 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<PersonalizationStats & { paused: string | null }> => {
     // Counts, not rows: PostgREST caps row reads at 1,000, so a 1,000+ lead
     // campaign would otherwise report a frozen progress number.
-    const countOf = (build: (q: ReturnType<typeof context.supabase.from>) => unknown) => build;
-    void countOf;
     const base = () =>
       context.supabase
         .from("ai_personalizations")
         .select("id", { count: "exact", head: true })
         .eq("campaign_id", data.campaignId);
-    const quality = (value: string) =>
-      base().eq("status", "completed").eq("quality", value);
+    const qualityCount = (value: string) => base().eq("status", "completed").eq("quality", value);
 
-    const [eligibleRes, completedRes, failedRes, queuedRes, completeQ, limitedQ, fallbackQ, runnerRes] =
-      await Promise.all([
-        context.supabase
-          .from("campaign_recipients")
-          .select("lead_id", { count: "exact", head: true })
-          .eq("campaign_id", data.campaignId),
-        base().eq("status", "completed"),
-        base().eq("status", "failed"),
-        base().in("status", ["queued", "processing"]),
-        quality("complete"),
-        quality("limited"),
-        quality("fallback"),
-        context.supabase
-          .from("ai_runner_state")
-          .select("paused_reason")
-          .eq("key", "ai_personalization")
-          .maybeSingle(),
-      ]);
+    const [
+      eligibleRes,
+      completedRes,
+      failedRes,
+      queuedRes,
+      completeRes,
+      limitedRes,
+      fallbackRes,
+      runnerRes,
+    ] = await Promise.all([
+      context.supabase
+        .from("campaign_recipients")
+        .select("lead_id", { count: "exact", head: true })
+        .eq("campaign_id", data.campaignId),
+      base().eq("status", "completed"),
+      base().eq("status", "failed"),
+      base().in("status", ["queued", "processing"]),
+      qualityCount("complete"),
+      qualityCount("limited"),
+      qualityCount("fallback"),
+      context.supabase
+        .from("ai_runner_state")
+        .select("paused_reason")
+        .eq("key", "ai_personalization")
+        .maybeSingle(),
+    ]);
 
     const eligible = eligibleRes.count ?? 0;
     const personalized = completedRes.count ?? 0;
-    const failed = failedRes.count ?? 0;
-    const queued = queuedRes.count ?? 0;
-
 
     return {
       eligible,
       personalized,
-      complete: done.filter((r) => quality(r) === "complete").length,
-      limited: done.filter((r) => quality(r) === "limited").length,
-      fallback: done.filter((r) => quality(r) === "fallback").length,
-      failed,
-      queued,
+      complete: completeRes.count ?? 0,
+      limited: limitedRes.count ?? 0,
+      fallback: fallbackRes.count ?? 0,
+      failed: failedRes.count ?? 0,
+      queued: queuedRes.count ?? 0,
       remaining: Math.max(0, eligible - personalized),
       paused: (runnerRes.data?.paused_reason as string | null) ?? null,
     };
+
 
   });
 
