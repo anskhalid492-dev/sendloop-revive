@@ -360,7 +360,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Daily sending usage</span>
+              <span>Mailbox capacity used today (all campaigns)</span>
               <span>
                 {dailyUsed} / {dailyCapacity || 0}
               </span>
@@ -372,13 +372,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/70 p-3 text-xs sm:grid-cols-4">
             <div>
-              <p className="text-muted-foreground">Leads</p>
+              <p className="text-muted-foreground">Total leads</p>
               <p className="text-lg font-semibold tabular-nums">{totalLeads.toLocaleString()}</p>
+              <p className="text-muted-foreground">{pending.toLocaleString()} pending</p>
             </div>
             <div>
               <p className="text-muted-foreground">Daily sending limit</p>
               <p className="text-lg font-semibold tabular-nums">
-                {settings.dailyCap > 0 ? `${settings.dailyCap.toLocaleString()}/day` : "Not set"}
+                {dailyLimit > 0 ? `${dailyLimit.toLocaleString()}/day` : "Not set"}
               </p>
             </div>
             <div>
@@ -386,9 +387,9 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
               <p className="text-lg font-semibold tabular-nums">{campaignSentToday.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Remaining</p>
+              <p className="text-muted-foreground">Remaining today</p>
               <p className="text-lg font-semibold tabular-nums">
-                {Math.max(0, totalLeads - contacted).toLocaleString()}
+                {remainingToday === null ? "—" : remainingToday.toLocaleString()}
               </p>
             </div>
           </div>
