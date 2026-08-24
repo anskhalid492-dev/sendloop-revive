@@ -381,7 +381,7 @@ export function CampaignsTable({
             })}
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={onBulkAction ? 11 : 10} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={onBulkAction ? 10 : 9} className="py-10 text-center text-sm text-muted-foreground">
                   No campaigns match this search.
                 </TableCell>
               </TableRow>
