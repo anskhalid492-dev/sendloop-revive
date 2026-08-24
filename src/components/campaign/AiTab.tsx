@@ -52,7 +52,7 @@ import {
   updateAiPersonalization,
 } from "@/lib/ai-personalization.functions";
 import { cn } from "@/lib/utils";
-import { useSelectedWorkspaceId } from "@/hooks/useWorkspace";
+import { useActiveWorkspaceId } from "@/hooks/useWorkspace";
 import { AiKeyCard } from "./AiKeyCard";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -65,7 +65,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export function AiTab({ builder }: { builder: CampaignBuilder }) {
   const { campaignId, steps, leads } = builder;
-  const workspaceId = useSelectedWorkspaceId();
+  const workspaceId = useActiveWorkspaceId();
   const queryClient = useQueryClient();
 
   const fetchSettings = useServerFn(getAiSettings);
