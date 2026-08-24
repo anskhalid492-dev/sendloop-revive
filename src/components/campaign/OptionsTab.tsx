@@ -82,10 +82,7 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
   if (!settings) return null;
 
   const allowance = allowanceQuery.data;
-  const availableForCampaign =
-    allowance?.monthlyRemaining === null
-      ? null
-      : Math.max((allowance?.monthlyRemaining ?? 0) - (allowance?.campaignSent ?? 0), 0);
+  const availableForCampaign = allowance?.effectiveRemaining ?? null;
   const overAllowance =
     availableForCampaign !== null && settings.emailSendLimit > availableForCampaign;
   const limitReached =
