@@ -312,8 +312,24 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <dt className="text-muted-foreground">Your daily volume</dt>
-              <dd className="font-medium tabular-nums">{selectedDaily.toLocaleString()}</dd>
+              <dt className="text-muted-foreground">Total leads</dt>
+              <dd className="font-medium tabular-nums">{totalLeads.toLocaleString()}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Daily sending limit</dt>
+              <dd className="font-medium tabular-nums">
+                {selectedDaily > 0 ? `${selectedDaily.toLocaleString()}/day` : "Not set"}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Sent today</dt>
+              <dd className="font-medium tabular-nums">{sentToday.toLocaleString()}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Remaining today</dt>
+              <dd className="font-medium tabular-nums">
+                {selectedDaily > 0 ? Math.max(0, selectedDaily - sentToday).toLocaleString() : "—"}
+              </dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Mailbox capacity / day</dt>
