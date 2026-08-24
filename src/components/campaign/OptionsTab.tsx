@@ -210,15 +210,46 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
           />
           {availableForCampaign !== null ? (
             <p className="text-xs text-muted-foreground">
-              You have {availableForCampaign.toLocaleString()} emails available this month.
+              You have {availableForCampaign.toLocaleString()} emails available to send right now.
             </p>
           ) : null}
           {overAllowance && availableForCampaign !== null ? (
             <p className="text-xs font-medium text-destructive">
-              You only have {availableForCampaign.toLocaleString()} emails available this month.
+              You only have {availableForCampaign.toLocaleString()} emails available right now.
             </p>
           ) : null}
         </div>
+
+        {allowance ? (
+          <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/70 p-3 text-xs sm:grid-cols-4">
+            <div>
+              <p className="text-muted-foreground">Campaign email limit</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {allowance.campaignLimit.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Campaign emails sent</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {allowance.campaignSent.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Campaign allowance left</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {allowance.campaignRemaining.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Plan emails left this month</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {allowance.monthlyRemaining === null
+                  ? "Unlimited"
+                  : allowance.monthlyRemaining.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         <p className="text-sm text-muted-foreground">
           Your campaign will automatically stop when it reaches this limit.
