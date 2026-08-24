@@ -230,15 +230,24 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="daily-cap">Daily cap for this campaign</Label>
-              <Input
-                id="daily-cap"
-                type="number"
-                min={1}
-                max={100000}
-                value={settings.dailyCap}
-                onChange={(e) => patchSettings({ dailyCap: Number(e.target.value) || 1 })}
-              />
+              <Label htmlFor="daily-cap">Daily email sending limit</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="daily-cap"
+                  type="number"
+                  min={1}
+                  max={100000}
+                  value={settings.dailyCap}
+                  onChange={(e) => patchSettings({ dailyCap: Number(e.target.value) || 1 })}
+                />
+                <span className="shrink-0 text-sm text-muted-foreground">emails/day</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Choose how many emails this campaign can send each day. Your mailbox limits and plan
+                limits may reduce the actual number. Leads stay in the campaign until they are sent —
+                this does not limit how many leads you can add.
+              </p>
+
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="max-hour">Max emails per hour</Label>

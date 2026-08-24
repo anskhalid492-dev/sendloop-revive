@@ -250,9 +250,13 @@ export function CampaignsTable({
               <TableHead className="text-right">
                 <SortButton label="Leads" sortKey="leads" active={sortKey === "leads"} dir={dir} onSort={onSort} />
               </TableHead>
+              <TableHead className="text-right">Daily sending limit</TableHead>
+              <TableHead className="text-right">Sent today</TableHead>
+              <TableHead className="text-right">Remaining</TableHead>
               <TableHead className="text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
               </TableHead>
+
               <TableHead className="text-right">
                 <SortButton label="Reply Rate" sortKey="replyRate" active={sortKey === "replyRate"} dir={dir} onSort={onSort} />
               </TableHead>
@@ -315,7 +319,15 @@ export function CampaignsTable({
                     )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.sentToday)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {numberFmt.format(Math.max(0, row.leads - row.sent))}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
+
                   <TableCell className="text-right tabular-nums">{row.replyRate.toFixed(1)}%</TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.positiveReplies)}</TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.meetings)}</TableCell>
