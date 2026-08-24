@@ -377,31 +377,42 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.parse(input))
   .handler(async ({ data, context }): Promise<PersonalizationStats & { paused: string | null }> => {
-    const [recipientsRes, rowsRes, runnerRes] = await Promise.all([
-      context.supabase
-        .from("campaign_recipients")
-        .select("lead_id")
-        .eq("campaign_id", data.campaignId),
+    // Counts, not rows: PostgREST caps row reads at 1,000, so a 1,000+ lead
+    // campaign would otherwise report a frozen progress number.
+    const countOf = (build: (q: ReturnType<typeof context.supabase.from>) => unknown) => build;
+    void countOf;
+    const base = () =>
       context.supabase
         .from("ai_personalizations")
-        .select("status, quality")
-        .eq("campaign_id", data.campaignId),
-      context.supabase
-        .from("ai_runner_state")
-        .select("paused_reason")
-        .eq("key", "ai_personalization")
-        .maybeSingle(),
-    ]);
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", data.campaignId);
+    const quality = (value: string) =>
+      base().eq("status", "completed").eq("quality", value);
 
-    const eligible = new Set(
-      ((recipientsRes.data ?? []) as Array<{ lead_id: string }>).map((r) => r.lead_id),
-    ).size;
-    const rows = (rowsRes.data ?? []) as Array<{ status: string; quality: string | null }>;
-    const done = rows.filter((r) => r.status === "completed");
-    const personalized = done.length;
-    const quality = (r: { quality: string | null }) => r.quality ?? "complete";
-    const failed = rows.filter((r) => r.status === "failed").length;
-    const queued = rows.filter((r) => r.status === "queued" || r.status === "processing").length;
+    const [eligibleRes, completedRes, failedRes, queuedRes, completeQ, limitedQ, fallbackQ, runnerRes] =
+      await Promise.all([
+        context.supabase
+          .from("campaign_recipients")
+          .select("lead_id", { count: "exact", head: true })
+          .eq("campaign_id", data.campaignId),
+        base().eq("status", "completed"),
+        base().eq("status", "failed"),
+        base().in("status", ["queued", "processing"]),
+        quality("complete"),
+        quality("limited"),
+        quality("fallback"),
+        context.supabase
+          .from("ai_runner_state")
+          .select("paused_reason")
+          .eq("key", "ai_personalization")
+          .maybeSingle(),
+      ]);
+
+    const eligible = eligibleRes.count ?? 0;
+    const personalized = completedRes.count ?? 0;
+    const failed = failedRes.count ?? 0;
+    const queued = queuedRes.count ?? 0;
+
 
     return {
       eligible,
