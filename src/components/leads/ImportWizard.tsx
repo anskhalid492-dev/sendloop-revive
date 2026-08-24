@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LEAD_FIELDS } from "@/lib/lead-model";
+import { LEAD_FIELDS, validateWebsite } from "@/lib/lead-model";
 import { checkImportDuplicates, importLeads } from "@/lib/leads.functions";
 import type { LeadList } from "@/lib/leads.functions";
 
@@ -33,6 +33,21 @@ const SPLIT_NAME = "__split_name__";
 const FIRST_ONLY = "__first_only__";
 const CUSTOM = "__custom__";
 const NO_LIST = "__none__";
+const MAX_IMPORT_ROWS = 10000;
+
+type FailedRow = { row: number; field: string; reason: string; email: string };
+
+function downloadFailedRows(failed: FailedRow[]) {
+  const csv = Papa.unparse(
+    failed.map((f) => ({ Row: f.row, Email: f.email, Field: f.field, Reason: f.reason })),
+  );
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "failed-lead-rows.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 type Step = "upload" | "map" | "review" | "done";
 
@@ -101,6 +116,7 @@ export function ImportWizard({
     inserted: number;
     duplicatesInFile: number;
     duplicatesInWorkspace: number;
+    failed: FailedRow[];
   } | null>(null);
 
   const reset = () => {
@@ -116,17 +132,23 @@ export function ImportWizard({
 
   const mapped = useMemo(() => {
     const emailHeader = Object.entries(mapping).find(([, field]) => field === "email")?.[0];
-    const invalid: string[] = [];
+    const invalid: FailedRow[] = [];
     const out: Array<Record<string, unknown>> = [];
     if (!emailHeader) return { out, invalid, emailHeader: null as string | null };
 
-    for (const row of rows) {
+    rows.forEach((row, index) => {
+      const rowNumber = index + 1;
       const email = (row[emailHeader] ?? "").trim().toLowerCase();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        invalid.push(email || "(blank)");
-        continue;
+        invalid.push({
+          row: rowNumber,
+          field: "Email",
+          reason: email ? "Email address is not valid" : "Email address is missing",
+          email: email || "(blank)",
+        });
+        return;
       }
-      const record: Record<string, unknown> = { email };
+      const record: Record<string, unknown> = { email, _row: rowNumber };
       const custom: Record<string, string> = {};
       let derivedFirst = "";
       let derivedLast = "";
@@ -150,8 +172,18 @@ export function ImportWizard({
       if (!record["last_name"] && derivedLast) record["last_name"] = derivedLast;
 
       if (Object.keys(custom).length) record["custom_fields"] = custom;
+
+      // Website is checked here too so the review step can report the row up front.
+      const site = validateWebsite(record["website"]);
+      if (!site.ok) {
+        invalid.push({ row: rowNumber, field: "Website", reason: site.reason, email });
+        return;
+      }
+      if (site.value) record["website"] = site.value;
+      else delete record["website"];
+
       out.push(record);
-    }
+    });
     return { out, invalid, emailHeader };
   }, [mapping, rows]);
 
@@ -166,7 +198,7 @@ export function ImportWizard({
           toast.error("That file has no readable header row");
           return;
         }
-        const parsed = (result.data ?? []).slice(0, 5000);
+        const parsed = (result.data ?? []).slice(0, MAX_IMPORT_ROWS);
         setHeaders(fields);
         setRows(parsed);
         setMapping(Object.fromEntries(fields.map((f) => [f, guessField(f)])));
@@ -182,7 +214,7 @@ export function ImportWizard({
       return;
     }
     try {
-      const emails = mapped.out.map((r) => r["email"] as string).slice(0, 5000);
+      const emails = mapped.out.map((r) => r["email"] as string).slice(0, MAX_IMPORT_ROWS);
       if (emails.length) {
         const result = await dupeFn({ data: { emails } });
         setDuplicates(result.existing);
@@ -208,7 +240,10 @@ export function ImportWizard({
         },
       }),
     onSuccess: (result) => {
-      setSummary(result);
+      setSummary({
+        ...result,
+        failed: [...mapped.invalid, ...(result.failed ?? [])].sort((a, b) => a.row - b.row),
+      });
       setStep("done");
       void queryClient.invalidateQueries({ queryKey: ["leads"] });
       void queryClient.invalidateQueries({ queryKey: ["lead-lists"] });
@@ -240,7 +275,7 @@ export function ImportWizard({
               className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border p-10 text-sm text-muted-foreground hover:border-primary hover:text-foreground"
             >
               <Upload className="size-6" />
-              Choose a CSV file (up to 5,000 rows)
+              Choose a CSV file (up to 10,000 rows)
             </button>
             <input
               ref={fileRef}
@@ -307,17 +342,24 @@ export function ImportWizard({
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <Stat label="Valid rows" value={mapped.out.length} />
-              <Stat label="Invalid emails" value={mapped.invalid.length} />
+              <Stat label="Invalid rows" value={mapped.invalid.length} />
               <Stat label="Already in workspace" value={duplicates.length} />
             </div>
 
             {mapped.invalid.length > 0 ? (
               <div className="flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
                 <AlertTriangle className="mt-0.5 size-4 text-amber-600" />
-                <p className="text-muted-foreground">
-                  {mapped.invalid.length} rows will be skipped because the email is missing or
-                  invalid.
-                </p>
+                <div className="space-y-1 text-muted-foreground">
+                  <p>
+                    {mapped.invalid.length} row{mapped.invalid.length === 1 ? "" : "s"} will be
+                    skipped. Every other lead still imports.
+                  </p>
+                  {mapped.invalid.slice(0, 3).map((f) => (
+                    <p key={`${f.row}-${f.field}`} className="text-xs">
+                      Row {f.row.toLocaleString()} · {f.field} · {f.reason}
+                    </p>
+                  ))}
+                </div>
               </div>
             ) : null}
 
@@ -407,10 +449,38 @@ export function ImportWizard({
             <div>
               <h3 className="text-lg font-semibold">Import complete</h3>
               <p className="text-sm text-muted-foreground">
-                {summary.inserted} leads added · {summary.duplicatesInFile} duplicates in file ·{" "}
-                {summary.duplicatesInWorkspace} already existed
+                Imported: {summary.inserted.toLocaleString()} · Skipped:{" "}
+                {summary.failed.length.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {summary.duplicatesInFile} duplicates in file · {summary.duplicatesInWorkspace}{" "}
+                already existed
               </p>
             </div>
+
+            {summary.failed.length > 0 ? (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3 text-left text-sm">
+                {summary.failed.slice(0, 5).map((f) => (
+                  <div key={`${f.row}-${f.field}`}>
+                    <p className="font-medium">Row {f.row.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Field: {f.field}</p>
+                    <p className="text-xs text-muted-foreground">Reason: {f.reason}</p>
+                  </div>
+                ))}
+                {summary.failed.length > 5 ? (
+                  <p className="text-xs text-muted-foreground">
+                    +{summary.failed.length - 5} more in the download
+                  </p>
+                ) : null}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadFailedRows(summary.failed)}
+                >
+                  Download failed rows
+                </Button>
+              </div>
+            ) : null}
             <DialogFooter className="justify-center">
               <Button variant="outline" onClick={reset}>
                 Import another file

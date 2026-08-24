@@ -146,3 +146,33 @@ export function leadLocation(lead: {
 }): string {
   return [lead.city, lead.state, lead.country].filter(Boolean).join(", ");
 }
+
+/* ------------------------------------------------------- website validation */
+
+/** Generous, standards-friendly URL ceiling. The DB column is unbounded text. */
+export const MAX_WEBSITE_LENGTH = 2048;
+
+export type FieldCheck =
+  | { ok: true; value: string | null }
+  | { ok: false; reason: string };
+
+/**
+ * Normalises and validates a website value.
+ * Accepts bare domains and full URLs of any reasonable length; never truncates.
+ */
+export function validateWebsite(raw: unknown): FieldCheck {
+  if (raw === null || raw === undefined) return { ok: true, value: null };
+  const value = String(raw).trim();
+  if (!value) return { ok: true, value: null };
+  if (value.length > MAX_WEBSITE_LENGTH) return { ok: false, reason: "Website URL is too long" };
+  if (/\s/.test(value)) return { ok: false, reason: "Website URL contains spaces" };
+  const candidate = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value) ? value : `https://${value}`;
+  try {
+    const url = new URL(candidate);
+    if (!/^https?:$/.test(url.protocol)) return { ok: false, reason: "Website URL is not http(s)" };
+    if (!url.hostname.includes(".")) return { ok: false, reason: "Website URL is not a valid URL" };
+  } catch {
+    return { ok: false, reason: "Website URL is not a valid URL" };
+  }
+  return { ok: true, value };
+}
