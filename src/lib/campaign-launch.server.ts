@@ -35,12 +35,12 @@ export async function evaluateLaunchReadiness(
 
   // Anything already queued counts as a valid audience even if the campaign has
   // no default list (leads can be attached one-by-one from the Leads tab).
-  const { data: recipientRows, error: rErr } = await supabase
-    .from("campaign_recipients")
-    .select("lead_id, status")
-    .eq("campaign_id", campaignId);
-  if (rErr) throw new Error(rErr.message);
-  const recipients = (recipientRows ?? []) as Array<{ lead_id: string; status: string }>;
+  // Paged: a plain select() caps at 1,000 rows, which under-reports the audience
+  // of large campaigns.
+  const { fetchAllRows } = await import("@/lib/supabase-batch");
+  const recipients = await fetchAllRows<{ lead_id: string; status: string }>(() =>
+    supabase.from("campaign_recipients").select("lead_id, status").eq("campaign_id", campaignId),
+  );
   const queuedLeadIds = new Set(recipients.map((r) => r.lead_id));
   const alreadyQueued = recipients.filter((r) =>
     ["pending", "in_progress"].includes(r.status),
