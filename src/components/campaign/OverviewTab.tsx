@@ -362,6 +362,29 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
               value={dailyCapacity ? Math.min(100, (dailyUsed / dailyCapacity) * 100) : 0}
             />
           </div>
+          <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/70 p-3 text-xs sm:grid-cols-4">
+            <div>
+              <p className="text-muted-foreground">Leads</p>
+              <p className="text-lg font-semibold tabular-nums">{totalLeads.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Daily sending limit</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {settings.dailyCap > 0 ? `${settings.dailyCap.toLocaleString()}/day` : "Not set"}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Sent today</p>
+              <p className="text-lg font-semibold tabular-nums">{campaignSentToday.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Remaining</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {Math.max(0, totalLeads - contacted).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
           {warning.length ? (
             <p className="flex items-center gap-2 text-xs text-amber-700">
               <CircleAlert className="size-3.5" />
