@@ -714,7 +714,7 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
         .eq("id", data.campaignId);
     }
 
-    return { added: fresh.length, skipped: (leadsRes.data ?? []).length - fresh.length };
+    return { added: fresh.length, skipped: listLeads.length - fresh.length };
   });
 
 export const updateCampaignRecipients = createServerFn({ method: "POST" })
