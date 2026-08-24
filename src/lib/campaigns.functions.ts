@@ -257,7 +257,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         sent: recipients.filter((r) => r.last_sent_at).length,
         byStep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => ({
           step,
-          reached: recipients.filter((r) => r.current_step >= step).length,
+          reached: recipients.filter((r) => (r.current_step ?? 0) >= step).length,
         })),
         nextSendAt:
           recipients
