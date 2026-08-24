@@ -571,6 +571,15 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Regenerate all
                     </Button>
+                    {stats?.queued ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => cancel.mutate()}
+                        disabled={cancel.isPending}
+                      >
+                        Stop generation
+                      </Button>
+                    ) : null}
                     {stats?.failed ? (
                       <Button
                         variant="ghost"
@@ -583,12 +592,20 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                   </div>
                 </div>
                 <Progress value={progress} className="mt-4 h-2" />
+                {stats?.failed ? (
+                  <p className="mt-3 flex items-start gap-2 text-xs text-amber-600">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Some leads couldn&apos;t be personalized. Personalized: {stats.personalized} ·
+                    Failed: {stats.failed}. Use “Retry failed” to try them again.
+                  </p>
+                ) : null}
                 {stats?.paused ? (
                   <p className="mt-3 flex items-start gap-2 text-xs text-amber-600">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     Personalization is paused: {stats.paused}
                   </p>
                 ) : null}
+
               </div>
 
               <div className="divide-y rounded-lg border">
