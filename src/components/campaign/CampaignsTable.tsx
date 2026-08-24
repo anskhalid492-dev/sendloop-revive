@@ -308,7 +308,12 @@ export function CampaignsTable({
                       <span className="text-sm text-muted-foreground">No mailbox</span>
                     )}
                   </TableCell>
-<TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title={`${numberFmt.format(Math.max(0, row.leads - row.sent))} pending`}
+                  >
+                    {numberFmt.format(row.leads)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <DailyLimitPopover
                       row={row}
