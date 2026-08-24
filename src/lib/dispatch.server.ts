@@ -155,13 +155,15 @@ export async function scheduleFollowUps(
   }
 
   const leadIds = recipients.map((r: { lead_id: string }) => r.lead_id);
-  const { data: leads } = await supabase
-    .from("leads")
-    .select(
-      "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-    )
-    .in("id", leadIds);
-  const leadById = new Map((leads ?? []).map((l: { id: string }) => [l.id, l] as const));
+  const leads = await fetchByIds<{ id: string }>(leadIds, (ids) =>
+    supabase
+      .from("leads")
+      .select(
+        "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+      )
+      .in("id", ids),
+  );
+  const leadById = new Map(leads.map((l: { id: string }) => [l.id, l] as const));
 
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
 
