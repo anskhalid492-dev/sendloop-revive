@@ -76,19 +76,36 @@ export async function workspaceAiKeyInfo(
 }
 
 /** Read-only call against OpenAI so we never store an unusable key silently. */
+export const INVALID_KEY_MESSAGE =
+  "Invalid OpenAI API key. Please check your key and try again.";
+export const UNREACHABLE_MESSAGE =
+  "Couldn't connect to OpenAI right now. Please try again.";
+
+/** Shape check before we ever spend a network call on the key. */
+export function looksLikeOpenAiKey(raw: string): boolean {
+  const key = raw.trim();
+  return /^sk-[A-Za-z0-9_-]{20,}$/.test(key);
+}
+
+/**
+ * Read-only call against OpenAI so we never store an unusable key silently.
+ * Raw provider errors never leave this function: the caller only sees the two
+ * customer-facing messages above.
+ */
 export async function verifyOpenAiKey(apiKey: string): Promise<{ ok: boolean; message: string }> {
+  if (!looksLikeOpenAiKey(apiKey)) return { ok: false, message: INVALID_KEY_MESSAGE };
   try {
     const res = await fetch("https://api.openai.com/v1/models", {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: { Authorization: `Bearer ${apiKey.trim()}` },
       signal: AbortSignal.timeout(12_000),
     });
     if (res.ok) return { ok: true, message: "Key verified with OpenAI." };
-    if (res.status === 401) return { ok: false, message: "OpenAI rejected this key." };
-    if (res.status === 429)
-      return { ok: false, message: "OpenAI rate limited the check. Try again in a moment." };
-    return { ok: false, message: `OpenAI returned an error (${res.status}).` };
+    if (res.status === 401 || res.status === 403) {
+      return { ok: false, message: INVALID_KEY_MESSAGE };
+    }
+    return { ok: false, message: UNREACHABLE_MESSAGE };
   } catch {
-    return { ok: false, message: "Could not reach OpenAI to verify the key." };
+    return { ok: false, message: UNREACHABLE_MESSAGE };
   }
 }
 
