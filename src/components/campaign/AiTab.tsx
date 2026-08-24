@@ -214,7 +214,8 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-stats", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-rows", campaignId] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
+
   });
 
   const saveEdit = useMutation({
