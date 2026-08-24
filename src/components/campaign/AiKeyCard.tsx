@@ -116,7 +116,7 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
             <div className="space-y-1">
               <p className="flex items-center gap-2 font-medium">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Key ending •••• {info.last4 ?? "----"}
+                OpenAI connected — key ending •••• {info.last4 ?? "----"}
               </p>
               <p className="text-muted-foreground">
                 Model: {info.model}

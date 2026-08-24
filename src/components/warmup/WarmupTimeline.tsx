@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { getWarmupTimeline, type WarmupTimelineMessage } from "@/lib/warmup.functions";
 import { PLACEMENT_LABEL, type WarmupPlacement } from "@/lib/warmup-model";
+import { warmupActivityCopy } from "@/lib/activity-copy";
 import { cn } from "@/lib/utils";
 
 const STATUS_FILTERS = [
@@ -168,10 +169,17 @@ function Row({ message }: { message: WarmupTimelineMessage }) {
                             dotFor(event.type),
                           )}
                         />
-                        <p className="font-medium capitalize">{event.type.replace(/_/g, " ")}</p>
-                        {event.detail ? (
-                          <p className="text-xs text-muted-foreground">{event.detail}</p>
-                        ) : null}
+                        {(() => {
+                          // Customer-facing wording only; the raw provider
+                          // response stays in the database for admin debugging.
+                          const copy = warmupActivityCopy(event.type, event.detail);
+                          return (
+                            <>
+                              <p className="font-medium">{copy.title}</p>
+                              <p className="text-xs text-muted-foreground">{copy.detail}</p>
+                            </>
+                          );
+                        })()}
                         <p className="text-xs text-muted-foreground">{stamp(event.occurred_at)}</p>
                       </li>
                     ))}
