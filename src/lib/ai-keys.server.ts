@@ -75,7 +75,6 @@ export async function workspaceAiKeyInfo(
   };
 }
 
-/** Read-only call against OpenAI so we never store an unusable key silently. */
 export const INVALID_KEY_MESSAGE =
   "Invalid OpenAI API key. Please check your key and try again.";
 export const UNREACHABLE_MESSAGE =
@@ -113,7 +112,9 @@ export async function saveWorkspaceAiKey(
   admin: Client,
   input: { workspaceId: string; apiKey: string; model: string; userId: string },
 ): Promise<WorkspaceAiKeyInfo> {
+  // Validate before storing: an unusable key must never replace a working one.
   const check = await verifyOpenAiKey(input.apiKey);
+  if (!check.ok) throw new Error(check.message);
   const now = new Date().toISOString();
   const { error } = await admin.from("workspace_ai_keys").upsert(
     {
