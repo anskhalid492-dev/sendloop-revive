@@ -111,13 +111,13 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const dailyUsed = selected.reduce((sum, a) => sum + (a.sent_today ?? 0), 0);
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
   const contacted = delivery?.contacted ?? leads.filter((l) => l.status !== "pending").length;
-  // Emails this campaign already sent today (campaign-scoped, not mailbox-wide).
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const campaignSentToday = leads.filter((l) => {
-    const at = l.last_sent_at ? new Date(l.last_sent_at) : null;
-    return at ? at.getTime() >= todayStart.getTime() : false;
-  }).length;
+  // Emails this campaign already sent today — authoritative server count over
+  // the FULL message history (the `leads` array here is only one page).
+  const campaignSentToday = delivery?.sentToday ?? 0;
+  const dailyLimit = settings.dailyCap > 0 ? settings.dailyCap : 0;
+  // Remaining daily capacity = daily limit − sent today. Never lead-based.
+  const remainingToday = dailyLimit > 0 ? Math.max(0, dailyLimit - campaignSentToday) : null;
+
 
 
   const totalLeads = delivery?.totalLeads ?? queue?.total ?? 0;
@@ -360,7 +360,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Daily sending usage</span>
+              <span>Mailbox capacity used today (all campaigns)</span>
               <span>
                 {dailyUsed} / {dailyCapacity || 0}
               </span>
@@ -372,13 +372,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/70 p-3 text-xs sm:grid-cols-4">
             <div>
-              <p className="text-muted-foreground">Leads</p>
+              <p className="text-muted-foreground">Total leads</p>
               <p className="text-lg font-semibold tabular-nums">{totalLeads.toLocaleString()}</p>
+              <p className="text-muted-foreground">{pending.toLocaleString()} pending</p>
             </div>
             <div>
               <p className="text-muted-foreground">Daily sending limit</p>
               <p className="text-lg font-semibold tabular-nums">
-                {settings.dailyCap > 0 ? `${settings.dailyCap.toLocaleString()}/day` : "Not set"}
+                {dailyLimit > 0 ? `${dailyLimit.toLocaleString()}/day` : "Not set"}
               </p>
             </div>
             <div>
@@ -386,9 +387,9 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
               <p className="text-lg font-semibold tabular-nums">{campaignSentToday.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Remaining</p>
+              <p className="text-muted-foreground">Remaining today</p>
               <p className="text-lg font-semibold tabular-nums">
-                {Math.max(0, totalLeads - contacted).toLocaleString()}
+                {remainingToday === null ? "—" : remainingToday.toLocaleString()}
               </p>
             </div>
           </div>

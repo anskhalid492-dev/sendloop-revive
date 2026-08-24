@@ -293,6 +293,16 @@ export const getCampaign = createServerFn({ method: "GET" })
         unsubscribed: withTimestamp("unsubscribed_at") || countBy("unsubscribed"),
         failed: failedMessages,
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
+        // Emails THIS campaign sent since local-day start (UTC boundary on the
+        // server). Never derived from lead counts.
+        sentToday: (() => {
+          const dayStart = new Date();
+          dayStart.setHours(0, 0, 0, 0);
+          return sentMessages.filter((m) => {
+            const at = m["sent_at"];
+            return at ? new Date(at).getTime() >= dayStart.getTime() : false;
+          }).length;
+        })(),
       },
     };
   });

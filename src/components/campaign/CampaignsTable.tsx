@@ -253,7 +253,7 @@ export function CampaignsTable({
               </TableHead>
               <TableHead className="w-[11%] text-right">Daily Limit</TableHead>
               <TableHead className="w-[9%] text-right">Sent Today</TableHead>
-              <TableHead className="w-[9%] text-right">Remaining</TableHead>
+              <TableHead className="w-[9%] text-right">Remaining Today</TableHead>
               <TableHead className="w-[9%] text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
               </TableHead>
@@ -308,7 +308,12 @@ export function CampaignsTable({
                       <span className="text-sm text-muted-foreground">No mailbox</span>
                     )}
                   </TableCell>
-<TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title={`${numberFmt.format(Math.max(0, row.leads - row.sent))} pending`}
+                  >
+                    {numberFmt.format(row.leads)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <DailyLimitPopover
                       row={row}
@@ -326,8 +331,13 @@ export function CampaignsTable({
                     />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sentToday)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {numberFmt.format(Math.max(0, row.leads - row.sent))}
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title="Daily sending limit minus emails sent today"
+                  >
+                    {row.dailyCap > 0
+                      ? numberFmt.format(Math.max(0, row.dailyCap - row.sentToday))
+                      : "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
                   <TableCell>
