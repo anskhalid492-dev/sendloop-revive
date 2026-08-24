@@ -324,6 +324,7 @@ export function CampaignsTable({
                     </span>
                   </TableCell>
 <TableCell>
+                    <div className="flex items-center justify-end gap-1">
                       <Button variant="outline" size="icon" asChild title="Analytics">
                         <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
                           <BarChart3 className="size-4" />
