@@ -284,6 +284,22 @@ export const getCampaign = createServerFn({ method: "GET" })
   });
 
 
+export type CampaignLeadFields = {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  job_title: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  website: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  custom_fields: Record<string, string> | null;
+};
+
 export type CampaignLeadRow = {
   id: string;
   status: string;
@@ -293,7 +309,7 @@ export type CampaignLeadRow = {
   sending_account_id: string | null;
   created_at: string;
   lead_id: string;
-  lead: Record<string, unknown> | null;
+  lead: CampaignLeadFields | null;
   deliveryState: string;
   lastEventAt: string | null;
 };
@@ -393,7 +409,7 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
 
     const recipients = (pageRes.data ?? []) as unknown as Array<
       Omit<CampaignLeadRow, "lead" | "deliveryState" | "lastEventAt"> & {
-        leads: Record<string, unknown> | null;
+        leads: CampaignLeadFields | null;
       }
     >;
 
