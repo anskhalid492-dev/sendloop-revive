@@ -152,14 +152,14 @@ export async function evaluateLaunchReadiness(
     if (aiUsed && aiConfig.fallbackMode === "hold") {
       const audienceIds = [...new Set([...queuedLeadIds, ...eligibleLeadIds])];
       if (audienceIds.length) {
-        const { data: aiRows } = await supabase
-          .from("ai_personalizations")
-          .select("lead_id, status")
-          .eq("campaign_id", campaignId)
-          .eq("status", "completed");
-        const done = new Set(
-          ((aiRows ?? []) as Array<{ lead_id: string }>).map((row) => row.lead_id),
+        const aiRows = await fetchAllRows<{ lead_id: string }>(() =>
+          supabase
+            .from("ai_personalizations")
+            .select("lead_id, status")
+            .eq("campaign_id", campaignId)
+            .eq("status", "completed"),
         );
+        const done = new Set(aiRows.map((row) => row.lead_id));
         const missing = audienceIds.filter((id) => !done.has(id)).length;
         if (missing > 0) {
           issues.push({
