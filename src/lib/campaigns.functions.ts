@@ -241,9 +241,23 @@ export const getCampaign = createServerFn({ method: "GET" })
       sentMessages.map((m) => m["lead_id"]).filter((v): v is string => Boolean(v)),
     ).size;
 
+    // Per-lead delivery breakdown over the FULL audience (messages above are
+    // paged, so this is not capped at 1,000). Recipients without any message
+    // count as not contacted.
+    const { aggregateDeliveryStates } = await import("@/lib/campaign-delivery-state");
+    const live = aggregateDeliveryStates(messages);
+    const leadStates: Record<string, number> = {};
+    for (const r of recipients) {
+      const hit = live.get(r.id) ?? live.get(`lead:${r.lead_id}`) ?? null;
+      const state = hit?.state ?? "not_contacted";
+      leadStates[state] = (leadStates[state] ?? 0) + 1;
+    }
+
     return {
       campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
       steps,
+      leadStates,
+      leadTotal: totalRecipients,
       queue: {
         total: totalRecipients,
         pending: countBy("pending"),
