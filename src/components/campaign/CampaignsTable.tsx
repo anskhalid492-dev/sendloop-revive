@@ -253,7 +253,7 @@ export function CampaignsTable({
               </TableHead>
               <TableHead className="w-[11%] text-right">Daily Limit</TableHead>
               <TableHead className="w-[9%] text-right">Sent Today</TableHead>
-              <TableHead className="w-[9%] text-right">Remaining</TableHead>
+              <TableHead className="w-[9%] text-right">Remaining Today</TableHead>
               <TableHead className="w-[9%] text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
               </TableHead>
