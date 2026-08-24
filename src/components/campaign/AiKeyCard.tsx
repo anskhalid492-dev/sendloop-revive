@@ -5,7 +5,7 @@
  * OpenAI key, is billed by OpenAI directly, and can disconnect at any time.
  * The key is stored encrypted server-side and never returned to the browser.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, ExternalLink, KeyRound, Loader2, ShieldCheck, Trash2 } from "lucide-react";
@@ -45,6 +45,11 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("gpt-4o-mini");
 
+  // Same shape check the server runs, so the button state matches the outcome.
+  const trimmedKey = apiKey.trim();
+  const keyLooksValid = /^sk-[A-Za-z0-9_-]{20,}$/.test(trimmedKey);
+  const keyError = trimmedKey.length === 0 || keyLooksValid ? null : "Keys start with “sk-”.";
+
   const keyQuery = useQuery({
     queryKey: ["workspace-ai-key", workspaceId],
     queryFn: () => fetchKey({ data: { workspaceId: workspaceId! } }),
@@ -53,13 +58,16 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
 
   const info = keyQuery.data;
 
+  useEffect(() => {
+    if (info?.model) setModel(info.model);
+  }, [info?.model]);
+
   const save = useMutation({
     mutationFn: () =>
       saveKey({ data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), model } }),
     onSuccess: async (result) => {
       setApiKey("");
-      if (result.status === "verified") toast.success("OpenAI key connected");
-      else toast.error(result.lastError ?? "Key saved but could not be verified");
+      toast.success("OpenAI connected");
       await queryClient.invalidateQueries({ queryKey: ["workspace-ai-key", workspaceId] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -141,10 +149,12 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
               id="openai-key"
               type="password"
               autoComplete="off"
+              spellCheck={false}
               placeholder="sk-..."
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
             />
+            {keyError ? <p className="text-xs text-destructive">{keyError}</p> : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="openai-model">Model</Label>
@@ -167,7 +177,7 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
           <Button
             type="button"
             onClick={() => save.mutate()}
-            disabled={!workspaceId || apiKey.trim().length < 20 || save.isPending}
+            disabled={!workspaceId || !keyLooksValid || save.isPending}
           >
             {save.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {info?.connected ? "Update key" : "Connect key"}
