@@ -39,7 +39,7 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub?: string
 }
 
 export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
-  const { queue, steps, leads } = builder;
+  const { queue, steps, leadStates, leadTotal } = builder;
   const total = queue?.total ?? 0;
   const sent = queue?.sent ?? 0;
   const replied = queue?.replied ?? 0;
@@ -51,12 +51,8 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
 
   // Counted from the live per-lead delivery state (derived from real message
   // events), so this matches what the Leads tab and the activity feed show.
-  const statusCounts = leads.reduce<Record<string, number>>((acc, row) => {
-    const state = (row.deliveryState ?? "not_contacted") as LeadDeliveryState;
-    acc[state] = (acc[state] ?? 0) + 1;
-    return acc;
-  }, {});
-  const leadTotal = leads.length;
+  // Exact server-side per-lead counts over the whole audience.
+  const statusCounts = leadStates;
   const breakdown = LEAD_DELIVERY_STATES.map((state) => ({
     state,
     label: LEAD_DELIVERY_LABELS[state],

@@ -384,6 +384,8 @@ export function useCampaignBuilder(campaignId: string) {
     campaign,
     queue: campaignQuery.data?.queue,
     delivery: campaignQuery.data?.delivery,
+    leadStates: (campaignQuery.data?.leadStates ?? {}) as Record<string, number>,
+    leadTotal: campaignQuery.data?.leadTotal ?? 0,
     isLoading: campaignQuery.isPending,
     error: (campaignQuery.error as Error | null) ?? null,
     refetch: () => campaignQuery.refetch(),
