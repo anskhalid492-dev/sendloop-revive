@@ -20,6 +20,7 @@ export const TEMPLATE_CATEGORIES = [
   "Support",
   "Security",
   "System",
+  "Transactional",
 ] as const;
 
 export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number];
@@ -429,6 +430,24 @@ const SPECS: Spec[] = [
     preheader: "A campaign issue needs a quick check.",
     heading: "{{campaign.name}} needs attention",
     blocks: [p("Something in {{campaign.name}} needs a quick review — check its email accounts, schedule and remaining leads."), cta("Open campaign", "{{dashboard_url}}")],
+  },
+  {
+    eventKey: "positive_reply_notification",
+    name: "Positive Reply Notification",
+    category: "Transactional",
+    subject: "\u{1F389} Positive reply from {{lead_name}}",
+    preheader: "A prospect replied positively to your campaign.",
+    heading: "You got a positive reply \u{1F389}",
+    blocks: [
+      p("{{lead_name}} from {{company_name}} replied positively to your campaign."),
+      note("Campaign: {{campaign_name}}<br>From: {{lead_email}}"),
+      p("&ldquo;{{reply_preview}}&rdquo;"),
+      cta("View reply", "{{reply_url}}"),
+      cta("Open campaign", "{{campaign_url}}"),
+      p("This lead is interested. Jump into MunchReach to review the conversation and follow up."),
+    ],
+    reason:
+      "You are receiving this because positive reply notifications are enabled for {{workspace_name}} in your MunchReach notification settings.",
   },
   // ── Email Infrastructure ────────────────────────────────────────────────
   {
