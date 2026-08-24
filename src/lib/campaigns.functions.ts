@@ -1154,7 +1154,6 @@ export const launchCampaign = createServerFn({ method: "POST" })
     // Only the lead ids the readiness check proved eligible get queued.
     // The ids travel in the URL, so they are read back in URL-safe chunks:
     // a single `in.()` filter with ~1,000 UUIDs is rejected with HTTP 400.
-    const { fetchByIds, fetchAllRows } = await import("@/lib/supabase-batch");
     const LEAD_FIELDS =
       "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields";
     let leads: Array<Record<string, unknown>> = [];
