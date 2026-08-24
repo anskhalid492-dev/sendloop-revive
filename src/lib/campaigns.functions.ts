@@ -377,9 +377,7 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
         context.supabase
           .from("campaign_recipients")
           .select(
-            sel(
-              `id, status, current_step, next_send_at, last_sent_at, sending_account_id, created_at, lead_id, ${LEAD_EMBED}`,
-            ),
+            `id, status, current_step, next_send_at, last_sent_at, sending_account_id, created_at, lead_id, ${LEAD_EMBED}` as string,
             { count: "exact" },
           )
           .order("created_at", { ascending: false })
