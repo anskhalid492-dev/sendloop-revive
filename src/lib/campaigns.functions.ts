@@ -252,13 +252,27 @@ export const getCampaignLeads = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!recipients?.length) return [];
 
-    const [leadsRes, msgRes] = await Promise.all([
-      context.supabase
-        .from("leads")
-        .select(
-          "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-        )
-        .in("id", recipients.map((r) => r.lead_id)),
+    // PostgREST puts `id=in.(...)` in the query string, so a single request with
+    // ~1,000 UUIDs blows past the max URL length and comes back as a hard 400.
+    // Fetching in chunks keeps every request well inside that limit.
+    const LEAD_CHUNK = 150;
+    const leadIds = [...new Set(recipients.map((r) => r.lead_id))];
+    const leadChunks: string[][] = [];
+    for (let i = 0; i < leadIds.length; i += LEAD_CHUNK) {
+      leadChunks.push(leadIds.slice(i, i + LEAD_CHUNK));
+    }
+
+    const [leadChunkResults, msgRes] = await Promise.all([
+      Promise.all(
+        leadChunks.map((chunk) =>
+          context.supabase
+            .from("leads")
+            .select(
+              "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+            )
+            .in("id", chunk),
+        ),
+      ),
       context.supabase
         .from("campaign_messages")
         .select(
@@ -267,7 +281,12 @@ export const getCampaignLeads = createServerFn({ method: "GET" })
         .eq("campaign_id", data.campaignId)
         .limit(5000),
     ]);
+    const leadsRes = {
+      data: leadChunkResults.flatMap((res) => res.data ?? []),
+      error: leadChunkResults.find((res) => res.error)?.error ?? null,
+    };
     if (leadsRes.error) throw new Error(leadsRes.error.message);
+
     if (msgRes.error) throw new Error(msgRes.error.message);
 
     const byId = new Map((leadsRes.data ?? []).map((l) => [l.id, l]));
