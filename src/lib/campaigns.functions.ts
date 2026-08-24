@@ -142,7 +142,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
 
-    const [stepsRes, variantsRes, recipientsRes, messagesRes] = await Promise.all([
+    const [stepsRes, variantsRes, recipientsRes, messagesRes, recipientCountRes] = await Promise.all([
       context.supabase
         .from("campaign_steps")
         .select(STEP_COLUMNS)
@@ -165,6 +165,11 @@ export const getCampaign = createServerFn({ method: "GET" })
           "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
         )
         .eq("campaign_id", data.id),
+      // Exact recipient total, immune to the 1,000-row read cap.
+      context.supabase
+        .from("campaign_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", data.id),
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
@@ -177,6 +182,7 @@ export const getCampaign = createServerFn({ method: "GET" })
       variants: variants.filter((v) => v.step_id === s.id),
     }));
     const recipients = recipientsRes.data ?? [];
+    const totalRecipients = recipientCountRes.count ?? recipients.length;
     const messages = (messagesRes.data ?? []) as Array<Record<string, string | null>>;
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
@@ -198,7 +204,7 @@ export const getCampaign = createServerFn({ method: "GET" })
       campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
       steps,
       queue: {
-        total: recipients.length,
+        total: totalRecipients,
         pending: countBy("pending"),
         inProgress: countBy("in_progress"),
         completed: countBy("completed"),
@@ -219,7 +225,7 @@ export const getCampaign = createServerFn({ method: "GET" })
             .sort()[0] ?? null,
       },
       delivery: {
-        totalLeads: recipients.length,
+        totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentMessages.length,
         delivered,
