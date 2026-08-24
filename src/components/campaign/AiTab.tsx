@@ -42,6 +42,7 @@ import {
   type PersonalizationTone,
 } from "@/lib/ai-personalization-model";
 import {
+  cancelAiPersonalization,
   getAiPersonalizationStats,
   getAiSettings,
   listAiPersonalizations,
@@ -51,6 +52,7 @@ import {
   saveAiSettings,
   updateAiPersonalization,
 } from "@/lib/ai-personalization.functions";
+
 import { cn } from "@/lib/utils";
 import { useActiveWorkspaceId } from "@/hooks/useWorkspace";
 import { AiKeyCard } from "./AiKeyCard";
@@ -62,6 +64,20 @@ const STATUS_STYLES: Record<string, string> = {
   processing: "bg-amber-500/10 text-amber-700 border-amber-500/20",
   failed: "bg-destructive/10 text-destructive border-destructive/20",
 };
+
+/**
+ * Turn transport-level noise ("Bad Request", "[object Response]") into
+ * something a customer can act on, while keeping our own explicit messages.
+ */
+function friendlyError(error: unknown): string {
+  const raw = error instanceof Error ? error.message.trim() : String(error ?? "").trim();
+  if (!raw || /^(bad request|internal server error|failed to fetch|\[object)/i.test(raw)) {
+    return "Couldn't generate personalization. Please check your OpenAI connection and try again.";
+  }
+  return raw;
+}
+
+
 
 export function AiTab({ builder }: { builder: CampaignBuilder }) {
   const { campaignId, steps, leads } = builder;
@@ -75,7 +91,9 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
   const previewFn = useServerFn(previewAiPersonalization);
   const queueFn = useServerFn(queueAiPersonalization);
   const retryFn = useServerFn(retryFailedAiPersonalizations);
+  const cancelFn = useServerFn(cancelAiPersonalization);
   const updateFn = useServerFn(updateAiPersonalization);
+
 
   const settingsQuery = useQuery({
     queryKey: ["campaign-ai-settings", campaignId],
@@ -156,7 +174,7 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
         result.ok ? { ok: true, text: result.content } : { ok: false, text: result.message },
       );
     },
-    onError: (error: Error) => setPreview({ ok: false, text: error.message }),
+    onError: (error: Error) => setPreview({ ok: false, text: friendlyError(error) }),
   });
 
   const generate = useMutation({
@@ -171,8 +189,23 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-stats", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-rows", campaignId] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
   });
+
+  const cancel = useMutation({
+    mutationFn: () => cancelFn({ data: { campaignId } }),
+    onSuccess: async (result) => {
+      toast.success(
+        result.cancelled
+          ? `Stopped generation for ${result.cancelled} pending lead${result.cancelled === 1 ? "" : "s"}`
+          : "Nothing left to stop",
+      );
+      await queryClient.invalidateQueries({ queryKey: ["campaign-ai-stats", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-ai-rows", campaignId] });
+    },
+    onError: (error: Error) => toast.error(friendlyError(error)),
+  });
+
 
   const retry = useMutation({
     mutationFn: () => retryFn({ data: { campaignId } }),
@@ -181,7 +214,8 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-stats", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-rows", campaignId] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
+
   });
 
   const saveEdit = useMutation({
@@ -537,6 +571,15 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Regenerate all
                     </Button>
+                    {stats?.queued ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => cancel.mutate()}
+                        disabled={cancel.isPending}
+                      >
+                        Stop generation
+                      </Button>
+                    ) : null}
                     {stats?.failed ? (
                       <Button
                         variant="ghost"
@@ -549,12 +592,20 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
                   </div>
                 </div>
                 <Progress value={progress} className="mt-4 h-2" />
+                {stats?.failed ? (
+                  <p className="mt-3 flex items-start gap-2 text-xs text-amber-600">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Some leads couldn&apos;t be personalized. Personalized: {stats.personalized} ·
+                    Failed: {stats.failed}. Use “Retry failed” to try them again.
+                  </p>
+                ) : null}
                 {stats?.paused ? (
                   <p className="mt-3 flex items-start gap-2 text-xs text-amber-600">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     Personalization is paused: {stats.paused}
                   </p>
                 ) : null}
+
               </div>
 
               <div className="divide-y rounded-lg border">
