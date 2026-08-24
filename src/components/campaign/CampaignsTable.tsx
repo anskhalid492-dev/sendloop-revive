@@ -309,7 +309,20 @@ export function CampaignsTable({
                   </TableCell>
 <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
+                    <DailyLimitPopover
+                      row={row}
+                      trigger={
+                        <button
+                          type="button"
+                          title="Edit daily email sending limit"
+                          className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm tabular-nums transition-colors hover:bg-muted"
+                        >
+                          <Gauge className="size-3.5 text-muted-foreground" />
+                          {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
+                          <span className="sr-only">Edit daily sending limit for {row.name}</span>
+                        </button>
+                      }
+                    />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sentToday)}</TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -325,6 +338,7 @@ export function CampaignsTable({
                   </TableCell>
 <TableCell>
                     <div className="flex items-center justify-end gap-1">
+                      <DailyLimitPopover row={row} />
                       <Button variant="outline" size="icon" asChild title="Analytics">
                         <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
                           <BarChart3 className="size-4" />
