@@ -612,7 +612,7 @@ export type ImportRowError = { row: number; field: string; reason: string; email
 export const checkImportDuplicates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ emails: z.array(z.string().trim().max(200)).min(1).max(5000) }).parse(input),
+    z.object({ emails: z.array(z.string().trim().max(320)).min(1).max(10000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const emails = Array.from(new Set(data.emails.map((e) => e.toLowerCase())));
@@ -629,6 +629,22 @@ export const checkImportDuplicates = createServerFn({ method: "POST" })
     return { existing: Array.from(found) };
   });
 
+/** Human label for a failed field, used in the import summary. */
+const FIELD_LABELS: Record<string, string> = {
+  email: "Email",
+  first_name: "First name",
+  last_name: "Last name",
+  company: "Company",
+  job_title: "Job title",
+  phone: "Phone",
+  website: "Website",
+  linkedin_url: "LinkedIn",
+  city: "City",
+  state: "State",
+  country: "Country",
+  custom_fields: "Custom fields",
+};
+
 export const importLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -637,20 +653,46 @@ export const importLeads = createServerFn({ method: "POST" })
         workspaceId: z.string().uuid(),
         listId: z.string().uuid().nullable().optional(),
         tags: z.array(z.string().trim().max(40)).max(10).optional(),
-        rows: z.array(rowSchema).min(1).max(5000),
+        // Rows stay loose here on purpose: a single bad cell must never reject the batch.
+        rows: z.array(z.record(z.string(), z.unknown())).min(1).max(10000),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const seen = new Set<string>();
     const cleaned: Array<Record<string, unknown>> = [];
+    const failed: Array<{ row: number; field: string; reason: string; email: string }> = [];
     let duplicatesInFile = 0;
 
-    for (const row of data.rows) {
+    data.rows.forEach((raw, index) => {
+      const rowNumber = typeof raw["_row"] === "number" ? (raw["_row"] as number) : index + 1;
+      const rawEmail = typeof raw["email"] === "string" ? raw["email"] : "";
+
+      // Website is validated with the shared URL rules, never truncated.
+      const site = validateWebsite(raw["website"]);
+      if (!site.ok) {
+        failed.push({ row: rowNumber, field: "Website", reason: site.reason, email: rawEmail });
+        return;
+      }
+
+      const parsed = rowSchema.safeParse({ ...raw, website: site.value ?? undefined });
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        const key = String(issue?.path?.[0] ?? "row");
+        failed.push({
+          row: rowNumber,
+          field: FIELD_LABELS[key] ?? key,
+          reason: issue?.message ?? "Invalid value",
+          email: rawEmail,
+        });
+        return;
+      }
+
+      const row = parsed.data;
       const email = row.email.toLowerCase();
       if (seen.has(email)) {
         duplicatesInFile += 1;
-        continue;
+        return;
       }
       seen.add(email);
       cleaned.push({
@@ -670,7 +712,7 @@ export const importLeads = createServerFn({ method: "POST" })
         tags: data.tags ?? [],
         custom_fields: row.custom_fields ?? {},
       });
-    }
+    });
 
     const emails = Array.from(seen);
     const existingEmails = new Set<string>();
@@ -703,6 +745,8 @@ export const importLeads = createServerFn({ method: "POST" })
       inserted,
       duplicatesInFile,
       duplicatesInWorkspace: existingEmails.size,
+      failed,
+
     };
   });
 
