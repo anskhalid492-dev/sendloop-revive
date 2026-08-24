@@ -1148,24 +1148,25 @@ export const launchCampaign = createServerFn({ method: "POST" })
     let heldForAi = 0;
 
     // Only the lead ids the readiness check proved eligible get queued.
+    // The ids travel in the URL, so they are read back in URL-safe chunks:
+    // a single `in.()` filter with ~1,000 UUIDs is rejected with HTTP 400.
+    const { fetchByIds, fetchAllRows } = await import("@/lib/supabase-batch");
+    const LEAD_FIELDS =
+      "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields";
     let leads: Array<Record<string, unknown>> = [];
     if (readiness.eligibleLeadIds.length) {
-      const { data: leadRows, error: lErr } = await context.supabase
-        .from("leads")
-        .select(
-          "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-        )
-        .in("id", readiness.eligibleLeadIds);
-      if (lErr) throw new Error(lErr.message);
-      leads = (leadRows ?? []) as unknown as Array<Record<string, unknown>>;
+      leads = await fetchByIds<Record<string, unknown>>(
+        readiness.eligibleLeadIds,
+        (ids) => context.supabase.from("leads").select(LEAD_FIELDS).in("id", ids),
+      );
     }
 
-    const { data: existing, error: eErr } = await context.supabase
-      .from("campaign_recipients")
-      .select("lead_id")
-      .eq("campaign_id", c.id);
-    if (eErr) throw new Error(eErr.message);
-    const already = new Set((existing ?? []).map((r) => r.lead_id));
+    // Paged so campaigns with more than 1,000 recipients are deduplicated
+    // correctly instead of re-inserting rows that already exist.
+    const existing = await fetchAllRows<{ lead_id: string }>(() =>
+      context.supabase.from("campaign_recipients").select("lead_id").eq("campaign_id", c.id),
+    );
+    const already = new Set(existing.map((r) => r.lead_id));
 
     const firstSlot = nextSendSlot(c.start_at ? new Date(c.start_at) : new Date(), {
       timezone: c.timezone,
