@@ -586,19 +586,23 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
 /* ---------------------------------------------------------------- import */
 
 const rowSchema = z.object({
+  _row: z.number().int().min(1).optional(),
   email: z.string().trim().email(),
   first_name: z.string().trim().max(120).optional(),
   last_name: z.string().trim().max(120).optional(),
   company: z.string().trim().max(160).optional(),
   job_title: z.string().trim().max(160).optional(),
   phone: z.string().trim().max(60).optional(),
-  website: z.string().trim().max(200).optional(),
-  linkedin_url: z.string().trim().max(300).optional(),
+  website: z.string().trim().max(MAX_WEBSITE_LENGTH).optional(),
+  linkedin_url: z.string().trim().max(MAX_WEBSITE_LENGTH).optional(),
   city: z.string().trim().max(120).optional(),
   state: z.string().trim().max(120).optional(),
   country: z.string().trim().max(80).optional(),
   custom_fields: z.record(z.string(), z.string()).optional(),
 });
+
+export type ImportRowError = { row: number; field: string; reason: string; email: string };
+
 
 export const checkImportDuplicates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
