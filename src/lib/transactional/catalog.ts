@@ -441,7 +441,7 @@ const SPECS: Spec[] = [
     blocks: [
       p("{{lead_name}} from {{company_name}} replied positively to your campaign."),
       note("Campaign: {{campaign_name}}<br>From: {{lead_email}}"),
-      p("&ldquo;{{reply_preview}}&rdquo;"),
+      p("\u201C{{reply_preview}}\u201D"),
       cta("View reply", "{{reply_url}}"),
       cta("Open campaign", "{{campaign_url}}"),
       p("This lead is interested. Jump into MunchReach to review the conversation and follow up."),
