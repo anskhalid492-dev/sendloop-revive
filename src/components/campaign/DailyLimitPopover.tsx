@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Gauge, Loader2 } from "lucide-react";
@@ -19,7 +19,13 @@ const numberFmt = new Intl.NumberFormat("en-US");
  * Saves to the same campaign daily limit used by the sending backend, so the
  * change takes effect on the very next send.
  */
-export function DailyLimitPopover({ row }: { row: CampaignOverviewRow }) {
+export function DailyLimitPopover({
+  row,
+  trigger,
+}: {
+  row: CampaignOverviewRow;
+  trigger?: ReactNode;
+}) {
   const queryClient = useQueryClient();
   const saveFn = useServerFn(setCampaignDailyLimit);
   const [open, setOpen] = useState(false);
@@ -61,10 +67,12 @@ export function DailyLimitPopover({ row }: { row: CampaignOverviewRow }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" title="Daily email sending limit">
-          <Gauge className="size-4" />
-          <span className="sr-only">Daily email sending limit for {row.name}</span>
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="icon" title="Daily email sending limit">
+            <Gauge className="size-4" />
+            <span className="sr-only">Daily email sending limit for {row.name}</span>
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 space-y-4">
         <div className="space-y-1">

@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Gauge,
   MoreHorizontal,
   Pause,
   Pencil,
