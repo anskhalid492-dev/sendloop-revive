@@ -65,6 +65,20 @@ const STATUS_STYLES: Record<string, string> = {
   failed: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+/**
+ * Turn transport-level noise ("Bad Request", "[object Response]") into
+ * something a customer can act on, while keeping our own explicit messages.
+ */
+function friendlyError(error: unknown): string {
+  const raw = error instanceof Error ? error.message.trim() : String(error ?? "").trim();
+  if (!raw || /^(bad request|internal server error|failed to fetch|\[object)/i.test(raw)) {
+    return "Couldn't generate personalization. Please check your OpenAI connection and try again.";
+  }
+  return raw;
+}
+
+
+
 export function AiTab({ builder }: { builder: CampaignBuilder }) {
   const { campaignId, steps, leads } = builder;
   const workspaceId = useActiveWorkspaceId();
