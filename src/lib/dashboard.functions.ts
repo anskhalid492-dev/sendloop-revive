@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { mailboxActivityCopy, warmupActivityCopy } from "@/lib/activity-copy";
 
 const workspaceInput = (input: unknown) =>
   z.object({ workspaceId: z.string().uuid() }).parse(input);
