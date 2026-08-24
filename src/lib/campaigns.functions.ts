@@ -1129,15 +1129,19 @@ export const launchCampaign = createServerFn({ method: "POST" })
     // campaign's fallback rule — and with "hold" they are not materialised at
     // all, so no weaker email ever goes out ahead of its personalization.
     const { campaignAiSettings, aiExtras } = await import("@/lib/ai-personalization.server");
+    // URL-safe id filters + full pagination: see supabase-batch for why.
+    const { fetchByIds, fetchAllRows } = await import("@/lib/supabase-batch");
     const aiSettings = await campaignAiSettings(context.supabase, c.id);
     const aiContent = new Map<string, string>();
     if (aiSettings.enabled) {
-      const { data: aiRows } = await context.supabase
-        .from("ai_personalizations")
-        .select("lead_id, content")
-        .eq("campaign_id", c.id)
-        .eq("status", "completed");
-      for (const row of (aiRows ?? []) as Array<{ lead_id: string; content: string | null }>) {
+      const aiRows = await fetchAllRows<{ lead_id: string; content: string | null }>(() =>
+        context.supabase
+          .from("ai_personalizations")
+          .select("lead_id, content")
+          .eq("campaign_id", c.id)
+          .eq("status", "completed"),
+      );
+      for (const row of aiRows) {
         if (row.content?.trim()) aiContent.set(row.lead_id, row.content.trim());
       }
     }
@@ -1148,24 +1152,24 @@ export const launchCampaign = createServerFn({ method: "POST" })
     let heldForAi = 0;
 
     // Only the lead ids the readiness check proved eligible get queued.
+    // The ids travel in the URL, so they are read back in URL-safe chunks:
+    // a single `in.()` filter with ~1,000 UUIDs is rejected with HTTP 400.
+    const LEAD_FIELDS =
+      "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields";
     let leads: Array<Record<string, unknown>> = [];
     if (readiness.eligibleLeadIds.length) {
-      const { data: leadRows, error: lErr } = await context.supabase
-        .from("leads")
-        .select(
-          "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-        )
-        .in("id", readiness.eligibleLeadIds);
-      if (lErr) throw new Error(lErr.message);
-      leads = (leadRows ?? []) as unknown as Array<Record<string, unknown>>;
+      leads = await fetchByIds<Record<string, unknown>>(
+        readiness.eligibleLeadIds,
+        (ids) => context.supabase.from("leads").select(LEAD_FIELDS).in("id", ids),
+      );
     }
 
-    const { data: existing, error: eErr } = await context.supabase
-      .from("campaign_recipients")
-      .select("lead_id")
-      .eq("campaign_id", c.id);
-    if (eErr) throw new Error(eErr.message);
-    const already = new Set((existing ?? []).map((r) => r.lead_id));
+    // Paged so campaigns with more than 1,000 recipients are deduplicated
+    // correctly instead of re-inserting rows that already exist.
+    const existing = await fetchAllRows<{ lead_id: string }>(() =>
+      context.supabase.from("campaign_recipients").select("lead_id").eq("campaign_id", c.id),
+    );
+    const already = new Set(existing.map((r) => r.lead_id));
 
     const firstSlot = nextSendSlot(c.start_at ? new Date(c.start_at) : new Date(), {
       timezone: c.timezone,
@@ -1251,45 +1255,36 @@ export const launchCampaign = createServerFn({ method: "POST" })
 
     // Recipients attached before launch (e.g. from the Leads tab) may not have a
     // first message yet — materialise those too so the campaign actually sends.
-    const { data: pendingRows, error: pErr } = await context.supabase
-      .from("campaign_recipients")
-      .select("id, lead_id, sending_account_id")
-      .eq("campaign_id", c.id)
-      .eq("status", "pending")
-      .eq("current_step", 0);
-    if (pErr) throw new Error(pErr.message);
-    const pendingRecipients = (pendingRows ?? []) as Array<{
+    const pendingRecipients = await fetchAllRows<{
       id: string;
       lead_id: string;
       sending_account_id: string | null;
-    }>;
+    }>(() =>
+      context.supabase
+        .from("campaign_recipients")
+        .select("id, lead_id, sending_account_id")
+        .eq("campaign_id", c.id)
+        .eq("status", "pending")
+        .eq("current_step", 0),
+    );
 
     if (pendingRecipients.length) {
-      const { data: existingMsgs, error: mListErr } = await context.supabase
-        .from("campaign_messages")
-        .select("recipient_id")
-        .eq("campaign_id", c.id)
-        .eq("step_order", 1);
-      if (mListErr) throw new Error(mListErr.message);
-      const hasMessage = new Set(
-        ((existingMsgs ?? []) as Array<{ recipient_id: string | null }>).map((m) => m.recipient_id),
+      const existingMsgs = await fetchAllRows<{ recipient_id: string | null }>(() =>
+        context.supabase
+          .from("campaign_messages")
+          .select("recipient_id")
+          .eq("campaign_id", c.id)
+          .eq("step_order", 1),
       );
+      const hasMessage = new Set(existingMsgs.map((m) => m.recipient_id));
       const missing = pendingRecipients.filter((r) => !hasMessage.has(r.id));
 
       if (missing.length) {
-        const { data: leadRows, error: lErr2 } = await context.supabase
-          .from("leads")
-          .select(
-            "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-          )
-          .in("id", missing.map((r) => r.lead_id));
-        if (lErr2) throw new Error(lErr2.message);
-        const leadById = new Map(
-          ((leadRows ?? []) as unknown as Array<{ id: string; email: string }>).map((l) => [
-            l.id,
-            l,
-          ] as const),
+        const leadRows = await fetchByIds<{ id: string; email: string }>(
+          missing.map((r) => r.lead_id),
+          (ids) => context.supabase.from("leads").select(LEAD_FIELDS).in("id", ids),
         );
+        const leadById = new Map(leadRows.map((l) => [l.id, l] as const));
         const backfill = missing
           .map((recipient) => {
             const lead = leadById.get(recipient.lead_id);

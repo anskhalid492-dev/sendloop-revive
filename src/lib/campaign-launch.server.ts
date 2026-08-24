@@ -35,12 +35,12 @@ export async function evaluateLaunchReadiness(
 
   // Anything already queued counts as a valid audience even if the campaign has
   // no default list (leads can be attached one-by-one from the Leads tab).
-  const { data: recipientRows, error: rErr } = await supabase
-    .from("campaign_recipients")
-    .select("lead_id, status")
-    .eq("campaign_id", campaignId);
-  if (rErr) throw new Error(rErr.message);
-  const recipients = (recipientRows ?? []) as Array<{ lead_id: string; status: string }>;
+  // Paged: a plain select() caps at 1,000 rows, which under-reports the audience
+  // of large campaigns.
+  const { fetchAllRows } = await import("@/lib/supabase-batch");
+  const recipients = await fetchAllRows<{ lead_id: string; status: string }>(() =>
+    supabase.from("campaign_recipients").select("lead_id, status").eq("campaign_id", campaignId),
+  );
   const queuedLeadIds = new Set(recipients.map((r) => r.lead_id));
   const alreadyQueued = recipients.filter((r) =>
     ["pending", "in_progress"].includes(r.status),
@@ -84,15 +84,14 @@ export async function evaluateLaunchReadiness(
       });
     } else {
       listName = list.name;
-      const { data: leadRows, error: leadErr } = await supabase
-        .from("leads")
-        .select("id")
-        .eq("list_id", campaign.list_id)
-        .in("status", LEAD_ELIGIBLE_STATUSES as unknown as string[]);
-      if (leadErr) throw new Error(leadErr.message);
-      eligibleLeadIds = ((leadRows ?? []) as Array<{ id: string }>)
-        .map((l) => l.id)
-        .filter((id) => !queuedLeadIds.has(id));
+      const leadRows = await fetchAllRows<{ id: string }>(() =>
+        supabase
+          .from("leads")
+          .select("id")
+          .eq("list_id", campaign.list_id)
+          .in("status", LEAD_ELIGIBLE_STATUSES as unknown as string[]),
+      );
+      eligibleLeadIds = leadRows.map((l) => l.id).filter((id) => !queuedLeadIds.has(id));
 
       if (eligibleLeadIds.length === 0 && alreadyQueued === 0) {
         issues.push({
@@ -153,14 +152,14 @@ export async function evaluateLaunchReadiness(
     if (aiUsed && aiConfig.fallbackMode === "hold") {
       const audienceIds = [...new Set([...queuedLeadIds, ...eligibleLeadIds])];
       if (audienceIds.length) {
-        const { data: aiRows } = await supabase
-          .from("ai_personalizations")
-          .select("lead_id, status")
-          .eq("campaign_id", campaignId)
-          .eq("status", "completed");
-        const done = new Set(
-          ((aiRows ?? []) as Array<{ lead_id: string }>).map((row) => row.lead_id),
+        const aiRows = await fetchAllRows<{ lead_id: string }>(() =>
+          supabase
+            .from("ai_personalizations")
+            .select("lead_id, status")
+            .eq("campaign_id", campaignId)
+            .eq("status", "completed"),
         );
+        const done = new Set(aiRows.map((row) => row.lead_id));
         const missing = audienceIds.filter((id) => !done.has(id)).length;
         if (missing > 0) {
           issues.push({
