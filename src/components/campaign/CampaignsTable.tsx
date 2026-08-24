@@ -47,7 +47,7 @@ import {
 } from "@/lib/campaign-overview";
 import { DailyLimitPopover } from "@/components/campaign/DailyLimitPopover";
 
-type SortKey = "name" | "leads" | "sent" | "replyRate" | "positiveReplies" | "meetings" | "status";
+type SortKey = "name" | "leads" | "sent" | "status";
 
 const PAGE_SIZE = 10;
 
@@ -230,8 +230,8 @@ export function CampaignsTable({
         </div>
       ) : null}
 
-      <div className="surface-card overflow-x-auto">
-        <Table className="min-w-[1160px]">
+<div className="surface-card overflow-x-auto">
+        <Table className="min-w-[1040px]">
           <TableHeader>
             <TableRow>
               {onBulkAction ? (
@@ -243,34 +243,23 @@ export function CampaignsTable({
                   />
                 </TableHead>
               ) : null}
-              <TableHead className="w-[22%]">
+              <TableHead className="w-[24%]">
                 <SortButton label="Campaign" sortKey="name" active={sortKey === "name"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead>Sending Account</TableHead>
-              <TableHead className="text-right">
+              <TableHead className="w-[18%]">Sending Account</TableHead>
+              <TableHead className="w-[9%] text-right">
                 <SortButton label="Leads" sortKey="leads" active={sortKey === "leads"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="text-right">Daily sending limit</TableHead>
-              <TableHead className="text-right">Sent today</TableHead>
-              <TableHead className="text-right">Remaining</TableHead>
-              <TableHead className="text-right">
+              <TableHead className="w-[11%] text-right">Daily Limit</TableHead>
+              <TableHead className="w-[9%] text-right">Sent Today</TableHead>
+              <TableHead className="w-[9%] text-right">Remaining</TableHead>
+              <TableHead className="w-[9%] text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
               </TableHead>
-
-              <TableHead className="text-right">
-                <SortButton label="Reply Rate" sortKey="replyRate" active={sortKey === "replyRate"} dir={dir} onSort={onSort} />
-              </TableHead>
-              <TableHead className="text-right">
-                <SortButton label="Positive Replies" sortKey="positiveReplies" active={sortKey === "positiveReplies"} dir={dir} onSort={onSort} />
-              </TableHead>
-              <TableHead className="text-right">
-                <SortButton label="Meetings Booked" sortKey="meetings" active={sortKey === "meetings"} dir={dir} onSort={onSort} />
-              </TableHead>
-              <TableHead>
+              <TableHead className="w-[8%]">
                 <SortButton label="Status" sortKey="status" active={sortKey === "status"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="text-center">Daily Limit</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-[12%] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -288,7 +277,7 @@ export function CampaignsTable({
                       />
                     </TableCell>
                   ) : null}
-                  <TableCell className="max-w-0">
+                  <TableCell className="w-[24%] max-w-[24%]">
                     <Link
                       to="/campaigns/$campaignId"
                       params={{ campaignId: row.id }}
@@ -318,7 +307,7 @@ export function CampaignsTable({
                       <span className="text-sm text-muted-foreground">No mailbox</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+<TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
                   </TableCell>
@@ -327,10 +316,6 @@ export function CampaignsTable({
                     {numberFmt.format(Math.max(0, row.leads - row.sent))}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
-
-                  <TableCell className="text-right tabular-nums">{row.replyRate.toFixed(1)}%</TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.positiveReplies)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.meetings)}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${CAMPAIGN_STATUS_STYLES[row.displayStatus]}`}
@@ -338,12 +323,7 @@ export function CampaignsTable({
                       {row.displayStatus}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <DailyLimitPopover row={row} />
-                    </div>
-                  </TableCell>
-                  <TableCell>
+<TableCell>
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="outline" size="icon" asChild title="Analytics">
                         <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
@@ -401,7 +381,7 @@ export function CampaignsTable({
             })}
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={onBulkAction ? 11 : 10} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={onBulkAction ? 10 : 9} className="py-10 text-center text-sm text-muted-foreground">
                   No campaigns match this search.
                 </TableCell>
               </TableRow>
