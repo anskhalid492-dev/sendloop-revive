@@ -165,6 +165,11 @@ export const getCampaign = createServerFn({ method: "GET" })
           "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
         )
         .eq("campaign_id", data.id),
+      // Exact recipient total, immune to the 1,000-row read cap.
+      context.supabase
+        .from("campaign_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", data.id),
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
