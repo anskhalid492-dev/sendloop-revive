@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { LEAD_FIELDS, type LeadRow } from "@/lib/lead-model";
+import {
+  LEAD_FIELDS,
+  MAX_WEBSITE_LENGTH,
+  validateWebsite,
+  type LeadRow,
+} from "@/lib/lead-model";
 
 export { LEAD_FIELDS };
 export type { LeadRow };
