@@ -68,13 +68,24 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
       return;
     }
 
-    const [{ data: profiles }, { data: prefs }] = await Promise.all([
+    const [{ data: profiles }, prefsResult] = await Promise.all([
       admin.from("profiles").select("id, email, first_name").in("id", userIds),
       admin
         .from("notification_preferences")
         .select("user_id, email_enabled, positive_reply_notifications")
         .in("user_id", userIds),
     ]);
+
+    // The dedicated preference column may not exist yet on this database; fall
+    // back to the channel preference so the toggle degrades to "on" safely.
+    let prefs = prefsResult.data as unknown;
+    if (prefsResult.error) {
+      const retry = await admin
+        .from("notification_preferences")
+        .select("user_id, email_enabled")
+        .in("user_id", userIds);
+      prefs = retry.data;
+    }
 
     const prefByUser = new Map(
       ((prefs ?? []) as Array<{
