@@ -91,7 +91,9 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
   const previewFn = useServerFn(previewAiPersonalization);
   const queueFn = useServerFn(queueAiPersonalization);
   const retryFn = useServerFn(retryFailedAiPersonalizations);
+  const cancelFn = useServerFn(cancelAiPersonalization);
   const updateFn = useServerFn(updateAiPersonalization);
+
 
   const settingsQuery = useQuery({
     queryKey: ["campaign-ai-settings", campaignId],
