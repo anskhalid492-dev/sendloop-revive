@@ -33,7 +33,12 @@ export const saveWorkspaceAiKeyFn = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     workspaceInput
       .extend({
-        apiKey: z.string().min(20).max(300),
+        // Customer-facing message: never leak raw validator text.
+        apiKey: z
+          .string()
+          .trim()
+          .min(20, "Invalid OpenAI API key. Please check your key and try again.")
+          .max(500, "Invalid OpenAI API key. Please check your key and try again."),
         model: z.string().min(2).max(60),
       })
       .parse(input),
