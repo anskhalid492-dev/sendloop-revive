@@ -174,7 +174,7 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
         result.ok ? { ok: true, text: result.content } : { ok: false, text: result.message },
       );
     },
-    onError: (error: Error) => setPreview({ ok: false, text: error.message }),
+    onError: (error: Error) => setPreview({ ok: false, text: friendlyError(error) }),
   });
 
   const generate = useMutation({
@@ -189,8 +189,23 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-stats", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-ai-rows", campaignId] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
   });
+
+  const cancel = useMutation({
+    mutationFn: () => cancelFn({ data: { campaignId } }),
+    onSuccess: async (result) => {
+      toast.success(
+        result.cancelled
+          ? `Stopped generation for ${result.cancelled} pending lead${result.cancelled === 1 ? "" : "s"}`
+          : "Nothing left to stop",
+      );
+      await queryClient.invalidateQueries({ queryKey: ["campaign-ai-stats", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-ai-rows", campaignId] });
+    },
+    onError: (error: Error) => toast.error(friendlyError(error)),
+  });
+
 
   const retry = useMutation({
     mutationFn: () => retryFn({ data: { campaignId } }),
