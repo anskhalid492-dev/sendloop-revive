@@ -42,6 +42,7 @@ import {
   type PersonalizationTone,
 } from "@/lib/ai-personalization-model";
 import {
+  cancelAiPersonalization,
   getAiPersonalizationStats,
   getAiSettings,
   listAiPersonalizations,
@@ -51,6 +52,7 @@ import {
   saveAiSettings,
   updateAiPersonalization,
 } from "@/lib/ai-personalization.functions";
+
 import { cn } from "@/lib/utils";
 import { useActiveWorkspaceId } from "@/hooks/useWorkspace";
 import { AiKeyCard } from "./AiKeyCard";
