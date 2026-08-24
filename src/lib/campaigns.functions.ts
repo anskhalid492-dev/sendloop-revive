@@ -44,19 +44,24 @@ export const listCampaigns = createServerFn({ method: "GET" })
     );
     if (campaigns.length === 0) return [] as Array<Campaign & { recipients: number; sent: number }>;
 
-    let recipientQuery = context.supabase.from("campaign_recipients").select("campaign_id, status");
-    if (data?.workspaceId) recipientQuery = recipientQuery.eq("workspace_id", data.workspaceId);
-    const { data: recipients, error: rErr } = await recipientQuery;
-    if (rErr) throw new Error(rErr.message);
-
-    return campaigns.map((c) => {
-      const rows = (recipients ?? []).filter((r) => r.campaign_id === c.id);
-      return {
-        ...c,
-        recipients: rows.length,
-        sent: rows.filter((r) => r.status !== "pending").length,
-      };
-    });
+    // Exact server-side counts per campaign. Reading every recipient row and
+    // counting in JS silently capped at PostgREST's 1,000-row ceiling, so
+    // campaigns with a larger audience under-reported their totals.
+    const counted = await Promise.all(
+      campaigns.map(async (c) => {
+        const base = () =>
+          context.supabase
+            .from("campaign_recipients")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", c.id);
+        const [totalRes, pendingRes] = await Promise.all([base(), base().eq("status", "pending")]);
+        if (totalRes.error) throw new Error(totalRes.error.message);
+        if (pendingRes.error) throw new Error(pendingRes.error.message);
+        const total = Number(totalRes.count ?? 0);
+        return { ...c, recipients: total, sent: total - Number(pendingRes.count ?? 0) };
+      }),
+    );
+    return counted;
   });
 
 export const listCampaignsOverview = createServerFn({ method: "GET" })
