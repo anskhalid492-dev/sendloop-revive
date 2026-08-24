@@ -181,11 +181,26 @@ export const getLeadPersonalization = createServerFn({ method: "GET" })
   });
 
 
+/** PostgREST filters travel in the URL — 1,000 UUIDs blow past the gateway
+ *  header limit and come back as a bare HTTP 400. Keep every `in(...)` small. */
+const ID_CHUNK = 120;
+/** Row pages for reads that can exceed PostgREST's default 1,000-row cap. */
+const PAGE_SIZE = 1000;
+/** Insert batches, so a large queue never becomes one giant request body. */
+const INSERT_CHUNK = 400;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 /**
  * Queue personalization for a campaign's recipients.
  *
- * Work is queued in the database and processed by the background worker in
- * bounded batches — never one request per lead from the browser.
+ * The browser starts ONE job: this function only writes queue rows (in bounded
+ * batches) and the background worker generates in small batches of its own, so
+ * no request — ours or OpenAI's — ever carries 1,000 leads at once.
  */
 export const queueAiPersonalization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -208,45 +223,79 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
     if (!campaign) throw new Error("Campaign not found.");
+    const workspaceId = campaign.workspace_id as string;
 
     const { requireEntitlement } = await import("@/lib/billing/usage.server");
-    await requireEntitlement(campaign.workspace_id as string, "ai_personalization");
+    await requireEntitlement(workspaceId, "ai_personalization");
+
+    // Generation runs on the workspace's own key — fail early with a clear
+    // message instead of queueing work that every item would fail on.
+    const { workspaceAiKeyInfo } = await import("@/lib/ai-keys.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const keyInfo = await workspaceAiKeyInfo(supabaseAdmin, workspaceId);
+    if (!keyInfo.connected) {
+      throw new Error("Connect your OpenAI account before generating personalization.");
+    }
+    if (keyInfo.status !== "verified") {
+      throw new Error("Your OpenAI connection needs attention. Please reconnect your API key.");
+    }
 
     const { config } = await campaignAiSettings(context.supabase, data.campaignId);
     const fingerprint = promptFingerprint(config);
 
-    // Only leads that are actually recipients of this campaign, in this workspace.
-    let recipientQuery = context.supabase
-      .from("campaign_recipients")
-      .select("lead_id")
-      .eq("campaign_id", data.campaignId)
-      .eq("workspace_id", campaign.workspace_id);
-    if (data.leadIds?.length) recipientQuery = recipientQuery.in("lead_id", data.leadIds);
-    const { data: recipients, error: rErr } = await recipientQuery;
-    if (rErr) throw new Error(rErr.message);
+    // Only leads that are actually recipients of this campaign, in this
+    // workspace. Paged, because a campaign can hold far more than 1,000 rows.
+    const leadIdSet = new Set<string>();
+    if (data.leadIds?.length) {
+      for (const ids of chunk(data.leadIds, ID_CHUNK)) {
+        const { data: rows, error } = await context.supabase
+          .from("campaign_recipients")
+          .select("lead_id")
+          .eq("campaign_id", data.campaignId)
+          .eq("workspace_id", workspaceId)
+          .in("lead_id", ids);
+        if (error) throw new Error(error.message);
+        for (const row of (rows ?? []) as Array<{ lead_id: string }>) leadIdSet.add(row.lead_id);
+      }
+    } else {
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data: rows, error } = await context.supabase
+          .from("campaign_recipients")
+          .select("lead_id")
+          .eq("campaign_id", data.campaignId)
+          .eq("workspace_id", workspaceId)
+          .order("lead_id", { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw new Error(error.message);
+        const page = (rows ?? []) as Array<{ lead_id: string }>;
+        for (const row of page) leadIdSet.add(row.lead_id);
+        if (page.length < PAGE_SIZE) break;
+      }
+    }
 
-    const leadIds = [
-      ...new Set(((recipients ?? []) as Array<{ lead_id: string }>).map((r) => r.lead_id)),
-    ];
+    const leadIds = [...leadIdSet];
     if (!leadIds.length) return { queued: 0, reused: 0, total: 0 };
 
-    const { data: existing, error: eErr } = await context.supabase
-      .from("ai_personalizations")
-      .select("id, lead_id, status, prompt_hash")
-      .eq("campaign_id", data.campaignId)
-      .in("lead_id", leadIds);
-    if (eErr) throw new Error(eErr.message);
-
-    const existingByLead = new Map(
-      (
-        (existing ?? []) as Array<{
-          id: string;
-          lead_id: string;
-          status: string;
-          prompt_hash: string | null;
-        }>
-      ).map((row) => [row.lead_id, row] as const),
-    );
+    const existingByLead = new Map<
+      string,
+      { id: string; lead_id: string; status: string; prompt_hash: string | null }
+    >();
+    for (const ids of chunk(leadIds, ID_CHUNK)) {
+      const { data: existing, error } = await context.supabase
+        .from("ai_personalizations")
+        .select("id, lead_id, status, prompt_hash")
+        .eq("campaign_id", data.campaignId)
+        .in("lead_id", ids);
+      if (error) throw new Error(error.message);
+      for (const row of (existing ?? []) as Array<{
+        id: string;
+        lead_id: string;
+        status: string;
+        prompt_hash: string | null;
+      }>) {
+        existingByLead.set(row.lead_id, row);
+      }
+    }
 
     const toInsert: Array<{
       workspace_id: string;
@@ -263,7 +312,7 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
       const row = existingByLead.get(leadId);
       if (!row) {
         toInsert.push({
-          workspace_id: campaign.workspace_id,
+          workspace_id: workspaceId,
           campaign_id: data.campaignId,
           lead_id: leadId,
           status: "queued" as const,
@@ -283,11 +332,11 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
       toRequeue.push(row.id);
     }
 
-    if (toInsert.length) {
-      const { error } = await context.supabase.from("ai_personalizations").insert(toInsert);
+    for (const batch of chunk(toInsert, INSERT_CHUNK)) {
+      const { error } = await context.supabase.from("ai_personalizations").insert(batch);
       if (error) throw new Error(error.message);
     }
-    if (toRequeue.length) {
+    for (const ids of chunk(toRequeue, ID_CHUNK)) {
       const { error } = await context.supabase
         .from("ai_personalizations")
         .update({
@@ -301,12 +350,28 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
           prompt_hash: fingerprint,
           instructions: config.instructions,
         })
-        .in("id", toRequeue);
+        .in("id", ids);
       if (error) throw new Error(error.message);
     }
 
     return { queued: toInsert.length + toRequeue.length, reused, total: leadIds.length };
   });
+
+/** Stop an in-flight run: drops queued work, keeps everything already generated. */
+export const cancelAiPersonalization = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => campaignInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("ai_personalizations")
+      .delete()
+      .eq("campaign_id", data.campaignId)
+      .in("status", ["queued", "processing"])
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { cancelled: (rows ?? []).length };
+  });
+
 
 export const getAiPersonalizationStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
