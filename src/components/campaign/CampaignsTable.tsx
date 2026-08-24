@@ -307,7 +307,7 @@ export function CampaignsTable({
                       <span className="text-sm text-muted-foreground">No mailbox</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
+<TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
                   </TableCell>
@@ -316,10 +316,6 @@ export function CampaignsTable({
                     {numberFmt.format(Math.max(0, row.leads - row.sent))}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
-
-                  <TableCell className="text-right tabular-nums">{row.replyRate.toFixed(1)}%</TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.positiveReplies)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.meetings)}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${CAMPAIGN_STATUS_STYLES[row.displayStatus]}`}
@@ -327,13 +323,7 @@ export function CampaignsTable({
                       {row.displayStatus}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <DailyLimitPopover row={row} />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
+<TableCell>
                       <Button variant="outline" size="icon" asChild title="Analytics">
                         <Link to="/campaigns/$campaignId" params={{ campaignId: row.id }}>
                           <BarChart3 className="size-4" />
