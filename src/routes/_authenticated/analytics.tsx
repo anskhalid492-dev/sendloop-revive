@@ -192,6 +192,12 @@ function AnalyticsPage() {
           delta: deltaRate(unsubRate(current), previous ? unsubRate(previous) : 0, true),
           sub: `${formatCount(current.unsubscribed)} unsubscribed`,
         },
+        {
+          label: "Failed sends",
+          value: formatCount(current.failed),
+          delta: deltaCount(current.failed, previous?.failed ?? 0),
+          sub: `${formatCount(current.complained)} complaints`,
+        },
       ]
     : [];
 
@@ -379,7 +385,9 @@ function AnalyticsPage() {
                     <th className="py-2 pr-3">Open</th>
                     <th className="py-2 pr-3">Click</th>
                     <th className="py-2 pr-3">Reply</th>
+                    <th className="py-2 pr-3">Positive</th>
                     <th className="py-2 pr-3">Bounce</th>
+                    <th className="py-2 pr-3">Failed</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -398,7 +406,9 @@ function AnalyticsPage() {
                       <td className="py-2 pr-3">{formatOpenRate(row)}</td>
                       <td className="py-2 pr-3">{formatPct(clickRate(row))}</td>
                       <td className="py-2 pr-3">{formatPct(replyRate(row))}</td>
+                      <td className="py-2 pr-3">{formatCount(row.positiveReplies)}</td>
                       <td className="py-2 pr-3">{formatPct(bounceRate(row))}</td>
+                      <td className="py-2 pr-3">{formatCount(row.failed)}</td>
                     </tr>
                   ))}
                 </tbody>

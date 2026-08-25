@@ -58,11 +58,14 @@ export function CampaignDetailDialog({
               ],
               ["Unique clicks", `${formatCount(row.clicks)} · ${formatPct(clickRate(row))}`],
               ["Replies", `${formatCount(row.replies)} · ${formatPct(replyRate(row))}`],
+              ["Positive replies", formatCount(row.positiveReplies)],
               ["Bounced", `${formatCount(row.bounced)} · ${formatPct(bounceRate(row))}`],
               [
                 "Unsubscribed",
                 `${formatCount(row.unsubscribed)} · ${formatPct(unsubRate(row))}`,
               ],
+              ["Complaints", formatCount(row.complained)],
+              ["Failed", formatCount(row.failed)],
               ["Status", row.status],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-border/60 p-3">

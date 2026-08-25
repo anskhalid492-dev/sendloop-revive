@@ -147,8 +147,11 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
       opens: Number(r["opens"] ?? 0),
       clicks: Number(r["clicks"] ?? 0),
       replies: Number(r["replies"] ?? 0),
+      positiveReplies: Number(r["positive_replies"] ?? 0),
       bounced: Number(r["bounced"] ?? 0),
       unsubscribed: Number(r["unsubscribed"] ?? 0),
+      complained: Number(r["complained"] ?? 0),
+      failed: Number(r["failed"] ?? 0),
     })) as AnalyticsCampaignRow[];
   });
 

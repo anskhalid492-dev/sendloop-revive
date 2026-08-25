@@ -34,8 +34,11 @@ export type AnalyticsCampaignRow = {
   opens: number;
   clicks: number;
   replies: number;
+  positiveReplies: number;
   bounced: number;
   unsubscribed: number;
+  complained: number;
+  failed: number;
 };
 
 export type AnalyticsAccountRow = {
