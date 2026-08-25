@@ -520,15 +520,19 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
   if (!campaignRow) return result;
+  if (!options.force && !["active", "scheduled"].includes(campaignRow.status)) return result;
 
   const startAt = campaignRow.start_at ? new Date(campaignRow.start_at) : null;
   if (!options.force && startAt && !Number.isNaN(startAt.getTime()) && startAt.getTime() > now.getTime()) {
     return result;
+  }
+  if (!options.force && campaignRow.status === "scheduled") {
+    await supabase.from("campaigns").update({ status: "active" }).eq("id", options.campaignId).eq("status", "scheduled");
   }
 
   const endAt = campaignRow.end_at ? new Date(campaignRow.end_at) : null;
