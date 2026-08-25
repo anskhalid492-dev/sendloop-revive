@@ -8,6 +8,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   classifyEvent,
+  type EventKind,
   externalIdOf,
   extractEmail,
   inboundPayloadSchema,
@@ -72,7 +73,7 @@ async function recordEvent(args: {
       // Idempotency hit: count the redelivery on the original row.
       const { data: original } = await supabaseAdmin
         .from("email_events")
-        .select("id, duplicate_count")
+        .select("id, duplicate_count, attempts, status, failure_code")
         .eq("external_id", args.externalId)
         .maybeSingle();
       if (original) {
@@ -81,12 +82,43 @@ async function recordEvent(args: {
           .update({ duplicate_count: (original.duplicate_count ?? 0) + 1 })
           .eq("id", original.id);
       }
-      return { duplicate: true as const, id: original?.id ?? null };
+      return {
+        duplicate: true as const,
+        id: original?.id ?? null,
+        status: original?.status ?? null,
+        failureCode: original?.failure_code ?? null,
+        attempts: original?.attempts ?? 0,
+      };
     }
-    if (error.code === "23505") return { duplicate: true as const, id: null };
+    if (error.code === "23505") {
+      return { duplicate: true as const, id: null, status: null, failureCode: null, attempts: 0 };
+    }
     throw new Error(error.message);
   }
-  return { duplicate: false as const, id: data.id };
+  return { duplicate: false as const, id: data.id, status: null, failureCode: null, attempts: 0 };
+}
+
+function shouldRetryDuplicate(recorded: Awaited<ReturnType<typeof recordEvent>>, kind: EventKind): boolean {
+  if (!recorded.duplicate || !recorded.id) return false;
+  if (recorded.status !== "failed") return false;
+  if (
+    kind !== "sent" &&
+    kind !== "delivered" &&
+    kind !== "opened" &&
+    kind !== "clicked" &&
+    kind !== "delayed" &&
+    kind !== "failed" &&
+    kind !== "rejected" &&
+    kind !== "bounced" &&
+    kind !== "complained" &&
+    kind !== "unsubscribed"
+  ) {
+    return false;
+  }
+  return (
+    recorded.failureCode === "provider_message_id_not_found" ||
+    recorded.failureCode === "campaign_message_not_found"
+  );
 }
 
 
@@ -258,6 +290,24 @@ export async function processEventPayload(
       // belongs to. Sender address, mailbox, provider and timing are never
       // used to classify traffic.
       let messageType = await classifyProviderMessage(delivery.providerMessageId);
+      if (!messageType && delivery.providerMessageId) {
+        const { providerMessageIdCandidates, providerMessageIdInFilter } = await import("@/lib/provider-message-id");
+        const ids = providerMessageIdCandidates(delivery.providerMessageId);
+        if (ids.length) {
+          const list = providerMessageIdInFilter(ids);
+          const [{ data: transactional }, { data: manualReply }] = await Promise.all([
+            supabaseAdmin.from("transactional_emails").select("id").or(`provider_message_id.in.${list}`).maybeSingle(),
+            supabaseAdmin
+              .from("conversation_messages")
+              .select("id")
+              .eq("direction", "outbound")
+              .or(`provider_message_id.in.${list},message_id.in.${list}`)
+              .maybeSingle(),
+          ]);
+          if (transactional) messageType = "transactional";
+          else if (manualReply) messageType = "manual_reply";
+        }
+      }
       if (!messageType && !delivery.providerMessageId) {
         // Legacy providers that omit the id: address-based fallback is allowed
         // only for traffic that is definitely not part of the warmup network.
@@ -468,7 +518,31 @@ export async function handleWebhookDelivery(
     signatureDetail: meta?.signatureDetail ?? null,
     routingToken: toEmail ? tokenFromAddress(toEmail) : null,
   });
-  if (recorded.duplicate) return { status: "duplicate", ...(recorded.id ? { eventId: recorded.id } : {}) };
+  if (recorded.duplicate) {
+    const duplicateEventId = recorded.id;
+    if (duplicateEventId && shouldRetryDuplicate(recorded, kind)) {
+      await supabaseAdmin
+        .from("email_events")
+        .update({
+          status: "retrying",
+          attempts: recorded.attempts + 1,
+          error: null,
+          failure_code: null,
+          last_retry_at: new Date().toISOString(),
+        })
+        .eq("id", duplicateEventId);
+      const result = await processEventPayload(duplicateEventId, kind, raw);
+      await recordEventAction({
+        eventId: duplicateEventId,
+        actor: null,
+        action: "auto_retry",
+        previousStatus: recorded.status ?? null,
+        result,
+      });
+      return result;
+    }
+    return { status: "duplicate", ...(recorded.id ? { eventId: recorded.id } : {}) };
+  }
 
   return processEventPayload(recorded.id, kind, raw);
 }
