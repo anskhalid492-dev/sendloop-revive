@@ -11,7 +11,6 @@
  *   webhook retries and the reconciliation runner cannot double-count.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { providerMessageIdCandidates, providerMessageIdInFilter } from "@/lib/provider-message-id";
 
 export type DeliveryState =
   | "queued"
@@ -132,32 +131,11 @@ export async function findCampaignMessageForEvent(
   | null
 > {
   if (!providerMessageId && !email) return null;
-  const columns =
-    "id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, to_email";
-
-  const ids = providerMessageIdCandidates(providerMessageId);
-  if (ids.length) {
-    const list = providerMessageIdInFilter(ids);
-    const { data } = await supabaseAdmin
-      .from("campaign_messages")
-      .select(columns)
-      .eq("message_type", "campaign")
-      .or(`provider_message_id.in.${list}`)
-      .limit(1);
-    if (data?.[0]) return data[0] as never;
-    return null;
-  }
-
-  if (email) {
-    const { data } = await supabaseAdmin
-      .from("campaign_messages")
-      .select(columns)
-      .eq("message_type", "campaign")
-      .eq("to_email", email.toLowerCase())
-      .not("sent_at", "is", null)
-      .order("sent_at", { ascending: false })
-      .limit(1);
-    if (data?.[0]) return data[0] as never;
-  }
-  return null;
+  const { findOutboundMessageByProviderMessageId } = await import("@/lib/outbound-message-resolver.server");
+  const resolved = await findOutboundMessageByProviderMessageId({
+    providerMessageId,
+    email,
+    requireType: "campaign",
+  });
+  return (resolved?.row as never) ?? null;
 }

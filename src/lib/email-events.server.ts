@@ -292,12 +292,17 @@ export async function processEventPayload(
         messageType === "manual_reply"
       ) {
         if (messageType === "manual_reply" && delivery.providerMessageId) {
+          const { providerMessageIdCandidates, providerMessageIdInFilter } = await import("@/lib/provider-message-id");
+          const ids = providerMessageIdCandidates(delivery.providerMessageId);
           const status =
             kind === "delivered" ? "delivered" : kind === "bounced" || kind === "failed" ? "bounced" : "sent";
-          await supabaseAdmin
-            .from("conversation_messages")
-            .update({ delivery_status: status, delivery_detail: delivery.reason })
-            .eq("provider_message_id", delivery.providerMessageId);
+          if (ids.length) {
+            const list = providerMessageIdInFilter(ids);
+            await supabaseAdmin
+              .from("conversation_messages")
+              .update({ delivery_status: status, delivery_detail: delivery.reason })
+              .or(`provider_message_id.in.${list},message_id.in.${list}`);
+          }
         }
         await finish(eventId, { status: "processed", error: null, message_type: messageType });
         return { status: "applied", eventId };
@@ -309,12 +314,12 @@ export async function processEventPayload(
           ? "Provider message ID not found in outbound registry or send tables"
           : "Provider payload did not include a message ID";
         await finish(eventId, {
-          status: "ignored",
+          status: "failed",
           error: reason,
           failure_code: delivery.providerMessageId ? "provider_message_id_not_found" : "provider_message_id_missing",
           message_type: null,
         });
-        return { status: "ignored", eventId };
+        return { status: "unmatched", eventId };
       }
 
       // -------------------------------------------------------- campaign

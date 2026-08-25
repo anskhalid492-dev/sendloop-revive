@@ -39,7 +39,7 @@ describe("test send pipeline uses the production sending flow", () => {
 
   it("logs every test send so provider acceptance can be audited", () => {
     expect(testSend).toContain("campaign_test_sends");
-    expect(testSend).toContain("X-Sendloop-Test-Request-ID");
+    expect(testSend).toContain("X-MunchReach-Test-Request-ID");
     expect(managed).toContain("[managed-send]");
   });
 });
@@ -180,7 +180,7 @@ describe("unresolved variable report", () => {
     );
     const byToken = Object.fromEntries(report.map((r) => [r.token, r]));
     expect(byToken["first_name"]!.source).toBe("lead");
-    expect(byToken["company"]!.source).toBe("unresolved");
+    expect(byToken["company"]!.source).toBe("missing");
     expect(byToken["industry"]!.source).toBe("fallback");
     expect(byToken["first_name"]!.where).toEqual(["subject"]);
   });
