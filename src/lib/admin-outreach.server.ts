@@ -257,7 +257,7 @@ export async function getAdminCampaign(campaignId: string) {
       fetchAllRows<any>(() =>
         db()
           .from("email_engagement_events")
-          .select("event_type, message_id, recipient_email")
+          .select("id, event_type, message_id, recipient_email")
           .eq("campaign_id", campaignId),
       ),
       exactCount(() =>
@@ -315,7 +315,7 @@ export async function getAdminCampaign(campaignId: string) {
   const clickKeys = new Set<string>();
   const bounceKeys = new Set<string>();
   for (const e of engRows) {
-    const key = String(e.message_id ?? e.recipient_email ?? Math.random());
+    const key = String(e.message_id ?? e.recipient_email ?? e.id);
     if (e.event_type === "open" || e.event_type === "opened") openKeys.add(key);
     if (e.event_type === "click" || e.event_type === "clicked") clickKeys.add(key);
     if (e.event_type === "bounce" || e.event_type === "bounced") bounceKeys.add(key);

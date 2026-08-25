@@ -33,6 +33,18 @@ export type DeliveryOutcome = {
 
 type Kind = "sent" | "delivered" | "bounced" | "complained" | "unsubscribed" | "delayed" | "failed";
 
+type CampaignMessageRow = {
+  id: string;
+  status: string | null;
+  delivery_status: string | null;
+  workspace_id: string | null;
+  campaign_id: string | null;
+  lead_id: string | null;
+  recipient_id: string | null;
+  sending_account_id: string | null;
+  to_email: string | null;
+};
+
 export async function applyDeliveryEvent(args: {
   kind: Kind;
   email: string | null;
@@ -54,7 +66,7 @@ export async function applyDeliveryEvent(args: {
 
   const columns = "id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, to_email";
   const ids = idCandidates(args.providerMessageId);
-  let rows: unknown[] | null = null;
+  let rows: CampaignMessageRow[] | null = null;
   if (ids.length) {
     const list = inList(ids);
     const { data } = await db
@@ -64,7 +76,7 @@ export async function applyDeliveryEvent(args: {
       .or(`provider_message_id.in.${list},message_id.in.${list}`)
       .order("sent_at", { ascending: false })
       .limit(1);
-    rows = data ?? null;
+    rows = (data ?? null) as CampaignMessageRow[] | null;
   } else if (email) {
     const { data } = await db
       .from("campaign_messages")
@@ -73,7 +85,7 @@ export async function applyDeliveryEvent(args: {
       .eq("to_email", email)
       .order("sent_at", { ascending: false })
       .limit(1);
-    rows = data ?? null;
+    rows = (data ?? null) as CampaignMessageRow[] | null;
   }
   const message = rows?.[0] ?? null;
   const workspaceId = message?.workspace_id ?? null;
