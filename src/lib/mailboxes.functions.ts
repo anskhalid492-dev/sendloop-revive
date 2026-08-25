@@ -275,7 +275,13 @@ export const updateMailbox = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("You do not have permission to change this mailbox.");
 
-    return { ok: true };
+    return {
+      ok: true,
+      dailyLimit: Number(updated.daily_limit ?? 0),
+      sentToday: Number(updated.sent_today ?? 0),
+      remaining: Math.max(0, Number(updated.daily_limit ?? 0) - Number(updated.sent_today ?? 0)),
+    };
+
   });
 
 /** Enables or disables warmup for a mailbox the customer owns. */
