@@ -86,11 +86,36 @@ async function findCampaignMessage(
   const candidates = threadCandidates(email);
 
   if (candidates.length) {
+    let registryQuery = db
+      .from("outbound_messages")
+      .select("ref_id")
+      .eq("ref_table", "campaign_messages")
+      .not("ref_id", "is", null)
+      .in("provider_message_id", candidates)
+      .limit(20);
+    if (mailboxWorkspaceId) registryQuery = registryQuery.eq("workspace_id", mailboxWorkspaceId);
+    if (mailboxAccountId) registryQuery = registryQuery.eq("sending_account_id", mailboxAccountId);
+    const { data: registryRows } = await registryQuery;
+    const registryIds = Array.from(
+      new Set((registryRows ?? []).map((row: { ref_id: string | null }) => row.ref_id).filter(Boolean)),
+    ) as string[];
+    if (registryIds.length) {
+      let linkedQuery = db
+        .from("campaign_messages")
+        .select(CAMPAIGN_MESSAGE_COLUMNS)
+        .in("id", registryIds)
+        .limit(1);
+      if (mailboxWorkspaceId) linkedQuery = linkedQuery.eq("workspace_id", mailboxWorkspaceId);
+      if (mailboxAccountId) linkedQuery = linkedQuery.eq("sending_account_id", mailboxAccountId);
+      const { data: linkedByRegistry } = await linkedQuery;
+      if (linkedByRegistry?.[0]) return linkedByRegistry[0];
+    }
+
     const list = inList(candidates);
     let campaignQuery = db
       .from("campaign_messages")
       .select(CAMPAIGN_MESSAGE_COLUMNS)
-      .or(`provider_message_id.in.${list},message_id.in.${list}`)
+      .or(`provider_message_id.in.${list}`)
       .limit(1);
     if (mailboxWorkspaceId) campaignQuery = campaignQuery.eq("workspace_id", mailboxWorkspaceId);
     if (mailboxAccountId) campaignQuery = campaignQuery.eq("sending_account_id", mailboxAccountId);
@@ -175,6 +200,33 @@ async function findConversationByHeaders(
 ) {
   const candidates = threadCandidates(email);
   if (!candidates.length) return null;
+
+  let registryQuery = db
+    .from("outbound_messages")
+    .select("ref_id")
+    .eq("ref_table", "conversation_messages")
+    .not("ref_id", "is", null)
+    .in("provider_message_id", candidates)
+    .limit(20);
+  if (workspaceId) registryQuery = registryQuery.eq("workspace_id", workspaceId);
+  if (sendingAccountId) registryQuery = registryQuery.eq("sending_account_id", sendingAccountId);
+  const { data: registryRows } = await registryQuery;
+  const registryIds = Array.from(
+    new Set((registryRows ?? []).map((row: { ref_id: string | null }) => row.ref_id).filter(Boolean)),
+  ) as string[];
+  if (registryIds.length) {
+    let messageQuery = db
+      .from("conversation_messages")
+      .select("conversation_id")
+      .eq("workspace_id", workspaceId)
+      .in("id", registryIds)
+      .order("occurred_at", { ascending: false })
+      .limit(1);
+    if (sendingAccountId) messageQuery = messageQuery.eq("sending_account_id", sendingAccountId);
+    const { data: byRegistry } = await messageQuery;
+    const registryConversationId = byRegistry?.[0]?.conversation_id as string | undefined;
+    if (registryConversationId) return loadConversation(db, registryConversationId);
+  }
 
   const list = inList(candidates);
   let query = db
@@ -341,6 +393,11 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .eq("message_id", messageId)
       .maybeSingle();
     if (existing) {
+      const { data: existingConversation } = await db
+        .from("conversations")
+        .select("lead_id, campaign_id, sending_account_id")
+        .eq("id", existing.conversation_id)
+        .maybeSingle();
       const repair = await db
         .from("conversations")
         .update({ has_inbound: true, last_inbound_at: receivedIso, archived: false })
@@ -351,9 +408,9 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
         conversationId: existing.conversation_id,
         messageId: existing.id,
         workspaceId,
-        leadId: null,
-        campaignId: null,
-        sendingAccountId,
+        leadId: existingConversation?.lead_id ?? campaignMessage?.lead_id ?? null,
+        campaignId: existingConversation?.campaign_id ?? campaignMessage?.campaign_id ?? null,
+        sendingAccountId: existingConversation?.sending_account_id ?? sendingAccountId,
       };
     }
   }

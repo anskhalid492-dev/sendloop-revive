@@ -530,7 +530,7 @@ export async function dispatchDueMessages(
 ): Promise<DispatchResult> {
   
   const { recordOutboundCampaignMessage } = await import("./inbox.server");
-  const { mintReplyAddress } = await import("./inbound-routing.server");
+  const { mintRequiredReplyAddress } = await import("./inbound-routing.server");
   const { suppressedSet } = await import("./suppression.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -766,13 +766,21 @@ export async function dispatchDueMessages(
     // workspace, mailbox, lead and campaign they belong to. The base is always
     // the selected sender mailbox, so a reply to anus@... cannot be delivered
     // through another mailbox's saved reply-to address.
-    const replyTo = await mintReplyAddress(account.from_email, {
-      workspaceId: message.workspace_id,
-      sendingAccountId: account.id,
-      leadId: message.lead_id,
-      campaignId: message.campaign_id,
-      purpose: "campaign",
-    });
+    let replyTo: string;
+    try {
+      replyTo = await mintRequiredReplyAddress(account.from_email, {
+        workspaceId: message.workspace_id,
+        sendingAccountId: account.id,
+        leadId: message.lead_id,
+        campaignId: message.campaign_id,
+        purpose: "campaign",
+      });
+    } catch (error) {
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+      await fail(error instanceof Error ? error.message : "Reply routing is not ready for this mailbox.");
+      continue;
+    }
     const shouldSendHtml =
       !(campaignRow as { text_only?: boolean | null }).text_only &&
       (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||

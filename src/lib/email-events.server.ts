@@ -205,7 +205,13 @@ export async function processEventPayload(
       );
       const token = tokenFromAddress(toAddress);
       const route = token ? await resolveRouteFromAddress(toAddress) : null;
-      const tokenStatus = !token ? "none" : route ? "matched" : "invalid";
+      const tokenStatus = route
+        ? "matched"
+        : result.status === "unmatched"
+          ? token
+            ? "invalid"
+            : "none"
+          : "fallback_matched";
       const failureCode =
         result.status === "unmatched"
           ? (result.reason ?? "").toLowerCase().includes("workspace")
