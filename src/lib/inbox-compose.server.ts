@@ -151,6 +151,19 @@ export async function composeAndSend(input: ComposeInput) {
   if (convError || !conversation) {
     throw new Error("The email was sent but the thread could not be saved. Refresh to confirm.");
   }
+  try {
+    const { tokenFromAddress } = await import("@/lib/inbound-routing.server");
+    const token = replyTo ? tokenFromAddress(replyTo) : null;
+    if (token) {
+      await supabaseAdmin
+        .from("inbound_routes")
+        .update({ conversation_id: conversation.id })
+        .eq("token", token)
+        .is("conversation_id", null);
+    }
+  } catch {
+    /* Reply headers still thread this message if route backfill fails. */
+  }
 
   const { data: inserted, error: insertError } = await supabase
     .from("conversation_messages")
