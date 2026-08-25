@@ -323,7 +323,7 @@ export async function processEventPayload(
         error: outcome.reason ?? null,
         workspace_id: outcome.workspaceId ?? null,
         lead_id: outcome.leadId ?? null,
-          sending_account_id: outcome.sendingAccountId ?? null,
+        sending_account_id: outcome.sendingAccountId ?? null,
         message_type: "campaign",
       });
       return { status: outcome.status === "applied" ? "applied" : "unmatched", eventId };
