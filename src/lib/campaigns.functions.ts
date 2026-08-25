@@ -296,7 +296,10 @@ export const getCampaign = createServerFn({ method: "GET" })
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
         sentToday: (() => {
-          const dayStart = zonedStartOfDay(new Date(), String(campaign.timezone ?? "UTC"));
+          const dayStart = zonedStartOfDay(
+            new Date(),
+            String((campaign as unknown as Record<string, unknown>)["timezone"] ?? "UTC"),
+          );
           return sentMessages.filter((m) => {
             const at = m["sent_at"];
             return at ? new Date(at).getTime() >= dayStart.getTime() : false;
