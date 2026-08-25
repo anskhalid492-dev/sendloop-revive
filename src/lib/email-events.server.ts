@@ -171,9 +171,11 @@ export async function processEventPayload(
     }
 
     if (
+      kind === "sent" ||
       kind === "opened" ||
       kind === "clicked" ||
       kind === "delayed" ||
+      kind === "failed" ||
       kind === "rejected" ||
       kind === "delivered" ||
       kind === "bounced" ||
@@ -226,7 +228,7 @@ export async function processEventPayload(
       ) {
         if (messageType === "manual_reply" && delivery.providerMessageId) {
           const status =
-            kind === "delivered" ? "delivered" : kind === "bounced" ? "bounced" : "sent";
+            kind === "delivered" ? "delivered" : kind === "bounced" || kind === "failed" ? "bounced" : "sent";
           await supabaseAdmin
             .from("conversation_messages")
             .update({ delivery_status: status, delivery_detail: delivery.reason })
@@ -302,7 +304,7 @@ export async function processEventPayload(
         occurredAt: delivery.occurredAt,
       });
 
-      if (kind !== "delayed" && kind !== "rejected") {
+      if (kind !== "sent" && kind !== "delayed" && kind !== "failed" && kind !== "rejected") {
         // Analytics reads from the normalised engagement log.
         const { recordEngagement } = await import("@/lib/engagement.server");
         await recordEngagement({
@@ -321,6 +323,7 @@ export async function processEventPayload(
         error: outcome.reason ?? null,
         workspace_id: outcome.workspaceId ?? null,
         lead_id: outcome.leadId ?? null,
+          sending_account_id: outcome.sendingAccountId ?? null,
         message_type: "campaign",
       });
       return { status: outcome.status === "applied" ? "applied" : "unmatched", eventId };

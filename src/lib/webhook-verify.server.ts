@@ -25,6 +25,7 @@ export type VerificationResult = {
 };
 
 const REPLAY_WINDOW_SECONDS = 5 * 60;
+let cachedProviderSvixSecrets: { at: number; secrets: string[] } | null = null;
 
 function constantTimeEquals(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -103,6 +104,50 @@ async function verifySvix(
     : { status: "invalid", method: "svix", reason: "Svix signature does not match the payload." };
 }
 
+async function loadProviderSvixSecrets(requestUrl: string): Promise<string[]> {
+  const apiKey = process.env["RESEND_API_KEY"];
+  if (!apiKey) return [];
+
+  const now = Date.now();
+  if (cachedProviderSvixSecrets && now - cachedProviderSvixSecrets.at < 5 * 60_000) {
+    return cachedProviderSvixSecrets.secrets;
+  }
+
+  const request = new URL(requestUrl);
+  const listResponse = await fetch("https://api.resend.com/webhooks", {
+    headers: { authorization: `Bearer ${apiKey}` },
+  });
+  if (!listResponse.ok) return [];
+
+  const list = (await listResponse.json()) as { data?: Record<string, unknown>[] };
+  const hooks = (list.data ?? []).filter((hook) => {
+    if (hook["status"] !== "enabled") return false;
+    const endpoint = String(hook["endpoint"] ?? "");
+    try {
+      const url = new URL(endpoint);
+      return url.hostname === request.hostname && url.pathname === request.pathname;
+    } catch {
+      return false;
+    }
+  });
+
+  const secrets: string[] = [];
+  for (const hook of hooks) {
+    const id = String(hook["id"] ?? "");
+    if (!id) continue;
+    const detailResponse = await fetch(`https://api.resend.com/webhooks/${id}`, {
+      headers: { authorization: `Bearer ${apiKey}` },
+    });
+    if (!detailResponse.ok) continue;
+    const detail = (await detailResponse.json()) as Record<string, unknown>;
+    const secret = detail["signing_secret"];
+    if (typeof secret === "string" && secret.startsWith("whsec_")) secrets.push(secret);
+  }
+
+  cachedProviderSvixSecrets = { at: now, secrets: Array.from(new Set(secrets)) };
+  return cachedProviderSvixSecrets.secrets;
+}
+
 /**
  * Verifies a delivery. `body` must be the exact raw request body — any
  * re-serialisation changes the bytes and invalidates the signature.
@@ -118,13 +163,33 @@ export async function verifyInboundSignature(
   const hasSvixHeaders = Boolean(request.headers.get("svix-signature") ?? request.headers.get("webhook-signature"));
   if (hasSvixHeaders) {
     if (!svixSecret) {
-      return {
-        status: "failed",
-        method: "svix",
-        reason: "A signed delivery arrived but no provider signing secret is configured.",
-      };
+      const providerSecrets = await loadProviderSvixSecrets(request.url);
+      if (!providerSecrets.length) {
+        return {
+          status: "failed",
+          method: "svix",
+          reason: "A signed delivery arrived but no provider signing secret is configured.",
+        };
+      }
+      for (const secret of providerSecrets) {
+        const result = await verifySvix(request.headers, body, secret);
+        if (result.status === "valid") return result;
+      }
+      return { status: "invalid", method: "svix", reason: "Svix signature does not match the payload." };
     }
-    return verifySvix(request.headers, body, svixSecret);
+    const primary = await verifySvix(request.headers, body, svixSecret);
+    if (primary.status !== "invalid") return primary;
+
+    // Production webhooks can be rotated or recreated at the provider. If the
+    // stored secret drifts, verify strictly against the provider's active secret
+    // for this exact endpoint instead of accepting the event by payload or token.
+    const providerSecrets = await loadProviderSvixSecrets(request.url);
+    for (const secret of providerSecrets) {
+      if (secret === svixSecret) continue;
+      const result = await verifySvix(request.headers, body, secret);
+      if (result.status === "valid") return result;
+    }
+    return primary;
   }
 
   const provided =

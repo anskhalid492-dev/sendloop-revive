@@ -11,10 +11,11 @@ export type DeliveryOutcome = {
   status: "applied" | "unmatched";
   workspaceId?: string | null;
   leadId?: string | null;
+  sendingAccountId?: string | null;
   reason?: string;
 };
 
-type Kind = "delivered" | "bounced" | "complained" | "unsubscribed" | "delayed" | "failed";
+type Kind = "sent" | "delivered" | "bounced" | "complained" | "unsubscribed" | "delayed" | "failed";
 
 export async function applyDeliveryEvent(args: {
   kind: Kind;
@@ -64,8 +65,13 @@ export async function applyDeliveryEvent(args: {
   });
 
   // Soft delays and delivered receipts need no suppression or lead changes.
-  if (args.kind === "delivered" || args.kind === "delayed") {
-    return { status: "applied", workspaceId, leadId: message?.lead_id ?? null };
+  if (args.kind === "sent" || args.kind === "delivered" || args.kind === "delayed") {
+    return {
+      status: "applied",
+      workspaceId,
+      leadId: message?.lead_id ?? null,
+      sendingAccountId: message?.sending_account_id ?? null,
+    };
   }
 
   if (args.kind === "failed") {
@@ -76,7 +82,12 @@ export async function applyDeliveryEvent(args: {
         .eq("campaign_id", message.campaign_id)
         .eq("lead_id", message.lead_id);
     }
-    return { status: "applied", workspaceId, leadId: message?.lead_id ?? null };
+    return {
+      status: "applied",
+      workspaceId,
+      leadId: message?.lead_id ?? null,
+      sendingAccountId: message?.sending_account_id ?? null,
+    };
   }
 
   if (email) {
@@ -150,5 +161,5 @@ export async function applyDeliveryEvent(args: {
   }));
   if (rowsToInsert.length) await db.from("notifications").insert(rowsToInsert);
 
-  return { status: "applied", workspaceId, leadId };
+  return { status: "applied", workspaceId, leadId, sendingAccountId: message?.sending_account_id ?? null };
 }

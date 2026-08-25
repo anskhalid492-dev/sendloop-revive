@@ -83,6 +83,7 @@ export function headerOf(headers: unknown, name: string): string | null {
 
 export type EventKind =
   | "inbound"
+  | "sent"
   | "delivered"
   | "opened"
   | "clicked"
@@ -90,6 +91,7 @@ export type EventKind =
   | "complained"
   | "unsubscribed"
   | "delayed"
+  | "failed"
   | "rejected"
   | "unknown";
 
@@ -109,8 +111,10 @@ export function classifyEvent(input: Record<string, unknown>): EventKind {
       "",
   ).toLowerCase();
   if (!raw || raw.includes("received") || raw.includes("inbound")) return "inbound";
+  if (raw.includes("sent")) return "sent";
   if (raw.includes("delay") || raw.includes("defer")) return "delayed";
   if (raw.includes("bounce")) return "bounced";
+  if (raw.includes("fail")) return "failed";
   if (raw.includes("reject")) return "rejected";
   if (raw.includes("complain") || raw.includes("spam")) return "complained";
   if (raw.includes("unsub")) return "unsubscribed";
