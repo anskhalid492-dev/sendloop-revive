@@ -10,7 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DAY_LABELS, TIMEZONES } from "@/lib/campaign-schedule";
+import {
+  DAY_LABELS,
+  TIMEZONES,
+  formatZonedDateTime,
+  nextSendSlot,
+  parseZonedDateTimeLocal,
+  zonedDateTimeLocalValue,
+} from "@/lib/campaign-schedule";
 import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -45,13 +52,6 @@ function hourLabel(hour: number) {
   const suffix = hour >= 12 ? "PM" : "AM";
   const h = hour % 12 === 0 ? 12 : hour % 12;
   return `${h}:00 ${suffix}`;
-}
-
-function toLocalInput(value: string | null) {
-  if (!value) return "";
-  const d = new Date(value);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
@@ -92,6 +92,16 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
 
   const cappedByMailboxes = effectiveDaily < selectedDaily;
   const weekly = effectiveDaily * settings.sendDays.length;
+  const nextWindowBase = settings.startAt ? new Date(settings.startAt) : new Date();
+  const nextWindow = nextSendSlot(
+    nextWindowBase.getTime() > Date.now() ? nextWindowBase : new Date(),
+    {
+      timezone: settings.timezone,
+      sendDays: settings.sendDays,
+      startHour: settings.sendStartHour,
+      endHour: settings.sendEndHour,
+    },
+  );
 
 
   return (
@@ -204,6 +214,19 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
               The end of the window must be later than the start.
             </p>
           ) : null}
+          <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium text-foreground">Next sending window</span>
+              <span className="font-semibold tabular-nums text-primary">
+                {formatZonedDateTime(nextWindow, settings.timezone)}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Messages are released only between {hourLabel(settings.sendStartHour)} and{" "}
+              {settings.sendEndHour === 24 ? "12:00 AM" : hourLabel(settings.sendEndHour)} in{" "}
+              {settings.timezone.replace("_", " ")}.
+            </p>
+          </div>
         </Section>
 
         <Section
@@ -279,23 +302,30 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
               <Input
                 id="start-at"
                 type="datetime-local"
-                value={toLocalInput(settings.startAt)}
+                value={zonedDateTimeLocalValue(settings.startAt, settings.timezone)}
                 onChange={(e) =>
                   patchSettings({
-                    startAt: e.target.value ? new Date(e.target.value).toISOString() : null,
+                    startAt: e.target.value
+                      ? parseZonedDateTimeLocal(e.target.value, settings.timezone)?.toISOString() ?? null
+                      : null,
                   })
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Interpreted in {settings.timezone.replace("_", " ")}; the queue starts at the next allowed window.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="end-at">Stop sending on</Label>
               <Input
                 id="end-at"
                 type="datetime-local"
-                value={toLocalInput(settings.endAt)}
+                value={zonedDateTimeLocalValue(settings.endAt, settings.timezone)}
                 onChange={(e) =>
                   patchSettings({
-                    endAt: e.target.value ? new Date(e.target.value).toISOString() : null,
+                    endAt: e.target.value
+                      ? parseZonedDateTimeLocal(e.target.value, settings.timezone)?.toISOString() ?? null
+                      : null,
                   })
                 }
               />
