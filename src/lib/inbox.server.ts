@@ -83,22 +83,28 @@ async function findCampaignMessage(
 
   if (candidates.length) {
     const list = inList(candidates);
-    const { data } = await db
+    let campaignQuery = db
       .from("campaign_messages")
       .select(CAMPAIGN_MESSAGE_COLUMNS)
       .or(`provider_message_id.in.${list},message_id.in.${list}`)
       .limit(1);
+    if (mailboxWorkspaceId) campaignQuery = campaignQuery.eq("workspace_id", mailboxWorkspaceId);
+    if (mailboxAccountId) campaignQuery = campaignQuery.eq("sending_account_id", mailboxAccountId);
+    const { data } = await campaignQuery;
     if (data?.[0]) return data[0];
 
     // The id may belong to a reply we sent from the inbox rather than a
     // campaign step: that row carries the campaign message it belongs to.
-    const { data: viaConversation } = await db
+    let conversationQuery = db
       .from("conversation_messages")
       .select("campaign_message_id")
       .or(`message_id.in.${list},provider_message_id.in.${list}`)
       .not("campaign_message_id", "is", null)
       .order("occurred_at", { ascending: false })
       .limit(1);
+    if (mailboxWorkspaceId) conversationQuery = conversationQuery.eq("workspace_id", mailboxWorkspaceId);
+    if (mailboxAccountId) conversationQuery = conversationQuery.eq("sending_account_id", mailboxAccountId);
+    const { data: viaConversation } = await conversationQuery;
     const campaignMessageId = viaConversation?.[0]?.campaign_message_id as string | undefined;
     if (campaignMessageId) {
       const { data: linked } = await db
@@ -130,6 +136,7 @@ async function findCampaignMessage(
     const { data: anyWorkspace } = await db
       .from("campaign_messages")
       .select(CAMPAIGN_MESSAGE_COLUMNS)
+      .eq("workspace_id", mailboxWorkspaceId)
       .eq("to_email", prospect)
       .not("sent_at", "is", null)
       .order("sent_at", { ascending: false })

@@ -9,6 +9,21 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+function stripAngle(value: string | null | undefined): string | null {
+  if (!value) return null;
+  return value.trim().replace(/^<|>$/g, "");
+}
+
+function idCandidates(value: string | null | undefined): string[] {
+  const raw = value?.trim();
+  const stripped = stripAngle(raw);
+  return Array.from(new Set([raw, stripped].filter(Boolean) as string[]));
+}
+
+function inList(values: string[]): string {
+  return `(${values.map((v) => `"${v.replace(/"/g, "")}"`).join(",")})`;
+}
+
 export type EngagementType =
   | "delivered"
   | "opened"
@@ -31,16 +46,26 @@ type Args = {
 /** Finds the outbound send a provider event refers to. */
 async function findMessage(providerMessageId: string | null, email: string | null) {
   if (!providerMessageId && !email) return null;
-  let query = supabaseAdmin
+  const columns = "id, workspace_id, campaign_id, lead_id, sending_account_id, to_email";
+  const ids = idCandidates(providerMessageId);
+  if (ids.length) {
+    const list = inList(ids);
+    const { data } = await supabaseAdmin
+      .from("campaign_messages")
+      .select(columns)
+      .eq("message_type", "campaign")
+      .or(`provider_message_id.in.${list},message_id.in.${list}`)
+      .order("sent_at", { ascending: false })
+      .limit(1);
+    return data?.[0] ?? null;
+  }
+  const { data } = await supabaseAdmin
     .from("campaign_messages")
-    .select("id, workspace_id, campaign_id, lead_id, sending_account_id, to_email")
+    .select(columns)
     .eq("message_type", "campaign")
+    .eq("to_email", email!)
     .order("sent_at", { ascending: false })
     .limit(1);
-  query = providerMessageId
-    ? query.eq("provider_message_id", providerMessageId)
-    : query.eq("to_email", email!);
-  const { data } = await query;
   return data?.[0] ?? null;
 }
 

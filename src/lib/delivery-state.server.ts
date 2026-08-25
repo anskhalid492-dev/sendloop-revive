@@ -12,6 +12,21 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+function stripAngle(value: string | null | undefined): string | null {
+  if (!value) return null;
+  return value.trim().replace(/^<|>$/g, "");
+}
+
+function idCandidates(value: string | null | undefined): string[] {
+  const raw = value?.trim();
+  const stripped = stripAngle(raw);
+  return Array.from(new Set([raw, stripped].filter(Boolean) as string[]));
+}
+
+function inList(values: string[]): string {
+  return `(${values.map((v) => `"${v.replace(/"/g, "")}"`).join(",")})`;
+}
+
 export type DeliveryState =
   | "queued"
   | "sent"
@@ -134,14 +149,17 @@ export async function findCampaignMessageForEvent(
   const columns =
     "id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, to_email";
 
-  if (providerMessageId) {
+  const ids = idCandidates(providerMessageId);
+  if (ids.length) {
+    const list = inList(ids);
     const { data } = await supabaseAdmin
       .from("campaign_messages")
       .select(columns)
       .eq("message_type", "campaign")
-      .eq("provider_message_id", providerMessageId)
+      .or(`provider_message_id.in.${list},message_id.in.${list}`)
       .limit(1);
     if (data?.[0]) return data[0] as never;
+    return null;
   }
 
   if (email) {
