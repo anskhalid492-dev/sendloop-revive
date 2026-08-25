@@ -995,6 +995,14 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       const requestId = crypto.randomUUID();
       // Test sends leave the platform like any other email, so they meter too.
       await consumeUsage(account.workspace_id, "emails_monthly", 1);
+      const { mintReplyAddress } = await import("@/lib/inbound-routing.server");
+      const replyTo = await mintReplyAddress(account.from_email, {
+        workspaceId: account.workspace_id,
+        sendingAccountId: account.id,
+        leadId: data.leadId ?? null,
+        campaignId: data.campaignId,
+        purpose: "campaign_test",
+      });
       const result = await sendManagedEmail(
         supabaseAdmin,
         {
@@ -1007,7 +1015,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         {
           fromName: account.from_name,
           fromEmail: account.from_email,
-          replyTo: account.reply_to,
+          replyTo,
           to,
           subject: `[Test] ${subject}`,
           text: body,

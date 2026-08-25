@@ -26,7 +26,6 @@ export type ComposeInput = {
 
 export async function composeAndSend(input: ComposeInput) {
   const { getAdapter } = await import("@/lib/providers/adapter.server");
-  const { resolveReplyTo } = await import("@/lib/inbox-send.server");
   const supabase = input.supabase;
   const to = input.to.trim().toLowerCase();
 
@@ -76,9 +75,8 @@ export async function composeAndSend(input: ComposeInput) {
   }
 
   const adapter = getAdapter(account.provider);
-  const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
   const { mintReplyAddress } = await import("@/lib/inbound-routing.server");
-  const replyTo = await mintReplyAddress(baseReplyTo, {
+  const replyTo = await mintReplyAddress(account.from_email, {
     workspaceId: input.workspaceId,
     sendingAccountId: account.id,
     leadId,

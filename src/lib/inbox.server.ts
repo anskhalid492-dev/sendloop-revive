@@ -199,31 +199,14 @@ async function findConversationByParticipants(
 /** Which workspace owns the mailbox the reply was delivered to. */
 async function resolveWorkspaceFromMailbox(db: Db, mailbox: string) {
   const base = baseAddress(mailbox);
-  const filters = [
-    `from_email.ilike.${mailbox}`,
-    `reply_to.ilike.${mailbox}`,
-    `from_email.ilike.${base}`,
-    `reply_to.ilike.${base}`,
-  ];
   const { data } = await db
     .from("sending_accounts")
     .select("id, workspace_id")
-    .or(filters.join(","))
-    .not("workspace_id", "is", null)
-    .limit(1);
-  if (data?.[0]) return data[0];
-
-  // Catch-all: the mailbox belongs to a sending domain we own.
-  const domain = base.split("@")[1];
-  if (!domain) return null;
-  const { data: byDomain } = await db
-    .from("sending_accounts")
-    .select("id, workspace_id")
-    .ilike("from_email", `%@${domain}`)
+    .ilike("from_email", base)
     .not("workspace_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(1);
-  return byDomain?.[0] ?? null;
+  return data?.[0] ?? null;
 }
 
 /** Nothing matched: keep the email in the Unmatched inbox instead of dropping it. */

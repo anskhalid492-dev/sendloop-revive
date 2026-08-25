@@ -52,7 +52,6 @@ export function ConnectMailboxDialog({
   const [domainId, setDomainId] = useState("");
   const [localPart, setLocalPart] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [replyTo, setReplyTo] = useState("");
   const [dailyLimit, setDailyLimit] = useState("50");
   const [hourlyLimit, setHourlyLimit] = useState("20");
   const [enableWarmup, setEnableWarmup] = useState(true);
@@ -71,7 +70,6 @@ export function ConnectMailboxDialog({
           domainId,
           email: `${localPart.trim()}@${selectedDomain?.domain ?? ""}`.toLowerCase(),
           displayName: displayName.trim(),
-          replyTo: replyTo.trim(),
           dailyLimit: Number(dailyLimit) || 50,
           hourlyLimit: Number(hourlyLimit) || 20,
           enableWarmup,
@@ -82,7 +80,6 @@ export function ConnectMailboxDialog({
       toast.success("Mailbox connected.");
       setLocalPart("");
       setDisplayName("");
-      setReplyTo("");
       await queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
       await queryClient.invalidateQueries({ queryKey: ["sending-domains"] });
       onOpenChange(false);
@@ -160,17 +157,6 @@ export function ConnectMailboxDialog({
                   required
                 />
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="mailbox-replyto">Reply-to (optional)</Label>
-              <Input
-                id="mailbox-replyto"
-                type="email"
-                value={replyTo}
-                onChange={(event) => setReplyTo(event.target.value)}
-                placeholder="jane@yourcompany.com"
-              />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

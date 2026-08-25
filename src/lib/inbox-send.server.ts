@@ -108,9 +108,8 @@ export async function sendReplyThroughMailbox(args: {
     throw new Error(`This contact is on your suppression list (${blocked}) and cannot be emailed.`);
   }
 
-  const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
   const { mintReplyAddress } = await import("@/lib/inbound-routing.server");
-  const replyTo = await mintReplyAddress(baseReplyTo, {
+  const replyTo = await mintReplyAddress(account.from_email, {
     workspaceId: conversation.workspace_id,
     sendingAccountId: account.id,
     leadId: conversation.lead_id,
