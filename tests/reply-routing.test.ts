@@ -18,13 +18,18 @@ describe("clean Reply-To routing", () => {
     const compose = read("src/lib/inbox-compose.server.ts");
     const reply = read("src/lib/inbox-send.server.ts");
     const testSend = read("src/lib/campaigns.functions.ts");
+    const providers = read("src/lib/provider-credentials.server.ts");
 
     for (const source of [dispatch, compose, reply, testSend]) {
       expect(source).not.toContain("replyTo = await mintRequiredReplyAddress");
       expect(source).not.toContain("Routed reply address:");
+      expect(source).toContain("Message-ID");
     }
     expect(dispatch).toContain("mintCleanReplyAddress(account.from_email");
     expect(reply).toContain("mintCleanReplyAddress(account.from_email");
     expect(compose).toContain("replyRoute.visibleAddress");
+    expect(providers).toContain("sanitizeHeaders");
+    expect(providers).toContain("Headers: postmarkHeaders");
+    expect(providers).toContain("h:${name}");
   });
 });

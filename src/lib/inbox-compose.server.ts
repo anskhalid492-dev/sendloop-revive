@@ -86,6 +86,8 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
   }
   const replyTo = replyRoute.visibleAddress;
+  const { createOutboundRfcMessageId, messageIdHeader } = await import("@/lib/outbound-threading.server");
+  const outboundMessageId = createOutboundRfcMessageId(account.from_email);
   const send = await adapter.sendEmail(credentials ?? {}, {
     fromName: account.from_name,
     fromEmail: account.from_email,
@@ -96,6 +98,7 @@ export async function composeAndSend(input: ComposeInput) {
     subject: input.subject,
     text: input.body,
     attachments: input.attachments,
+    headers: { "Message-ID": messageIdHeader(outboundMessageId) },
   });
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
 
@@ -180,7 +183,7 @@ export async function composeAndSend(input: ComposeInput) {
       bcc_emails: input.bcc,
       subject: input.subject,
       body: input.body,
-      message_id: stripAngle(send.rfcMessageId ?? send.messageId ?? null),
+      message_id: stripAngle(send.rfcMessageId ?? outboundMessageId),
       reference_ids: [],
       sending_account_id: account.id,
       provider_message_id: send.messageId ?? null,
@@ -205,7 +208,7 @@ export async function composeAndSend(input: ComposeInput) {
       toEmail: to,
       refTable: "conversation_messages",
       refId: inserted.id,
-      alternateProviderMessageIds: [send.rfcMessageId ?? null],
+      alternateProviderMessageIds: [send.rfcMessageId ?? null, outboundMessageId],
     });
   } catch {
     /* classification must never fail an already delivered send */

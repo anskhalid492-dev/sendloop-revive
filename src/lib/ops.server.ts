@@ -314,6 +314,8 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   });
   if (!replyRoute) throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
   const replyTo = replyRoute.visibleAddress;
+  const { createOutboundRfcMessageId, messageIdHeader } = await import("@/lib/outbound-threading.server");
+  const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
   // Platform diagnostics never consume a customer's allowance, but the send is
   // recorded so an admin test can always be told apart from real usage.
@@ -343,6 +345,7 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     to: args.toEmail,
     subject: "MunchReach inbound delivery test",
       text: "This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.",
+      headers: { "Message-ID": messageIdHeader(outboundMessageId) },
     },
     { stage: "test" },
   );
@@ -373,6 +376,7 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     toEmail: args.toEmail,
     refTable: "inbound_tests",
     refId: row?.id ?? null,
+    alternateProviderMessageIds: [send.ok ? (send.rfcMessageId ?? null) : null, outboundMessageId],
   });
   return { id: row?.id ?? null, replyTo, to: args.toEmail };
 }

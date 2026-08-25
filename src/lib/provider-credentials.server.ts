@@ -208,6 +208,19 @@ async function loadResendRfcMessageId(
   }
 }
 
+function sanitizeHeaders(headers: Record<string, string> | undefined): Record<string, string> {
+  const clean: Record<string, string> = {};
+  for (const [rawName, rawValue] of Object.entries(headers ?? {})) {
+    const name = rawName.trim();
+    const value = rawValue.trim();
+    if (!name || !value) continue;
+    if (!/^[A-Za-z0-9-]+$/.test(name)) continue;
+    if (/[\r\n]/.test(value)) continue;
+    clean[name] = value;
+  }
+  return clean;
+}
+
 /**
  * Sends a real email through the provider's HTTP API and returns the provider
  * message id so the campaign queue can be reconciled later.
@@ -229,6 +242,9 @@ export async function sendProviderEmail(
   const html = message.html ?? undefined;
   const from = `${message.fromName} <${message.fromEmail}>`;
   const replyTo = message.replyTo || undefined;
+  const headers = sanitizeHeaders(message.headers);
+  const hasHeaders = Object.keys(headers).length > 0;
+  const postmarkHeaders = Object.entries(headers).map(([Name, Value]) => ({ Name, Value }));
 
   const post = async (url: string, init: RequestInit): Promise<TestSendResult> => {
     const res = await fetch(url, { method: "POST", signal, ...init });
@@ -269,6 +285,7 @@ export async function sendProviderEmail(
             personalizations: [{ to: [{ email: message.to }] }],
             from: { email: message.fromEmail, name: message.fromName },
             ...(replyTo ? { reply_to: { email: replyTo } } : {}),
+            ...(hasHeaders ? { headers } : {}),
             subject,
             content: html
               ? [
@@ -294,9 +311,7 @@ export async function sendProviderEmail(
               text,
               ...(html ? { html } : {}),
               ...(replyTo ? { reply_to: replyTo } : {}),
-              ...(message.headers && Object.keys(message.headers).length
-                ? { headers: message.headers }
-                : {}),
+              ...(hasHeaders ? { headers } : {}),
               ...(message.attachments?.length
                 ? {
                     attachments: message.attachments
@@ -332,6 +347,7 @@ export async function sendProviderEmail(
             Subject: subject,
             TextBody: text,
             ...(html ? { HtmlBody: html } : {}),
+            ...(postmarkHeaders.length ? { Headers: postmarkHeaders } : {}),
             MessageStream: "outbound",
           }),
         });
@@ -340,6 +356,7 @@ export async function sendProviderEmail(
         const form = new URLSearchParams({ from, to: message.to, subject, text });
         if (html) form.set("html", html);
         if (replyTo) form.set("h:Reply-To", replyTo);
+        for (const [name, value] of Object.entries(headers)) form.set(`h:${name}`, value);
         return await post(`https://api.mailgun.net/v3/${domain}/messages`, {
           headers: {
             Authorization: `Basic ${Buffer.from(`api:${credentials["api_key"]}`).toString("base64")}`,
@@ -358,6 +375,7 @@ export async function sendProviderEmail(
             from: { address: message.fromEmail, name: message.fromName },
             to: [{ email_address: { address: message.to } }],
             ...(replyTo ? { reply_to: [{ address: replyTo }] } : {}),
+            ...(hasHeaders ? { headers } : {}),
             subject,
             textbody: text,
             ...(html ? { htmlbody: html } : {}),
@@ -374,6 +392,7 @@ export async function sendProviderEmail(
             sender: { name: message.fromName, email: message.fromEmail },
             to: [{ email: message.to }],
             ...(replyTo ? { replyTo: { email: replyTo } } : {}),
+            ...(hasHeaders ? { headers } : {}),
             subject,
             textContent: text,
             ...(html ? { htmlContent: html } : {}),
@@ -392,6 +411,7 @@ export async function sendProviderEmail(
             text,
             ...(html ? { html } : {}),
             ...(replyTo ? { reply_to: replyTo } : {}),
+            ...(hasHeaders ? { headers } : {}),
           }),
         });
       case "smtp":
