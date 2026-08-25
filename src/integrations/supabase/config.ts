@@ -22,9 +22,9 @@ export const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_gTF0GOqvRfQ7f_ED446AVg_DV0rNQ8o";
 
 // Server-only service role key for the pinned project (rihgzkofoxcjljlbvbya).
-// SB_SERVICE_ROLE_KEY is the project-owned secret and takes precedence; the
-// platform-injected SUPABASE_SERVICE_ROLE_KEY belongs to a different project
-// and is only used as a last-resort fallback.
+// SB_SERVICE_ROLE_KEY is the only authoritative privileged credential for this
+// app. Do not fall back to SUPABASE_SERVICE_ROLE_KEY: that variable can be
+// platform-injected for another project and would mix this URL with a wrong key.
 export function getServiceRoleKey(): string | undefined {
-  return fromProcessEnv("SB_SERVICE_ROLE_KEY") ?? fromProcessEnv("SUPABASE_SERVICE_ROLE_KEY");
+  return fromProcessEnv("SB_SERVICE_ROLE_KEY");
 }
