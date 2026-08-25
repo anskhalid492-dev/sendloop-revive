@@ -56,7 +56,7 @@ export async function sendReplyThroughMailbox(args: {
   const { data: account } = await supabase
     .from("sending_accounts")
     .select(
-      "id, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, workspace_id",
+      "id, label, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, workspace_id",
     )
     .eq("id", conversation.sending_account_id ?? "00000000-0000-0000-0000-000000000000")
     .maybeSingle();
@@ -64,9 +64,10 @@ export async function sendReplyThroughMailbox(args: {
   if (!account || account.workspace_id !== conversation.workspace_id) {
     throw new Error("No sending mailbox is linked to this conversation yet.");
   }
-  if (account.paused || !account.customer_enabled || account.status === "disabled") {
-    throw new Error("The mailbox for this conversation is currently unavailable.");
-  }
+  // Same mailbox eligibility rules as compose and campaign dispatch, checked
+  // immediately before the send so a stale client can never bypass a limit.
+  const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
+  await assertMailboxCapacity(account);
 
 
   // Server-side variable resolution. Templates picked in the composer are
