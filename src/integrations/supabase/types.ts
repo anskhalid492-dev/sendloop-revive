@@ -1515,6 +1515,7 @@ export type Database = {
           last_error: string | null
           last_event_at: string | null
           lead_id: string | null
+          message_id: string | null
           message_type: string
           opened_at: string | null
           provider: string | null
@@ -1552,6 +1553,7 @@ export type Database = {
           last_error?: string | null
           last_event_at?: string | null
           lead_id?: string | null
+          message_id?: string | null
           message_type?: string
           opened_at?: string | null
           provider?: string | null
@@ -1589,6 +1591,7 @@ export type Database = {
           last_error?: string | null
           last_event_at?: string | null
           lead_id?: string | null
+          message_id?: string | null
           message_type?: string
           opened_at?: string | null
           provider?: string | null

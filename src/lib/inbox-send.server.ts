@@ -176,7 +176,7 @@ export async function sendReplyThroughMailbox(args: {
       cc_emails: args.cc,
       subject: subject,
       body: body,
-      message_id: stripAngle(send.messageId ?? null),
+      message_id: stripAngle(send.rfcMessageId ?? send.messageId ?? null),
       in_reply_to: (lastInbound?.message_id as string | undefined) ?? null,
       reference_ids: references,
       sending_account_id: account.id,

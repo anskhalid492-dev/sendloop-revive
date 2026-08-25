@@ -96,7 +96,11 @@ export async function composeAndSend(input: ComposeInput) {
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
 
   const nowIso = new Date().toISOString();
-  const threadKey = buildThreadKey({ prospectEmail: to, subject: input.subject });
+  const threadKey = buildThreadKey({
+    prospectEmail: to,
+    subject: input.subject,
+    sendingAccountId: account.id,
+  });
 
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
@@ -135,7 +139,7 @@ export async function composeAndSend(input: ComposeInput) {
       bcc_emails: input.bcc,
       subject: input.subject,
       body: input.body,
-      message_id: stripAngle(send.messageId ?? null),
+      message_id: stripAngle(send.rfcMessageId ?? send.messageId ?? null),
       reference_ids: [],
       sending_account_id: account.id,
       provider_message_id: send.messageId ?? null,
@@ -152,7 +156,7 @@ export async function composeAndSend(input: ComposeInput) {
   try {
     const { registerOutboundMessage } = await import("@/lib/message-classification.server");
     await registerOutboundMessage({
-      providerMessageId: send.messageId ?? null,
+        providerMessageId: send.messageId ?? null,
       messageType: "manual_reply",
       provider: account.provider,
       workspaceId: input.workspaceId,
