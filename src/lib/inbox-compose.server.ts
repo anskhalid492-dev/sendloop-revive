@@ -96,32 +96,58 @@ export async function composeAndSend(input: ComposeInput) {
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
 
   const nowIso = new Date().toISOString();
+  const legacyThreadKey = buildThreadKey({ prospectEmail: to, subject: input.subject });
   const threadKey = buildThreadKey({
     prospectEmail: to,
     subject: input.subject,
     sendingAccountId: account.id,
   });
 
-  const { data: conversation, error: convError } = await supabase
+  const { data: existingConversation } = await supabase
     .from("conversations")
-    .upsert(
-      {
-        workspace_id: input.workspaceId,
-        thread_key: threadKey,
-        prospect_email: to,
-        lead_id: leadId,
-        sending_account_id: account.id,
-        subject: input.subject,
-        last_message_at: nowIso,
-        last_direction: "outbound",
-        last_preview: previewOf(input.body),
-        unread: false,
-        archived: false,
-      },
-      { onConflict: "workspace_id,thread_key" },
-    )
     .select("id, message_count")
-    .single();
+    .eq("workspace_id", input.workspaceId)
+    .eq("prospect_email", to)
+    .eq("sending_account_id", account.id)
+    .in("thread_key", [threadKey, legacyThreadKey])
+    .order("last_message_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const conversationWrite = {
+    workspace_id: input.workspaceId,
+    thread_key: threadKey,
+    prospect_email: to,
+    lead_id: leadId,
+    sending_account_id: account.id,
+    subject: input.subject,
+    last_message_at: nowIso,
+    last_direction: "outbound",
+    last_preview: previewOf(input.body),
+    unread: false,
+    archived: false,
+  };
+
+  const { data: conversation, error: convError } = existingConversation
+    ? await supabase
+        .from("conversations")
+        .update({
+          lead_id: leadId,
+          subject: input.subject,
+          last_message_at: nowIso,
+          last_direction: "outbound",
+          last_preview: previewOf(input.body),
+          unread: false,
+          archived: false,
+        })
+        .eq("id", existingConversation.id)
+        .select("id, message_count")
+        .single()
+    : await supabase
+        .from("conversations")
+        .upsert(conversationWrite, { onConflict: "workspace_id,thread_key" })
+        .select("id, message_count")
+        .single();
   if (convError || !conversation) {
     throw new Error("The email was sent but the thread could not be saved. Refresh to confirm.");
   }
