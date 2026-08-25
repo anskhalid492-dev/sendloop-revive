@@ -703,13 +703,15 @@ async function applyReplyAutomation(args: {
   // sees delivered/opened/clicked events.
   if (campaignMessage?.id && leadId && campaignId) {
     try {
-      const { recordEngagement } = await import("@/lib/engagement.server");
-      await recordEngagement({
-        type: "replied",
-        email: args.prospect,
-        providerMessageId: null,
+      const { recordCampaignReplyEngagement } = await import("@/lib/engagement.server");
+      await recordCampaignReplyEngagement({
+        workspaceId,
+        campaignId,
+        leadId,
+        sendingAccountId: campaignMessage.sending_account_id ?? null,
+        campaignMessageId: campaignMessage.id,
+        recipientEmail: args.prospect,
         externalId: `reply:${args.dedupeKey}`,
-        provider: "inbound",
         detail: args.subject || null,
         occurredAt: args.receivedIso,
       });

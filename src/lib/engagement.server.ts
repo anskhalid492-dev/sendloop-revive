@@ -135,3 +135,39 @@ export async function recordEngagement(args: Args): Promise<boolean> {
 
   return true;
 }
+
+
+/** Records a prospect reply after inbound routing has already resolved the exact campaign message. */
+export async function recordCampaignReplyEngagement(args: {
+  workspaceId: string;
+  campaignId: string;
+  leadId: string;
+  sendingAccountId: string | null;
+  campaignMessageId: string;
+  recipientEmail: string;
+  externalId: string;
+  detail?: string | null;
+  occurredAt: string;
+}): Promise<boolean> {
+  const { error } = await supabaseAdmin
+    .from("email_engagement_events")
+    .upsert(
+      {
+        workspace_id: args.workspaceId,
+        campaign_id: args.campaignId,
+        sending_account_id: args.sendingAccountId,
+        message_id: args.campaignMessageId,
+        lead_id: args.leadId,
+        recipient_email: args.recipientEmail.toLowerCase(),
+        event_type: "replied",
+        provider: "inbound",
+        provider_message_id: null,
+        external_id: args.externalId.slice(0, 400),
+        url: null,
+        detail: args.detail ?? null,
+        occurred_at: args.occurredAt,
+      },
+      { onConflict: "external_id", ignoreDuplicates: true },
+    );
+  return !error;
+}
