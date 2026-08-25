@@ -33,13 +33,13 @@ import {
 } from "@/components/ui/select";
 import {
   AI_VARIABLE_TOKEN,
-  type AiPersonalizationCoverageLead,
   missingVariables,
   renderEmailForLead,
   senderExtras,
   variableResolutionReport,
   type LeadLike,
 } from "@/lib/campaign-model";
+import type { AiPersonalizationCoverageLead } from "@/lib/ai-personalization-model";
 import {
   getAiPersonalizationCoverage,
   getLeadPersonalization,

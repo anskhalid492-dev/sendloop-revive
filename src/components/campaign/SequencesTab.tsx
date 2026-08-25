@@ -207,18 +207,20 @@ export function SequencesTab({
     [leads],
   );
   const variableChecks = useMemo(
-    () =>
-      auditVariables(`${editingSubject} ${editingBody}`, {
+    () => {
+      const auditOptions: Parameters<typeof auditVariables>[1] = {
         leads: leadRows,
         customVariables,
         customFieldKeys: customFields,
-        aiPersonalization: aiCoverageQuery.data
-          ? {
-              total: aiCoverageQuery.data.total,
-              personalized: aiCoverageQuery.data.personalized,
-            }
-          : undefined,
-      }),
+      };
+      if (aiCoverageQuery.data) {
+        auditOptions.aiPersonalization = {
+          total: aiCoverageQuery.data.total,
+          personalized: aiCoverageQuery.data.personalized,
+        };
+      }
+      return auditVariables(`${editingSubject} ${editingBody}`, auditOptions);
+    },
     [editingSubject, editingBody, leadRows, customVariables, customFields, aiCoverageQuery.data],
   );
 
