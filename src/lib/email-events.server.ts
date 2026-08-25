@@ -96,6 +96,37 @@ async function finish(id: string, patch: Record<string, unknown>) {
     .eq("id", id);
 }
 
+async function confirmInboxStorage(result: {
+  status: string;
+  conversationId?: string | undefined;
+  messageId?: string | undefined;
+}) {
+  if (result.status === "duplicate") {
+    return result.conversationId ? null : "Duplicate inbound reply has no conversation";
+  }
+  if (result.status !== "created") return null;
+  if (!result.conversationId || !result.messageId) return "Inbound reply was not stored in Unified Inbox";
+
+  const [{ data: message }, { data: conversation }] = await Promise.all([
+    supabaseAdmin
+      .from("conversation_messages")
+      .select("id, conversation_id, direction")
+      .eq("id", result.messageId)
+      .eq("conversation_id", result.conversationId)
+      .eq("direction", "inbound")
+      .maybeSingle(),
+    supabaseAdmin
+      .from("conversations")
+      .select("id, has_inbound, archived")
+      .eq("id", result.conversationId)
+      .maybeSingle(),
+  ]);
+
+  if (!message) return "Inbound reply message was not stored in Unified Inbox";
+  if (!conversation?.has_inbound) return "Inbound reply thread is hidden from Unified Inbox";
+  return null;
+}
+
 /** Runs one stored payload through the right processor. */
 export async function processEventPayload(
   eventId: string,
@@ -152,6 +183,20 @@ export async function processEventPayload(
         attachments: parsed.attachments ?? [],
       });
 
+      const storageError = await confirmInboxStorage(result);
+      if (storageError) {
+        await finish(eventId, {
+          status: "failed",
+          error: storageError,
+          conversation_id: result.conversationId ?? null,
+          workspace_id: result.workspaceId ?? null,
+          lead_id: result.leadId ?? null,
+          sending_account_id: result.sendingAccountId ?? null,
+          failure_code: "inbox_message_not_stored",
+        });
+        return { status: "failed", eventId, conversationId: result.conversationId, reason: storageError };
+      }
+
       // Routing diagnostics only. A token is never required: a reply without
       // one threads through headers, the original send, or the participants.
       const toAddress = extractEmail(parsed.to);
@@ -172,6 +217,9 @@ export async function processEventPayload(
         status: result.status === "unmatched" ? "failed" : "processed",
         error: result.reason ?? null,
         conversation_id: result.conversationId ?? null,
+        workspace_id: result.workspaceId ?? null,
+        lead_id: result.leadId ?? null,
+        sending_account_id: result.sendingAccountId ?? null,
         routing_token: token,
         token_status: tokenStatus,
         failure_code: failureCode,
