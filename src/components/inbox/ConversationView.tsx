@@ -174,8 +174,16 @@ export function ConversationView({
       void queryClient.invalidateQueries({ queryKey });
       onChanged();
     },
-    onError: (error: Error) =>
-      toast.error(error.message || "The reply couldn’t be sent. Please try again."),
+    onError: (error: Error) => {
+      // Draft body is intentionally preserved on a mailbox-capacity block.
+      if (isMailboxLimitError(error.message)) {
+        toast.error("Mailbox limit reached", {
+          description: mailboxLimitMessage(error.message),
+        });
+        return;
+      }
+      toast.error(error.message || "The reply couldn’t be sent. Please try again.");
+    },
   });
 
   const noteMutation = useMutation({
