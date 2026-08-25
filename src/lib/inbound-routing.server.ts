@@ -55,6 +55,22 @@ export async function mintReplyAddress(
   return `${local}+${token}@${domain.toLowerCase()}`;
 }
 
+/**
+ * Same routing architecture as `mintReplyAddress`, but for customer-visible
+ * sends where reply capture is mandatory. The visible From stays the mailbox;
+ * only Reply-To carries the unguessable token.
+ */
+export async function mintRequiredReplyAddress(
+  baseAddress: string | null,
+  target: RouteTarget,
+): Promise<string> {
+  const replyTo = await mintReplyAddress(baseAddress, target);
+  if (!replyTo || !tokenFromAddress(replyTo)) {
+    throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
+  }
+  return replyTo;
+}
+
 export type ResolvedRoute = {
   id: string;
   workspace_id: string;

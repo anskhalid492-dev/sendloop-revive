@@ -614,7 +614,7 @@ export async function getWebhookVerificationStatus() {
   };
 }
 
-/** Inbound events whose routing token was missing, invalid or unmatched. */
+/** Inbound events that still need manual routing attention. */
 export async function listRoutingFailures(limit = 50) {
   const { data, error } = await supabaseAdmin
     .from("email_events")
@@ -622,6 +622,7 @@ export async function listRoutingFailures(limit = 50) {
       "id, provider, event_type, status, attempts, duplicate_count, error, failure_code, routing_token, token_status, from_email, to_email, subject, conversation_id, workspace_id, created_at, processed_at, last_retry_at",
     )
     .eq("event_type", "inbound")
+    .eq("status", "failed")
     .in("token_status", ["invalid", "none", "unmatched"])
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -643,7 +644,7 @@ export async function listRoutingFailures(limit = 50) {
       tokenKnown: event.routing_token ? known.has(event.routing_token) : false,
       guidance:
         event.token_status === "none"
-          ? "The reply came back to a plain address with no routing token — safe to retry after the sender is linked to a lead, or handle it manually in the inbox."
+          ? "The reply came back to a plain address and no safe mailbox/thread match was found. Retry after the mailbox, lead, or original sent message is linked; otherwise handle it manually."
           : event.token_status === "invalid"
             ? event.routing_token && known.has(event.routing_token)
               ? "The token exists but the reply arrived before the route was committed — retrying is safe and will thread it correctly."

@@ -86,6 +86,31 @@ async function findCampaignMessage(
   const candidates = threadCandidates(email);
 
   if (candidates.length) {
+    let registryQuery = db
+      .from("outbound_messages")
+      .select("ref_id")
+      .eq("ref_table", "campaign_messages")
+      .not("ref_id", "is", null)
+      .in("provider_message_id", candidates)
+      .limit(20);
+    if (mailboxWorkspaceId) registryQuery = registryQuery.eq("workspace_id", mailboxWorkspaceId);
+    if (mailboxAccountId) registryQuery = registryQuery.eq("sending_account_id", mailboxAccountId);
+    const { data: registryRows } = await registryQuery;
+    const registryIds = Array.from(
+      new Set((registryRows ?? []).map((row: { ref_id: string | null }) => row.ref_id).filter(Boolean)),
+    ) as string[];
+    if (registryIds.length) {
+      let linkedQuery = db
+        .from("campaign_messages")
+        .select(CAMPAIGN_MESSAGE_COLUMNS)
+        .in("id", registryIds)
+        .limit(1);
+      if (mailboxWorkspaceId) linkedQuery = linkedQuery.eq("workspace_id", mailboxWorkspaceId);
+      if (mailboxAccountId) linkedQuery = linkedQuery.eq("sending_account_id", mailboxAccountId);
+      const { data: linkedByRegistry } = await linkedQuery;
+      if (linkedByRegistry?.[0]) return linkedByRegistry[0];
+    }
+
     const list = inList(candidates);
     let campaignQuery = db
       .from("campaign_messages")
@@ -175,6 +200,33 @@ async function findConversationByHeaders(
 ) {
   const candidates = threadCandidates(email);
   if (!candidates.length) return null;
+
+  let registryQuery = db
+    .from("outbound_messages")
+    .select("ref_id")
+    .eq("ref_table", "conversation_messages")
+    .not("ref_id", "is", null)
+    .in("provider_message_id", candidates)
+    .limit(20);
+  if (workspaceId) registryQuery = registryQuery.eq("workspace_id", workspaceId);
+  if (sendingAccountId) registryQuery = registryQuery.eq("sending_account_id", sendingAccountId);
+  const { data: registryRows } = await registryQuery;
+  const registryIds = Array.from(
+    new Set((registryRows ?? []).map((row: { ref_id: string | null }) => row.ref_id).filter(Boolean)),
+  ) as string[];
+  if (registryIds.length) {
+    let messageQuery = db
+      .from("conversation_messages")
+      .select("conversation_id")
+      .eq("workspace_id", workspaceId)
+      .in("id", registryIds)
+      .order("occurred_at", { ascending: false })
+      .limit(1);
+    if (sendingAccountId) messageQuery = messageQuery.eq("sending_account_id", sendingAccountId);
+    const { data: byRegistry } = await messageQuery;
+    const registryConversationId = byRegistry?.[0]?.conversation_id as string | undefined;
+    if (registryConversationId) return loadConversation(db, registryConversationId);
+  }
 
   const list = inList(candidates);
   let query = db

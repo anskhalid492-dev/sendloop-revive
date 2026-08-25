@@ -108,8 +108,8 @@ export async function sendReplyThroughMailbox(args: {
     throw new Error(`This contact is on your suppression list (${blocked}) and cannot be emailed.`);
   }
 
-  const { mintReplyAddress } = await import("@/lib/inbound-routing.server");
-  const replyTo = await mintReplyAddress(account.from_email, {
+  const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
+  const replyTo = await mintRequiredReplyAddress(account.from_email, {
     workspaceId: conversation.workspace_id,
     sendingAccountId: account.id,
     leadId: conversation.lead_id,
@@ -198,7 +198,8 @@ export async function sendReplyThroughMailbox(args: {
       sendingAccountId: account.id,
       toEmail: conversation.prospect_email,
       refTable: "conversation_messages",
-      refId: conversation.id,
+      refId: inserted.id,
+      alternateProviderMessageIds: [send.rfcMessageId ?? null],
     });
   } catch {
     /* classification must never fail an already delivered send */

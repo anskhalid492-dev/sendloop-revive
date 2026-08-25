@@ -75,8 +75,8 @@ export async function composeAndSend(input: ComposeInput) {
   }
 
   const adapter = getAdapter(account.provider);
-  const { mintReplyAddress } = await import("@/lib/inbound-routing.server");
-  const replyTo = await mintReplyAddress(account.from_email, {
+  const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
+  const replyTo = await mintRequiredReplyAddress(account.from_email, {
     workspaceId: input.workspaceId,
     sendingAccountId: account.id,
     leadId,
@@ -195,14 +195,15 @@ export async function composeAndSend(input: ComposeInput) {
   try {
     const { registerOutboundMessage } = await import("@/lib/message-classification.server");
     await registerOutboundMessage({
-        providerMessageId: send.messageId ?? null,
+      providerMessageId: send.messageId ?? null,
       messageType: "manual_reply",
       provider: account.provider,
       workspaceId: input.workspaceId,
       sendingAccountId: account.id,
       toEmail: to,
       refTable: "conversation_messages",
-      refId: null,
+      refId: inserted.id,
+      alternateProviderMessageIds: [send.rfcMessageId ?? null],
     });
   } catch {
     /* classification must never fail an already delivered send */
