@@ -551,7 +551,7 @@ type EnvSpec = { name: string; group: string; required: boolean; environment?: "
 const ENV_SPECS: EnvSpec[] = [
   { name: "SUPABASE_URL", group: "Database & auth", required: true, note: "Backend API endpoint." },
   { name: "SUPABASE_PUBLISHABLE_KEY", group: "Database & auth", required: true, note: "Public key used for user-scoped reads." },
-  { name: "SUPABASE_SERVICE_ROLE_KEY", group: "Database & auth", required: true, note: "Privileged server-only key." },
+  { name: "SB_SERVICE_ROLE_KEY", group: "Database & auth", required: true, note: "Privileged server-only key." },
 
   { name: "PROVIDER_CREDENTIALS_KEY", group: "Encryption", required: true, note: "Encrypts stored provider/integration credentials." },
 
