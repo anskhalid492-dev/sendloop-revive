@@ -24,6 +24,8 @@ import { AuthBadgeRow } from "@/components/sending/AuthBadges";
 import { AccountDetailSheet } from "@/components/sending/AccountDetailSheet";
 import { AddDomainDialog } from "@/components/sending/AddDomainDialog";
 import { ConnectMailboxDialog } from "@/components/sending/ConnectMailboxDialog";
+import { MailboxDailyLimitPopover } from "@/components/sending/MailboxDailyLimitPopover";
+
 import { DnsSetupDialog } from "@/components/sending/DnsSetupDialog";
 import { DomainsPanel } from "@/components/sending/DomainsPanel";
 import { DomainAlerts } from "@/components/sending/DomainAlerts";
