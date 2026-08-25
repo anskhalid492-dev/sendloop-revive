@@ -263,7 +263,9 @@ export async function processEventPayload(
           email: delivery.email,
           providerMessageId: delivery.providerMessageId,
           externalId: externalIdOf(payload, kind),
+          provider: delivery.provider,
           url,
+          occurredAt: delivery.occurredAt,
         });
 
         if (recorded) {
@@ -274,7 +276,13 @@ export async function processEventPayload(
             delivery.providerMessageId,
             delivery.email,
           );
-          if (message) await applyDeliveryState({ message, state: kind });
+          if (message) {
+            await applyDeliveryState({
+              message,
+              state: kind,
+              occurredAt: delivery.occurredAt,
+            });
+          }
         }
 
         await finish(eventId, {
@@ -291,6 +299,7 @@ export async function processEventPayload(
         email: delivery.email,
         providerMessageId: delivery.providerMessageId,
         reason: delivery.reason,
+        occurredAt: delivery.occurredAt,
       });
 
       if (kind !== "delayed" && kind !== "rejected") {
@@ -301,7 +310,9 @@ export async function processEventPayload(
           email: delivery.email,
           providerMessageId: delivery.providerMessageId,
           externalId: externalIdOf(payload, kind),
+          provider: delivery.provider,
           detail: delivery.reason,
+          occurredAt: delivery.occurredAt,
         });
       }
 

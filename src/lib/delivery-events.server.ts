@@ -52,20 +52,6 @@ export async function applyDeliveryEvent(args: {
   const workspaceId = message?.workspace_id ?? null;
   if (!workspaceId) return { status: "unmatched", reason: "No matching send" };
 
-  // Mirror onto the inbox copy of the outbound message when we have one.
-  if (args.providerMessageId) {
-    const deliveryStatus =
-      args.kind === "delivered" ? "delivered" : args.kind === "bounced" ? "bounced" : "sent";
-    await db
-      .from("conversation_messages")
-      .update({
-        delivery_status: deliveryStatus,
-        delivery_detail: args.reason,
-        ...(args.kind === "delivered" ? { delivered_at: nowIso } : {}),
-      })
-      .eq("provider_message_id", args.providerMessageId);
-  }
-
   // Fold the signal into the message's delivery state (out-of-order safe and
   // idempotent), so campaign metrics always reflect the real provider outcome.
   const { applyDeliveryState } = await import("@/lib/delivery-state.server");

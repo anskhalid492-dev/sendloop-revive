@@ -44,9 +44,23 @@ export function extractName(value: string): string | null {
   return match?.[1]?.trim() || null;
 }
 
+function addressString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const item = value as Record<string, unknown>;
+    const email = item["email"] ?? item["address"] ?? item["Email"];
+    const name = item["name"] ?? item["Name"];
+    if (typeof email === "string" && typeof name === "string" && name.trim()) {
+      return `${name} <${email}>`;
+    }
+    if (typeof email === "string") return email;
+  }
+  return "";
+}
+
 function firstAddress(value: unknown): string {
-  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : "";
-  return typeof value === "string" ? value.split(",")[0]! : "";
+  if (Array.isArray(value)) return addressString(value[0]);
+  return addressString(value).split(",")[0] ?? "";
 }
 
 export function headerOf(headers: unknown, name: string): string | null {
@@ -81,7 +95,19 @@ export type EventKind =
 
 /** Classifies the webhook event so delivery signals are not treated as replies. */
 export function classifyEvent(input: Record<string, unknown>): EventKind {
-  const raw = String(input["type"] ?? input["event"] ?? input["RecordType"] ?? "").toLowerCase();
+  const source =
+    input["data"] && typeof input["data"] === "object"
+      ? (input["data"] as Record<string, unknown>)
+      : input;
+  const raw = String(
+    input["type"] ??
+      input["event"] ??
+      input["RecordType"] ??
+      source["type"] ??
+      source["event"] ??
+      source["RecordType"] ??
+      "",
+  ).toLowerCase();
   if (!raw || raw.includes("received") || raw.includes("inbound")) return "inbound";
   if (raw.includes("delay") || raw.includes("defer")) return "delayed";
   if (raw.includes("bounce")) return "bounced";
@@ -104,12 +130,26 @@ export function externalIdOf(input: Record<string, unknown>, kind: EventKind): s
     input["event_id"] ??
     input["id"] ??
     source["event_id"] ??
+    source["id"] ??
+    source["sg_event_id"] ??
     source["email_id"] ??
     source["message_id"] ??
     source["messageId"] ??
     source["Message-Id"] ??
     headerOf(source["headers"], "message-id");
-  return id ? `${kind}:${String(id).replace(/[<>]/g, "").slice(0, 300)}` : null;
+  if (!id) return null;
+  const link = source["link"] ?? source["url"] ?? source["click"];
+  const url =
+    typeof link === "string"
+      ? link
+      : link && typeof link === "object"
+        ? String((link as Record<string, unknown>)["url"] ?? "")
+        : "";
+  const occurred = String(
+    input["created_at"] ?? source["created_at"] ?? source["timestamp"] ?? source["Timestamp"] ?? "",
+  );
+  const suffix = kind === "clicked" && url ? `:${url}` : kind === "opened" && occurred ? `:${occurred}` : "";
+  return `${kind}:${String(id).replace(/[<>]/g, "").slice(0, 260)}${suffix}`.slice(0, 400);
 }
 
 /** Reduces any supported provider shape to the fields ingestion needs. */
@@ -168,6 +208,9 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     (source["email_id"] as string) ??
     (source["message_id"] as string) ??
     (source["MessageID"] as string) ??
+    (source["messageId"] as string) ??
+    (source["Message-Id"] as string) ??
+    headerOf(source["headers"], "message-id") ??
     null;
   const reasonSource = (source["bounce"] ?? source) as Record<string, unknown>;
   const reason =
@@ -179,5 +222,14 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     email: to ? extractEmail(to) : null,
     providerMessageId: providerMessageId ? String(providerMessageId) : null,
     reason: reason ? String(reason).slice(0, 500) : null,
+    occurredAt:
+      typeof source["created_at"] === "string"
+        ? source["created_at"]
+        : typeof source["timestamp"] === "string"
+          ? source["timestamp"]
+          : typeof source["Timestamp"] === "string"
+            ? source["Timestamp"]
+            : null,
+    provider: typeof source["provider"] === "string" ? source["provider"] : null,
   };
 }

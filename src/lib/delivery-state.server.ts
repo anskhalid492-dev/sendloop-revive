@@ -99,6 +99,20 @@ export async function applyDeliveryState(args: {
     .from("campaign_messages")
     .update(patch as never)
     .eq("id", args.message.id);
+
+  const inboxPatch: Record<string, unknown> = { ...patch };
+  delete inboxPatch["status"];
+  delete inboxPatch["last_error"];
+  delete inboxPatch["last_event_at"];
+  delete inboxPatch["reconciled_at"];
+  if (advances) inboxPatch["delivery_status"] = args.state;
+  if (args.detail) inboxPatch["delivery_detail"] = args.detail.slice(0, 500);
+  if (Object.keys(inboxPatch).length) {
+    await supabaseAdmin
+      .from("conversation_messages")
+      .update(inboxPatch as never)
+      .eq("campaign_message_id", args.message.id);
+  }
   return advances ? args.state : current;
 }
 

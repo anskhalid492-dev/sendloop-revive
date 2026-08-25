@@ -79,21 +79,19 @@ export type AdminCampaignFilters = {
 };
 
 export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
   let q = db()
     .from("campaigns")
     .select(
       "id, name, status, workspace_id, created_by, created_at, updated_at, sending_account_ids, launched_at",
     )
-    .order("created_at", { ascending: false })
-    .limit(1000);
+    .order("created_at", { ascending: false });
   if (filters.workspaceId) q = q.eq("workspace_id", filters.workspaceId);
   if (filters.status) q = q.eq("status", filters.status);
   if (filters.from) q = q.gte("created_at", filters.from);
   if (filters.to) q = q.lte("created_at", filters.to);
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
 
-  let campaigns = (data ?? []) as any[];
+  let campaigns = await fetchAllRows<any>(() => q);
   if (filters.sendingAccountId) {
     campaigns = campaigns.filter((c) =>
       (c.sending_account_ids ?? []).includes(filters.sendingAccountId),
@@ -107,27 +105,34 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
 
   const [recipients, messages, replies, engagement, workspaces, owners, accounts, activities] =
     await Promise.all([
-      db().from("campaign_recipients").select("campaign_id, status").in("campaign_id", ids),
-      db()
-        .from("campaign_messages")
-        .select("campaign_id, status, sent_at")
-        .in("campaign_id", ids),
-      db().from("campaign_replies").select("campaign_id, sentiment, received_at").in("campaign_id", ids),
-      db()
-        .from("email_engagement_events")
-        .select("campaign_id, event_type")
-        .in("campaign_id", ids),
+      fetchByIds<any>(ids, (chunk) =>
+        db().from("campaign_recipients").select("campaign_id, status").in("campaign_id", chunk),
+      ),
+      fetchByIds<any>(ids, (chunk) =>
+        db().from("campaign_messages").select("campaign_id, status, sent_at").in("campaign_id", chunk),
+      ),
+      fetchByIds<any>(ids, (chunk) =>
+        db().from("campaign_replies").select("campaign_id, sentiment, received_at").in("campaign_id", chunk),
+      ),
+      fetchByIds<any>(ids, (chunk) =>
+        db()
+          .from("email_engagement_events")
+          .select("campaign_id, event_type, message_id, recipient_email")
+          .in("campaign_id", chunk),
+      ),
       workspaceNames(campaigns.map((c) => c.workspace_id)),
       profileNames(campaigns.map((c) => c.created_by)),
-      db().from("sending_accounts").select("id, from_email"),
-      db().from("lead_activities").select("campaign_id, type, created_at").in("campaign_id", ids),
+      fetchAllRows<any>(() => db().from("sending_accounts").select("id, from_email")),
+      fetchByIds<any>(ids, (chunk) =>
+        db().from("lead_activities").select("campaign_id, type, created_at").in("campaign_id", chunk),
+      ),
     ]);
 
-  const recipientCounts = tally(recipients.data ?? [], (r: any) => r.campaign_id);
+  const recipientCounts = tally(recipients, (r: any) => r.campaign_id);
   const sentCounts: Dict<number> = {};
   const bounceCounts: Dict<number> = {};
   const lastActivity: Dict<string> = {};
-  for (const m of (messages.data ?? []) as any[]) {
+  for (const m of messages as any[]) {
     if (m.status === "sent") sentCounts[m.campaign_id] = (sentCounts[m.campaign_id] ?? 0) + 1;
     if (m.status === "failed") bounceCounts[m.campaign_id] = (bounceCounts[m.campaign_id] ?? 0) + 1;
     if (m.sent_at && (!lastActivity[m.campaign_id] || m.sent_at > lastActivity[m.campaign_id]!))
@@ -135,28 +140,32 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   }
   const replyCounts: Dict<number> = {};
   const positiveCounts: Dict<number> = {};
-  for (const r of (replies.data ?? []) as any[]) {
+  for (const r of replies as any[]) {
     replyCounts[r.campaign_id] = (replyCounts[r.campaign_id] ?? 0) + 1;
     if (r.sentiment === "positive")
       positiveCounts[r.campaign_id] = (positiveCounts[r.campaign_id] ?? 0) + 1;
     if (r.received_at && (!lastActivity[r.campaign_id] || r.received_at > lastActivity[r.campaign_id]!))
       lastActivity[r.campaign_id] = r.received_at;
   }
-  const openCounts: Dict<number> = {};
+  const openKeys: Dict<Set<string>> = {};
   const bounceEvents: Dict<number> = {};
-  for (const e of (engagement.data ?? []) as any[]) {
-    if (e.event_type === "open" || e.event_type === "opened")
-      openCounts[e.campaign_id] = (openCounts[e.campaign_id] ?? 0) + 1;
+  for (const e of engagement as any[]) {
+    if (e.event_type === "open" || e.event_type === "opened") {
+      const key = e.message_id ?? e.recipient_email ?? `${e.campaign_id}:unknown`;
+      const set = openKeys[e.campaign_id] ?? new Set<string>();
+      set.add(String(key));
+      openKeys[e.campaign_id] = set;
+    }
     if (e.event_type === "bounce" || e.event_type === "bounced")
       bounceEvents[e.campaign_id] = (bounceEvents[e.campaign_id] ?? 0) + 1;
   }
   const meetingCounts: Dict<number> = {};
-  for (const a of (activities.data ?? []) as any[]) {
+  for (const a of activities as any[]) {
     if (String(a.type).toLowerCase().includes("meeting"))
       meetingCounts[a.campaign_id] = (meetingCounts[a.campaign_id] ?? 0) + 1;
   }
   const accountEmails: Dict<string> = {};
-  for (const a of (accounts.data ?? []) as any[]) accountEmails[a.id] = a.from_email;
+  for (const a of accounts as any[]) accountEmails[a.id] = a.from_email;
 
   return campaigns.map((c): AdminCampaignRow => {
     const owner = owners[c.created_by] ?? { email: null, name: null };
@@ -170,7 +179,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       ownerName: owner.name,
       leads: recipientCounts[c.id] ?? 0,
       sent: sentCounts[c.id] ?? 0,
-      opens: openCounts[c.id] ?? 0,
+      opens: openKeys[c.id]?.size ?? 0,
       replies: replyCounts[c.id] ?? 0,
       positiveReplies: positiveCounts[c.id] ?? 0,
       bounces: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),

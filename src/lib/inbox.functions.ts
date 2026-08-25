@@ -170,12 +170,21 @@ export const getInboxCounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ workspaceId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("conversations")
-      .select("status, unread, archived, snoozed_until, assigned_to, has_inbound, has_outbound")
-      .eq("workspace_id", data.workspaceId)
-      .limit(5000);
-    if (error) throw new Error(error.message);
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
+    const rows = await fetchAllRows<{
+      status: string;
+      unread: boolean;
+      archived: boolean;
+      snoozed_until: string | null;
+      assigned_to: string | null;
+      has_inbound: boolean;
+      has_outbound: boolean;
+    }>(() =>
+      context.supabase
+        .from("conversations")
+        .select("status, unread, archived, snoozed_until, assigned_to, has_inbound, has_outbound")
+        .eq("workspace_id", data.workspaceId),
+    );
     const now = Date.now();
     const counts: Record<string, number> = {};
     const bump = (key: string) => {
@@ -202,14 +211,13 @@ export const getInboxCounts = createServerFn({ method: "GET" })
       bump(row.status);
     }
     return counts;
-
-    return counts;
   });
 
 export const getInboxFacets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ workspaceId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
     const [campaigns, accounts, members, tagRows] = await Promise.all([
       context.supabase
         .from("campaigns")
@@ -227,11 +235,9 @@ export const getInboxFacets = createServerFn({ method: "GET" })
         .select("user_id, role")
         .eq("workspace_id", data.workspaceId)
         .limit(200),
-      context.supabase
-        .from("conversations")
-        .select("tags")
-        .eq("workspace_id", data.workspaceId)
-        .limit(2000),
+      fetchAllRows<{ tags: string[] | null }>(() =>
+        context.supabase.from("conversations").select("tags").eq("workspace_id", data.workspaceId),
+      ),
     ]);
 
     const memberIds = (members.data ?? []).map((m) => m.user_id);
@@ -247,7 +253,7 @@ export const getInboxFacets = createServerFn({ method: "GET" })
       }));
     }
 
-    const tags = [...new Set((tagRows.data ?? []).flatMap((r) => r.tags ?? []))].sort();
+    const tags = [...new Set(tagRows.flatMap((r) => r.tags ?? []))].sort();
 
     return {
       campaigns: campaigns.data ?? [],

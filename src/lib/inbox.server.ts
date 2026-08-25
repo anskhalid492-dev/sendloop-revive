@@ -468,7 +468,7 @@ async function applyReplyAutomation(args: {
   conversationId: string;
   leadId: string | null;
   campaignId: string | null;
-  campaignMessage: { id: string; recipient_id: string | null } | null;
+  campaignMessage: { id: string; recipient_id: string | null; sending_account_id?: string | null } | null;
   prospect: string;
   subject: string;
   detected: ConversationStatus | null;
@@ -578,8 +578,11 @@ async function applyReplyAutomation(args: {
       campaign_id: campaignId,
       message_id: campaignMessage.id,
       lead_id: leadId,
+      sending_account_id: campaignMessage.sending_account_id ?? null,
       from_email: args.prospect,
+      to_email: null,
       subject: args.subject || null,
+      body: args.replyBody,
       sentiment:
         args.detected === "interested"
           ? "positive"
@@ -691,6 +694,7 @@ export async function recordOutboundCampaignMessage(args: {
   toEmail: string;
   subject: string;
   body: string;
+  html?: string | null;
   providerMessageId: string | null;
   sentAt: string;
 }) {
@@ -739,6 +743,7 @@ export async function recordOutboundCampaignMessage(args: {
       to_email: prospect,
       subject: args.subject,
       body: args.body,
+      html: args.html ?? null,
       message_id: stripAngle(args.providerMessageId),
       campaign_message_id: args.campaignMessageId,
       sending_account_id: args.sendingAccountId,
