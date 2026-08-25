@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { listComposeMailboxes, saveDraft, sendComposedEmail } from "@/lib/inbox.functions";
+import { isMailboxLimitError, mailboxLimitMessage } from "@/lib/mailbox-capacity";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 export type ComposeSeed = {
   draftId?: string | null;
@@ -66,6 +69,7 @@ export function ComposeDialog({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
 
   const mailboxesQuery = useQuery({
     queryKey: ["compose-mailboxes", workspaceId],
@@ -84,11 +88,22 @@ export function ComposeDialog({
     setBody(seed?.body ?? "");
     setDraftId(seed?.draftId ?? null);
     setAccountId(seed?.sendingAccountId ?? "");
+    setLimitNotice(null);
   }, [open, seed]);
 
+  const eligible = useMemo(() => mailboxes.filter((m) => m.available), [mailboxes]);
+  const selected = useMemo(
+    () => mailboxes.find((m) => m.id === accountId) ?? null,
+    [mailboxes, accountId],
+  );
+
+  // Never leave an ineligible mailbox selected: prefer one that can still send.
   useEffect(() => {
-    if (!accountId && mailboxes.length) setAccountId(mailboxes[0]!.id);
-  }, [mailboxes, accountId]);
+    if (!mailboxes.length) return;
+    const current = mailboxes.find((m) => m.id === accountId);
+    if (current?.available) return;
+    if (eligible.length) setAccountId(eligible[0]!.id);
+  }, [mailboxes, eligible, accountId]);
 
   const sendMutation = useMutation({
     mutationFn: async () =>
@@ -105,13 +120,25 @@ export function ComposeDialog({
         },
       }),
     onSuccess: (result) => {
+      setLimitNotice(null);
       toast.success("Email sent");
       void queryClient.invalidateQueries({ queryKey: ["conversations", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["inbox-drafts", workspaceId] });
       onOpenChange(false);
       onSent?.(result.conversationId);
     },
-    onError: (error: Error) => toast.error(error.message || "The email could not be sent."),
+    onError: (error: Error) => {
+      // Keep the compose window and every field intact so the customer can
+      // simply pick another mailbox and retry.
+      if (isMailboxLimitError(error.message)) {
+        const detail = mailboxLimitMessage(error.message);
+        setLimitNotice(detail);
+        toast.error("Mailbox limit reached", { description: detail });
+        void mailboxesQuery.refetch();
+        return;
+      }
+      toast.error(error.message || "The email could not be sent.");
+    },
   });
 
   const draftMutation = useMutation({
@@ -138,7 +165,11 @@ export function ComposeDialog({
   });
 
   const canSend =
-    Boolean(workspaceId && accountId) && to.trim().length > 3 && subject.trim() && body.trim();
+    Boolean(workspaceId && accountId) &&
+    Boolean(selected?.available) &&
+    to.trim().length > 3 &&
+    Boolean(subject.trim()) &&
+    Boolean(body.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,21 +181,57 @@ export function ComposeDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {limitNotice ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Mailbox limit reached</AlertTitle>
+            <AlertDescription>{limitNotice}</AlertDescription>
+          </Alert>
+        ) : null}
+        {mailboxes.length > 0 && eligible.length === 0 ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>No mailbox available</AlertTitle>
+            <AlertDescription>
+              No sending mailboxes are currently available. Try again later.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         <div className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="compose-from">From</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
+            <Select value={accountId} onValueChange={(value) => { setAccountId(value); setLimitNotice(null); }}>
               <SelectTrigger id="compose-from">
-                <SelectValue placeholder={mailboxes.length ? "Choose a mailbox" : "No mailboxes assigned"} />
+                <SelectValue
+                  placeholder={mailboxes.length ? "Choose a mailbox" : "No mailboxes assigned"}
+                />
               </SelectTrigger>
               <SelectContent>
                 {mailboxes.map((mailbox) => (
-                  <SelectItem key={mailbox.id} value={mailbox.id}>
-                    {mailbox.from_name} · {mailbox.from_email}
+                  <SelectItem key={mailbox.id} value={mailbox.id} disabled={!mailbox.available}>
+                    <span className="flex flex-col text-left">
+                      <span className="font-medium">
+                        {mailbox.from_name} · {mailbox.from_email}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {mailbox.sentToday}/{mailbox.dailyLimit} sent today
+                        {mailbox.available
+                          ? ` · ${mailbox.dailyRemaining} remaining`
+                          : ` · ${mailbox.reasonLabel}`}
+                      </span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selected ? (
+              <p className="text-xs text-muted-foreground">
+                {selected.available
+                  ? `${selected.dailyRemaining} of ${selected.dailyLimit} emails remaining today`
+                  : selected.reasonLabel}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-1.5">
