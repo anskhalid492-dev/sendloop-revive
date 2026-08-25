@@ -45,7 +45,18 @@ export function extractName(value: string): string | null {
 }
 
 function addressString(value: unknown): string {
-  if (typeof value === "string") return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        return addressString(Array.isArray(parsed) ? parsed[0] : parsed);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
   if (value && typeof value === "object") {
     const item = value as Record<string, unknown>;
     const email = item["email"] ?? item["address"] ?? item["Email"];
