@@ -936,6 +936,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           .from("ai_personalizations")
           .select("content")
           .eq("campaign_id", data.campaignId)
+          .eq("workspace_id", campaign.workspace_id)
           .eq("lead_id", data.leadId)
           .eq("status", "completed")
           .maybeSingle();

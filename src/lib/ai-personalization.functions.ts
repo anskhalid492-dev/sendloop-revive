@@ -163,10 +163,27 @@ export const getLeadPersonalization = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.extend({ leadId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    const { data: campaign } = await context.supabase
+      .from("campaigns")
+      .select("workspace_id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (!campaign?.workspace_id) throw new Error("Campaign not found.");
+
+    const { data: recipient } = await context.supabase
+      .from("campaign_recipients")
+      .select("id")
+      .eq("campaign_id", data.campaignId)
+      .eq("workspace_id", campaign.workspace_id)
+      .eq("lead_id", data.leadId)
+      .maybeSingle();
+    if (!recipient) return null;
+
     const { data: row } = await context.supabase
       .from("ai_personalizations")
       .select("id, status, quality, content, data_used, error")
       .eq("campaign_id", data.campaignId)
+      .eq("workspace_id", campaign.workspace_id)
       .eq("lead_id", data.leadId)
       .maybeSingle();
     if (!row) return null;
