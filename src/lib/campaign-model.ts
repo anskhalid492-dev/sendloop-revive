@@ -494,7 +494,7 @@ export type VariableStatus = "ok" | "partial" | "empty" | "unknown";
 export type VariableCheck = {
   token: string;
   label: string;
-  source: "lead" | "custom_variable" | "custom_field" | "system" | "unknown";
+  source: "lead" | "custom_variable" | "custom_field" | "system" | "ai" | "unknown";
   fallback: string;
   filled: number;
   total: number;
@@ -512,6 +512,7 @@ export function auditVariables(
     leads?: LeadLike[];
     customVariables?: CustomVariable[];
     customFieldKeys?: string[];
+    aiPersonalization?: { total: number; personalized: number };
   } = {},
 ): VariableCheck[] {
   const leads = options.leads ?? [];
@@ -520,7 +521,9 @@ export function auditVariables(
 
   return parseVariables(template).map((use) => {
     const custom = customVariables.find((v) => v.token === use.token);
-    const source: VariableCheck["source"] = SYSTEM_VARIABLES.has(use.token)
+    const source: VariableCheck["source"] = use.token === AI_VARIABLE_TOKEN
+      ? "ai"
+      : SYSTEM_VARIABLES.has(use.token)
       ? "system"
       : isLeadVariable(use.token)
         ? "lead"
@@ -532,11 +535,18 @@ export function auditVariables(
 
     const label = custom?.label ?? variableLabel(use.token);
     const hasFallback = Boolean(use.fallback) || Boolean(custom?.defaultValue.trim());
-    const total = leads.length;
-    const filled = leads.filter((lead) => Boolean(leadValue(lead, use.token))).length;
+    const total = source === "ai" ? (options.aiPersonalization?.total ?? 0) : leads.length;
+    const filled = source === "ai"
+      ? (options.aiPersonalization?.personalized ?? 0)
+      : leads.filter((lead) => Boolean(leadValue(lead, use.token))).length;
 
     let status: VariableStatus;
-    if (source === "unknown") status = hasFallback ? "ok" : "unknown";
+    if (source === "ai") {
+      if (total === 0) status = "empty";
+      else if (filled >= total) status = "ok";
+      else if (filled > 0) status = "partial";
+      else status = "empty";
+    } else if (source === "unknown") status = hasFallback ? "ok" : "unknown";
     else if (source === "system" || hasFallback) status = "ok";
     else if (total === 0) status = "ok";
     else if (filled === total) status = "ok";

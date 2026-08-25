@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AI_VARIABLE_TOKEN,
   LEAD_VARIABLES,
   STEP_TYPE_LABELS,
   VARIABLE_GROUPS,
@@ -64,6 +65,7 @@ import { AiTab } from "./AiTab";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { getAiPersonalizationCoverage } from "@/lib/ai-personalization.functions";
 import { listTemplates } from "@/lib/templates.functions";
 
 const STEP_ICONS: Record<StepType, typeof Mail> = {
@@ -148,6 +150,7 @@ export function SequencesTab({
 
   const { workspace } = useWorkspace();
   const fetchTemplates = useServerFn(listTemplates);
+  const fetchAiCoverage = useServerFn(getAiPersonalizationCoverage);
   const templatesQuery = useQuery({
     queryKey: ["templates", workspace?.id ?? null],
     queryFn: () => fetchTemplates({ data: { workspaceId: workspace?.id ?? null } }),
@@ -191,20 +194,76 @@ export function SequencesTab({
   const activeVariant = step?.variants[variantIndex];
   const editingSubject = activeVariant ? activeVariant.subject : (step?.subject ?? "");
   const editingBody = activeVariant ? activeVariant.body : (step?.body ?? "");
+  const usesAiPersonalization = `${editingSubject} ${editingBody}`.includes(AI_VARIABLE_TOKEN);
+  const aiCoverageQuery = useQuery({
+    queryKey: ["ai-personalization-coverage", builder.campaignId],
+    queryFn: () => fetchAiCoverage({ data: { campaignId: builder.campaignId } }),
+    enabled: usesAiPersonalization,
+    refetchInterval: usesAiPersonalization ? 15_000 : false,
+  });
 
   const leadRows = useMemo(
     () => leads.map((l) => l.lead).filter(Boolean) as unknown as LeadLike[],
     [leads],
   );
   const variableChecks = useMemo(
-    () =>
-      auditVariables(`${editingSubject} ${editingBody}`, {
+    () => {
+      const auditOptions: Parameters<typeof auditVariables>[1] = {
         leads: leadRows,
         customVariables,
         customFieldKeys: customFields,
-      }),
-    [editingSubject, editingBody, leadRows, customVariables, customFields],
+      };
+      if (aiCoverageQuery.data) {
+        auditOptions.aiPersonalization = {
+          total: aiCoverageQuery.data.total,
+          personalized: aiCoverageQuery.data.personalized,
+        };
+      }
+      return auditVariables(`${editingSubject} ${editingBody}`, auditOptions);
+    },
+    [editingSubject, editingBody, leadRows, customVariables, customFields, aiCoverageQuery.data],
   );
+
+  const variableTitle = (check: (typeof variableChecks)[number]) => {
+    if (check.token === AI_VARIABLE_TOKEN) {
+      if (aiCoverageQuery.isLoading) return "Checking stored AI personalization…";
+      if (check.total === 0) return "No campaign leads selected";
+      if (check.status === "ok") return `AI personalization ready for all ${check.total} leads`;
+      if (check.status === "partial") {
+        return `AI personalization missing for ${check.total - check.filled} of ${check.total} leads`;
+      }
+      return "AI personalization hasn't been generated yet";
+    }
+    return check.status === "ok"
+      ? "Available for every selected lead"
+      : check.status === "partial"
+        ? `Missing for ${check.total - check.filled} of ${check.total} leads — add a fallback like {{${check.token} | there}}`
+        : check.status === "empty"
+          ? "Empty for every selected lead"
+          : "Not a known lead field or custom variable";
+  };
+
+  const variableCopy = (check: (typeof variableChecks)[number]) => {
+    if (check.token === AI_VARIABLE_TOKEN) {
+      if (aiCoverageQuery.isLoading) return "AI personalization (checking stored personalization)";
+      if (check.total === 0) return "AI personalization (no campaign leads)";
+      if (check.status === "ok") return "AI personalization ready for all leads";
+      if (check.status === "partial") {
+        const missing = check.total - check.filled;
+        return `AI personalization missing for ${missing} lead${missing === 1 ? "" : "s"}`;
+      }
+      return "AI personalization hasn't been generated yet";
+    }
+    return `${check.label}${
+      check.status === "partial"
+        ? ` (${check.filled}/${check.total} leads)`
+        : check.status === "empty"
+          ? " (empty for all leads)"
+          : check.status === "unknown"
+            ? " (unknown variable)"
+            : ""
+    }`;
+  };
 
 
 
@@ -502,29 +561,14 @@ export function SequencesTab({
                               (check.status === "empty" || check.status === "unknown") &&
                                 "text-destructive",
                             )}
-                            title={
-                              check.status === "ok"
-                                ? "Available for every selected lead"
-                                : check.status === "partial"
-                                  ? `Missing for ${check.total - check.filled} of ${check.total} leads — add a fallback like {{${check.token} | there}}`
-                                  : check.status === "empty"
-                                    ? "Empty for every selected lead"
-                                    : "Not a known lead field or custom variable"
-                            }
+                            title={variableTitle(check)}
                           >
                             {check.status === "ok" ? (
                               <Check className="size-3" />
                             ) : (
                               <AlertTriangle className="size-3" />
                             )}
-                            {check.label}
-                            {check.status === "partial"
-                              ? ` (${check.filled}/${check.total} leads)`
-                              : check.status === "empty"
-                                ? " (empty for all leads)"
-                                : check.status === "unknown"
-                                  ? " (unknown variable)"
-                                  : ""}
+                            {variableCopy(check)}
                           </span>
                         ))}
                       </div>

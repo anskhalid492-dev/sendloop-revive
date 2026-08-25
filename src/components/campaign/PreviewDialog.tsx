@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -39,7 +39,12 @@ import {
   variableResolutionReport,
   type LeadLike,
 } from "@/lib/campaign-model";
-import { getLeadPersonalization, previewAiPersonalization } from "@/lib/ai-personalization.functions";
+import type { AiPersonalizationCoverageLead } from "@/lib/ai-personalization-model";
+import {
+  getAiPersonalizationCoverage,
+  getLeadPersonalization,
+  previewAiPersonalization,
+} from "@/lib/ai-personalization.functions";
 import { listCampaignTestDiagnostics, sendCampaignTestEmail } from "@/lib/campaigns.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -106,13 +111,19 @@ function useResolved(
   leadId: string,
   variantIndex = -1,
   aiSnippet?: string | null,
+  previewLead?: AiPersonalizationCoverageLead | null,
 ) {
   const step = builder.steps[stepIndex];
   const customVariables = builder.settings?.customVariables ?? [];
   const lead = useMemo<LeadLike>(() => {
     const row = builder.leads.find((l) => l.lead_id === leadId)?.lead;
-    return row ? ({ ...SAMPLE, ...row } as LeadLike) : SAMPLE;
-  }, [builder.leads, leadId]);
+    const serverLead = previewLead?.id === leadId ? previewLead : null;
+    return row
+      ? ({ ...SAMPLE, ...row } as LeadLike)
+      : serverLead
+        ? ({ ...SAMPLE, ...serverLead } as LeadLike)
+        : SAMPLE;
+  }, [builder.leads, leadId, previewLead]);
 
   // A/B variants are what actually gets delivered when they exist, so the
   // preview has to resolve the selected variant, not just the base copy.
@@ -231,6 +242,18 @@ export function PreviewDialog({
   const [variantIndex, setVariantIndex] = useState(-1);
   const rawStep = builder.steps[stepIndex];
   const usesAi = `${rawStep?.subject ?? ""} ${rawStep?.body ?? ""}`.includes(AI_VARIABLE_TOKEN);
+  const fetchAiCoverage = useServerFn(getAiPersonalizationCoverage);
+  const aiCoverage = useQuery({
+    queryKey: ["ai-personalization-coverage", builder.campaignId],
+    queryFn: () => fetchAiCoverage({ data: { campaignId: builder.campaignId } }),
+    enabled: open && usesAi,
+  });
+
+  useEffect(() => {
+    if (!usesAi || leadId !== "__sample__" || !aiCoverage.data?.sampleLeadId) return;
+    setLeadId(aiCoverage.data.sampleLeadId);
+  }, [usesAi, leadId, aiCoverage.data?.sampleLeadId]);
+
   const ai = useAiSnippet(builder, leadId, usesAi);
   const { step, subject, body, rawSubject, rawBody, extras } = useResolved(
     builder,
@@ -238,6 +261,7 @@ export function PreviewDialog({
     leadId,
     variantIndex,
     ai.content,
+    aiCoverage.data?.sampleLead ?? null,
   );
 
   const account =
@@ -266,6 +290,12 @@ export function PreviewDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__sample__">Sample lead (Alex at Acme)</SelectItem>
+                  {aiCoverage.data?.sampleLeadId &&
+                  !builder.leads.some((row) => row.lead_id === aiCoverage.data?.sampleLeadId) ? (
+                    <SelectItem value={aiCoverage.data.sampleLeadId}>
+                      {aiCoverage.data.sampleLead?.email ?? "Personalized campaign lead"}
+                    </SelectItem>
+                  ) : null}
                   {builder.leads.slice(0, 50).map((row) => (
                     <SelectItem key={row.lead_id} value={row.lead_id}>
                       {row.lead?.email ?? row.lead_id}

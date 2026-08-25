@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { campaignInput, configSchema } from "@/lib/ai-personalization-schemas";
 import {
   normalizeAiConfig,
   type AiPersonalizationConfig,
@@ -9,20 +10,7 @@ import {
   type PersonalizationRow,
   type PersonalizationStats,
 } from "@/lib/ai-personalization-model";
-
-const configSchema = z.object({
-  level: z.enum(["light", "balanced", "deep"]),
-  tone: z.enum(["professional", "friendly", "direct", "conversational", "curious"]),
-  length: z.enum(["one_line", "two_lines", "short_paragraph"]),
-  language: z.string().min(2).max(40),
-  instructions: z.string().max(4000),
-  fields: z.array(z.string()).max(20),
-  exampleOutput: z.string().max(2000),
-  fallbackMode: z.enum(["fallback_text", "skip", "hold"]),
-  fallbackText: z.string().max(600),
-});
-
-const campaignInput = z.object({ campaignId: z.string().uuid() });
+import { chunk, ID_FILTER_CHUNK, ROW_PAGE_SIZE } from "@/lib/supabase-batch";
 
 export const getAiSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -137,6 +125,7 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
           .from("ai_personalizations")
           .select("id")
           .eq("campaign_id", data.campaignId)
+          .eq("workspace_id", campaign.workspace_id)
           .eq("lead_id", data.leadId)
           .maybeSingle();
         if (existing?.id) {
@@ -163,10 +152,27 @@ export const getLeadPersonalization = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.extend({ leadId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    const { data: campaign } = await context.supabase
+      .from("campaigns")
+      .select("workspace_id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (!campaign?.workspace_id) throw new Error("Campaign not found.");
+
+    const { data: recipient } = await context.supabase
+      .from("campaign_recipients")
+      .select("id")
+      .eq("campaign_id", data.campaignId)
+      .eq("workspace_id", campaign.workspace_id)
+      .eq("lead_id", data.leadId)
+      .maybeSingle();
+    if (!recipient) return null;
+
     const { data: row } = await context.supabase
       .from("ai_personalizations")
       .select("id, status, quality, content, data_used, error")
       .eq("campaign_id", data.campaignId)
+      .eq("workspace_id", campaign.workspace_id)
       .eq("lead_id", data.leadId)
       .maybeSingle();
     if (!row) return null;
@@ -179,21 +185,6 @@ export const getLeadPersonalization = createServerFn({ method: "GET" })
       error: (row.error ?? null) as string | null,
     };
   });
-
-
-/** PostgREST filters travel in the URL — 1,000 UUIDs blow past the gateway
- *  header limit and come back as a bare HTTP 400. Keep every `in(...)` small. */
-const ID_CHUNK = 120;
-/** Row pages for reads that can exceed PostgREST's default 1,000-row cap. */
-const PAGE_SIZE = 1000;
-/** Insert batches, so a large queue never becomes one giant request body. */
-const INSERT_CHUNK = 400;
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
 
 /**
  * Queue personalization for a campaign's recipients.
@@ -247,7 +238,7 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
     // workspace. Paged, because a campaign can hold far more than 1,000 rows.
     const leadIdSet = new Set<string>();
     if (data.leadIds?.length) {
-      for (const ids of chunk(data.leadIds, ID_CHUNK)) {
+      for (const ids of chunk(data.leadIds, ID_FILTER_CHUNK)) {
         const { data: rows, error } = await context.supabase
           .from("campaign_recipients")
           .select("lead_id")
@@ -258,18 +249,18 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
         for (const row of (rows ?? []) as Array<{ lead_id: string }>) leadIdSet.add(row.lead_id);
       }
     } else {
-      for (let from = 0; ; from += PAGE_SIZE) {
+      for (let from = 0; ; from += ROW_PAGE_SIZE) {
         const { data: rows, error } = await context.supabase
           .from("campaign_recipients")
           .select("lead_id")
           .eq("campaign_id", data.campaignId)
           .eq("workspace_id", workspaceId)
           .order("lead_id", { ascending: true })
-          .range(from, from + PAGE_SIZE - 1);
+          .range(from, from + ROW_PAGE_SIZE - 1);
         if (error) throw new Error(error.message);
         const page = (rows ?? []) as Array<{ lead_id: string }>;
         for (const row of page) leadIdSet.add(row.lead_id);
-        if (page.length < PAGE_SIZE) break;
+        if (page.length < ROW_PAGE_SIZE) break;
       }
     }
 
@@ -280,11 +271,12 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
       string,
       { id: string; lead_id: string; status: string; prompt_hash: string | null }
     >();
-    for (const ids of chunk(leadIds, ID_CHUNK)) {
+    for (const ids of chunk(leadIds, ID_FILTER_CHUNK)) {
       const { data: existing, error } = await context.supabase
         .from("ai_personalizations")
         .select("id, lead_id, status, prompt_hash")
         .eq("campaign_id", data.campaignId)
+        .eq("workspace_id", workspaceId)
         .in("lead_id", ids);
       if (error) throw new Error(error.message);
       for (const row of (existing ?? []) as Array<{
@@ -332,11 +324,11 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
       toRequeue.push(row.id);
     }
 
-    for (const batch of chunk(toInsert, INSERT_CHUNK)) {
+    for (const batch of chunk(toInsert, 400)) {
       const { error } = await context.supabase.from("ai_personalizations").insert(batch);
       if (error) throw new Error(error.message);
     }
-    for (const ids of chunk(toRequeue, ID_CHUNK)) {
+    for (const ids of chunk(toRequeue, ID_FILTER_CHUNK)) {
       const { error } = await context.supabase
         .from("ai_personalizations")
         .update({
@@ -377,35 +369,9 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.parse(input))
   .handler(async ({ data, context }): Promise<PersonalizationStats & { paused: string | null }> => {
-    // Counts, not rows: PostgREST caps row reads at 1,000, so a 1,000+ lead
-    // campaign would otherwise report a frozen progress number.
-    const base = () =>
-      context.supabase
-        .from("ai_personalizations")
-        .select("id", { count: "exact", head: true })
-        .eq("campaign_id", data.campaignId);
-    const qualityCount = (value: string) => base().eq("status", "completed").eq("quality", value);
-
-    const [
-      eligibleRes,
-      completedRes,
-      failedRes,
-      queuedRes,
-      completeRes,
-      limitedRes,
-      fallbackRes,
-      runnerRes,
-    ] = await Promise.all([
-      context.supabase
-        .from("campaign_recipients")
-        .select("lead_id", { count: "exact", head: true })
-        .eq("campaign_id", data.campaignId),
-      base().eq("status", "completed"),
-      base().eq("status", "failed"),
-      base().in("status", ["queued", "processing"]),
-      qualityCount("complete"),
-      qualityCount("limited"),
-      qualityCount("fallback"),
+    const { campaignAiCoverage } = await import("@/lib/ai-personalization.server");
+    const [coverage, runnerRes] = await Promise.all([
+      campaignAiCoverage(context.supabase, data.campaignId),
       context.supabase
         .from("ai_runner_state")
         .select("paused_reason")
@@ -413,22 +379,25 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
-    const eligible = eligibleRes.count ?? 0;
-    const personalized = completedRes.count ?? 0;
-
     return {
-      eligible,
-      personalized,
-      complete: completeRes.count ?? 0,
-      limited: limitedRes.count ?? 0,
-      fallback: fallbackRes.count ?? 0,
-      failed: failedRes.count ?? 0,
-      queued: queuedRes.count ?? 0,
-      remaining: Math.max(0, eligible - personalized),
+      eligible: coverage.total,
+      personalized: coverage.personalized,
+      complete: coverage.complete,
+      limited: coverage.limited,
+      fallback: coverage.fallback,
+      failed: coverage.failed,
+      queued: coverage.queued,
+      remaining: coverage.missing,
       paused: (runnerRes.data?.paused_reason as string | null) ?? null,
     };
+  });
 
-
+export const getAiPersonalizationCoverage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => campaignInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { campaignAiCoverage } = await import("@/lib/ai-personalization.server");
+    return campaignAiCoverage(context.supabase, data.campaignId);
   });
 
 export const listAiPersonalizations = createServerFn({ method: "GET" })
