@@ -115,7 +115,7 @@ async function findCampaignMessage(
     let campaignQuery = db
       .from("campaign_messages")
       .select(CAMPAIGN_MESSAGE_COLUMNS)
-      .or(`provider_message_id.in.${list},message_id.in.${list}`)
+      .or(`provider_message_id.in.${list}`)
       .limit(1);
     if (mailboxWorkspaceId) campaignQuery = campaignQuery.eq("workspace_id", mailboxWorkspaceId);
     if (mailboxAccountId) campaignQuery = campaignQuery.eq("sending_account_id", mailboxAccountId);

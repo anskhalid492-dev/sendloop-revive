@@ -295,7 +295,7 @@ export async function getInboxHealthSummary() {
  * routed reply address, then reports whether a reply came back through it.
  */
 export async function runInboundTest(args: { userId: string; toEmail: string }) {
-  const { mintReplyAddress, tokenFromAddress } = await import("@/lib/inbound-routing.server");
+  const { mintRequiredReplyAddress, tokenFromAddress } = await import("@/lib/inbound-routing.server");
 
   const { data: account } = await supabaseAdmin
     .from("sending_accounts")
@@ -307,12 +307,11 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   if (!account) throw new Error("No managed mailbox is available to send the test from.");
   if (!account.workspace_id) throw new Error("The available mailbox is not assigned to a workspace.");
 
-  const replyTo = await mintReplyAddress(account.from_email, {
+  const replyTo = await mintRequiredReplyAddress(account.from_email, {
     workspaceId: account.workspace_id,
     sendingAccountId: account.id,
     purpose: "inbound_test",
   });
-  if (!replyTo) throw new Error("Configure a reply-to inbox before running the test.");
 
   // Platform diagnostics never consume a customer's allowance, but the send is
   // recorded so an admin test can always be told apart from real usage.
