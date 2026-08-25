@@ -75,14 +75,38 @@ function firstAddress(value: unknown): string {
   return addressString(value).split(",")[0] ?? "";
 }
 
+function addressCandidates(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(addressString).flatMap((entry) => entry.split(","));
+  return addressString(value).split(",");
+}
+
+function firstCleanAddress(...values: unknown[]): string {
+  for (const value of values) {
+    for (const candidate of addressCandidates(value)) {
+      const clean = candidate.trim();
+      if (clean) return clean;
+    }
+  }
+  return "";
+}
+
+function hasPlusRoute(value: string): boolean {
+  const match = /<([^>]+)>/.exec(value);
+  const address = (match?.[1] ?? value).trim().toLowerCase();
+  const local = address.split("@")[0] ?? "";
+  return /\+[a-z0-9]{8,64}$/.test(local);
+}
+
 export function headerOf(headers: unknown, name: string): string | null {
   if (!headers || typeof headers !== "object") return null;
   const wanted = name.toLowerCase();
   if (Array.isArray(headers)) {
     for (const entry of headers) {
-      if (entry && typeof entry === "object" && typeof (entry as { name?: string }).name === "string") {
-        const item = entry as { name: string; value?: unknown };
-        if (item.name.toLowerCase() === wanted && typeof item.value === "string") return item.value;
+      if (entry && typeof entry === "object") {
+        const item = entry as { key?: unknown; name?: unknown; Name?: unknown; value?: unknown; Value?: unknown };
+        const headerName = item.name ?? item.key ?? item.Name;
+        const headerValue = item.value ?? item.Value;
+        if (typeof headerName === "string" && headerName.toLowerCase() === wanted && typeof headerValue === "string") return headerValue;
       }
     }
     return null;
@@ -122,6 +146,42 @@ function headerFromAny(source: Record<string, unknown>, name: string): string | 
     if (value) return value;
   }
   return null;
+}
+
+function firstHeaderFromAny(source: Record<string, unknown>, names: string[]): string {
+  for (const name of names) {
+    const value = headerFromAny(source, name);
+    if (value) return value;
+  }
+  return "";
+}
+
+function bestRecipientAddress(source: Record<string, unknown>): string {
+  const message = objectOf(source["message"]);
+  const envelope = objectOf(source["envelope"]);
+  const candidateGroups = [
+    source["recipient"],
+    source["recipients"],
+    source["envelope_to"],
+    source["envelopeTo"],
+    envelope?.["to"],
+    envelope?.["recipient"],
+    message?.["to"],
+    source["to"],
+    source["To"],
+    firstHeaderFromAny(source, [
+      "Delivered-To",
+      "X-Original-To",
+      "Original-Recipient",
+      "Envelope-To",
+      "X-Envelope-To",
+      "X-Forwarded-To",
+      "To",
+    ]),
+  ];
+
+  const candidates = candidateGroups.flatMap(addressCandidates).map((value) => value.trim()).filter(Boolean);
+  return candidates.find(hasPlusRoute) ?? candidates[0] ?? "";
 }
 
 export type EventKind =
@@ -207,9 +267,8 @@ export function normalizeInbound(input: Record<string, unknown>): Record<string,
 
   const headers = source["headers"];
   const rawFrom =
-    firstAddress(source["from"]) || firstAddress(source["sender"]) || firstAddress(source["From"]);
-  const rawTo =
-    firstAddress(source["to"]) || firstAddress(source["recipient"]) || firstAddress(source["To"]);
+    firstCleanAddress(source["from"], source["sender"], source["From"], headerFromAny(source, "From"));
+  const rawTo = bestRecipientAddress(source);
   if (!rawFrom || !rawTo) return null;
 
   const cc = source["cc"] ?? source["Cc"];
