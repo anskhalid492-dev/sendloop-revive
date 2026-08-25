@@ -33,6 +33,7 @@ export type OutboundMessage = {
 export type SendResult = {
   ok: boolean;
   messageId?: string | undefined;
+  rfcMessageId?: string | undefined;
   requestId?: string | undefined;
   statusCode?: number | undefined;
   providerResponse?: string | undefined;
@@ -122,6 +123,7 @@ function makeAdapter(id: string): ProviderAdapter {
         ok: result.ok,
         message: result.message,
         messageId: result.messageId,
+        rfcMessageId: result.rfcMessageId,
         requestId: result.requestId,
         statusCode: result.statusCode,
         providerResponse: result.providerResponse,

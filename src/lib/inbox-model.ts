@@ -131,12 +131,15 @@ export function normalizeSubject(subject: string | null | undefined): string {
 /** One conversation per prospect per campaign; standalone threads fall back to the email. */
 export function buildThreadKey(input: {
   campaignId?: string | null;
+  sendingAccountId?: string | null;
   prospectEmail: string;
   subject?: string | null;
 }): string {
   const email = input.prospectEmail.trim().toLowerCase();
   if (input.campaignId) return `campaign:${input.campaignId}:${email}`;
+  const account = input.sendingAccountId?.trim();
   const subject = normalizeSubject(input.subject);
+  if (account) return subject ? `direct:${account}:${email}:${subject}` : `direct:${account}:${email}`;
   return subject ? `direct:${email}:${subject}` : `direct:${email}`;
 }
 

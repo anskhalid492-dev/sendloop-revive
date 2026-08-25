@@ -8,6 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
   senderExtras,
@@ -825,6 +826,7 @@ export async function dispatchDueMessages(
         subject: message.subject,
         body: message.body,
         html,
+        messageId: send.rfcMessageId ?? send.messageId ?? null,
         providerMessageId: send.messageId ?? null,
         sentAt,
       });
@@ -837,6 +839,7 @@ export async function dispatchDueMessages(
         status: "sent",
         sent_at: sentAt,
         provider: account.provider,
+        message_id: send.rfcMessageId ? stripAngle(send.rfcMessageId) : stripAngle(send.messageId ?? null),
         provider_message_id: send.messageId ?? null,
         message_type: "campaign",
         last_error: null,

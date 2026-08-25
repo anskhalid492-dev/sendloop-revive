@@ -77,6 +77,7 @@ async function findCampaignMessage(
   email: InboundEmail,
   prospect: string,
   mailboxWorkspaceId: string | null,
+  mailboxAccountId: string | null,
 ) {
   const candidates = threadCandidates(email);
 
@@ -110,7 +111,9 @@ async function findCampaignMessage(
   }
 
   // No usable threading headers: fall back to the most recent email actually
-  // sent to this prospect, preferring the workspace that owns the mailbox.
+  // sent to this prospect from the mailbox that received the reply. Never claim
+  // a reply through a different workspace/default/first mailbox when we know the
+  // recipient mailbox.
   let query = db
     .from("campaign_messages")
     .select(CAMPAIGN_MESSAGE_COLUMNS)
@@ -119,10 +122,11 @@ async function findCampaignMessage(
     .order("sent_at", { ascending: false })
     .limit(1);
   if (mailboxWorkspaceId) query = query.eq("workspace_id", mailboxWorkspaceId);
+  if (mailboxAccountId) query = query.eq("sending_account_id", mailboxAccountId);
   const { data: fallback } = await query;
   if (fallback?.[0]) return fallback[0];
 
-  if (mailboxWorkspaceId) {
+  if (mailboxWorkspaceId && !mailboxAccountId) {
     const { data: anyWorkspace } = await db
       .from("campaign_messages")
       .select(CAMPAIGN_MESSAGE_COLUMNS)
@@ -179,14 +183,17 @@ async function findConversationByParticipants(
   workspaceId: string,
   prospect: string,
   subject: string,
+  sendingAccountId: string | null,
 ) {
-  const { data } = await db
+  let query = db
     .from("conversations")
     .select("id, subject, last_message_at")
     .eq("workspace_id", workspaceId)
     .eq("prospect_email", prospect)
     .order("last_message_at", { ascending: false })
     .limit(20);
+  if (sendingAccountId) query = query.eq("sending_account_id", sendingAccountId);
+  const { data } = await query;
   const rows = (data ?? []) as { id: string; subject: string | null }[];
   if (!rows.length) return null;
 
@@ -257,6 +264,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     email,
     prospect,
     route?.workspace_id ?? mailboxAccount?.workspace_id ?? null,
+    route?.sending_account_id ?? mailboxAccount?.id ?? null,
   );
   const workspaceId =
     route?.workspace_id ?? campaignMessage?.workspace_id ?? mailboxAccount?.workspace_id ?? null;
@@ -314,7 +322,12 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
 
 
   const campaignId = route?.campaign_id ?? campaignMessage?.campaign_id ?? null;
-  const threadKey = buildThreadKey({ campaignId, prospectEmail: prospect, subject });
+  const threadKey = buildThreadKey({
+    campaignId,
+    prospectEmail: prospect,
+    subject,
+    sendingAccountId,
+  });
 
   // Thread resolution, strongest signal first:
   // 1. routing token pointing at an exact thread
@@ -340,7 +353,13 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     if (id) routedConversation = await loadConversation(db, id);
   }
   if (!routedConversation) {
-    routedConversation = await findConversationByParticipants(db, workspaceId, prospect, subject);
+    routedConversation = await findConversationByParticipants(
+      db,
+      workspaceId,
+      prospect,
+      subject,
+      sendingAccountId,
+    );
   }
 
 
@@ -678,6 +697,7 @@ export async function recordOutboundCampaignMessage(args: {
   subject: string;
   body: string;
   html?: string | null;
+  messageId: string | null;
   providerMessageId: string | null;
   sentAt: string;
 }) {
@@ -727,7 +747,7 @@ export async function recordOutboundCampaignMessage(args: {
       subject: args.subject,
       body: args.body,
       html: args.html ?? null,
-      message_id: stripAngle(args.providerMessageId),
+      message_id: stripAngle(args.messageId ?? args.providerMessageId),
       campaign_message_id: args.campaignMessageId,
       sending_account_id: args.sendingAccountId,
       provider_message_id: args.providerMessageId,
