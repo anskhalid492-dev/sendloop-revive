@@ -366,11 +366,18 @@ export async function personalizationByLead(
 ): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   if (!leadIds.length) return out;
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select("workspace_id")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (!campaign?.workspace_id) return out;
   for (let i = 0; i < leadIds.length; i += 300) {
     const { data } = await supabase
       .from("ai_personalizations")
       .select("lead_id, content, status")
       .eq("campaign_id", campaignId)
+      .eq("workspace_id", campaign.workspace_id)
       .eq("status", "completed")
       .in("lead_id", leadIds.slice(i, i + 300));
     for (const row of (data ?? []) as Array<{ lead_id: string; content: string | null }>) {
@@ -378,6 +385,118 @@ export async function personalizationByLead(
     }
   }
   return out;
+}
+
+/** Exact coverage of stored AI snippets for the campaign's actual recipients. */
+export async function campaignAiCoverage(supabase: Client, campaignId: string) {
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+
+  const { data: campaign, error: campaignError } = await supabase
+    .from("campaigns")
+    .select("id, workspace_id")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaign?.workspace_id) throw new Error("Campaign not found.");
+  const workspaceId = campaign.workspace_id as string;
+
+  const recipients = await fetchAllRows<{ lead_id: string }>(() =>
+    supabase
+      .from("campaign_recipients")
+      .select("lead_id")
+      .eq("campaign_id", campaignId)
+      .eq("workspace_id", workspaceId)
+      .order("id", { ascending: true }),
+  );
+  const leadIds = [...new Set(recipients.map((row) => row.lead_id).filter(Boolean))];
+
+  if (!leadIds.length) {
+    return {
+      campaignId,
+      workspaceId,
+      total: 0,
+      personalized: 0,
+      missing: 0,
+      queued: 0,
+      failed: 0,
+      complete: 0,
+      limited: 0,
+      fallback: 0,
+      promptHashes: [] as string[],
+      sampleLeadId: null as string | null,
+      sampleLead: null as Record<string, unknown> | null,
+    };
+  }
+
+  const rows = await fetchByIds<{
+    lead_id: string;
+    status: string | null;
+    content: string | null;
+    quality: string | null;
+    prompt_hash: string | null;
+  }>(leadIds, (ids) =>
+    supabase
+      .from("ai_personalizations")
+      .select("lead_id, status, content, quality, prompt_hash")
+      .eq("campaign_id", campaignId)
+      .eq("workspace_id", workspaceId)
+      .in("lead_id", ids),
+  );
+
+  const validLeadIds = new Set<string>();
+  const queuedLeadIds = new Set<string>();
+  const failedLeadIds = new Set<string>();
+  const promptHashes = new Set<string>();
+  let complete = 0;
+  let limited = 0;
+  let fallback = 0;
+
+  for (const row of rows) {
+    if (row.prompt_hash) promptHashes.add(row.prompt_hash);
+    if (row.status === "completed" && row.content?.trim()) {
+      if (!validLeadIds.has(row.lead_id)) {
+        const quality = row.quality ?? "complete";
+        if (quality === "limited") limited += 1;
+        else if (quality === "fallback") fallback += 1;
+        else complete += 1;
+      }
+      validLeadIds.add(row.lead_id);
+    } else if (row.status === "queued" || row.status === "processing") {
+      queuedLeadIds.add(row.lead_id);
+    } else if (row.status === "failed") {
+      failedLeadIds.add(row.lead_id);
+    }
+  }
+
+  const sampleLeadId = leadIds.find((leadId) => validLeadIds.has(leadId)) ?? null;
+  let sampleLead: Record<string, unknown> | null = null;
+  if (sampleLeadId) {
+    const { data: lead } = await supabase
+      .from("leads")
+      .select(
+        "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+      )
+      .eq("id", sampleLeadId)
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    sampleLead = (lead ?? null) as Record<string, unknown> | null;
+  }
+
+  return {
+    campaignId,
+    workspaceId,
+    total: leadIds.length,
+    personalized: validLeadIds.size,
+    missing: Math.max(0, leadIds.length - validLeadIds.size),
+    queued: queuedLeadIds.size,
+    failed: failedLeadIds.size,
+    complete,
+    limited,
+    fallback,
+    promptHashes: [...promptHashes],
+    sampleLeadId,
+    sampleLead,
+  };
 }
 
 /** Read the AI settings of a campaign with the caller's client. */

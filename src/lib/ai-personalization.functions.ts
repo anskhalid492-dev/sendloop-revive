@@ -377,35 +377,9 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.parse(input))
   .handler(async ({ data, context }): Promise<PersonalizationStats & { paused: string | null }> => {
-    // Counts, not rows: PostgREST caps row reads at 1,000, so a 1,000+ lead
-    // campaign would otherwise report a frozen progress number.
-    const base = () =>
-      context.supabase
-        .from("ai_personalizations")
-        .select("id", { count: "exact", head: true })
-        .eq("campaign_id", data.campaignId);
-    const qualityCount = (value: string) => base().eq("status", "completed").eq("quality", value);
-
-    const [
-      eligibleRes,
-      completedRes,
-      failedRes,
-      queuedRes,
-      completeRes,
-      limitedRes,
-      fallbackRes,
-      runnerRes,
-    ] = await Promise.all([
-      context.supabase
-        .from("campaign_recipients")
-        .select("lead_id", { count: "exact", head: true })
-        .eq("campaign_id", data.campaignId),
-      base().eq("status", "completed"),
-      base().eq("status", "failed"),
-      base().in("status", ["queued", "processing"]),
-      qualityCount("complete"),
-      qualityCount("limited"),
-      qualityCount("fallback"),
+    const { campaignAiCoverage } = await import("@/lib/ai-personalization.server");
+    const [coverage, runnerRes] = await Promise.all([
+      campaignAiCoverage(context.supabase, data.campaignId),
       context.supabase
         .from("ai_runner_state")
         .select("paused_reason")
@@ -413,22 +387,25 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
-    const eligible = eligibleRes.count ?? 0;
-    const personalized = completedRes.count ?? 0;
-
     return {
-      eligible,
-      personalized,
-      complete: completeRes.count ?? 0,
-      limited: limitedRes.count ?? 0,
-      fallback: fallbackRes.count ?? 0,
-      failed: failedRes.count ?? 0,
-      queued: queuedRes.count ?? 0,
-      remaining: Math.max(0, eligible - personalized),
+      eligible: coverage.total,
+      personalized: coverage.personalized,
+      complete: coverage.complete,
+      limited: coverage.limited,
+      fallback: coverage.fallback,
+      failed: coverage.failed,
+      queued: coverage.queued,
+      remaining: coverage.missing,
       paused: (runnerRes.data?.paused_reason as string | null) ?? null,
     };
+  });
 
-
+export const getAiPersonalizationCoverage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => campaignInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { campaignAiCoverage } = await import("@/lib/ai-personalization.server");
+    return campaignAiCoverage(context.supabase, data.campaignId);
   });
 
 export const listAiPersonalizations = createServerFn({ method: "GET" })
