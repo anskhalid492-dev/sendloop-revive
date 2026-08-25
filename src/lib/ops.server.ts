@@ -295,7 +295,7 @@ export async function getInboxHealthSummary() {
  * routed reply address, then reports whether a reply came back through it.
  */
 export async function runInboundTest(args: { userId: string; toEmail: string }) {
-  const { mintRequiredReplyAddress, tokenFromAddress } = await import("@/lib/inbound-routing.server");
+  const { mintReplyRoute } = await import("@/lib/inbound-routing.server");
 
   const { data: account } = await supabaseAdmin
     .from("sending_accounts")
@@ -307,11 +307,15 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   if (!account) throw new Error("No managed mailbox is available to send the test from.");
   if (!account.workspace_id) throw new Error("The available mailbox is not assigned to a workspace.");
 
-  const replyTo = await mintRequiredReplyAddress(account.from_email, {
+  const replyRoute = await mintReplyRoute(account.from_email, {
     workspaceId: account.workspace_id,
     sendingAccountId: account.id,
     purpose: "inbound_test",
   });
+  if (!replyRoute) throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
+  const replyTo = replyRoute.visibleAddress;
+  const { createOutboundRfcMessageId, messageIdHeader } = await import("@/lib/outbound-threading.server");
+  const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
   // Platform diagnostics never consume a customer's allowance, but the send is
   // recorded so an admin test can always be told apart from real usage.
@@ -340,7 +344,8 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     replyTo,
     to: args.toEmail,
     subject: "MunchReach inbound delivery test",
-      text: `This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.\n\nRouted reply address: ${replyTo}`,
+      text: "This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.",
+      headers: { "Message-ID": messageIdHeader(outboundMessageId) },
     },
     { stage: "test" },
   );
@@ -352,7 +357,7 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
       to_email: args.toEmail,
       sending_account_id: account.id,
       reply_to: replyTo,
-      token: tokenFromAddress(replyTo),
+      token: replyRoute.token,
       provider_message_id: send.ok ? (send.messageId ?? null) : null,
       status: send.ok ? "sent" : "failed",
       error: send.ok ? null : send.message.slice(0, 300),
@@ -371,6 +376,7 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     toEmail: args.toEmail,
     refTable: "inbound_tests",
     refId: row?.id ?? null,
+    alternateProviderMessageIds: [send.ok ? (send.rfcMessageId ?? null) : null, outboundMessageId],
   });
   return { id: row?.id ?? null, replyTo, to: args.toEmail };
 }

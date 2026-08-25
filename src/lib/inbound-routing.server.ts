@@ -27,6 +27,54 @@ export type RouteTarget = {
   purpose?: string;
 };
 
+export type MintedReplyRoute = {
+  id: string | null;
+  token: string;
+  routedAddress: string;
+  visibleAddress: string;
+};
+
+export function cleanReplyAddress(baseAddress: string | null): string | null {
+  if (!baseAddress || !baseAddress.includes("@")) return baseAddress;
+  const [rawLocal, rawDomain] = baseAddress.split("@");
+  const local = (rawLocal ?? "").split("+")[0]?.trim();
+  const domain = rawDomain?.trim().toLowerCase();
+  if (!local || !domain) return baseAddress;
+  return `${local}@${domain}`;
+}
+
+export async function mintReplyRoute(
+  baseAddress: string | null,
+  target: RouteTarget,
+): Promise<MintedReplyRoute | null> {
+  const visibleAddress = cleanReplyAddress(baseAddress);
+  if (!visibleAddress || !visibleAddress.includes("@")) return null;
+  const [local, domain] = visibleAddress.split("@");
+  if (!local || !domain) return null;
+
+  const token = randomToken();
+  const { data, error } = await supabaseAdmin
+    .from("inbound_routes")
+    .insert({
+      token,
+      workspace_id: target.workspaceId,
+      sending_account_id: target.sendingAccountId ?? null,
+      lead_id: target.leadId ?? null,
+      campaign_id: target.campaignId ?? null,
+      conversation_id: target.conversationId ?? null,
+      purpose: target.purpose ?? "campaign",
+    })
+    .select("id")
+    .maybeSingle();
+  if (error) return null;
+  return {
+    id: data?.id ?? null,
+    token,
+    routedAddress: `${local}+${token}@${domain}`,
+    visibleAddress,
+  };
+}
+
 /**
  * Creates a routed reply address based on `baseAddress`. Returns the base
  * address unchanged when routing cannot be set up, so sending never breaks
@@ -36,23 +84,8 @@ export async function mintReplyAddress(
   baseAddress: string | null,
   target: RouteTarget,
 ): Promise<string | null> {
-  if (!baseAddress || !baseAddress.includes("@")) return baseAddress;
-  const [rawLocal, domain] = baseAddress.split("@");
-  const local = (rawLocal ?? "").split("+")[0];
-  if (!local || !domain) return baseAddress;
-
-  const token = randomToken();
-  const { error } = await supabaseAdmin.from("inbound_routes").insert({
-    token,
-    workspace_id: target.workspaceId,
-    sending_account_id: target.sendingAccountId ?? null,
-    lead_id: target.leadId ?? null,
-    campaign_id: target.campaignId ?? null,
-    conversation_id: target.conversationId ?? null,
-    purpose: target.purpose ?? "campaign",
-  });
-  if (error) return baseAddress;
-  return `${local}+${token}@${domain.toLowerCase()}`;
+  const route = await mintReplyRoute(baseAddress, target);
+  return route?.routedAddress ?? baseAddress;
 }
 
 /**
@@ -69,6 +102,23 @@ export async function mintRequiredReplyAddress(
     throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
   }
   return replyTo;
+}
+
+/**
+ * Creates the same backend route record as `mintRequiredReplyAddress`, but
+ * returns only the professional mailbox address for the customer-visible
+ * Reply-To header. Clean-address replies are threaded by RFC Message-ID via the
+ * outbound message registry and participant fallback in the inbox ingester.
+ */
+export async function mintCleanReplyAddress(
+  baseAddress: string | null,
+  target: RouteTarget,
+): Promise<string> {
+  const route = await mintReplyRoute(baseAddress, target);
+  if (!route) {
+    throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
+  }
+  return route.visibleAddress;
 }
 
 export type ResolvedRoute = {

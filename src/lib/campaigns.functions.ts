@@ -993,14 +993,18 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     const { consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
-      const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
-      const replyTo = await mintRequiredReplyAddress(account.from_email, {
+      const { mintCleanReplyAddress } = await import("@/lib/inbound-routing.server");
+      const { createOutboundRfcMessageId, messageIdHeader } = await import(
+        "@/lib/outbound-threading.server"
+      );
+      const replyTo = await mintCleanReplyAddress(account.from_email, {
         workspaceId: account.workspace_id,
         sendingAccountId: account.id,
         leadId: data.leadId ?? null,
         campaignId: data.campaignId,
         purpose: "campaign_test",
       });
+      const outboundMessageId = createOutboundRfcMessageId(account.from_email);
       // Test sends leave the platform like any other email, so they meter too.
       await consumeUsage(account.workspace_id, "emails_monthly", 1);
       const result = await sendManagedEmail(
@@ -1020,7 +1024,10 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           subject: `[Test] ${subject}`,
           text: body,
           html,
-          headers: { "X-MunchReach-Test-Request-ID": requestId },
+          headers: {
+            "Message-ID": messageIdHeader(outboundMessageId),
+            "X-MunchReach-Test-Request-ID": requestId,
+          },
         },
         { stage: "test" },
       );
@@ -1055,7 +1062,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         toEmail: to,
         refTable: "campaign_test_sends",
         refId: null,
-        alternateProviderMessageIds: [result.rfcMessageId ?? null],
+        alternateProviderMessageIds: [result.rfcMessageId ?? null, outboundMessageId],
       });
       const { customerSafeMessage } = await import("@/lib/managed-sending.server");
       results.push({

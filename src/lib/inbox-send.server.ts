@@ -108,8 +108,8 @@ export async function sendReplyThroughMailbox(args: {
     throw new Error(`This contact is on your suppression list (${blocked}) and cannot be emailed.`);
   }
 
-  const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
-  const replyTo = await mintRequiredReplyAddress(account.from_email, {
+  const { mintCleanReplyAddress } = await import("@/lib/inbound-routing.server");
+  const replyTo = await mintCleanReplyAddress(account.from_email, {
     workspaceId: conversation.workspace_id,
     sendingAccountId: account.id,
     leadId: conversation.lead_id,
@@ -122,6 +122,10 @@ export async function sendReplyThroughMailbox(args: {
     ...((lastInbound?.reference_ids ?? []) as string[]),
     ...(parentId ? [parentId] : []),
   ].slice(-20);
+  const { createOutboundRfcMessageId, mergeEmailHeaders, messageIdHeader } = await import(
+    "@/lib/outbound-threading.server"
+  );
+  const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
   // Managed sending: MunchReach-owned credentials + provider-side domain check.
   const { sendManagedEmail } = await import("@/lib/managed-sending.server");
@@ -145,12 +149,15 @@ export async function sendReplyThroughMailbox(args: {
     attachments: args.attachments,
     // Real RFC threading headers keep the prospect's mail client (and our own
     // ingestion) on the same conversation.
-    headers: parentId
-      ? {
-          "In-Reply-To": `<${parentId}>`,
-          References: threadRefs.map((id) => `<${id}>`).join(" "),
-        }
-      : {},
+    headers: mergeEmailHeaders(
+      { "Message-ID": messageIdHeader(outboundMessageId) },
+      parentId
+        ? {
+            "In-Reply-To": `<${parentId}>`,
+            References: threadRefs.map((id) => `<${id}>`).join(" "),
+          }
+        : null,
+    ),
     },
     { stage: "inbox" },
   );
@@ -176,7 +183,7 @@ export async function sendReplyThroughMailbox(args: {
       cc_emails: args.cc,
       subject: subject,
       body: body,
-      message_id: stripAngle(send.rfcMessageId ?? send.messageId ?? null),
+      message_id: stripAngle(send.rfcMessageId ?? outboundMessageId),
       in_reply_to: (lastInbound?.message_id as string | undefined) ?? null,
       reference_ids: references,
       sending_account_id: account.id,
@@ -199,7 +206,7 @@ export async function sendReplyThroughMailbox(args: {
       toEmail: conversation.prospect_email,
       refTable: "conversation_messages",
       refId: inserted.id,
-      alternateProviderMessageIds: [send.rfcMessageId ?? null],
+      alternateProviderMessageIds: [send.rfcMessageId ?? null, outboundMessageId],
     });
   } catch {
     /* classification must never fail an already delivered send */

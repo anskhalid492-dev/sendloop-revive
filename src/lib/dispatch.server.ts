@@ -530,7 +530,8 @@ export async function dispatchDueMessages(
 ): Promise<DispatchResult> {
   
   const { recordOutboundCampaignMessage } = await import("./inbox.server");
-  const { mintRequiredReplyAddress } = await import("./inbound-routing.server");
+  const { mintCleanReplyAddress } = await import("./inbound-routing.server");
+  const { createOutboundRfcMessageId, messageIdHeader } = await import("./outbound-threading.server");
   const { suppressedSet } = await import("./suppression.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -762,13 +763,12 @@ export async function dispatchDueMessages(
 
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
-    // A unique routed address per send: replies come back tagged with the
-    // workspace, mailbox, lead and campaign they belong to. The base is always
-    // the selected sender mailbox, so a reply to anus@... cannot be delivered
-    // through another mailbox's saved reply-to address.
+    // Keep the customer-visible Reply-To professional. A backend route record is
+    // still created for audit/back-compat, while clean-address replies thread by
+    // RFC Message-ID registry and strict mailbox/prospect fallback.
     let replyTo: string;
     try {
-      replyTo = await mintRequiredReplyAddress(account.from_email, {
+      replyTo = await mintCleanReplyAddress(account.from_email, {
         workspaceId: message.workspace_id,
         sendingAccountId: account.id,
         leadId: message.lead_id,
@@ -786,6 +786,7 @@ export async function dispatchDueMessages(
       (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||
         Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking));
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
+    const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
     const send = await sendManagedEmail(
       supabaseAdmin,
@@ -804,6 +805,7 @@ export async function dispatchDueMessages(
         subject: message.subject,
         text: message.body,
         ...(html ? { html } : {}),
+        headers: { "Message-ID": messageIdHeader(outboundMessageId) },
       },
       { stage: "campaign" },
     );
@@ -834,7 +836,7 @@ export async function dispatchDueMessages(
         subject: message.subject,
         body: message.body,
         html,
-        messageId: send.rfcMessageId ?? send.messageId ?? null,
+        messageId: send.rfcMessageId ?? outboundMessageId,
         providerMessageId: send.messageId ?? null,
         sentAt,
       });
@@ -868,7 +870,7 @@ export async function dispatchDueMessages(
         toEmail: message.to_email,
         refTable: "campaign_messages",
         refId: message.id,
-        alternateProviderMessageIds: [send.rfcMessageId ?? null],
+        alternateProviderMessageIds: [send.rfcMessageId ?? null, outboundMessageId],
       });
     } catch {
       /* classification must never fail an already delivered send */
