@@ -860,14 +860,17 @@ export async function recordOutboundCampaignMessage(args: {
     .eq("campaign_message_id", args.campaignMessageId)
     .maybeSingle();
   if (existing) {
-    await db
+    let routeUpdate = db
       .from("inbound_routes")
       .update({ conversation_id: existing.conversation_id })
       .eq("workspace_id", args.workspaceId)
-      .eq("sending_account_id", args.sendingAccountId)
-      .eq("lead_id", args.leadId)
-      .eq("campaign_id", args.campaignId)
       .is("conversation_id", null);
+    routeUpdate = args.sendingAccountId
+      ? routeUpdate.eq("sending_account_id", args.sendingAccountId)
+      : routeUpdate.is("sending_account_id", null);
+    routeUpdate = args.leadId ? routeUpdate.eq("lead_id", args.leadId) : routeUpdate.is("lead_id", null);
+    routeUpdate = routeUpdate.eq("campaign_id", args.campaignId);
+    await routeUpdate;
     return existing.id;
   }
 
@@ -889,14 +892,17 @@ export async function recordOutboundCampaignMessage(args: {
     .single();
   if (!conversation) return null;
 
-  await db
+  let routeUpdate = db
     .from("inbound_routes")
     .update({ conversation_id: conversation.id })
     .eq("workspace_id", args.workspaceId)
-    .eq("sending_account_id", args.sendingAccountId)
-    .eq("lead_id", args.leadId)
-    .eq("campaign_id", args.campaignId)
     .is("conversation_id", null);
+  routeUpdate = args.sendingAccountId
+    ? routeUpdate.eq("sending_account_id", args.sendingAccountId)
+    : routeUpdate.is("sending_account_id", null);
+  routeUpdate = args.leadId ? routeUpdate.eq("lead_id", args.leadId) : routeUpdate.is("lead_id", null);
+  routeUpdate = routeUpdate.eq("campaign_id", args.campaignId);
+  await routeUpdate;
 
   const { data: inserted } = await db
     .from("conversation_messages")

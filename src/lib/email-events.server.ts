@@ -432,15 +432,19 @@ export async function handleWebhookDelivery(
     raw["data"] && typeof raw["data"] === "object" ? (raw["data"] as Record<string, unknown>) : raw;
 
   const inbound = kind === "inbound" ? normalizeInbound(raw) : null;
-  const toEmail = inbound?.to
-    ? extractEmail(String(inbound.to)).slice(0, 320)
+  const inboundTo = inbound?.["to"];
+  const inboundFrom = inbound?.["from"];
+  const inboundSubject = inbound?.["subject"];
+  const inboundMessageId = inbound?.["messageId"];
+  const toEmail = inboundTo
+    ? extractEmail(String(inboundTo)).slice(0, 320)
     : Array.isArray(source["to"])
       ? extractEmail(String(source["to"][0])).slice(0, 320)
       : typeof source["to"] === "string"
         ? extractEmail(source["to"]).slice(0, 320)
         : null;
-  const fromEmail = inbound?.from
-    ? extractEmail(String(inbound.from)).slice(0, 320)
+  const fromEmail = inboundFrom
+    ? extractEmail(String(inboundFrom)).slice(0, 320)
     : typeof source["from"] === "string"
       ? extractEmail(source["from"]).slice(0, 320)
       : null;
@@ -454,12 +458,12 @@ export async function handleWebhookDelivery(
     fromEmail,
     toEmail,
     subject:
-      typeof inbound?.subject === "string"
-        ? inbound.subject.slice(0, 300)
+      typeof inboundSubject === "string"
+        ? inboundSubject.slice(0, 300)
         : typeof source["subject"] === "string"
           ? source["subject"].slice(0, 300)
           : null,
-    messageId: kind === "inbound" ? stripAngle(inbound?.messageId as string | null | undefined) : externalId,
+    messageId: kind === "inbound" ? stripAngle(inboundMessageId as string | null | undefined) : externalId,
     signatureStatus: meta?.signatureStatus ?? "unverified",
     signatureDetail: meta?.signatureDetail ?? null,
     routingToken: toEmail ? tokenFromAddress(toEmail) : null,
