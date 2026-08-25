@@ -33,7 +33,7 @@ export async function composeAndSend(input: ComposeInput) {
   const { data: account, error: accountError } = await supabase
     .from("sending_accounts")
     .select(
-      "id, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, workspace_id",
+      "id, label, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, workspace_id",
     )
     .eq("id", input.sendingAccountId)
     .maybeSingle();
@@ -41,12 +41,10 @@ export async function composeAndSend(input: ComposeInput) {
   if (!account || account.workspace_id !== input.workspaceId) {
     throw new Error("That mailbox is not available in this workspace.");
   }
-  if (account.paused || !account.customer_enabled || account.status === "disabled") {
-    throw new Error("That mailbox is currently unavailable.");
-  }
-  if ((account.sent_today ?? 0) >= (account.daily_limit ?? 0)) {
-    throw new Error("This mailbox has reached its daily sending limit.");
-  }
+  // Authoritative capacity check immediately before handing off to the
+  // provider: same mailbox daily/hourly limits, no bypass, no stale counts.
+  const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
+  await assertMailboxCapacity(account);
 
   // Customer-owned mailbox credentials first, shared provider credentials after.
   const { loadAccountCredentials } = await import("@/lib/account-credentials.server");

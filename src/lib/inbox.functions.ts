@@ -577,13 +577,16 @@ export const listComposeMailboxes = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: accounts, error } = await context.supabase
       .from("sending_accounts")
-      .select("id, label, from_name, from_email, paused, customer_enabled, status, sent_today, daily_limit")
+      .select(
+        "id, label, from_name, from_email, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit",
+      )
       .eq("workspace_id", data.workspaceId)
       .eq("customer_enabled", true)
-      .eq("paused", false)
       .order("from_email");
     if (error) throw new Error(error.message);
-    return { accounts: accounts ?? [] };
+    const { loadMailboxCapacities } = await import("@/lib/mailbox-capacity.server");
+    const capacities = await loadMailboxCapacities((accounts ?? []) as never);
+    return { accounts: capacities };
   });
 
 const draftSchema = z.object({
