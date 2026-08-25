@@ -564,7 +564,15 @@ export const getAutomationWebhook = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    // Membership is proven with the caller's own session (RLS applies)...
+    // Only workspace managers may see the webhook endpoint: low-privilege
+    // members (analyst, client_viewer) must not learn the routing token.
+    const { data: allowed } = await client.rpc("has_workspace_role", {
+      _workspace_id: data.workspaceId,
+      _user_id: context.userId,
+      _roles: ["owner", "admin", "campaign_manager"],
+    });
+    if (!allowed) throw new Error("Not authorized");
+
     const { data: owned } = await client
       .from("automations")
       .select(sel("id"))
@@ -572,6 +580,7 @@ export const getAutomationWebhook = createServerFn({ method: "GET" })
       .eq("workspace_id", data.workspaceId)
       .maybeSingle();
     if (!owned) throw new Error("Automation not found");
+
 
     // ...only then is the token read server-side. The signing secret is never returned.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
