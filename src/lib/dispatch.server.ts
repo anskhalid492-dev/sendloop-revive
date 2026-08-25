@@ -530,7 +530,7 @@ export async function dispatchDueMessages(
 ): Promise<DispatchResult> {
   
   const { recordOutboundCampaignMessage } = await import("./inbox.server");
-  const { mintRequiredReplyAddress } = await import("./inbound-routing.server");
+  const { mintCleanReplyAddress } = await import("./inbound-routing.server");
   const { suppressedSet } = await import("./suppression.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -762,13 +762,12 @@ export async function dispatchDueMessages(
 
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
-    // A unique routed address per send: replies come back tagged with the
-    // workspace, mailbox, lead and campaign they belong to. The base is always
-    // the selected sender mailbox, so a reply to anus@... cannot be delivered
-    // through another mailbox's saved reply-to address.
+    // Keep the customer-visible Reply-To professional. A backend route record is
+    // still created for audit/back-compat, while clean-address replies thread by
+    // RFC Message-ID registry and strict mailbox/prospect fallback.
     let replyTo: string;
     try {
-      replyTo = await mintRequiredReplyAddress(account.from_email, {
+      replyTo = await mintCleanReplyAddress(account.from_email, {
         workspaceId: message.workspace_id,
         sendingAccountId: account.id,
         leadId: message.lead_id,

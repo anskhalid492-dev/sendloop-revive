@@ -75,13 +75,17 @@ export async function composeAndSend(input: ComposeInput) {
   }
 
   const adapter = getAdapter(account.provider);
-  const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
-  const replyTo = await mintRequiredReplyAddress(account.from_email, {
+  const { mintReplyRoute } = await import("@/lib/inbound-routing.server");
+  const replyRoute = await mintReplyRoute(account.from_email, {
     workspaceId: input.workspaceId,
     sendingAccountId: account.id,
     leadId,
     purpose: "compose",
   });
+  if (!replyRoute) {
+    throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
+  }
+  const replyTo = replyRoute.visibleAddress;
   const send = await adapter.sendEmail(credentials ?? {}, {
     fromName: account.from_name,
     fromEmail: account.from_email,
@@ -152,13 +156,11 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error("The email was sent but the thread could not be saved. Refresh to confirm.");
   }
   try {
-    const { tokenFromAddress } = await import("@/lib/inbound-routing.server");
-    const token = replyTo ? tokenFromAddress(replyTo) : null;
-    if (token) {
+    if (replyRoute.id) {
       await supabaseAdmin
         .from("inbound_routes")
         .update({ conversation_id: conversation.id })
-        .eq("token", token)
+        .eq("id", replyRoute.id)
         .is("conversation_id", null);
     }
   } catch {

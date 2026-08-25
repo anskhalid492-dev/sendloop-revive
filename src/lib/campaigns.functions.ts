@@ -993,8 +993,8 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     const { consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
-      const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
-      const replyTo = await mintRequiredReplyAddress(account.from_email, {
+      const { mintCleanReplyAddress } = await import("@/lib/inbound-routing.server");
+      const replyTo = await mintCleanReplyAddress(account.from_email, {
         workspaceId: account.workspace_id,
         sendingAccountId: account.id,
         leadId: data.leadId ?? null,
