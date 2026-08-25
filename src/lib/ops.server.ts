@@ -295,7 +295,6 @@ export async function getInboxHealthSummary() {
  * routed reply address, then reports whether a reply came back through it.
  */
 export async function runInboundTest(args: { userId: string; toEmail: string }) {
-  const { resolveReplyTo } = await import("@/lib/inbox-send.server");
   const { mintReplyAddress, tokenFromAddress } = await import("@/lib/inbound-routing.server");
 
   const { data: account } = await supabaseAdmin
@@ -308,9 +307,7 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
   if (!account) throw new Error("No managed mailbox is available to send the test from.");
   if (!account.workspace_id) throw new Error("The available mailbox is not assigned to a workspace.");
 
-
-  const base = await resolveReplyTo(account.provider_id, account.reply_to);
-  const replyTo = await mintReplyAddress(base, {
+  const replyTo = await mintReplyAddress(account.from_email, {
     workspaceId: account.workspace_id,
     sendingAccountId: account.id,
     purpose: "inbound_test",
