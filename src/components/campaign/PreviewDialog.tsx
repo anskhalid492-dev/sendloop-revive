@@ -385,9 +385,6 @@ export function PreviewDialog({
               <p className="text-xs text-muted-foreground">
                 From {account ? `${account.from_name} <${account.from_email}>` : "your mailbox"}
               </p>
-              {account?.reply_to ? (
-                <p className="text-xs text-muted-foreground">Reply-to {account.reply_to}</p>
-              ) : null}
               <p className="pt-1 font-semibold">{subject || "(no subject)"}</p>
             </div>
             <div className="whitespace-pre-wrap p-4 text-sm leading-relaxed">
