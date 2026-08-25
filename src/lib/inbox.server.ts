@@ -36,6 +36,10 @@ export type IngestResult = {
   status: "created" | "duplicate" | "unmatched";
   conversationId?: string;
   messageId?: string;
+  workspaceId?: string;
+  leadId?: string | null;
+  campaignId?: string | null;
+  sendingAccountId?: string | null;
   reason?: string;
 };
 
@@ -163,21 +167,62 @@ async function loadConversation(db: Db, id: string): Promise<ConversationRef | n
  * the most reliable way to keep a reply on the same thread, and beats the
  * subject-derived thread key.
  */
-async function findConversationByHeaders(db: Db, email: InboundEmail, workspaceId: string) {
+async function findConversationByHeaders(
+  db: Db,
+  email: InboundEmail,
+  workspaceId: string,
+  sendingAccountId: string | null,
+) {
   const candidates = threadCandidates(email);
   if (!candidates.length) return null;
 
   const list = inList(candidates);
-  const { data } = await db
+  let query = db
     .from("conversation_messages")
     .select("conversation_id")
     .eq("workspace_id", workspaceId)
     .or(`message_id.in.${list},provider_message_id.in.${list}`)
     .order("occurred_at", { ascending: false })
     .limit(1);
+  if (sendingAccountId) query = query.eq("sending_account_id", sendingAccountId);
+  const { data } = await query;
   const conversationId = data?.[0]?.conversation_id as string | undefined;
   if (!conversationId) return null;
   return loadConversation(db, conversationId);
+}
+
+async function markConversationInbound(
+  db: Db,
+  args: {
+    conversationId: string;
+    leadId: string | null;
+    campaignId: string | null;
+    sendingAccountId: string | null;
+    receivedIso: string;
+    status: string;
+    previousCount: number;
+    preview: string;
+  },
+): Promise<string | null> {
+  const { error } = await db
+    .from("conversations")
+    .update({
+      unread: true,
+      archived: false,
+      snoozed_until: null,
+      status: args.status,
+      message_count: args.previousCount + 1,
+      last_message_at: args.receivedIso,
+      last_direction: "inbound",
+      last_preview: args.preview,
+      lead_id: args.leadId,
+      campaign_id: args.campaignId,
+      sending_account_id: args.sendingAccountId,
+      has_inbound: true,
+      last_inbound_at: args.receivedIso,
+    })
+    .eq("id", args.conversationId);
+  return error?.message ?? null;
 }
 
 /**
@@ -296,7 +341,20 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .eq("message_id", messageId)
       .maybeSingle();
     if (existing) {
-      return { status: "duplicate", conversationId: existing.conversation_id, messageId: existing.id };
+      const repair = await db
+        .from("conversations")
+        .update({ has_inbound: true, last_inbound_at: receivedIso, archived: false })
+        .eq("id", existing.conversation_id);
+      if (repair.error) return { status: "unmatched", reason: repair.error.message };
+      return {
+        status: "duplicate",
+        conversationId: existing.conversation_id,
+        messageId: existing.id,
+        workspaceId,
+        leadId: null,
+        campaignId: null,
+        sendingAccountId,
+      };
     }
   }
 
@@ -346,7 +404,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     routedConversation = await loadConversation(db, route.conversation_id);
   }
   if (!routedConversation) {
-    routedConversation = await findConversationByHeaders(db, email, workspaceId);
+    routedConversation = await findConversationByHeaders(db, email, workspaceId, sendingAccountId);
   }
   if (!routedConversation && campaignMessage?.id) {
     const { data: viaSend } = await db
@@ -427,22 +485,17 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   const nextStatus =
     conversation.status === "lead" && detected ? detected : (conversation.status as string);
 
-  await db
-    .from("conversations")
-    .update({
-      unread: true,
-      archived: false,
-      snoozed_until: null,
-      status: nextStatus,
-      message_count: (conversation.message_count ?? 0) + 1,
-      last_message_at: receivedIso,
-      last_direction: "inbound",
-      last_preview: previewOf(body),
-      lead_id: leadId,
-      campaign_id: campaignId,
-      sending_account_id: sendingAccountId,
-    })
-    .eq("id", conversation.id);
+  const visibilityError = await markConversationInbound(db, {
+    conversationId: conversation.id,
+    leadId,
+    campaignId,
+    sendingAccountId,
+    receivedIso,
+    status: nextStatus,
+    previousCount: conversation.message_count ?? 0,
+    preview: previewOf(body),
+  });
+  if (visibilityError) return { status: "unmatched", reason: visibilityError };
 
   await db.from("conversation_events").insert({
     conversation_id: conversation.id,
@@ -467,7 +520,15 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     replyBody: body,
   });
 
-  return { status: "created", conversationId: conversation.id, messageId: inserted.id };
+  return {
+    status: "created",
+    conversationId: conversation.id,
+    messageId: inserted.id,
+    workspaceId,
+    leadId,
+    campaignId,
+    sendingAccountId,
+  };
 }
 
 /** Lead status, activity, follow-up stop and notifications for a fresh reply. */
@@ -771,6 +832,7 @@ export async function recordOutboundCampaignMessage(args: {
       last_direction: "outbound",
       last_preview: previewOf(args.body),
       sending_account_id: args.sendingAccountId,
+      has_outbound: true,
     })
     .eq("id", conversation.id);
 
