@@ -837,28 +837,15 @@ export async function dispatchDueMessages(
       status: "sent",
       sent_at: sentAt,
       provider: account.provider,
-      message_id: send.rfcMessageId ? stripAngle(send.rfcMessageId) : stripAngle(send.messageId ?? null),
       provider_message_id: send.messageId ?? null,
       message_type: "campaign",
       last_error: null,
       attempts: (message.attempts ?? 0) + 1,
     };
-    const updateSent = await supabase
+    await supabase
       .from("campaign_messages")
       .update(campaignMessagePatch)
       .eq("id", message.id);
-    if (updateSent.error && /message_id/i.test(updateSent.error.message ?? "")) {
-      const fallbackPatch: Omit<typeof campaignMessagePatch, "message_id"> = {
-        status: campaignMessagePatch.status,
-        sent_at: campaignMessagePatch.sent_at,
-        provider: campaignMessagePatch.provider,
-        provider_message_id: campaignMessagePatch.provider_message_id,
-        message_type: campaignMessagePatch.message_type,
-        last_error: campaignMessagePatch.last_error,
-        attempts: campaignMessagePatch.attempts,
-      };
-      await supabase.from("campaign_messages").update(fallbackPatch).eq("id", message.id);
-    }
 
     // Explicit classification: provider events for this id can only ever move
     // campaign statistics.
