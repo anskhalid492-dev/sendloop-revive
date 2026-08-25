@@ -7565,8 +7565,11 @@ export type Database = {
           campaign_id: string
           campaign_name: string
           clicks: number
+          complained: number
           delivered: number
+          failed: number
           opens: number
+          positive_replies: number
           replies: number
           sent: number
           status: string
