@@ -8,7 +8,6 @@
  * metric is ever estimated or synthesised.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { providerMessageIdCandidates, providerMessageIdInFilter } from "@/lib/provider-message-id";
 
 export type EngagementType =
   | "delivered"
@@ -29,30 +28,24 @@ type Args = {
   occurredAt?: string | null;
 };
 
+type CampaignEngagementRow = {
+  id: string;
+  workspace_id: string;
+  campaign_id: string | null;
+  lead_id: string | null;
+  sending_account_id: string | null;
+  to_email: string | null;
+};
+
 /** Finds the outbound send a provider event refers to. */
-async function findMessage(providerMessageId: string | null, email: string | null) {
-  if (!providerMessageId && !email) return null;
-  const columns = "id, workspace_id, campaign_id, lead_id, sending_account_id, to_email";
-  const ids = providerMessageIdCandidates(providerMessageId);
-  if (ids.length) {
-    const list = providerMessageIdInFilter(ids);
-    const { data } = await supabaseAdmin
-      .from("campaign_messages")
-      .select(columns)
-      .eq("message_type", "campaign")
-      .or(`provider_message_id.in.${list}`)
-      .order("sent_at", { ascending: false })
-      .limit(1);
-    return data?.[0] ?? null;
-  }
-  const { data } = await supabaseAdmin
-    .from("campaign_messages")
-    .select(columns)
-    .eq("message_type", "campaign")
-    .eq("to_email", email!)
-    .order("sent_at", { ascending: false })
-    .limit(1);
-  return data?.[0] ?? null;
+async function findMessage(providerMessageId: string | null, email: string | null): Promise<CampaignEngagementRow | null> {
+  const { findOutboundMessageByProviderMessageId } = await import("@/lib/outbound-message-resolver.server");
+  const resolved = await findOutboundMessageByProviderMessageId({
+    providerMessageId,
+    email,
+    requireType: "campaign",
+  });
+  return (resolved?.row as CampaignEngagementRow | null | undefined) ?? null;
 }
 
 /**

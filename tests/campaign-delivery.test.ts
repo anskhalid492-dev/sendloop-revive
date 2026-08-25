@@ -39,7 +39,7 @@ describe("test send pipeline uses the production sending flow", () => {
 
   it("logs every test send so provider acceptance can be audited", () => {
     expect(testSend).toContain("campaign_test_sends");
-    expect(testSend).toContain("X-Sendloop-Test-Request-ID");
+    expect(testSend).toContain("X-MunchReach-Test-Request-ID");
     expect(managed).toContain("[managed-send]");
   });
 });

@@ -8,7 +8,7 @@
  * bounce can never move campaign statistics.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { providerMessageIdCandidates, providerMessageIdInFilter } from "@/lib/provider-message-id";
+import { providerMessageIdCandidates } from "@/lib/provider-message-id";
 
 export type MessageType =
   | "campaign"
@@ -80,50 +80,9 @@ export async function registerOutboundMessage(
 export async function classifyProviderMessage(
   providerMessageId: string | null,
 ): Promise<MessageType | null> {
-  const ids = providerMessageIdCandidates(providerMessageId);
-  if (!ids.length) return null;
-
-  const { data: registered } = await supabaseAdmin
-    .from("outbound_messages")
-    .select("message_type")
-    .in("provider_message_id", ids)
-    .maybeSingle();
-  if (registered?.message_type) return registered.message_type as MessageType;
-
-  const list = providerMessageIdInFilter(ids);
-
-  const [{ data: warmup }, { data: campaign }, { data: conversation }, { data: transactional }] = await Promise.all([
-    supabaseAdmin
-      .from("warmup_jobs")
-      .select("id")
-      .in("provider_message_id", ids)
-      .maybeSingle(),
-    supabaseAdmin
-      .from("campaign_messages")
-      .select("id, message_type")
-      .or(`provider_message_id.in.${list}`)
-      .limit(1)
-      .maybeSingle(),
-    supabaseAdmin
-      .from("conversation_messages")
-      .select("id, campaign_message_id, direction")
-      .or(`provider_message_id.in.${list},message_id.in.${list}`)
-      .order("occurred_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabaseAdmin
-      .from("transactional_emails")
-      .select("id")
-      .in("provider_message_id", ids)
-      .maybeSingle(),
-  ]);
-
-  if (warmup) return "warmup";
-  if (campaign) return (campaign.message_type as MessageType) ?? "campaign";
-  if (conversation?.campaign_message_id) return "campaign";
-  if (conversation?.direction === "outbound") return "manual_reply";
-  if (transactional) return "transactional";
-  return null;
+  const { findOutboundMessageByProviderMessageId } = await import("@/lib/outbound-message-resolver.server");
+  const resolved = await findOutboundMessageByProviderMessageId({ providerMessageId });
+  return (resolved?.messageType as MessageType | undefined) ?? null;
 }
 
 /**

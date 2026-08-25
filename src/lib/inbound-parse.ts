@@ -93,6 +93,37 @@ export function headerOf(headers: unknown, name: string): string | null {
   return null;
 }
 
+function objectOf(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function providerSource(input: Record<string, unknown>): Record<string, unknown> {
+  const nested = objectOf(input["data"]);
+  const eventData = objectOf(input["event-data"] ?? input["event_data"]);
+  return nested ?? eventData ?? input;
+}
+
+function nestedHeaderSources(source: Record<string, unknown>): unknown[] {
+  const message = objectOf(source["message"]);
+  const envelope = objectOf(source["envelope"]);
+  return [
+    source["headers"],
+    source["Headers"],
+    message?.["headers"],
+    message?.["Headers"],
+    envelope?.["headers"],
+    envelope?.["Headers"],
+  ];
+}
+
+function headerFromAny(source: Record<string, unknown>, name: string): string | null {
+  for (const headers of nestedHeaderSources(source)) {
+    const value = headerOf(headers, name);
+    if (value) return value;
+  }
+  return null;
+}
+
 export type EventKind =
   | "inbound"
   | "sent"
@@ -138,21 +169,23 @@ export function classifyEvent(input: Record<string, unknown>): EventKind {
 
 /** A stable id per provider event, used for webhook idempotency. */
 export function externalIdOf(input: Record<string, unknown>, kind: EventKind): string | null {
-  const source =
-    input["data"] && typeof input["data"] === "object"
-      ? (input["data"] as Record<string, unknown>)
-      : input;
+  const source = providerSource(input);
   const id =
     input["event_id"] ??
     input["id"] ??
+    input["sg_event_id"] ??
     source["event_id"] ??
+    source["event-id"] ??
     source["id"] ??
     source["sg_event_id"] ??
     source["email_id"] ??
+    source["sg_message_id"] ??
+    source["smtp-id"] ??
     source["message_id"] ??
     source["messageId"] ??
     source["Message-Id"] ??
-    headerOf(source["headers"], "message-id");
+    headerFromAny(source, "message-id") ??
+    headerFromAny(source, "x-message-id");
   if (!id) return null;
   const link = source["link"] ?? source["url"] ?? source["click"];
   const url =
@@ -170,10 +203,7 @@ export function externalIdOf(input: Record<string, unknown>, kind: EventKind): s
 
 /** Reduces any supported provider shape to the fields ingestion needs. */
 export function normalizeInbound(input: Record<string, unknown>): Record<string, unknown> | null {
-  const source =
-    input["data"] && typeof input["data"] === "object"
-      ? (input["data"] as Record<string, unknown>)
-      : input;
+  const source = providerSource(input);
 
   const headers = source["headers"];
   const rawFrom =
@@ -203,11 +233,12 @@ export function normalizeInbound(input: Record<string, unknown>): Record<string,
       source["message_id"] ??
       source["Message-Id"] ??
       headerOf(headers, "message-id") ??
+      headerFromAny(source, "message-id") ??
       null,
     inReplyTo:
-      source["inReplyTo"] ?? source["In-Reply-To"] ?? headerOf(headers, "in-reply-to") ?? null,
+      source["inReplyTo"] ?? source["In-Reply-To"] ?? headerOf(headers, "in-reply-to") ?? headerFromAny(source, "in-reply-to") ?? null,
     references:
-      source["references"] ?? source["References"] ?? headerOf(headers, "references") ?? undefined,
+      source["references"] ?? source["References"] ?? headerOf(headers, "references") ?? headerFromAny(source, "references") ?? undefined,
     receivedAt: source["receivedAt"] ?? source["created_at"] ?? source["timestamp"] ?? null,
     attachments: Array.isArray(source["attachments"]) ? source["attachments"] : [],
   };
@@ -215,10 +246,7 @@ export function normalizeInbound(input: Record<string, unknown>): Record<string,
 
 /** Recipient + provider message id for a delivery (non-reply) event. */
 export function normalizeDelivery(input: Record<string, unknown>) {
-  const source =
-    input["data"] && typeof input["data"] === "object"
-      ? (input["data"] as Record<string, unknown>)
-      : input;
+  const source = providerSource(input);
   const to =
     firstAddress(source["to"]) ||
     firstAddress(source["recipient"]) ||
@@ -233,11 +261,18 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     source["messageId"],
     source["MessageID"],
     source["MessageId"],
+    source["Message-ID"],
     source["Message-Id"],
     source["X-Message-Id"],
-    headerOf(source["headers"], "message-id"),
-    headerOf(source["headers"], "x-message-id"),
-    source["headers"],
+    source["x-message-id"],
+    source["smtp-id"],
+    source["smtp_id"],
+    source["sg_message_id"],
+    source["sgMessageId"],
+    headerFromAny(source, "message-id"),
+    headerFromAny(source, "x-message-id"),
+    headerFromAny(source, "smtp-id"),
+    ...nestedHeaderSources(source),
   );
   const reasonSource = (source["bounce"] ?? source) as Record<string, unknown>;
   const reason =

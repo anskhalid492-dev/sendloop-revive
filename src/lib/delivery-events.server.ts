@@ -6,7 +6,6 @@
  * campaign automation instead.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { providerMessageIdCandidates, providerMessageIdInFilter } from "@/lib/provider-message-id";
 
 export type DeliveryOutcome = {
   status: "applied" | "unmatched";
@@ -50,30 +49,15 @@ export async function applyDeliveryEvent(args: {
     }
   }
 
-  const columns = "id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, to_email";
+  const { providerMessageIdCandidates } = await import("@/lib/provider-message-id");
   const ids = providerMessageIdCandidates(args.providerMessageId);
-  let rows: CampaignMessageRow[] | null = null;
-  if (ids.length) {
-    const list = providerMessageIdInFilter(ids);
-    const { data } = await db
-      .from("campaign_messages")
-      .select(columns)
-      .eq("message_type", "campaign")
-      .or(`provider_message_id.in.${list}`)
-      .order("sent_at", { ascending: false })
-      .limit(1);
-    rows = (data ?? null) as CampaignMessageRow[] | null;
-  } else if (email) {
-    const { data } = await db
-      .from("campaign_messages")
-      .select(columns)
-      .eq("message_type", "campaign")
-      .eq("to_email", email)
-      .order("sent_at", { ascending: false })
-      .limit(1);
-    rows = (data ?? null) as CampaignMessageRow[] | null;
-  }
-  const message = rows?.[0] ?? null;
+  const { findOutboundMessageByProviderMessageId } = await import("@/lib/outbound-message-resolver.server");
+  const resolved = await findOutboundMessageByProviderMessageId({
+    providerMessageId: args.providerMessageId,
+    email,
+    requireType: "campaign",
+  });
+  const message = (resolved?.row as CampaignMessageRow | null | undefined) ?? null;
   const workspaceId = message?.workspace_id ?? null;
   if (!workspaceId) {
     return {
