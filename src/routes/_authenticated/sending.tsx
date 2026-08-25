@@ -689,8 +689,19 @@ function EmailAccountsPage() {
                             </Badge>
                           </td>
                           <td className="px-3 py-2.5 text-right tabular-nums">
-                            {account.sent_today} / {account.daily_limit}
+                            <div className="flex flex-col items-end">
+                              <MailboxDailyLimitPopover
+                                accountId={account.id}
+                                dailyLimit={account.daily_limit}
+                                sentToday={account.sent_today}
+                                compact
+                              />
+                              <span className="text-[11px] text-muted-foreground">
+                                {Math.max(0, account.daily_limit - account.sent_today)} remaining
+                              </span>
+                            </div>
                           </td>
+
                           <td className="px-3 py-2.5">
                             <button
                               type="button"
