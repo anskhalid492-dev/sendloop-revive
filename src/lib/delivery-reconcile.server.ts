@@ -64,24 +64,9 @@ export async function reconcileDeliveryState(limit = 100): Promise<{
   // Then re-run recent tracking events that previously raced the send commit.
   // This is bounded and idempotent: unowned provider traffic stays failed after
   // a few attempts, while valid late-visible sends repair themselves.
-  const { data: retryableEvents } = await supabaseAdmin
-    .from("email_events")
-    .select("id")
-    .eq("status", "failed")
-    .in("failure_code", ["provider_message_id_not_found", "campaign_message_not_found"])
-    .in("event_type", ["sent", "delivered", "opened", "clicked", "delayed", "failed", "rejected", "bounced", "complained", "unsubscribed"])
-    .lt("attempts", 3)
-    .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-    .order("created_at", { ascending: true })
-    .limit(Math.min(limit, 50));
-
-  if (retryableEvents?.length) {
-    const { retryStoredEvent } = await import("@/lib/email-events.server");
-    for (const event of retryableEvents as Array<{ id: string }>) {
-      const result = await retryStoredEvent(event.id, false, null, "auto_retry");
-      if (result.status !== "failed" && result.status !== "unmatched") repaired += 1;
-    }
-  }
+  const { retryRaceFailedDeliveryEvents } = await import("@/lib/email-events.server");
+  const retried = await retryRaceFailedDeliveryEvents(limit);
+  repaired += retried.repaired;
 
   const { data: rows } = await supabaseAdmin
     .from("campaign_messages")
