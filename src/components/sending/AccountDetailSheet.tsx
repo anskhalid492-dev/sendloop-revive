@@ -14,6 +14,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AuthBadgeRow } from "@/components/sending/AuthBadges";
+import { MailboxDailyLimitPopover } from "@/components/sending/MailboxDailyLimitPopover";
+
 import { getEmailAccountDetail, listSendingAccountAudit } from "@/lib/sending.functions";
 import { getMailboxInsights, listMailboxChecks } from "@/lib/warmup.functions";
 import {
