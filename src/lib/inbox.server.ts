@@ -698,8 +698,25 @@ async function applyReplyAutomation(args: {
     }
   }
 
-  // Mirror into the existing campaign reply log so the queue tab keeps working.
+  // Mirror into the existing campaign reply log so the queue tab keeps working,
+  // and into normalized engagement so analytics sees replies the same way it
+  // sees delivered/opened/clicked events.
   if (campaignMessage?.id && leadId && campaignId) {
+    try {
+      const { recordEngagement } = await import("@/lib/engagement.server");
+      await recordEngagement({
+        type: "replied",
+        email: args.prospect,
+        providerMessageId: null,
+        externalId: `reply:${args.dedupeKey}`,
+        provider: "inbound",
+        detail: args.subject || null,
+        occurredAt: args.receivedIso,
+      });
+    } catch {
+      /* analytics mirroring must never break inbox storage */
+    }
+
     await db.from("campaign_replies").insert({
       workspace_id: workspaceId,
       campaign_id: campaignId,
@@ -836,11 +853,21 @@ export async function recordOutboundCampaignMessage(args: {
 
   const { data: existing } = await db
     .from("conversation_messages")
-    .select("id")
+    .select("id, conversation_id")
     .eq("workspace_id", args.workspaceId)
     .eq("campaign_message_id", args.campaignMessageId)
     .maybeSingle();
-  if (existing) return existing.id;
+  if (existing) {
+    await db
+      .from("inbound_routes")
+      .update({ conversation_id: existing.conversation_id })
+      .eq("workspace_id", args.workspaceId)
+      .eq("sending_account_id", args.sendingAccountId)
+      .eq("lead_id", args.leadId)
+      .eq("campaign_id", args.campaignId)
+      .is("conversation_id", null);
+    return existing.id;
+  }
 
   const { data: conversation } = await db
     .from("conversations")
@@ -859,6 +886,15 @@ export async function recordOutboundCampaignMessage(args: {
     .select("id, message_count")
     .single();
   if (!conversation) return null;
+
+  await db
+    .from("inbound_routes")
+    .update({ conversation_id: conversation.id })
+    .eq("workspace_id", args.workspaceId)
+    .eq("sending_account_id", args.sendingAccountId)
+    .eq("lead_id", args.leadId)
+    .eq("campaign_id", args.campaignId)
+    .is("conversation_id", null);
 
   const { data: inserted } = await db
     .from("conversation_messages")

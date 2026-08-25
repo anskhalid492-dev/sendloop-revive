@@ -14,6 +14,7 @@ import {
   normalizeDelivery,
   normalizeInbound,
 } from "@/lib/inbound-parse";
+import { stripAngle } from "@/lib/inbox-model";
 
 export type ProcessResult = {
   status: "created" | "duplicate" | "unmatched" | "applied" | "ignored" | "failed";
@@ -226,6 +227,7 @@ export async function processEventPayload(
         workspace_id: result.workspaceId ?? null,
         lead_id: result.leadId ?? null,
         sending_account_id: result.sendingAccountId ?? null,
+        message_id: stripAngle(parsed.messageId) ?? externalIdOf(payload, kind),
         routing_token: token,
         token_status: tokenStatus,
         failure_code: failureCode,
@@ -429,10 +431,18 @@ export async function handleWebhookDelivery(
   const source =
     raw["data"] && typeof raw["data"] === "object" ? (raw["data"] as Record<string, unknown>) : raw;
 
-  const toEmail = Array.isArray(source["to"])
-    ? String(source["to"][0]).slice(0, 320)
-    : typeof source["to"] === "string"
-      ? source["to"].slice(0, 320)
+  const inbound = kind === "inbound" ? normalizeInbound(raw) : null;
+  const toEmail = inbound?.to
+    ? extractEmail(String(inbound.to)).slice(0, 320)
+    : Array.isArray(source["to"])
+      ? extractEmail(String(source["to"][0])).slice(0, 320)
+      : typeof source["to"] === "string"
+        ? extractEmail(source["to"]).slice(0, 320)
+        : null;
+  const fromEmail = inbound?.from
+    ? extractEmail(String(inbound.from)).slice(0, 320)
+    : typeof source["from"] === "string"
+      ? extractEmail(source["from"]).slice(0, 320)
       : null;
   const { tokenFromAddress } = await import("@/lib/inbound-routing.server");
 
@@ -441,10 +451,15 @@ export async function handleWebhookDelivery(
     kind,
     externalId,
     payload: raw,
-    fromEmail: typeof source["from"] === "string" ? source["from"].slice(0, 320) : null,
+    fromEmail,
     toEmail,
-    subject: typeof source["subject"] === "string" ? source["subject"].slice(0, 300) : null,
-    messageId: externalId,
+    subject:
+      typeof inbound?.subject === "string"
+        ? inbound.subject.slice(0, 300)
+        : typeof source["subject"] === "string"
+          ? source["subject"].slice(0, 300)
+          : null,
+    messageId: kind === "inbound" ? stripAngle(inbound?.messageId as string | null | undefined) : externalId,
     signatureStatus: meta?.signatureStatus ?? "unverified",
     signatureDetail: meta?.signatureDetail ?? null,
     routingToken: toEmail ? tokenFromAddress(toEmail) : null,
