@@ -393,6 +393,11 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .eq("message_id", messageId)
       .maybeSingle();
     if (existing) {
+      const { data: existingConversation } = await db
+        .from("conversations")
+        .select("lead_id, campaign_id, sending_account_id")
+        .eq("id", existing.conversation_id)
+        .maybeSingle();
       const repair = await db
         .from("conversations")
         .update({ has_inbound: true, last_inbound_at: receivedIso, archived: false })
@@ -403,9 +408,9 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
         conversationId: existing.conversation_id,
         messageId: existing.id,
         workspaceId,
-        leadId: null,
-        campaignId: null,
-        sendingAccountId,
+        leadId: existingConversation?.lead_id ?? campaignMessage?.lead_id ?? null,
+        campaignId: existingConversation?.campaign_id ?? campaignMessage?.campaign_id ?? null,
+        sendingAccountId: existingConversation?.sending_account_id ?? sendingAccountId,
       };
     }
   }
