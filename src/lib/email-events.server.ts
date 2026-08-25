@@ -355,16 +355,16 @@ export async function processEventPayload(
         if (ids.length) {
           const list = providerMessageIdInFilter(ids);
           const [{ data: transactional }, { data: manualReply }] = await Promise.all([
-            supabaseAdmin.from("transactional_emails").select("id").or(`provider_message_id.in.${list}`).maybeSingle(),
+            supabaseAdmin.from("transactional_emails").select("id").or(`provider_message_id.in.${list}`).limit(1),
             supabaseAdmin
               .from("conversation_messages")
               .select("id")
               .eq("direction", "outbound")
               .or(`provider_message_id.in.${list},message_id.in.${list}`)
-              .maybeSingle(),
+              .limit(1),
           ]);
-          if (transactional) messageType = "transactional";
-          else if (manualReply) messageType = "manual_reply";
+          if ((transactional ?? []).length > 0) messageType = "transactional";
+          else if ((manualReply ?? []).length > 0) messageType = "manual_reply";
         }
       }
       if (!messageType && !delivery.providerMessageId) {
