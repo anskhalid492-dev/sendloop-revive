@@ -13,6 +13,7 @@ export type EngagementType =
   | "delivered"
   | "opened"
   | "clicked"
+  | "replied"
   | "bounced"
   | "complained"
   | "unsubscribed";
@@ -107,7 +108,9 @@ export async function recordEngagement(args: Args): Promise<boolean> {
     const type =
       args.type === "delivered"
         ? "email.delivered"
-        : args.type === "opened"
+        : args.type === "replied"
+          ? "lead.replied"
+          : args.type === "opened"
           ? "email.opened"
           : args.type === "clicked"
             ? "email.clicked"
