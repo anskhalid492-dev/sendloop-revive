@@ -68,7 +68,10 @@ async function count(table: string, apply?: (q: any) => any): Promise<number | n
   let query = supabaseAdmin.from(table as never).select("id", { count: "exact", head: true });
   if (apply) query = apply(query);
   const { count: value, error } = await query;
-  if (error) return null;
+  if (error) {
+    console.error(`[AdminDashboard] Count query failed for ${table}: ${error.message}`);
+    throw new Error(`Database query failed for ${table}: ${error.message}`);
+  }
   return value ?? 0;
 }
 
@@ -178,9 +181,30 @@ export async function buildAdminDashboard(): Promise<AdminDashboard> {
       .limit(20),
   ]);
 
-  const activeUsers = activeMembers.error
-    ? null
-    : new Set((activeMembers.data ?? []).map((r: any) => r.user_id)).size;
+  const queryResults = [
+    ["workspace_members", activeMembers],
+    ["billing_subscriptions", subsRows],
+    ["billing_transactions", txRows],
+    ["profiles", newProfiles],
+    ["campaign_messages", recentMessages],
+    ["workspaces", newWorkspaces],
+    ["campaigns", launchedCampaigns],
+    ["support_tickets", newTickets],
+    ["automation_runs", failedRuns],
+    ["email_providers", providerRows],
+    ["sending_accounts", failedAccounts],
+    ["billing_webhook_events", webhookFails],
+    ["email_events", inboundFails],
+  ] as const;
+
+  for (const [table, result] of queryResults) {
+    if (result.error) {
+      console.error(`[AdminDashboard] Query failed for ${table}: ${result.error.message}`);
+      throw new Error(`Database query failed for ${table}: ${result.error.message}`);
+    }
+  }
+
+  const activeUsers = new Set((activeMembers.data ?? []).map((r: any) => r.user_id)).size;
 
   const metrics: AdminMetric[] = [
     { key: "users", label: "Total users", value: totalUsers },
@@ -216,20 +240,18 @@ export async function buildAdminDashboard(): Promise<AdminDashboard> {
   const revenue = Array.from(revenueMap.entries())
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([month, cents]) => ({ month, cents }));
-  const revenueTotalCents = txRows.error ? null : revenue.reduce((n, r) => n + r.cents, 0);
+  const revenueTotalCents = revenue.reduce((n, r) => n + r.cents, 0);
 
   const subs = (subsRows.data ?? []) as any[];
   const subStatus = new Map<string, number>();
   for (const s of subs) subStatus.set(s.status, (subStatus.get(s.status) ?? 0) + 1);
-  const mrrCents = subsRows.error
-    ? null
-    : subs
-        .filter((s) => ["active", "trialing"].includes(s.status))
-        .reduce(
-          (n, s) =>
-            n + (s.billing_interval === "yearly" ? Math.round((s.amount_cents ?? 0) / 12) : s.amount_cents ?? 0),
-          0,
-        );
+  const mrrCents = subs
+    .filter((s) => ["active", "trialing"].includes(s.status))
+    .reduce(
+      (n, s) =>
+        n + (s.billing_interval === "yearly" ? Math.round((s.amount_cents ?? 0) / 12) : s.amount_cents ?? 0),
+      0,
+    );
 
   // User growth over the last 30 days.
   const growthMap = new Map<string, number>();
