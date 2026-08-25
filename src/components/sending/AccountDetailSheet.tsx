@@ -153,12 +153,20 @@ export function AccountDetailSheet({
 
             <div className="mt-5 space-y-4 pb-8">
               <Block title="Sending">
-                <Row label="Daily limit" value={account.daily_limit} />
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-sm text-muted-foreground">Daily limit</span>
+                  <MailboxDailyLimitPopover
+                    accountId={account.id}
+                    dailyLimit={account.daily_limit}
+                    sentToday={account.sent_today}
+                  />
+                </div>
                 <Row label="Sent today" value={account.sent_today} />
                 <Row
-                  label="Remaining capacity"
+                  label="Remaining"
                   value={Math.max(0, account.daily_limit - account.sent_today)}
                 />
+
                 <Row label="Hourly limit" value={account.hourly_limit} />
                 <div className="pt-3">
                   <Progress
