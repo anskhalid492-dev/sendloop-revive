@@ -993,8 +993,6 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     const { consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
-      // Test sends leave the platform like any other email, so they meter too.
-      await consumeUsage(account.workspace_id, "emails_monthly", 1);
       const { mintRequiredReplyAddress } = await import("@/lib/inbound-routing.server");
       const replyTo = await mintRequiredReplyAddress(account.from_email, {
         workspaceId: account.workspace_id,
@@ -1003,6 +1001,8 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         campaignId: data.campaignId,
         purpose: "campaign_test",
       });
+      // Test sends leave the platform like any other email, so they meter too.
+      await consumeUsage(account.workspace_id, "emails_monthly", 1);
       const result = await sendManagedEmail(
         supabaseAdmin,
         {
