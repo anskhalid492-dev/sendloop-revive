@@ -805,7 +805,7 @@ export async function applyWarmupDeliveryEvent(args: {
     workspaceId: job.workspace_id,
     accountId: job.sending_account_id,
     jobId: job.id,
-    type: args.kind,
+    type: args.kind === "failed" ? "rejected" : args.kind,
     detail: args.reason,
     providerMessageId: args.providerMessageId,
     externalId: args.externalId ?? null,
