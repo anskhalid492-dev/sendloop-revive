@@ -6,21 +6,7 @@
  * campaign automation instead.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-function stripAngle(value: string | null | undefined): string | null {
-  if (!value) return null;
-  return value.trim().replace(/^<|>$/g, "");
-}
-
-function idCandidates(value: string | null | undefined): string[] {
-  const raw = value?.trim();
-  const stripped = stripAngle(raw);
-  return Array.from(new Set([raw, stripped].filter(Boolean) as string[]));
-}
-
-function inList(values: string[]): string {
-  return `(${values.map((v) => `"${v.replace(/"/g, "")}"`).join(",")})`;
-}
+import { providerMessageIdCandidates, providerMessageIdInFilter } from "@/lib/provider-message-id";
 
 export type DeliveryOutcome = {
   status: "applied" | "unmatched";
@@ -65,15 +51,15 @@ export async function applyDeliveryEvent(args: {
   }
 
   const columns = "id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, to_email";
-  const ids = idCandidates(args.providerMessageId);
+  const ids = providerMessageIdCandidates(args.providerMessageId);
   let rows: CampaignMessageRow[] | null = null;
   if (ids.length) {
-    const list = inList(ids);
+    const list = providerMessageIdInFilter(ids);
     const { data } = await db
       .from("campaign_messages")
       .select(columns)
       .eq("message_type", "campaign")
-      .or(`provider_message_id.in.${list},message_id.in.${list}`)
+      .or(`provider_message_id.in.${list}`)
       .order("sent_at", { ascending: false })
       .limit(1);
     rows = (data ?? null) as CampaignMessageRow[] | null;

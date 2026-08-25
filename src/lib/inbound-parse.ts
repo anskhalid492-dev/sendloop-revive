@@ -5,6 +5,7 @@
  * stored payload in exactly the same way.
  */
 import { z } from "zod";
+import { firstProviderMessageId } from "@/lib/provider-message-id";
 
 export const inboundPayloadSchema = z.object({
   from: z.string().trim().min(3).max(320),
@@ -232,7 +233,7 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     firstAddress(source["recipients"]) ||
     firstAddress(source["email"]) ||
     firstAddress(source["To"]);
-  const providerMessageId = firstString(
+  const providerMessageId = firstProviderMessageId(
     source["email_id"],
     source["emailId"],
     source["id"],
@@ -244,6 +245,7 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     source["X-Message-Id"],
     headerOf(source["headers"], "message-id"),
     headerOf(source["headers"], "x-message-id"),
+    source["headers"],
   );
   const reasonSource = (source["bounce"] ?? source) as Record<string, unknown>;
   const reason =
