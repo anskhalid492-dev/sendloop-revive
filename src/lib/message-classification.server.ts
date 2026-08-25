@@ -27,6 +27,22 @@ export const MESSAGE_TYPES: MessageType[] = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
 
+function stripAngle(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.replace(/^<|>$/g, "");
+}
+
+function idCandidates(value: string | null | undefined): string[] {
+  const raw = value?.trim();
+  const stripped = stripAngle(raw);
+  return Array.from(new Set([raw, stripped].filter(Boolean) as string[]));
+}
+
+function inList(values: string[]): string {
+  return `(${values.map((v) => `"${v.replace(/"/g, "")}"`).join(",")})`;
+}
+
 /**
  * Records the classification of one accepted outbound message. Safe to call
  * twice for the same provider message id (the registry is unique on it).
@@ -77,35 +93,48 @@ export async function registerOutboundMessage(
 export async function classifyProviderMessage(
   providerMessageId: string | null,
 ): Promise<MessageType | null> {
-  if (!providerMessageId) return null;
+  const ids = idCandidates(providerMessageId);
+  if (!ids.length) return null;
 
   const { data: registered } = await supabaseAdmin
     .from("outbound_messages")
     .select("message_type")
-    .eq("provider_message_id", providerMessageId)
+    .in("provider_message_id", ids)
     .maybeSingle();
   if (registered?.message_type) return registered.message_type as MessageType;
 
-  const [{ data: warmup }, { data: campaign }, { data: transactional }] = await Promise.all([
+  const list = inList(ids);
+
+  const [{ data: warmup }, { data: campaign }, { data: conversation }, { data: transactional }] = await Promise.all([
     supabaseAdmin
       .from("warmup_jobs")
       .select("id")
-      .eq("provider_message_id", providerMessageId)
+      .in("provider_message_id", ids)
       .maybeSingle(),
     supabaseAdmin
       .from("campaign_messages")
       .select("id, message_type")
-      .eq("provider_message_id", providerMessageId)
+      .or(`provider_message_id.in.${list},message_id.in.${list}`)
+      .limit(1)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("conversation_messages")
+      .select("id, campaign_message_id, direction")
+      .or(`provider_message_id.in.${list},message_id.in.${list}`)
+      .order("occurred_at", { ascending: false })
+      .limit(1)
       .maybeSingle(),
     supabaseAdmin
       .from("transactional_emails")
       .select("id")
-      .eq("provider_message_id", providerMessageId)
+      .in("provider_message_id", ids)
       .maybeSingle(),
   ]);
 
   if (warmup) return "warmup";
   if (campaign) return (campaign.message_type as MessageType) ?? "campaign";
+  if (conversation?.campaign_message_id) return "campaign";
+  if (conversation?.direction === "outbound") return "manual_reply";
   if (transactional) return "transactional";
   return null;
 }

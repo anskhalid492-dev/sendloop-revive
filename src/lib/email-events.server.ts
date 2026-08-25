@@ -22,6 +22,17 @@ export type ProcessResult = {
   reason?: string | undefined;
 };
 
+function failureCodeFromReason(reason: string | null | undefined): string | null {
+  const value = (reason ?? "").toLowerCase();
+  if (!value) return null;
+  if (value.includes("provider message id")) return "provider_message_id_not_found";
+  if (value.includes("warmup")) return "warmup_message_not_found";
+  if (value.includes("workspace") || value.includes("mailbox")) return "unknown_mailbox";
+  if (value.includes("conversation") || value.includes("thread")) return "unmatched_thread";
+  if (value.includes("send")) return "campaign_message_not_found";
+  return "unmatched_event";
+}
+
 /** Records the raw event; reports a duplicate delivery instead of inserting twice. */
 async function recordEvent(args: {
   provider: string;
@@ -240,9 +251,13 @@ export async function processEventPayload(
 
       // ------------------------------------------------------- unknown id
       if (!messageType) {
+        const reason = delivery.providerMessageId
+          ? "Provider message ID not found in outbound registry or send tables"
+          : "Provider payload did not include a message ID";
         await finish(eventId, {
           status: "ignored",
-          error: "Event does not match any MunchReach send",
+          error: reason,
+          failure_code: delivery.providerMessageId ? "provider_message_id_not_found" : "provider_message_id_missing",
           message_type: null,
         });
         return { status: "ignored", eventId };
@@ -290,6 +305,7 @@ export async function processEventPayload(
         await finish(eventId, {
           status: recorded ? "processed" : "failed",
           error: recorded ? null : "No matching send",
+          failure_code: recorded ? null : "campaign_message_not_found",
           message_type: "campaign",
         });
         return { status: recorded ? "applied" : "unmatched", eventId };
@@ -321,6 +337,7 @@ export async function processEventPayload(
       await finish(eventId, {
         status: outcome.status === "applied" ? "processed" : "failed",
         error: outcome.reason ?? null,
+        failure_code: outcome.status === "applied" ? null : (outcome.failureCode ?? failureCodeFromReason(outcome.reason)),
         workspace_id: outcome.workspaceId ?? null,
         lead_id: outcome.leadId ?? null,
         sending_account_id: outcome.sendingAccountId ?? null,

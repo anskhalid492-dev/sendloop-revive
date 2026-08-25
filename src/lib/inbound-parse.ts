@@ -63,6 +63,14 @@ function firstAddress(value: unknown): string {
   return addressString(value).split(",")[0] ?? "";
 }
 
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
 export function headerOf(headers: unknown, name: string): string | null {
   if (!headers || typeof headers !== "object") return null;
   const wanted = name.toLowerCase();
@@ -207,15 +215,25 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     input["data"] && typeof input["data"] === "object"
       ? (input["data"] as Record<string, unknown>)
       : input;
-  const to = firstAddress(source["to"]) || firstAddress(source["recipient"]) || firstAddress(source["email"]);
-  const providerMessageId =
-    (source["email_id"] as string) ??
-    (source["message_id"] as string) ??
-    (source["MessageID"] as string) ??
-    (source["messageId"] as string) ??
-    (source["Message-Id"] as string) ??
-    headerOf(source["headers"], "message-id") ??
-    null;
+  const to =
+    firstAddress(source["to"]) ||
+    firstAddress(source["recipient"]) ||
+    firstAddress(source["recipients"]) ||
+    firstAddress(source["email"]) ||
+    firstAddress(source["To"]);
+  const providerMessageId = firstString(
+    source["email_id"],
+    source["emailId"],
+    source["id"],
+    source["message_id"],
+    source["messageId"],
+    source["MessageID"],
+    source["MessageId"],
+    source["Message-Id"],
+    source["X-Message-Id"],
+    headerOf(source["headers"], "message-id"),
+    headerOf(source["headers"], "x-message-id"),
+  );
   const reasonSource = (source["bounce"] ?? source) as Record<string, unknown>;
   const reason =
     (reasonSource["message"] as string) ??
@@ -229,6 +247,8 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     occurredAt:
       typeof source["created_at"] === "string"
         ? source["created_at"]
+        : typeof source["createdAt"] === "string"
+          ? source["createdAt"]
         : typeof source["timestamp"] === "string"
           ? source["timestamp"]
           : typeof source["Timestamp"] === "string"

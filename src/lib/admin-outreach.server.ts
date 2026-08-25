@@ -47,6 +47,12 @@ function tally<T>(rows: T[], key: (row: T) => string | null | undefined) {
   return out;
 }
 
+async function exactCount(build: () => any): Promise<number> {
+  const { count, error } = await build();
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 /* ============================================================ campaigns */
 
 export type AdminCampaignRow = {
@@ -194,6 +200,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
 }
 
 export async function getAdminCampaign(campaignId: string) {
+  const { fetchAllRows } = await import("@/lib/supabase-batch");
   const { data: campaign, error } = await db()
     .from("campaigns")
     .select("*")
@@ -202,7 +209,23 @@ export async function getAdminCampaign(campaignId: string) {
   if (error) throw new Error(error.message);
   if (!campaign) throw new Error("Campaign not found");
 
-  const [steps, variants, recipients, messages, replies, engagement, workspaces, owners, accounts] =
+  const [
+    steps,
+    variants,
+    recipients,
+    messages,
+    replies,
+    engagementRows,
+    statsRecipients,
+    statsQueued,
+    statsSent,
+    statsFailed,
+    statsReplies,
+    statsPositiveReplies,
+    workspaces,
+    owners,
+    accounts,
+  ] =
     await Promise.all([
       db()
         .from("campaign_steps")
@@ -231,7 +254,46 @@ export async function getAdminCampaign(campaignId: string) {
         .eq("campaign_id", campaignId)
         .order("received_at", { ascending: false })
         .limit(50),
-      db().from("email_engagement_events").select("event_type").eq("campaign_id", campaignId),
+      fetchAllRows<any>(() =>
+        db()
+          .from("email_engagement_events")
+          .select("id, event_type, message_id, recipient_email")
+          .eq("campaign_id", campaignId),
+      ),
+      exactCount(() =>
+        db().from("campaign_recipients").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId),
+      ),
+      exactCount(() =>
+        db()
+          .from("campaign_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .in("status", ["pending", "scheduled"]),
+      ),
+      exactCount(() =>
+        db()
+          .from("campaign_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("status", "sent"),
+      ),
+      exactCount(() =>
+        db()
+          .from("campaign_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("status", "failed"),
+      ),
+      exactCount(() =>
+        db().from("campaign_replies").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId),
+      ),
+      exactCount(() =>
+        db()
+          .from("campaign_replies")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("sentiment", "positive"),
+      ),
       workspaceNames([campaign.workspace_id]),
       profileNames([campaign.created_by]),
       db()
@@ -248,7 +310,16 @@ export async function getAdminCampaign(campaignId: string) {
   for (const l of leads ?? []) leadById[l.id] = l;
 
   const msgRows = (messages.data ?? []) as any[];
-  const engRows = (engagement.data ?? []) as any[];
+  const engRows = engagementRows as any[];
+  const openKeys = new Set<string>();
+  const clickKeys = new Set<string>();
+  const bounceKeys = new Set<string>();
+  for (const e of engRows) {
+    const key = String(e.message_id ?? e.recipient_email ?? e.id);
+    if (e.event_type === "open" || e.event_type === "opened") openKeys.add(key);
+    if (e.event_type === "click" || e.event_type === "clicked") clickKeys.add(key);
+    if (e.event_type === "bounce" || e.event_type === "bounced") bounceKeys.add(key);
+  }
 
   return {
     campaign: {
@@ -309,15 +380,15 @@ export async function getAdminCampaign(campaignId: string) {
       dailyLimit: a.daily_limit,
     })),
     stats: {
-      recipients: recipients.data?.length ?? 0,
-      queued: msgRows.filter((m) => m.status === "pending" || m.status === "scheduled").length,
-      sent: msgRows.filter((m) => m.status === "sent").length,
-      failed: msgRows.filter((m) => m.status === "failed").length,
-      opens: engRows.filter((e) => e.event_type === "open" || e.event_type === "opened").length,
-      clicks: engRows.filter((e) => e.event_type === "click" || e.event_type === "clicked").length,
-      bounces: engRows.filter((e) => e.event_type === "bounce" || e.event_type === "bounced").length,
-      replies: replies.data?.length ?? 0,
-      positiveReplies: (replies.data ?? []).filter((r: any) => r.sentiment === "positive").length,
+      recipients: statsRecipients,
+      queued: statsQueued,
+      sent: statsSent,
+      failed: statsFailed,
+      opens: openKeys.size,
+      clicks: clickKeys.size,
+      bounces: bounceKeys.size,
+      replies: statsReplies,
+      positiveReplies: statsPositiveReplies,
     },
     replies: (replies.data ?? []).map((r: any) => ({
       id: r.id,
