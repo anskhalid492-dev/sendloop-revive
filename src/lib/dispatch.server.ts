@@ -108,6 +108,26 @@ type InitialAccountRow = {
   paused: boolean;
 };
 
+function escapeEmailHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function campaignBodyHtml(text: string): string {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => `<p>${escapeEmailHtml(part).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  const content = paragraphs || `<p>${escapeEmailHtml(text)}</p>`;
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111827;">${content}</div></body></html>`;
+}
+
 /** Total delay in ms configured on a step. */
 function stepDelayMs(step: StepRow): number {
   return (
@@ -520,7 +540,7 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
@@ -753,6 +773,12 @@ export async function dispatchDueMessages(
       campaignId: message.campaign_id,
       purpose: "campaign",
     });
+    const shouldSendHtml =
+      !(campaignRow as { text_only?: boolean | null }).text_only &&
+      (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||
+        Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking));
+    const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
+
     const send = await sendManagedEmail(
       supabaseAdmin,
       {
@@ -769,6 +795,7 @@ export async function dispatchDueMessages(
         to: message.to_email,
         subject: message.subject,
         text: message.body,
+        ...(html ? { html } : {}),
       },
       { stage: "campaign" },
     );
@@ -798,6 +825,7 @@ export async function dispatchDueMessages(
         toEmail: message.to_email,
         subject: message.subject,
         body: message.body,
+        html,
         providerMessageId: send.messageId ?? null,
         sentAt,
       });

@@ -308,51 +308,54 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { fetchAllRows } = await import("@/lib/supabase-batch");
     const day = 24 * 60 * 60 * 1000;
     const now = Date.now();
     const start = new Date(now - data.days * day);
     const prevStart = new Date(now - data.days * 2 * day);
 
     const [messages, replies, leads, campaigns, recipients] = await Promise.all([
-      supabase
-        .from("campaign_messages")
-        .select(
-          "id, sent_at, campaign_id, delivered_at, bounced_at, unsubscribed_at, replied_at",
-        )
-        .eq("workspace_id", data.workspaceId)
-        .eq("status", "sent")
-        .gte("sent_at", prevStart.toISOString())
-        .limit(10000),
-      supabase
-        .from("campaign_replies")
-        .select("id, lead_id, campaign_id, from_email, subject, body, sentiment, received_at")
-        .eq("workspace_id", data.workspaceId)
-        .gte("received_at", prevStart.toISOString())
-        .order("received_at", { ascending: false })
-        .limit(2000),
-      supabase
-        .from("leads")
-        .select("id, email, first_name, last_name, company, crm_stage, last_activity_at")
-        .eq("workspace_id", data.workspaceId)
-        .in("crm_stage", ["opportunity", "customer"])
-        .limit(5000),
+      fetchAllRows<any>(() =>
+        supabase
+          .from("campaign_messages")
+          .select("id, sent_at, campaign_id, delivered_at, bounced_at, unsubscribed_at, replied_at")
+          .eq("workspace_id", data.workspaceId)
+          .eq("status", "sent")
+          .gte("sent_at", prevStart.toISOString()),
+      ),
+      fetchAllRows<any>(() =>
+        supabase
+          .from("campaign_replies")
+          .select("id, lead_id, campaign_id, from_email, subject, body, sentiment, received_at")
+          .eq("workspace_id", data.workspaceId)
+          .gte("received_at", prevStart.toISOString())
+          .order("received_at", { ascending: false }),
+      ),
+      fetchAllRows<any>(() =>
+        supabase
+          .from("leads")
+          .select("id, email, first_name, last_name, company, crm_stage, last_activity_at")
+          .eq("workspace_id", data.workspaceId)
+          .in("crm_stage", ["opportunity", "customer"]),
+      ),
       supabase
         .from("campaigns")
         .select("id, name, status")
         .eq("workspace_id", data.workspaceId)
         .limit(200),
-      supabase
-        .from("campaign_recipients")
-        .select("id, campaign_id, lead_id")
-        .eq("workspace_id", data.workspaceId)
-        .limit(10000),
+      fetchAllRows<any>(() =>
+        supabase
+          .from("campaign_recipients")
+          .select("id, campaign_id, lead_id")
+          .eq("workspace_id", data.workspaceId),
+      ),
     ]);
 
-    const messageRows = messages.data ?? [];
-    const replyRows = replies.data ?? [];
-    const meetingRows = (leads.data ?? []).filter((l) => l.last_activity_at);
+    const messageRows = messages;
+    const replyRows = replies;
+    const meetingRows = leads.filter((l) => l.last_activity_at);
     const campaignRows = campaigns.data ?? [];
-    const recipientRows = recipients.data ?? [];
+    const recipientRows = recipients;
     const campaignName = new Map(campaignRows.map((c) => [c.id, c.name]));
 
     const inWindow = (value: string | null, from: Date) =>
