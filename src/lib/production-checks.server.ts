@@ -1227,10 +1227,11 @@ export async function runProductionChecks(options: {
         const text = JSON.stringify(row.value ?? {});
         if (/(sk_live|sk_test|whsec_|sb_secret|service_role|-----BEGIN)/i.test(text)) offenders.push(row.key);
       }
-      for (const [name, value] of Object.entries(import.meta.env)) {
+      for (const [name, value] of Object.entries(process.env)) {
         if (!name.startsWith("VITE_")) continue;
         if (/(service|secret|private)/i.test(name) && value) offenders.push(name);
       }
+
       return offenders;
     });
     add({

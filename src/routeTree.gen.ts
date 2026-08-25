@@ -138,6 +138,7 @@ import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_
 import { Route as AuthenticatedAutomationsWorkflowsRouteImport } from './routes/_authenticated/automations.workflows'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
 import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
@@ -851,6 +852,11 @@ const AuthenticatedCampaignsCampaignIdRoute =
     path: '/campaigns/$campaignId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogAuthorSlugRoute = BlogAuthorSlugRouteImport.update({
   id: '/blog/author/$slug',
   path: '/blog/author/$slug',
@@ -1098,6 +1104,7 @@ export interface FileRoutesByFullPath {
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -1247,6 +1254,7 @@ export interface FileRoutesByTo {
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -1400,6 +1408,7 @@ export interface FileRoutesById {
   '/_authenticated/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/_authenticated/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -1553,6 +1562,7 @@ export interface FileRouteTypes {
     | '/automations/activity'
     | '/automations/workflows'
     | '/campaigns/$campaignId'
+    | '/api/public/health'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/admin/'
@@ -1702,6 +1712,7 @@ export interface FileRouteTypes {
     | '/automations/activity'
     | '/automations/workflows'
     | '/campaigns/$campaignId'
+    | '/api/public/health'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/admin'
@@ -1854,6 +1865,7 @@ export interface FileRouteTypes {
     | '/_authenticated/automations/activity'
     | '/_authenticated/automations/workflows'
     | '/_authenticated/campaigns/$campaignId'
+    | '/api/public/health'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/_authenticated/admin/'
@@ -1937,6 +1949,7 @@ export interface RootRouteChildren {
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicAutomationsTokenRoute: typeof ApiPublicAutomationsTokenRoute
@@ -2863,6 +2876,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCampaignsCampaignIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/author/$slug': {
       id: '/blog/author/$slug'
       path: '/blog/author/$slug'
@@ -3280,6 +3300,7 @@ const rootRouteChildren: RootRouteChildren = {
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   IntegrationsIndexRoute: IntegrationsIndexRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicAutomationsTokenRoute: ApiPublicAutomationsTokenRoute,

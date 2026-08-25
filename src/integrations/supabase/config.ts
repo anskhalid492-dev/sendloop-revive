@@ -1,14 +1,12 @@
 // Supabase connection settings.
 //
-// NOTHING is hard-coded here: the URL, project id and publishable (anon) key are
-// read from environment variables, so the app always follows whichever Supabase
-// project is currently connected to this Lovable project.
-//
-// Browser build: import.meta.env.VITE_SUPABASE_*
-// Server runtime: process.env.SUPABASE_*
+// Pinned to the MunchReach production project: rihgzkofoxcjljlbvbya.
+// These values are intentionally hard-coded so the application cannot
+// accidentally fall back to any other Supabase project regardless of the
+// runtime environment variables.
 //
 // Secrets (service role key, provider keys, webhook secrets) are NEVER stored
-// here - they are read from environment variables inside server-only code.
+// here — they are read from environment variables inside server-only code.
 
 function fromProcessEnv(name: string): string | undefined {
   if (typeof process === "undefined") return undefined;
@@ -16,26 +14,12 @@ function fromProcessEnv(name: string): string | undefined {
   return value && value.length > 0 ? value : undefined;
 }
 
-function fromViteEnv(name: string): string | undefined {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-  const value = env?.[name];
-  return value && value.length > 0 ? value : undefined;
-}
+export const SUPABASE_URL = "https://rihgzkofoxcjljlbvbya.supabase.co";
 
-export const SUPABASE_URL =
-  fromViteEnv("VITE_SUPABASE_URL") ?? fromProcessEnv("SUPABASE_URL") ?? "";
-
-export const SUPABASE_PROJECT_ID =
-  fromViteEnv("VITE_SUPABASE_PROJECT_ID") ??
-  fromProcessEnv("SUPABASE_PROJECT_ID") ??
-  "";
+export const SUPABASE_PROJECT_ID = "rihgzkofoxcjljlbvbya";
 
 export const SUPABASE_PUBLISHABLE_KEY =
-  fromViteEnv("VITE_SUPABASE_PUBLISHABLE_KEY") ??
-  fromViteEnv("VITE_SUPABASE_ANON_KEY") ??
-  fromProcessEnv("SUPABASE_PUBLISHABLE_KEY") ??
-  fromProcessEnv("SUPABASE_ANON_KEY") ??
-  "";
+  "sb_publishable_gTF0GOqvRfQ7f_ED446AVg_DV0rNQ8o";
 
 // Server-only service role key. Accepts either the connected backend secret or
 // the legacy custom alias, whichever is configured.
