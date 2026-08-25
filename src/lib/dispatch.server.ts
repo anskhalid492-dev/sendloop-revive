@@ -833,18 +833,18 @@ export async function dispatchDueMessages(
     } catch {
       /* inbox mirroring must never fail an already delivered send */
     }
+    const campaignMessagePatch = {
+      status: "sent",
+      sent_at: sentAt,
+      provider: account.provider,
+      provider_message_id: send.messageId ?? null,
+      message_type: "campaign",
+      last_error: null,
+      attempts: (message.attempts ?? 0) + 1,
+    };
     await supabase
       .from("campaign_messages")
-      .update({
-        status: "sent",
-        sent_at: sentAt,
-        provider: account.provider,
-        message_id: send.rfcMessageId ? stripAngle(send.rfcMessageId) : stripAngle(send.messageId ?? null),
-        provider_message_id: send.messageId ?? null,
-        message_type: "campaign",
-        last_error: null,
-        attempts: (message.attempts ?? 0) + 1,
-      })
+      .update(campaignMessagePatch)
       .eq("id", message.id);
 
     // Explicit classification: provider events for this id can only ever move
@@ -860,6 +860,7 @@ export async function dispatchDueMessages(
         toEmail: message.to_email,
         refTable: "campaign_messages",
         refId: message.id,
+        alternateProviderMessageIds: [send.rfcMessageId ?? null],
       });
     } catch {
       /* classification must never fail an already delivered send */

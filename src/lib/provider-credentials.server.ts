@@ -145,10 +145,14 @@ function extractMessageId(body: string, headers: Headers): string | undefined {
     const json = JSON.parse(body) as Record<string, unknown>;
     const candidate =
       json["id"] ??
+      json["email_id"] ??
+      json["emailId"] ??
       json["MessageID"] ??
       json["messageId"] ??
       json["message_id"] ??
-      (json["data"] as Record<string, unknown> | undefined)?.["id"];
+      (json["data"] as Record<string, unknown> | undefined)?.["id"] ??
+      (json["data"] as Record<string, unknown> | undefined)?.["email_id"] ??
+      (json["data"] as Record<string, unknown> | undefined)?.["emailId"];
     if (typeof candidate === "string") return candidate;
   } catch {
     /* not JSON — fall through to headers */
