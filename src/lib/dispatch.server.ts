@@ -848,7 +848,15 @@ export async function dispatchDueMessages(
       .update(campaignMessagePatch)
       .eq("id", message.id);
     if (updateSent.error && /message_id/i.test(updateSent.error.message ?? "")) {
-      const { message_id: _messageId, ...fallbackPatch } = campaignMessagePatch;
+      const fallbackPatch: Omit<typeof campaignMessagePatch, "message_id"> = {
+        status: campaignMessagePatch.status,
+        sent_at: campaignMessagePatch.sent_at,
+        provider: campaignMessagePatch.provider,
+        provider_message_id: campaignMessagePatch.provider_message_id,
+        message_type: campaignMessagePatch.message_type,
+        last_error: campaignMessagePatch.last_error,
+        attempts: campaignMessagePatch.attempts,
+      };
       await supabase.from("campaign_messages").update(fallbackPatch).eq("id", message.id);
     }
 

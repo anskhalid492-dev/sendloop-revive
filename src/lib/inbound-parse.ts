@@ -75,14 +75,6 @@ function firstAddress(value: unknown): string {
   return addressString(value).split(",")[0] ?? "";
 }
 
-function firstString(...values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  }
-  return null;
-}
-
 export function headerOf(headers: unknown, name: string): string | null {
   if (!headers || typeof headers !== "object") return null;
   const wanted = name.toLowerCase();
