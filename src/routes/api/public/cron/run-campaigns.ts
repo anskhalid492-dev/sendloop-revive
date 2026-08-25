@@ -53,7 +53,12 @@ async function run(request: Request) {
   const { runCampaign } = await import("@/lib/dispatch.server");
 
   const only = url.searchParams.get("campaignId");
-  let query = supabaseAdmin.from("campaigns").select("id, name").eq("status", "active");
+  const now = new Date().toISOString();
+  let query = supabaseAdmin
+    .from("campaigns")
+    .select("id, name")
+    .in("status", ["active", "scheduled"])
+    .or(`status.eq.active,start_at.is.null,start_at.lte.${now}`);
   if (only) query = query.eq("id", only);
   const { data: campaigns, error } = await query.limit(50);
   if (error) return json({ error: error.message }, 500);

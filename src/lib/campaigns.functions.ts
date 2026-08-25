@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
-import { nextSendSlot } from "@/lib/campaign-schedule";
+import { nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
 import {
   campaignColumns,
   campaignLimitColumnsAvailable,
@@ -293,11 +293,13 @@ export const getCampaign = createServerFn({ method: "GET" })
         unsubscribed: withTimestamp("unsubscribed_at") || countBy("unsubscribed"),
         failed: failedMessages,
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
-        // Emails THIS campaign sent since local-day start (UTC boundary on the
-        // server). Never derived from lead counts.
+        // Emails THIS campaign sent since the campaign timezone's local-day
+        // start. Never derived from lead counts.
         sentToday: (() => {
-          const dayStart = new Date();
-          dayStart.setHours(0, 0, 0, 0);
+          const dayStart = zonedStartOfDay(
+            new Date(),
+            String((campaign as unknown as Record<string, unknown>)["timezone"] ?? "UTC"),
+          );
           return sentMessages.filter((m) => {
             const at = m["sent_at"];
             return at ? new Date(at).getTime() >= dayStart.getTime() : false;

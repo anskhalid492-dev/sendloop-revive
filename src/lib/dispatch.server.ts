@@ -7,7 +7,7 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
-import { nextSendSlot } from "@/lib/campaign-schedule";
+import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
 import {
   renderEmailForLead,
   senderExtras,
@@ -59,6 +59,55 @@ type StepRow = {
   step_type: StepType;
 };
 
+type CampaignDispatchRow = {
+  id: string;
+  workspace_id: string;
+  status: string;
+  timezone: string;
+  send_days: number[];
+  send_start_hour: number;
+  send_end_hour: number;
+  daily_cap: number;
+  start_at: string | null;
+  end_at: string | null;
+  sending_account_ids?: string[] | null;
+  custom_variables?: CustomVariable[] | null;
+  ai_enabled?: boolean | null;
+  ai_config?: unknown;
+};
+
+type InitialRecipientRow = {
+  id: string;
+  lead_id: string;
+  sending_account_id: string | null;
+};
+
+type InitialLeadRow = {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  job_title: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  website: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  custom_fields: Record<string, string> | null;
+};
+
+type InitialAccountRow = {
+  id: string;
+  provider: string | null;
+  from_name: string;
+  from_email: string;
+  status: string;
+  customer_enabled: boolean;
+  paused: boolean;
+};
+
 /** Total delay in ms configured on a step. */
 function stepDelayMs(step: StepRow): number {
   return (
@@ -66,6 +115,170 @@ function stepDelayMs(step: StepRow): number {
     (step.wait_hours ?? 0) * 3_600_000 +
     (step.delay_minutes ?? 0) * 60_000
   );
+}
+
+function campaignWindow(campaign: Pick<CampaignDispatchRow, "timezone" | "send_days" | "send_start_hour" | "send_end_hour">) {
+  return {
+    timezone: campaign.timezone || "UTC",
+    sendDays: campaign.send_days ?? [],
+    startHour: campaign.send_start_hour ?? 9,
+    endHour: campaign.send_end_hour ?? 17,
+  };
+}
+
+function sendBaseFor(campaign: Pick<CampaignDispatchRow, "start_at" | "timezone" | "send_days" | "send_start_hour" | "send_end_hour">, now: Date) {
+  const start = campaign.start_at ? new Date(campaign.start_at) : null;
+  return start && !Number.isNaN(start.getTime()) && start.getTime() > now.getTime() ? start : now;
+}
+
+/**
+ * Repair/materialise first-step queue rows for active campaigns that already
+ * have recipients but no initial message rows. This keeps the runner resilient
+ * for campaigns created before the launch backfill existed.
+ */
+export async function ensureInitialCampaignMessages(
+  supabase: AnySupabase,
+  campaignId: string,
+  now: Date = new Date(),
+): Promise<number> {
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select(
+      "id, workspace_id, status, timezone, send_days, send_start_hour, send_end_hour, daily_cap, start_at, end_at, sending_account_ids, custom_variables, ai_enabled, ai_config",
+    )
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (!campaign || !["active", "scheduled"].includes(campaign.status)) return 0;
+
+  const endAt = campaign.end_at ? new Date(campaign.end_at) : null;
+  if (endAt && !Number.isNaN(endAt.getTime()) && endAt.getTime() <= now.getTime()) return 0;
+
+  const { data: stepRows, error: stepError } = await supabase
+    .from("campaign_steps")
+    .select("id, step_order, subject, body, wait_days, wait_hours, delay_minutes, step_type")
+    .eq("campaign_id", campaignId)
+    .order("step_order", { ascending: true });
+  if (stepError) throw new Error(stepError.message);
+  const firstStep = ((stepRows ?? []) as StepRow[]).find(
+    (step) => step.step_type === "email" && step.subject.trim() && step.body.trim(),
+  );
+  if (!firstStep) return 0;
+
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+  const pendingRecipients = await fetchAllRows<InitialRecipientRow>(() =>
+    supabase
+      .from("campaign_recipients")
+      .select("id, lead_id, sending_account_id")
+      .eq("campaign_id", campaignId)
+      .eq("status", "pending")
+      .eq("current_step", 0)
+      .order("id", { ascending: true }),
+  );
+  if (!pendingRecipients.length) return 0;
+
+  const existingMsgs = await fetchAllRows<{ recipient_id: string | null }>(() =>
+    supabase
+      .from("campaign_messages")
+      .select("recipient_id")
+      .eq("campaign_id", campaignId)
+      .eq("step_order", firstStep.step_order),
+  );
+  const hasMessage = new Set(existingMsgs.map((message) => message.recipient_id).filter(Boolean));
+  const missing = pendingRecipients.filter((recipient) => !hasMessage.has(recipient.id));
+  if (!missing.length) return 0;
+
+  const leadRows = await fetchByIds<InitialLeadRow>(
+    missing.map((recipient) => recipient.lead_id),
+    (ids) =>
+      supabase
+        .from("leads")
+        .select(
+          "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
+        )
+        .in("id", ids),
+  );
+  const leadById = new Map(leadRows.map((lead) => [lead.id, lead] as const));
+
+  const configuredAccountIds = (campaign.sending_account_ids ?? []).filter(Boolean);
+  const { data: accountRows } = configuredAccountIds.length
+    ? await supabase
+        .from("sending_accounts")
+        .select("id, provider, from_name, from_email, status, customer_enabled, paused")
+        .in("id", configuredAccountIds)
+    : { data: [] as InitialAccountRow[] };
+  const accounts = ((accountRows ?? []) as InitialAccountRow[]).filter(
+    (account) => account.status !== "disabled" && account.customer_enabled && !account.paused,
+  );
+  const accountById = new Map(accounts.map((account) => [account.id, account] as const));
+  let cursor = 0;
+  const pickAccount = (current: string | null) => {
+    if (current && accountById.has(current)) return current;
+    if (!accounts.length) return null;
+    const account = accounts[cursor % accounts.length];
+    cursor += 1;
+    return account?.id ?? null;
+  };
+
+  const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
+  const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
+  const aiEnabled = Boolean(campaign.ai_enabled);
+  const aiConfig = normalizeAiConfig(campaign.ai_config);
+  const leadIds = missing.map((recipient) => recipient.lead_id);
+  const aiContent = aiEnabled
+    ? await personalizationByLead(supabase, campaignId, leadIds)
+    : new Map<string, string>();
+
+  const slot = nextSendSlot(sendBaseFor(campaign, now), campaignWindow(campaign)).toISOString();
+  const variables = (campaign.custom_variables ?? []) as CustomVariable[];
+  const inserts: Array<Record<string, unknown>> = [];
+  const recipientAssignments: Array<{ id: string; accountId: string; nextAt: string }> = [];
+
+  for (const recipient of missing) {
+    const lead = leadById.get(recipient.lead_id);
+    if (!lead) continue;
+    const accountId = pickAccount(recipient.sending_account_id);
+    if (!accountId) continue;
+    const account = accountById.get(accountId);
+    const ai = aiEnabled
+      ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
+      : { extras: {} as Record<string, string>, hold: false };
+    if (ai.hold) continue;
+
+    inserts.push({
+      workspace_id: campaign.workspace_id,
+      campaign_id: campaignId,
+      recipient_id: recipient.id,
+      lead_id: recipient.lead_id,
+      step_id: firstStep.id,
+      sending_account_id: accountId,
+      step_order: firstStep.step_order,
+      status: "scheduled",
+      to_email: lead.email,
+      ...renderEmailForLead(firstStep, lead as never, {
+        customVariables: variables,
+        extras: {
+          ...senderExtras(account as never),
+          ...ai.extras,
+        },
+      }),
+      scheduled_at: slot,
+      provider: account?.provider ?? null,
+    });
+    recipientAssignments.push({ id: recipient.id, accountId, nextAt: slot });
+  }
+
+  for (let i = 0; i < inserts.length; i += 500) {
+    const { error } = await supabase.from("campaign_messages").insert(inserts.slice(i, i + 500));
+    if (error) throw new Error(error.message);
+  }
+  for (const assignment of recipientAssignments) {
+    await supabase
+      .from("campaign_recipients")
+      .update({ sending_account_id: assignment.accountId, next_send_at: assignment.nextAt })
+      .eq("id", assignment.id);
+  }
+
+  return inserts.length;
 }
 
 /**
@@ -303,6 +516,44 @@ export async function dispatchDueMessages(
 
   const limit = options.limit ?? 10;
   const now = new Date();
+  const result = emptyResult();
+
+  const { data: campaignRow, error: campaignError } = await supabase
+    .from("campaigns")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at")
+    .eq("id", options.campaignId)
+    .maybeSingle();
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaignRow) return result;
+  if (!options.force && !["active", "scheduled"].includes(campaignRow.status)) return result;
+
+  const startAt = campaignRow.start_at ? new Date(campaignRow.start_at) : null;
+  if (!options.force && startAt && !Number.isNaN(startAt.getTime()) && startAt.getTime() > now.getTime()) {
+    return result;
+  }
+  if (!options.force && campaignRow.status === "scheduled") {
+    await supabase.from("campaigns").update({ status: "active" }).eq("id", options.campaignId).eq("status", "scheduled");
+  }
+
+  const endAt = campaignRow.end_at ? new Date(campaignRow.end_at) : null;
+  if (!options.force && endAt && !Number.isNaN(endAt.getTime()) && endAt.getTime() <= now.getTime()) {
+    await supabase.from("campaigns").update({ status: "completed" }).eq("id", options.campaignId).eq("status", "active");
+    return result;
+  }
+
+  const window = campaignWindow(campaignRow as CampaignDispatchRow);
+  if (!isInSendWindow(now, window)) {
+    const nextSlot = nextSendSlot(sendBaseFor(campaignRow as CampaignDispatchRow, now), window).toISOString();
+    await supabase
+      .from("campaign_messages")
+      .update({ scheduled_at: nextSlot })
+      .eq("campaign_id", options.campaignId)
+      .in("status", ["pending", "scheduled"])
+      .or(`scheduled_at.is.null,scheduled_at.lte.${now.toISOString()}`);
+    result.errors.push(`Next sending window opens ${nextSlot}.`);
+    return result;
+  }
+
   let query = supabase
     .from("campaign_messages")
     .select(
@@ -318,22 +569,17 @@ export async function dispatchDueMessages(
   const { data: due, error } = await query;
   if (error) throw new Error(error.message);
 
-  const result = emptyResult();
   if (!due?.length) return result;
 
   // Campaign daily sending limit (campaigns.daily_cap): counted across every
   // email this campaign sends today, follow-ups included.
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
-  const [{ data: campaignRow }, { count: sentTodayCount }] = await Promise.all([
-    supabase.from("campaigns").select("daily_cap").eq("id", options.campaignId).maybeSingle(),
-    supabase
-      .from("campaign_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", options.campaignId)
-      .eq("status", "sent")
-      .gte("sent_at", dayStart.toISOString()),
-  ]);
+  const dayStart = zonedStartOfDay(now, campaignRow.timezone || "UTC");
+  const { count: sentTodayCount } = await supabase
+    .from("campaign_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", options.campaignId)
+    .eq("status", "sent")
+    .gte("sent_at", dayStart.toISOString());
   const dailyCap = Number((campaignRow as { daily_cap?: number } | null)?.daily_cap ?? 0);
   let sentTodaySoFar = Number(sentTodayCount ?? 0);
 
@@ -363,6 +609,23 @@ export async function dispatchDueMessages(
   const accountById = new Map(
     ((accounts ?? []) as AccountRow[]).map((a) => [a.id, a] as const),
   );
+
+  const { fetchAllRows } = await import("@/lib/supabase-batch");
+  const accountSentRows = accountIds.length
+    ? await fetchAllRows<{ sending_account_id: string | null }>(() =>
+        supabase
+          .from("campaign_messages")
+          .select("sending_account_id")
+          .eq("status", "sent")
+          .gte("sent_at", dayStart.toISOString())
+          .in("sending_account_id", accountIds),
+      )
+    : [];
+  const sentTodayByAccount = new Map<string, number>();
+  for (const row of accountSentRows) {
+    if (!row.sending_account_id) continue;
+    sentTodayByAccount.set(row.sending_account_id, (sentTodayByAccount.get(row.sending_account_id) ?? 0) + 1);
+  }
 
   // Credentials are MunchReach-managed infrastructure resolved per send inside
   // `sendManagedEmail`; customer-supplied provider keys are never read.
@@ -418,7 +681,8 @@ export async function dispatchDueMessages(
     }
 
     const usedNow = sentPerAccount.get(account.id) ?? 0;
-    if ((account.sent_today ?? 0) + usedNow >= (account.daily_limit ?? 0)) {
+    const accountSentToday = sentTodayByAccount.get(account.id) ?? (account.sent_today ?? 0);
+    if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
       continue;
     }
@@ -602,10 +866,12 @@ export async function runCampaign(
   supabase: AnySupabase,
   options: { campaignId: string; limit?: number; force?: boolean },
 ): Promise<DispatchResult> {
+  const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId);
   const result = await dispatchDueMessages(supabase, options);
+  result.scheduled += initialScheduled;
   try {
     const followUps = await scheduleFollowUps(supabase, options.campaignId);
-    result.scheduled = followUps.scheduled;
+    result.scheduled += followUps.scheduled;
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : "Follow-up scheduling failed");
   }
