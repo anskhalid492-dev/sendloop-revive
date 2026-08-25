@@ -529,7 +529,6 @@ export async function dispatchDueMessages(
 ): Promise<DispatchResult> {
   
   const { recordOutboundCampaignMessage } = await import("./inbox.server");
-  const { resolveReplyTo } = await import("./inbox-send.server");
   const { mintReplyAddress } = await import("./inbound-routing.server");
   const { suppressedSet } = await import("./suppression.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -762,11 +761,11 @@ export async function dispatchDueMessages(
 
     await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
 
-    // Replies must reach the inbox MunchReach tracks, not the raw mailbox.
-    const baseReplyTo = await resolveReplyTo(account.provider_id, account.reply_to);
     // A unique routed address per send: replies come back tagged with the
-    // workspace, mailbox, lead and campaign they belong to.
-    const replyTo = await mintReplyAddress(baseReplyTo, {
+    // workspace, mailbox, lead and campaign they belong to. The base is always
+    // the selected sender mailbox, so a reply to anus@... cannot be delivered
+    // through another mailbox's saved reply-to address.
+    const replyTo = await mintReplyAddress(account.from_email, {
       workspaceId: message.workspace_id,
       sendingAccountId: account.id,
       leadId: message.lead_id,
