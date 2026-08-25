@@ -121,6 +121,65 @@ function shouldRetryDuplicate(recorded: Awaited<ReturnType<typeof recordEvent>>,
   );
 }
 
+const RETRYABLE_DELIVERY_KINDS = new Set([
+  "sent",
+  "delivered",
+  "opened",
+  "clicked",
+  "delayed",
+  "failed",
+  "rejected",
+  "bounced",
+  "complained",
+  "unsubscribed",
+]);
+
+export async function retryRaceFailedDeliveryEvents(limit = 50): Promise<{ checked: number; repaired: number }> {
+  const { data: rows } = await supabaseAdmin
+    .from("email_events")
+    .select("id, event_type, payload, attempts, status")
+    .eq("status", "failed")
+    .in("failure_code", ["provider_message_id_not_found", "campaign_message_not_found"])
+    .lt("attempts", 3)
+    .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+    .order("created_at", { ascending: true })
+    .limit(Math.min(Math.max(limit, 1), 50));
+
+  let checked = 0;
+  let repaired = 0;
+  for (const row of (rows ?? []) as Array<{
+    id: string;
+    event_type: string;
+    payload: Record<string, unknown> | null;
+    attempts: number | null;
+    status: string | null;
+  }>) {
+    if (!RETRYABLE_DELIVERY_KINDS.has(row.event_type)) continue;
+    checked += 1;
+    await supabaseAdmin
+      .from("email_events")
+      .update({
+        status: "retrying",
+        attempts: (row.attempts ?? 0) + 1,
+        error: null,
+        failure_code: null,
+        last_retry_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+
+    const result = await processEventPayload(row.id, row.event_type, (row.payload ?? {}) as Record<string, unknown>);
+    await recordEventAction({
+      eventId: row.id,
+      actor: null,
+      action: "auto_retry",
+      previousStatus: row.status,
+      result,
+    });
+    if (result.status !== "failed" && result.status !== "unmatched") repaired += 1;
+  }
+  return { checked, repaired };
+}
+
 
 async function finish(id: string, patch: Record<string, unknown>) {
   await supabaseAdmin
