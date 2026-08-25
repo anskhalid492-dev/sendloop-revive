@@ -848,6 +848,7 @@ export async function dispatchDueMessages(
       sent_at: sentAt,
       provider: account.provider,
       provider_message_id: send.messageId ?? null,
+      message_id: send.rfcMessageId ?? outboundMessageId,
       message_type: "campaign",
       last_error: null,
       attempts: (message.attempts ?? 0) + 1,
