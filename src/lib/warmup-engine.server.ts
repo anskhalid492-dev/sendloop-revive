@@ -774,7 +774,16 @@ export async function touchPoolRecipient(
 }
 
 export async function applyWarmupDeliveryEvent(args: {
-  kind: "delivered" | "bounced" | "complained" | "deferred" | "delayed" | "rejected" | "replied";
+  kind:
+    | "sent"
+    | "delivered"
+    | "bounced"
+    | "complained"
+    | "deferred"
+    | "delayed"
+    | "failed"
+    | "rejected"
+    | "replied";
   providerMessageId: string | null;
   email: string | null;
   reason: string | null;
@@ -805,11 +814,13 @@ export async function applyWarmupDeliveryEvent(args: {
   if (!fresh) return true; // duplicate webhook: recorded once, counted once
 
   const statusMap: Record<string, string | null> = {
+    sent: "sent",
     delivered: "delivered",
     bounced: "failed",
     complained: null,
     deferred: null,
     delayed: null,
+    failed: "failed",
     rejected: "failed",
     replied: "replied",
   };
@@ -821,7 +832,7 @@ export async function applyWarmupDeliveryEvent(args: {
     jobPatch["placement"] = "spam";
     jobPatch["placement_checked_at"] = new Date().toISOString();
   }
-  if (args.kind === "bounced" || args.kind === "rejected") {
+  if (args.kind === "bounced" || args.kind === "failed" || args.kind === "rejected") {
     jobPatch["placement"] = "not_delivered";
     jobPatch["placement_checked_at"] = new Date().toISOString();
   }
@@ -831,7 +842,9 @@ export async function applyWarmupDeliveryEvent(args: {
   }
 
   const counter: Record<string, number> =
-    args.kind === "delivered"
+    args.kind === "sent"
+      ? { sent: 1 }
+      : args.kind === "delivered"
       ? { delivered: 1 }
       : args.kind === "bounced"
         ? { bounced: 1 }
@@ -841,7 +854,7 @@ export async function applyWarmupDeliveryEvent(args: {
             ? { replied: 1 }
             : args.kind === "deferred" || args.kind === "delayed"
               ? { deferred: 1 }
-              : args.kind === "rejected"
+              : args.kind === "failed" || args.kind === "rejected"
                 ? { rejected: 1 }
                 : {};
   if (Object.keys(counter).length) {

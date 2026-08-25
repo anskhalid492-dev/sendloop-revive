@@ -38,7 +38,7 @@ export async function applyDeliveryEvent(args: {
 
   let query = db
     .from("campaign_messages")
-    .select("id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, to_email")
+    .select("id, status, delivery_status, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, to_email")
     .eq("message_type", "campaign")
     .order("sent_at", { ascending: false })
     .limit(1);
