@@ -213,6 +213,38 @@ export type PersonalizationStats = {
   remaining: number;
 };
 
+export type AiPersonalizationCoverageLead = {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  job_title: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  website: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  custom_fields: Record<string, string> | null;
+};
+
+export type AiPersonalizationCoverage = {
+  campaignId: string;
+  workspaceId: string;
+  total: number;
+  personalized: number;
+  missing: number;
+  queued: number;
+  failed: number;
+  complete: number;
+  limited: number;
+  fallback: number;
+  promptHashes: string[];
+  sampleLeadId: string | null;
+  sampleLead: AiPersonalizationCoverageLead | null;
+};
+
 
 export type AiUsageStats = {
   generated: number;

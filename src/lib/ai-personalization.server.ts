@@ -12,6 +12,7 @@ import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import {
   AI_TOKEN,
   normalizeAiConfig,
+  type AiPersonalizationCoverage,
   type AiPersonalizationConfig,
   type FallbackMode,
   type PersonalizationField,
@@ -388,7 +389,10 @@ export async function personalizationByLead(
 }
 
 /** Exact coverage of stored AI snippets for the campaign's actual recipients. */
-export async function campaignAiCoverage(supabase: Client, campaignId: string) {
+export async function campaignAiCoverage(
+  supabase: Client,
+  campaignId: string,
+): Promise<AiPersonalizationCoverage> {
   const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
 
   const { data: campaign, error: campaignError } = await supabase
@@ -424,7 +428,7 @@ export async function campaignAiCoverage(supabase: Client, campaignId: string) {
       fallback: 0,
       promptHashes: [] as string[],
       sampleLeadId: null as string | null,
-      sampleLead: null as Record<string, unknown> | null,
+      sampleLead: null,
     };
   }
 
@@ -469,7 +473,7 @@ export async function campaignAiCoverage(supabase: Client, campaignId: string) {
   }
 
   const sampleLeadId = leadIds.find((leadId) => validLeadIds.has(leadId)) ?? null;
-  let sampleLead: Record<string, unknown> | null = null;
+  let sampleLead: AiPersonalizationCoverage["sampleLead"] = null;
   if (sampleLeadId) {
     const { data: lead } = await supabase
       .from("leads")
@@ -479,7 +483,26 @@ export async function campaignAiCoverage(supabase: Client, campaignId: string) {
       .eq("id", sampleLeadId)
       .eq("workspace_id", workspaceId)
       .maybeSingle();
-    sampleLead = (lead ?? null) as Record<string, unknown> | null;
+    sampleLead = lead
+      ? {
+          id: String(lead.id),
+          email: typeof lead.email === "string" ? lead.email : null,
+          first_name: typeof lead.first_name === "string" ? lead.first_name : null,
+          last_name: typeof lead.last_name === "string" ? lead.last_name : null,
+          company: typeof lead.company === "string" ? lead.company : null,
+          job_title: typeof lead.job_title === "string" ? lead.job_title : null,
+          country: typeof lead.country === "string" ? lead.country : null,
+          city: typeof lead.city === "string" ? lead.city : null,
+          state: typeof lead.state === "string" ? lead.state : null,
+          website: typeof lead.website === "string" ? lead.website : null,
+          phone: typeof lead.phone === "string" ? lead.phone : null,
+          linkedin_url: typeof lead.linkedin_url === "string" ? lead.linkedin_url : null,
+          custom_fields:
+            lead.custom_fields && typeof lead.custom_fields === "object" && !Array.isArray(lead.custom_fields)
+              ? (lead.custom_fields as Record<string, string>)
+              : null,
+        }
+      : null;
   }
 
   return {
