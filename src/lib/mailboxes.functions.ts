@@ -263,12 +263,25 @@ export const updateMailbox = createServerFn({ method: "POST" })
     if (data.warmupDailyTarget !== undefined) patch["warmup_daily_target"] = data.warmupDailyTarget;
     if (Object.keys(patch).length === 0) return { ok: true };
 
-    const { error } = await (context.supabase as Client)
+    // RLS restricts this update to mailboxes in the caller's workspace where
+    // they hold owner/admin/campaign_manager. Returning the row proves the
+    // write landed instead of silently matching zero rows.
+    const { data: updated, error } = await (context.supabase as Client)
       .from("sending_accounts")
       .update(patch)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("id, daily_limit, hourly_limit, sent_today")
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    if (!updated) throw new Error("You do not have permission to change this mailbox.");
+
+    return {
+      ok: true,
+      dailyLimit: Number(updated.daily_limit ?? 0),
+      sentToday: Number(updated.sent_today ?? 0),
+      remaining: Math.max(0, Number(updated.daily_limit ?? 0) - Number(updated.sent_today ?? 0)),
+    };
+
   });
 
 /** Enables or disables warmup for a mailbox the customer owns. */
