@@ -180,7 +180,7 @@ describe("unresolved variable report", () => {
     );
     const byToken = Object.fromEntries(report.map((r) => [r.token, r]));
     expect(byToken["first_name"]!.source).toBe("lead");
-    expect(byToken["company"]!.source).toBe("unresolved");
+    expect(byToken["company"]!.source).toBe("missing");
     expect(byToken["industry"]!.source).toBe("fallback");
     expect(byToken["first_name"]!.where).toEqual(["subject"]);
   });
