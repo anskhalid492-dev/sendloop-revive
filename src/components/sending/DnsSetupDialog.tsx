@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DomainReadinessPanel } from "@/components/sending/DomainReadinessPanel";
 import { getDomainDnsRecords, verifySendingDomain } from "@/lib/domains.functions";
 import {
   DNS_STATUS_LABEL,
@@ -236,6 +237,8 @@ export function DnsSetupDialog({
             marked verified until it really is.
           </DialogDescription>
         </DialogHeader>
+
+        {domainId ? <DomainReadinessPanel domainId={domainId} /> : null}
 
         <SetupSteps
           records={records}
