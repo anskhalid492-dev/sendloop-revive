@@ -8,6 +8,7 @@ import {
   isRootInboundMxRecord,
 } from "@/lib/email-providers/mx-host";
 import { compareMxRecords, requiredMxFromRecords } from "@/lib/email-providers/inbound";
+import { mxPillarState } from "@/lib/domain-readiness-view";
 import { dnsRecordPurpose } from "@/lib/dns-record-purpose";
 import type { ProviderDnsRecord } from "@/lib/domain-providers/types";
 
@@ -64,7 +65,9 @@ describe("Phase 6.1 — DNS requirement generation", () => {
       ],
       required: requiredMxFromRecords([inboundMx]),
     });
-    expect(result.state).toBe("conflict");
+    // Existing vocabulary: foreign root MX ownership is reported as third_party.
+    expect(result.state).toBe("third_party");
+    expect(mxPillarState(result.state)).toBe("conflict");
   });
 
   it("6. Google Workspace root MX is a conflict", () => {
@@ -72,7 +75,8 @@ describe("Phase 6.1 — DNS requirement generation", () => {
       current: [{ host: "smtp.google.com", priority: 1 }],
       required: requiredMxFromRecords([inboundMx]),
     });
-    expect(result.state).toBe("conflict");
+    expect(result.state).toBe("third_party");
+    expect(mxPillarState(result.state)).toBe("conflict");
   });
 
   it("7. a correct provider receiving MX is ready", () => {
