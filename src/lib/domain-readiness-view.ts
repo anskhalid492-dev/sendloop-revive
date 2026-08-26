@@ -173,7 +173,9 @@ export function buildPillars(readiness: CustomerDomainReadiness): ReadinessPilla
  */
 export function overallState(readiness: CustomerDomainReadiness): PillarState {
   if (readiness.state === "READY") {
-    const required = buildPillars(readiness).filter((p) => p.id !== "webhook" && p.state !== "unsupported");
+    // Reply delivery is part of "ready": a domain is not ready to receive if the
+    // webhook path is not connected.
+    const required = buildPillars(readiness).filter((p) => p.state !== "unsupported");
     return required.every((p) => p.state === "ok") ? "ok" : "pending";
   }
   if (readiness.state === "ERROR" || readiness.state === "DNS_CONFLICT") return "failed";
