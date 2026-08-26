@@ -17,6 +17,7 @@ import {
   overallState,
   type CustomerDomainReadiness,
 } from "@/lib/domain-readiness-view";
+import { dnsRecordPurposeLabel } from "@/lib/dns-record-purpose";
 import { cn } from "@/lib/utils";
 
 function CopyValue({ value, label }: { value: string; label: string }) {
