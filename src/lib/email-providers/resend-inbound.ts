@@ -74,7 +74,9 @@ export function resendInboundEvent(payload: unknown): InboundEmailEvent | null {
     messageId: str(normalized["messageId"]),
     inReplyTo: str(normalized["inReplyTo"]),
     references: list(normalized["references"]),
-    receivedAt: str(normalized["receivedAt"]),
+    // Root-level `created_at` is the provider's envelope timestamp; the legacy
+    // parser only looks inside `data`, so fall back without changing it.
+    receivedAt: str(normalized["receivedAt"]) ?? str(raw["created_at"]),
     attachments: attachments(normalized["attachments"]),
     rawMetadata: payload,
   };
