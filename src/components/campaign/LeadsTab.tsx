@@ -407,14 +407,21 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                   <TableCell className="whitespace-nowrap">{row.lead?.job_title ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.lead?.country ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={`font-normal ${LEAD_DELIVERY_STYLES[(row.deliveryState ?? "not_contacted") as LeadDeliveryState] ?? ""}`}
-                    >
-                      {LEAD_DELIVERY_LABELS[
-                        (row.deliveryState ?? "not_contacted") as LeadDeliveryState
-                      ] ?? row.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge
+                        variant="secondary"
+                        className={`w-fit font-normal ${LEAD_DELIVERY_STYLES[(row.deliveryState ?? "not_contacted") as LeadDeliveryState] ?? ""}`}
+                      >
+                        {LEAD_DELIVERY_LABELS[
+                          (row.deliveryState ?? "not_contacted") as LeadDeliveryState
+                        ] ?? row.status}
+                      </Badge>
+                      {/* Lifecycle value the Lifecycle filter matches on, so the
+                          filtered population is always visible in the row. */}
+                      <span className="text-xs text-muted-foreground">
+                        {RECIPIENT_STATUS_LABELS[row.status as string] ?? row.status}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="tabular-nums">{row.current_step ?? 0}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
