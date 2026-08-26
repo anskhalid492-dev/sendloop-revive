@@ -9,8 +9,9 @@
  * Everything here is admin-only and never returns provider credentials.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-// Provider access goes through the unified provider layer's Resend client.
-import { resendFetch } from "@/lib/email-providers/resend-api.server";
+// Provider facts come exclusively from the unified provider abstraction.
+import { getEmailProvider } from "@/lib/email-providers/registry.server";
+import { evaluateDomainReadiness, enableDomainInbound } from "@/lib/domain-readiness.server";
 
 export type ChecklistItem = {
   id: string;
@@ -19,23 +20,6 @@ export type ChecklistItem = {
   detail: string;
   /** DNS record the user must add, when one is required. */
   record?: { type: string; name: string; value: string; priority?: number };
-};
-
-type ResendRecord = {
-  record?: string;
-  type?: string;
-  name?: string;
-  value?: string;
-  priority?: number;
-  status?: string;
-};
-
-type ResendDomain = {
-  id: string;
-  name: string;
-  status: string;
-  capabilities?: { sending?: string; receiving?: string };
-  records?: ResendRecord[];
 };
 
 const DOH = "https://dns.google/resolve";
@@ -70,6 +54,21 @@ export type ReplyDomainResolution = {
 };
 
 const FALLBACK_INBOUND_DOMAIN = "munchreach.com";
+
+/**
+ * Which provider the platform inbound domain belongs to. Only the internal
+ * provider id is used — it never reaches customer-facing UI.
+ */
+export async function resolvePlatformProviderId(): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from("email_providers")
+    .select("provider")
+    .eq("is_enabled", true)
+    .order("priority", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.provider ?? "resend";
+}
 
 function domainOf(address: string | null | undefined): string | null {
   return address?.includes("@") ? address.split("@")[1]!.trim().toLowerCase() : null;
@@ -164,18 +163,28 @@ export async function getInboundReadiness(baseUrl: string | null) {
     return { domain: null, receiving: "unknown" as const, items };
   }
 
-  const list = await resendFetch<{ data?: ResendDomain[] }>("/domains");
-  const match = (list?.data ?? []).find((d) => domain.endsWith(d.name.toLowerCase()));
-  const full = match ? await resendFetch<ResendDomain>(`/domains/${match.id}`) : null;
-  const receiving = full?.capabilities?.receiving ?? "unknown";
+  const providerId = await resolvePlatformProviderId();
+  const provider = getEmailProvider(providerId);
+  const report = await evaluateDomainReadiness({ provider: providerId, domain });
+  const rootDomain = report.domain;
+  const receiving = report.inbound.enabled
+    ? ("enabled" as const)
+    : provider.inboundSetupMode === "unsupported"
+      ? ("unsupported" as const)
+      : report.sending.state === "unknown"
+        ? ("unknown" as const)
+        : ("disabled" as const);
 
   items.push({
     id: "sending",
     label: "Sending domain verified",
-    status: full?.status === "verified" ? "ok" : full ? "pending" : "unknown",
-    detail: full
-      ? `${full.name} — ${full.status}`
-      : "No matching domain found on the sending infrastructure.",
+    status:
+      report.sending.state === "verified"
+        ? "ok"
+        : report.sending.state === "unknown"
+          ? "unknown"
+          : "pending",
+    detail: report.sending.detail,
   });
 
   items.push({
@@ -185,52 +194,56 @@ export async function getInboundReadiness(baseUrl: string | null) {
     detail:
       receiving === "enabled"
         ? "The provider is accepting inbound mail for this domain."
-        : "Receiving is switched off — replies cannot be delivered to MunchReach yet.",
+        : report.inbound.detail,
   });
 
-  const mxRecord = (full?.records ?? []).find(
-    (r) => r.type === "MX" && (r.record ?? "").toLowerCase() === "receiving",
-  );
-  const rootDomain = match?.name.toLowerCase() ?? domain;
-  const liveMx = await lookupMx(mxRecord?.name ? `${mxRecord.name}.${rootDomain}` : rootDomain);
-  const expected = (mxRecord?.value ?? "").toLowerCase();
-  const mxLive = Boolean(expected) && liveMx.some((entry) => entry.includes(expected));
-
+  // Provider-derived inbound MX requirement. Never synthesized locally.
+  const requiredMx = report.mx.required[0] ?? null;
+  const mxState = report.mx.state;
   items.push({
     id: "mx",
     label: "Inbound MX record published",
-    status: !expected ? "unknown" : mxLive ? "ok" : "pending",
-    detail: !expected
-      ? "Enable receiving first to get the MX record for this domain."
-      : mxLive
-        ? `Live: ${liveMx.join(", ")}`
-        : liveMx.length
-          ? `Found ${liveMx.join(", ")} — the inbound record is missing.`
-          : "No MX record is published for this domain yet.",
-    ...(expected
+    status:
+      mxState === "correct"
+        ? "ok"
+        : mxState === "unknown_requirements"
+          ? "unknown"
+          : mxState === "no_mx" || mxState === "unresolved"
+            ? "pending"
+            : "failed",
+    detail:
+      mxState === "unknown_requirements"
+        ? "Enable receiving first to get the MX record for this domain."
+        : mxState === "correct"
+          ? `Live: ${report.mx.current.map((r) => r.host).join(", ")}`
+          : mxState === "unresolved"
+            ? "DNS could not be read yet — we will keep checking."
+            : report.mx.current.length
+              ? `Found ${report.mx.current.map((r) => r.host).join(", ")} — the inbound record is missing.`
+              : "No MX record is published for this domain yet.",
+    ...(requiredMx
       ? {
           record: {
             type: "MX",
-            name: mxRecord?.name ? `${mxRecord.name}.${rootDomain}` : rootDomain,
-            value: expected,
-            ...(mxRecord?.priority !== undefined ? { priority: mxRecord.priority } : {}),
+            name: rootDomain,
+            value: requiredMx.host,
+            ...(requiredMx.priority !== null ? { priority: requiredMx.priority } : {}),
           },
         }
       : {}),
   });
 
-  const hooks = await resendFetch<{ data?: { endpoint?: string; events?: string[] }[] }>(
-    "/webhooks",
-  );
   const endpoint = baseUrl ? `${baseUrl}/api/public/inbound/email` : null;
-  const hookLive = (hooks?.data ?? []).some(
-    (h) => (h.events ?? []).includes("email.received") && (h.endpoint ?? "").includes("/api/public/inbound/email"),
-  );
+  const hook = provider.configureWebhooks
+    ? await provider
+        .configureWebhooks({}, "/api/public/inbound/email")
+        .catch(() => ({ configured: false, detail: "" }))
+    : { configured: false, detail: "" };
   items.push({
     id: "webhook",
     label: "Reply webhook registered",
-    status: hookLive ? "ok" : "pending",
-    detail: hookLive
+    status: hook.configured ? "ok" : "pending",
+    detail: hook.configured
       ? "Inbound replies are pushed to MunchReach automatically."
       : `Register the webhook so replies reach ${endpoint ?? "the inbound endpoint"}.`,
   });
@@ -404,14 +417,9 @@ export async function listInboundTests() {
 export async function enableInboundReceiving() {
   const domain = await resolveReplyDomain();
   if (!domain) throw new Error("Configure a reply-to inbox first.");
-  const list = await resendFetch<{ data?: ResendDomain[] }>("/domains");
-  const match = (list?.data ?? []).find((d) => domain.endsWith(d.name.toLowerCase()));
-  if (!match) throw new Error("This domain is not set up on the sending infrastructure.");
-  const updated = await resendFetch<{ id: string }>(`/domains/${match.id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ capabilities: { receiving: "enabled" } }),
-  });
-  if (!updated) throw new Error("The provider rejected the request to enable receiving.");
+  const providerId = await resolvePlatformProviderId();
+  const result = await enableDomainInbound({ provider: providerId, domain });
+  if (!result.ok) throw new Error(result.detail);
   return { ok: true };
 }
 
