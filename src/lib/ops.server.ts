@@ -9,6 +9,8 @@
  * Everything here is admin-only and never returns provider credentials.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+// Provider access goes through the unified provider layer's Resend client.
+import { resendFetch } from "@/lib/email-providers/resend-api.server";
 
 export type ChecklistItem = {
   id: string;
@@ -50,21 +52,6 @@ async function lookupMx(domain: string): Promise<string[]> {
   } catch {
     return [];
   }
-}
-
-async function resendFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
-  const key = process.env["RESEND_API_KEY"];
-  if (!key) return null;
-  const response = await fetch(`https://api.resend.com${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!response.ok) return null;
-  return (await response.json()) as T;
 }
 
 /** Where the inbound domain under inspection came from, for the admin UI. */
