@@ -233,6 +233,10 @@ export function DomainReadinessPanel({ domainId }: { domainId: string }) {
             MX: {MX_STATE_LABEL[readiness.dns.state]}
           </Badge>
         </div>
+        <p className="border-b border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          Add this MX record to the root of your domain (host <code>@</code>). Do not add it to your
+          sending or tracking subdomain.
+        </p>
         {readiness.dns.records.length === 0 ? (
           <p className="p-3 text-sm text-muted-foreground">
             No DNS records have been issued for this domain yet.
