@@ -6,6 +6,11 @@
  * "verified" unless the record was actually observed in DNS.
  */
 
+import {
+  parseMxAnswer,
+  type MxRecordValue,
+} from "@/lib/email-providers/inbound";
+
 export type DnsRecordKind = "spf" | "dkim" | "dmarc" | "mx" | "tracking";
 export type DnsRecordStatus = "pending" | "verified" | "failed";
 
@@ -29,7 +34,6 @@ function infra() {
     base,
     spfInclude: process.env["SENDING_SPF_INCLUDE"] || `_spf.${base}`,
     dkimHost: process.env["SENDING_DKIM_HOST"] || `dkim.${base}`,
-    mxHost: process.env["SENDING_MX_HOST"] || `mx.${base}`,
     trackingHost: process.env["SENDING_TRACKING_HOST"] || `track.${base}`,
     dmarcRua: process.env["SENDING_DMARC_RUA"] || `dmarc@${base}`,
   };
@@ -68,18 +72,6 @@ export function buildDnsRecords(domain: string, dkimSelector: string): DnsRecord
       ttl: 3600,
       required: true,
       purpose: "Publishes your alignment policy and reporting address.",
-    },
-    {
-      kind: "mx",
-      type: "MX",
-      host: "@",
-      fqdn: d,
-      value: cfg.mxHost,
-      ttl: 3600,
-      priority: 10,
-      required: false,
-      purpose:
-        "Only required when you want replies to this domain routed into the MunchReach inbox. Skip it if your mailbox provider already handles inbound mail.",
     },
     {
       kind: "tracking",
@@ -242,6 +234,17 @@ export async function verifyDomainRecords(
   const records = buildDnsRecords(domain, dkimSelector);
   const results = await Promise.all(records.map(checkRecord));
   return { records, results };
+}
+
+/**
+ * Reads the customer's PUBLIC MX records. The generic layer only observes DNS;
+ * it never invents, guesses or writes records. Throws `TransientDnsError` when
+ * no resolver could answer, so "not propagated yet" is never reported as a
+ * conflict.
+ */
+export async function lookupPublicMx(domain: string): Promise<MxRecordValue[]> {
+  const answers = await resolve(domain.toLowerCase().replace(/^\.+|\.+$/g, ""), "MX");
+  return answers.map((a) => parseMxAnswer(a.data));
 }
 
 export function makeDkimSelector(): string {
