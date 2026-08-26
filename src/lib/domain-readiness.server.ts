@@ -161,7 +161,10 @@ export async function evaluateDomainReadiness(options: {
     },
     sending: { state: status.state, readyToSend: status.readyToSend, detail: status.detail },
     inbound: { enabled: inbound.enabled, detail: inbound.detail, setupMode: mode },
-    records: [...dnsRecords, ...inbound.records],
+    // Providers report the same requirement on both the domain object and the
+    // inbound object; deduplication happens here so every caller (UI, ops,
+    // admin) sees exactly one copy of each DNS fact.
+    records: dedupeDnsRequirements([...dnsRecords, ...inbound.records]),
     mx,
     requiresCustomerAction: mode === "customer_action" && !inbound.enabled,
     canAutoEnableInbound: mode === "api" && !inbound.enabled,
