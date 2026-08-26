@@ -160,54 +160,6 @@ function extractMessageId(body: string, headers: Headers): string | undefined {
   return headers.get("x-message-id") ?? undefined;
 }
 
-function extractRfcMessageId(value: unknown): string | undefined {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (!value || typeof value !== "object") return undefined;
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = extractRfcMessageId(item);
-      if (found) return found;
-    }
-    return undefined;
-  }
-
-  const object = value as Record<string, unknown>;
-  const direct =
-    object["message_id"] ??
-    object["messageId"] ??
-    object["Message-ID"] ??
-    object["Message-Id"] ??
-    object["message-id"];
-  if (typeof direct === "string" && direct.trim()) return direct.trim();
-
-  const headerName = object["name"] ?? object["key"];
-  if (typeof headerName === "string" && headerName.toLowerCase() === "message-id") {
-    const headerValue = object["value"] ?? object["Value"];
-    if (typeof headerValue === "string" && headerValue.trim()) return headerValue.trim();
-  }
-
-  return extractRfcMessageId(object["headers"] ?? object["Headers"] ?? object["data"]);
-}
-
-async function loadResendRfcMessageId(
-  apiKey: string | undefined,
-  providerMessageId: string | undefined,
-): Promise<string | undefined> {
-  if (!apiKey || !providerMessageId) return undefined;
-  try {
-    const res = await fetch(`https://api.resend.com/emails/${providerMessageId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) return undefined;
-    const json = (await res.json()) as Record<string, unknown>;
-    return extractRfcMessageId(json);
-  } catch {
-    return undefined;
-  }
-}
-
 function sanitizeHeaders(headers: Record<string, string> | undefined): Record<string, string> {
   const clean: Record<string, string> = {};
   for (const [rawName, rawValue] of Object.entries(headers ?? {})) {
@@ -295,44 +247,32 @@ export async function sendProviderEmail(
               : [{ type: "text/plain", value: text }],
           }),
         });
-      case "resend":
-        {
-          const accepted = await post("https://api.resend.com/emails", {
-            headers: {
-              Authorization: `Bearer ${credentials["api_key"]}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from,
-              to: [message.to],
-              ...(message.cc?.length ? { cc: message.cc } : {}),
-              ...(message.bcc?.length ? { bcc: message.bcc } : {}),
-              subject,
-              text,
-              ...(html ? { html } : {}),
-              ...(replyTo ? { reply_to: replyTo } : {}),
-              ...(hasHeaders ? { headers } : {}),
-              ...(message.attachments?.length
-                ? {
-                    attachments: message.attachments
-                      .filter((a) => a.url || a.content)
-                      .map((a) => ({
-                        filename: a.name,
-                        ...(a.content ? { content: a.content } : { path: a.url }),
-                      })),
-                  }
-                : {}),
-            }),
-          });
-          if (!accepted.ok) return accepted;
-          return {
-            ...accepted,
-            rfcMessageId: await loadResendRfcMessageId(
-              credentials["api_key"],
-              accepted.messageId,
-            ),
-          };
-        }
+      case "resend": {
+        // Provider-specific behaviour lives in the Resend adapter (Phase 4).
+        const { sendResendEmail } = await import("@/lib/email-providers/resend-send.server");
+        const sent = await sendResendEmail(credentials, {
+          fromName: message.fromName,
+          fromEmail: message.fromEmail,
+          replyTo: message.replyTo ?? null,
+          to: message.to,
+          ...(message.cc?.length ? { cc: message.cc } : {}),
+          ...(message.bcc?.length ? { bcc: message.bcc } : {}),
+          subject,
+          text,
+          ...(html ? { html } : {}),
+          ...(hasHeaders ? { headers } : {}),
+          ...(message.attachments?.length ? { attachments: message.attachments.map((a) => ({ name: a.name, ...(a.url ? { url: a.url } : {}), ...(a.content ? { content: a.content } : {}) })) } : {}),
+        });
+        return {
+          ok: sent.ok,
+          message: sent.message,
+          messageId: sent.providerMessageId ?? undefined,
+          rfcMessageId: sent.rfcMessageId ?? undefined,
+          requestId: sent.requestId ?? undefined,
+          statusCode: sent.statusCode ?? undefined,
+          providerResponse: sent.providerResponse ?? undefined,
+        };
+      }
       case "postmark":
         return await post("https://api.postmarkapp.com/email", {
           headers: {

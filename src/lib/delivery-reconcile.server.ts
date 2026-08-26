@@ -9,34 +9,55 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { applyDeliveryState, type DeliveryState } from "@/lib/delivery-state.server";
+import { getEmailProvider } from "@/lib/email-providers/registry.server";
+import type {
+  EmailProviderCapability,
+  EmailProviderCredentials,
+  NormalizedEmailEventType,
+} from "@/lib/email-providers/types";
 
-type ResendEmail = {
-  last_event?: string | null;
-  created_at?: string | null;
+/**
+ * Normalized provider vocabulary → MunchReach delivery state. Provider-native
+ * event names never reach this layer: adapters translate them first.
+ * `UNKNOWN` deliberately has no mapping — an unrecognized signal is never
+ * upgraded into a delivery or engagement event.
+ */
+const STATE_BY_EVENT: Partial<Record<NormalizedEmailEventType, DeliveryState>> = {
+  SENT: "sent",
+  ACCEPTED: "sent",
+  DELAYED: "delayed",
+  DELIVERED: "delivered",
+  OPENED: "opened",
+  CLICKED: "clicked",
+  BOUNCED: "bounced",
+  COMPLAINED: "complained",
+  FAILED: "failed",
+  UNSUBSCRIBED: "unsubscribed",
+  REPLIED: "replied",
 };
 
-const RESEND_EVENT_MAP: Record<string, DeliveryState> = {
-  sent: "sent",
-  queued: "sent",
-  scheduled: "sent",
-  delivery_delayed: "delayed",
-  delivered: "delivered",
-  opened: "opened",
-  clicked: "clicked",
-  bounced: "bounced",
-  complained: "complained",
-  failed: "failed",
-  canceled: "failed",
+/** Capability a normalized event requires before it may be recorded. */
+const CAPABILITY_BY_EVENT: Partial<Record<NormalizedEmailEventType, EmailProviderCapability>> = {
+  OPENED: "open_tracking",
+  CLICKED: "click_tracking",
+  BOUNCED: "bounce_tracking",
 };
 
-async function resendApiKey(provider: string): Promise<string | null> {
+export function deliveryStateForEvent(
+  type: NormalizedEmailEventType | "UNKNOWN",
+): DeliveryState | null {
+  if (type === "UNKNOWN") return null;
+  return STATE_BY_EVENT[type] ?? null;
+}
+
+async function providerCredentials(provider: string): Promise<EmailProviderCredentials | null> {
   const { loadPool, credentialsFor } = await import("@/lib/provider-pool.server");
   const pool = await loadPool(supabaseAdmin);
   const row = pool.find((p) => p.provider === provider);
   if (!row) return null;
   const creds = await credentialsFor(supabaseAdmin, row);
-  const key = creds?.credentials as { api_key?: string } | undefined;
-  return key?.api_key ?? null;
+  const values = creds?.credentials as EmailProviderCredentials | undefined;
+  return values ?? null;
 }
 
 /** Pulls provider-side state for recent sends that have no terminal outcome. */
@@ -81,33 +102,40 @@ export async function reconcileDeliveryState(limit = 100): Promise<{
   const messages = rows ?? [];
   let updated = 0;
   let skipped = 0;
-  const keys = new Map<string, string | null>();
+  const creds = new Map<string, EmailProviderCredentials | null>();
 
   for (const message of messages) {
-    const provider = message.provider ?? "resend";
-    if (provider !== "resend") {
-      // Other providers report exclusively through webhooks today.
+    const providerId = message.provider ?? "resend";
+    const provider = getEmailProvider(providerId);
+
+    // Providers that cannot be polled report exclusively through webhooks.
+    if (!provider.getSendStatus || !provider.capabilities.delivery_tracking) {
       skipped += 1;
       continue;
     }
-    if (!keys.has(provider)) keys.set(provider, await resendApiKey(provider));
-    const apiKey = keys.get(provider);
-    if (!apiKey) {
+    if (!creds.has(providerId)) creds.set(providerId, await providerCredentials(providerId));
+    const credentials = creds.get(providerId);
+    if (!credentials) {
       skipped += 1;
       continue;
     }
 
     try {
-      const res = await fetch(`https://api.resend.com/emails/${message.provider_message_id}`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!res.ok) {
+      const status = await provider.getSendStatus(
+        credentials,
+        String(message.provider_message_id),
+      );
+      if (!status.known || !status.status) {
         skipped += 1;
         continue;
       }
-      const body = (await res.json()) as ResendEmail;
-      const state = RESEND_EVENT_MAP[String(body.last_event ?? "").toLowerCase()];
+      const capability = CAPABILITY_BY_EVENT[status.status as NormalizedEmailEventType];
+      if (capability && !provider.capabilities[capability]) {
+        // Never fabricate a signal the provider does not actually support.
+        skipped += 1;
+        continue;
+      }
+      const state = deliveryStateForEvent(status.status);
       if (!state) {
         skipped += 1;
         continue;
@@ -115,7 +143,7 @@ export async function reconcileDeliveryState(limit = 100): Promise<{
       const applied = await applyDeliveryState({
         message,
         state,
-        detail: `Recovered from delivery log (${body.last_event})`,
+        detail: status.detail,
         source: "reconcile",
       });
       if (applied === state && state !== (message.delivery_status ?? "queued")) updated += 1;

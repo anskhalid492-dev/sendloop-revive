@@ -59,6 +59,7 @@ export const NORMALIZED_EMAIL_EVENT_TYPES = [
   "SENT",
   "ACCEPTED",
   "DELIVERED",
+  "DELAYED",
   "OPENED",
   "CLICKED",
   "BOUNCED",
