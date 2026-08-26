@@ -94,7 +94,9 @@ export function birdEventType(raw: unknown): NormalizedEmailEventType | "UNKNOWN
   return BIRD_EVENTS[key] ?? "UNKNOWN";
 }
 
-function bounceClass(event: BirdMessageEvent): NormalizedEmailEvent["bounceType"] {
+function bounceClass(
+  event: BirdMessageEvent,
+): "hard" | "soft" | "block" | "unknown" | null {
   const type = String(event.type ?? "").toLowerCase();
   if (type !== "bounce" && type !== "out_of_band") return null;
   const code = Number(event.bounce_class);
