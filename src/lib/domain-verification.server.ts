@@ -166,7 +166,9 @@ export async function ensureProviderDomain(
       });
     }
 
-    const records = [...setup.records];
+    // Providers can list the same DNS fact twice; store it once.
+    const { dedupeDnsRequirements } = await import("@/lib/email-providers/dns-requirements");
+    const records = dedupeDnsRequirements([...setup.records]);
     if (!records.some((r) => r.kind === "dmarc")) records.push(recommendedDmarcRecord(row.domain));
 
     await admin

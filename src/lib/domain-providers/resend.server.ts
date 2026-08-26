@@ -39,18 +39,27 @@ function mapRecords(domain: string, records: ResendRecord[]): ProviderDnsRecord[
   return records.map((r) => {
     const label = (r.record ?? "").toUpperCase();
     const type = (r.type ?? "TXT").toUpperCase() as "TXT" | "CNAME" | "MX";
-    const kind = label.includes("DKIM")
-      ? "dkim"
-      : label.includes("SPF") || type === "MX"
-        ? "spf"
-        : label.includes("DMARC")
-          ? "dmarc"
-          : "verification";
+    // Inbound receiving MX and the sending/feedback MX are DIFFERENT DNS
+    // purposes. Only the receiving record belongs at the root of the customer
+    // domain; the sending/feedback MX keeps the provider's sending hostname.
+    const receiving = label.includes("RECEIV");
+    const kind =
+      type === "MX"
+        ? receiving
+          ? "mx"
+          : "feedback"
+        : label.includes("DKIM")
+          ? "dkim"
+          : label.includes("SPF")
+            ? "spf"
+            : label.includes("DMARC")
+              ? "dmarc"
+              : "verification";
     return record({
       domain,
       kind,
       type,
-      host: relativeHost(r.name ?? domain, domain),
+      host: receiving ? "@" : relativeHost(r.name ?? domain, domain),
       value: (r.value ?? "").trim(),
       ttl: Number(r.ttl) || 3600,
       priority: r.priority,
@@ -58,7 +67,11 @@ function mapRecords(domain: string, records: ResendRecord[]): ProviderDnsRecord[
       purpose:
         kind === "dkim"
           ? "Signs every outgoing email so mailbox providers can verify it."
-          : "Authorises MunchReach to send email as your domain.",
+          : kind === "mx"
+            ? "Routes inbound replies to MunchReach. Add it to the root of your domain."
+            : kind === "feedback"
+              ? "Handles bounce and complaint feedback for your sending subdomain."
+              : "Authorises MunchReach to send email as your domain.",
     });
   });
 }

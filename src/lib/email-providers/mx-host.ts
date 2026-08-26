@@ -58,6 +58,9 @@ export function inboundMxFqdn(
 /** True when this record is the root-domain inbound MX record. */
 export function isRootInboundMxRecord(record: ProviderDnsRecord, domain: string): boolean {
   if (record.type !== "MX") return false;
+  // A sending/bounce-feedback MX is never the root receiving requirement, even
+  // if a provider happens to report it without a hostname.
+  if (record.kind === "feedback") return false;
   const root = normalizeDomain(domain);
   const host = (record.host ?? "").trim().toLowerCase();
   const fqdn = normalizeDomain(record.fqdn ?? "");

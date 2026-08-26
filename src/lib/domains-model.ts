@@ -14,7 +14,7 @@ export type DnsStatus = "pending" | "verified" | "failed";
 
 export type DnsRecordView = {
   id?: string;
-  kind: "spf" | "dkim" | "dmarc" | "mx" | "tracking" | "verification";
+  kind: "spf" | "dkim" | "dmarc" | "mx" | "feedback" | "tracking" | "verification";
   type: "TXT" | "CNAME" | "MX";
   host: string;
   fqdn: string;
@@ -69,7 +69,8 @@ export const RECORD_KIND_LABEL: Record<DnsRecordView["kind"], string> = {
   spf: "SPF",
   dkim: "DKIM",
   dmarc: "DMARC",
-  mx: "MX",
+  mx: "Inbound receiving MX",
+  feedback: "Sending / feedback MX",
   tracking: "Tracking domain",
   verification: "Domain verification",
 };

@@ -12,6 +12,7 @@
  */
 import type { CustomerDomainReadiness, PillarState } from "@/lib/domain-readiness-view";
 import { mxPillarState } from "@/lib/domain-readiness-view";
+import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -65,19 +66,22 @@ export async function buildCustomerReadiness(
 
   const records = report.records.map((record) => {
     const checked = checks.get(record.id);
-    const status: PillarState =
-      record.type === "MX"
-        ? dnsMxState
-        : checked === "verified"
-          ? "ok"
-          : checked === "failed"
-            ? "failed"
-            : "pending";
+    // Only the ROOT inbound receiving MX is governed by the root MX comparison.
+    // A provider's sending/feedback MX lives on the provider's sending host and
+    // must keep both its own hostname and its own status.
+    const rootInbound = isRootInboundMxRecord(record, report.domain);
+    const status: PillarState = rootInbound
+      ? dnsMxState
+      : checked === "verified"
+        ? "ok"
+        : checked === "failed"
+          ? "failed"
+          : "pending";
     return {
       type: record.type,
-      // Root-domain receiving: the MX host is always the root (`@`), never a
-      // sending/tracking subdomain that may already carry a CNAME.
-      host: record.type === "MX" ? "@" : record.fqdn || record.host,
+      // Root-domain receiving publishes at the root (`@`); every other record —
+      // including the sending/feedback MX — keeps its provider-defined host.
+      host: rootInbound ? "@" : record.fqdn || record.host,
       value: record.value,
       priority: typeof record.priority === "number" ? record.priority : null,
       ttl: record.ttl,
