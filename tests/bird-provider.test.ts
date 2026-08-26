@@ -100,8 +100,8 @@ describe("bird dns records", () => {
     expect(bounce.type).toBe("CNAME");
     expect(bounce.host).toBe("send");
     expect(bounce.value).toBe("sparkpostmail.com");
-    // Return path is never described as SPF.
-    expect(bounce.purpose.toLowerCase()).not.toContain("spf record");
+    // Return path is never classified as SPF.
+    expect(dnsRecordPurpose(bounce)).toBe("return_path");
   });
 
   it("invents nothing when the provider has published no values", () => {
