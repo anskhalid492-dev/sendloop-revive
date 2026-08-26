@@ -6,7 +6,19 @@
  * is never named in customer-facing UI.
  */
 
-export type ProviderRecordKind = "spf" | "dkim" | "dmarc" | "mx" | "tracking" | "verification";
+/**
+ * `mx` is the ROOT-domain inbound receiving record. `feedback` is the provider's
+ * sending/bounce-feedback record, which stays on the provider's sending host and
+ * must never be presented as a root receiving requirement.
+ */
+export type ProviderRecordKind =
+  | "spf"
+  | "dkim"
+  | "dmarc"
+  | "mx"
+  | "feedback"
+  | "tracking"
+  | "verification";
 
 export type ProviderDnsRecord = {
   /** Stable id so statuses survive re-generation. */
