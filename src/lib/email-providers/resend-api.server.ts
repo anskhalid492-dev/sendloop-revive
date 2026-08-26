@@ -198,3 +198,44 @@ export async function getResendRfcMessageId(
   const body = await getResendEmail(providerMessageId, creds);
   return body ? (extractRfcMessageId(body) ?? null) : null;
 }
+
+/** Registers an inbound webhook. Returns the provider-side id. */
+export async function createResendWebhook(
+  endpoint: string,
+  events: string[],
+  creds?: Record<string, string> | null,
+): Promise<{ ok: boolean; id: string | null; detail: string }> {
+  const key = resolveResendApiKey(creds);
+  if (!key) return { ok: false, id: null, detail: "No provider API key is configured." };
+  const response = await fetch(`${API}/webhooks`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ endpoint, events }),
+  });
+  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!response.ok) {
+    return {
+      ok: false,
+      id: null,
+      detail: String(
+        body["message"] ?? body["error"] ?? `Provider rejected the webhook (${response.status})`,
+      ),
+    };
+  }
+  return { ok: true, id: String(body["id"] ?? ""), detail: "Webhook registered." };
+}
+
+export async function deleteResendWebhook(
+  id: string,
+  creds?: Record<string, string> | null,
+): Promise<{ ok: boolean; detail: string }> {
+  const key = resolveResendApiKey(creds);
+  if (!key) return { ok: false, detail: "No provider API key is configured." };
+  const response = await fetch(`${API}/webhooks/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  return response.ok
+    ? { ok: true, detail: "Webhook removed." }
+    : { ok: false, detail: `Could not remove the webhook (${response.status})` };
+}

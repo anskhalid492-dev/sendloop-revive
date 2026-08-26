@@ -12,6 +12,7 @@
  * here rather than duplicated.
  */
 
+import type { InboundSetupMode } from "./inbound";
 import type {
   DomainStage,
   ProviderDnsRecord,
@@ -20,6 +21,8 @@ import type {
 } from "@/lib/domain-providers/types";
 
 export type { DomainStage, ProviderDnsRecord, ProviderDomainState, ProviderRecordKind };
+
+export * from "./inbound";
 
 /* ------------------------------------------------------------------ *
  * Capability model
@@ -167,9 +170,26 @@ export type UnifiedDomainStatus = ProviderDomainState & {
 
 export type UnifiedInboundStatus = {
   enabled: boolean;
+  /** Provider-declared setup mode, echoed for callers that only read status. */
+  setupMode?: InboundSetupMode;
   /** Records required for inbound receiving (usually MX). */
   records: ProviderDnsRecord[];
   detail: string;
+};
+
+export type UnifiedDomainSummary = {
+  id: string;
+  name: string;
+  status: string;
+  /** Provider receiving state, normalized to a plain string. */
+  receiving: string;
+};
+
+export type UnifiedWebhookEntry = {
+  id: string;
+  endpoint: string;
+  status: string;
+  events: string[];
 };
 
 export type UnifiedWebhookConfig = {

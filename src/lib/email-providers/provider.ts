@@ -6,6 +6,7 @@
  * they lack. Callers must check `capabilities` (or use the `supports()` helper)
  * before relying on an optional method.
  */
+import type { InboundSetupMode } from "./inbound";
 import type {
   EmailProviderCapabilities,
   EmailProviderCapability,
@@ -14,6 +15,8 @@ import type {
   NormalizedEmailEvent,
   ProviderDnsRecord,
   UnifiedDomainStatus,
+  UnifiedDomainSummary,
+  UnifiedWebhookEntry,
   UnifiedInboundStatus,
   UnifiedOutboundMessage,
   UnifiedSendResult,
@@ -30,6 +33,11 @@ export type EmailProvider = {
   /** Internal admin-facing label (never shown to customers). */
   label: string;
   capabilities: EmailProviderCapabilities;
+  /**
+   * How receiving is turned on for this provider. Declared explicitly so the
+   * generic domain layer never assumes every provider behaves the same way.
+   */
+  inboundSetupMode: InboundSetupMode;
 
   /* sending */
   send?(
@@ -69,6 +77,18 @@ export type EmailProvider = {
     secret: string | null,
   ): Promise<WebhookVerification> | WebhookVerification;
   identifyWebhookRequest?(request: WebhookRequestContext): WebhookIdentification;
+  /* admin inventory (internal only — never customer-facing) */
+  listDomains?(creds: EmailProviderCredentials): Promise<UnifiedDomainSummary[]>;
+  listWebhooks?(creds: EmailProviderCredentials): Promise<UnifiedWebhookEntry[]>;
+  registerWebhook?(
+    creds: EmailProviderCredentials,
+    endpoint: string,
+    events: string[],
+  ): Promise<{ ok: boolean; id: string | null; detail: string }>;
+  deleteWebhook?(
+    creds: EmailProviderCredentials,
+    id: string,
+  ): Promise<{ ok: boolean; detail: string }>;
 
   /* event normalization */
   parseInboundEvent?(payload: unknown): InboundEmailEvent | null;

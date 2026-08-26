@@ -49,12 +49,18 @@ async function inboundStatus(
 ): Promise<UnifiedInboundStatus> {
   const found = await findResendDomain(domain, creds);
   if (!found) {
-    return { enabled: false, records: [], detail: "Domain is not registered on the infrastructure." };
+    return {
+      enabled: false,
+      setupMode: "api",
+      records: [],
+      detail: "Domain is not registered on the infrastructure.",
+    };
   }
   const receiving = found.capabilities?.receiving ?? "unknown";
   const root = (found.name ?? domain).toLowerCase();
   return {
     enabled: receiving === "enabled",
+    setupMode: "api",
     records: resendInboundMxRecords(found).map((r, i) => inboundRecord(root, r, i)),
     detail: `Receiving: ${receiving}`,
   };
@@ -83,6 +89,9 @@ function resendEvent(payload: unknown) {
 export const resendEmailProvider: EmailProvider = {
   id: ID,
   label: "Resend",
+  // Receiving is switched on through the provider API, so MunchReach can
+  // automate it once the customer's domain exists on the infrastructure.
+  inboundSetupMode: "api",
   capabilities: capabilities({
     sending: true,
     inbound: true,
@@ -149,6 +158,37 @@ export const resendEmailProvider: EmailProvider = {
       events: match?.events ?? [],
       detail: match ? `Webhook ${match.status ?? "registered"}.` : "No matching webhook registered.",
     };
+  },
+
+  async listDomains(creds) {
+    const { listResendDomains } = await import("./resend-api.server");
+    const domains = await listResendDomains(creds);
+    return domains.map((d) => ({
+      id: String(d.id ?? ""),
+      name: String(d.name ?? ""),
+      status: String(d.status ?? ""),
+      receiving: String(d.capabilities?.receiving ?? "unknown"),
+    }));
+  },
+
+  async listWebhooks(creds) {
+    const hooks = await listResendWebhooks(creds);
+    return hooks.map((h) => ({
+      id: String(h.id ?? ""),
+      endpoint: String(h.endpoint ?? ""),
+      status: String(h.status ?? ""),
+      events: h.events ?? [],
+    }));
+  },
+
+  async registerWebhook(creds, endpoint, events) {
+    const { createResendWebhook } = await import("./resend-api.server");
+    return createResendWebhook(endpoint, events, creds);
+  },
+
+  async deleteWebhook(creds, id) {
+    const { deleteResendWebhook } = await import("./resend-api.server");
+    return deleteResendWebhook(id, creds);
   },
 
   identifyWebhookRequest(request) {
