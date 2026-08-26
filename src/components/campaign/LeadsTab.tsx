@@ -346,7 +346,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               <TableHead>Company</TableHead>
               <TableHead>Job title</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Status / lifecycle</TableHead>
               <TableHead>Step</TableHead>
               <TableHead>Last activity</TableHead>
               <TableHead>Sending account</TableHead>
