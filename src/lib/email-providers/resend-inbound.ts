@@ -63,7 +63,7 @@ export function resendInboundEvent(payload: unknown): InboundEmailEvent | null {
   return {
     provider: ID,
     providerEventId: externalIdOf(raw, kind),
-    providerMessageId: firstProviderMessageId(payload),
+    providerMessageId: firstProviderMessageId(source),
     from,
     to,
     cc: list(normalized["cc"]),
