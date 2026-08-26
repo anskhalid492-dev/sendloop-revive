@@ -4,11 +4,15 @@
  * Server-only (adapters reach provider APIs). Client code must import types
  * from `./types` instead.
  */
+import { birdEmailProvider } from "./bird.server";
 import type { EmailProvider } from "./provider";
 import { resendEmailProvider } from "./resend.server";
 import { capabilities } from "./types";
 
-const registry = new Map<string, EmailProvider>([[resendEmailProvider.id, resendEmailProvider]]);
+const registry = new Map<string, EmailProvider>([
+  [resendEmailProvider.id, resendEmailProvider],
+  [birdEmailProvider.id, birdEmailProvider],
+]);
 
 /** Placeholder for providers not yet migrated into this layer. */
 function unregisteredProvider(id: string): EmailProvider {

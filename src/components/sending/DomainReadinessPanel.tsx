@@ -17,6 +17,7 @@ import {
   overallState,
   type CustomerDomainReadiness,
 } from "@/lib/domain-readiness-view";
+import { dnsRecordPurposeLabel } from "@/lib/dns-record-purpose";
 import { cn } from "@/lib/utils";
 
 function CopyValue({ value, label }: { value: string; label: string }) {
@@ -246,6 +247,7 @@ export function DomainReadinessPanel({ domainId }: { domainId: string }) {
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/20 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <tr>
+                  <th className="p-2">Record</th>
                   <th className="p-2">Type</th>
                   <th className="p-2">Host / name</th>
                   <th className="p-2">Value / target</th>
@@ -258,6 +260,7 @@ export function DomainReadinessPanel({ domainId }: { domainId: string }) {
               <tbody className="divide-y divide-border/60">
                 {readiness.dns.records.map((record, index) => (
                   <tr key={`${record.type}-${record.host}-${index}`}>
+                    <td className="p-2 font-medium">{dnsRecordPurposeLabel(record)}</td>
                     <td className="p-2 font-mono">{record.type}</td>
                     <td className="p-2">
                       <span className="flex items-start gap-1">
@@ -281,6 +284,7 @@ export function DomainReadinessPanel({ domainId }: { domainId: string }) {
                 ))}
               </tbody>
             </table>
+
           </div>
         )}
       </div>

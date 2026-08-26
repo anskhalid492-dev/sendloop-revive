@@ -21,10 +21,10 @@ import {
   DNS_STATUS_STYLE,
   DOMAIN_STAGE_LABEL,
   DOMAIN_STAGE_STYLE,
-  RECORD_KIND_LABEL,
   type DnsRecordView,
   type DomainStage,
 } from "@/lib/domains-model";
+import { dnsRecordPurposeLabel } from "@/lib/dns-record-purpose";
 import { cn } from "@/lib/utils";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -55,7 +55,7 @@ function RecordRow({ record }: { record: DnsRecordView }) {
   return (
     <div className="space-y-2 border-b border-border/60 p-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold">{RECORD_KIND_LABEL[record.kind]}</span>
+        <span className="text-sm font-semibold">{dnsRecordPurposeLabel(record)}</span>
         <Badge variant="outline" className="font-mono text-[11px]">
           {record.type}
         </Badge>
