@@ -120,3 +120,32 @@ export function buildRootInboundMxRecord(input: {
  */
 export const ROOT_MX_INSTRUCTION =
   "Add this MX record to the root of your domain. Do not add it to your sending or tracking subdomain.";
+
+/**
+ * DNS forbids a CNAME on the same name as any other record type. If the
+ * customer's ROOT name itself carries a CNAME, the root MX cannot be added
+ * until that CNAME is removed by the customer — MunchReach only reports this,
+ * it never edits DNS.
+ *
+ * A CNAME on any OTHER hostname (for example `send.customer.com`, used for
+ * sending or tracking) is completely valid and must never be reported as a
+ * conflict with the root MX.
+ */
+export function rootMxCompatibility(input: {
+  domain: string;
+  /** Hostnames observed to carry a CNAME in public DNS. */
+  cnameHosts?: string[];
+}): { compatible: boolean; reason: string } {
+  const root = normalizeDomain(input.domain);
+  const conflict = (input.cnameHosts ?? [])
+    .map((host) => normalizeDomain(host))
+    .some((host) => host === root);
+  if (!conflict) {
+    return { compatible: true, reason: ROOT_MX_INSTRUCTION };
+  }
+  return {
+    compatible: false,
+    reason:
+      "Your domain's root name currently has a CNAME record. DNS does not allow a CNAME and an MX record on the same name, so the CNAME on the root must be removed at your DNS provider before the MX record can be added.",
+  };
+}
