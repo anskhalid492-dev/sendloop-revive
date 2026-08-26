@@ -20,7 +20,7 @@ import {
   setResendReceiving,
   type ResendDnsRecord,
 } from "./resend-api.server";
-import { normalizeEmailEvent, normalizeInboundEvent } from "./normalize";
+import { normalizeEmailEvent } from "./normalize";
 import { resendInboundEvent } from "./resend-inbound";
 import type { EmailProvider } from "./provider";
 import { capabilities, type ProviderDnsRecord, type UnifiedInboundStatus } from "./types";
