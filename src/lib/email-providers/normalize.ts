@@ -11,6 +11,7 @@ const MAP: { match: (raw: string) => boolean; type: NormalizedEmailEventType }[]
   { match: (r) => r.includes("unsub"), type: "UNSUBSCRIBED" },
   { match: (r) => r.includes("bounce"), type: "BOUNCED" },
   { match: (r) => r.includes("fail") || r.includes("reject") || r.includes("drop"), type: "FAILED" },
+  { match: (r) => r.includes("delay"), type: "DELAYED" },
   { match: (r) => r.includes("deliver"), type: "DELIVERED" },
   { match: (r) => r.includes("click"), type: "CLICKED" },
   { match: (r) => r.includes("open"), type: "OPENED" },

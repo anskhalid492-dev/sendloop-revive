@@ -20,7 +20,9 @@ import {
   setResendReceiving,
   type ResendDnsRecord,
 } from "./resend-api.server";
+import { resendEventType, resendSendStatus, sendResendEmail } from "./resend-send.server";
 import { normalizeEmailEvent } from "./normalize";
+import { firstProviderMessageId } from "@/lib/provider-message-id";
 import { resendInboundEvent } from "./resend-inbound";
 import type { EmailProvider } from "./provider";
 import { capabilities, type ProviderDnsRecord, type UnifiedInboundStatus } from "./types";
@@ -60,6 +62,24 @@ async function inboundStatus(
 
 const ID = "resend";
 
+/**
+ * Normalizes a provider payload. Field extraction is shared, but the event
+ * *name* is interpreted with Resend's own native event table so shared code
+ * never sees provider-specific event names — and unknown events stay UNKNOWN.
+ */
+function resendEvent(payload: unknown) {
+  const generic = normalizeEmailEvent(ID, payload);
+  const p = (payload ?? {}) as Record<string, unknown>;
+  const data = (p["data"] ?? {}) as Record<string, unknown>;
+  const raw = p["type"] ?? data["type"] ?? p["event"] ?? data["event"];
+  return {
+    ...generic,
+    type: resendEventType(raw),
+    // The provider nests the message id under `data` on webhook deliveries.
+    providerMessageId: generic.providerMessageId ?? firstProviderMessageId(payload, data),
+  };
+}
+
 export const resendEmailProvider: EmailProvider = {
   id: ID,
   label: "Resend",
@@ -76,30 +96,11 @@ export const resendEmailProvider: EmailProvider = {
   }),
 
   async send(creds, message) {
-    const { getAdapter } = await import("@/lib/providers/adapter.server");
-    const result = await getAdapter(ID).sendEmail(creds, {
-      ...message,
-      replyTo: message.replyTo ?? null,
-    });
-    return {
-      ok: result.ok,
-      providerMessageId: result.messageId ?? null,
-      rfcMessageId: result.rfcMessageId ?? null,
-      statusCode: result.statusCode ?? null,
-      message: result.message,
-      rawMetadata: result.providerResponse ?? null,
-    };
+    return sendResendEmail(creds, message);
   },
 
   async getSendStatus(creds, providerMessageId) {
-    const { getAdapter } = await import("@/lib/providers/adapter.server");
-    const status = await getAdapter(ID).getDeliveryStatus(creds, providerMessageId);
-    const { normalizedEventType } = await import("./normalize");
-    return {
-      known: status.known,
-      status: status.status ? normalizedEventType(status.status) : null,
-      detail: status.detail,
-    };
+    return resendSendStatus(creds, providerMessageId);
   },
 
   async verifyDomain(creds, domain) {
@@ -219,11 +220,11 @@ export const resendEmailProvider: EmailProvider = {
   },
 
   parseDeliveryEvent(payload) {
-    return normalizeEmailEvent(ID, payload);
+    return resendEvent(payload);
   },
 
   parseTrackingEvent(payload) {
-    return normalizeEmailEvent(ID, payload);
+    return resendEvent(payload);
   },
 
   parseInboundEvent(payload) {
