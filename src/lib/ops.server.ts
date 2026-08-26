@@ -24,20 +24,6 @@ export type ChecklistItem = {
 
 const DOH = "https://dns.google/resolve";
 
-/** Live MX lookup so the checklist reflects the registrar, not a cached guess. */
-async function lookupMx(domain: string): Promise<string[]> {
-  try {
-    const response = await fetch(`${DOH}?name=${encodeURIComponent(domain)}&type=MX`, {
-      headers: { accept: "application/dns-json" },
-    });
-    if (!response.ok) return [];
-    const body = (await response.json()) as { Answer?: { data?: string }[] };
-    return (body.Answer ?? []).map((a) => (a.data ?? "").trim().toLowerCase()).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
 /** Where the inbound domain under inspection came from, for the admin UI. */
 export type ReplyDomainSource =
   | "platform_reply_to"
