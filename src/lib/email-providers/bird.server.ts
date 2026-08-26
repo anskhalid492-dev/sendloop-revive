@@ -294,9 +294,6 @@ function transmissionBody(message: UnifiedOutboundMessage): Record<string, unkno
 
   return {
     recipients,
-    ...(Object.keys(headers).length > 0 || message.cc?.length
-      ? {}
-      : {}),
     content: {
       from: { email: message.fromEmail, name: message.fromName },
       subject: message.subject,
