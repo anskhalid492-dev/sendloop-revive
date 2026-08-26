@@ -59,6 +59,17 @@ export type DomainReadinessReport = {
   checkedAt: string;
 };
 
+/** Providers can list the same record twice; the comparison needs it once. */
+function dedupeMx<T extends { host: string; priority: number | null }>(records: T[]): T[] {
+  const seen = new Set<string>();
+  return records.filter((record) => {
+    const key = `${record.host}|${record.priority ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function safe<T>(run: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await run();
@@ -105,7 +116,17 @@ export async function evaluateDomainReadiness(options: {
 
   // Provider-derived MX requirement only: sending records and inbound records
   // both come from the provider, never from environment variables.
-  const required = requiredMxFromRecords([...dnsRecords, ...inbound.records]);
+  //
+  // Root-domain receiving is what MunchReach compares: only MX records the
+  // provider issues FOR THE ROOT DOMAIN count. Bounce/feedback MX records that
+  // a provider puts on its own sending subdomain are published separately and
+  // must not be mistaken for the root receiving requirement.
+  const rootMxRecords = [...dnsRecords, ...inbound.records].filter(
+    (record) =>
+      record.type === "MX" &&
+      ((record.fqdn ?? "").toLowerCase() === domain || record.host === "@" || record.host === ""),
+  );
+  const required = dedupeMx(requiredMxFromRecords(rootMxRecords));
 
   let current = [] as Awaited<ReturnType<typeof lookupPublicMx>>;
   let lookupFailed = false;
