@@ -20,7 +20,8 @@ import {
   setResendReceiving,
   type ResendDnsRecord,
 } from "./resend-api.server";
-import { normalizeEmailEvent, normalizeInboundEvent } from "./normalize";
+import { normalizeEmailEvent } from "./normalize";
+import { resendInboundEvent } from "./resend-inbound";
 import type { EmailProvider } from "./provider";
 import { capabilities, type ProviderDnsRecord, type UnifiedInboundStatus } from "./types";
 
@@ -153,30 +154,68 @@ export const resendEmailProvider: EmailProvider = {
     const headers = Object.fromEntries(
       Object.entries(request.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
     );
-    const svix = Boolean(headers["svix-signature"] ?? headers["webhook-signature"]);
+    // Strongest discriminator: this provider signs deliveries with Svix headers.
+    if (headers["svix-signature"] ?? headers["webhook-signature"]) {
+      return {
+        provider: ID,
+        matched: true,
+        confidence: "exact",
+        detail: "Signed delivery carrying the Svix headers this provider uses.",
+      };
+    }
+
+    // Secondary discriminator for deliveries that arrive with the MunchReach
+    // shared secret instead of a provider signature (existing behaviour):
+    // the payload must still have this provider's envelope shape.
+    const payload = (request.payload ?? {}) as Record<string, unknown>;
+    const data = payload["data"];
+    const source = (data && typeof data === "object" ? data : payload) as Record<string, unknown>;
+    const type = String(payload["type"] ?? source["type"] ?? "").toLowerCase();
+    const envelope = Boolean(source["from"] ?? source["to"] ?? source["email_id"] ?? source["email"]);
+    if (type.startsWith("email.") && envelope) {
+      return {
+        provider: ID,
+        matched: true,
+        confidence: "likely",
+        detail: `Payload envelope matches this provider (${type}).`,
+      };
+    }
+    if (envelope && (source["email_id"] ?? source["headers"])) {
+      return {
+        provider: ID,
+        matched: true,
+        confidence: "likely",
+        detail: "Payload carries this provider's message envelope fields.",
+      };
+    }
+
     return {
       provider: ID,
-      matched: svix,
-      confidence: svix ? "likely" : "none",
-      detail: svix
-        ? "Signed delivery carrying Svix headers, which this provider uses."
-        : "No provider-specific headers found.",
+      matched: false,
+      confidence: "none",
+      detail: "No provider-specific headers or payload envelope found.",
     };
   },
 
   async verifyWebhookSignature(request) {
-    // Delegates to the existing, production-verified implementation. Phase 2
-    // does not change signature verification behaviour.
+    // Delegates to the existing, production-verified implementation. Phase 3
+    // does not change signature semantics: the Svix scheme, the active-secret
+    // fallback and the shared-secret/HMAC schemes are all unchanged, and the
+    // exact raw body that arrived is what gets verified.
     const { verifyInboundSignature } = await import("@/lib/webhook-verify.server");
-    const result = await verifyInboundSignature(
+    const original =
+      request.request ??
       new Request(request.url ?? "https://munchreach.com/api/public/inbound/email", {
         method: "POST",
         headers: request.headers ?? {},
         body: request.rawBody,
-      }),
-      request.rawBody,
-    );
-    return { valid: result.status === "valid", detail: result.reason };
+      });
+    const result = await verifyInboundSignature(original, request.rawBody);
+    return {
+      valid: result.status === "valid",
+      detail: result.reason,
+      verification: { status: result.status, method: result.method, reason: result.reason },
+    };
   },
 
   parseDeliveryEvent(payload) {
@@ -188,6 +227,6 @@ export const resendEmailProvider: EmailProvider = {
   },
 
   parseInboundEvent(payload) {
-    return normalizeInboundEvent(ID, payload);
+    return resendInboundEvent(payload);
   },
 };

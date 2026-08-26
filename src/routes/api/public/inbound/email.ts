@@ -26,53 +26,56 @@ export const Route = createFileRoute("/api/public/inbound/email")({
       POST: async ({ request }) => {
         const rawBody = await request.text();
 
-        const { verifyInboundSignature, recordWebhookVerification } = await import(
-          "@/lib/webhook-verify.server"
-        );
-        const verification = await verifyInboundSignature(request, rawBody);
-        try {
-          await recordWebhookVerification(verification);
-        } catch {
-          // Status reporting must never block a legitimate delivery.
-        }
-        if (verification.status !== "valid") {
+        // Provider-agnostic ingestion: identify -> verify signature -> parse.
+        // No provider is assumed; unidentified senders are rejected.
+        const { ingestProviderWebhook } = await import("@/lib/email-providers/ingest.server");
+        const ingest = await ingestProviderWebhook(request, rawBody);
+
+        const { recordWebhookVerification } = await import("@/lib/webhook-verify.server");
+        if (ingest.verification) {
           try {
-            const { notifyAdmins, resolveInboundAlertContext } = await import(
-              "@/lib/inbound-ops.server"
-            );
-            const alertContext = await resolveInboundAlertContext(rawBody);
-            await notifyAdmins("signature_failure", "Inbound webhook failed signature verification", {
-              signature: verification.status,
-              method: verification.method,
-              reason: verification.reason,
-              origin: request.headers.get("user-agent") ?? "unknown",
-              ...alertContext,
+            await recordWebhookVerification({
+              status: ingest.verification.status as never,
+              method: ingest.verification.method as never,
+              reason: ingest.verification.reason,
             });
           } catch {
-            // Alerting must never change the response to the provider.
+            // Status reporting must never block a legitimate delivery.
           }
-          const status = verification.status === "failed" ? 503 : 401;
-          return json({ error: verification.reason, signature: verification.status }, status);
         }
 
-
-        let raw: Record<string, unknown>;
-        try {
-          const contentType = request.headers.get("content-type") ?? "";
-          if (contentType.includes("application/json") || rawBody.trimStart().startsWith("{")) {
-            raw = JSON.parse(rawBody) as Record<string, unknown>;
-          } else {
-            raw = Object.fromEntries(new URLSearchParams(rawBody)) as Record<string, unknown>;
+        if (!ingest.ok) {
+          const signature = ingest.verification?.status ?? "missing";
+          if (signature !== "valid") {
+            try {
+              const { notifyAdmins, resolveInboundAlertContext } = await import(
+                "@/lib/inbound-ops.server"
+              );
+              const alertContext = await resolveInboundAlertContext(rawBody);
+              await notifyAdmins(
+                "signature_failure",
+                "Inbound webhook failed signature verification",
+                {
+                  signature,
+                  method: ingest.verification?.method ?? "none",
+                  reason: ingest.error,
+                  origin: request.headers.get("user-agent") ?? "unknown",
+                  ...alertContext,
+                },
+              );
+            } catch {
+              // Alerting must never change the response to the provider.
+            }
           }
-        } catch {
-          return json({ error: "Invalid body" }, 400);
+          return json({ error: ingest.error, signature }, ingest.status);
         }
 
         try {
           const { handleWebhookDelivery } = await import("@/lib/email-events.server");
-          const result = await handleWebhookDelivery(raw, "resend", {
-            signatureStatus: verification.status,
-            signatureDetail: `${verification.method}: ${verification.reason}`,
+          const result = await handleWebhookDelivery(ingest.payload, ingest.provider.id, {
+            signatureStatus: ingest.verification.status,
+            signatureDetail: `${ingest.verification.method}: ${ingest.verification.reason}`,
+            ...(ingest.inbound ? { normalizedInbound: ingest.inbound } : {}),
           });
           // Unmatched mail is acknowledged so the sender does not retry forever.
           return json(result, 200);

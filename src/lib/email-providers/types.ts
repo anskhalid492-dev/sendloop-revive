@@ -181,6 +181,8 @@ export type UnifiedWebhookConfig = {
 export type WebhookVerification = {
   valid: boolean;
   detail: string;
+  /** Provider-native verdict, preserved for admin status reporting. */
+  verification?: { status: string; method: string; reason: string };
 };
 
 /** Result of asking each provider "is this HTTP request yours?". */
@@ -198,4 +200,12 @@ export type WebhookRequestContext = {
   url?: string | null;
   /** Query params, used by providers that authenticate with a shared token. */
   query?: Record<string, string>;
+  /** Parsed body, when the caller already parsed it (never used for signatures). */
+  payload?: unknown;
+  /**
+   * The original Request. Signature verification must use this together with
+   * `rawBody` so provider secret lookup keyed on the endpoint URL keeps working.
+   */
+  request?: Request;
 };
+
