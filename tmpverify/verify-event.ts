@@ -4,7 +4,7 @@ import { resendInboundEvent } from "../src/lib/email-providers/resend-inbound";
 const url = "https://rihgzkofoxcjljlbvbya.supabase.co";
 const key = process.env["SB_SERVICE_ROLE_KEY"]!;
 const res = await fetch(
-  `${url}/rest/v1/email_events?select=id,provider,kind,external_id,payload,from_email,to_email&kind=eq.inbound&order=created_at.desc&limit=1`,
+  `${url}/rest/v1/email_events?select=id,provider,event_type,external_id,payload,from_email,to_email&event_type=eq.inbound&order=created_at.desc&limit=1`,
   { headers: { apikey: key, Authorization: `Bearer ${key}` } },
 );
 const rows = (await res.json()) as any[];
