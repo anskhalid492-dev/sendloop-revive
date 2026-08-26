@@ -67,11 +67,15 @@ export function InboundReadiness() {
       <Card>
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
           <div>
-            <CardTitle>Reply delivery checklist</CardTitle>
+            <CardTitle>Platform reply delivery checklist</CardTitle>
             <CardDescription>
-              {checklist.data?.domain
-                ? `Live checks for ${checklist.data.domain}`
-                : "Configure a reply-to inbox to run these checks."}
+              {checklist.data?.domain ? (
+                <>
+                  Checking inbound routing for the MunchReach platform domain: <strong>{checklist.data.domain}</strong>
+                </>
+              ) : (
+                "Configure a reply-to inbox to run these checks."
+              )}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
