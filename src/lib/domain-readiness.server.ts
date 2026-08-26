@@ -24,6 +24,7 @@ import {
   type MxComparison,
 } from "@/lib/email-providers/inbound";
 import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
+import { dedupeDnsRequirements } from "@/lib/email-providers/dns-requirements";
 import { TransientDnsError, lookupPublicMx } from "@/lib/dns.server";
 import type {
   EmailProviderCredentials,
