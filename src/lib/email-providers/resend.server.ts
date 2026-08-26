@@ -86,6 +86,16 @@ function resendEvent(payload: unknown) {
   };
 }
 
+/**
+ * The legacy domain adapter reads its key from `creds.api_key`; the unified
+ * layer also allows platform-level credentials. Bridge the two so readiness
+ * works with either credential source.
+ */
+function withResolvedKey(creds: Record<string, string>): Record<string, string> {
+  const key = resolveResendApiKey(creds);
+  return key ? { ...creds, api_key: key } : creds;
+}
+
 export const resendEmailProvider: EmailProvider = {
   id: ID,
   label: "Resend",
