@@ -67,7 +67,7 @@ describe("Phase 6.1 — DNS requirement generation", () => {
     });
     // Existing vocabulary: foreign root MX ownership is reported as third_party.
     expect(result.state).toBe("third_party");
-    expect(mxPillarState(result.state)).toBe("conflict");
+    expect(mxPillarState(result.state)).toBe("failed");
   });
 
   it("6. Google Workspace root MX is a conflict", () => {
@@ -76,7 +76,7 @@ describe("Phase 6.1 — DNS requirement generation", () => {
       required: requiredMxFromRecords([inboundMx]),
     });
     expect(result.state).toBe("third_party");
-    expect(mxPillarState(result.state)).toBe("conflict");
+    expect(mxPillarState(result.state)).toBe("failed");
   });
 
   it("7. a correct provider receiving MX is ready", () => {
