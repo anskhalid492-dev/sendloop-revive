@@ -12,7 +12,7 @@ const registry = new Map<string, EmailProvider>([[resendEmailProvider.id, resend
 
 /** Placeholder for providers not yet migrated into this layer. */
 function unregisteredProvider(id: string): EmailProvider {
-  return { id, label: id, capabilities: capabilities() };
+  return { id, label: id, capabilities: capabilities(), inboundSetupMode: "unsupported" };
 }
 
 export function getEmailProvider(providerId: string): EmailProvider {

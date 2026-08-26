@@ -6,6 +6,7 @@
  * they lack. Callers must check `capabilities` (or use the `supports()` helper)
  * before relying on an optional method.
  */
+import type { InboundSetupMode } from "./inbound";
 import type {
   EmailProviderCapabilities,
   EmailProviderCapability,
@@ -30,6 +31,11 @@ export type EmailProvider = {
   /** Internal admin-facing label (never shown to customers). */
   label: string;
   capabilities: EmailProviderCapabilities;
+  /**
+   * How receiving is turned on for this provider. Declared explicitly so the
+   * generic domain layer never assumes every provider behaves the same way.
+   */
+  inboundSetupMode: InboundSetupMode;
 
   /* sending */
   send?(
