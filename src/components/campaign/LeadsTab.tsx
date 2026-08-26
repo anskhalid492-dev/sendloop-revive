@@ -230,13 +230,13 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           />
         </div>
         <div>
-          <Label className="text-xs">Status</Label>
+          <Label className="text-xs">Lifecycle</Label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ANY}>Any status</SelectItem>
+              <SelectItem value={ANY}>Any lifecycle</SelectItem>
               {RECIPIENT_STATUS_OPTIONS.map(([value, label]) => (
                 <SelectItem key={value} value={value}>
                   {label}
