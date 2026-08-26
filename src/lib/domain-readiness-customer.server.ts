@@ -12,6 +12,7 @@
  */
 import type { CustomerDomainReadiness, PillarState } from "@/lib/domain-readiness-view";
 import { mxPillarState } from "@/lib/domain-readiness-view";
+import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
