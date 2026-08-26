@@ -755,40 +755,29 @@ export const getInboundWebhooks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context);
-    const key = process.env["RESEND_API_KEY"];
     const secretConfigured = Boolean(process.env["INBOUND_EMAIL_SECRET"]);
-    if (!key) return { provider: "resend", available: false, secretConfigured, domains: [], webhooks: [] };
+    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
+    const providerId = await resolvePlatformProviderId();
+    const provider = getEmailProvider(providerId);
+    if (!provider.listDomains && !provider.listWebhooks) {
+      return { provider: providerId, available: false, secretConfigured, domains: [], webhooks: [] };
+    }
 
-    const headers = { authorization: `Bearer ${key}` };
-    const [domainsRes, hooksRes] = await Promise.all([
-      fetch("https://api.resend.com/domains", { headers }),
-      fetch("https://api.resend.com/webhooks", { headers }),
+    const [domains, webhooks] = await Promise.all([
+      provider.listDomains ? provider.listDomains({}).catch(() => []) : Promise.resolve([]),
+      provider.listWebhooks ? provider.listWebhooks({}).catch(() => []) : Promise.resolve([]),
     ]);
-    const domains = domainsRes.ok
-      ? (((await domainsRes.json()) as { data?: unknown[] }).data ?? [])
-      : [];
-    const webhooks = hooksRes.ok
-      ? (((await hooksRes.json()) as { data?: unknown[] }).data ?? [])
-      : [];
 
     return {
-      provider: "resend",
-      available: true,
+      provider: providerId,
+      available: domains.length > 0 || webhooks.length > 0,
       secretConfigured,
-      domains: (domains as Array<Record<string, unknown>>).map((d) => ({
-        id: String(d["id"] ?? ""),
-        name: String(d["name"] ?? ""),
-        status: String(d["status"] ?? ""),
-        receiving: String(
-          (d["capabilities"] as Record<string, unknown> | undefined)?.["receiving"] ?? "unknown",
-        ),
-      })),
+      domains,
       // The endpoint carries the shared secret, so it is masked before it leaves the server.
-      webhooks: (webhooks as Array<Record<string, unknown>>).map((w) => ({
-        id: String(w["id"] ?? ""),
-        endpoint: String(w["endpoint"] ?? "").replace(/token=[^&]+/, "token=•••"),
-        status: String(w["status"] ?? ""),
-        events: (w["events"] as string[] | undefined) ?? [],
+      webhooks: webhooks.map((w) => ({
+        ...w,
+        endpoint: w.endpoint.replace(/token=[^&]+/, "token=•••"),
       })),
     };
   });
@@ -800,24 +789,18 @@ export const registerInboundWebhook = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context, { sensitive: true, action: "change inbound webhook configuration" });
-    const key = process.env["RESEND_API_KEY"];
     const secret = process.env["INBOUND_EMAIL_SECRET"];
-    if (!key) throw new Error("No sending provider API key is configured.");
     if (!secret) throw new Error("INBOUND_EMAIL_SECRET is not configured.");
-
-    const endpoint = `${data.baseUrl.replace(/\/+$/, "")}/api/public/inbound/email?token=${encodeURIComponent(secret)}`;
-    const response = await fetch("https://api.resend.com/webhooks", {
-      method: "POST",
-      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ endpoint, events: ["email.received"] }),
-    });
-    const body = (await response.json()) as Record<string, unknown>;
-    if (!response.ok) {
-      throw new Error(
-        String((body["message"] ?? body["error"]) ?? `Provider rejected the webhook (${response.status})`),
-      );
+    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
+    const provider = getEmailProvider(await resolvePlatformProviderId());
+    if (!provider.registerWebhook) {
+      throw new Error("This email provider does not support webhook registration.");
     }
-    return { id: String(body["id"] ?? "") };
+    const endpoint = `${data.baseUrl.replace(/\/+$/, "")}/api/public/inbound/email?token=${encodeURIComponent(secret)}`;
+    const result = await provider.registerWebhook({}, endpoint, ["email.received"]);
+    if (!result.ok) throw new Error(result.detail);
+    return { id: result.id ?? "" };
   });
 
 export const deleteInboundWebhook = createServerFn({ method: "POST" })
@@ -825,13 +808,14 @@ export const deleteInboundWebhook = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().trim().min(3).max(100) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context, { sensitive: true, action: "delete inbound webhook" });
-    const key = process.env["RESEND_API_KEY"];
-    if (!key) throw new Error("No sending provider API key is configured.");
-    const response = await fetch(`https://api.resend.com/webhooks/${data.id}`, {
-      method: "DELETE",
-      headers: { authorization: `Bearer ${key}` },
-    });
-    if (!response.ok) throw new Error(`Could not remove the webhook (${response.status})`);
+    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
+    const provider = getEmailProvider(await resolvePlatformProviderId());
+    if (!provider.deleteWebhook) {
+      throw new Error("This email provider does not support webhook management.");
+    }
+    const result = await provider.deleteWebhook({}, data.id);
+    if (!result.ok) throw new Error(result.detail);
     return { ok: true };
   });
 
