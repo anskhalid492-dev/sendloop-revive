@@ -133,8 +133,11 @@ function unwrap(payload: unknown): { kind: string; body: BirdEnvelope } | null {
     const body = msys[key];
     if (body && typeof body === "object") return { kind: key, body: body as BirdEnvelope };
   }
-  // A bare Bird event object (as returned by the events API).
-  if (item["type"] || item["event_id"]) return { kind: "message_event", body: item };
+  // A bare Bird event object (as returned by the events API). Only accepted
+  // when the event name is one of Bird's own, so another provider's payload can
+  // never be mistaken for Bird's.
+  const type = String(item["type"] ?? "").toLowerCase().trim();
+  if (type && BIRD_EVENTS[type]) return { kind: "message_event", body: item };
   return null;
 }
 
