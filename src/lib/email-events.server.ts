@@ -533,7 +533,21 @@ export async function processEventPayload(
 export async function handleWebhookDelivery(
   raw: Record<string, unknown>,
   provider = "resend",
-  meta?: { signatureStatus?: string; signatureDetail?: string | null },
+  meta?: {
+    signatureStatus?: string;
+    signatureDetail?: string | null;
+    /**
+     * Provider-normalized inbound event from the provider adapter. Used ONLY as
+     * a fallback when the existing extraction yields nothing, so routing,
+     * threading and idempotency behaviour are unchanged.
+     */
+    normalizedInbound?: {
+      from?: string | null;
+      to?: string[];
+      subject?: string | null;
+      messageId?: string | null;
+    } | null,
+  },
 ): Promise<ProcessResult> {
   const kind = classifyEvent(raw);
   const externalId = externalIdOf(raw, kind);
@@ -559,13 +573,14 @@ export async function handleWebhookDelivery(
       : null;
   const { tokenFromAddress } = await import("@/lib/inbound-routing.server");
 
+  const fallback = meta?.normalizedInbound ?? null;
   const recorded = await recordEvent({
     provider,
     kind,
     externalId,
     payload: raw,
-    fromEmail,
-    toEmail,
+    fromEmail: fromEmail ?? (fallback?.from ? extractEmail(fallback.from).slice(0, 320) : null),
+    toEmail: toEmail ?? (fallback?.to?.[0] ? extractEmail(fallback.to[0]).slice(0, 320) : null),
     subject:
       typeof inboundSubject === "string"
         ? inboundSubject.slice(0, 300)
@@ -575,7 +590,11 @@ export async function handleWebhookDelivery(
     messageId: kind === "inbound" ? stripAngle(inboundMessageId as string | null | undefined) : externalId,
     signatureStatus: meta?.signatureStatus ?? "unverified",
     signatureDetail: meta?.signatureDetail ?? null,
-    routingToken: toEmail ? tokenFromAddress(toEmail) : null,
+    routingToken: toEmail
+      ? tokenFromAddress(toEmail)
+      : fallback?.to?.[0]
+        ? tokenFromAddress(extractEmail(fallback.to[0]))
+        : null,
   });
   if (recorded.duplicate) {
     const duplicateEventId = recorded.id;
