@@ -71,6 +71,10 @@ const RECIPIENT_STATUS_OPTIONS = [
   ["stopped", "Stopped"],
 ] as const;
 
+const RECIPIENT_STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  RECIPIENT_STATUS_OPTIONS.map(([value, label]) => [value, label]),
+);
+
 export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const { campaignId, lists, accounts } = builder;
   const addFn = useServerFn(addLeadsToCampaign);
@@ -230,13 +234,13 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           />
         </div>
         <div>
-          <Label className="text-xs">Status</Label>
+          <Label className="text-xs">Lifecycle</Label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ANY}>Any status</SelectItem>
+              <SelectItem value={ANY}>Any lifecycle</SelectItem>
               {RECIPIENT_STATUS_OPTIONS.map(([value, label]) => (
                 <SelectItem key={value} value={value}>
                   {label}
@@ -346,7 +350,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               <TableHead>Company</TableHead>
               <TableHead>Job title</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Status / lifecycle</TableHead>
               <TableHead>Step</TableHead>
               <TableHead>Last activity</TableHead>
               <TableHead>Sending account</TableHead>
@@ -407,14 +411,21 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                   <TableCell className="whitespace-nowrap">{row.lead?.job_title ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.lead?.country ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={`font-normal ${LEAD_DELIVERY_STYLES[(row.deliveryState ?? "not_contacted") as LeadDeliveryState] ?? ""}`}
-                    >
-                      {LEAD_DELIVERY_LABELS[
-                        (row.deliveryState ?? "not_contacted") as LeadDeliveryState
-                      ] ?? row.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge
+                        variant="secondary"
+                        className={`w-fit font-normal ${LEAD_DELIVERY_STYLES[(row.deliveryState ?? "not_contacted") as LeadDeliveryState] ?? ""}`}
+                      >
+                        {LEAD_DELIVERY_LABELS[
+                          (row.deliveryState ?? "not_contacted") as LeadDeliveryState
+                        ] ?? row.status}
+                      </Badge>
+                      {/* Lifecycle value the Lifecycle filter matches on, so the
+                          filtered population is always visible in the row. */}
+                      <span className="text-xs text-muted-foreground">
+                        {RECIPIENT_STATUS_LABELS[row.status as string] ?? row.status}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="tabular-nums">{row.current_step ?? 0}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">

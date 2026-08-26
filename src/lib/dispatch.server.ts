@@ -702,7 +702,13 @@ export async function dispatchDueMessages(
     }
 
     const usedNow = sentPerAccount.get(account.id) ?? 0;
-    const accountSentToday = sentTodayByAccount.get(account.id) ?? (account.sent_today ?? 0);
+    // The mailbox daily limit covers every email leaving that mailbox. The
+    // campaign_messages count misses manual inbox sends, and `sent_today` can
+    // lag a same-run reset, so the higher of the two is authoritative.
+    const accountSentToday = Math.max(
+      sentTodayByAccount.get(account.id) ?? 0,
+      account.sent_today ?? 0,
+    );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
       continue;
