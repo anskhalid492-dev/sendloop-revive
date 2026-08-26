@@ -71,6 +71,10 @@ const RECIPIENT_STATUS_OPTIONS = [
   ["stopped", "Stopped"],
 ] as const;
 
+const RECIPIENT_STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  RECIPIENT_STATUS_OPTIONS.map(([value, label]) => [value, label]),
+);
+
 export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const { campaignId, lists, accounts } = builder;
   const addFn = useServerFn(addLeadsToCampaign);
