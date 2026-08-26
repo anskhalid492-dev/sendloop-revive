@@ -198,4 +198,12 @@ export type WebhookRequestContext = {
   url?: string | null;
   /** Query params, used by providers that authenticate with a shared token. */
   query?: Record<string, string>;
+  /** Parsed body, when the caller already parsed it (never used for signatures). */
+  payload?: unknown;
+  /**
+   * The original Request. Signature verification must use this together with
+   * `rawBody` so provider secret lookup keyed on the endpoint URL keeps working.
+   */
+  request?: Request;
 };
+
