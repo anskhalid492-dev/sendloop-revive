@@ -510,21 +510,17 @@ export async function checkMxRecords() {
     };
   }
 
-  const list = await resendFetch<{ data?: ResendDomain[] }>("/domains");
-  const match = (list?.data ?? []).find((d) => domain.endsWith(d.name.toLowerCase()));
-  const full = match ? await resendFetch<ResendDomain>(`/domains/${match.id}`) : null;
-  const rootDomain = match?.name.toLowerCase() ?? domain;
-  const mxRecord = (full?.records ?? []).find(
-    (r) => r.type === "MX" && (r.record ?? "").toLowerCase() === "receiving",
-  );
-
-  const host = mxRecord?.name ? `${mxRecord.name}.${rootDomain}` : rootDomain;
-  const expected = mxRecord?.value
-    ? {
-        host: mxRecord.value.toLowerCase().replace(/\.$/, ""),
-        priority: mxRecord.priority ?? 10,
-        name: host,
-      }
+  // Provider-agnostic: the required inbound record and the domain root both
+  // come from the provider adapter. Root-domain receiving is the default; a
+  // provider that needs a subdomain expresses that in its own record host.
+  const providerId = await resolvePlatformProviderId();
+  const report = await evaluateDomainReadiness({ provider: providerId, domain });
+  const rootDomain = report.domain;
+  const inboundRecord = report.records.find((r) => r.type === "MX") ?? null;
+  const host = inboundRecord?.fqdn ?? rootDomain;
+  const requiredMx = report.mx.required[0] ?? null;
+  const expected = requiredMx
+    ? { host: requiredMx.host, priority: requiredMx.priority ?? 10, name: host }
     : null;
 
   let found: MxRecord[] = [];
