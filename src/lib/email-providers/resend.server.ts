@@ -160,6 +160,37 @@ export const resendEmailProvider: EmailProvider = {
     };
   },
 
+  async listDomains(creds) {
+    const { listResendDomains } = await import("./resend-api.server");
+    const domains = await listResendDomains(creds);
+    return domains.map((d) => ({
+      id: String(d.id ?? ""),
+      name: String(d.name ?? ""),
+      status: String(d.status ?? ""),
+      receiving: String(d.capabilities?.receiving ?? "unknown"),
+    }));
+  },
+
+  async listWebhooks(creds) {
+    const hooks = await listResendWebhooks(creds);
+    return hooks.map((h) => ({
+      id: String(h.id ?? ""),
+      endpoint: String(h.endpoint ?? ""),
+      status: String(h.status ?? ""),
+      events: h.events ?? [],
+    }));
+  },
+
+  async registerWebhook(creds, endpoint, events) {
+    const { createResendWebhook } = await import("./resend-api.server");
+    return createResendWebhook(endpoint, events, creds);
+  },
+
+  async deleteWebhook(creds, id) {
+    const { deleteResendWebhook } = await import("./resend-api.server");
+    return deleteResendWebhook(id, creds);
+  },
+
   identifyWebhookRequest(request) {
     const headers = Object.fromEntries(
       Object.entries(request.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]),

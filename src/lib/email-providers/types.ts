@@ -177,6 +177,21 @@ export type UnifiedInboundStatus = {
   detail: string;
 };
 
+export type UnifiedDomainSummary = {
+  id: string;
+  name: string;
+  status: string;
+  /** Provider receiving state, normalized to a plain string. */
+  receiving: string;
+};
+
+export type UnifiedWebhookEntry = {
+  id: string;
+  endpoint: string;
+  status: string;
+  events: string[];
+};
+
 export type UnifiedWebhookConfig = {
   configured: boolean;
   url?: string | null;

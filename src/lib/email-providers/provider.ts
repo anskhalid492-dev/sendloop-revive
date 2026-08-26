@@ -15,6 +15,8 @@ import type {
   NormalizedEmailEvent,
   ProviderDnsRecord,
   UnifiedDomainStatus,
+  UnifiedDomainSummary,
+  UnifiedWebhookEntry,
   UnifiedInboundStatus,
   UnifiedOutboundMessage,
   UnifiedSendResult,
@@ -75,6 +77,18 @@ export type EmailProvider = {
     secret: string | null,
   ): Promise<WebhookVerification> | WebhookVerification;
   identifyWebhookRequest?(request: WebhookRequestContext): WebhookIdentification;
+  /* admin inventory (internal only — never customer-facing) */
+  listDomains?(creds: EmailProviderCredentials): Promise<UnifiedDomainSummary[]>;
+  listWebhooks?(creds: EmailProviderCredentials): Promise<UnifiedWebhookEntry[]>;
+  registerWebhook?(
+    creds: EmailProviderCredentials,
+    endpoint: string,
+    events: string[],
+  ): Promise<{ ok: boolean; id: string | null; detail: string }>;
+  deleteWebhook?(
+    creds: EmailProviderCredentials,
+    id: string,
+  ): Promise<{ ok: boolean; detail: string }>;
 
   /* event normalization */
   parseInboundEvent?(payload: unknown): InboundEmailEvent | null;
