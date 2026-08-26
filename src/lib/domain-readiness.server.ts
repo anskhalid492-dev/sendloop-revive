@@ -23,6 +23,7 @@ import {
   type InboundSetupMode,
   type MxComparison,
 } from "@/lib/email-providers/inbound";
+import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
 import { TransientDnsError, lookupPublicMx } from "@/lib/dns.server";
 import type {
   EmailProviderCredentials,
@@ -121,10 +122,8 @@ export async function evaluateDomainReadiness(options: {
   // provider issues FOR THE ROOT DOMAIN count. Bounce/feedback MX records that
   // a provider puts on its own sending subdomain are published separately and
   // must not be mistaken for the root receiving requirement.
-  const rootMxRecords = [...dnsRecords, ...inbound.records].filter(
-    (record) =>
-      record.type === "MX" &&
-      ((record.fqdn ?? "").toLowerCase() === domain || record.host === "@" || record.host === ""),
+  const rootMxRecords = [...dnsRecords, ...inbound.records].filter((record) =>
+    isRootInboundMxRecord(record, domain),
   );
   const required = dedupeMx(requiredMxFromRecords(rootMxRecords));
 

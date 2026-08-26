@@ -24,6 +24,7 @@ import { resendEventType, resendSendStatus, sendResendEmail } from "./resend-sen
 import { normalizeEmailEvent } from "./normalize";
 import { firstProviderMessageId } from "@/lib/provider-message-id";
 import { resendInboundEvent } from "./resend-inbound";
+import { buildRootInboundMxRecord } from "./mx-host";
 import type { EmailProvider } from "./provider";
 import { capabilities, type ProviderDnsRecord, type UnifiedInboundStatus } from "./types";
 
