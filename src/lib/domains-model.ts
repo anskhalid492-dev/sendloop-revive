@@ -69,7 +69,8 @@ export const RECORD_KIND_LABEL: Record<DnsRecordView["kind"], string> = {
   spf: "SPF",
   dkim: "DKIM",
   dmarc: "DMARC",
-  mx: "MX",
+  mx: "Inbound receiving MX",
+  feedback: "Sending / feedback MX",
   tracking: "Tracking domain",
   verification: "Domain verification",
 };
