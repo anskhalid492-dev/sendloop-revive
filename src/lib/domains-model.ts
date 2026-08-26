@@ -14,7 +14,7 @@ export type DnsStatus = "pending" | "verified" | "failed";
 
 export type DnsRecordView = {
   id?: string;
-  kind: "spf" | "dkim" | "dmarc" | "mx" | "tracking" | "verification";
+  kind: "spf" | "dkim" | "dmarc" | "mx" | "feedback" | "tracking" | "verification";
   type: "TXT" | "CNAME" | "MX";
   host: string;
   fqdn: string;
