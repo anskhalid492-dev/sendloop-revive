@@ -122,13 +122,14 @@ export const resendEmailProvider: EmailProvider = {
   async getDomainStatus(creds, domain) {
     const { getDomainAdapter } = await import("@/lib/domain-providers/registry.server");
     const adapter = getDomainAdapter(ID);
-    const state = await adapter.getDomainStatus(creds, domain);
-    return { ...state, readyToSend: await adapter.isReadyToSend(creds, domain) };
+    const resolved = withResolvedKey(creds);
+    const state = await adapter.getDomainStatus(resolved, domain);
+    return { ...state, readyToSend: await adapter.isReadyToSend(resolved, domain) };
   },
 
   async getDnsRequirements(creds, domain) {
     const { getDomainAdapter } = await import("@/lib/domain-providers/registry.server");
-    return getDomainAdapter(ID).getDnsRecords(creds, domain);
+    return getDomainAdapter(ID).getDnsRecords(withResolvedKey(creds), domain);
   },
 
   async getRfcMessageId(creds, providerMessageId) {
