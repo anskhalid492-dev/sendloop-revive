@@ -181,6 +181,8 @@ export type UnifiedWebhookConfig = {
 export type WebhookVerification = {
   valid: boolean;
   detail: string;
+  /** Provider-native verdict, preserved for admin status reporting. */
+  verification?: { status: string; method: string; reason: string };
 };
 
 /** Result of asking each provider "is this HTTP request yours?". */
