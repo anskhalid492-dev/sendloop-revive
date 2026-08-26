@@ -24,23 +24,25 @@ import { resendEventType, resendSendStatus, sendResendEmail } from "./resend-sen
 import { normalizeEmailEvent } from "./normalize";
 import { firstProviderMessageId } from "@/lib/provider-message-id";
 import { resendInboundEvent } from "./resend-inbound";
+import { buildRootInboundMxRecord } from "./mx-host";
 import type { EmailProvider } from "./provider";
 import { capabilities, type ProviderDnsRecord, type UnifiedInboundStatus } from "./types";
 
+/**
+ * The provider only supplies the MX target, priority and TTL. MunchReach owns
+ * the DNS host and always publishes root-domain receiving at `@`, so a
+ * provider-side label such as `send.<domain>` (which already carries a CNAME for
+ * sending) can never end up in the customer's MX instructions.
+ */
 function inboundRecord(domain: string, raw: ResendDnsRecord, index: number): ProviderDnsRecord {
-  const host = raw.name && raw.name !== "@" ? raw.name : "@";
-  return {
+  return buildRootInboundMxRecord({
     id: `resend-inbound-mx-${index}`,
-    kind: "mx",
-    type: "MX",
-    host,
-    fqdn: host === "@" ? domain : `${host}.${domain}`,
-    value: (raw.value ?? "").replace(/\.$/, ""),
-    ttl: typeof raw.ttl === "number" ? raw.ttl : 3600,
-    priority: raw.priority,
-    required: true,
+    domain,
+    target: raw.value ?? "",
+    priority: raw.priority ?? null,
+    ttl: typeof raw.ttl === "number" ? raw.ttl : null,
     purpose: "Routes inbound replies to MunchReach.",
-  };
+  });
 }
 
 async function inboundStatus(

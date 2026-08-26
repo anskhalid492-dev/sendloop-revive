@@ -75,7 +75,9 @@ export async function buildCustomerReadiness(
             : "pending";
     return {
       type: record.type,
-      host: record.fqdn || record.host,
+      // Root-domain receiving: the MX host is always the root (`@`), never a
+      // sending/tracking subdomain that may already carry a CNAME.
+      host: record.type === "MX" ? "@" : record.fqdn || record.host,
       value: record.value,
       priority: typeof record.priority === "number" ? record.priority : null,
       ttl: record.ttl,
