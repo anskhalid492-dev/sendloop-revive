@@ -288,12 +288,33 @@ export const sesEmailProvider: EmailProvider = {
       : { status: 502, body: { error: "Subscription confirmation was refused." } };
   },
 
+  // Inbound receipts and delivery-tracking events arrive on the same topic
+  // shape; both are flattened into the shared payload the processor reads.
   normalizeWebhookPayload(payload) {
-    return sesFlattenInboundPayload(payload);
+    return sesFlattenInboundPayload(payload) ?? sesFlattenEventPayload(payload);
   },
 
   parseInboundEvent(payload) {
     return sesInboundEvent(payload);
+  },
+
+  parseDeliveryEvent(payload) {
+    return sesDeliveryEvent(payload);
+  },
+
+  /* ---------------- event publishing (configuration set -> SNS) --------- */
+
+  async listWebhooks(creds) {
+    const { listSesWebhookEntries } = await import("./ses-events.server");
+    return listSesWebhookEntries(creds);
+  },
+
+  async registerWebhook(creds) {
+    const { ensureSesEventPublishing, SES_EVENT_DESTINATION_NAME } = await import(
+      "./ses-events.server"
+    );
+    const result = await ensureSesEventPublishing(creds);
+    return { ok: result.ok, id: result.ok ? SES_EVENT_DESTINATION_NAME : null, detail: result.detail };
   },
 
   /** Phase 9B: outbound sending through the SESv2 SendEmail API. */
