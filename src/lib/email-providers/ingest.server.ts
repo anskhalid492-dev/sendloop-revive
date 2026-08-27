@@ -107,7 +107,7 @@ export async function ingestProviderWebhook(
     };
   }
 
-  const verified = await provider.verifyWebhookSignature(context, null);
+  const verified = await provider.verifyWebhookSignature(context, webhookSecretFor(provider.id));
   const verification = verified.verification ?? {
     status: verified.valid ? "valid" : "invalid",
     method: "unknown",
