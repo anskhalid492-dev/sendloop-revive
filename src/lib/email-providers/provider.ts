@@ -12,6 +12,7 @@ import type {
   EmailProviderCapability,
   EmailProviderCredentials,
   InboundEmailEvent,
+  InboundMessageContent,
   NormalizedEmailEvent,
   ProviderDnsRecord,
   UnifiedDomainStatus,
