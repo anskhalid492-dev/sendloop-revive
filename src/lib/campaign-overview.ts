@@ -149,6 +149,7 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       accountCount: (c.sending_account_ids ?? []).length,
       leads: recipients.length,
       sent,
+      bounced,
       failed,
       replies: replyKeys.size,
       replyRate: sent > 0 ? (replyKeys.size / sent) * 100 : 0,
