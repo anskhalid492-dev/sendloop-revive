@@ -12,6 +12,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 // Provider facts come exclusively from the unified provider abstraction.
 import { getEmailProvider } from "@/lib/email-providers/registry.server";
 import { evaluateDomainReadiness, enableDomainInbound } from "@/lib/domain-readiness.server";
+import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
 
 export type ChecklistItem = {
   id: string;
