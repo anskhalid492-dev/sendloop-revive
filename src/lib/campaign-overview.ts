@@ -29,6 +29,9 @@ export type CampaignOverviewRow = {
   accountCount: number;
   leads: number;
   sent: number;
+  /** Bounces (bounced_at set) — never included in `failed`. */
+  bounced: number;
+  /** Internal send failures only — never includes bounces. */
   failed: number;
   replies: number;
   replyRate: number;
@@ -57,7 +60,13 @@ type CampaignInput = {
 type Inputs = {
   campaigns: CampaignInput[];
   recipients: Array<{ campaign_id: string; lead_id: string | null }>;
-  messages: Array<{ campaign_id: string; status: string; to_email: string | null; sent_at?: string | null }>;
+  messages: Array<{
+    campaign_id: string;
+    status: string;
+    to_email: string | null;
+    sent_at?: string | null;
+    bounced_at?: string | null;
+  }>;
   replies: Array<{ campaign_id: string | null; lead_id: string | null; from_email: string; sentiment: string }>;
   meetings: Array<{ campaign_id: string | null; lead_id: string | null; prospect_email: string; status: string }>;
   accounts: CampaignOverviewAccount[];
