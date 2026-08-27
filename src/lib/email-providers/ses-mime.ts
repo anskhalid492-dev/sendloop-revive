@@ -120,7 +120,8 @@ function walk(section: string, out: Bodies, depth = 0): void {
     if (!boundary) return;
     const parts = body.split(new RegExp(`\\n?--${boundary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(--)?\\n?`));
     for (const part of parts) {
-      if (!part.trim()) continue;
+      // `split` with a capture group yields undefined entries for the group.
+      if (!part || !part.trim()) continue;
       walk(part, out, depth + 1);
     }
     return;
