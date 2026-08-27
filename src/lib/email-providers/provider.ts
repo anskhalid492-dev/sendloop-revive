@@ -95,6 +95,12 @@ export type EmailProvider = {
   parseInboundEvent?(payload: unknown): InboundEmailEvent | null;
   parseDeliveryEvent?(payload: unknown): NormalizedEmailEvent | null;
   parseTrackingEvent?(payload: unknown): NormalizedEmailEvent | null;
+
+  /* inbound content retrieval */
+  getInboundMessageContent?(
+    creds: EmailProviderCredentials,
+    providerMessageId: string,
+  ): Promise<InboundMessageContent | null>;
 };
 
 export function supports(
