@@ -282,16 +282,28 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <MiniStat
             label="Bounced"
             value={bounced}
-            hint="Never counted as delivered"
+            hint="Never counted as delivered or failed"
             tone={bounced > 0 ? "text-destructive" : undefined}
           />
-          <MiniStat label="Delayed" value={delayed} hint="Retrying" />
           <MiniStat
             label="Failed"
             value={failed}
+            hint="Internal send failures"
             tone={failed > 0 ? "text-destructive" : undefined}
           />
+          <MiniStat label="Scheduled" value={delivery?.scheduled ?? 0} />
+          <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
+          <MiniStat label="Delayed" value={delayed} hint="Retrying" />
         </div>
+        {campaign.status === "paused" && campaign.limit_reached_at ? (
+          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
+            This campaign paused automatically because it reached its total send limit of{" "}
+            <span className="font-semibold tabular-nums">
+              {Number(campaign.email_send_limit ?? 0).toLocaleString()}
+            </span>{" "}
+            emails — not because of bounces or failures.
+          </p>
+        ) : null}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">

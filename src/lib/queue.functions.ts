@@ -58,6 +58,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       .object({
         campaignId: z.string().uuid(),
         status: z.enum(MESSAGE_STATUSES).nullable().optional(),
+        /** Filter to bounced messages (bounced_at set). Distinct from failed. */
+        bounced: z.boolean().optional(),
         search: z.string().trim().max(120).optional(),
         limit: z.number().int().min(1).max(500).default(200),
       })
@@ -71,26 +73,43 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       .order("scheduled_at", { ascending: true, nullsFirst: false })
       .limit(data.limit);
     if (data.status) query = query.eq("status", data.status);
+    // Bounces are their own outcome: a bounced message never counts as failed,
+    // and failed never includes bounced rows.
+    if (data.status === "failed") query = query.is("bounced_at", null);
+    if (data.bounced) query = query.not("bounced_at", "is", null);
     if (data.search) query = query.ilike("to_email", `%${data.search}%`);
 
     // Counts are exact server-side COUNTs. A plain select() is capped at 1,000
     // rows by PostgREST, which silently under-reported large queues (a 1,259
     // recipient campaign showed a total of exactly 1,000).
-    const countFor = async (filter?: { status?: MessageStatus; accountId?: string }) => {
+    const countFor = async (filter?: {
+      status?: MessageStatus;
+      accountId?: string;
+      bounced?: "only" | "exclude";
+    }) => {
       let q = context.supabase
         .from("campaign_messages")
         .select("id", { count: "exact", head: true })
         .eq("campaign_id", data.campaignId);
       if (filter?.status) q = q.eq("status", filter.status);
       if (filter?.accountId) q = q.eq("sending_account_id", filter.accountId);
+      if (filter?.bounced === "only") q = q.not("bounced_at", "is", null);
+      if (filter?.bounced === "exclude") q = q.is("bounced_at", null);
       const { count, error } = await q;
       if (error) throw new Error(error.message);
       return Number(count ?? 0);
     };
 
-    const [messagesRes, statusCounts, total] = await Promise.all([
+    const [messagesRes, statusCounts, bouncedCount, total] = await Promise.all([
       query,
-      Promise.all(MESSAGE_STATUSES.map((status) => countFor({ status }))),
+      Promise.all(
+        MESSAGE_STATUSES.map((status) =>
+          // Bounced messages keep status "failed" historically; count them only
+          // in the bounced bucket so failed never mixes the two outcomes.
+          status === "failed" ? countFor({ status, bounced: "exclude" }) : countFor({ status }),
+        ),
+      ),
+      countFor({ bounced: "only" }),
       countFor(),
     ]);
     if (messagesRes.error) throw new Error(messagesRes.error.message);
@@ -108,9 +127,12 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         : null,
     })) as never;
 
-    const counts = Object.fromEntries(
-      MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
-    ) as Record<MessageStatus, number>;
+    const counts = {
+      ...(Object.fromEntries(
+        MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
+      ) as Record<MessageStatus, number>),
+      bounced: bouncedCount,
+    };
 
     // Send log: per-mailbox rotation breakdown, also from exact counts. The
     // candidate mailboxes come from the campaign's own rotation list.
@@ -135,10 +157,12 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     const byMailbox = (
       await Promise.all(
         accountIds.map(async (id) => {
-          const [mailboxTotal, sent, failed] = await Promise.all([
+          const [mailboxTotal, sent, failed, bounced] = await Promise.all([
             countFor({ accountId: id }),
             countFor({ accountId: id, status: "sent" }),
-            countFor({ accountId: id, status: "failed" }),
+            // Failed excludes bounces; bounces are reported separately.
+            countFor({ accountId: id, status: "failed", bounced: "exclude" }),
+            countFor({ accountId: id, bounced: "only" }),
           ]);
           const account = accounts.find((a) => a.id === id) ?? null;
           return {
@@ -150,6 +174,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
             total: mailboxTotal,
             sent,
             failed,
+            bounced,
           };
         }),
       )

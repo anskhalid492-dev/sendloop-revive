@@ -29,6 +29,9 @@ export type CampaignOverviewRow = {
   accountCount: number;
   leads: number;
   sent: number;
+  /** Bounces (bounced_at set) — never included in `failed`. */
+  bounced: number;
+  /** Internal send failures only — never includes bounces. */
   failed: number;
   replies: number;
   replyRate: number;
@@ -57,7 +60,13 @@ type CampaignInput = {
 type Inputs = {
   campaigns: CampaignInput[];
   recipients: Array<{ campaign_id: string; lead_id: string | null }>;
-  messages: Array<{ campaign_id: string; status: string; to_email: string | null; sent_at?: string | null }>;
+  messages: Array<{
+    campaign_id: string;
+    status: string;
+    to_email: string | null;
+    sent_at?: string | null;
+    bounced_at?: string | null;
+  }>;
   replies: Array<{ campaign_id: string | null; lead_id: string | null; from_email: string; sentiment: string }>;
   meetings: Array<{ campaign_id: string | null; lead_id: string | null; prospect_email: string; status: string }>;
   accounts: CampaignOverviewAccount[];
@@ -103,7 +112,10 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
     const sentToday = messages.filter(
       (m) => m.status === "sent" && m.sent_at && new Date(m.sent_at).getTime() >= dayStart.getTime(),
     ).length;
-    const failed = messages.filter((m) => m.status === "failed").length;
+    // Bounced rows keep status "failed" historically but are identified by
+    // bounced_at. They are reported separately and never counted as failed.
+    const bounced = messages.filter((m) => m.bounced_at != null).length;
+    const failed = messages.filter((m) => m.status === "failed" && m.bounced_at == null).length;
 
     const replyKeys = new Set(
       input.replies
@@ -137,6 +149,7 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       accountCount: (c.sending_account_ids ?? []).length,
       leads: recipients.length,
       sent,
+      bounced,
       failed,
       replies: replyKeys.size,
       replyRate: sent > 0 ? (replyKeys.size / sent) * 100 : 0,
