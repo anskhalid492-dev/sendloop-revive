@@ -108,6 +108,7 @@ export const resendEmailProvider: EmailProvider = {
   capabilities: capabilities({
     sending: true,
     inbound: true,
+    inbound_content: true,
     delivery_tracking: true,
     open_tracking: true,
     click_tracking: true,
