@@ -59,7 +59,16 @@ async function run(request: Request) {
 
   try {
     const summary = await processTransactionalQueue(supabaseAdmin, limit ? { limit } : {});
-    return json(summary, 200);
+    // Birthday gifts ride on this existing cron cycle — no second scheduler.
+    // The runner is idempotent per user/year, so extra invocations are safe.
+    let birthday: unknown = null;
+    try {
+      const { runBirthdayGiftCycle } = await import("@/lib/birthday-gift.server");
+      birthday = await runBirthdayGiftCycle();
+    } catch (birthdayError) {
+      console.error("birthday gift cycle failed", birthdayError);
+    }
+    return json({ ...summary, birthday }, 200);
   } catch (error) {
     console.error("transactional runner failed", error);
     return json({ ok: false, error: error instanceof Error ? error.message : "Run failed" }, 500);
