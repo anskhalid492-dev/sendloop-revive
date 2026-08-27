@@ -203,6 +203,8 @@ export const sesEmailProvider: EmailProvider = {
     sending: true,
     inbound: true,
     webhooks: true,
+    delivery_tracking: true,
+    bounce_tracking: true,
     domain_api: true,
     dns_api: true,
   }),
