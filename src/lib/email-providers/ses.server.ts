@@ -116,7 +116,7 @@ export function sesDnsRequirements(
  * ------------------------------------------------------------------ */
 
 export function mapSesIdentityState(identity: SesIdentity | null): ProviderDomainState {
-  if (!identity) return { state: "unknown", detail: "Identity not found." };
+  if (!identity) return { state: "unknown", detail: "This domain is not set up for sending yet." };
   const dkim = (identity.DkimAttributes?.Status ?? "").toUpperCase();
   const verification = (identity.VerificationStatus ?? "").toUpperCase();
   if (identity.VerifiedForSendingStatus && dkim === "SUCCESS") {
@@ -331,7 +331,7 @@ export const sesEmailProvider: EmailProvider = {
     }
     const res = await getSesIdentity(domain, creds);
     if (!res.ok) {
-      if (res.status === 404) return unknownStatus("Identity not found.");
+      if (res.status === 404) return unknownStatus("This domain is not set up for sending yet.");
       return failedStatus(res.detail);
     }
     const state = mapSesIdentityState(res.json);

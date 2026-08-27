@@ -203,10 +203,18 @@ export const getDomainDnsRecords = createServerFn({ method: "GET" })
     const { ensureProviderDomain } = await import("@/lib/domain-verification.server");
 
     let records = (row.provider_records ?? []) as Array<Record<string, unknown>>;
-    if (records.length === 0 && !row.disabled_at) {
+    // The locally recommended DMARC record is always appended, even when the
+    // provider never issued anything. Counting it as "provisioned" would leave
+    // a domain whose identity creation failed stuck forever, because the retry
+    // below would never run again. Only provider-issued records count.
+    const providerIssued = records.filter((record) => record["kind"] !== "dmarc");
+    const needsProvisioning = providerIssued.length === 0 || !row.provider_domain_id;
+    if (needsProvisioning && !row.disabled_at) {
       const ensured = await ensureProviderDomain(supabaseAdmin, row);
-      records = (ensured?.records ?? []) as unknown as Array<Record<string, unknown>>;
+      const fresh = (ensured?.records ?? []) as unknown as Array<Record<string, unknown>>;
+      if (fresh.length > 0) records = fresh;
     }
+
 
     const checks = (row.record_checks ?? []) as Array<{
       id: string;
