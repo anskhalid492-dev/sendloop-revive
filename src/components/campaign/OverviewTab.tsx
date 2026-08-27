@@ -295,7 +295,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
           <MiniStat label="Delayed" value={delayed} hint="Retrying" />
         </div>
-        {campaign.status === "paused" && data.campaign.limit_reached_at ? (
+        {campaign.status === "paused" && campaign.limit_reached_at ? (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
             This campaign paused automatically because it reached its total send limit of{" "}
             <span className="font-semibold tabular-nums">
