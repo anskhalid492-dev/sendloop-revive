@@ -8,6 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { mailboxSentToday, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
@@ -31,6 +32,7 @@ type AccountRow = {
   reply_to: string | null;
   sent_today: number;
   daily_limit: number;
+  last_sent_at?: string | null;
   paused: boolean;
   customer_enabled: boolean;
   status: string;
@@ -623,7 +625,7 @@ export async function dispatchDueMessages(
   const { data: accounts, error: aErr } = await supabase
     .from("sending_accounts")
     .select(
-      "id, provider, provider_id, from_name, from_email, reply_to, sent_today, daily_limit, paused, customer_enabled, status",
+      "id, provider, provider_id, from_name, from_email, reply_to, sent_today, daily_limit, last_sent_at, paused, customer_enabled, status",
     )
     .in("id", accountIds.length ? accountIds : ["00000000-0000-0000-0000-000000000000"]);
   if (aErr) throw new Error(aErr.message);
@@ -703,11 +705,13 @@ export async function dispatchDueMessages(
 
     const usedNow = sentPerAccount.get(account.id) ?? 0;
     // The mailbox daily limit covers every email leaving that mailbox. The
-    // campaign_messages count misses manual inbox sends, and `sent_today` can
-    // lag a same-run reset, so the higher of the two is authoritative.
-    const accountSentToday = Math.max(
+    // campaign_messages count misses manual inbox sends, so the higher of the
+    // two is authoritative — but the stored counter is date-aware and clamped,
+    // so yesterday's total can never block today's sending.
+    const accountSentToday = mailboxSentToday(
+      account,
+      dayStart,
       sentTodayByAccount.get(account.id) ?? 0,
-      account.sent_today ?? 0,
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
@@ -900,9 +904,13 @@ export async function dispatchDueMessages(
   // Keep per-mailbox daily counters honest so rotation and caps stay accurate.
   for (const [accountId, count] of sentPerAccount) {
     const account = accountById.get(accountId);
+    if (!account) continue;
     await supabase
       .from("sending_accounts")
-      .update({ sent_today: (account?.sent_today ?? 0) + count })
+      .update({
+        sent_today: nextStoredSentToday(account, dayStart, count),
+        last_sent_at: new Date().toISOString(),
+      })
       .eq("id", accountId);
   }
 
