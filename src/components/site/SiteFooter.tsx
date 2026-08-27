@@ -54,6 +54,7 @@ const fallbackColumns = [
       { label: "Documentation", href: "/docs" },
       { label: "API Documentation", href: "/api-docs" },
       { label: "Deliverability Guide", href: "/deliverability-guide" },
+      { label: "Supported Domain & DNS Providers", href: "/supported-domain-providers" },
       { label: "Cold Email Templates", href: "/cold-email-templates" },
       { label: "Help Center", href: "/help-center" },
       { label: "Integrations", href: "/integrations" },
