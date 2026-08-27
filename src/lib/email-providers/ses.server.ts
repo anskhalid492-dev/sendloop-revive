@@ -196,9 +196,16 @@ export const sesEmailProvider: EmailProvider = {
   // rule-set configuration and is declared unsupported until implemented.
   inboundSetupMode: "unsupported",
   capabilities: capabilities({
+    sending: true,
     domain_api: true,
     dns_api: true,
   }),
+
+  /** Phase 9B: outbound sending through the SESv2 SendEmail API. */
+  async send(creds, message) {
+    const { sendSesEmail } = await import("./ses-send.server");
+    return sendSesEmail(creds, message);
+  },
 
   /** Creates the identity when missing, then asks SES to re-check DNS. */
   async verifyDomain(creds, domain): Promise<UnifiedDomainStatus> {
