@@ -127,9 +127,12 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         : null,
     })) as never;
 
-    const counts = Object.fromEntries(
-      MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
-    ) as Record<MessageStatus, number>;
+    const counts = {
+      ...(Object.fromEntries(
+        MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
+      ) as Record<MessageStatus, number>),
+      bounced: bouncedCount,
+    };
 
     // Send log: per-mailbox rotation breakdown, also from exact counts. The
     // candidate mailboxes come from the campaign's own rotation list.
@@ -154,10 +157,12 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     const byMailbox = (
       await Promise.all(
         accountIds.map(async (id) => {
-          const [mailboxTotal, sent, failed] = await Promise.all([
+          const [mailboxTotal, sent, failed, bounced] = await Promise.all([
             countFor({ accountId: id }),
             countFor({ accountId: id, status: "sent" }),
-            countFor({ accountId: id, status: "failed" }),
+            // Failed excludes bounces; bounces are reported separately.
+            countFor({ accountId: id, status: "failed", bounced: "exclude" }),
+            countFor({ accountId: id, bounced: "only" }),
           ]);
           const account = accounts.find((a) => a.id === id) ?? null;
           return {
@@ -169,6 +174,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
             total: mailboxTotal,
             sent,
             failed,
+            bounced,
           };
         }),
       )
