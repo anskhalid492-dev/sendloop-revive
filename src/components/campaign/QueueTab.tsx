@@ -236,6 +236,12 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                       · <span className="tabular-nums text-destructive">{m.failed}</span> failed
                     </>
                   ) : null}
+                  {m.bounced ? (
+                    <>
+                      {" "}
+                      · <span className="tabular-nums text-destructive">{m.bounced}</span> bounced
+                    </>
+                  ) : null}
                 </p>
               </div>
             ))}
