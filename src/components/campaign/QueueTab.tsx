@@ -93,7 +93,13 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
     queryKey: ["campaign-queue", builder.campaignId, status, search],
     queryFn: () =>
       fetchQueue({
-        data: { campaignId: builder.campaignId, status, search: search || undefined, limit: 200 },
+        data: {
+          campaignId: builder.campaignId,
+          status: status === "bounced" ? null : status,
+          bounced: status === "bounced" ? true : undefined,
+          search: search || undefined,
+          limit: 200,
+        },
       }),
   });
 
