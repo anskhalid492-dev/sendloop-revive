@@ -8,6 +8,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatMoney } from "@/lib/referral-model";
+import { systemSender, systemFromHeader } from "@/lib/system-email-senders";
 import {
   mergeReferralTemplates,
   renderReferralTemplate,
