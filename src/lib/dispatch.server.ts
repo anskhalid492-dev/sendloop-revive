@@ -798,7 +798,9 @@ export async function dispatchDueMessages(
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
-    const send = await sendManagedEmail(
+    let send: Awaited<ReturnType<typeof sendManagedEmail>>;
+    try {
+      send = await sendManagedEmail(
       supabaseAdmin,
       {
         id: account.id,
@@ -818,8 +820,15 @@ export async function dispatchDueMessages(
         headers: { "Message-ID": messageIdHeader(outboundMessageId) },
       },
       { stage: "campaign" },
-    );
-
+      );
+    } catch (error) {
+      // A thrown provider/transport error used to leave the row stuck in
+      // `processing` forever. Treat it exactly like a failed send.
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+      await fail(error instanceof Error ? error.message : "Sending failed.");
+      continue;
+    }
 
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
@@ -833,6 +842,26 @@ export async function dispatchDueMessages(
     sentTodaySoFar += 1;
     sentPerAccount.set(account.id, usedNow + 1);
     const sentAt = new Date().toISOString();
+
+    // The provider accepted the email: record the terminal `sent` state first,
+    // with the provider/RFC ids, so no later best-effort step (inbox mirroring,
+    // classification) can leave a delivered message stuck in `processing` and
+    // missing from campaign statistics.
+    const campaignMessagePatch = {
+      status: "sent",
+      sent_at: sentAt,
+      provider: account.provider,
+      provider_message_id: send.messageId ?? null,
+      message_id: send.rfcMessageId ?? outboundMessageId,
+      message_type: "campaign",
+      last_error: null,
+      attempts: (message.attempts ?? 0) + 1,
+    };
+    await supabase
+      .from("campaign_messages")
+      .update(campaignMessagePatch)
+      .eq("id", message.id);
+
     try {
       await recordOutboundCampaignMessage({
         workspaceId: message.workspace_id,
@@ -853,21 +882,6 @@ export async function dispatchDueMessages(
     } catch {
       /* inbox mirroring must never fail an already delivered send */
     }
-    const campaignMessagePatch = {
-      status: "sent",
-      sent_at: sentAt,
-      provider: account.provider,
-      provider_message_id: send.messageId ?? null,
-      message_id: send.rfcMessageId ?? outboundMessageId,
-      message_type: "campaign",
-      last_error: null,
-      attempts: (message.attempts ?? 0) + 1,
-    };
-    await supabase
-      .from("campaign_messages")
-      .update(campaignMessagePatch)
-      .eq("id", message.id);
-
     // Explicit classification: provider events for this id can only ever move
     // campaign statistics.
     try {
