@@ -29,6 +29,7 @@ import {
 } from "./ses-api.server";
 import type { EmailProvider } from "./provider";
 import { sesFlattenInboundPayload, sesInboundEvent } from "./ses-inbound";
+import { sesDeliveryEvent, sesFlattenEventPayload } from "./ses-events";
 import {
   capabilities,
   type EmailProviderCredentials,
