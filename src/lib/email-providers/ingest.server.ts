@@ -27,6 +27,8 @@ export type WebhookIngestResult =
       verification: { status: string; method: string; reason: string };
       inbound: InboundEmailEvent | null;
       delivery: NormalizedEmailEvent | null;
+      /** Set when the provider answered a handshake (e.g. topic confirmation). */
+      handshake?: { status: number; body: unknown } | null;
     }
   | {
       ok: false;
