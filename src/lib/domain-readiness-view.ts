@@ -49,7 +49,12 @@ export type CustomerDomainReadiness = {
     requiredMx: Array<{ host: string; priority: number | null }>;
     records: ReadinessDnsRow[];
   };
-  webhook: { connected: boolean; detail: string };
+  webhook: {
+    connected: boolean;
+    /** Provider-reported webhook state; falls back to `connected` when absent. */
+    state?: "ok" | "failed" | "pending" | "unsupported";
+    detail: string;
+  };
   checkedAt: string;
 };
 
