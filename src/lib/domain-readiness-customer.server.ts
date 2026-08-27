@@ -90,9 +90,13 @@ export async function buildCustomerReadiness(
     };
   });
 
-  // Customer-safe inbound pipeline health; no endpoints or signing secrets.
-  const { getInboxHealthSummary } = await import("@/lib/ops.server");
-  const inbox = await getInboxHealthSummary().catch(() => ({ receivingReady: false }));
+  // Real webhook status from the selected provider (never the stale
+  // platform-wide health cache). No endpoints or signing secrets are exposed.
+  const { getProviderWebhookReadiness } = await import("@/lib/email-providers/webhook-status.server");
+  const webhook = await getProviderWebhookReadiness(providerId).catch(() => ({
+    state: "pending" as const,
+    detail: "Reply delivery status could not be checked just now.",
+  }));
 
   return {
     domain: report.domain,
@@ -115,10 +119,12 @@ export async function buildCustomerReadiness(
       records,
     },
     webhook: {
-      connected: inbox.receivingReady,
-      detail: inbox.receivingReady
-        ? "Replies are delivered to MunchReach automatically."
-        : "Reply delivery needs attention. We are working on it — no action is required from you.",
+      connected: webhook.state === "ok",
+      state: webhook.state,
+      detail:
+        webhook.state === "ok"
+          ? "Replies are delivered to MunchReach automatically."
+          : scrub(webhook.detail),
     },
     checkedAt: report.checkedAt,
   };
