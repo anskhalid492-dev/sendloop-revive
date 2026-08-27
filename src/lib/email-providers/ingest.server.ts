@@ -77,6 +77,23 @@ export function webhookContext(
 }
 
 /**
+ * Signing secret for a provider's webhook endpoint.
+ *
+ * Adapters that resolve their own secret (Resend, via the active-secret
+ * fallback) simply ignore this value; adapters that compare a shared token
+ * (Bird) need it supplied here, otherwise every delivery is refused.
+ */
+function webhookSecretFor(providerId: string): string | null {
+  const upper = providerId.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  return (
+    process.env[`${upper}_WEBHOOK_SECRET`] ??
+    process.env[`${upper}_SIGNING_SECRET`] ??
+    process.env["INBOUND_EMAIL_SECRET"] ??
+    null
+  );
+}
+
+/**
  * Identifies, verifies and normalizes one delivery. Does not touch the
  * database; the caller keeps the existing logging/alerting behaviour.
  */
