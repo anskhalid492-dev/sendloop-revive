@@ -11,6 +11,7 @@
  * never see provider names.
  */
 import { registerOutboundMessage } from "@/lib/message-classification.server";
+import { SYSTEM_SENDERS, systemSenderFor, systemSender } from "@/lib/system-email-senders";
 import { DEFAULT_TEMPLATES, defaultTemplate } from "@/lib/transactional/catalog";
 import { htmlToText } from "@/lib/transactional/layout";
 import {
@@ -45,9 +46,11 @@ const DEFAULT_SETTINGS: TransactionalSettings = {
   enabled: true,
   paused: false,
   test_mode: false,
-  from_name: "MunchReach",
-  from_email: "support@munchreach.com",
-  reply_to: "support@munchreach.com",
+  // Global fallback only — the centralized sender mapping decides the From
+  // address per event/category before these are consulted.
+  from_name: systemSender("notifications").name,
+  from_email: systemSender("notifications").email,
+  reply_to: systemSender("notifications").replyTo,
   retry_count: 3,
   retry_delay_seconds: 300,
   batch_size: 25,
@@ -344,14 +347,20 @@ export async function renderTemplate(
   // having to restore anything. Customised copies (is_default = false) win.
   const useCatalog = Boolean(fallback) && stored?.is_default !== false;
   const base = useCatalog ? fallback! : null;
+  // Sender resolution order: per-template override → centralized purpose
+  // mapping (event key / category) → legacy global settings.
+  const mapped = systemSenderFor(
+    eventKey,
+    stored?.category ?? base?.category ?? fallback?.category,
+  );
   const source = {
     subject: draft?.subject ?? base?.subject ?? stored?.subject ?? fallback!.subject,
     preheader: draft?.preheader ?? base?.preheader ?? stored?.preheader ?? fallback!.preheader,
     html: draft?.html ?? base?.html ?? stored?.html ?? fallback!.html,
     text: draft?.text_body ?? base?.text ?? stored?.text_body ?? fallback!.text,
-    fromName: draft?.from_name ?? stored?.from_name ?? settings.from_name,
-    fromEmail: draft?.from_email ?? stored?.from_email ?? settings.from_email,
-    replyTo: draft?.reply_to ?? stored?.reply_to ?? settings.reply_to,
+    fromName: draft?.from_name ?? stored?.from_name ?? mapped.name,
+    fromEmail: draft?.from_email ?? stored?.from_email ?? mapped.email,
+    replyTo: draft?.reply_to ?? stored?.reply_to ?? mapped.replyTo,
   };
 
   // The copyright year must always come from the current date. Templates that
@@ -551,6 +560,9 @@ async function deliver(
   const { getAdapter } = await import("@/lib/providers/adapter.server");
 
   const fromEmail = row.from_email || settings.from_email;
+  // The display name follows the centralized sender for this From address,
+  // so e.g. billing mail goes out as "MunchReach Billing <billing@…>".
+  const mappedSender = Object.values(SYSTEM_SENDERS).find((s) => s.email === fromEmail);
   const managed = await resolveManagedProvider(admin, {
     provider: "resend",
     provider_id: null,
@@ -560,9 +572,9 @@ async function deliver(
 
   const adapter = getAdapter(managed.provider);
   const result = await adapter.sendEmail(managed.credentials, {
-    fromName: settings.from_name,
+    fromName: mappedSender?.name ?? settings.from_name,
     fromEmail,
-    replyTo: row.reply_to || settings.reply_to,
+    replyTo: row.reply_to || mappedSender?.replyTo || settings.reply_to,
     to: row.to_email,
     subject: row.subject,
     text: row.text_body || "",

@@ -1,6 +1,7 @@
 /**
  * Authentication emails sent through the MunchReach transactional engine
- * (support@munchreach.com) instead of the auth provider's built-in mailer.
+ * instead of the auth provider's built-in mailer. The From address comes
+ * from the centralized system sender mapping (accounts purpose).
  *
  * The link itself is still minted by the auth service, so sessions, token
  * expiry and single-use semantics are unchanged — only the delivery path and

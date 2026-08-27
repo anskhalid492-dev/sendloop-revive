@@ -69,6 +69,7 @@ const navGroups = [
     label: "Outreach",
     items: [
       { to: "/campaigns", label: "Campaigns", icon: Send },
+      { to: "/analytics", label: "Analytics", icon: BarChart3 },
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/templates", label: "Templates", icon: FileText },
       { to: "/automations/workflows", label: "Automations", icon: Workflow },
@@ -97,10 +98,6 @@ const navGroups = [
       { to: "/crm", label: "Pipeline", icon: Bookmark, hash: "pipeline" },
       { to: "/crm", label: "Tasks", icon: CheckSquare, hash: "tasks" },
     ],
-  },
-  {
-    label: "Analytics",
-    items: [{ to: "/analytics", label: "Analytics", icon: BarChart3 }],
   },
   {
     label: "Workspace",
