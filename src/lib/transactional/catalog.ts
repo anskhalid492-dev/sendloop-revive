@@ -210,6 +210,22 @@ const SPECS: Spec[] = [
   },
   // ── Billing ─────────────────────────────────────────────────────────────
   {
+    eventKey: "account.birthday_gift",
+    name: "Birthday Gift",
+    category: "Billing",
+    subject: "Happy Birthday from MunchReach! 🎁",
+    preheader: "Your birthday gift: 1 month free on MunchReach.",
+    heading: "Happy Birthday, {{user.first_name}}! 🎁",
+    blocks: [
+      p("Everyone at MunchReach wishes you a fantastic birthday. Thank you for building your outreach with us."),
+      note("Our gift to you: 1 Month Free on {{plan.name}} — already added to your account."),
+      p("Your free month runs until {{gift.expires_at}}. Nothing to pay, nothing to cancel."),
+      cta("Claim your free month", "{{billing_url}}"),
+    ],
+    reason: "You are receiving this email because it's your birthday on your MunchReach account.",
+  },
+
+  {
     eventKey: "subscription.created",
     name: "Subscription started",
     category: "Billing",
