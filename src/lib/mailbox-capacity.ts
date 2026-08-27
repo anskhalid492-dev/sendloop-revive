@@ -8,6 +8,8 @@
  * limit system and never mutates any counter.
  */
 
+import { mailboxSentToday, utcStartOfDay } from "@/lib/mailbox-daily-usage";
+
 export type MailboxCapacityRow = {
   id: string;
   label?: string | null;
@@ -19,6 +21,8 @@ export type MailboxCapacityRow = {
   sent_today?: number | null;
   daily_limit?: number | null;
   hourly_limit?: number | null;
+  /** Used to decide whether `sent_today` still belongs to the current day. */
+  last_sent_at?: string | null;
 };
 
 export type MailboxBlockReason = "paused" | "disabled" | "daily" | "hourly" | null;
@@ -53,8 +57,11 @@ export function mailboxLimitMessage(message: string) {
 export function evaluateMailboxCapacity(
   row: MailboxCapacityRow,
   sentThisHour = 0,
+  dayStart: Date = utcStartOfDay(),
 ): MailboxCapacity {
-  const sentToday = Number(row.sent_today ?? 0);
+  // Date-aware: a stored counter from a previous day no longer consumes today's
+  // allowance, and it can never exceed the mailbox's own daily limit.
+  const sentToday = mailboxSentToday(row, dayStart);
   const dailyLimit = Number(row.daily_limit ?? 0);
   const hourlyLimit = Number(row.hourly_limit ?? 0);
   const dailyRemaining = Math.max(0, dailyLimit - sentToday);

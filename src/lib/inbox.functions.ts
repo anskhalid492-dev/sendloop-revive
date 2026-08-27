@@ -578,7 +578,7 @@ export const listComposeMailboxes = createServerFn({ method: "GET" })
     const { data: accounts, error } = await context.supabase
       .from("sending_accounts")
       .select(
-        "id, label, from_name, from_email, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit",
+        "id, label, from_name, from_email, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, last_sent_at",
       )
       .eq("workspace_id", data.workspaceId)
       .eq("customer_enabled", true)

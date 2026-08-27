@@ -8,6 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { mailboxSentToday, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
@@ -31,6 +32,7 @@ type AccountRow = {
   reply_to: string | null;
   sent_today: number;
   daily_limit: number;
+  last_sent_at?: string | null;
   paused: boolean;
   customer_enabled: boolean;
   status: string;
@@ -161,6 +163,8 @@ export async function ensureInitialCampaignMessages(
   supabase: AnySupabase,
   campaignId: string,
   now: Date = new Date(),
+  /** Registry client; defaults to the service-role client. */
+  registryClient?: AnySupabase,
 ): Promise<number> {
   const { data: campaign } = await supabase
     .from("campaigns")
@@ -575,6 +579,12 @@ export async function dispatchDueMessages(
     return result;
   }
 
+  // Self-heal: a message that was accepted by the provider but whose terminal
+  // update was interrupted stays in `processing` and is missing from campaign
+  // statistics. When the outbound registry proves the send was accepted, the
+  // row is completed from that record — no resend, no double counting.
+  await completeAcceptedProcessingMessages(supabase, options.campaignId, now);
+
   let query = supabase
     .from("campaign_messages")
     .select(
@@ -623,7 +633,7 @@ export async function dispatchDueMessages(
   const { data: accounts, error: aErr } = await supabase
     .from("sending_accounts")
     .select(
-      "id, provider, provider_id, from_name, from_email, reply_to, sent_today, daily_limit, paused, customer_enabled, status",
+      "id, provider, provider_id, from_name, from_email, reply_to, sent_today, daily_limit, last_sent_at, paused, customer_enabled, status",
     )
     .in("id", accountIds.length ? accountIds : ["00000000-0000-0000-0000-000000000000"]);
   if (aErr) throw new Error(aErr.message);
@@ -703,11 +713,13 @@ export async function dispatchDueMessages(
 
     const usedNow = sentPerAccount.get(account.id) ?? 0;
     // The mailbox daily limit covers every email leaving that mailbox. The
-    // campaign_messages count misses manual inbox sends, and `sent_today` can
-    // lag a same-run reset, so the higher of the two is authoritative.
-    const accountSentToday = Math.max(
+    // campaign_messages count misses manual inbox sends, so the higher of the
+    // two is authoritative — but the stored counter is date-aware and clamped,
+    // so yesterday's total can never block today's sending.
+    const accountSentToday = mailboxSentToday(
+      account,
+      dayStart,
       sentTodayByAccount.get(account.id) ?? 0,
-      account.sent_today ?? 0,
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
@@ -794,7 +806,9 @@ export async function dispatchDueMessages(
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
-    const send = await sendManagedEmail(
+    let send: Awaited<ReturnType<typeof sendManagedEmail>>;
+    try {
+      send = await sendManagedEmail(
       supabaseAdmin,
       {
         id: account.id,
@@ -814,8 +828,15 @@ export async function dispatchDueMessages(
         headers: { "Message-ID": messageIdHeader(outboundMessageId) },
       },
       { stage: "campaign" },
-    );
-
+      );
+    } catch (error) {
+      // A thrown provider/transport error used to leave the row stuck in
+      // `processing` forever. Treat it exactly like a failed send.
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+      await fail(error instanceof Error ? error.message : "Sending failed.");
+      continue;
+    }
 
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
@@ -829,6 +850,26 @@ export async function dispatchDueMessages(
     sentTodaySoFar += 1;
     sentPerAccount.set(account.id, usedNow + 1);
     const sentAt = new Date().toISOString();
+
+    // The provider accepted the email: record the terminal `sent` state first,
+    // with the provider/RFC ids, so no later best-effort step (inbox mirroring,
+    // classification) can leave a delivered message stuck in `processing` and
+    // missing from campaign statistics.
+    const campaignMessagePatch = {
+      status: "sent",
+      sent_at: sentAt,
+      provider: account.provider,
+      provider_message_id: send.messageId ?? null,
+      message_id: send.rfcMessageId ?? outboundMessageId,
+      message_type: "campaign",
+      last_error: null,
+      attempts: (message.attempts ?? 0) + 1,
+    };
+    await supabase
+      .from("campaign_messages")
+      .update(campaignMessagePatch)
+      .eq("id", message.id);
+
     try {
       await recordOutboundCampaignMessage({
         workspaceId: message.workspace_id,
@@ -849,21 +890,6 @@ export async function dispatchDueMessages(
     } catch {
       /* inbox mirroring must never fail an already delivered send */
     }
-    const campaignMessagePatch = {
-      status: "sent",
-      sent_at: sentAt,
-      provider: account.provider,
-      provider_message_id: send.messageId ?? null,
-      message_id: send.rfcMessageId ?? outboundMessageId,
-      message_type: "campaign",
-      last_error: null,
-      attempts: (message.attempts ?? 0) + 1,
-    };
-    await supabase
-      .from("campaign_messages")
-      .update(campaignMessagePatch)
-      .eq("id", message.id);
-
     // Explicit classification: provider events for this id can only ever move
     // campaign statistics.
     try {
@@ -900,9 +926,13 @@ export async function dispatchDueMessages(
   // Keep per-mailbox daily counters honest so rotation and caps stay accurate.
   for (const [accountId, count] of sentPerAccount) {
     const account = accountById.get(accountId);
+    if (!account) continue;
     await supabase
       .from("sending_accounts")
-      .update({ sent_today: (account?.sent_today ?? 0) + count })
+      .update({
+        sent_today: nextStoredSentToday(account, dayStart, count),
+        last_sent_at: new Date().toISOString(),
+      })
       .eq("id", accountId);
   }
 
@@ -924,4 +954,70 @@ export async function runCampaign(
     result.errors.push(error instanceof Error ? error.message : "Follow-up scheduling failed");
   }
   return result;
+}
+
+/** Minutes a message may sit in `processing` before it is reconciled. */
+const PROCESSING_STALE_MINUTES = 10;
+
+/**
+ * Completes messages stuck in `processing` whose send was actually accepted.
+ * The outbound registry row (written right after provider acceptance) is the
+ * proof; only those rows are moved to `sent`, so a genuinely failed send is
+ * never promoted and statistics cannot double-count.
+ */
+export async function completeAcceptedProcessingMessages(
+  supabase: AnySupabase,
+  campaignId: string,
+  now: Date = new Date(),
+  /** Registry client; defaults to the service-role client. */
+  registryClient?: AnySupabase,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - PROCESSING_STALE_MINUTES * 60_000).toISOString();
+  const { data: stuck } = await supabase
+    .from("campaign_messages")
+    .select("id, updated_at, created_at")
+    .eq("campaign_id", campaignId)
+    .eq("status", "processing")
+    .is("sent_at", null)
+    .lte("created_at", cutoff)
+    .limit(200);
+  const rows = (stuck ?? []) as { id: string }[];
+  if (!rows.length) return 0;
+
+  const admin = registryClient ?? (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+  const { data: registry } = await admin
+    .from("outbound_messages")
+    .select("ref_id, provider_message_id, provider, created_at")
+    .eq("ref_table", "campaign_messages")
+    .in("ref_id", rows.map((row) => row.id));
+
+  const accepted = new Map<string, { provider_message_id: string | null; provider: string | null; created_at: string | null }>();
+  for (const entry of ((registry ?? []) as {
+    ref_id: string | null;
+    provider_message_id: string | null;
+    provider: string | null;
+    created_at: string | null;
+  }[])) {
+    if (entry.ref_id && !accepted.has(entry.ref_id)) accepted.set(entry.ref_id, entry);
+  }
+
+  let repaired = 0;
+  for (const row of rows) {
+    const entry = accepted.get(row.id);
+    if (!entry) continue;
+    await supabase
+      .from("campaign_messages")
+      .update({
+        status: "sent",
+        sent_at: entry.created_at ?? now.toISOString(),
+        provider: entry.provider ?? null,
+        provider_message_id: entry.provider_message_id ?? null,
+        message_type: "campaign",
+        last_error: null,
+      })
+      .eq("id", row.id)
+      .eq("status", "processing");
+    repaired += 1;
+  }
+  return repaired;
 }

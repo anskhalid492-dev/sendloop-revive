@@ -7,6 +7,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { previewOf, stripAngle } from "@/lib/inbox-model";
+import { nextStoredSentToday, utcStartOfDay } from "@/lib/mailbox-daily-usage";
 
 type AnyClient = {
   from: (table: string) => any;
@@ -56,7 +57,7 @@ export async function sendReplyThroughMailbox(args: {
   const { data: account } = await supabase
     .from("sending_accounts")
     .select(
-      "id, label, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, workspace_id",
+      "id, label, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, last_sent_at, workspace_id",
     )
     .eq("id", conversation.sending_account_id ?? "00000000-0000-0000-0000-000000000000")
     .maybeSingle();
@@ -235,7 +236,12 @@ export async function sendReplyThroughMailbox(args: {
 
   await supabase
     .from("sending_accounts")
-    .update({ sent_today: (account.sent_today ?? 0) + 1 })
+    .update({
+      // Date-aware + clamped: a counter from a previous day restarts at 0 today
+      // and can never be pushed above the mailbox's own daily limit.
+      sent_today: nextStoredSentToday(account, utcStartOfDay(), 1),
+      last_sent_at: new Date().toISOString(),
+    })
     .eq("id", account.id);
 
   if (conversation.lead_id) {
