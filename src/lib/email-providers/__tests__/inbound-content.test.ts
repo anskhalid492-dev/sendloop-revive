@@ -46,7 +46,7 @@ describe("enrichInboundPayload", () => {
       inboundEvent({ providerMessageId: null }),
     );
     expect(result).toBe(payload);
-    expect((result as Record<string, unknown>).data).not.toHaveProperty("text");
+    expect((result as Record<string, unknown>)['data']).not.toHaveProperty("text");
   });
 
   it("returns the payload unchanged when the provider lacks inbound_content", async () => {
@@ -55,7 +55,7 @@ describe("enrichInboundPayload", () => {
     provider.capabilities = capabilities({ inbound: true, inbound_content: false });
     const result = await enrichInboundPayload(provider, payload, inboundEvent());
     expect(result).toBe(payload);
-    expect((result as Record<string, unknown>).data).not.toHaveProperty("text");
+    expect((result as Record<string, unknown>)['data']).not.toHaveProperty("text");
   });
 
   it("does not fetch when the payload already contains text", async () => {
@@ -65,13 +65,13 @@ describe("enrichInboundPayload", () => {
     provider.getInboundMessageContent = fetchSpy as never;
     const result = await enrichInboundPayload(provider, payload, inboundEvent());
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect((result as Record<string, unknown>).data).toHaveProperty("text", "already here");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("text", "already here");
   });
 
   it("fetches and stores text content when the webhook has only an email_id", async () => {
     const payload = basePayload();
     const result = await enrichInboundPayload(fakeProvider({ text: "Hello back" }), payload, inboundEvent());
-    expect((result as Record<string, unknown>).data).toHaveProperty("text", "Hello back");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("text", "Hello back");
   });
 
   it("fetches and stores html content", async () => {
@@ -81,7 +81,7 @@ describe("enrichInboundPayload", () => {
       payload,
       inboundEvent(),
     );
-    expect((result as Record<string, unknown>).data).toHaveProperty("html", "<p>Hello back</p>");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("html", "<p>Hello back</p>");
   });
 
   it("stores both text and html when the provider returns both", async () => {
@@ -91,8 +91,8 @@ describe("enrichInboundPayload", () => {
       payload,
       inboundEvent(),
     );
-    expect((result as Record<string, unknown>).data).toHaveProperty("text", "Plain text");
-    expect((result as Record<string, unknown>).data).toHaveProperty("html", "<p>HTML</p>");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("text", "Plain text");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("html", "<p>HTML</p>");
   });
 
   it("logs and swallows a content-fetch failure without rejecting the inbound email", async () => {
@@ -108,8 +108,8 @@ describe("enrichInboundPayload", () => {
     const payload = basePayload();
     const result = await enrichInboundPayload(fakeProvider(null), payload, inboundEvent());
     expect(result).toBe(payload);
-    expect((result as Record<string, unknown>).data).not.toHaveProperty("text");
-    expect((result as Record<string, unknown>).data).not.toHaveProperty("html");
+    expect((result as Record<string, unknown>)['data']).not.toHaveProperty("text");
+    expect((result as Record<string, unknown>)['data']).not.toHaveProperty("html");
   });
 
   it("does not overwrite pre-existing content fields", async () => {
@@ -119,8 +119,8 @@ describe("enrichInboundPayload", () => {
       payload,
       inboundEvent(),
     );
-    expect((result as Record<string, unknown>).data).toHaveProperty("text", "original text");
-    expect((result as Record<string, unknown>).data).toHaveProperty("html", "<b>original</b>");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("text", "original text");
+    expect((result as Record<string, unknown>)['data']).toHaveProperty("html", "<b>original</b>");
   });
 });
 
