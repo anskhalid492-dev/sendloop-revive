@@ -347,14 +347,20 @@ export async function renderTemplate(
   // having to restore anything. Customised copies (is_default = false) win.
   const useCatalog = Boolean(fallback) && stored?.is_default !== false;
   const base = useCatalog ? fallback! : null;
+  // Sender resolution order: per-template override → centralized purpose
+  // mapping (event key / category) → legacy global settings.
+  const mapped = systemSenderFor(
+    eventKey,
+    stored?.category ?? base?.category ?? fallback?.category,
+  );
   const source = {
     subject: draft?.subject ?? base?.subject ?? stored?.subject ?? fallback!.subject,
     preheader: draft?.preheader ?? base?.preheader ?? stored?.preheader ?? fallback!.preheader,
     html: draft?.html ?? base?.html ?? stored?.html ?? fallback!.html,
     text: draft?.text_body ?? base?.text ?? stored?.text_body ?? fallback!.text,
-    fromName: draft?.from_name ?? stored?.from_name ?? settings.from_name,
-    fromEmail: draft?.from_email ?? stored?.from_email ?? settings.from_email,
-    replyTo: draft?.reply_to ?? stored?.reply_to ?? settings.reply_to,
+    fromName: draft?.from_name ?? stored?.from_name ?? mapped.name,
+    fromEmail: draft?.from_email ?? stored?.from_email ?? mapped.email,
+    replyTo: draft?.reply_to ?? stored?.reply_to ?? mapped.replyTo,
   };
 
   // The copyright year must always come from the current date. Templates that
