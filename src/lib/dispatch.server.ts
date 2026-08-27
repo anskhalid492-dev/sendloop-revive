@@ -865,10 +865,8 @@ export async function dispatchDueMessages(
       last_error: null,
       attempts: (message.attempts ?? 0) + 1,
     };
-    await supabase
-      .from("campaign_messages")
-      .update(campaignMessagePatch)
-      .eq("id", message.id);
+    await applySentPatch(supabase, message.id, campaignMessagePatch);
+
 
     try {
       await recordOutboundCampaignMessage({
