@@ -7,13 +7,16 @@
  * ignore external CSS.
  */
 
+import { systemSender } from "@/lib/system-email-senders";
+
 export const BRAND = {
   name: "MunchReach",
   color: "#44A6DD",
   colorDark: "#2F8CC0",
   ink: "#0F172A",
   muted: "#5b6b7c",
-  support: "support@munchreach.com",
+  // Support contact shown inside email bodies — centralized sender mapping.
+  support: systemSender("support").email,
   site: "https://munchreach.com",
   /** Absolute URL — email clients cannot resolve bundled or relative assets. */
   logoUrl: "https://munchreach.com/brand/munchreach-logo.png",
