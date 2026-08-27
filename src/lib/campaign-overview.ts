@@ -112,7 +112,10 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
     const sentToday = messages.filter(
       (m) => m.status === "sent" && m.sent_at && new Date(m.sent_at).getTime() >= dayStart.getTime(),
     ).length;
-    const failed = messages.filter((m) => m.status === "failed").length;
+    // Bounced rows keep status "failed" historically but are identified by
+    // bounced_at. They are reported separately and never counted as failed.
+    const bounced = messages.filter((m) => m.bounced_at != null).length;
+    const failed = messages.filter((m) => m.status === "failed" && m.bounced_at == null).length;
 
     const replyKeys = new Set(
       input.replies
