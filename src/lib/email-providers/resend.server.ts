@@ -13,6 +13,7 @@
  */
 import {
   findResendDomain,
+  getResendReceivedEmail,
   getResendRfcMessageId,
   listResendWebhooks,
   resendInboundMxRecords,
