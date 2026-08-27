@@ -980,6 +980,7 @@ export async function completeAcceptedProcessingMessages(
   const rows = (stuck ?? []) as { id: string }[];
   if (!rows.length) return 0;
 
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: registry } = await supabaseAdmin
     .from("outbound_messages")
     .select("ref_id, provider_message_id, provider, created_at")
