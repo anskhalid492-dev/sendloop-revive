@@ -12,6 +12,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 // Provider facts come exclusively from the unified provider abstraction.
 import { getEmailProvider } from "@/lib/email-providers/registry.server";
 import { evaluateDomainReadiness, enableDomainInbound } from "@/lib/domain-readiness.server";
+import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
 
 export type ChecklistItem = {
   id: string;
@@ -502,7 +503,10 @@ export async function checkMxRecords() {
   const providerId = await resolvePlatformProviderId();
   const report = await evaluateDomainReadiness({ provider: providerId, domain });
   const rootDomain = report.domain;
-  const inboundRecord = report.records.find((r) => r.type === "MX") ?? null;
+  // Only the root-domain receiving MX counts here — a provider's sending /
+  // feedback MX (e.g. send.<domain>) must never be mistaken for it.
+  const inboundRecord =
+    report.records.find((r) => isRootInboundMxRecord(r, rootDomain)) ?? null;
   const host = inboundRecord?.fqdn ?? rootDomain;
   const requiredMx = report.mx.required[0] ?? null;
   const expected = requiredMx
