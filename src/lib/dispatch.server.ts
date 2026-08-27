@@ -163,6 +163,8 @@ export async function ensureInitialCampaignMessages(
   supabase: AnySupabase,
   campaignId: string,
   now: Date = new Date(),
+  /** Registry client; defaults to the service-role client. */
+  registryClient?: AnySupabase,
 ): Promise<number> {
   const { data: campaign } = await supabase
     .from("campaigns")
@@ -967,6 +969,8 @@ export async function completeAcceptedProcessingMessages(
   supabase: AnySupabase,
   campaignId: string,
   now: Date = new Date(),
+  /** Registry client; defaults to the service-role client. */
+  registryClient?: AnySupabase,
 ): Promise<number> {
   const cutoff = new Date(now.getTime() - PROCESSING_STALE_MINUTES * 60_000).toISOString();
   const { data: stuck } = await supabase
@@ -980,8 +984,8 @@ export async function completeAcceptedProcessingMessages(
   const rows = (stuck ?? []) as { id: string }[];
   if (!rows.length) return 0;
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: registry } = await supabaseAdmin
+  const admin = registryClient ?? (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+  const { data: registry } = await admin
     .from("outbound_messages")
     .select("ref_id, provider_message_id, provider, created_at")
     .eq("ref_table", "campaign_messages")
