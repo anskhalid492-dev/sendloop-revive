@@ -199,6 +199,35 @@ export async function getResendRfcMessageId(
   return body ? (extractRfcMessageId(body) ?? null) : null;
 }
 
+/**
+ * Fetches the full content of a received email.
+ *
+ * Resend inbound webhooks contain only metadata (`email_id`). The complete
+ * text/html body is retrieved separately from the received-email endpoint.
+ */
+export async function getResendReceivedEmail(
+  providerMessageId: string,
+  creds?: Record<string, string> | null,
+): Promise<{ text: string | null; html: string | null } | null> {
+  if (!providerMessageId) return null;
+  const key = resolveResendApiKey(creds);
+  if (!key) return null;
+  try {
+    const res = await fetch(`${API}/emails/receiving/${providerMessageId}`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as Record<string, unknown>;
+    return {
+      text: typeof body["text"] === "string" ? body["text"] : null,
+      html: typeof body["html"] === "string" ? body["html"] : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Registers an inbound webhook. Returns the provider-side id. */
 export async function createResendWebhook(
   endpoint: string,

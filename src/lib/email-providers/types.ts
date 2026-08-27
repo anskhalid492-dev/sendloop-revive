@@ -31,6 +31,7 @@ export * from "./inbound";
 export const EMAIL_PROVIDER_CAPABILITIES = [
   "sending",
   "inbound",
+  "inbound_content",
   "delivery_tracking",
   "open_tracking",
   "click_tracking",
@@ -115,6 +116,12 @@ export type InboundEmailEvent = {
   receivedAt?: string | null;
   attachments?: InboundEmailAttachment[];
   rawMetadata?: unknown;
+};
+
+/** Full message body returned by a provider's inbound content API. */
+export type InboundMessageContent = {
+  text?: string | null;
+  html?: string | null;
 };
 
 export type InboundEmailAttachment = {

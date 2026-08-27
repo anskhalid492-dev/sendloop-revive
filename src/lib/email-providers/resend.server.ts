@@ -13,6 +13,7 @@
  */
 import {
   findResendDomain,
+  getResendReceivedEmail,
   getResendRfcMessageId,
   listResendWebhooks,
   resendInboundMxRecords,
@@ -107,6 +108,7 @@ export const resendEmailProvider: EmailProvider = {
   capabilities: capabilities({
     sending: true,
     inbound: true,
+    inbound_content: true,
     delivery_tracking: true,
     open_tracking: true,
     click_tracking: true,
@@ -146,6 +148,10 @@ export const resendEmailProvider: EmailProvider = {
 
   async getRfcMessageId(creds, providerMessageId) {
     return getResendRfcMessageId(providerMessageId, creds);
+  },
+
+  async getInboundMessageContent(creds, providerMessageId) {
+    return getResendReceivedEmail(providerMessageId, creds);
   },
 
   async getInboundStatus(creds, domain) {

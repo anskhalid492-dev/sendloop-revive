@@ -72,7 +72,13 @@ export const Route = createFileRoute("/api/public/inbound/email")({
 
         try {
           const { handleWebhookDelivery } = await import("@/lib/email-events.server");
-          const result = await handleWebhookDelivery(ingest.payload, ingest.provider.id, {
+          const { enrichInboundPayload } = await import("@/lib/email-providers/inbound-content.server");
+          const enrichedPayload = await enrichInboundPayload(
+            ingest.provider,
+            ingest.payload,
+            ingest.inbound ?? null,
+          );
+          const result = await handleWebhookDelivery(enrichedPayload, ingest.provider.id, {
             signatureStatus: ingest.verification.status,
             signatureDetail: `${ingest.verification.method}: ${ingest.verification.reason}`,
             ...(ingest.inbound ? { normalizedInbound: ingest.inbound } : {}),

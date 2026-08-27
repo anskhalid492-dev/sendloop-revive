@@ -35,6 +35,7 @@ describe("bird capabilities", () => {
     expect(birdEmailProvider.capabilities).toEqual({
       sending: true,
       inbound: true,
+      inbound_content: false,
       delivery_tracking: true,
       open_tracking: true,
       click_tracking: true,
