@@ -165,7 +165,7 @@ export function buildPillars(readiness: CustomerDomainReadiness): ReadinessPilla
     {
       id: "webhook",
       label: "Webhooks",
-      state: readiness.webhook.connected ? "ok" : "pending",
+      state: readiness.webhook.state ?? (readiness.webhook.connected ? "ok" : "pending"),
       detail: readiness.webhook.detail,
     },
   ];
