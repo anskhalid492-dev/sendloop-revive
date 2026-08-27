@@ -35,6 +35,10 @@ const RESERVED_HEADERS = new Set([
   "reply-to",
   "return-path",
   "date",
+  // SES stamps its own Message-ID and rejects one passed as a custom header
+  // ("Header <Message-ID> is not supported"). MunchReach's internal RFC
+  // message-id handling is untouched; this only strips the API header.
+  "message-id",
 ]);
 
 function sanitizeHeaders(headers: Record<string, string> | undefined): { Name: string; Value: string }[] {
