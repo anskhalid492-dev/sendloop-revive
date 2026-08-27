@@ -125,9 +125,13 @@ export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleRe
   const now = new Date();
 
   const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+  // `birthday_gifts` and `profiles.birthday` are created by
+  // supabase/manual/birthday-gift.sql, which is applied outside the generated
+  // type file; this ledger client is intentionally untyped.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ledger = (db as any).from.bind(db) as (table: string) => any;
 
-  const { data, error } = await db
-    .from("profiles")
+  const { data, error } = await ledger("profiles")
     .select("id, email, timezone, birthday")
     .not("birthday", "is", null)
     .limit(5000);
@@ -157,12 +161,11 @@ export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleRe
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    const workspaceId = (workspace as { id?: string } | null)?.id ?? null;
+    const workspaceId = (workspace as unknown as { id?: string } | null)?.id ?? null;
 
     // Claim the gift first: the unique (user_id, gift_year) index makes this
     // the single source of truth against duplicates and concurrent runs.
-    const { data: claimed, error: claimError } = await db
-      .from("birthday_gifts")
+    const { data: claimed, error: claimError } = await ledger("birthday_gifts")
       .insert({
         user_id: profile.id,
         workspace_id: workspaceId,
@@ -218,9 +221,9 @@ export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleRe
         },
         immediate: true,
       });
-      await db.from("birthday_gifts").update({ email_status: "queued" }).eq("id", giftId);
+      await ledger("birthday_gifts").update({ email_status: "queued" }).eq("id", giftId);
     } catch {
-      await db.from("birthday_gifts").update({ email_status: "failed" }).eq("id", giftId);
+      await ledger("birthday_gifts").update({ email_status: "failed" }).eq("id", giftId);
     }
 
     result.gifted += 1;
