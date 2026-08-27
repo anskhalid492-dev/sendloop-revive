@@ -56,15 +56,15 @@ describe("SES capabilities", () => {
     const caps = sesEmailProvider.capabilities;
     expect(caps.domain_api).toBe(true);
     expect(caps.dns_api).toBe(true);
-    expect(caps.sending).toBe(false);
+    expect(caps.sending).toBe(true);
     expect(caps.inbound).toBe(false);
     expect(caps.webhooks).toBe(false);
     expect(caps.delivery_tracking).toBe(false);
     expect(sesEmailProvider.inboundSetupMode).toBe("unsupported");
   });
 
-  it("does not implement sending or inbound in this phase", () => {
-    expect(sesEmailProvider.send).toBeUndefined();
+  it("implements sending but not inbound processing", () => {
+    expect(typeof sesEmailProvider.send).toBe("function");
     expect(sesEmailProvider.parseInboundEvent).toBeUndefined();
   });
 });
