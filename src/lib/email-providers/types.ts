@@ -118,6 +118,12 @@ export type InboundEmailEvent = {
   rawMetadata?: unknown;
 };
 
+/** Full message body returned by a provider's inbound content API. */
+export type InboundMessageContent = {
+  text?: string | null;
+  html?: string | null;
+};
+
 export type InboundEmailAttachment = {
   filename?: string | null;
   contentType?: string | null;
