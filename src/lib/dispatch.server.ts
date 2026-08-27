@@ -579,6 +579,11 @@ export async function dispatchDueMessages(
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
   if (!campaignRow) return result;
+
+  // Self-heal FIRST, before any status/window gate: a paused or limit-reached
+  // campaign must never leave provider-accepted messages stuck in `processing`.
+  await completeAcceptedProcessingMessages(supabase, options.campaignId, now);
+
   if (!options.force && !["active", "scheduled"].includes(campaignRow.status)) return result;
 
   const startAt = campaignRow.start_at ? new Date(campaignRow.start_at) : null;
