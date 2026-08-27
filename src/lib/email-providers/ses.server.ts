@@ -28,12 +28,14 @@ import {
   type SesIdentity,
 } from "./ses-api.server";
 import type { EmailProvider } from "./provider";
+import { sesFlattenInboundPayload, sesInboundEvent } from "./ses-inbound";
 import {
   capabilities,
   type EmailProviderCredentials,
   type ProviderDnsRecord,
   type ProviderDomainState,
   type UnifiedDomainStatus,
+  type UnifiedInboundStatus,
 } from "./types";
 
 const ID = "ses";
