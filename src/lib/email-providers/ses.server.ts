@@ -116,7 +116,7 @@ export function sesDnsRequirements(
  * ------------------------------------------------------------------ */
 
 export function mapSesIdentityState(identity: SesIdentity | null): ProviderDomainState {
-  if (!identity) return { state: "unknown", detail: "Identity not found." };
+  if (!identity) return { state: "unknown", detail: "This domain is not set up for sending yet." };
   const dkim = (identity.DkimAttributes?.Status ?? "").toUpperCase();
   const verification = (identity.VerificationStatus ?? "").toUpperCase();
   if (identity.VerifiedForSendingStatus && dkim === "SUCCESS") {
