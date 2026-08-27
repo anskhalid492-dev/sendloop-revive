@@ -560,6 +560,9 @@ async function deliver(
   const { getAdapter } = await import("@/lib/providers/adapter.server");
 
   const fromEmail = row.from_email || settings.from_email;
+  // The display name follows the centralized sender for this From address,
+  // so e.g. billing mail goes out as "MunchReach Billing <billing@…>".
+  const mappedSender = Object.values(SYSTEM_SENDERS).find((s) => s.email === fromEmail);
   const managed = await resolveManagedProvider(admin, {
     provider: "resend",
     provider_id: null,
@@ -569,9 +572,9 @@ async function deliver(
 
   const adapter = getAdapter(managed.provider);
   const result = await adapter.sendEmail(managed.credentials, {
-    fromName: settings.from_name,
+    fromName: mappedSender?.name ?? settings.from_name,
     fromEmail,
-    replyTo: row.reply_to || settings.reply_to,
+    replyTo: row.reply_to || mappedSender?.replyTo || settings.reply_to,
     to: row.to_email,
     subject: row.subject,
     text: row.text_body || "",
