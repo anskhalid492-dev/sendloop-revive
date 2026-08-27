@@ -30,6 +30,7 @@ import {
   setTransactionalTemplateEnabled,
   updateTransactionalSettings,
 } from "@/lib/transactional-email.functions";
+import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/system-emails")({
   head: () => ({
@@ -73,6 +74,67 @@ type Draft = {
   html: string;
   text_body: string;
 };
+
+function BirthdayGiftLog() {
+  const fetchGifts = useServerFn(listBirthdayGifts);
+  const gifts = useQuery({ queryKey: ["admin-birthday-gifts"], queryFn: () => fetchGifts() });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Birthday gifts</CardTitle>
+        <CardDescription>
+          Every birthday gift granted by the automation: the year it was booked against, whether the free
+          month was applied, and the delivery status of the Birthday Gift email.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {gifts.isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" /> Loading…
+          </div>
+        ) : (gifts.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No birthday gifts have been granted yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                  <th className="py-2 pr-4">Customer</th>
+                  <th className="py-2 pr-4">Gift year</th>
+                  <th className="py-2 pr-4">Date</th>
+                  <th className="py-2 pr-4">Gift granted</th>
+                  <th className="py-2 pr-4">Free month until</th>
+                  <th className="py-2 pr-4">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(gifts.data ?? []).map((row) => (
+                  <tr key={row.id} className="border-b last:border-0">
+                    <td className="py-2 pr-4">{row.email ?? "—"}</td>
+                    <td className="py-2 pr-4">{row.giftYear}</td>
+                    <td className="py-2 pr-4">{row.giftDate}</td>
+                    <td className="py-2 pr-4">
+                      <Badge variant={row.granted ? "default" : "destructive"}>
+                        {row.granted ? "Granted" : row.grantError ?? "Not granted"}
+                      </Badge>
+                    </td>
+                    <td className="py-2 pr-4">
+                      {row.grantExpiresAt ? row.grantExpiresAt.slice(0, 10) : "—"}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Badge variant="secondary">{row.deliveryStatus ?? row.emailStatus}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function SystemEmailsPage() {
   const queryClient = useQueryClient();
@@ -273,6 +335,7 @@ function SystemEmailsPage() {
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="settings">Delivery settings</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
+          <TabsTrigger value="birthday">Birthday gifts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="templates" className="space-y-4">
@@ -437,6 +500,10 @@ function SystemEmailsPage() {
               ))}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="birthday">
+          <BirthdayGiftLog />
         </TabsContent>
       </Tabs>
 

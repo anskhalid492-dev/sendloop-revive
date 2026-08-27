@@ -54,6 +54,14 @@ export const completeOnboarding = createServerFn({ method: "POST" })
         persona: z.string().trim().max(40).optional().nullable(),
         teamSize: z.string().trim().max(20).optional().nullable(),
         goal: z.string().trim().max(40).optional().nullable(),
+        // Optional birthday, stored as a plain calendar date on the profile.
+        birthday: z
+          .string()
+          .trim()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .nullable()
+          .or(z.literal("")),
       })
       .parse(input),
   )
@@ -107,6 +115,20 @@ export const completeOnboarding = createServerFn({ method: "POST" })
       .update({ onboarding_completed: true })
       .eq("id", context.userId);
     if (profileError) throw new Error(profileError.message);
+
+    // Birthday is optional and written separately so an older database (before
+    // the birthday column exists) never breaks onboarding.
+    if (data.birthday) {
+      try {
+        await (context.supabase.from("profiles") as unknown as {
+          update: (patch: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> };
+        })
+          .update({ birthday: data.birthday })
+          .eq("id", context.userId);
+      } catch {
+        /* birthday is a nice-to-have, never a blocker */
+      }
+    }
 
     return workspace;
   });
