@@ -93,7 +93,7 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
       ),
       fetchAllRows(() =>
         scope(
-          context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at"),
+          context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at, bounced_at"),
         ).order("id", { ascending: true }),
       ),
       fetchAllRows(() =>
