@@ -46,9 +46,11 @@ const DEFAULT_SETTINGS: TransactionalSettings = {
   enabled: true,
   paused: false,
   test_mode: false,
-  from_name: "MunchReach",
-  from_email: "support@munchreach.com",
-  reply_to: "support@munchreach.com",
+  // Global fallback only — the centralized sender mapping decides the From
+  // address per event/category before these are consulted.
+  from_name: systemSender("notifications").name,
+  from_email: systemSender("notifications").email,
+  reply_to: systemSender("notifications").replyTo,
   retry_count: 3,
   retry_delay_seconds: 300,
   batch_size: 25,
