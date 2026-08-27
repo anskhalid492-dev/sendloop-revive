@@ -124,11 +124,17 @@ export async function sendSesEmail(
   const headers = sanitizeHeaders(message.headers);
   const replyTo = message.replyTo || undefined;
 
+  // Campaign sends go through the configuration set so SES publishes delivery,
+  // bounce, complaint, reject and delay events to the existing webhook layer.
+  const { sesConfigurationSetName } = await import("./ses-events.server");
+  const configurationSet = sesConfigurationSetName();
+
   const res = await sesRequest<{ MessageId?: string }>(
     credentials,
     "POST",
     "/v2/email/outbound-emails",
     {
+      ...(configurationSet ? { ConfigurationSetName: configurationSet } : {}),
       FromEmailAddress: `${message.fromName} <${message.fromEmail}>`,
       Destination: {
         ToAddresses: [message.to],
