@@ -577,6 +577,12 @@ export async function dispatchDueMessages(
     return result;
   }
 
+  // Self-heal: a message that was accepted by the provider but whose terminal
+  // update was interrupted stays in `processing` and is missing from campaign
+  // statistics. When the outbound registry proves the send was accepted, the
+  // row is completed from that record — no resend, no double counting.
+  await completeAcceptedProcessingMessages(supabase, options.campaignId, now);
+
   let query = supabase
     .from("campaign_messages")
     .select(
@@ -946,4 +952,67 @@ export async function runCampaign(
     result.errors.push(error instanceof Error ? error.message : "Follow-up scheduling failed");
   }
   return result;
+}
+
+/** Minutes a message may sit in `processing` before it is reconciled. */
+const PROCESSING_STALE_MINUTES = 10;
+
+/**
+ * Completes messages stuck in `processing` whose send was actually accepted.
+ * The outbound registry row (written right after provider acceptance) is the
+ * proof; only those rows are moved to `sent`, so a genuinely failed send is
+ * never promoted and statistics cannot double-count.
+ */
+export async function completeAcceptedProcessingMessages(
+  supabase: AnySupabase,
+  campaignId: string,
+  now: Date = new Date(),
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - PROCESSING_STALE_MINUTES * 60_000).toISOString();
+  const { data: stuck } = await supabase
+    .from("campaign_messages")
+    .select("id, updated_at, created_at")
+    .eq("campaign_id", campaignId)
+    .eq("status", "processing")
+    .is("sent_at", null)
+    .lte("created_at", cutoff)
+    .limit(200);
+  const rows = (stuck ?? []) as { id: string }[];
+  if (!rows.length) return 0;
+
+  const { data: registry } = await supabaseAdmin
+    .from("outbound_messages")
+    .select("ref_id, provider_message_id, provider, created_at")
+    .eq("ref_table", "campaign_messages")
+    .in("ref_id", rows.map((row) => row.id));
+
+  const accepted = new Map<string, { provider_message_id: string | null; provider: string | null; created_at: string | null }>();
+  for (const entry of ((registry ?? []) as {
+    ref_id: string | null;
+    provider_message_id: string | null;
+    provider: string | null;
+    created_at: string | null;
+  }[])) {
+    if (entry.ref_id && !accepted.has(entry.ref_id)) accepted.set(entry.ref_id, entry);
+  }
+
+  let repaired = 0;
+  for (const row of rows) {
+    const entry = accepted.get(row.id);
+    if (!entry) continue;
+    await supabase
+      .from("campaign_messages")
+      .update({
+        status: "sent",
+        sent_at: entry.created_at ?? now.toISOString(),
+        provider: entry.provider ?? null,
+        provider_message_id: entry.provider_message_id ?? null,
+        message_type: "campaign",
+        last_error: null,
+      })
+      .eq("id", row.id)
+      .eq("status", "processing");
+    repaired += 1;
+  }
+  return repaired;
 }
