@@ -190,8 +190,7 @@ export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleRe
       const grant = await grantFreeMonth(db, workspaceId, now);
       planName = grant.planName;
       expiresAt = grant.expiresAt;
-      await db
-        .from("birthday_gifts")
+      await ledger("birthday_gifts")
         .update({
           granted: true,
           plan_id: grant.planId,
@@ -201,8 +200,7 @@ export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleRe
         .eq("id", giftId);
     } catch (grantError) {
       result.errors += 1;
-      await db
-        .from("birthday_gifts")
+      await ledger("birthday_gifts")
         .update({ granted: false, grant_error: String((grantError as Error)?.message ?? grantError) })
         .eq("id", giftId);
     }
