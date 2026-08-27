@@ -28,12 +28,14 @@ import {
   type SesIdentity,
 } from "./ses-api.server";
 import type { EmailProvider } from "./provider";
+import { sesFlattenInboundPayload, sesInboundEvent } from "./ses-inbound";
 import {
   capabilities,
   type EmailProviderCredentials,
   type ProviderDnsRecord,
   type ProviderDomainState,
   type UnifiedDomainStatus,
+  type UnifiedInboundStatus,
 } from "./types";
 
 const ID = "ses";
@@ -192,14 +194,106 @@ export function hasSesCredentials(creds?: EmailProviderCredentials | null): bool
 export const sesEmailProvider: EmailProvider = {
   id: ID,
   label: "Amazon SES",
-  // Receiving is not part of this phase; SES inbound requires separate
-  // rule-set configuration and is declared unsupported until implemented.
-  inboundSetupMode: "unsupported",
+  // Receiving works as soon as the customer's MX points at the SES inbound
+  // endpoint for the configured region; the receipt rule + topic live on the
+  // MunchReach AWS account, so no customer action beyond DNS is required.
+  inboundSetupMode: "dns_only",
   capabilities: capabilities({
     sending: true,
+    inbound: true,
+    webhooks: true,
     domain_api: true,
     dns_api: true,
   }),
+
+  /* ---------------- inbound (SNS HTTPS notifications) ---------------- */
+
+  async getInboundStatus(creds, domain): Promise<UnifiedInboundStatus> {
+    const region = sesRegion(creds);
+    const { buildRootInboundMxRecord } = await import("./mx-host");
+    return {
+      enabled: true,
+      setupMode: "dns_only",
+      records: [
+        buildRootInboundMxRecord({
+          id: "ses-inbound-mx",
+          domain,
+          target: `inbound-smtp.${region}.amazonaws.com`,
+          priority: 10,
+          ttl: 3600,
+          purpose: "Routes inbound replies to MunchReach.",
+        }),
+      ],
+      detail: "Receiving is active once the root MX record is published.",
+    };
+  },
+
+  identifyWebhookRequest(request) {
+    const headers = Object.fromEntries(
+      Object.entries(request.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
+    );
+    if (headers["x-amz-sns-message-type"]) {
+      return {
+        provider: ID,
+        matched: true,
+        confidence: "exact",
+        detail: "Delivery carries the notification headers this provider uses.",
+      };
+    }
+    const payload = (request.payload ?? {}) as Record<string, unknown>;
+    const type = String(payload["Type"] ?? "");
+    if (
+      (type === "Notification" ||
+        type === "SubscriptionConfirmation" ||
+        type === "UnsubscribeConfirmation") &&
+      typeof payload["TopicArn"] === "string" &&
+      payload["TopicArn"].startsWith("arn:aws")
+    ) {
+      return {
+        provider: ID,
+        matched: true,
+        confidence: "exact",
+        detail: `Notification envelope matches this provider (${type}).`,
+      };
+    }
+    return {
+      provider: ID,
+      matched: false,
+      confidence: "none",
+      detail: "No provider-specific headers or envelope found.",
+    };
+  },
+
+  async verifyWebhookSignature(request) {
+    const { verifySnsDelivery } = await import("./ses-sns.server");
+    return verifySnsDelivery(request.rawBody);
+  },
+
+  /** Answers the topic subscription handshake after the signature is valid. */
+  async handleWebhookHandshake(payload) {
+    const { parseSnsEnvelope } = await import("./ses-inbound");
+    const envelope = parseSnsEnvelope(payload);
+    if (!envelope || envelope.type === "Notification") return null;
+    if (envelope.type === "UnsubscribeConfirmation") {
+      return { status: 200, body: { ok: true, handshake: "unsubscribe_notice" } };
+    }
+    if (!envelope.subscribeUrl) {
+      return { status: 400, body: { error: "Subscription confirmation is missing its URL." } };
+    }
+    const { confirmSnsSubscription } = await import("./ses-sns.server");
+    const confirmed = await confirmSnsSubscription(envelope.subscribeUrl);
+    return confirmed
+      ? { status: 200, body: { ok: true, handshake: "subscription_confirmed" } }
+      : { status: 502, body: { error: "Subscription confirmation was refused." } };
+  },
+
+  normalizeWebhookPayload(payload) {
+    return sesFlattenInboundPayload(payload);
+  },
+
+  parseInboundEvent(payload) {
+    return sesInboundEvent(payload);
+  },
 
   /** Phase 9B: outbound sending through the SESv2 SendEmail API. */
   async send(creds, message) {

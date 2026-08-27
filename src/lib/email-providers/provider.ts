@@ -96,6 +96,20 @@ export type EmailProvider = {
   parseDeliveryEvent?(payload: unknown): NormalizedEmailEvent | null;
   parseTrackingEvent?(payload: unknown): NormalizedEmailEvent | null;
 
+  /**
+   * Reshapes a provider-specific webhook envelope into the flat email payload
+   * the shared inbound processor reads. Providers that already deliver that
+   * shape omit this and nothing changes for them.
+   */
+  normalizeWebhookPayload?(payload: Record<string, unknown>): Record<string, unknown> | null;
+  /**
+   * Provider handshake performed after signature verification (for example a
+   * topic subscription confirmation). Returning a result ends the delivery.
+   */
+  handleWebhookHandshake?(
+    payload: Record<string, unknown>,
+  ): Promise<{ status: number; body: unknown } | null>;
+
   /* inbound content retrieval */
   getInboundMessageContent?(
     creds: EmailProviderCredentials,

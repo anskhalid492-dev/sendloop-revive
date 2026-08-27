@@ -27,6 +27,8 @@ export type WebhookIngestResult =
       verification: { status: string; method: string; reason: string };
       inbound: InboundEmailEvent | null;
       delivery: NormalizedEmailEvent | null;
+      /** Set when the provider answered a handshake (e.g. topic confirmation). */
+      handshake?: { status: number; body: unknown } | null;
     }
   | {
       ok: false;
@@ -136,10 +138,21 @@ export async function ingestProviderWebhook(
 
   if (!parsed) return { ok: false, status: 400, provider, error: "Invalid body", verification };
 
+  // A handshake (e.g. an SNS subscription confirmation) is answered only after
+  // the signature is valid, and never reaches the inbound processor.
+  const handshake = (await provider.handleWebhookHandshake?.(parsed)) ?? null;
+  if (handshake) {
+    return { ok: true, provider, payload: parsed, verification, inbound: null, delivery: null, handshake };
+  }
+
+  // Providers whose envelope differs from the shared flat email shape reshape
+  // it here, so downstream routing/threading stays provider-independent.
+  const payload = provider.normalizeWebhookPayload?.(parsed) ?? parsed;
+
   return {
     ok: true,
     provider,
-    payload: parsed,
+    payload,
     verification,
     inbound: provider.parseInboundEvent?.(parsed) ?? null,
     delivery: provider.parseDeliveryEvent?.(parsed) ?? null,

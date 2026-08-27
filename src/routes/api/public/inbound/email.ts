@@ -70,6 +70,12 @@ export const Route = createFileRoute("/api/public/inbound/email")({
           return json({ error: ingest.error, signature }, ingest.status);
         }
 
+        // A verified provider handshake (e.g. topic subscription confirmation)
+        // is answered directly and never reaches the inbound processor.
+        if (ingest.handshake) {
+          return json(ingest.handshake.body, ingest.handshake.status);
+        }
+
         try {
           const { handleWebhookDelivery } = await import("@/lib/email-events.server");
           const { enrichInboundPayload } = await import("@/lib/email-providers/inbound-content.server");
