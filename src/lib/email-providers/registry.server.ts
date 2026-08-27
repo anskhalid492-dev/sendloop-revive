@@ -7,10 +7,12 @@
 import { birdEmailProvider } from "./bird.server";
 import type { EmailProvider } from "./provider";
 import { resendEmailProvider } from "./resend.server";
+import { sesEmailProvider } from "./ses.server";
 import { capabilities } from "./types";
 
 const registry = new Map<string, EmailProvider>([
   [resendEmailProvider.id, resendEmailProvider],
+  [sesEmailProvider.id, sesEmailProvider],
   [birdEmailProvider.id, birdEmailProvider],
 ]);
 
