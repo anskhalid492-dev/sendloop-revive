@@ -354,12 +354,41 @@ export async function sendProviderEmail(
             ...(hasHeaders ? { headers } : {}),
           }),
         });
+      case "ses": {
+        // Provider-specific behaviour lives in the SES adapter (Phase 9B).
+        const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
+        const provider = getEmailProvider("ses");
+        if (!provider.send) {
+          return { ok: false, message: "Sending is not available for this provider." };
+        }
+        const sent = await provider.send(credentials, {
+          fromName: message.fromName,
+          fromEmail: message.fromEmail,
+          replyTo: message.replyTo ?? null,
+          to: message.to,
+          ...(message.cc?.length ? { cc: message.cc } : {}),
+          ...(message.bcc?.length ? { bcc: message.bcc } : {}),
+          subject,
+          text,
+          ...(html ? { html } : {}),
+          ...(hasHeaders ? { headers } : {}),
+        });
+        const extra = sent as { requestId?: string | null; providerResponse?: string | null };
+        return {
+          ok: sent.ok,
+          message: sent.message,
+          messageId: sent.providerMessageId ?? undefined,
+          rfcMessageId: sent.rfcMessageId ?? undefined,
+          requestId: extra.requestId ?? undefined,
+          statusCode: sent.statusCode ?? undefined,
+          providerResponse: extra.providerResponse ?? undefined,
+        };
+      }
       case "smtp":
-      case "ses":
         return {
           ok: false,
           message:
-            "Sending for SMTP and Amazon SES is not available from this runtime yet. Use an HTTP API provider such as Resend.",
+            "Sending for SMTP is not available from this runtime yet. Use an HTTP API provider such as Resend.",
         };
       default:
         return { ok: false, message: "Unknown provider." };
