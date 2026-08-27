@@ -90,9 +90,13 @@ export async function buildCustomerReadiness(
     };
   });
 
-  // Customer-safe inbound pipeline health; no endpoints or signing secrets.
-  const { getInboxHealthSummary } = await import("@/lib/ops.server");
-  const inbox = await getInboxHealthSummary().catch(() => ({ receivingReady: false }));
+  // Real webhook status from the selected provider (never the stale
+  // platform-wide health cache). No endpoints or signing secrets are exposed.
+  const { getProviderWebhookReadiness } = await import("@/lib/email-providers/webhook-status.server");
+  const webhook = await getProviderWebhookReadiness(providerId).catch(() => ({
+    state: "pending" as const,
+    detail: "Reply delivery status could not be checked just now.",
+  }));
 
   return {
     domain: report.domain,
