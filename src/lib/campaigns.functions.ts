@@ -292,6 +292,8 @@ export const getCampaign = createServerFn({ method: "GET" })
         complained: withTimestamp("complained_at"),
         unsubscribed: withTimestamp("unsubscribed_at") || countBy("unsubscribed"),
         failed: failedMessages,
+        scheduled: messages.filter((m) => m["status"] === "scheduled" && !m["sent_at"]).length,
+        cancelled: messages.filter((m) => m["status"] === "cancelled").length,
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
