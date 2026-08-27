@@ -31,6 +31,7 @@ export * from "./inbound";
 export const EMAIL_PROVIDER_CAPABILITIES = [
   "sending",
   "inbound",
+  "inbound_content",
   "delivery_tracking",
   "open_tracking",
   "click_tracking",
