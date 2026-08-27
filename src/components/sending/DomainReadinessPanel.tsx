@@ -228,16 +228,22 @@ export function DomainReadinessPanel({ domainId }: { domainId: string }) {
       ) : null}
 
       <div className="overflow-hidden rounded-md border border-border/70">
-        <div className="flex items-center gap-2 border-b border-border/70 bg-muted/40 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/70 bg-muted/40 px-3 py-2">
           <p className="text-sm font-semibold">Required DNS records</p>
           <Badge variant="outline" className="text-[11px]">
             MX: {MX_STATE_LABEL[readiness.dns.state]}
           </Badge>
+          {readiness.dns.state !== "correct" ? (
+            <p className="w-full text-xs text-muted-foreground">
+              Verifying MX records can take a few hours.
+            </p>
+          ) : null}
         </div>
         <p className="border-b border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
           Add this MX record to the root of your domain (host <code>@</code>). Do not add it to your
           sending or tracking subdomain.
         </p>
+
         {readiness.dns.records.length === 0 ? (
           <p className="p-3 text-sm text-muted-foreground">
             No DNS records have been issued for this domain yet.
