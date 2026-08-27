@@ -613,11 +613,6 @@ export async function dispatchDueMessages(
     return result;
   }
 
-  // Self-heal: a message that was accepted by the provider but whose terminal
-  // update was interrupted stays in `processing` and is missing from campaign
-  // statistics. When the outbound registry proves the send was accepted, the
-  // row is completed from that record — no resend, no double counting.
-  await completeAcceptedProcessingMessages(supabase, options.campaignId, now);
 
   let query = supabase
     .from("campaign_messages")
