@@ -52,20 +52,20 @@ describe("SES adapter registration", () => {
 });
 
 describe("SES capabilities", () => {
-  it("declares domain + dns support only in this phase", () => {
+  it("declares domain, dns, sending and inbound support", () => {
     const caps = sesEmailProvider.capabilities;
     expect(caps.domain_api).toBe(true);
     expect(caps.dns_api).toBe(true);
     expect(caps.sending).toBe(true);
-    expect(caps.inbound).toBe(false);
-    expect(caps.webhooks).toBe(false);
+    expect(caps.inbound).toBe(true);
+    expect(caps.webhooks).toBe(true);
     expect(caps.delivery_tracking).toBe(false);
-    expect(sesEmailProvider.inboundSetupMode).toBe("unsupported");
+    expect(sesEmailProvider.inboundSetupMode).toBe("dns_only");
   });
 
-  it("implements sending but not inbound processing", () => {
+  it("implements sending and inbound processing", () => {
     expect(typeof sesEmailProvider.send).toBe("function");
-    expect(sesEmailProvider.parseInboundEvent).toBeUndefined();
+    expect(typeof sesEmailProvider.parseInboundEvent).toBe("function");
   });
 });
 
