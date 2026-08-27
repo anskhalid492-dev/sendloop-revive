@@ -40,6 +40,7 @@ import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubprocessorsRouteImport } from './routes/subprocessors'
+import { Route as SupportedDomainProvidersRouteImport } from './routes/supported-domain-providers'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
@@ -314,6 +315,12 @@ const SubprocessorsRoute = SubprocessorsRouteImport.update({
   path: '/subprocessors',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportedDomainProvidersRoute =
+  SupportedDomainProvidersRouteImport.update({
+    id: '/supported-domain-providers',
+    path: '/supported-domain-providers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -1002,6 +1009,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subprocessors': typeof SubprocessorsRoute
+  '/supported-domain-providers': typeof SupportedDomainProvidersRoute
   '/terms': typeof TermsRoute
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -1152,6 +1160,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subprocessors': typeof SubprocessorsRoute
+  '/supported-domain-providers': typeof SupportedDomainProvidersRoute
   '/terms': typeof TermsRoute
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -1304,6 +1313,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subprocessors': typeof SubprocessorsRoute
+  '/supported-domain-providers': typeof SupportedDomainProvidersRoute
   '/terms': typeof TermsRoute
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -1457,6 +1467,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/subprocessors'
+    | '/supported-domain-providers'
     | '/terms'
     | '/user-guide'
     | '/verify-email'
@@ -1607,6 +1618,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/subprocessors'
+    | '/supported-domain-providers'
     | '/terms'
     | '/user-guide'
     | '/verify-email'
@@ -1758,6 +1770,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/subprocessors'
+    | '/supported-domain-providers'
     | '/terms'
     | '/user-guide'
     | '/verify-email'
@@ -1911,6 +1924,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubprocessorsRoute: typeof SubprocessorsRoute
+  SupportedDomainProvidersRoute: typeof SupportedDomainProvidersRoute
   TermsRoute: typeof TermsRoute
   UserGuideRoute: typeof UserGuideRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
@@ -2175,6 +2189,13 @@ declare module '@tanstack/react-router' {
       path: '/subprocessors'
       fullPath: '/subprocessors'
       preLoaderRoute: typeof SubprocessorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supported-domain-providers': {
+      id: '/supported-domain-providers'
+      path: '/supported-domain-providers'
+      fullPath: '/supported-domain-providers'
+      preLoaderRoute: typeof SupportedDomainProvidersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -3254,6 +3275,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubprocessorsRoute: SubprocessorsRoute,
+  SupportedDomainProvidersRoute: SupportedDomainProvidersRoute,
   TermsRoute: TermsRoute,
   UserGuideRoute: UserGuideRoute,
   VerifyEmailRoute: VerifyEmailRoute,
