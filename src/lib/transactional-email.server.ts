@@ -11,7 +11,7 @@
  * never see provider names.
  */
 import { registerOutboundMessage } from "@/lib/message-classification.server";
-import { systemSenderFor, systemSender } from "@/lib/system-email-senders";
+import { SYSTEM_SENDERS, systemSenderFor, systemSender } from "@/lib/system-email-senders";
 import { DEFAULT_TEMPLATES, defaultTemplate } from "@/lib/transactional/catalog";
 import { htmlToText } from "@/lib/transactional/layout";
 import {
