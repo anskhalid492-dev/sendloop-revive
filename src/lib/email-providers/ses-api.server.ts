@@ -175,6 +175,22 @@ export async function refreshSesDkim(
   });
 }
 
+/**
+ * Configures a custom MAIL FROM domain. Optional: it is never a prerequisite
+ * for basic identity verification, and MX failure falls back to the SES
+ * default so sending can never break while DNS propagates.
+ */
+export async function putSesMailFromAttributes(
+  domain: string,
+  mailFromDomain: string,
+  creds?: Record<string, string> | null,
+): Promise<SesResponse<SesIdentity>> {
+  return sesRequest<SesIdentity>(creds, "PUT", `${identityPath(domain)}/mail-from`, {
+    MailFromDomain: mailFromDomain.toLowerCase(),
+    BehaviorOnMxFailure: "USE_DEFAULT_VALUE",
+  });
+}
+
 export async function getSesAccount(
   creds?: Record<string, string> | null,
 ): Promise<SesResponse<SesAccount>> {

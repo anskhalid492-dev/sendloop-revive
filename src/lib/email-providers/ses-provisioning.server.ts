@@ -30,7 +30,8 @@ import {
 } from "./ses-api.server";
 import { mapSesIdentityState, sesDnsRequirements } from "./ses.server";
 import type { EmailProviderCredentials } from "./types";
-import type { ProviderDnsRecord, ProviderDomainSetup, ProviderDomainState } from "./types";
+import type { ProviderDnsRecord, ProviderDomainState } from "./types";
+import type { ProviderDomainSetup } from "@/lib/domain-providers/types";
 
 /* ------------------------------------------------------------------ *
  * Customer-safe error mapping
