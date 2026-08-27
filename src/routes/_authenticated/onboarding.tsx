@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { SETUP_STEPS } from "@/lib/setup-journey";
+import { toIsoDate } from "@/lib/birthday-gift";
 
 import {
   GOALS,
@@ -103,6 +104,13 @@ function OnboardingPage() {
   const [persona, setPersona] = useState<string | null>(null);
   const [teamSize, setTeamSize] = useState<string | null>(null);
   const [goal, setGoal] = useState<string | null>(null);
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+
+  const birthdayIso = toIsoDate(birthMonth, birthDay, birthYear);
+  const birthdayIncomplete =
+    Boolean(birthMonth || birthDay || birthYear) && !birthdayIso;
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -114,6 +122,7 @@ function OnboardingPage() {
           persona,
           teamSize,
           goal,
+          birthday: birthdayIso,
         },
       }),
     onSuccess: async () => {
@@ -285,6 +294,43 @@ function OnboardingPage() {
                 <div className="space-y-2">
                   <Label>How many people are on your team?</Label>
                   <OptionGrid options={TEAM_SIZES} value={teamSize} onChange={setTeamSize} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="birth-month">
+                    Birthday <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input
+                      id="birth-month"
+                      inputMode="numeric"
+                      maxLength={2}
+                      placeholder="MM"
+                      aria-label="Birth month"
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                    />
+                    <Input
+                      inputMode="numeric"
+                      maxLength={2}
+                      placeholder="DD"
+                      aria-label="Birth day"
+                      value={birthDay}
+                      onChange={(e) => setBirthDay(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                    />
+                    <Input
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="YYYY"
+                      aria-label="Birth year"
+                      value={birthYear}
+                      onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    />
+                  </div>
+                  <p className={cn("text-xs", birthdayIncomplete ? "text-destructive" : "text-muted-foreground")}>
+                    {birthdayIncomplete
+                      ? "Enter a valid date as MM / DD / YYYY, or leave all three empty."
+                      : "We send you a birthday gift — 1 month free on your plan. 🎁"}
+                  </p>
                 </div>
               </div>
 
