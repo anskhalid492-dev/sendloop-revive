@@ -119,10 +119,12 @@ export async function buildCustomerReadiness(
       records,
     },
     webhook: {
-      connected: inbox.receivingReady,
-      detail: inbox.receivingReady
-        ? "Replies are delivered to MunchReach automatically."
-        : "Reply delivery needs attention. We are working on it — no action is required from you.",
+      connected: webhook.state === "ok",
+      state: webhook.state,
+      detail:
+        webhook.state === "ok"
+          ? "Replies are delivered to MunchReach automatically."
+          : scrub(webhook.detail),
     },
     checkedAt: report.checkedAt,
   };
