@@ -100,6 +100,9 @@ export async function loadManagedProviderCredentials(
 export function platformKeyFor(provider: string): string | null {
   const map: Record<string, string | undefined> = {
     resend: process.env["RESEND_API_KEY"],
+    // SES authenticates with an access-key pair; the secret + region are read
+    // server-side by the SES adapter from AWS_SES_* environment secrets.
+    ses: process.env["AWS_SES_ACCESS_KEY_ID"],
     sendgrid: process.env["SENDGRID_API_KEY"],
     postmark: process.env["POSTMARK_API_KEY"],
     mailgun: process.env["MAILGUN_API_KEY"],
