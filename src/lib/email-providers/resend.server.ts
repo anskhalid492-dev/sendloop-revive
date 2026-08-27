@@ -150,6 +150,10 @@ export const resendEmailProvider: EmailProvider = {
     return getResendRfcMessageId(providerMessageId, creds);
   },
 
+  async getInboundMessageContent(creds, providerMessageId) {
+    return getResendReceivedEmail(providerMessageId, creds);
+  },
+
   async getInboundStatus(creds, domain) {
     return inboundStatus(creds, domain);
   },
