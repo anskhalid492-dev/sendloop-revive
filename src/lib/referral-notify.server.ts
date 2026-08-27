@@ -17,8 +17,10 @@ import {
   type ReferralTemplateMap,
 } from "@/lib/referral-templates";
 
-const FROM = "MunchReach <support@munchreach.com>";
-const REPLY_TO = "support@munchreach.com";
+// Referral milestones are product notifications — sender comes from the
+// centralized system sender mapping, never a hardcoded address.
+const FROM = systemFromHeader("notifications");
+const REPLY_TO = systemSender("notifications").replyTo;
 
 export type ReferralNotificationKind =
   | "referral_attributed"
