@@ -527,8 +527,37 @@ export async function scheduleFollowUps(
   return { scheduled: inserts.length, completed: finished.length };
 }
 
+/**
+ * Writes the terminal `sent` state after provider acceptance.
+ *
+ * Some deployments predate the optional `message_id` (RFC id) column on
+ * `campaign_messages`. Postgres rejects the whole UPDATE with 42703 in that
+ * case, which used to leave an accepted message stuck in `processing` and
+ * missing from campaign statistics. The patch is retried without the optional
+ * column so acceptance is always recorded immediately.
+ */
+export async function applySentPatch(
+  supabase: AnySupabase,
+  messageId: string,
+  patch: Record<string, unknown>,
+): Promise<boolean> {
+  const { error } = await supabase.from("campaign_messages").update(patch).eq("id", messageId);
+  if (!error) return true;
+  const optional = ["message_id", "message_type"];
+  const missing = optional.filter((column) =>
+    `${error.message ?? ""}`.includes(`campaign_messages.${column}`) ||
+    (`${error.message ?? ""}`.includes(column) && `${(error as { code?: string }).code ?? ""}` === "42703"),
+  );
+  if (!missing.length) return false;
+  const reduced: Record<string, unknown> = { ...patch };
+  for (const column of optional) delete reduced[column];
+  const retry = await supabase.from("campaign_messages").update(reduced).eq("id", messageId);
+  return !retry.error;
+}
+
 /** Send every due message of a campaign through its mailbox provider. */
 export async function dispatchDueMessages(
+
   supabase: AnySupabase,
   options: { campaignId: string; limit?: number; force?: boolean },
 ): Promise<DispatchResult> {
