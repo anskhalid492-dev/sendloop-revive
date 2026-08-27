@@ -94,6 +94,52 @@ describe("SES successful send", () => {
   });
 });
 
+describe("Message-ID header stripping (SES rejects it)", () => {
+  it("sends successfully when the original email carries a Message-ID header", async () => {
+    mockQuotaThenSend(mockJson(200, { MessageId: "ses-own-id" }));
+    const result = await sendSesEmail(CREDS, {
+      ...MESSAGE,
+      headers: { "Message-ID": "<internal-123@munchreach.local>", "X-Campaign": "c1" },
+    });
+    expect(result.ok).toBe(true);
+    // SES generates its own ID, which becomes providerMessageId
+    expect(result.providerMessageId).toBe("ses-own-id");
+  });
+
+  it("strips Message-ID case-insensitively from the SES API request", async () => {
+    mockQuotaThenSend(mockJson(200, { MessageId: "m1" }));
+    await sendSesEmail(CREDS, {
+      ...MESSAGE,
+      headers: {
+        "Message-ID": "<a@x>",
+        "message-id": "<b@x>",
+        "MESSAGE-ID": "<c@x>",
+        "MeSsAgE-Id": "<d@x>",
+        "X-Custom": "kept",
+      },
+    });
+    const simple = (sendBody()["Content"] as { Simple: { Headers?: { Name: string; Value: string }[] } }).Simple;
+    const names = (simple.Headers ?? []).map((h) => h.Name.toLowerCase());
+    expect(names).not.toContain("message-id");
+    // other custom headers remain unchanged
+    expect(simple.Headers).toContainEqual({ Name: "X-Custom", Value: "kept" });
+  });
+
+  it("omits Headers entirely when Message-ID was the only one", async () => {
+    mockQuotaThenSend(mockJson(200, { MessageId: "m1" }));
+    await sendSesEmail(CREDS, { ...MESSAGE, headers: { "Message-ID": "<only@x>" } });
+    const simple = (sendBody()["Content"] as { Simple: Record<string, unknown> }).Simple;
+    expect(simple["Headers"]).toBeUndefined();
+  });
+
+  it("a Message-ID send is a single request, never retried/resplit", async () => {
+    mockQuotaThenSend(mockJson(200, { MessageId: "m1" }));
+    await sendSesEmail(CREDS, { ...MESSAGE, headers: { "Message-ID": "<once@x>" } });
+    const sends = fetchMock.mock.calls.filter((c) => String(c[0]).includes("outbound-emails"));
+    expect(sends).toHaveLength(1);
+  });
+});
+
 describe("SES failures", () => {
   it("fails cleanly on an SES API error and never reports success", async () => {
     mockQuotaThenSend(mockJson(400, { message: "Email address not verified" }));
