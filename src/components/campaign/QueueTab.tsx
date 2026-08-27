@@ -194,8 +194,8 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {MESSAGE_STATUSES.map((s) => (
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        {([...MESSAGE_STATUSES, "bounced"] as const).map((s) => (
           <button
             key={s}
             type="button"
