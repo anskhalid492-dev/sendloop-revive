@@ -59,7 +59,7 @@ describe("SES capabilities", () => {
     expect(caps.sending).toBe(true);
     expect(caps.inbound).toBe(true);
     expect(caps.webhooks).toBe(true);
-    expect(caps.delivery_tracking).toBe(false);
+    expect(caps.delivery_tracking).toBe(true);
     expect(sesEmailProvider.inboundSetupMode).toBe("dns_only");
   });
 
