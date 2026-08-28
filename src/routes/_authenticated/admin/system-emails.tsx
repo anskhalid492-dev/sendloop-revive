@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { Eye, History, Loader2, Mail, RotateCcw, Save, Search, Send, Undo2 } from "lucide-react";
+import { Eye, History, Loader2, Mail, Pencil, RotateCcw, Save, Search, Send, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,7 @@ import {
   setTransactionalTemplateEnabled,
   updateTransactionalSettings,
 } from "@/lib/transactional-email.functions";
-import { listSystemSenderIdentities } from "@/lib/transactional-email.functions";
+import { listSystemSenderIdentities, updateSystemSenderIdentity } from "@/lib/transactional-email.functions";
 import { isRequiredSystemEmail } from "@/lib/transactional/policy";
 import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
@@ -178,6 +178,28 @@ function SystemEmailsPage() {
   const sendersQuery = useQuery({ queryKey: ["admin", "system-senders"], queryFn: () => fetchSenders() });
   const senders = sendersQuery.data?.identities ?? [];
   const provider = sendersQuery.data?.provider ?? null;
+  const providerOptions = sendersQuery.data?.providerOptions ?? [];
+  const [senderEdit, setSenderEdit] = useState<{
+    purpose: string;
+    email: string;
+    name: string;
+    replyTo: string;
+    provider: "auto" | "managed" | "ses";
+    active: boolean;
+  } | null>(null);
+  const saveSender = useServerFn(updateSystemSenderIdentity);
+  const senderMutation = useMutation({
+    mutationFn: (input: NonNullable<typeof senderEdit>) =>
+      saveSender({ data: { ...input, purpose: input.purpose as never } }),
+    onSuccess: () => {
+      toast.success("Sender identity updated");
+      setSenderEdit(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "system-senders"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "system-emails"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Could not update sender identity"),
+  });
 
   const listQuery = useQuery({ queryKey: ["admin", "system-emails"], queryFn: () => fetchList({}) });
 
@@ -600,6 +622,13 @@ function SystemEmailsPage() {
                 MunchReach system sender addresses and their provider verification state. Credentials and keys are
                 never shown here. When Amazon SES is enabled, only verified identities can be selected on a template.
               </CardDescription>
+              {provider ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Active provider:</span>
+                  <Badge variant={provider.available ? "default" : "secondary"}>{provider.label}</Badge>
+                  <span className="text-xs text-muted-foreground">{provider.detail}</span>
+                </div>
+              ) : null}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -612,6 +641,7 @@ function SystemEmailsPage() {
                       <th className="px-4 py-2">Verification</th>
                       <th className="px-4 py-2">Region</th>
                       <th className="px-4 py-2">Status</th>
+                      <th className="px-4 py-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -619,7 +649,12 @@ function SystemEmailsPage() {
                       <tr key={sender.email} className="border-b last:border-0">
                         <td className="px-4 py-2 font-medium">{sender.email}</td>
                         <td className="px-4 py-2">{sender.name}</td>
-                        <td className="px-4 py-2">{sender.provider}</td>
+                        <td className="px-4 py-2">
+                          {sender.provider}
+                          {sender.providerPreference !== "auto" ? (
+                            <span className="ml-1 text-xs text-muted-foreground">(pinned)</span>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-2">
                           <Badge variant={sender.verification === "Verified" ? "default" : "secondary"}>
                             {sender.verification}
@@ -627,15 +662,33 @@ function SystemEmailsPage() {
                         </td>
                         <td className="px-4 py-2 text-muted-foreground">{sender.region}</td>
                         <td className="px-4 py-2">
-                          <Badge variant={sender.selectable ? "outline" : "secondary"}>
-                            {sender.selectable ? "Active" : "Not selectable"}
+                          <Badge variant={sender.active ? (sender.selectable ? "outline" : "secondary") : "secondary"}>
+                            {sender.active ? (sender.selectable ? "Active" : "Not selectable") : "Inactive"}
                           </Badge>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setSenderEdit({
+                                purpose: sender.purpose,
+                                email: sender.email,
+                                name: sender.name,
+                                replyTo: sender.replyTo,
+                                provider: sender.providerPreference as "auto" | "managed" | "ses",
+                                active: sender.active,
+                              })
+                            }
+                          >
+                            <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+                          </Button>
                         </td>
                       </tr>
                     ))}
                     {senders.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                        <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
                           {sendersQuery.isLoading ? "Loading sender identities…" : "No sender identities."}
                         </td>
                       </tr>
@@ -873,6 +926,88 @@ function SystemEmailsPage() {
               </p>
             ) : null}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!senderEdit} onOpenChange={(open) => (open ? null : setSenderEdit(null))}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit sender identity</DialogTitle>
+            <DialogDescription>
+              Changes apply to every MunchReach system email that uses this identity. Templates and sending
+              logic are unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          {senderEdit ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Email address</Label>
+                <Input
+                  value={senderEdit.email}
+                  onChange={(e) => setSenderEdit({ ...senderEdit, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Display name</Label>
+                <Input
+                  value={senderEdit.name}
+                  onChange={(e) => setSenderEdit({ ...senderEdit, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Reply-To</Label>
+                <Input
+                  value={senderEdit.replyTo}
+                  onChange={(e) => setSenderEdit({ ...senderEdit, replyTo: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Provider</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={senderEdit.provider}
+                  onChange={(e) =>
+                    setSenderEdit({ ...senderEdit, provider: e.target.value as "auto" | "managed" | "ses" })
+                  }
+                >
+                  {providerOptions.map((option) => (
+                    <option key={option.value} value={option.value} disabled={!option.available}>
+                      {option.label}
+                      {option.available ? "" : " — not available"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Active</p>
+                  <p className="text-xs text-muted-foreground">
+                    Inactive identities cannot be selected on a template.
+                  </p>
+                </div>
+                <Switch
+                  checked={senderEdit.active}
+                  onCheckedChange={(checked) => setSenderEdit({ ...senderEdit, active: checked })}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setSenderEdit(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => senderMutation.mutate(senderEdit)}
+                  disabled={senderMutation.isPending}
+                >
+                  {senderMutation.isPending ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-1 h-4 w-4" />
+                  )}
+                  Save identity
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
