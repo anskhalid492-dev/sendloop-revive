@@ -116,9 +116,9 @@ const workflowSteps = [
  * steps sit horizontally; on mobile the steps stack with no line.
  */
 function WorkflowSection() {
-  const [active, setActive] = React.useState(0);
+  const [active, setActive] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (media.matches) return;
     const id = window.setInterval(() => {
