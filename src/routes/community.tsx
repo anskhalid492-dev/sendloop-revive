@@ -213,11 +213,20 @@ function CommunityPage() {
             <Users className="size-3.5 text-primary" /> MunchReach Community
           </span>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
-            Outbound is easier <span className="text-primary">with other people in the room</span>
+            <span className="hidden sm:block">
+              Share Your Wins. Learn From Others.
+              <br />
+              Grow Your Outbound With the <span className="text-primary">MunchReach Community</span>.
+            </span>
+            <span className="sm:hidden">
+              Share Your Wins. Learn From Others. Grow Your Outbound With the{" "}
+              <span className="text-primary">MunchReach Community</span>.
+            </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Swap campaigns that worked, get your copy torn apart before you send it, fix
-            deliverability faster, and post the wins you'd otherwise celebrate alone.
+            Join founders, sales teams, and outbound professionals sharing campaigns, lessons,
+            replies, experiments, and real results. Learn what is working, share what worked for
+            you, and help others improve.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <JoinButton placement="hero" />
@@ -234,8 +243,8 @@ function CommunityPage() {
       </section>
 
       <Section
-        title="What you get inside"
-        description="No drip-fed course, no gated PDF. Just operators comparing notes on what is landing in inboxes right now."
+        title="What is the MunchReach Community?"
+        description="A free, members-only Facebook Community where people who send outbound for a living compare real numbers, real copy and real fixes — not recycled theory."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {benefits.map((item) => (
