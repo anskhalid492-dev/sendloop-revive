@@ -93,6 +93,76 @@ const postIdeas = [
   "A question you're stuck on right now",
 ];
 
+const steps = [
+  {
+    title: "Join the group",
+    text: "One click, free, no application form. You're in the feed straight away.",
+  },
+  {
+    title: "Introduce your motion",
+    text: "Who you sell to, what you send and where you're stuck. Members answer faster when they know the context.",
+  },
+  {
+    title: "Give before you ask",
+    text: "Comment on one campaign teardown a week. The people who help get helped first.",
+  },
+];
+
+const audiences = [
+  {
+    icon: Rocket,
+    title: "Founders doing their own outbound",
+    text: "You're the SDR, the copywriter and the closer. Skip the trial-and-error and copy what already works.",
+  },
+  {
+    icon: Users,
+    title: "SDR and sales teams",
+    text: "Compare sequences, quotas and reply rates with teams running the same playbooks at your scale.",
+  },
+  {
+    icon: Handshake,
+    title: "Agencies and consultants",
+    text: "Trade lead sources, subcontract overflow work and benchmark client results without leaking client names.",
+  },
+];
+
+const postTypes = [
+  { title: "Campaign teardowns", text: "Drop the sequence, the list and the numbers. Get line-by-line feedback." },
+  { title: "Wins and screenshots", text: "Booked meetings, closed deals, reply-rate jumps — with the detail that made it happen." },
+  { title: "Deliverability SOS", text: "Bounce spikes, spam placement, DNS and warmup questions answered by people who've fixed them." },
+  { title: "List and data sources", text: "Where members find accurate B2B contacts, and which providers are worth the spend." },
+  { title: "Offer and positioning help", text: "The offer beats the copy every time. Pressure-test yours before you send 1,000 emails." },
+  { title: "Tooling and MunchReach tips", text: "AI personalization prompts, warmup settings, sending schedules and roadmap requests." },
+];
+
+const houseRules = [
+  "Be specific — numbers, screenshots and context beat opinions.",
+  "No pitching in the feed. Take offers to DMs when someone asks.",
+  "Never post scraped lists, client names or anyone's personal data.",
+  "Disagree with the tactic, not the person.",
+  "If someone helps you, come back and post the result.",
+];
+
+const faqs = [
+  {
+    q: "Is it free?",
+    a: "Yes. The community is free and open to anyone doing outbound — you don't need a MunchReach subscription to join.",
+  },
+  {
+    q: "Where is it hosted?",
+    a: "It runs on an external group so conversations, notifications and search all work on a platform you already use daily.",
+  },
+  {
+    q: "Do I have to post?",
+    a: "No. Plenty of members read for weeks first. When you're ready, a single question is a perfectly good first post.",
+  },
+  {
+    q: "Can I share client results?",
+    a: "Absolutely — just anonymise the client and never post contact data or lists that aren't yours to share.",
+  },
+];
+
+
 function CommunityPage() {
   const content = useSiteContent();
   const config = content?.community ?? DEFAULT_COMMUNITY;
