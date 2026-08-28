@@ -176,18 +176,12 @@ const [
       .from("sending_domains")
       .select("id, domain, stage, dns_status, verified_at, ready_at")
       .eq("workspace_id", workspaceId),
-    supabase
+supabase
       .from("conversations")
       .select("id, unread, archived")
       .eq("workspace_id", workspaceId)
       .eq("unread", true)
       .eq("archived", false),
-    supabase
-      .from("warmup_events")
-      .select("id, type, detail, occurred_at, sending_account_id")
-      .eq("workspace_id", workspaceId)
-      .order("occurred_at", { ascending: false })
-      .limit(15),
   ]);
 
   const campaignRows: Row[] = campaignsRes.data ?? [];
