@@ -94,8 +94,11 @@ function WarmupPage() {
   const toggleMutation = useMutation({
     mutationFn: (vars: { accountId: string; enabled: boolean }) =>
       saveFn({ data: { accountId: vars.accountId, enabled: vars.enabled, resume: vars.enabled } }),
-    onSuccess: async (_r, vars) => {
-      toast.success(vars.enabled ? "Warmup started" : "Warmup stopped");
+    onSuccess: async (result: { blocked?: boolean; message?: string }, vars) => {
+      // Resume never overrides an active safety block — say so plainly instead
+      // of flipping the mailbox back to blocked a moment later.
+      if (result?.blocked) toast.error(result.message ?? "Resume is blocked by safety protection.");
+      else toast.success(vars.enabled ? "Warmup started" : "Warmup stopped");
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
