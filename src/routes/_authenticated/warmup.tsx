@@ -352,9 +352,6 @@ function WarmupPage() {
           </div>
         )}
 
-        <WarmupAnalytics />
-
-        <WarmupTimeline />
 
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Activity className="size-3.5" />
