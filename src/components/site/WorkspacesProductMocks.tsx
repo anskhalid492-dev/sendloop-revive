@@ -30,7 +30,13 @@ function Avatar({ initials }: { initials: string }) {
   );
 }
 
-function WorkspaceMark({ initials, active }: { initials: string; active?: boolean }) {
+function WorkspaceMark({
+  initials,
+  active,
+}: {
+  initials: string;
+  active?: boolean | undefined;
+}) {
   return (
     <span
       className={cn(
