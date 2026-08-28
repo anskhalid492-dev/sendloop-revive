@@ -1,375 +1,254 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Layers,
-  Split,
-  Clock,
-  Beaker,
-  Shuffle,
-  ShieldCheck,
-  AlertTriangle,
-  ListX,
-  Repeat2,
-  Gauge,
-  Sparkles,
-  BarChart3,
-  Inbox,
-  Copy,
-  PauseCircle,
-  Rocket,
-} from "lucide-react";
+import { Layers, Repeat2, BarChart3 } from "lucide-react";
 
 import {
-  BulletList,
   CtaBlock,
+  FeatureGrid,
   MarketingLayout,
-  MockBars,
-  MockPanel,
-  MockRows,
   PageHero,
-  PainPoints,
-  BeforeAfter,
-  UseCaseGrid,
   Section,
-  Walkthrough,
-  DocSection,
-  metaFor,
-  BigPreview,
-  FeatureBento,
+  UseCaseGrid,
   WorkflowStrip,
+  metaFor,
 } from "@/components/site/MarketingPage";
+import {
+  AfterLaunchStrip,
+  AiPersonalizationMock,
+  AnalyticsMock,
+  CampaignBuilderMock,
+  Callouts,
+  DayTimeline,
+  FailureRouting,
+  InboxMock,
+  LaunchProcess,
+  MailboxMock,
+  ScheduleMock,
+  SequenceMock,
+} from "@/components/site/CampaignsProductMocks";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
-  { q: "How many steps can a sequence have?", a: "As many as you need. Most teams see the best results with three to five steps spread over two weeks, mixing an intro, value follow-ups and a breakup email." },
-  { q: "Do follow-ups stop when someone replies?", a: "Yes. A reply, bounce or unsubscribe stops the sequence for that lead instantly, and you can add your own stop conditions on top." },
-  { q: "What is the campaign sending limit?", a: "It is the total number of emails one campaign may ever send, follow-ups included. The campaign stops itself automatically the moment it reaches that number." },
-  { q: "What is the daily limit and how do I change it?", a: "It is the maximum a campaign may send in a single day. Every campaign row has a gauge icon that opens the daily limit so you can adjust it without opening the full campaign." },
-  { q: "Which limit wins if they conflict?", a: "Always the lowest one: the campaign's daily limit, its total limit, your monthly plan allowance and the combined capacity of the mailboxes assigned to it." },
-  { q: "Can I rotate multiple mailboxes in one campaign?", a: "Yes. Assign several sending accounts and MunchReach distributes volume across them based on the weights and per-mailbox caps you set, with automatic failover if one is paused." },
-  { q: "Can I personalize every email with AI?", a: "Yes. Add your own OpenAI key in the campaign's AI tab and insert the AI personalization variable into any step. A safe fallback line is used whenever source data is missing." },
-  { q: "What happens on a bounce?", a: "A hard bounce stops that lead's sequence, marks the address invalid workspace-wide so no other campaign contacts it, and is excluded from your reply-rate calculations." },
-  { q: "What are the campaign states I'll see?", a: "Draft, Running, Daily quota reached, Waiting for next run and Completed. Each state is visible on the campaigns table so you always know why a campaign is or isn't sending." },
-  { q: "Does a failed send retry automatically?", a: "Yes. Temporary delivery failures are retried automatically with backoff before being marked failed, so a brief mailbox or network hiccup doesn't cost you a lead." },
+  {
+    q: "How does campaign scheduling work?",
+    a: "You set a sending window, a timezone and the days of the week a campaign may send. Sending only happens inside that window, and the next run is calculated from the schedule itself — not from when the previous run finished.",
+  },
+  {
+    q: "What happens when my daily sending limit is reached?",
+    a: "The campaign stops sending for the day and the remaining messages stay queued. It is marked as having reached today's quota and waits for the next eligible sending window — it is not marked completed just because the day's quota is full.",
+  },
+  {
+    q: "Can I use multiple sending accounts?",
+    a: "Yes. Assign as many connected mailboxes as you want to a campaign. Sending is distributed across the accounts that are available, respecting each mailbox's own capacity and safety state; if one mailbox is full or paused, the others keep sending.",
+  },
+  {
+    q: "What happens when an email fails?",
+    a: "Temporary failures such as provider errors, rate limits or capacity issues stay eligible and are retried on the next run. Permanent failures are not retried, a permanently undeliverable address is suppressed, and failed attempts do not consume the successful daily quota.",
+  },
+  {
+    q: "How does AI personalization work?",
+    a: "You turn it on for a step, pick a tone, write your instructions and insert the {{ai_personalization}} variable in the email body. A personalized line is generated per lead from that lead's record and is resolved before the email is sent; leads with missing data fall back to a safe line.",
+  },
+  {
+    q: "Where do campaign replies go?",
+    a: "Replies are threaded into the Unified Inbox with the prospect, campaign, sending account and lead record attached, so you can respond from one place instead of checking each mailbox. A reply also stops further follow-up steps for that lead.",
+  },
 ];
 
 export const Route = createFileRoute("/product/campaigns")({
   head: () =>
     metaFor(
-      "Cold Email Campaigns That Convert | MunchReach",
-      "Build multi-step cold email campaigns with follow-ups, mailbox rotation, AI personalization, send limits and live analytics — all in one workspace.",
+      "Cold Email Campaigns — Sequences, Sending & Follow-ups | MunchReach",
+      "Build a sequence, add leads, choose sending accounts and set a schedule. MunchReach runs the queue across days, handles follow-ups, retries and reply tracking.",
       "/product/campaigns",
       faqs,
     ),
   component: Page,
 });
 
-const painPoints = [
-  { icon: ListX, title: "Spreadsheet chaos", text: "Tracking who got which email across tabs falls apart fast, and leads get emailed twice." },
-  { icon: AlertTriangle, title: "One mailbox, one ceiling", text: "A single account throttles volume and risks your whole domain reputation." },
-  { icon: Repeat2, title: "No control over volume", text: "Without real limits, one campaign can burn a month's sending allowance fast." },
+const builderCallouts = [
+  { n: 1, text: "Campaign setup — name, workspace and status in one header." },
+  { n: 2, text: "Lead list attached to the campaign, deduplicated and suppression-checked." },
+  { n: 3, text: "Email sequence with the initial email and every follow-up step." },
+  { n: 4, text: "Sending accounts assigned to this campaign." },
+  { n: 5, text: "Schedule: sending window, timezone and sending days." },
+  { n: 6, text: "Daily sending limit, with today's progress against it." },
+  { n: 7, text: "Live campaign status and tracking options." },
 ];
 
-const walkthroughSteps = [
+const launchSteps = [
+  { n: "01", title: "Add Leads", text: "Import a list or pull existing leads into the campaign." },
+  { n: "02", title: "Build Your Sequence", text: "Write the first email and chain the follow-ups." },
+  { n: "03", title: "Choose Sending Accounts", text: "Assign the mailboxes this campaign may send from." },
+  { n: "04", title: "Set Schedule & Limits", text: "Pick the window, timezone, days and daily limit." },
+  { n: "05", title: "Launch Campaign", text: "The campaign starts on the next eligible window." },
+];
+
+const whyCards = [
   {
-    title: "Build the sequence",
-    youDo: "Drag steps onto a timeline and set the delay between each — minutes, hours or days.",
-    weHandle: "Conditional branching based on opens, clicks, replies or no activity, plus spintax and variable rendering per lead.",
-    youGet: "A visual map of the exact journey every prospect will follow.",
-    visual: (
-      <MockPanel title="Q4 Outbound — SaaS Founders">
-        <MockRows
-          rows={[
-            { left: "Step 1 · Intro email", right: "Day 0", badge: "Sent" },
-            { left: "Step 2 · Value follow-up", right: "Day 3", badge: "Sent" },
-            { left: "Step 3 · Case study (opened branch)", right: "Day 6", badge: "Queued" },
-            { left: "Step 4 · Breakup email", right: "Day 11", badge: "Scheduled" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    icon: Layers,
+    title: "Build Once",
+    text: "Create the sequence, personalization, schedule and sending rules in one campaign.",
   },
   {
-    title: "Personalize every message",
-    youDo: "Insert variables like {{firstName}} or {{company}}, add spintax, and drop in an AI personalization variable where you want a written-for-them opening line.",
-    weHandle: "AI generates that line per lead using your own OpenAI key and falls back to a safe default sentence whenever source data is missing.",
-    youGet: "Emails that read as written by a person, at send volume no person could type.",
-    visual: (
-      <MockPanel title="Step 1 · Personalization preview">
-        <MockRows
-          rows={[
-            { left: "{{firstName}}, {{company}} caught my eye", muted: "Rendered subject", right: "Preview" },
-            { left: "AI opener — hiring signal detected", muted: "Uses OpenAI key", badge: "Generated" },
-            { left: "AI opener — no signal found", muted: "Fallback line used", badge: "Fallback" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    icon: Repeat2,
+    title: "Keep Sending",
+    text: "Your campaign continues across eligible sending windows instead of stopping when one day's quota is reached.",
   },
   {
-    title: "Assign mailboxes and set limits",
-    youDo: "Select one or more connected sending accounts and set a daily limit and a total limit for the campaign.",
-    weHandle: "Volume is rotated across mailboxes by weight and warm-up-aware caps, and the lowest applicable limit — campaign, plan or mailbox — is always enforced.",
-    youGet: "Predictable, safe volume with no single mailbox ever pushed past its cap.",
-    visual: (
-      <MockPanel title="Mailbox rotation — today's send plan">
-        <MockRows
-          rows={[
-            { left: "sam@munchreach.dev", muted: "Warmed 41 days", right: "62 / 65 sent", badge: "Healthy" },
-            { left: "hello@munchreachmail.com", muted: "Warmed 12 days", right: "24 / 25 sent", badge: "Ramping" },
-            { left: "outreach@getmunchreach.io", muted: "Warmed 58 days", right: "78 / 80 sent", badge: "Healthy" },
-          ]}
-        />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Set the schedule",
-    youDo: "Choose sending days, a sending window and the delay between emails.",
-    weHandle: "A throughput estimate shows the real per-hour, per-day and per-week volume the plan produces before you commit to it.",
-    youGet: "A schedule that respects business hours and prospect time zones instead of blasting everyone at 3am.",
-    visual: (
-      <MockPanel title="Schedule — throughput estimate">
-        <MockBars
-          bars={[
-            { label: "Per hour", value: 22, caption: "~18 emails" },
-            { label: "Per day", value: 68, caption: "~500 emails" },
-            { label: "Per week", value: 90, caption: "~2,500 emails" },
-          ]}
-        />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Launch and let it run",
-    youDo: "Click launch once the readiness checklist is green.",
-    weHandle: "Sends run server-side, retry automatically on temporary failures, stop on reply or bounce, and pause the moment a limit is hit — resuming the next allowed day on their own.",
-    youGet: "A campaign that runs unattended and tells you exactly what state it's in.",
-    visual: (
-      <MockPanel title="Campaign state — Q4 Outbound">
-        <MockRows
-          rows={[
-            { left: "Status", right: "Daily quota reached", badge: "Paused" },
-            { left: "Resumes", right: "Tomorrow, 9:00 AM", badge: "Scheduled" },
-            { left: "Sent today", right: "500 / 500", badge: "Cap hit" },
-          ]}
-        />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Read the results",
-    youDo: "Open the campaign's analytics tab any time it's running.",
-    weHandle: "Sent, opens, replies, positive replies, bounces and meetings booked are tracked per step and per variant, from real send data only.",
-    youGet: "A clear read on what's working, so the next campaign starts stronger.",
-    visual: (
-      <MockPanel title="Campaign analytics — last 14 days">
-        <MockBars
-          bars={[
-            { label: "Step 1 — reply rate", value: 18, caption: "18%" },
-            { label: "Step 2 — reply rate", value: 31, caption: "31% · Best step" },
-            { label: "Step 3 — reply rate", value: 12, caption: "12%" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    icon: BarChart3,
+    title: "Know the Result",
+    text: "Track sends, replies, reply rate, bounces, positive replies and meetings.",
   },
 ];
 
-const features = [
-  { icon: Layers, title: "Visual sequence builder", text: "Drag steps, set delays, and preview each prospect's journey before it goes live." },
-  { icon: Split, title: "Conditional branching", text: "Branch on opens, clicks, replies or no activity with a different follow-up per path." },
-  { icon: Gauge, title: "Daily and total sending limits", text: "Set daily and total limits, editable from the campaigns table, enforced automatically." },
-  { icon: Clock, title: "Schedule & throughput", text: "Pick sending days and windows, and see real throughput before you launch." },
-  { icon: Shuffle, title: "Mailbox rotation", text: "Spread volume across accounts with per-account caps and warm-up-aware throttling." },
-  { icon: Sparkles, title: "AI personalization", text: "Insert an AI-written opening line per lead, with a safe fallback when data is missing." },
-  { icon: Beaker, title: "A/B/n testing", text: "Test up to five subject lines or bodies and let reply data promote the winner." },
-  { icon: Repeat2, title: "Automatic retries", text: "Temporary delivery failures retry automatically so a hiccup doesn't lose a lead." },
-  { icon: ShieldCheck, title: "Bounce protection", text: "Hard bounces stop that lead's sequence and mark the address invalid workspace-wide." },
-  { icon: PauseCircle, title: "Clear campaign states", text: "See exactly what's happening: Running, Quota reached, Waiting or Completed." },
-  { icon: Inbox, title: "Live send queue", text: "Watch every queued, sent, skipped and failed message with its reason." },
-  { icon: BarChart3, title: "Campaign analytics", text: "Sent, opens, replies and meetings booked per campaign and per step." },
-  { icon: Copy, title: "Duplicate & bulk actions", text: "Clone a winning sequence, or pause, resume and archive campaigns in bulk." },
-];
-
-const workflowSteps = [
-  { title: "Import leads", text: "Pull in a list or filter existing leads by tag or status." },
-  { title: "Write the sequence", text: "Draft the first email and chain follow-ups with variables and AI openers." },
-  { title: "Assign mailboxes", text: "Attach one or more warmed sending accounts to rotate volume." },
-  { title: "Set limits & schedule", text: "Choose the total limit, daily limit and sending window." },
-  { title: "Launch", text: "The readiness checklist confirms everything is set before you send." },
-  { title: "Send & retry", text: "Emails go out on schedule; failures retry automatically." },
-  { title: "Protect the list", text: "Replies, bounces and unsubscribes stop that lead's sequence instantly." },
-  { title: "Review & iterate", text: "Read step-level analytics and clone the sequence for the next list." },
-];
-
-const useCases = [
+const audiences = [
   {
-    icon: Rocket,
-    audience: "Founders selling early",
-    scenario: "You're the only rep and need real conversations without living in your inbox.",
-    outcome: "Launch a sequence with a daily limit in under 10 minutes.",
+    audience: "Sales Teams",
+    scenario: "Structured outbound across shared lead lists and several reps.",
+    outcome: "Run campaigns without manually managing every sending step.",
   },
   {
-    audience: "Outbound sales teams",
-    scenario: "Several reps, shared lead lists and dozens of campaigns running at once.",
-    outcome: "Per-campaign limits and rotation keep every rep inside a safe ceiling.",
+    audience: "Agencies",
+    scenario: "Separate campaigns, mailboxes and reporting per client.",
+    outcome: "Manage multiple campaigns and sending accounts across client workspaces.",
   },
   {
-    audience: "Lead gen agencies",
-    scenario: "Separate client sequences, mailboxes and reporting that must never mix.",
-    outcome: "One workspace per client with isolated mailboxes and analytics.",
-  },
-  {
-    audience: "Recruiters running outreach",
-    scenario: "Sourcing candidates at volume without sounding like a mail merge.",
-    outcome: "AI personalization makes each message feel individually written.",
-  },
-  {
-    audience: "Growth teams testing offers",
-    scenario: "Need to know which angle gets replies before scaling spend.",
-    outcome: "A/B/n testing surfaces the winner with real reply-rate data.",
-  },
-  {
-    audience: "Teams recovering sender reputation",
-    scenario: "A prior mailbox got flagged and volume needs to ramp back up carefully.",
-    outcome: "Conservative limits and rotation rebuild volume safely.",
+    audience: "Founders & Small Teams",
+    scenario: "Selling early with no dedicated outbound operator.",
+    outcome: "Build and run outbound without a complicated sending setup.",
   },
 ];
 
-const capabilityGroups = [
-  {
-    title: "Sequencing & delivery",
-    items: [
-      "Unlimited steps with conditional branching",
-      "Delays set in minutes, hours or days",
-      "Mailbox rotation with per-account caps and weighting",
-      "Automatic retries with backoff on temporary failures",
-      "Timezone-aware scheduling per prospect",
-    ],
-  },
-  {
-    title: "Limits & campaign states",
-    items: [
-      "Daily sending limit, editable from the campaigns table",
-      "Total campaign limit, follow-ups included",
-      "Lowest limit always wins: campaign, plan or mailbox",
-      "States shown per campaign: Running, Daily quota reached, Waiting for next run, Completed",
-      "Automatic pause and resume when a limit or schedule window is hit",
-    ],
-  },
-  {
-    title: "Personalization & protection",
-    items: [
-      "Custom variables and spintax with fallbacks",
-      "AI personalization using your own OpenAI key",
-      "A/B/n testing with automatic winner promotion",
-      "Bounce protection with workspace-wide suppression",
-      "Instant stop on reply, bounce or unsubscribe",
-    ],
-  },
+const howItWorks = [
+  { title: "Add your leads", text: "Import a CSV or select leads already in your workspace." },
+  { title: "Write your sequence", text: "One initial email plus the follow-ups and their delays." },
+  { title: "Configure sending", text: "Choose mailboxes, the sending window and the daily limit." },
+  { title: "Launch", text: "MunchReach runs the queue and schedules the follow-ups." },
 ];
-
-const bullets = [
-  "Unlimited steps per sequence",
-  "Spintax and custom variables with safe fallbacks",
-  "Total and daily sending limits per campaign, follow-ups included",
-  "AI personalization with your own OpenAI key",
-  "Automatic retries on temporary send failures",
-  "Bounce protection with workspace-wide suppression",
-  "Live campaign states: Running, Daily quota reached, Waiting for next run, Completed",
-  "Throughput estimate before you launch",
-  "Duplicate and suppression checks before every send",
-  "Pause, resume, clone and archive — one at a time or in bulk",
-];
-
-const beforeAfter = {
-  before: [
-    "Sequences live in spreadsheets and nobody knows who got which email",
-    "One mailbox caps you at roughly 50 sends a day before reputation slips",
-    "Follow-ups keep firing after a prospect already replied",
-    "A single campaign can burn through the whole month's sending allowance",
-    "A temporary send error quietly loses a lead from the sequence",
-  ],
-  after: [
-    "Every step, delay and branch is visible on one timeline",
-    "Volume spreads across warmed mailboxes with per-account caps",
-    "Reply, bounce and unsubscribe stop the sequence instantly",
-    "Daily and total limits keep every campaign inside your plan",
-    "Temporary failures retry automatically before ever counting as lost",
-  ],
-};
 
 function Page() {
   return (
     <MarketingLayout>
       <PageHero
-        eyebrow="Campaigns"
-        title="Multi-step cold email"
-        highlight="campaigns that convert"
-        description="Build sequences with delays, branching and follow-ups, personalize with AI, rotate across mailboxes and control exactly how much and how often each campaign sends."
-        benefits={[
-          "Daily and total sending limits per campaign",
-          "Mailbox rotation with warm-up-aware caps",
-          "AI personalization and automatic retries",
-        ]}
-        primaryCta="Start for Free"
+        eyebrow="MunchReach Campaigns"
+        title="Build Cold Email Campaigns"
+        highlight="That Keep Moving."
+        description="Create your sequence, add your leads, choose your sending accounts, set your schedule, and let MunchReach manage the sending and follow-ups."
+        benefits={["Sequences", "AI personalization", "Smart scheduling", "Multi-mailbox sending"]}
+        primaryCta="Start a Campaign"
         secondaryCta="See How It Works"
         secondaryHref="#how-it-works"
       />
-      <BigPreview
-        id="product"
-        eyebrow="Campaign builder"
-        title="See the campaign builder"
-        description="Sequence steps, mailbox rotation, limits and schedule in one screen — with the campaign's live state front and center."
-      >
-        <MockPanel title="Q4 Outbound — SaaS Founders">
-          <MockRows
-            rows={[
-              { left: "Status", right: "Running", badge: "Active" },
-              { left: "Step 1 · Intro email", right: "Day 0", badge: "Sent" },
-              { left: "Step 2 · Value follow-up", right: "Day 3", badge: "Sent" },
-              { left: "Step 3 · Case study (opened branch)", right: "Day 6", badge: "Queued" },
-              { left: "Daily limit", muted: "Follow-ups included", right: "312 / 500", badge: "On track" },
-            ]}
-          />
-        </MockPanel>
-      </BigPreview>
-      <Section title="Why cold email campaigns stall">
-        <PainPoints items={painPoints} />
-      </Section>
+
       <Section
-        id="how-it-works"
-        title="How a campaign goes from idea to inbox"
-        description="One builder for sequencing, personalization, limits and mailbox rotation."
+        id="product"
+        title="Everything Starts in One Campaign Builder"
+        description="Build the entire outreach workflow before you send a single email."
       >
-        <Walkthrough steps={walkthroughSteps} />
+        <div className="space-y-8">
+          <CampaignBuilderMock />
+          <Callouts items={builderCallouts} />
+        </div>
       </Section>
-      <Section title="What you get" description="Everything below is included on every plan.">
-        <FeatureBento items={features} />
+
+      <Section
+        muted
+        title="Build the Conversation, Not Just the First Email"
+        description="Write once, then let MunchReach deliver each step according to your campaign rules."
+      >
+        <SequenceMock />
       </Section>
-      <Section title="The end-to-end workflow" description="What actually happens between import and inbox.">
-        <WorkflowStrip steps={workflowSteps} />
+
+      <Section
+        title="Make Every Email Feel Personal"
+        description="Generate a personalized line for each lead using the information available in your lead record."
+      >
+        <AiPersonalizationMock />
       </Section>
-      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
-        <UseCaseGrid items={useCases} />
+
+      <Section
+        muted
+        title="Use Your Sending Accounts Without Managing Them One by One"
+        description="MunchReach distributes campaign sending across the sending accounts available to the campaign while respecting each mailbox's sending capacity and safety state."
+      >
+        <MailboxMock />
       </Section>
-      <Section title="Deep capabilities" description="What's under the hood of every campaign you run.">
-        <DocSection groups={capabilityGroups} />
+
+      <Section
+        title="Set the Schedule. MunchReach Handles the Queue."
+        description="If the campaign reaches its daily sending capacity, the remaining messages stay queued for the next eligible sending window — the campaign does not become completed just because today's quota is full."
+      >
+        <ScheduleMock />
       </Section>
-      <Section title="Details that matter" muted>
-        <BulletList items={bullets} />
+
+      <Section
+        muted
+        title="Your Campaign Doesn't Stop After One Day"
+        description="What the same campaign does across its first three sending days."
+      >
+        <DayTimeline />
       </Section>
-      <Section title="Before and after" description="What changes the week you switch.">
-        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+
+      <Section
+        title="When Something Fails, Don't Lose the Lead"
+        description="Every send outcome is routed to the behavior that fits it."
+      >
+        <FailureRouting />
       </Section>
+
+      <Section
+        muted
+        title="See What Your Campaign Is Actually Producing"
+        description="Today's run and lifetime campaign results are reported separately. Mailbox warmup activity is never mixed into campaign analytics."
+      >
+        <AnalyticsMock />
+      </Section>
+
+      <Section
+        title="Replies Become Real Conversations"
+        description="When prospects reply, the conversation can be managed from the Unified Inbox instead of forcing users to search through multiple mailboxes."
+      >
+        <InboxMock />
+      </Section>
+
+      <Section muted title="From Campaign Setup to Conversation">
+        <LaunchProcess steps={launchSteps} />
+        <AfterLaunchStrip
+          items={[
+            "Manages the queue",
+            "Sends emails",
+            "Schedules follow-ups",
+            "Records results",
+            "Routes replies",
+          ]}
+        />
+      </Section>
+
+      <Section title="Why MunchReach Campaigns">
+        <FeatureGrid items={whyCards} />
+      </Section>
+
+      <Section muted title="Who It's For">
+        <UseCaseGrid items={audiences} />
+      </Section>
+
+      <Section id="how-it-works" title="Start a Campaign in Four Steps">
+        <WorkflowStrip steps={howItWorks} />
+      </Section>
+
       <TestimonialCarousel page="campaigns" title="Teams shipping campaigns with MunchReach" />
+
       <Section muted>
         <PageFaqs page="campaigns" defaults={faqs} />
       </Section>
+
       <CtaBlock
-        title="Launch your first campaign today"
-        description="Import a list, write a three-step sequence, connect a mailbox and set a daily limit — you'll be sending inside ten minutes."
+        title="Build Your First Campaign."
+        description="Create your sequence, choose your sending setup, and let MunchReach handle the daily execution."
+        cta="Start a Campaign"
+        secondaryCta="Explore MunchReach"
+        secondaryHref="/why-munchreach"
       />
     </MarketingLayout>
   );
