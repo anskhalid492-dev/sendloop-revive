@@ -8,16 +8,15 @@ type Card = {
   key: string;
   label: string;
   value: string;
-  raw: number;
   change: number | null;
   inverted?: boolean;
-  emphasis?: boolean;
   hint?: string;
 };
 
 /**
- * Today's outbound overview. Every number is scoped to the current sending day
- * and compared with the same window yesterday — lifetime totals never appear.
+ * Today's outbound overview. Exactly four KPIs — Emails Sent, Reply Rate,
+ * Bounce Rate and Meetings Booked — scoped to the current sending day and
+ * compared with the same window yesterday. Lifetime totals never appear.
  */
 export function KpiBoard({
   today,
@@ -34,78 +33,40 @@ export function KpiBoard({
   const cards: Card[] = [
     {
       key: "sent",
-      label: "Emails sent",
+      label: "Emails Sent",
       value: t.sent.toLocaleString(),
-      raw: t.sent,
       change: delta(t.sent, y?.sent),
       emphasis: true,
-    },
-    {
-      key: "delivered",
-      label: "Delivered",
-      value: t.delivered.toLocaleString(),
-      raw: t.delivered,
-      change: delta(t.delivered, y?.delivered),
-    },
-    {
-      key: "deliveryRate",
-      label: "Delivery rate",
-      value: `${pct(t.delivered, t.sent).toFixed(1)}%`,
-      raw: pct(t.delivered, t.sent),
-      change: y ? delta(pct(t.delivered, t.sent), pct(y.delivered, y.sent)) : null,
-    },
-    {
-      key: "replies",
-      label: "Replies",
-      value: t.replies.toLocaleString(),
-      raw: t.replies,
-      change: delta(t.replies, y?.replies),
-      emphasis: true,
-      hint: "Unique prospects",
+      hint: "Today",
     },
     {
       key: "replyRate",
-      label: "Reply rate",
+      label: "Reply Rate",
       value: `${pct(t.replies, t.sent).toFixed(1)}%`,
-      raw: pct(t.replies, t.sent),
       change: y ? delta(pct(t.replies, t.sent), pct(y.replies, y.sent)) : null,
-    },
-    {
-      key: "positive",
-      label: "Positive replies",
-      value: t.positive.toLocaleString(),
-      raw: t.positive,
-      change: delta(t.positive, y?.positive),
-    },
-    {
-      key: "meetings",
-      label: "Meetings booked",
-      value: t.meetings.toLocaleString(),
-      raw: t.meetings,
-      change: delta(t.meetings, y?.meetings),
-      emphasis: true,
-    },
-    {
-      key: "bounced",
-      label: "Bounces",
-      value: t.bounced.toLocaleString(),
-      raw: t.bounced,
-      change: delta(t.bounced, y?.bounced),
-      inverted: true,
+      hint: "Unique prospects",
     },
     {
       key: "bounceRate",
-      label: "Bounce rate",
+      label: "Bounce Rate",
       value: `${pct(t.bounced, t.sent).toFixed(1)}%`,
-      raw: pct(t.bounced, t.sent),
       change: y ? delta(pct(t.bounced, t.sent), pct(y.bounced, y.sent)) : null,
       inverted: true,
+      hint: "Of sent",
+    },
+    {
+      key: "meetings",
+      label: "Meetings Booked",
+      value: t.meetings.toLocaleString(),
+      change: delta(t.meetings, y?.meetings),
+      emphasis: true,
+      hint: "Today",
     },
   ];
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-4">
         {cards.map((c) => (
           <div key={c.key} className="h-[112px] animate-pulse bg-card" />
         ))}
@@ -114,13 +75,13 @@ export function KpiBoard({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm md:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm md:grid-cols-4">
       {cards.map((card, i) => (
         <motion.div
           key={card.key}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.025, duration: 0.25 }}
+          transition={{ delay: i * 0.05, duration: 0.25 }}
           className="flex min-h-[112px] flex-col justify-between bg-card px-5 py-4 transition-colors hover:bg-muted/40"
         >
           <div className="flex items-start justify-between gap-2">
@@ -131,7 +92,7 @@ export function KpiBoard({
           <div
             className={cn(
               "mt-3 font-semibold tabular-nums tracking-tight",
-              card.emphasis ? "text-[28px] leading-none" : "text-2xl leading-none",
+              "emphasis" in card && card.emphasis ? "text-[28px] leading-none" : "text-2xl leading-none",
             )}
           >
             {card.value}
