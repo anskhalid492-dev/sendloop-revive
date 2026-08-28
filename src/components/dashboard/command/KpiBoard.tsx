@@ -10,6 +10,7 @@ type Card = {
   value: string;
   change: number | null;
   inverted?: boolean;
+  emphasis?: boolean;
   hint?: string;
 };
 
