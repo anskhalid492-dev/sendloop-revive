@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { isInSendWindow, windowStartAt } from "@/lib/campaign-schedule";
+import { campaignScheduleState, isInSendWindow, windowStartAt } from "@/lib/campaign-schedule";
 import { campaignRunStatus, nextRunAt } from "@/lib/campaign-run-state";
+import { campaignDispatchSchedule } from "@/lib/dispatch.server";
 
 // 7:00 PM – 11:00 PM Asia/Dubai (UTC+4, no DST) => 15:00–19:00 UTC, every day.
 const dubai = {
@@ -76,17 +77,23 @@ describe("configured window start (no drift)", () => {
   });
 
   test("running state reports the current run's configured start time", () => {
+    const now = new Date("2026-08-26T15:04:00Z");
     const status = campaignRunStatus({
       status: "active",
       dailyQuota: 100,
       sentToday: 10,
       remainingRecipients: 900,
-      now: new Date("2026-08-26T15:04:00Z"),
+      now,
       window: dubai,
     });
     expect(status.state).toBe("running");
     expect(status.nextRunAt).toBe("2026-08-26T15:00:00.000Z");
-    expect(status.nextRunAt).toBe(windowStartAt(new Date("2026-08-26T15:04:00Z"), dubai).toISOString());
+    const uiSchedule = campaignScheduleState(now, dubai);
+    const dispatcherSchedule = campaignDispatchSchedule(now, dubai);
+    expect(status.nextRunAt).toBe(uiSchedule.eligibleWindowStart.toISOString());
+    expect(dispatcherSchedule.inWindow).toBe(status.inWindow);
+    expect(dispatcherSchedule.eligibleWindowStart.toISOString()).toBe(status.nextRunAt);
+    expect(dispatcherSchedule.eligibleWindowStart.toISOString()).not.toBe(now.toISOString());
   });
 
   test("skipped send days roll forward to the next configured day's start", () => {

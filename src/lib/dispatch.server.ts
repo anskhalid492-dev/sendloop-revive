@@ -7,7 +7,7 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
-import { isInSendWindow, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
@@ -51,6 +51,11 @@ export type DispatchResult = {
 
 export function emptyResult(): DispatchResult {
   return { processed: 0, sent: 0, failed: 0, skipped: 0, scheduled: 0, errors: [] };
+}
+
+/** Pure scheduling decision used by the dispatcher and parity regression tests. */
+export function campaignDispatchSchedule(now: Date, window: ScheduleWindow) {
+  return campaignScheduleState(now, window);
 }
 
 type StepRow = {
@@ -623,10 +628,11 @@ export async function dispatchDueMessages(
   }
 
   const window = campaignWindow(campaignRow as CampaignDispatchRow);
-  if (!isInSendWindow(now, window)) {
+  const dispatchSchedule = campaignDispatchSchedule(now, window);
+  if (!dispatchSchedule.inWindow) {
     // Always the configured window START of the next sending day — never now,
     // never the previous run's finish time.
-    const nextSlot = windowStartAt(now, window, { includeCurrentDay: true }).toISOString();
+    const nextSlot = dispatchSchedule.eligibleWindowStart.toISOString();
     await supabase
       .from("campaign_messages")
       .update({ scheduled_at: nextSlot })
@@ -776,7 +782,7 @@ export async function dispatchDueMessages(
         result.errors.push(`Daily sending limit reached (${dailyCap} emails/day).`);
       // The run waits for the NEXT scheduled day's window start. The campaign
       // stays active: quota exhaustion never completes or pauses it.
-      quotaDeferralSlot = windowStartAt(now, window, { includeCurrentDay: false }).toISOString();
+      quotaDeferralSlot = dispatchSchedule.nextWindowStart.toISOString();
       break;
     }
 

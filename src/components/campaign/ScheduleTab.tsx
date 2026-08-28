@@ -14,7 +14,7 @@ import {
   DAY_LABELS,
   TIMEZONES,
   formatZonedDateTime,
-  windowStartAt,
+  campaignScheduleState,
   parseZonedDateTimeLocal,
   zonedDateTimeLocalValue,
 } from "@/lib/campaign-schedule";
@@ -93,7 +93,7 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
   const cappedByMailboxes = effectiveDaily < selectedDaily;
   const weekly = effectiveDaily * settings.sendDays.length;
   const nextWindowBase = settings.startAt ? new Date(settings.startAt) : new Date();
-  const nextWindow = windowStartAt(
+  const nextWindow = campaignScheduleState(
     nextWindowBase.getTime() > Date.now() ? nextWindowBase : new Date(),
     {
       timezone: settings.timezone,
@@ -101,8 +101,7 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
       startHour: settings.sendStartHour,
       endHour: settings.sendEndHour,
     },
-    { includeCurrentDay: true },
-  );
+  ).eligibleWindowStart;
 
 
   return (

@@ -104,6 +104,14 @@ export function isInSendWindow(date: Date, window: ScheduleWindow): boolean {
   return days.includes(parts.weekday) && parts.hour >= start && parts.hour < end;
 }
 
+export type CampaignScheduleState = {
+  inWindow: boolean;
+  /** Today's configured start while active; otherwise the next configured start. */
+  eligibleWindowStart: Date;
+  /** The configured start strictly after the current run. */
+  nextWindowStart: Date;
+};
+
 /**
  * The START of a configured sending window — never a mid-window "now".
  *
@@ -134,6 +142,19 @@ export function windowStartAt(
     }
   }
   return from;
+}
+
+/**
+ * Canonical campaign scheduler state consumed by dispatch, run-state and UI.
+ * All returned timestamps are delegated to `windowStartAt`; this function only
+ * names the active/waiting interpretation shared by those consumers.
+ */
+export function campaignScheduleState(now: Date, window: ScheduleWindow): CampaignScheduleState {
+  return {
+    inWindow: isInSendWindow(now, window),
+    eligibleWindowStart: windowStartAt(now, window, { includeCurrentDay: true }),
+    nextWindowStart: windowStartAt(now, window, { includeCurrentDay: false }),
+  };
 }
 
 export function zonedDateTimeLocalValue(value: string | null, timezone: string): string {
