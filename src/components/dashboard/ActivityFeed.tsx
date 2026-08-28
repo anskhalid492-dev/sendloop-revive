@@ -5,6 +5,7 @@ import {
   Inbox,
   Mail,
   Rocket,
+  Send,
 } from "lucide-react";
 
 export type ActivityItem = {
@@ -21,6 +22,7 @@ const ICONS: Record<string, typeof Activity> = {
   domain: Globe2,
   mailbox: Mail,
   warmup: Flame,
+  outbound: Send,
 };
 
 function relative(value: string) {

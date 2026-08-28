@@ -22,9 +22,23 @@ export const DELIVERY_RANK: Record<string, number> = {
   failed: 10,
 };
 
+/**
+ * A message only counts as a real outbound send once the provider accepted it
+ * and `sent_at` was written. Queued/scheduled rows, and rows that only carry a
+ * webhook timestamp without an accepted send, are never "sent" or "delivered".
+ * This is the same rule the campaign/dashboard KPIs use, so the numbers and the
+ * activity feeds can never disagree.
+ */
+export function isAcceptedSend(m: DeliveryMessage): boolean {
+  return Boolean(m["sent_at"]);
+}
+
 export function messageDeliveryState(m: DeliveryMessage): string {
+  const accepted = isAcceptedSend(m);
   if (m["bounced_at"] || m["delivery_status"] === "bounced") return "bounced";
   if (m["failed_at"] || m["status"] === "failed") return "failed";
+  if (m["status"] === "cancelled") return "not_contacted";
+  if (!accepted) return "queued";
   if (m["complained_at"]) return "complained";
   if (m["unsubscribed_at"]) return "unsubscribed";
   if (m["replied_at"]) return "replied";
@@ -32,9 +46,35 @@ export function messageDeliveryState(m: DeliveryMessage): string {
   if (m["opened_at"]) return "opened";
   if (m["delivered_at"]) return "delivered";
   if (m["delayed_at"]) return "delayed";
-  if (m["sent_at"] || m["status"] === "sent") return "sent";
-  if (m["status"] === "cancelled") return "not_contacted";
-  return "queued";
+  return "sent";
+}
+
+const STATE_TIMESTAMP: Record<string, readonly string[]> = {
+  bounced: ["bounced_at", "last_event_at"],
+  failed: ["failed_at", "last_event_at"],
+  complained: ["complained_at", "last_event_at"],
+  unsubscribed: ["unsubscribed_at", "last_event_at"],
+  replied: ["replied_at", "last_event_at"],
+  clicked: ["clicked_at", "last_event_at"],
+  opened: ["opened_at", "last_event_at"],
+  delivered: ["delivered_at", "last_event_at", "sent_at"],
+  delayed: ["delayed_at", "last_event_at", "sent_at"],
+  sent: ["sent_at", "last_event_at"],
+  queued: ["scheduled_at"],
+  not_contacted: ["scheduled_at"],
+};
+
+/**
+ * Timestamp of the event that produced `state` — never a scheduling or
+ * bookkeeping timestamp for a contacted state, so "just now" only appears when
+ * the real event just happened.
+ */
+export function stateTimestamp(m: DeliveryMessage, state: string): string | null {
+  for (const field of STATE_TIMESTAMP[state] ?? ["last_event_at"]) {
+    const value = m[field];
+    if (value) return value;
+  }
+  return null;
 }
 
 /**
@@ -56,9 +96,10 @@ export function aggregateDeliveryStates(
   };
   for (const raw of messages) {
     const state = messageDeliveryState(raw);
-    const at = raw["last_event_at"] ?? raw["sent_at"] ?? raw["scheduled_at"] ?? null;
+    const at = stateTimestamp(raw, state);
     if (raw["recipient_id"]) put(raw["recipient_id"] as string, state, at);
     if (raw["lead_id"]) put(`lead:${raw["lead_id"]}`, state, at);
   }
   return live;
 }
+
