@@ -522,3 +522,41 @@ export const getAiUsage = createServerFn({ method: "GET" })
       limit: null,
     };
   });
+
+/**
+ * Drain the queue immediately instead of waiting for the next cron tick.
+ *
+ * The UI calls this right after queueing so the operator sees snippets appear
+ * in seconds. It is bounded (a fixed number of batches per call) and reuses the
+ * same single-flight worker, so it can never race the scheduler.
+ */
+export const runAiPersonalizationNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    campaignInput.extend({ passes: z.number().int().min(1).max(8).optional() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    // Membership check: RLS decides whether the caller may touch this campaign.
+    const { data: campaign, error } = await context.supabase
+      .from("campaigns")
+      .select("id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!campaign) throw new Error("Campaign not found.");
+
+    const { processAiPersonalizationBatch } = await import("@/lib/ai-personalization.server");
+    let completed = 0;
+    let failed = 0;
+    let paused: string | null = null;
+    for (let pass = 0; pass < (data.passes ?? 4); pass += 1) {
+      const result = await processAiPersonalizationBatch(
+        `ui-${Math.random().toString(36).slice(2, 10)}`,
+      );
+      completed += result.completed;
+      failed += result.failed;
+      paused = result.paused;
+      if (result.claimed === 0 || result.paused) break;
+    }
+    return { completed, failed, paused };
+  });
