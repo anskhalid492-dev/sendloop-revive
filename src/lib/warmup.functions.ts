@@ -133,14 +133,32 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
     const ids = (accounts ?? []).map((a: { id: string }) => a.id);
     if (ids.length === 0) return { accounts: [] as WarmupAccountRow[] };
 
-    const [{ data: settings }, { data: stats }] = await Promise.all([
+    const safetySince = new Date(Date.now() - SAFETY_WINDOW_DAYS * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+
+    const [{ data: settings }, { data: stats }, { data: windowStats }] = await Promise.all([
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
         .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied")
         .in("sending_account_id", ids)
         .eq("day", today),
+      client
+        .from("warmup_daily_stats")
+        .select("sending_account_id, sent, bounced, failed")
+        .in("sending_account_id", ids)
+        .gte("day", safetySince),
     ]);
+
+    const windowStatsById = new Map<string, SafetyStatRow[]>();
+    for (const row of (windowStats ?? []) as Array<Record<string, unknown>>) {
+      const key = row["sending_account_id"] as string;
+      const list = windowStatsById.get(key) ?? [];
+      list.push(row as SafetyStatRow);
+      windowStatsById.set(key, list);
+    }
+
 
     // Last real warmup activity per mailbox (send/delivery/bounce/reply event).
     const { data: recentEvents } = await client
