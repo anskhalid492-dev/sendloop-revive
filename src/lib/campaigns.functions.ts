@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
@@ -610,7 +611,7 @@ export const updateCampaign = createServerFn({ method: "POST" })
         endAt: z.string().nullable().optional(),
         minDelayMinutes: z.number().int().min(0).max(240).optional(),
         randomDelayMinutes: z.number().int().min(0).max(240).optional(),
-        maxPerHour: z.number().int().min(1).max(5000).optional(),
+        maxPerHour: z.number().int().min(1).transform(clampMailboxHourlyLimit).optional(),
         businessDaysOnly: z.boolean().optional(),
         openTracking: z.boolean().optional(),
         clickTracking: z.boolean().optional(),

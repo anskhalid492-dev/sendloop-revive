@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  MAX_MAILBOX_EMAILS_PER_HOUR,
+  MAX_MAILBOX_HOURLY_MESSAGE,
+  clampMailboxHourlyLimit,
+  exceedsMailboxHourlyCap,
+} from "@/lib/mailbox-hourly-cap";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -71,7 +77,7 @@ export function ConnectMailboxDialog({
           email: `${localPart.trim()}@${selectedDomain?.domain ?? ""}`.toLowerCase(),
           displayName: displayName.trim(),
           dailyLimit: Number(dailyLimit) || 50,
-          hourlyLimit: Number(hourlyLimit) || 20,
+          hourlyLimit: clampMailboxHourlyLimit(hourlyLimit || 20),
           enableWarmup,
           warmupDailyTarget: 20,
         },
@@ -177,10 +183,15 @@ export function ConnectMailboxDialog({
                   id="mailbox-hourly"
                   type="number"
                   min={1}
-                  max={500}
+                  max={MAX_MAILBOX_EMAILS_PER_HOUR}
                   value={hourlyLimit}
-                  onChange={(event) => setHourlyLimit(event.target.value)}
+                  onChange={(event) =>
+                    setHourlyLimit(String(clampMailboxHourlyLimit(event.target.value)))
+                  }
                 />
+                {exceedsMailboxHourlyCap(hourlyLimit) ? (
+                  <p className="text-xs text-destructive">{MAX_MAILBOX_HOURLY_MESSAGE}</p>
+                ) : null}
               </div>
             </div>
 

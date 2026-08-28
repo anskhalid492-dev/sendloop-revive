@@ -8,6 +8,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -29,7 +30,7 @@ export const connectMailbox = createServerFn({ method: "POST" })
         email: z.string().trim().toLowerCase().email(),
         displayName: z.string().trim().min(1).max(80),
         dailyLimit: z.number().int().min(1).max(2000).default(50),
-        hourlyLimit: z.number().int().min(1).max(500).default(20),
+        hourlyLimit: z.number().int().min(1).transform(clampMailboxHourlyLimit).default(20),
         enableWarmup: z.boolean().default(true),
         warmupDailyTarget: z.number().int().min(1).max(200).default(20),
       })
@@ -247,7 +248,7 @@ export const updateMailbox = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         displayName: z.string().trim().min(1).max(80).optional(),
         dailyLimit: z.number().int().min(1).max(2000).optional(),
-        hourlyLimit: z.number().int().min(1).max(500).optional(),
+        hourlyLimit: z.number().int().min(1).transform(clampMailboxHourlyLimit).optional(),
         warmupDailyTarget: z.number().int().min(1).max(200).optional(),
       })
       .parse(input),
