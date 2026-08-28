@@ -8,6 +8,7 @@
  * `redact()` so credentials can never leak into an admin screen.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { windowStartAt } from "@/lib/campaign-schedule";
 
 /* ------------------------------------------------------------------ */
 /* Redaction                                                           */
@@ -402,9 +403,32 @@ export async function loadJobDetail(source: JobSource, id: string) {
 export async function retryJob(source: JobSource, id: string) {
   const now = new Date().toISOString();
   if (source === "campaign_message") {
+    const { data: message, error: messageError } = await supabaseAdmin
+      .from("campaign_messages")
+      .select("id, campaign_id")
+      .eq("id", id)
+      .eq("status", "failed")
+      .maybeSingle();
+    if (messageError) throw new Error(messageError.message);
+    if (!message) throw new Error("Only failed campaign sends can be retried");
+
+    const { data: campaign, error: campaignError } = await supabaseAdmin
+      .from("campaigns")
+      .select("timezone, send_days, send_start_hour, send_end_hour")
+      .eq("id", message.campaign_id)
+      .maybeSingle();
+    if (campaignError) throw new Error(campaignError.message);
+    if (!campaign) throw new Error("Campaign not found");
+    const retryAt = windowStartAt(new Date(now), {
+      timezone: campaign.timezone || "UTC",
+      sendDays: campaign.send_days ?? [1, 2, 3, 4, 5],
+      startHour: campaign.send_start_hour ?? 9,
+      endHour: campaign.send_end_hour ?? 17,
+    }, { includeCurrentDay: false }).toISOString();
+
     const { data, error } = await supabaseAdmin
       .from("campaign_messages")
-      .update({ status: "pending", last_error: null, scheduled_at: now } as never)
+      .update({ status: "scheduled", last_error: null, scheduled_at: retryAt } as never)
       .eq("id", id)
       .eq("status", "failed")
       .select("id");
