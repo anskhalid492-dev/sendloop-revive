@@ -122,10 +122,9 @@ function CapabilityMarquee({
       }}
     >
       <div
-        className="flex w-max items-center gap-3 group-hover:[animation-play-state:paused]"
-        style={{
-          animation: `${reverse ? "sl-marquee-reverse" : "sl-marquee"} 42s linear infinite`,
-        }}
+        className={`flex w-max items-center gap-3 group-hover:[animation-play-state:paused] ${
+          reverse ? "sl-marquee-reverse" : "sl-marquee"
+        }`}
       >
         {doubled.map((item, i) => (
           <span

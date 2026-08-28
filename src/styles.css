@@ -300,6 +300,14 @@
   }
 }
 
+.sl-marquee {
+  animation: sl-marquee 42s linear infinite;
+}
+
+.sl-marquee-reverse {
+  animation: sl-marquee-reverse 42s linear infinite;
+}
+
 @keyframes sl-marquee {
   0% {
     transform: translateX(0);
@@ -328,6 +336,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sl-marquee,
+  .sl-marquee-reverse {
+    animation: none;
+  }
   .float-slow,
   .flow-line {
     animation: none;
