@@ -2,16 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCheck, Inbox as InboxIcon, Menu, PenSquare, Trash2 } from "lucide-react";
+import {
+  CheckCheck,
+  Inbox as InboxIcon,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PenSquare,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,6 +96,7 @@ function Page() {
   const removeDraft = useServerFn(deleteDraft);
 
 
+  const [navOpen, setNavOpen] = useState(true);
   const [folder, setFolder] = useState<InboxFolder>("inbox");
   const [tab, setTab] = useState<"primary" | "other">("primary");
   const [searchInput, setSearchInput] = useState("");
@@ -370,8 +374,8 @@ function Page() {
   );
 
   return (
-    <AppShell title="Unified Inbox">
-      <div className="flex h-[calc(100vh-8rem)] min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <AppShell title="Unified Inbox" contentClassName="px-0 py-0">
+      <div className="flex h-[calc(100vh-4rem)] min-h-0 w-full flex-col overflow-hidden border-t border-border bg-card">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2 lg:hidden">
           <Sheet open={foldersOpen} onOpenChange={setFoldersOpen}>
             <SheetTrigger asChild>
