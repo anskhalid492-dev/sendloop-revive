@@ -9,44 +9,53 @@ import {
   EyeOff,
   Mailbox,
   Puzzle,
+  Calendar,
+  GitCompareArrows,
+  Users,
+  Inbox,
+  TrendingUp,
+  ClipboardList,
 } from "lucide-react";
 
 import {
+  BeforeAfter,
+  BigPreview,
   BulletList,
   CtaBlock,
-  FaqBlock,
-  FeatureGrid,
+  DocSection,
+  FeatureBento,
   MarketingLayout,
   MockBars,
   MockPanel,
   MockRows,
   PageHero,
   PainPoints,
-  BeforeAfter,
-  UseCaseGrid,
   Section,
-  SolutionSplit,
-  StatStrip,
-  metaFor,
-  BigPreview,
+  UseCaseGrid,
+  Walkthrough,
   WorkflowStrip,
+  metaFor,
 } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
-  { q: "Is open tracking reliable?", a: "Open tracking is directional because of privacy proxies like Apple Mail Privacy Protection. MunchReach filters known bots and highlights reply rate as the primary metric." },
-  { q: "Can I use my own tracking domain?", a: "Yes, and we recommend it. Add a CNAME record and MunchReach handles opens and clicks under your own domain for better deliverability." },
-  { q: "How long is data kept?", a: "Event-level history is retained for the lifetime of the workspace — no rolling window, no downgraded resolution." },
-  { q: "Can I export raw events?", a: "Yes, every metric — sends, opens, clicks, replies, bounces — can be exported as CSV or pulled via the API." },
-  { q: "Can I compare two variants directly?", a: "Yes, the variant view sits subject-line by subject-line with statistical significance flagged automatically." },
-  { q: "Can I schedule reports for clients?", a: "Yes, weekly or monthly PDF and CSV summaries can be emailed automatically, or shared via a read-only link." },
+  { q: "What counts as a reply for reply rate?", a: "Any inbound message on a thread MunchReach sent, matched by thread and message headers. Automated bounce and out-of-office replies are filtered out so the reply rate reflects real human responses." },
+  { q: "How is a positive reply identified?", a: "Replies are classified as positive, neutral, negative or out-of-office. You can override the classification on any reply, and analytics recalculates the positive-reply rate immediately." },
+  { q: "What's the difference between today, current run and lifetime numbers?", a: "Today is sends and events since midnight in your workspace timezone. Current run covers the active send window for a campaign or mailbox — its warmup ramp or the days it has been actively sending. Lifetime is every event since the campaign or mailbox was created, with no rolling window." },
+  { q: "Can I compare two campaigns side by side?", a: "Yes. Pick any two or more campaigns and MunchReach lines up sent, delivered, reply rate, positive-reply rate and meetings booked in one table so you can see which is actually outperforming." },
+  { q: "Does analytics track meetings booked?", a: "Yes. Meetings booked are logged from CRM stage changes on leads tied to a campaign, so you can see meetings per campaign, per step and per mailbox alongside reply counts." },
+  { q: "Can I see performance per mailbox instead of per campaign?", a: "Yes. The mailbox view shows sent, delivered, bounce rate and replies per sending account, independent of which campaigns used it, so you can spot a mailbox problem even across multiple campaigns." },
+  { q: "How far back can I set a custom date range?", a: "Any range since the workspace was created. Presets cover today, yesterday, last 7/30/90 days and this/last month, or you can pick exact start and end dates." },
+  { q: "Is bounce rate calculated on sent or delivered volume?", a: "Bounce rate is bounces divided by sent, since a bounce means the message never reached the inbox provider. Reply and open rates use delivered volume as the denominator so a bad mailbox doesn't quietly inflate them." },
+  { q: "Can I export the underlying data?", a: "Yes. Every table — campaign performance, mailbox performance, and the daily trend — exports to CSV so you can build client reports or feed the numbers into your own dashboards." },
+  { q: "Does analytics update in real time?", a: "Yes. Send, delivery, bounce and reply events stream in from your mailbox providers and update the dashboard without a page refresh." },
 ];
 
 export const Route = createFileRoute("/product/analytics")({
   head: () => metaFor(
-    "Cold Email Analytics & Campaign Tracking | MunchReach",
-    "Track campaign performance, email activity, replies, and engagement to understand what's working across your outreach campaigns.",
+    "Cold Email Analytics & Campaign Reporting | MunchReach",
+    "See sent, delivered, reply and bounce data for every campaign and mailbox. Track reply rates, positive replies and meetings booked across today, the current run, and lifetime.",
     "/product/analytics",
     faqs,
   ),
@@ -54,53 +63,99 @@ export const Route = createFileRoute("/product/analytics")({
 });
 
 const pains = [
-  { icon: EyeOff, title: "Vanity metrics, no answers", text: "You know your open rate, but not which step, subject line or mailbox is actually producing meetings." },
-  { icon: Mailbox, title: "Deliverability issues found too late", text: "A mailbox's bounce rate creeps up for weeks before anyone notices the whole domain is at risk." },
-  { icon: Puzzle, title: "Reporting is a manual export job", text: "Every client report means stitching numbers from three tools into a slide deck by hand." },
+  { icon: EyeOff, title: "No answer to \"what's actually working\"", text: "You can see a campaign sent 4,000 emails, but not which step or mailbox is producing the replies that turn into meetings." },
+  { icon: Mailbox, title: "Mailbox problems hide inside campaign totals", text: "A blended reply rate across five mailboxes hides the one account that's bouncing and dragging the average down." },
+  { icon: GitCompareArrows, title: "Comparing campaigns means two spreadsheet tabs", text: "Without a side-by-side view, deciding which sequence to scale means exporting two CSVs and lining up rows by hand." },
+  { icon: Puzzle, title: "Reporting is a manual export job", text: "Every client update or team standup means stitching numbers from several screens into a slide deck." },
 ];
 
-const solutionRows = [
+const walkthroughSteps = [
   {
-    eyebrow: "Funnel",
-    title: "See the full funnel for every campaign, live",
-    text: "From delivered to opened, replied, meeting booked and closed — updated in real time as events stream in, no manual refresh required.",
-    bullets: ["Delivered, open, click, reply and bounce in one view", "Filter by list, tag, date range or step", "Compare against the previous period instantly"],
+    title: "Open the workspace-level overview",
+    youDo: "Land on the analytics dashboard for your workspace.",
+    weHandle: "MunchReach aggregates sent, delivered, opened, replied and bounced counts across every active campaign and mailbox.",
+    youGet: "A single view of total volume and reply rate before drilling into any one campaign.",
+    visual: (
+      <MockPanel title="Analytics — Workspace overview">
+        <MockBars bars={[
+          { label: "Sent", value: 100, caption: "18,240" },
+          { label: "Delivered", value: 96, caption: "17,510" },
+          { label: "Replied", value: 9, caption: "9.4%" },
+          { label: "Bounced", value: 4, caption: "3.9%" },
+        ]} />
+      </MockPanel>
+    ),
+  },
+  {
+    title: "Pick a date range",
+    youDo: "Choose today, last 7/30/90 days, this month, or a custom start and end date.",
+    weHandle: "Every chart and table recalculates for the exact window, and shows the change against the immediately preceding period of the same length.",
+    youGet: "A trend line, not just a snapshot — so you know if reply rate is climbing or sliding.",
+    visual: (
+      <MockPanel title="Date range — Last 30 days vs prior 30">
+        <MockRows rows={[
+          { left: "Reply rate", right: "9.4%", badge: "+1.8pt" },
+          { left: "Bounce rate", right: "3.9%", badge: "-0.6pt" },
+          { left: "Meetings booked", right: "22", badge: "+6" },
+        ]} />
+      </MockPanel>
+    ),
+  },
+  {
+    title: "Drill into a single campaign",
+    youDo: "Click into any campaign from the list.",
+    weHandle: "MunchReach shows sent, delivered, opened, clicked, replied and bounced counts for that campaign broken down by step, plus positive-reply rate and meetings booked.",
+    youGet: "The exact step and subject line that's earning the replies, not just an overall percentage.",
     visual: (
       <MockPanel title="Campaign — Enterprise Outbound Q3">
         <MockBars bars={[
-          { label: "Delivered", value: 100, caption: "12,480" },
-          { label: "Opened", value: 61, caption: "61%" },
-          { label: "Replied", value: 8, caption: "8.2%" },
-          { label: "Meeting booked", value: 3, caption: "3.1%" },
+          { label: "Step 1 — Intro", value: 40, caption: "4.1% reply" },
+          { label: "Step 2 — Case study", value: 72, caption: "7.2% reply" },
+          { label: "Step 3 — Breakup", value: 91, caption: "9.1% reply" },
         ]} />
       </MockPanel>
     ),
   },
   {
-    eyebrow: "Deliverability",
-    title: "Catch a sick mailbox before it hurts your domain",
-    text: "Per-mailbox bounce rate, spam complaints and daily volume trends flag problems days before they'd show up as a deliverability crisis.",
-    bullets: ["Automatic pause on rising bounce rate", "Health score per sending account", "Trend view across 30, 60, 90 days"],
+    title: "Check mailbox performance",
+    youDo: "Switch to the mailbox view.",
+    weHandle: "Sent, delivered, bounce rate and reply counts are shown per sending account, independent of which campaigns used it, alongside today's send count against its daily limit.",
+    youGet: "An early warning when one mailbox's bounce rate is dragging down every campaign it touches.",
     visual: (
-      <MockPanel title="Mailbox health — 6 accounts">
-        <MockBars bars={[
-          { label: "sales@acme.com", value: 94, caption: "Healthy" },
-          { label: "hello@acme.io", value: 78, caption: "Watch" },
-          { label: "team@acme.co", value: 41, caption: "At risk" },
-        ]} />
-      </MockPanel>
-    ),
-  },
-  {
-    eyebrow: "Attribution",
-    title: "Tie revenue back to the campaign that earned it",
-    text: "Every meeting and closed deal links back to the campaign, step, variant and mailbox that produced it — so budget follows what actually works.",
-    visual: (
-      <MockPanel title="Attribution — This quarter">
+      <MockPanel title="Mailbox performance — 6 accounts">
         <MockRows rows={[
-          { left: "Q3 Outbound — Step 2 variant B", right: "$58,200", badge: "Top" },
-          { left: "Re-engagement sequence", right: "$21,400" },
-          { left: "Founder-led cold email", right: "$14,900" },
+          { left: "sales@acme.com", muted: "Sent today: 38 / 40", right: "1.2% bounce" },
+          { left: "hello@acme.io", muted: "Sent today: 40 / 40", right: "3.8% bounce" },
+          { left: "team@acme.co", muted: "Sent today: 12 / 40", right: "9.4% bounce" },
+        ]} />
+      </MockPanel>
+    ),
+  },
+  {
+    title: "Compare today, current run and lifetime",
+    youDo: "Toggle between the three windows on any campaign or mailbox.",
+    weHandle: "Today totals reset at midnight, current-run totals cover the active send window, and lifetime totals accumulate since creation with no rolling window.",
+    youGet: "Context for a single number — a mailbox's 5% bounce rate today reads very differently against a 1.4% lifetime average.",
+    visual: (
+      <MockPanel title="sales@acme.com — Bounce rate">
+        <MockRows rows={[
+          { left: "Today", right: "5.0%", badge: "Watch" },
+          { left: "Current run", right: "2.1%" },
+          { left: "Lifetime", right: "1.4%" },
+        ]} />
+      </MockPanel>
+    ),
+  },
+  {
+    title: "Compare campaigns and export",
+    youDo: "Select two or more campaigns to compare, or export any table.",
+    weHandle: "MunchReach lines up sent, delivered, reply rate, positive-reply rate and meetings booked side by side, and generates a CSV of the underlying rows.",
+    youGet: "A ranked view of which campaign to scale, and a file ready to drop into a client report.",
+    visual: (
+      <MockPanel title="Compare — 2 campaigns">
+        <MockRows rows={[
+          { left: "Enterprise Outbound Q3", muted: "Reply rate", right: "9.4%", badge: "Leading" },
+          { left: "Founder-led re-engagement", muted: "Reply rate", right: "6.1%" },
         ]} />
       </MockPanel>
     ),
@@ -108,106 +163,162 @@ const solutionRows = [
 ];
 
 const features = [
-  { icon: BarChart3, title: "Campaign dashboards", text: "Funnel view from delivered to replied to meeting booked, per campaign." },
-  { icon: LineChart, title: "Step and variant breakdown", text: "See which touch and which subject line actually earns the reply." },
-  { icon: PieChart, title: "Mailbox health", text: "Bounce rate, spam complaints and deliverability trends per sending account." },
-  { icon: FileDown, title: "Team performance", text: "Reply handling time, meetings booked and pipeline created per teammate." },
-  { icon: Target, title: "Scheduled reports", text: "Weekly PDF or CSV summaries emailed to you or your client." },
-  { icon: Timer, title: "Attribution", text: "Tie meetings and closed deals back to the campaign, step and mailbox that produced them." },
+  { icon: BarChart3, title: "Campaign performance", text: "Sent, delivered, opened, clicked, replied and bounced counts per campaign, broken down by step and variant." },
+  { icon: Mailbox, title: "Mailbox performance", text: "Send volume, delivery and bounce rate per sending account, independent of which campaigns used it." },
+  { icon: TrendingUp, title: "Reply rate and positive replies", text: "Reply rate calculated against delivered volume, with replies classified positive, neutral, negative or out-of-office." },
+  { icon: ClipboardList, title: "Meetings booked", text: "Meetings logged from CRM stage changes, attributed back to the campaign, step and mailbox that produced them." },
+  { icon: Calendar, title: "Flexible date ranges", text: "Today, yesterday, last 7/30/90 days, this or last month, or any custom start and end date." },
+  { icon: Timer, title: "Today vs current run vs lifetime", text: "The same metric shown across three windows so a single day's spike doesn't get mistaken for a trend, or hide one." },
+  { icon: GitCompareArrows, title: "Campaign comparison", text: "Put two or more campaigns side by side and see sent, reply rate, positive-reply rate and meetings booked together." },
+  { icon: LineChart, title: "Daily trend charts", text: "Sent, delivered, replied and bounced plotted by day so you can see when a change in copy or volume moved the numbers." },
+  { icon: PieChart, title: "Step and variant breakdown", text: "Reply rate per touch and per subject line, so you know exactly which message is doing the work." },
+  { icon: Users, title: "Bounce and deliverability tracking", text: "Bounce rate calculated on sent volume, flagged separately from reply and open rates so a bad mailbox can't hide behind a good campaign." },
+  { icon: Inbox, title: "Unsubscribe and complaint counts", text: "Tracked alongside replies so you can see the full cost of a campaign, not just the wins." },
+  { icon: FileDown, title: "CSV export", text: "Export campaign performance, mailbox performance or the daily trend for client reports or your own dashboards." },
 ];
 
-const steps = [
-  { title: "Send campaigns", text: "Tracking is enabled per campaign with your own tracking domain." },
-  { title: "Watch live metrics", text: "Events stream in as they happen with no manual refresh." },
-  { title: "Compare variants", text: "Filter by step, variant, list, tag or date range." },
-  { title: "Share the results", text: "Export or schedule a report your client can read without logging in." },
+const workflowSteps = [
+  { title: "Send", text: "Campaigns go out across your connected mailboxes on their configured schedule." },
+  { title: "Track", text: "Send, delivery, open, click, bounce and reply events stream in from each provider." },
+  { title: "Classify", text: "Replies are sorted into positive, neutral, negative or out-of-office automatically." },
+  { title: "Attribute", text: "Meetings booked in the CRM are linked back to the campaign, step and mailbox that produced them." },
+  { title: "Compare", text: "Filter by date range, and view today, current-run or lifetime totals side by side." },
+  { title: "Diagnose", text: "Check mailbox performance separately to catch a bounce problem before it spreads." },
+  { title: "Rank", text: "Compare two or more campaigns to see which one to scale and which to pause." },
+  { title: "Report", text: "Export any table to CSV to share results with your team or a client." },
 ];
 
-const stats = [
-  { value: "61%", label: "Median open rate on warmed mailboxes" },
-  { value: "<2 min", label: "Event-to-dashboard latency" },
-  { value: "100%", label: "Of events available for CSV export" },
-  { value: "30/60/90d", label: "Trend windows on every mailbox" },
+const useCases = [
+  { icon: Target, audience: "Founders sending their own outbound", scenario: "You want to know if this week's campaign is actually booking meetings, not just sending mail.", outcome: "One dashboard with reply rate, positive replies and meetings booked, updated as it happens." },
+  { icon: Users, audience: "Sales teams running multiple sequences", scenario: "Different reps are running different campaigns and you need to know which is working.", outcome: "Campaign comparison ranks every sequence by reply rate and meetings booked." },
+  { icon: Mailbox, audience: "Teams managing several sending mailboxes", scenario: "You need to catch a mailbox before its bounce rate drags down every campaign using it.", outcome: "Per-mailbox performance with today, current-run and lifetime bounce rates." },
+  { icon: GitCompareArrows, audience: "Teams testing new subject lines or steps", scenario: "You want proof one version of a sequence outperforms another before rolling it out further.", outcome: "Step-by-step reply-rate breakdown shows exactly which message is winning." },
+  { icon: FileDown, audience: "Agencies reporting to clients", scenario: "Every client wants a clear, current summary of what their campaigns produced.", outcome: "Exportable campaign and mailbox tables ready to drop into a report." },
+  { icon: Calendar, audience: "Managers reviewing weekly or monthly progress", scenario: "You need to see if outbound is trending up or down over the last month, not just today.", outcome: "Custom date ranges with trend comparison against the prior period." },
+];
+
+const docGroups = [
+  {
+    title: "Campaign performance",
+    items: [
+      "Sent, delivered, opened, clicked, replied and bounced counts per campaign",
+      "Step and subject-line level reply-rate breakdown",
+      "Positive, neutral, negative and out-of-office reply classification",
+      "Meetings booked attributed to the campaign that produced them",
+    ],
+  },
+  {
+    title: "Mailbox performance",
+    items: [
+      "Sent, delivered and bounce rate per sending account",
+      "Sent-today count against each mailbox's daily limit",
+      "Bounce and reply counts independent of which campaigns used the mailbox",
+      "Today, current-run and lifetime windows on every mailbox metric",
+    ],
+  },
+  {
+    title: "Reporting and comparison",
+    items: [
+      "Custom date ranges plus common presets like last 7, 30 or 90 days",
+      "Trend comparison against the immediately preceding period",
+      "Side-by-side comparison across two or more campaigns",
+      "CSV export of campaign, mailbox and daily trend data",
+    ],
+  },
+];
+
+const detailBullets = [
+  "Reply rate calculated against delivered volume, not sent volume",
+  "Bounce rate calculated against sent volume, since a bounce never reaches the inbox",
+  "Automated bounce and out-of-office messages excluded from reply counts",
+  "Replies reclassified manually always recalculate downstream rates immediately",
+  "Today totals reset at midnight in your workspace timezone",
+  "Current-run totals track a campaign's or mailbox's active send window",
+  "Lifetime totals accumulate since creation with no rolling window or downgraded resolution",
+  "Daily trend charts for sent, delivered, replied and bounced volume",
+  "Mailbox view is independent of campaigns, so a shared mailbox's health is visible everywhere it's used",
+  "Every table exports to CSV for client reporting or external dashboards",
 ];
 
 const beforeAfter = {
   before: [
-  "Open rate is the only number anyone can quote",
-  "Deliverability problems surface weeks after they start",
-  "Client reports are stitched together by hand every month"
-],
+    "A blended reply rate hides which step and mailbox are doing the work",
+    "A bouncing mailbox isn't noticed until several campaigns are already hurt",
+    "Comparing two campaigns means two exported CSVs lined up by hand",
+    "Client updates are built manually from screenshots each week",
+    "A single day's numbers get mistaken for a lasting trend",
+  ],
   after: [
-  "Funnel from delivered to reply to meeting, per step and variant",
-  "Bounce and spam alerts the day a mailbox drifts",
-  "Scheduled CSV and PDF reports, or a read-only share link"
-],
+    "Reply rate broken down by campaign, step and mailbox in one dashboard",
+    "Mailbox performance flags a rising bounce rate on its own view",
+    "Campaign comparison ranks sequences side by side automatically",
+    "Any table exports to CSV in a click",
+    "Today, current-run and lifetime windows give every number context",
+  ],
 };
-
-const useCases = [
-  {
-    "audience": "Growth leads",
-    "scenario": "You need to know which sequence actually produces meetings.",
-    "outcome": "Reply-rate attribution down to step and variant."
-  },
-  {
-    "audience": "Deliverability owners",
-    "scenario": "You manage reputation across many mailboxes and domains.",
-    "outcome": "Per-mailbox bounce and complaint trends with alerts."
-  },
-  {
-    "audience": "Agencies",
-    "scenario": "Every client wants a monthly performance report.",
-    "outcome": "Automated client-safe reporting, zero spreadsheets."
-  }
-];
 
 function Page() {
   return (
     <MarketingLayout>
       <PageHero
-        eyebrow={"Analytics"}
-        title={"Know exactly which campaigns"}
-        highlight={"produce replies"}
-        description={"Opens, clicks, replies, bounces, meetings and revenue — broken down by campaign, step, variant, mailbox and teammate, with exports for client reporting."}
-        secondaryCta="View Analytics"
-        secondaryHref="#product"
+        eyebrow="Analytics"
+        title="See exactly what every campaign and mailbox is"
+        highlight="producing"
+        description="Sent, delivered, replied and bounced data for every campaign and mailbox, with reply rates, positive replies and meetings booked broken down by today, the current run and lifetime."
+        benefits={["Campaign and mailbox performance in one place", "Reply rate, positive replies and meetings booked", "Compare campaigns and date ranges side by side"]}
+        secondaryCta="See How It Works"
+        secondaryHref="#how-it-works"
       />
       <BigPreview
+        id="product"
         eyebrow="Analytics dashboard"
-        title="See what is actually working"
-        description="Campaign, sequence, mailbox and reply analytics side by side."
+        title="Every number tied to a campaign, a step or a mailbox"
+        description="Not a vanity open-rate widget — a full breakdown of what's driving replies and meetings."
       >
-        <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
+        <div className="p-4 sm:p-6">
+          <MockPanel title="Campaign — Enterprise Outbound Q3">
+            <MockBars bars={[
+              { label: "Sent", value: 100, caption: "12,900" },
+              { label: "Delivered", value: 97, caption: "12,480" },
+              { label: "Replied", value: 8, caption: "8.2%" },
+              { label: "Positive replies", value: 5, caption: "4.9%" },
+              { label: "Meetings booked", value: 3, caption: "3.1%" },
+            ]} />
+          </MockPanel>
+        </div>
       </BigPreview>
-      <Section title="Why outbound reporting fails">
+      <Section title="Why outbound reporting falls short">
         <PainPoints items={pains} />
       </Section>
-      <Section title="How MunchReach solves it" description="Dashboards built around decisions, not vanity numbers.">
-        <SolutionSplit rows={solutionRows} />
+      <Section id="how-it-works" title="How analytics works" description="From send event to a number you can act on.">
+        <Walkthrough steps={walkthroughSteps} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
-        <FeatureGrid items={features} />
+        <FeatureBento items={features} />
       </Section>
-      <Section title="How it works" muted>
-        <WorkflowStrip steps={steps} />
+      <Section title="The end-to-end workflow" muted>
+        <WorkflowStrip steps={workflowSteps} />
       </Section>
-      <Section>
-        <StatStrip stats={stats} />
-      </Section>
-      <Section title="Before and after" description="What changes the week you switch." muted>
-        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
-      </Section>
-      <Section title="Who it is for" description="Built for the way outbound teams actually work.">
+      <Section title="Who it's for" description="Built for the way outbound teams actually review their numbers.">
         <UseCaseGrid items={useCases} />
       </Section>
-      <TestimonialCarousel page="analytics" title="Reporting teams trust" />
-      <Section title="Details that matter">
-        <BulletList items={["Custom tracking domains for open and click tracking", "Bot-click filtering for more accurate numbers", "Date range comparison against the previous period", "Per-list and per-segment reply rates", "CSV export of every underlying event", "Client-safe read-only report links"]} />
+      <Section title="Deep reporting capabilities" description="What's covered across campaigns, mailboxes and comparisons.">
+        <DocSection groups={docGroups} />
       </Section>
+      <Section title="Details that matter" muted>
+        <BulletList items={detailBullets} />
+      </Section>
+      <Section title="Before and after" description="What changes the week you start using analytics.">
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+      </Section>
+      <TestimonialCarousel page="analytics" title="Teams that report on outcomes, not vanity metrics" />
       <Section muted>
         <PageFaqs page="analytics" defaults={faqs} />
       </Section>
-      <CtaBlock title={"Report on outcomes, not vanity metrics"} description={"See which sequence, step and mailbox actually books meetings."} />
+      <CtaBlock
+        title="Stop guessing what your outbound is producing"
+        description="See sent, delivered, replies and meetings booked for every campaign and mailbox — today, this run, and over its lifetime."
+      />
     </MarketingLayout>
   );
 }
