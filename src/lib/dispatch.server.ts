@@ -1046,7 +1046,19 @@ export async function dispatchDueMessages(
       .eq("id", accountId);
   }
 
+  // Daily quota reached: park the remaining queue at the next scheduled day's
+  // configured start time. The campaign is neither completed nor paused.
+  if (quotaDeferralSlot) {
+    await supabase
+      .from("campaign_messages")
+      .update({ scheduled_at: quotaDeferralSlot })
+      .eq("campaign_id", options.campaignId)
+      .in("status", ["pending", "scheduled"])
+      .or(`scheduled_at.is.null,scheduled_at.lte.${now.toISOString()}`);
+  }
+
   return result;
+
 }
 
 /** How many send attempts a single campaign message may ever consume. */
