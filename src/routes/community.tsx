@@ -216,13 +216,14 @@ function CommunityPage() {
             <span className="hidden sm:block">
               Share Your Wins. Learn From Others.
               <br />
-              Grow Your Outbound With the <span className="text-primary">MunchReach Community</span>.
+              Join the <span className="text-primary">MunchReach Community</span>.
             </span>
             <span className="sm:hidden">
-              Share Your Wins. Learn From Others. Grow Your Outbound With the{" "}
+              Share Your Wins. Learn From Others. Join the{" "}
               <span className="text-primary">MunchReach Community</span>.
             </span>
           </h1>
+
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Join founders, sales teams, and outbound professionals sharing campaigns, lessons,
             replies, experiments, and real results. Learn what is working, share what worked for
