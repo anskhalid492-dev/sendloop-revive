@@ -13,6 +13,7 @@ export type CampaignRunState =
   | "scheduled"
   | "running"
   | "daily_quota_reached"
+  | "lifetime_limit_reached"
   | "waiting_for_next_run"
   | "completed"
   | "paused"
@@ -24,12 +25,14 @@ export const CAMPAIGN_RUN_STATE_LABELS: Record<CampaignRunState, string> = {
   scheduled: "Scheduled",
   running: "Running",
   daily_quota_reached: "Daily quota reached",
+  lifetime_limit_reached: "Send limit reached",
   waiting_for_next_run: "Waiting for next run",
   completed: "Completed",
   paused: "Paused",
   blocked: "Blocked",
   archived: "Archived",
 };
+
 
 /**
  * The first send slot strictly after the current sending day, i.e. the start of
