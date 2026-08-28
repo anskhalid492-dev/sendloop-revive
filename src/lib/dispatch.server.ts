@@ -1046,7 +1046,7 @@ export async function dispatchDueMessages(
     result.sent += 1;
     sentTodaySoFar += 1;
     sentPerAccount.set(account.id, usedNow + 1);
-    const sentAt = new Date().toISOString();
+    const sentAt = now.toISOString();
 
     // The provider accepted the email: record the terminal `sent` state first,
     // with the provider/RFC ids, so no later best-effort step (inbox mirroring,
@@ -1283,13 +1283,14 @@ export async function finalizeCampaignIfDrained(
 /** Send what is due, then queue the follow-ups that became due. */
 export async function runCampaign(
   supabase: AnySupabase,
-  options: { campaignId: string; limit?: number; force?: boolean },
+  options: { campaignId: string; limit?: number; force?: boolean; now?: Date },
 ): Promise<DispatchResult> {
   // A recurring campaign continues on the next configured day. Messages that
   // failed on a previous sending day are re-queued once per day so the campaign
   // resumes instead of silently ending with recipients still pending.
-  const requeued = await requeueRetryableMessages(supabase, options.campaignId);
-  const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId);
+  const runAt = options.now ?? new Date();
+  const requeued = await requeueRetryableMessages(supabase, options.campaignId, runAt);
+  const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId, runAt);
   const result = await dispatchDueMessages(supabase, options);
   result.scheduled += initialScheduled + requeued;
   try {
