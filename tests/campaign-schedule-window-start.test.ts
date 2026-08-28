@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isInSendWindow, nextSendSlot, windowStartAt } from "@/lib/campaign-schedule";
+import { isInSendWindow, windowStartAt } from "@/lib/campaign-schedule";
 import { campaignRunStatus, nextRunAt } from "@/lib/campaign-run-state";
 
 // 7:00 PM – 11:00 PM Asia/Dubai (UTC+4, no DST) => 15:00–19:00 UTC, every day.
@@ -20,7 +20,6 @@ describe("configured window start (no drift)", () => {
     const now = new Date(iso);
     expect(isInSendWindow(now, dubai)).toBe(true);
     expect(windowStartAt(now, dubai).toISOString()).toBe("2026-08-26T15:00:00.000Z");
-    expect(nextSendSlot(now, dubai).toISOString()).toBe("2026-08-26T15:00:00.000Z");
   });
 
   test("18:59 Dubai waits for today's configured 19:00 start", () => {
@@ -87,7 +86,7 @@ describe("configured window start (no drift)", () => {
     });
     expect(status.state).toBe("running");
     expect(status.nextRunAt).toBe("2026-08-26T15:00:00.000Z");
-    expect(status.nextRunAt).toBe(nextSendSlot(new Date("2026-08-26T15:04:00Z"), dubai).toISOString());
+    expect(status.nextRunAt).toBe(windowStartAt(new Date("2026-08-26T15:04:00Z"), dubai).toISOString());
   });
 
   test("skipped send days roll forward to the next configured day's start", () => {

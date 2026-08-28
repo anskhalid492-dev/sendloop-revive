@@ -136,12 +136,6 @@ export function windowStartAt(
   return from;
 }
 
-export function nextSendSlot(from: Date, window: ScheduleWindow): Date {
-  // Compatibility name for queue callers. `windowStartAt` is intentionally the
-  // only implementation that derives a sending-window timestamp.
-  return windowStartAt(from, window, { includeCurrentDay: true });
-}
-
 export function zonedDateTimeLocalValue(value: string | null, timezone: string): string {
   if (!value) return "";
   const date = new Date(value);
