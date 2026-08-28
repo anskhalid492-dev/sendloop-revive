@@ -22,6 +22,7 @@ import {
 
 import { subscribeToNewsletter } from "@/lib/blog.functions";
 import { useSiteContent } from "@/lib/page-seo";
+import { communityPath } from "@/lib/community-model";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { BRAND_NAME } from "@/lib/branding";
@@ -154,8 +155,21 @@ export function SiteFooter() {
   const [pending, setPending] = useState(false);
 
   const columns = (() => {
+    const community = content?.community;
+    // The footer entry links to the internal landing page, matching the header.
+    const withCommunity = (cols: { title: string; links: { label: string; href: string }[] }[]) => {
+      if (!community?.enabled || !community.show_in_footer) return cols;
+      const entry = {
+        label: community.footer_label || community.nav_label || "Community",
+        href: communityPath(community),
+      };
+      const index = cols.findIndex((c) => c.title.toLowerCase() === "resources");
+      if (index === -1) return [...cols, { title: "Resources", links: [entry] }];
+      return cols.map((c, i) => (i === index ? { ...c, links: [...c.links, entry] } : c));
+    };
+
     const items = content?.footer ?? [];
-    if (!items.length) return fallbackColumns;
+    if (!items.length) return withCommunity(fallbackColumns);
     const groups = new Map<string, { label: string; href: string }[]>();
     for (const item of items) {
       const key = item.group_label || "More";
@@ -170,7 +184,7 @@ export function SiteFooter() {
       if (bi === -1) return -1;
       return ai - bi;
     });
-    return sorted.map(([title, links]) => ({ title, links }));
+    return withCommunity(sorted.map(([title, links]) => ({ title, links })));
   })();
 
   // Fixed platform order; only enabled links with a real URL reach this list.
