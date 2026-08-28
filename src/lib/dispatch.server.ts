@@ -638,9 +638,10 @@ export async function dispatchDueMessages(
     (await import("./inbox.server")).recordOutboundCampaignMessage;
   const mintCleanReplyAddress = dependencies.mintCleanReplyAddress ??
     (await import("./inbound-routing.server")).mintCleanReplyAddress;
-  const threading = await import("./outbound-threading.server");
-  const createOutboundRfcMessageId = dependencies.createOutboundRfcMessageId ?? threading.createOutboundRfcMessageId;
-  const messageIdHeader = dependencies.messageIdHeader ?? threading.messageIdHeader;
+  const createOutboundRfcMessageId = dependencies.createOutboundRfcMessageId ??
+    (await import("./outbound-threading.server")).createOutboundRfcMessageId;
+  const messageIdHeader = dependencies.messageIdHeader ??
+    (await import("./outbound-threading.server")).messageIdHeader;
   const suppressedSet = dependencies.suppressedSet ?? (await import("./suppression.server")).suppressedSet;
   const supabaseAdmin = dependencies.supabaseAdmin ??
     (await import("@/integrations/supabase/client.server")).supabaseAdmin;
@@ -763,12 +764,15 @@ export async function dispatchDueMessages(
 
   // Plan enforcement: sending is metered against the workspace plan. Both the
   // gate and the counter live server-side so cron and API callers are covered.
-  const usage = await import(
-    "@/lib/billing/usage.server"
-  );
-  const consumeUsage = dependencies.consumeUsage ?? usage.consumeUsage;
-  const releaseUsage = dependencies.releaseUsage ?? usage.releaseUsage;
-  const EntitlementError = dependencies.EntitlementError ?? usage.EntitlementError;
+  const usage = dependencies.consumeUsage && dependencies.releaseUsage && dependencies.EntitlementError
+    ? null
+    : await import("@/lib/billing/usage.server");
+  const consumeUsage = dependencies.consumeUsage ?? usage?.consumeUsage;
+  const releaseUsage = dependencies.releaseUsage ?? usage?.releaseUsage;
+  const EntitlementError = dependencies.EntitlementError ?? usage?.EntitlementError;
+  if (!consumeUsage || !releaseUsage || !EntitlementError) {
+    throw new Error("Campaign usage dependencies are unavailable.");
+  }
   // Metering is per-message: a dispatch batch can span workspaces.
 
   // Bounced, complained and unsubscribed addresses are never emailed again.
