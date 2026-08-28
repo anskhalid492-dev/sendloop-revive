@@ -620,7 +620,7 @@ export async function applySentPatch(
 export async function dispatchDueMessages(
 
   supabase: AnySupabase,
-  options: { campaignId: string; limit?: number; force?: boolean; now?: Date },
+  options: { campaignId: string; limit?: number; force?: boolean; now?: Date; deadlineAt?: Date },
   dependencies: {
     sendManagedEmail?: (...args: any[]) => Promise<any>;
     consumeUsage?: (...args: any[]) => Promise<any>;
@@ -835,6 +835,15 @@ export async function dispatchDueMessages(
 
 
   for (const message of due) {
+    // Hard wall-clock stop. Each send can take seconds (AI personalization,
+    // provider latency, pacing), so a 25-message batch easily outlives the cron
+    // HTTP timeout. Stopping here leaves untouched messages `scheduled` so the
+    // next cron invocation continues the queue instead of the request dying
+    // mid-batch.
+    if (options.deadlineAt && Date.now() >= options.deadlineAt.getTime()) {
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", reason: "run_deadline_reached" });
+      break;
+    }
     result.processed += 1;
     const account = message.sending_account_id
       ? accountById.get(message.sending_account_id)
@@ -1293,7 +1302,7 @@ export async function finalizeCampaignIfDrained(
 /** Send what is due, then queue the follow-ups that became due. */
 export async function runCampaign(
   supabase: AnySupabase,
-  options: { campaignId: string; limit?: number; force?: boolean; now?: Date },
+  options: { campaignId: string; limit?: number; force?: boolean; now?: Date; deadlineAt?: Date },
 ): Promise<DispatchResult> {
   // A recurring campaign continues on the next configured day. Messages that
   // failed on a previous sending day are re-queued once per day so the campaign
