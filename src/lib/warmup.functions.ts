@@ -303,7 +303,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
 
     const { data: account, error: accountError } = await client
       .from("sending_accounts")
-      .select("id, workspace_id, status")
+      .select(
+        "id, workspace_id, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status",
+      )
       .eq("id", accountId)
       .maybeSingle();
     if (accountError) throw new Error(accountError.message);
@@ -315,7 +317,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
 
     const { data: existing } = await client
       .from("warmup_settings")
-      .select("id, enabled, started_at")
+      .select(
+        "id, enabled, started_at, paused_by_system, pause_reason, max_bounce_rate, min_health_score",
+      )
       .eq("sending_account_id", accountId)
       .maybeSingle();
 
@@ -328,16 +332,63 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       body["ramp_days"] = patch.ramp_days ?? preset.ramp_days;
       body["reply_rate"] = patch.reply_rate ?? preset.reply_rate;
     }
-    if (resume) {
+
+    const wantsResume = Boolean(resume || patch.enabled);
+    // Resume may only clear states that are actually resumable. An ACTIVE
+    // bounce/complaint/provider safety block stays in place — otherwise the
+    // runner would simply re-pause the mailbox seconds later.
+    if (wantsResume && existing?.paused_by_system) {
+      const since = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+      const { data: stats } = await client
+        .from("warmup_daily_stats")
+        .select("sent, bounced, failed")
+        .eq("sending_account_id", accountId)
+        .gte("day", since);
+
+      const violation = evaluateSafetyViolation({
+        stats: (stats ?? []) as SafetyStatRow[],
+        maxBounceRate: Number(existing.max_bounce_rate ?? 5),
+        minHealthScore: Number(existing.min_health_score ?? 0),
+        healthScore: (account.health_score as number | null) ?? null,
+        accountStatus: account.status as string,
+        authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status] as string[],
+      });
+      const state = classifyMailboxPause({
+        manuallyPaused: !!account.paused,
+        customerEnabled: account.customer_enabled !== false,
+        pausedBySystem: true,
+        pauseReason: (existing.pause_reason as string | null) ?? null,
+        accountStatus: account.status as string,
+        violation,
+      });
+      const decision = resumeDecision(state);
+      if (!decision.allowed) {
+        // Keep the stored reason current instead of showing stale copy.
+        if (violation.reason && violation.reason !== existing.pause_reason) {
+          await client
+            .from("warmup_settings")
+            .update({ pause_reason: violation.reason })
+            .eq("id", existing.id);
+        }
+        return {
+          ok: false as const,
+          resumed: false as const,
+          blocked: true as const,
+          kind: decision.kind,
+          message: decision.message,
+        };
+      }
+    }
+
+    if (wantsResume) {
       body["paused_by_system"] = false;
       body["pause_reason"] = null;
       body["paused_at"] = null;
     }
     if (patch.enabled) {
       body["started_at"] = existing?.started_at ?? new Date().toISOString();
-      body["paused_by_system"] = false;
-      body["pause_reason"] = null;
     }
+
 
     if (existing) {
       const { error } = await client.from("warmup_settings").update(body).eq("id", existing.id);
