@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { campaignScheduleState, isInSendWindow, windowStartAt } from "@/lib/campaign-schedule";
+import { campaignScheduleState, isInSendWindow, nextSendSlot, windowStartAt } from "@/lib/campaign-schedule";
 import { campaignRunStatus, nextRunAt } from "@/lib/campaign-run-state";
 import { campaignDispatchSchedule } from "@/lib/dispatch.server";
 
@@ -21,6 +21,7 @@ describe("configured window start (no drift)", () => {
     const now = new Date(iso);
     expect(isInSendWindow(now, dubai)).toBe(true);
     expect(windowStartAt(now, dubai).toISOString()).toBe("2026-08-26T15:00:00.000Z");
+    expect(nextSendSlot(now, dubai).toISOString()).toBe("2026-08-26T15:00:00.000Z");
   });
 
   test("18:59 Dubai waits for today's configured 19:00 start", () => {
