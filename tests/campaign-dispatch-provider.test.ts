@@ -158,6 +158,40 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
     expect(backend.updates.some(({ patch }) => patch.status === "sent" && patch.provider_message_id === "provider-message-1")).toBe(true);
   });
 
+  test("an expired run deadline stops the batch without sending or losing the message", async () => {
+    const backend = fakeBackend();
+    const deps = dependencies();
+    const result = await dispatchDueMessages(
+      backend.client as never,
+      {
+        campaignId: campaign.id,
+        now: new Date("2026-08-28T16:00:00.000Z"),
+        deadlineAt: new Date(Date.now() - 1),
+      },
+      deps,
+    );
+    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(result.sent).toBe(0);
+    // The message is never failed or cancelled: the next cron run picks it up.
+    expect(backend.updates.some(({ patch }) => patch.status === "failed" || patch.status === "cancelled")).toBe(false);
+  });
+
+  test("a deadline far in the future does not block the send", async () => {
+    const backend = fakeBackend();
+    const deps = dependencies();
+    const result = await dispatchDueMessages(
+      backend.client as never,
+      {
+        campaignId: campaign.id,
+        now: new Date("2026-08-28T16:00:00.000Z"),
+        deadlineAt: new Date(Date.now() + 60_000),
+      },
+      deps,
+    );
+    expect(deps.sendManagedEmail).toHaveBeenCalledTimes(1);
+    expect(result.sent).toBe(1);
+  });
+
   test("before 20:00 Dubai waits without calling the provider", async () => {
     const backend = fakeBackend();
     const deps = dependencies();
