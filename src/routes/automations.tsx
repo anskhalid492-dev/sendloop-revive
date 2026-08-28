@@ -205,7 +205,6 @@ const why = [
     eyebrow: "Keep your pipeline organized",
     title: "Status changes always carry the same consequences",
     text: "When a lead's status or CRM stage changes, the tags, owner and tasks that should follow are applied the same way every time.",
-    bullits: undefined,
     bullets: [
       "Tags applied consistently, not from memory",
       "Owner set so no record is unassigned",
