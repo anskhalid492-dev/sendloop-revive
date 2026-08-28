@@ -8,8 +8,8 @@ import { selectSystemEmailProvider } from "@/lib/system-email-provider";
 const window: ScheduleWindow = {
   timezone: "UTC",
   sendDays: [1, 2, 3, 4, 5],
-  startMinutes: 9 * 60,
-  endMinutes: 17 * 60,
+  startHour: 9,
+  endHour: 17,
 };
 
 const base = {
