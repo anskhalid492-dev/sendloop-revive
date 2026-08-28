@@ -139,16 +139,15 @@ function Page() {
         primaryCta="Start a Campaign"
         secondaryCta="See How It Works"
         secondaryHref="#how-it-works"
-      >
-        <CampaignBuilderMock />
-      </PageHero>
+      />
 
       <Section
         id="product"
         title="Everything Starts in One Campaign Builder"
         description="Build the entire outreach workflow before you send a single email."
       >
-        <div className="space-y-6">
+        <div className="space-y-8">
+          <CampaignBuilderMock />
           <Callouts items={builderCallouts} />
         </div>
       </Section>
