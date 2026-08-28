@@ -798,7 +798,7 @@ export function UseCaseGrid({
             </span>
           ) : null}
           <h3 className="text-base font-semibold">{item.audience}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">{item.scenario}</p>
+          <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{item.scenario}</p>
           <p className="mt-4 border-t border-border/70 pt-3 text-sm font-medium text-primary">
             {item.outcome}
           </p>
