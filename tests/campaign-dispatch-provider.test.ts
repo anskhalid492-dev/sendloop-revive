@@ -191,7 +191,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
     expect(result.skipped).toBe(1);
   });
 
-  test("a previous-day transient failure is retryable in today's window", () => {
+  test("a previous-day transient failure is retryable in today's window", async () => {
     const rows = [{
       id: "failed-message",
       status: "failed",
@@ -204,6 +204,16 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       created_at: "2026-08-27T16:00:00.000Z",
     }];
     expect(selectRetryableMessages(rows, new Date("2026-08-28T00:00:00.000Z"))).toEqual(rows);
+
+    const retryMessage = { ...message, id: "failed-message", attempts: 1 };
+    const backend = fakeBackend({ due: [retryMessage] });
+    const deps = dependencies();
+    const result = await dispatchDueMessages(backend.client as never, {
+      campaignId: campaign.id,
+      now: new Date("2026-08-28T16:04:00.000Z"),
+    }, deps);
+    expect(deps.sendManagedEmail).toHaveBeenCalledTimes(1);
+    expect(result.sent).toBe(1);
   });
 
   test("no eligible message produces no provider call or sent state", async () => {
