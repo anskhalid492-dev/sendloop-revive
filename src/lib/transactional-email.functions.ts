@@ -35,8 +35,11 @@ const draftSchema = z.object({
  * it simply means no domain is treated as SES-verified.
  */
 async function senderContext(admin: unknown) {
-  const { getTransactionalSettings } = await import("@/lib/transactional-email.server");
-  const { SYSTEM_SENDERS } = await import("@/lib/system-email-senders");
+  const { getTransactionalSettings, getSenderIdentityOverrides } = await import(
+    "@/lib/transactional-email.server"
+  );
+  const { resolveSenderIdentities } = await import("@/lib/system-sender-identities");
+  const { resolveManagedProvider } = await import("@/lib/managed-sending.server");
   const { resolveSesCredentials, sesRegion, getSesIdentity } = await import(
     "@/lib/email-providers/ses-api.server"
   );
@@ -44,7 +47,22 @@ async function senderContext(admin: unknown) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const settings = await getTransactionalSettings(admin as any);
-  const senders = Object.values(SYSTEM_SENDERS);
+  const overrides = await getSenderIdentityOverrides(admin as any);
+  const senders = resolveSenderIdentities(overrides);
+
+  // The managed provider is whatever the provider pool actually resolves right
+  // now (Resend today, another provider if the pool changes) — never assumed.
+  let managedProvider: string | null = null;
+  try {
+    const managed = await resolveManagedProvider(admin as any, {
+      provider: "resend",
+      provider_id: null,
+      from_email: senders[0]?.email ?? "",
+    });
+    managedProvider = managed?.provider ?? null;
+  } catch {
+    managedProvider = null;
+  }
   const knownSenders = senders.map((s) => s.email);
   const credentials = resolveSesCredentials(null);
   const region = credentials?.region ?? sesRegion(null);
@@ -72,7 +90,10 @@ async function senderContext(admin: unknown) {
 
   return {
     settings,
+    overrides,
     senders,
+    managedProvider,
+    managedAvailable: managedProvider !== null,
     knownSenders,
     verifiedDomains,
     domainStates: states,
@@ -88,13 +109,15 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { providerDisplay } = await import("@/lib/transactional/policy");
+    const { providerDisplay, managedProviderLabel } = await import("@/lib/transactional/policy");
+    const { providerOptionAvailable } = await import("@/lib/system-sender-identities");
     const ctx = await senderContext(supabaseAdmin);
 
     const provider = providerDisplay({
       sesEnabled: ctx.sesEnabled,
       sesConnected: ctx.sesConnected,
-      managedAvailable: true,
+      managedAvailable: ctx.managedAvailable,
+      managedProvider: ctx.managedProvider,
     });
 
     return {
@@ -102,10 +125,32 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
       region: ctx.region,
       sesEnabled: ctx.sesEnabled,
       sesConnected: ctx.sesConnected,
+      managedAvailable: ctx.managedAvailable,
+      managedProvider: ctx.managedProvider,
+      providerOptions: (["auto", "managed", "ses"] as const).map((option) => ({
+        value: option,
+        label:
+          option === "auto"
+            ? `Automatic (${provider.label})`
+            : option === "managed"
+              ? managedProviderLabel(ctx.managedProvider)
+              : "Amazon SES",
+        available: providerOptionAvailable(option, {
+          managedAvailable: ctx.managedAvailable,
+          sesEnabled: ctx.sesEnabled,
+          sesConnected: ctx.sesConnected,
+        }),
+      })),
       identities: ctx.senders.map((s) => {
         const domain = (s.email.split("@")[1] ?? "").toLowerCase();
         const state = ctx.sesConnected ? ctx.domainStates[domain] ?? "unknown" : "not_connected";
         const verified = state === "verified";
+        const effectiveProvider =
+          s.provider === "ses"
+            ? "Amazon SES"
+            : s.provider === "managed"
+              ? managedProviderLabel(ctx.managedProvider)
+              : provider.label;
         return {
           email: s.email,
           name: s.name,
@@ -113,15 +158,76 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
           purpose: s.purpose,
           description: s.description,
           domain,
-          provider: provider.label,
+          /** Provider preference stored for this identity. */
+          providerPreference: s.provider,
+          provider: effectiveProvider,
+          customized: s.customized,
           region: ctx.region,
           verification: verified ? "Verified" : ctx.sesConnected ? state : "Not connected",
           /** Selectable as a From address for a transactional email. */
-          selectable: ctx.sesEnabled ? verified : true,
-          active: true,
+          selectable: s.active && (ctx.sesEnabled ? verified : true),
+          active: s.active,
         };
       }),
     };
+  });
+
+/** Updates one system sender identity after validating it against the backend. */
+export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        purpose: z.enum([
+          "accounts",
+          "billing",
+          "support",
+          "notifications",
+          "security",
+          "onboarding",
+          "system",
+          "marketing",
+        ]),
+        email: z.string().trim().toLowerCase().email(),
+        name: z.string().trim().min(1).max(120),
+        replyTo: z.string().trim().toLowerCase().email(),
+        provider: z.enum(["auto", "managed", "ses"]),
+        active: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getSenderIdentityOverrides, saveSenderIdentityOverrides } = await import(
+      "@/lib/transactional-email.server"
+    );
+    const { applySenderIdentityEdit, validateSenderIdentityEdit } = await import(
+      "@/lib/system-sender-identities"
+    );
+
+    const ctx = await senderContext(supabaseAdmin);
+    const reason = validateSenderIdentityEdit(
+      data,
+      {
+        managedAvailable: ctx.managedAvailable,
+        sesEnabled: ctx.sesEnabled,
+        sesConnected: ctx.sesConnected,
+      },
+      {
+        allowedDomains: Array.from(
+          new Set(
+            ctx.senders.map((s) => (s.email.split("@")[1] ?? "").toLowerCase()).filter(Boolean),
+          ),
+        ),
+        verifiedDomains: ctx.verifiedDomains,
+      },
+    );
+    if (reason) throw new Error(reason);
+
+    const overrides = await getSenderIdentityOverrides(supabaseAdmin);
+    await saveSenderIdentityOverrides(supabaseAdmin, applySenderIdentityEdit(overrides, data));
+    return { ok: true };
   });
 
 /** Throws when the chosen From address is not a usable system sender. */

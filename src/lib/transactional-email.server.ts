@@ -11,7 +11,12 @@
  * never see provider names.
  */
 import { registerOutboundMessage } from "@/lib/message-classification.server";
-import { SYSTEM_SENDERS, systemSenderFor, systemSender } from "@/lib/system-email-senders";
+import { SYSTEM_SENDERS, systemEmailPurpose, systemSender } from "@/lib/system-email-senders";
+import {
+  activeSenderIdentity,
+  resolveSenderIdentities,
+  type SenderIdentityOverrides,
+} from "@/lib/system-sender-identities";
 import { DEFAULT_TEMPLATES, defaultTemplate } from "@/lib/transactional/catalog";
 import { htmlToText } from "@/lib/transactional/layout";
 import {
@@ -25,6 +30,8 @@ import {
 type Admin = any;
 
 const SETTINGS_KEY = "transactional_email";
+/** Admin-edited overrides for the shipped system sender identities. */
+const SENDER_IDENTITIES_KEY = "system_sender_identities";
 const LEASE_MS = 4 * 60 * 1000;
 
 export type TransactionalSettings = {
@@ -83,6 +90,27 @@ export async function saveTransactionalSettings(
     if (value === null) (next as Record<string, unknown>)[key] = null;
   }
   await admin.from("platform_settings").upsert({ key: SETTINGS_KEY, value: next }, { onConflict: "key" });
+  return next;
+}
+
+/* ------------------------------------------------- sender identities */
+
+export async function getSenderIdentityOverrides(admin: Admin): Promise<SenderIdentityOverrides> {
+  const { data } = await admin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", SENDER_IDENTITIES_KEY)
+    .maybeSingle();
+  return (data?.value ?? {}) as SenderIdentityOverrides;
+}
+
+export async function saveSenderIdentityOverrides(
+  admin: Admin,
+  next: SenderIdentityOverrides,
+): Promise<SenderIdentityOverrides> {
+  await admin
+    .from("platform_settings")
+    .upsert({ key: SENDER_IDENTITIES_KEY, value: next }, { onConflict: "key" });
   return next;
 }
 
@@ -356,9 +384,12 @@ export async function renderTemplate(
   const base = useCatalog ? fallback! : null;
   // Sender resolution order: per-template override → centralized purpose
   // mapping (event key / category) → legacy global settings.
-  const mapped = systemSenderFor(
-    eventKey,
-    stored?.category ?? base?.category ?? fallback?.category,
+  // Admin edits to a sender identity are merged over the shipped mapping; a
+  // deactivated identity falls back to an active one so a system email can
+  // never be silently stranded.
+  const mapped = activeSenderIdentity(
+    systemEmailPurpose(eventKey, stored?.category ?? base?.category ?? fallback?.category),
+    await getSenderIdentityOverrides(admin),
   );
   const source = {
     subject: draft?.subject ?? base?.subject ?? stored?.subject ?? fallback!.subject,
@@ -571,7 +602,10 @@ async function deliver(
   const fromEmail = row.from_email || settings.from_email;
   // The display name follows the centralized sender for this From address,
   // so e.g. billing mail goes out as "MunchReach Billing <billing@…>".
-  const mappedSender = Object.values(SYSTEM_SENDERS).find((s) => s.email === fromEmail);
+  const identities = resolveSenderIdentities(await getSenderIdentityOverrides(admin));
+  const mappedSender =
+    identities.find((s) => s.email === fromEmail) ??
+    Object.values(SYSTEM_SENDERS).find((s) => s.email === fromEmail);
   const managed = await resolveManagedProvider(admin, {
     provider: "resend",
     provider_id: null,
@@ -592,8 +626,11 @@ async function deliver(
   };
 
   const sesCredentials = resolveSesCredentials(null);
+  // A per-identity provider preference only narrows the existing selection:
+  // it can opt an identity out of SES, or ask for SES when SES is enabled.
+  const preference = (mappedSender as { provider?: string } | undefined)?.provider ?? "auto";
   const choice = selectSystemEmailProvider({
-    sesEnabled: settings.ses_enabled === true,
+    sesEnabled: settings.ses_enabled === true && preference !== "managed",
     sesCredentialsAvailable: sesCredentials !== null,
     managedAvailable: managed !== null,
   });

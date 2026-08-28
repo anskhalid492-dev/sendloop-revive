@@ -67,7 +67,27 @@ export type ProviderDisplayInput = {
   sesEnabled: boolean;
   sesConnected: boolean;
   managedAvailable: boolean;
+  /** The managed provider actually resolved for system email (e.g. "resend"). */
+  managedProvider?: string | null;
 };
+
+/** Display name for a managed provider id. Never hard-codes one provider. */
+export function managedProviderLabel(provider: string | null | undefined): string {
+  const key = (provider ?? "").trim().toLowerCase();
+  const names: Record<string, string> = {
+    resend: "Resend",
+    ses: "Amazon SES",
+    sendgrid: "SendGrid",
+    mailgun: "Mailgun",
+    postmark: "Postmark",
+    zeptomail: "ZeptoMail",
+    brevo: "Brevo",
+    emailit: "Emailit",
+    smtp: "SMTP",
+  };
+  if (!key) return "MunchReach managed sending";
+  return names[key] ?? key.toUpperCase();
+}
 
 export type ProviderDisplay = {
   /** Provider that will carry the next send. */
@@ -105,7 +125,7 @@ export function providerDisplay(input: ProviderDisplayInput): ProviderDisplay {
 
   return {
     provider: "managed",
-    label: "MunchReach managed sending",
+    label: managedProviderLabel(input.managedProvider),
     available: true,
     detail: choice.reason,
   };
