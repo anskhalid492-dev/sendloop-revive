@@ -8,7 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
-import { mailboxSentToday, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
+import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
@@ -671,13 +671,17 @@ export async function dispatchDueMessages(
   );
 
   const { fetchAllRows } = await import("@/lib/supabase-batch");
+  // Mailbox capacity is a ROLLING 12-hour window over accepted sends only
+  // (status `sent`), so a mailbox regains capacity 12 hours after the sends
+  // that consumed it — never at midnight.
+  const windowStart = mailboxWindowStart(now);
   const accountSentRows = accountIds.length
     ? await fetchAllRows<{ sending_account_id: string | null }>(() =>
         supabase
           .from("campaign_messages")
           .select("sending_account_id")
           .eq("status", "sent")
-          .gte("sent_at", dayStart.toISOString())
+          .gte("sent_at", windowStart.toISOString())
           .in("sending_account_id", accountIds),
       )
     : [];
@@ -747,7 +751,7 @@ export async function dispatchDueMessages(
     // so yesterday's total can never block today's sending.
     const accountSentToday = mailboxSentToday(
       account,
-      dayStart,
+      windowStart,
       sentTodayByAccount.get(account.id) ?? 0,
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
@@ -957,7 +961,7 @@ export async function dispatchDueMessages(
     await supabase
       .from("sending_accounts")
       .update({
-        sent_today: nextStoredSentToday(account, dayStart, count),
+        sent_today: nextStoredSentToday(account, windowStart, count),
         last_sent_at: new Date().toISOString(),
       })
       .eq("id", accountId);
