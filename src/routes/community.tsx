@@ -93,6 +93,76 @@ const postIdeas = [
   "A question you're stuck on right now",
 ];
 
+const steps = [
+  {
+    title: "Join the group",
+    text: "One click, free, no application form. You're in the feed straight away.",
+  },
+  {
+    title: "Introduce your motion",
+    text: "Who you sell to, what you send and where you're stuck. Members answer faster when they know the context.",
+  },
+  {
+    title: "Give before you ask",
+    text: "Comment on one campaign teardown a week. The people who help get helped first.",
+  },
+];
+
+const audiences = [
+  {
+    icon: Rocket,
+    title: "Founders doing their own outbound",
+    text: "You're the SDR, the copywriter and the closer. Skip the trial-and-error and copy what already works.",
+  },
+  {
+    icon: Users,
+    title: "SDR and sales teams",
+    text: "Compare sequences, quotas and reply rates with teams running the same playbooks at your scale.",
+  },
+  {
+    icon: Handshake,
+    title: "Agencies and consultants",
+    text: "Trade lead sources, subcontract overflow work and benchmark client results without leaking client names.",
+  },
+];
+
+const postTypes = [
+  { title: "Campaign teardowns", text: "Drop the sequence, the list and the numbers. Get line-by-line feedback." },
+  { title: "Wins and screenshots", text: "Booked meetings, closed deals, reply-rate jumps — with the detail that made it happen." },
+  { title: "Deliverability SOS", text: "Bounce spikes, spam placement, DNS and warmup questions answered by people who've fixed them." },
+  { title: "List and data sources", text: "Where members find accurate B2B contacts, and which providers are worth the spend." },
+  { title: "Offer and positioning help", text: "The offer beats the copy every time. Pressure-test yours before you send 1,000 emails." },
+  { title: "Tooling and MunchReach tips", text: "AI personalization prompts, warmup settings, sending schedules and roadmap requests." },
+];
+
+const houseRules = [
+  "Be specific — numbers, screenshots and context beat opinions.",
+  "No pitching in the feed. Take offers to DMs when someone asks.",
+  "Never post scraped lists, client names or anyone's personal data.",
+  "Disagree with the tactic, not the person.",
+  "If someone helps you, come back and post the result.",
+];
+
+const faqs = [
+  {
+    q: "Is it free?",
+    a: "Yes. The community is free and open to anyone doing outbound — you don't need a MunchReach subscription to join.",
+  },
+  {
+    q: "Where is it hosted?",
+    a: "It runs on an external group so conversations, notifications and search all work on a platform you already use daily.",
+  },
+  {
+    q: "Do I have to post?",
+    a: "No. Plenty of members read for weeks first. When you're ready, a single question is a perfectly good first post.",
+  },
+  {
+    q: "Can I share client results?",
+    a: "Absolutely — just anonymise the client and never post contact data or lists that aren't yours to share.",
+  },
+];
+
+
 function CommunityPage() {
   const content = useSiteContent();
   const config = content?.community ?? DEFAULT_COMMUNITY;
@@ -177,6 +247,61 @@ function CommunityPage() {
 
       <Section
         muted
+        title="How it works"
+        description="Three small steps and you're part of the conversation — most people post their first question the same day."
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          {steps.map((step, index) => (
+            <div key={step.title} className="surface-card p-6">
+              <span className="flex size-9 items-center justify-center rounded-full bg-primary/12 text-sm font-bold text-primary">
+                {index + 1}
+              </span>
+              <h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{step.text}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <JoinButton placement="how-it-works" />
+        </div>
+      </Section>
+
+      <Section
+        title="Who it's for"
+        description="Different roles, one shared problem: getting replies from people who never asked to hear from you."
+      >
+        <div className="grid gap-4 lg:grid-cols-3">
+          {audiences.map((item) => (
+            <div key={item.title} className="surface-card p-6">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                <item.icon className="size-5" />
+              </span>
+              <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section
+        muted
+        title="What you can post"
+        description="The feed stays useful because the posts stay concrete. These are the threads members show up for."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {postTypes.map((item) => (
+            <div key={item.title} className="surface-card p-6">
+              <h3 className="text-base font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+
+
+      <Section
+        muted
         title="Wins from the community"
         description="A sample of the kind of results members post — specific, measurable and repeatable."
       >
@@ -224,10 +349,14 @@ function CommunityPage() {
           <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-secondary/40 to-background p-6">
             <div>
               <h3 className="text-lg font-bold">House rules</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Be useful, be honest about numbers, and keep pitches out of the feed. Share what you
-                tried, what happened, and what you'd change next time.
-              </p>
+              <ul className="mt-4 space-y-2.5">
+                {houseRules.map((rule) => (
+                  <li key={rule} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <HeartHandshake className="mt-0.5 size-4 shrink-0 text-primary" />
+                    {rule}
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="mt-6">
               <JoinButton placement="house-rules" size="default" variant="outline" />
@@ -235,6 +364,23 @@ function CommunityPage() {
           </div>
         </div>
       </Section>
+
+      <Section
+        muted
+        title="Questions before you join"
+        description="Everything members usually ask in the first five minutes."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {faqs.map((item) => (
+            <div key={item.q} className="surface-card p-6">
+              <h3 className="text-base font-semibold">{item.q}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+
 
       <Section muted>
         <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-primary/12 via-secondary/40 to-background p-10 text-center">

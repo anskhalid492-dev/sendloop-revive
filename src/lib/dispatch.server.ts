@@ -806,21 +806,17 @@ export async function dispatchDueMessages(
       const reached = `Campaign email limit reached (${reservation.data?.sent ?? 0} of ${reservation.data?.limit ?? 0} emails sent).`;
       result.skipped += 1;
       if (result.errors.length < 5) result.errors.push(reached);
-      // The configured total allowance is exhausted. This is an explicit
-      // customer-set ceiling, so the campaign is COMPLETED — never "paused" —
-      // and the untouched message stays queued so raising the limit resumes it
-      // instead of silently discarding the recipient.
+      // The configured TOTAL allowance is exhausted. That is a sending ceiling,
+      // NOT completion: recipients are still queued, so the campaign stays
+      // active and resumes the moment the limit is raised. Only an empty
+      // audience ever completes a campaign.
       await supabase
         .from("campaign_messages")
         .update({ status: "scheduled", last_error: reached.slice(0, 500) })
         .eq("id", message.id);
-      await supabase
-        .from("campaigns")
-        .update({ status: "completed" })
-        .eq("id", message.campaign_id)
-        .eq("status", "active");
       break;
     }
+
 
 
     // Atomic monthly-send reservation: concurrent dispatch runs can never
@@ -1133,6 +1129,50 @@ export async function requeueRetryableMessages(
   return retryable.length;
 }
 
+/**
+ * The ONLY completion rule: a campaign is completed when no message can ever
+ * be sent again — nothing queued, nothing in flight, and no retryable failure
+ * left. Daily quotas, lifetime allowances and mailbox capacity never complete
+ * a campaign; they only pause the current run.
+ */
+export async function finalizeCampaignIfDrained(
+  supabase: AnySupabase,
+  campaignId: string,
+): Promise<boolean> {
+  const { count: openCount } = await supabase
+    .from("campaign_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId)
+    .in("status", ["pending", "scheduled", "processing"]);
+  if (Number(openCount ?? 0) > 0) return false;
+
+  const { data: failedRows } = await supabase
+    .from("campaign_messages")
+    .select("id, last_error")
+    .eq("campaign_id", campaignId)
+    .eq("status", "failed")
+    .is("sent_at", null)
+    .limit(500);
+  const retryableLeft = ((failedRows ?? []) as { last_error: string | null }[]).some((row) =>
+    isRetryableFailure(row.last_error),
+  );
+  if (retryableLeft) return false;
+
+  const { count: openRecipients } = await supabase
+    .from("campaign_recipients")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId)
+    .in("status", ["pending", "in_progress"]);
+  if (Number(openRecipients ?? 0) > 0) return false;
+
+  await supabase
+    .from("campaigns")
+    .update({ status: "completed" })
+    .eq("id", campaignId)
+    .eq("status", "active");
+  return true;
+}
+
 /** Send what is due, then queue the follow-ups that became due. */
 export async function runCampaign(
   supabase: AnySupabase,
@@ -1151,7 +1191,13 @@ export async function runCampaign(
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : "Follow-up scheduling failed");
   }
+  try {
+    await finalizeCampaignIfDrained(supabase, options.campaignId);
+  } catch {
+    /* completion is a bookkeeping step; never fail a dispatch run for it */
+  }
   return result;
+
 }
 
 /** Minutes a message may sit in `processing` before it is reconciled. */

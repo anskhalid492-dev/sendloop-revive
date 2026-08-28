@@ -348,11 +348,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
               <p className="mt-2 text-[11px] text-muted-foreground">
                 {run.state === "daily_quota_reached"
                   ? "Daily quota reached — the campaign is not paused and resumes automatically."
-                  : run.state === "waiting_for_next_run"
-                    ? "Outside the sending window."
-                    : run.state === "running"
-                      ? "Inside the sending window."
-                      : null}
+                  : run.state === "lifetime_limit_reached"
+                    ? "The campaign's total email limit is reached. Remaining leads stay queued — raise the limit to continue."
+                    : run.state === "waiting_for_next_run"
+                      ? "Outside the sending window."
+                      : run.state === "running"
+                        ? "Inside the sending window."
+                        : null}
+
                 {run.nextRunAt
                   ? ` Next run ${new Date(run.nextRunAt).toLocaleString()}.`
                   : ""}
