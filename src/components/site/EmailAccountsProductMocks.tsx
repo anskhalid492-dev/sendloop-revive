@@ -630,7 +630,6 @@ const actions = [
   { icon: Settings, label: "Settings", text: "Update the account's sending configuration." },
   { icon: Flame, label: "Warmup", text: "Open the warmup controls for this mailbox." },
   { icon: Activity, label: "View Activity", text: "Review the recent sending activity recorded for the account." },
-  { icon: Trash2, label: "Remove", text: "Disconnect the mailbox from the workspace." },
 ];
 
 export function ActionsPanelMock() {
