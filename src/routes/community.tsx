@@ -246,6 +246,10 @@ function CommunityPage() {
         title="What is the MunchReach Community?"
         description="A free, members-only Facebook Community where people who send outbound for a living compare real numbers, real copy and real fixes — not recycled theory."
       >
+        <p className="mx-auto -mt-6 mb-8 flex max-w-2xl items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Facebook className="size-4 shrink-0 text-primary" aria-hidden />
+          Hosted in the MunchReach Facebook Community — free to join, no MunchReach subscription required.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {benefits.map((item) => (
             <div key={item.title} className="surface-card p-6">
@@ -391,7 +395,12 @@ function CommunityPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {faqs.map((item) => (
             <div key={item.q} className="surface-card p-6">
-              <h3 className="text-base font-semibold">{item.q}</h3>
+              <h3 className="flex items-center gap-2 text-base font-semibold">
+                {item.q === "Where is it hosted?" ? (
+                  <Facebook className="size-4 shrink-0 text-primary" aria-hidden />
+                ) : null}
+                {item.q}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
             </div>
           ))}
