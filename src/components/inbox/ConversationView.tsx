@@ -605,8 +605,6 @@ export function ConversationView({
         />
       </div>
     </div>
-
-    </ResizablePanelGroup>
   );
 }
 
