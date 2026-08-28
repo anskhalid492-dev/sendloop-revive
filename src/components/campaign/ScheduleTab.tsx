@@ -283,10 +283,20 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
                 id="max-hour"
                 type="number"
                 min={1}
-                max={5000}
+                max={MAX_MAILBOX_EMAILS_PER_HOUR}
                 value={settings.maxPerHour}
-                onChange={(e) => patchSettings({ maxPerHour: Number(e.target.value) || 1 })}
+                onChange={(e) =>
+                  patchSettings({ maxPerHour: clampMailboxHourlyLimit(e.target.value) })
+                }
               />
+              <p
+                className={cn(
+                  "text-xs",
+                  hourlyCapHit ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {MAX_MAILBOX_HOURLY_MESSAGE}
+              </p>
             </div>
           </div>
         </Section>
