@@ -505,10 +505,7 @@ supabase
     };
   });
 
-  /* ------------------------------------------------------------ activity */
-  const accountLabel = new Map(
-    accountRows.map((a) => [a["id"] as string, String(a["label"] || a["from_email"])]),
-  );
+/* ------------------------------------------------------------ activity */
   const activity: ActivityRow[] = [
     ...campaignRows
       .filter((c) => c["launched_at"])
@@ -547,16 +544,6 @@ supabase
       kind: "mailbox",
       ...mailboxActivityCopy(String(a["label"] || a["from_email"])),
       at: String(a["created_at"]),
-    })),
-    ...((warmupEventsRes.data ?? []) as Row[]).map((w) => ({
-      id: `warmup-${w["id"]}`,
-      kind: "warmup",
-      ...warmupActivityCopy(
-        String(w["type"]),
-        w["detail"] as string,
-        accountLabel.get(w["sending_account_id"] as string) ?? null,
-      ),
-      at: String(w["occurred_at"]),
     })),
   ]
     .filter((item) => item.at && item.at !== "null")
