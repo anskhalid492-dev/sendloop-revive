@@ -140,7 +140,14 @@ export async function runCampaignScheduler(
     deps.runCampaign ??
     (async (campaignId: string, now: Date) => {
       const { runCampaign } = await import("./dispatch.server");
-      return runCampaign(supabase, { campaignId, limit: deps.perCampaignLimit ?? 25, now });
+      return runCampaign(supabase, {
+        campaignId,
+        limit: deps.perCampaignLimit ?? 25,
+        now,
+        // Stop sending before the cron HTTP request can time out; the leftover
+        // queue stays `scheduled` for the next invocation.
+        deadlineAt: new Date(startedAtMs + budgetMs),
+      });
     });
   const recover = deps.recover ?? ((campaignId: string, now: Date) => recoverInterruptedMessages(supabase, campaignId, now));
 
