@@ -5,14 +5,10 @@ import {
   Briefcase,
   Building2,
   CalendarCheck,
-  CheckCircle2,
   Flame,
   Inbox,
   Layers,
   LineChart,
-  Globe2,
-  Mail,
-  MessageSquare,
   PlayCircle,
   Repeat,
   Rocket,
@@ -20,13 +16,10 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
-  TrendingUp,
   Upload,
   Users,
   Workflow,
-  Zap,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { FaqBlock, MockBars, MockPanel, MockRows } from "@/components/site/MarketingPage";
 import { Reveal } from "@/components/site/Reveal";
