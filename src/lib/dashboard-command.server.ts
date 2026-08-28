@@ -40,7 +40,7 @@ import {
   type SendingHealth,
   type SeriesPoint,
 } from "@/lib/dashboard-command-model";
-import { mailboxActivityCopy, warmupActivityCopy } from "@/lib/activity-copy";
+import { mailboxActivityCopy } from "@/lib/activity-copy";
 
 type AnyClient = {
   from: (table: string) => any;
