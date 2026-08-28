@@ -485,9 +485,11 @@ export function PainPoints({
 }: {
   items: { icon: LucideIcon; title: string; text: string }[];
 }) {
+  // Problem sections are always exactly three scannable cards in one desktop row.
+  const three = items.slice(0, 3);
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((p) => (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {three.map((p) => (
         <div
           key={p.title}
           className="rounded-2xl border border-destructive/20 bg-destructive/5 p-6"
@@ -496,7 +498,7 @@ export function PainPoints({
             <p.icon className="size-5" />
           </span>
           <h3 className="mt-4 text-base font-semibold">{p.title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">{p.text}</p>
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{p.text}</p>
         </div>
       ))}
     </div>
