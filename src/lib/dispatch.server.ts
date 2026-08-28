@@ -653,7 +653,7 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config, sending_account_ids")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
