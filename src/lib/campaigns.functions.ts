@@ -293,6 +293,10 @@ export const getCampaign = createServerFn({ method: "GET" })
         unsubscribed: withTimestamp("unsubscribed_at") || countBy("unsubscribed"),
         failed: failedMessages,
         scheduled: messages.filter((m) => m["status"] === "scheduled" && !m["sent_at"]).length,
+        // In flight right now: handed to the provider, no acceptance yet.
+        processing: messages.filter((m) => m["status"] === "processing" && !m["sent_at"]).length,
+        // Lifetime remainder: recipients this campaign has never emailed.
+        remaining: Math.max(0, totalRecipients - contactedLeads),
         cancelled: messages.filter((m) => m["status"] === "cancelled").length,
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
         // Emails THIS campaign sent since the campaign timezone's local-day

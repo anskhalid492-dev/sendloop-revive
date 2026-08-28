@@ -85,3 +85,15 @@ export function nextStoredSentToday(
 export function utcStartOfDay(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
+
+/**
+ * Mailbox sending capacity is a ROLLING window, not a calendar day: a mailbox
+ * regains capacity 12 hours after the sends that consumed it, never at
+ * midnight.
+ */
+export const MAILBOX_WINDOW_HOURS = 12;
+
+/** Start of the current rolling mailbox sending window. */
+export function mailboxWindowStart(now: Date = new Date()): Date {
+  return new Date(now.getTime() - MAILBOX_WINDOW_HOURS * 3_600_000);
+}

@@ -8,7 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
-import { mailboxSentToday, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
+import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
@@ -671,13 +671,17 @@ export async function dispatchDueMessages(
   );
 
   const { fetchAllRows } = await import("@/lib/supabase-batch");
+  // Mailbox capacity is a ROLLING 12-hour window over accepted sends only
+  // (status `sent`), so a mailbox regains capacity 12 hours after the sends
+  // that consumed it — never at midnight.
+  const windowStart = mailboxWindowStart(now);
   const accountSentRows = accountIds.length
     ? await fetchAllRows<{ sending_account_id: string | null }>(() =>
         supabase
           .from("campaign_messages")
           .select("sending_account_id")
           .eq("status", "sent")
-          .gte("sent_at", dayStart.toISOString())
+          .gte("sent_at", windowStart.toISOString())
           .in("sending_account_id", accountIds),
       )
     : [];
@@ -747,7 +751,7 @@ export async function dispatchDueMessages(
     // so yesterday's total can never block today's sending.
     const accountSentToday = mailboxSentToday(
       account,
-      dayStart,
+      windowStart,
       sentTodayByAccount.get(account.id) ?? 0,
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
@@ -957,7 +961,7 @@ export async function dispatchDueMessages(
     await supabase
       .from("sending_accounts")
       .update({
-        sent_today: nextStoredSentToday(account, dayStart, count),
+        sent_today: nextStoredSentToday(account, windowStart, count),
         last_sent_at: new Date().toISOString(),
       })
       .eq("id", accountId);
@@ -966,14 +970,100 @@ export async function dispatchDueMessages(
   return result;
 }
 
+/** How many send attempts a single campaign message may ever consume. */
+export const MAX_SEND_ATTEMPTS = 3;
+
+export type RetryableMessageRow = {
+  id: string;
+  status: string;
+  attempts: number | null;
+  sent_at: string | null;
+  bounced_at?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+};
+
+/**
+ * Pure selection of failed messages that may be retried on a later sending day.
+ *
+ * Never returns a message that was accepted (`sent_at`), bounced, cancelled or
+ * already spent its attempts, so an accepted email can never be resent.
+ */
+export function selectRetryableMessages(
+  rows: RetryableMessageRow[],
+  dayStart: Date,
+  maxAttempts: number = MAX_SEND_ATTEMPTS,
+): RetryableMessageRow[] {
+  return rows.filter((row) => {
+    if (row.status !== "failed") return false;
+    if (row.sent_at) return false;
+    if (row.bounced_at) return false;
+    if ((row.attempts ?? 0) >= maxAttempts) return false;
+    const last = row.updated_at ?? row.created_at ?? null;
+    if (!last) return false;
+    const at = new Date(last).getTime();
+    // Only retry on a NEW sending day: never re-attempt inside the same run/day.
+    return Number.isFinite(at) && at < dayStart.getTime();
+  });
+}
+
+/**
+ * Re-queues previous days' failed messages at the campaign's next configured
+ * send slot. Preserves timezone, send days and sending window: it never sends
+ * immediately and never touches accepted, cancelled or bounced messages.
+ */
+export async function requeueRetryableMessages(
+  supabase: AnySupabase,
+  campaignId: string,
+  now: Date = new Date(),
+): Promise<number> {
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select("id, status, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (!campaign || !["active", "scheduled"].includes(campaign.status)) return 0;
+  const endAt = campaign.end_at ? new Date(campaign.end_at) : null;
+  if (endAt && !Number.isNaN(endAt.getTime()) && endAt.getTime() <= now.getTime()) return 0;
+
+  const dayStart = zonedStartOfDay(now, campaign.timezone || "UTC");
+  const { data: rows } = await supabase
+    .from("campaign_messages")
+    .select("id, status, attempts, sent_at, bounced_at, updated_at, created_at")
+    .eq("campaign_id", campaignId)
+    .eq("status", "failed")
+    .is("sent_at", null)
+    .limit(500);
+
+  const retryable = selectRetryableMessages((rows ?? []) as RetryableMessageRow[], dayStart);
+  if (!retryable.length) return 0;
+
+  const slot = nextSendSlot(
+    sendBaseFor(campaign as CampaignDispatchRow, now),
+    campaignWindow(campaign as CampaignDispatchRow),
+  ).toISOString();
+  await supabase
+    .from("campaign_messages")
+    .update({ status: "scheduled", scheduled_at: slot, last_error: null })
+    .in(
+      "id",
+      retryable.map((row) => row.id),
+    );
+  return retryable.length;
+}
+
 /** Send what is due, then queue the follow-ups that became due. */
 export async function runCampaign(
   supabase: AnySupabase,
   options: { campaignId: string; limit?: number; force?: boolean },
 ): Promise<DispatchResult> {
+  // A recurring campaign continues on the next configured day. Messages that
+  // failed on a previous sending day are re-queued once per day so the campaign
+  // resumes instead of silently ending with recipients still pending.
+  const requeued = await requeueRetryableMessages(supabase, options.campaignId);
   const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId);
   const result = await dispatchDueMessages(supabase, options);
-  result.scheduled += initialScheduled;
+  result.scheduled += initialScheduled + requeued;
   try {
     const followUps = await scheduleFollowUps(supabase, options.campaignId);
     result.scheduled += followUps.scheduled;
