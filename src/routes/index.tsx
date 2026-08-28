@@ -339,22 +339,11 @@ function Home() {
           </div>
 
 
-          {/* Logo strip */}
-          <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-            <div className="flex flex-col items-center justify-center gap-6 rounded-2xl border border-border/60 bg-card/70 px-6 py-6 backdrop-blur sm:flex-row sm:gap-10">
-              <p className="text-sm text-muted-foreground">
-                Trusted by 1,000+ agencies and sales teams worldwide
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-                {heroLogos.map((logo) => (
-                  <span
-                    key={logo}
-                    className="text-base font-bold tracking-tight text-muted-foreground/70"
-                  >
-                    {logo}
-                  </span>
-                ))}
-              </div>
+          {/* Capability ticker */}
+          <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+            <div className="space-y-2">
+              <CapabilityMarquee items={capabilityRowOne} />
+              <CapabilityMarquee items={capabilityRowTwo} reverse />
             </div>
           </div>
         </section>
