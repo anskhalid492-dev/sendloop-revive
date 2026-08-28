@@ -101,7 +101,7 @@ export async function getSenderIdentityOverrides(admin: Admin): Promise<SenderId
     .select("value")
     .eq("key", SENDER_IDENTITIES_KEY)
     .maybeSingle();
-  return ((data?.value ?? {}) as SenderIdentityOverrides) ?? {};
+  return (data?.value ?? {}) as SenderIdentityOverrides;
 }
 
 export async function saveSenderIdentityOverrides(
