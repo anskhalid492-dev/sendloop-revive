@@ -40,7 +40,7 @@ import {
   type SendingHealth,
   type SeriesPoint,
 } from "@/lib/dashboard-command-model";
-import { mailboxActivityCopy, warmupActivityCopy } from "@/lib/activity-copy";
+import { mailboxActivityCopy } from "@/lib/activity-copy";
 
 type AnyClient = {
   from: (table: string) => any;
@@ -114,7 +114,7 @@ export async function buildCommandCenter(
   const prevStart = nowMs - days * 2 * DAY;
   const fetchSince = new Date(Math.min(prevStart, nowMs - SAFETY_WINDOW_DAYS * DAY)).toISOString();
 
-  const [
+const [
     campaignsRes,
     messages,
     replies,
@@ -124,7 +124,6 @@ export async function buildCommandCenter(
     accountsRes,
     domainsRes,
     conversationsRes,
-    warmupEventsRes,
   ] = await Promise.all([
     supabase
       .from("campaigns")
@@ -177,18 +176,12 @@ export async function buildCommandCenter(
       .from("sending_domains")
       .select("id, domain, stage, dns_status, verified_at, ready_at")
       .eq("workspace_id", workspaceId),
-    supabase
+supabase
       .from("conversations")
       .select("id, unread, archived")
       .eq("workspace_id", workspaceId)
       .eq("unread", true)
       .eq("archived", false),
-    supabase
-      .from("warmup_events")
-      .select("id, type, detail, occurred_at, sending_account_id")
-      .eq("workspace_id", workspaceId)
-      .order("occurred_at", { ascending: false })
-      .limit(15),
   ]);
 
   const campaignRows: Row[] = campaignsRes.data ?? [];
@@ -512,10 +505,7 @@ export async function buildCommandCenter(
     };
   });
 
-  /* ------------------------------------------------------------ activity */
-  const accountLabel = new Map(
-    accountRows.map((a) => [a["id"] as string, String(a["label"] || a["from_email"])]),
-  );
+/* ------------------------------------------------------------ activity */
   const activity: ActivityRow[] = [
     ...campaignRows
       .filter((c) => c["launched_at"])
@@ -554,16 +544,6 @@ export async function buildCommandCenter(
       kind: "mailbox",
       ...mailboxActivityCopy(String(a["label"] || a["from_email"])),
       at: String(a["created_at"]),
-    })),
-    ...((warmupEventsRes.data ?? []) as Row[]).map((w) => ({
-      id: `warmup-${w["id"]}`,
-      kind: "warmup",
-      ...warmupActivityCopy(
-        String(w["type"]),
-        w["detail"] as string,
-        accountLabel.get(w["sending_account_id"] as string) ?? null,
-      ),
-      at: String(w["occurred_at"]),
     })),
   ]
     .filter((item) => item.at && item.at !== "null")
