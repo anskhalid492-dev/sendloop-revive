@@ -6,8 +6,6 @@ import { Activity, AlertTriangle, Flame, Pause, Play, Send, Settings2 } from "lu
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
-import { WarmupAnalytics } from "@/components/warmup/WarmupAnalytics";
-import { WarmupTimeline } from "@/components/warmup/WarmupTimeline";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
