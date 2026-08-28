@@ -94,8 +94,11 @@ function WarmupPage() {
   const toggleMutation = useMutation({
     mutationFn: (vars: { accountId: string; enabled: boolean }) =>
       saveFn({ data: { accountId: vars.accountId, enabled: vars.enabled, resume: vars.enabled } }),
-    onSuccess: async (_r, vars) => {
-      toast.success(vars.enabled ? "Warmup started" : "Warmup stopped");
+    onSuccess: async (result: { blocked?: boolean; message?: string }, vars) => {
+      // Resume never overrides an active safety block — say so plainly instead
+      // of flipping the mailbox back to blocked a moment later.
+      if (result?.blocked) toast.error(result.message ?? "Resume is blocked by safety protection.");
+      else toast.success(vars.enabled ? "Warmup started" : "Warmup stopped");
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -208,7 +211,19 @@ function WarmupPage() {
                                 : "text-muted-foreground",
                           )}
                         >
-                          {row.state === "on" ? "Warming" : row.state === "blocked" ? "Blocked" : "Off"}
+                          {row.state === "on"
+                            ? "Warming"
+                            : row.state === "blocked"
+                              ? row.pause_kind === "bounce_safety"
+                                ? "Blocked by bounce-rate protection"
+                                : row.pause_kind === "complaint_safety"
+                                  ? "Blocked by complaint-rate protection"
+                                  : row.pause_kind === "provider_failure"
+                                    ? "Blocked by provider/authentication failure"
+                                    : row.pause_kind === "manual"
+                                      ? "Paused"
+                                      : "Blocked"
+                              : "Off"}
                         </Badge>
                         {row.failed_today > 0 ? (
                           <span className="text-[11px] text-destructive">
@@ -276,7 +291,12 @@ function WarmupPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={toggleMutation.isPending}
+                          disabled={toggleMutation.isPending || (row.paused_by_system && !row.resumable)}
+                          title={
+                            row.paused_by_system && !row.resumable
+                              ? (row.pause_reason ?? "Resume cannot override this safety block.")
+                              : undefined
+                          }
                           onClick={() =>
                             toggleMutation.mutate({
                               accountId: row.id,

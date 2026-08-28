@@ -9,6 +9,7 @@
  * event arrived on the webhook.
  */
 import { buildWarmupMessage, buildWarmupReply } from "@/lib/warmup-content.server";
+import { evaluateSafetyViolation, type SafetyStatRow } from "@/lib/mailbox-pause-state";
 import { statusFromScore, type WarmupHealthFactor, type WarmupHealthStatus } from "@/lib/warmup-model";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1300,22 +1301,19 @@ async function applySafety(
     .eq("sending_account_id", account.id)
     .gte("day", since);
 
-  const sent = (stats ?? []).reduce((n: number, r: { sent: number }) => n + (r.sent ?? 0), 0);
-  const bounced = (stats ?? []).reduce((n: number, r: { bounced: number }) => n + (r.bounced ?? 0), 0);
-  const failed = (stats ?? []).reduce((n: number, r: { failed: number }) => n + (r.failed ?? 0), 0);
+  // Shared with the customer Resume action so both evaluate identical
+  // conditions — a mailbox the customer may resume can never be re-paused by
+  // the very next runner pass.
+  const violation = evaluateSafetyViolation({
+    stats: (stats ?? []) as SafetyStatRow[],
+    maxBounceRate: settings.max_bounce_rate,
+    minHealthScore: settings.min_health_score,
+    healthScore: account.health_score ?? null,
+    accountStatus: account.status,
+    authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status],
+  });
+  const reason: string | null = violation.active ? violation.reason : null;
 
-  let reason: string | null = null;
-  if (sent >= 10 && (bounced / sent) * 100 > settings.max_bounce_rate) {
-    reason = `Bounce rate ${(((bounced / sent) * 100)).toFixed(1)}% exceeded the ${settings.max_bounce_rate}% limit.`;
-  } else if (sent >= 10 && (failed / Math.max(1, sent + failed)) * 100 > 30) {
-    reason = "More than 30% of provider send attempts failed.";
-  } else if ((account.health_score ?? 100) < settings.min_health_score) {
-    reason = `Health score ${account.health_score} is below the ${settings.min_health_score} minimum.`;
-  } else if (account.status === "failed") {
-    reason = "The mailbox connection test is failing.";
-  } else if ([account.spf_status, account.dkim_status, account.dmarc_status].includes("fail")) {
-    reason = "Domain authentication (SPF/DKIM/DMARC) is failing.";
-  }
 
   if (!reason) return true;
 

@@ -8,7 +8,11 @@
  * limit system and never mutates any counter.
  */
 
-import { mailboxSentToday, mailboxWindowStart } from "@/lib/mailbox-daily-usage";
+import {
+  mailboxCapacityReturnsAt,
+  mailboxSentToday,
+  mailboxWindowStart,
+} from "@/lib/mailbox-daily-usage";
 
 export type MailboxCapacityRow = {
   id: string;
@@ -41,6 +45,14 @@ export type MailboxCapacity = {
   available: boolean;
   reason: MailboxBlockReason;
   reasonLabel: string | null;
+  /**
+   * True when the mailbox is only *temporarily* out of sending capacity (the
+   * rolling 12-hour window is full). This is not a safety block: the mailbox
+   * becomes eligible again on its own.
+   */
+  temporary: boolean;
+  /** ISO time the rolling window frees capacity again, when known. */
+  nextAvailableAt: string | null;
 };
 
 /** Marker so the client can recognise a capacity block and keep the draft. */
@@ -73,13 +85,15 @@ export function evaluateMailboxCapacity(
   else if (dailyRemaining <= 0) reason = "daily";
   else if (hourlyRemaining <= 0) reason = "hourly";
 
+  const next = new Date(dayStart.getTime() + 12 * 3_600_000);
+
   const reasonLabel =
     reason === "paused"
       ? "Paused"
       : reason === "disabled"
         ? "Unavailable"
         : reason === "daily"
-          ? "Daily limit reached"
+          ? "Temporarily unavailable"
           : reason === "hourly"
             ? "Hourly limit reached"
             : null;
@@ -98,6 +112,9 @@ export function evaluateMailboxCapacity(
     available: reason === null,
     reason,
     reasonLabel,
+    temporary: reason === "daily" || reason === "hourly",
+    nextAvailableAt:
+      reason === "daily" ? (mailboxCapacityReturnsAt(row, next)?.toISOString() ?? null) : null,
   };
 }
 
@@ -106,7 +123,7 @@ export function mailboxBlockedCopy(capacity: MailboxCapacity) {
   const address = capacity.from_email ?? "This mailbox";
   switch (capacity.reason) {
     case "daily":
-      return `${address} has reached its daily sending limit. Select another mailbox to continue.`;
+      return `${address} is temporarily out of sending capacity for the current 12-hour window. Capacity returns automatically — or select another mailbox.`;
     case "hourly":
       return `${address} has reached its hourly sending limit. Select another mailbox or try again later.`;
     case "paused":

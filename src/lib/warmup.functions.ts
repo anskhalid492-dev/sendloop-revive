@@ -9,6 +9,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  classifyMailboxPause,
+  type MailboxPauseKind,
+  evaluateSafetyViolation,
+  resumeDecision,
+  type SafetyStatRow,
+} from "@/lib/mailbox-pause-state";
 import { WARMUP_MODES } from "@/lib/warmup-model";
 import type {
   MailboxCheck,
@@ -54,6 +61,10 @@ export type WarmupAccountRow = {
   /** Clear mailbox state for the dashboard badge. */
   state: "on" | "off" | "blocked";
   block_reason: string | null;
+  /** Which kind of pause/block this is, so the UI never mislabels it. */
+  pause_kind: MailboxPauseKind;
+  /** Whether the Resume button may clear it. */
+  resumable: boolean;
   failed_today: number;
   delivery_rate: number | null;
   ramp_day: number;
@@ -61,6 +72,15 @@ export type WarmupAccountRow = {
   daily_limit: number;
   last_activity_at: string | null;
 };
+
+/** Maps a stored safety reason back onto its pause kind for display only. */
+function pauseKindFromReason(reason: string | null | undefined): MailboxPauseKind {
+  const text = (reason ?? "").toLowerCase();
+  if (text.includes("bounce rate")) return "bounce_safety";
+  if (text.includes("complaint")) return "complaint_safety";
+  if (text.includes("connection test") || text.includes("authentication")) return "provider_failure";
+  return "auto_safety";
+}
 
 function statusOf(row: {
   paused: boolean;
@@ -166,6 +186,15 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
             : base.status === "failed"
               ? "The mailbox connection test is failing."
               : ((setting?.["last_run_reason"] as string | null) ?? null);
+      const pauseKind: MailboxPauseKind = !base.customer_enabled
+        ? "disabled"
+        : base.status === "failed"
+          ? "provider_failure"
+          : base.paused_by_system
+            ? pauseKindFromReason(setting?.["pause_reason"] as string | null)
+            : base.paused
+              ? "manual"
+              : "none";
       const state: "on" | "off" | "blocked" = !base.warmup_enabled
         ? "off"
         : base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
@@ -200,6 +229,11 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         mx_status: a["mx_status"] as string,
         state,
         block_reason: blockReason,
+        pause_kind: pauseKind,
+        resumable: pauseKind !== "bounce_safety" &&
+          pauseKind !== "complaint_safety" &&
+          pauseKind !== "provider_failure" &&
+          pauseKind !== "disabled",
         failed_today: (stat?.["failed"] as number) ?? 0,
         delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
         ramp_day: rampDay,
@@ -303,7 +337,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
 
     const { data: account, error: accountError } = await client
       .from("sending_accounts")
-      .select("id, workspace_id, status")
+      .select(
+        "id, workspace_id, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status",
+      )
       .eq("id", accountId)
       .maybeSingle();
     if (accountError) throw new Error(accountError.message);
@@ -315,7 +351,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
 
     const { data: existing } = await client
       .from("warmup_settings")
-      .select("id, enabled, started_at")
+      .select(
+        "id, enabled, started_at, paused_by_system, pause_reason, max_bounce_rate, min_health_score",
+      )
       .eq("sending_account_id", accountId)
       .maybeSingle();
 
@@ -328,16 +366,63 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       body["ramp_days"] = patch.ramp_days ?? preset.ramp_days;
       body["reply_rate"] = patch.reply_rate ?? preset.reply_rate;
     }
-    if (resume) {
+
+    const wantsResume = Boolean(resume || patch.enabled);
+    // Resume may only clear states that are actually resumable. An ACTIVE
+    // bounce/complaint/provider safety block stays in place — otherwise the
+    // runner would simply re-pause the mailbox seconds later.
+    if (wantsResume && existing?.paused_by_system) {
+      const since = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+      const { data: stats } = await client
+        .from("warmup_daily_stats")
+        .select("sent, bounced, failed")
+        .eq("sending_account_id", accountId)
+        .gte("day", since);
+
+      const violation = evaluateSafetyViolation({
+        stats: (stats ?? []) as SafetyStatRow[],
+        maxBounceRate: Number(existing.max_bounce_rate ?? 5),
+        minHealthScore: Number(existing.min_health_score ?? 0),
+        healthScore: (account.health_score as number | null) ?? null,
+        accountStatus: account.status as string,
+        authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status] as string[],
+      });
+      const state = classifyMailboxPause({
+        manuallyPaused: !!account.paused,
+        customerEnabled: account.customer_enabled !== false,
+        pausedBySystem: true,
+        pauseReason: (existing.pause_reason as string | null) ?? null,
+        accountStatus: account.status as string,
+        violation,
+      });
+      const decision = resumeDecision(state);
+      if (!decision.allowed) {
+        // Keep the stored reason current instead of showing stale copy.
+        if (violation.reason && violation.reason !== existing.pause_reason) {
+          await client
+            .from("warmup_settings")
+            .update({ pause_reason: violation.reason })
+            .eq("id", existing.id);
+        }
+        return {
+          ok: false as const,
+          resumed: false as const,
+          blocked: true as const,
+          kind: decision.kind,
+          message: decision.message,
+        };
+      }
+    }
+
+    if (wantsResume) {
       body["paused_by_system"] = false;
       body["pause_reason"] = null;
       body["paused_at"] = null;
     }
     if (patch.enabled) {
       body["started_at"] = existing?.started_at ?? new Date().toISOString();
-      body["paused_by_system"] = false;
-      body["pause_reason"] = null;
     }
+
 
     if (existing) {
       const { error } = await client.from("warmup_settings").update(body).eq("id", existing.id);
@@ -361,7 +446,13 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       })
       .eq("id", accountId);
 
-    return { ok: true };
+    return {
+      ok: true as const,
+      resumed: wantsResume,
+      blocked: false as const,
+      kind: "none" as const,
+      message: wantsResume ? "Sending resumed." : "Settings saved.",
+    };
   });
 
 /** Bulk enable/disable warmup across selected mailboxes. */
