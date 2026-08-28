@@ -121,6 +121,10 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
 
 
   const totalLeads = delivery?.totalLeads ?? queue?.total ?? 0;
+  // Lifetime remainder and today's eligible volume are kept strictly separate.
+  const remainingTotal = delivery?.remaining ?? Math.max(0, totalLeads - contacted);
+  const eligibleToday =
+    remainingToday === null ? remainingTotal : Math.min(remainingTotal, remainingToday);
   const sent = delivery?.sent ?? queue?.sent ?? 0;
   const delivered = delivery?.delivered ?? 0;
   const opened = delivery?.opened ?? 0;
@@ -275,25 +279,66 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </p>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <MiniStat label="Total leads" value={totalLeads} />
-          <MiniStat label="Contacted" value={contacted} />
-          <MiniStat label="Clicked" value={clicked} />
-          <MiniStat
-            label="Bounced"
-            value={bounced}
-            hint="Never counted as delivered or failed"
-            tone={bounced > 0 ? "text-destructive" : undefined}
-          />
-          <MiniStat
-            label="Failed"
-            value={failed}
-            hint="Internal send failures"
-            tone={failed > 0 ? "text-destructive" : undefined}
-          />
-          <MiniStat label="Scheduled" value={delivery?.scheduled ?? 0} />
-          <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
-          <MiniStat label="Delayed" value={delayed} hint="Retrying" />
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Total campaign (all time)
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <MiniStat label="Total leads" value={totalLeads} />
+              <MiniStat label="Contacted" value={contacted} />
+              <MiniStat label="Sent" value={sent} hint="Accepted by the provider" />
+              <MiniStat label="Remaining" value={remainingTotal} hint="Never emailed yet" />
+              <MiniStat
+                label="Bounced"
+                value={bounced}
+                hint="Never counted as delivered or failed"
+                tone={bounced > 0 ? "text-destructive" : undefined}
+              />
+              <MiniStat
+                label="Failed"
+                value={failed}
+                hint="Internal send failures only"
+                tone={failed > 0 ? "text-destructive" : undefined}
+              />
+              <MiniStat label="Clicked" value={clicked} />
+              <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
+              <MiniStat label="Delayed" value={delayed} hint="Retrying" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Today / current run
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <MiniStat
+                label="Sent today"
+                value={campaignSentToday}
+                hint="Since this campaign's local day start"
+              />
+              <MiniStat
+                label="Remaining eligible today"
+                value={eligibleToday}
+                hint={
+                  dailyLimit > 0
+                    ? `Daily limit ${dailyLimit.toLocaleString()}`
+                    : "No campaign daily limit"
+                }
+              />
+              <MiniStat label="Scheduled" value={delivery?.scheduled ?? 0} hint="Queued to send" />
+              <MiniStat
+                label="Processing"
+                value={delivery?.processing ?? 0}
+                hint="Handed to the provider"
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Mailbox capacity is separate: {dailyUsed.toLocaleString()} of{" "}
+              {dailyCapacity.toLocaleString()} sends used in the current rolling 12-hour mailbox
+              window.
+            </p>
+          </div>
         </div>
         {campaign.status === "paused" && campaign.limit_reached_at ? (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
