@@ -11,6 +11,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   classifyMailboxPause,
+  type MailboxPauseKind,
   evaluateSafetyViolation,
   resumeDecision,
   type SafetyStatRow,
@@ -60,6 +61,10 @@ export type WarmupAccountRow = {
   /** Clear mailbox state for the dashboard badge. */
   state: "on" | "off" | "blocked";
   block_reason: string | null;
+  /** Which kind of pause/block this is, so the UI never mislabels it. */
+  pause_kind: MailboxPauseKind;
+  /** Whether the Resume button may clear it. */
+  resumable: boolean;
   failed_today: number;
   delivery_rate: number | null;
   ramp_day: number;
@@ -67,6 +72,15 @@ export type WarmupAccountRow = {
   daily_limit: number;
   last_activity_at: string | null;
 };
+
+/** Maps a stored safety reason back onto its pause kind for display only. */
+function pauseKindFromReason(reason: string | null | undefined): MailboxPauseKind {
+  const text = (reason ?? "").toLowerCase();
+  if (text.includes("bounce rate")) return "bounce_safety";
+  if (text.includes("complaint")) return "complaint_safety";
+  if (text.includes("connection test") || text.includes("authentication")) return "provider_failure";
+  return "auto_safety";
+}
 
 function statusOf(row: {
   paused: boolean;
@@ -172,6 +186,15 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
             : base.status === "failed"
               ? "The mailbox connection test is failing."
               : ((setting?.["last_run_reason"] as string | null) ?? null);
+      const pauseKind: MailboxPauseKind = !base.customer_enabled
+        ? "disabled"
+        : base.status === "failed"
+          ? "provider_failure"
+          : base.paused_by_system
+            ? pauseKindFromReason(setting?.["pause_reason"] as string | null)
+            : base.paused
+              ? "manual"
+              : "none";
       const state: "on" | "off" | "blocked" = !base.warmup_enabled
         ? "off"
         : base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
@@ -206,6 +229,11 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         mx_status: a["mx_status"] as string,
         state,
         block_reason: blockReason,
+        pause_kind: pauseKind,
+        resumable: pauseKind !== "bounce_safety" &&
+          pauseKind !== "complaint_safety" &&
+          pauseKind !== "provider_failure" &&
+          pauseKind !== "disabled",
         failed_today: (stat?.["failed"] as number) ?? 0,
         delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
         ramp_day: rampDay,
