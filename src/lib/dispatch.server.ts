@@ -816,7 +816,23 @@ export async function dispatchDueMessages(
       throw error;
     }
 
-    await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
+    // Scheduler idempotency: claim the row by transitioning it out of the
+    // queued states. Two overlapping runner invocations therefore cannot both
+    // send the same message — the loser's update matches zero rows.
+    const claim = await supabase
+      .from("campaign_messages")
+      .update({ status: "processing" })
+      .eq("id", message.id)
+      .in("status", ["pending", "scheduled"])
+      .select("id");
+    if (!claim.error && Array.isArray(claim.data) && claim.data.length === 0) {
+      // Already claimed by a concurrent run: give the reservations back.
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "duplicate_claim");
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+      result.skipped += 1;
+      continue;
+    }
+
 
     // Keep the customer-visible Reply-To professional. A backend route record is
     // still created for audit/back-compat, while clean-address replies thread by
