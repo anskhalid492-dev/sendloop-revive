@@ -883,9 +883,46 @@ export async function dispatchDueMessages(
     }
 
     if (!account) {
-      await fail("No mailbox assigned to this message.");
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: "mailbox_not_found" });
-      continue;
+      // Missing/stale mailbox: repair from the campaign pool instead of
+      // failing the message. Nothing about the recipient is wrong.
+      const usageById = new Map<string, number>();
+      for (const id of campaignMailboxPool) {
+        const candidate = accountById.get(id);
+        if (!candidate) continue;
+        usageById.set(
+          id,
+          mailboxSentToday(candidate, windowStart, sentTodayByAccount.get(id) ?? 0) +
+            (sentPerAccount.get(id) ?? 0),
+        );
+      }
+      const pickedId = selectMailboxForMessage({
+        poolIds: campaignMailboxPool,
+        accountsById: accountById,
+        usageById,
+      });
+      const picked = pickedId ? accountById.get(pickedId) : undefined;
+      if (!picked) {
+        // TEMPORARY condition — keep the message queued and retry later.
+        result.skipped += 1;
+        if (result.errors.length < 5) result.errors.push(NO_MAILBOX_AVAILABLE_MESSAGE);
+        await supabase
+          .from("campaign_messages")
+          .update({
+            status: "scheduled",
+            scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+            last_error: NO_MAILBOX_AVAILABLE_MESSAGE,
+          })
+          .eq("id", message.id);
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: "no_mailbox_available_deferred" });
+        continue;
+      }
+      await supabase
+        .from("campaign_messages")
+        .update({ sending_account_id: picked.id })
+        .eq("id", message.id);
+      message.sending_account_id = picked.id;
+      account = picked;
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: picked.id, mailboxEligible: true, reason: "mailbox_assigned_from_campaign_pool" });
     }
     if (account.paused || !account.customer_enabled || account.status === "disabled") {
       result.skipped += 1;
