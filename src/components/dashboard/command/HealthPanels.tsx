@@ -84,7 +84,7 @@ export function MailboxTable({ rows }: { rows: MailboxRow[] }) {
         title="No mailboxes connected"
         body="Connect a sending mailbox to start warming up and sending campaigns."
         ctaLabel="Add mailbox"
-        to="/email-accounts"
+        to="/sending"
       />
     );
   }
@@ -112,7 +112,7 @@ export function MailboxTable({ rows }: { rows: MailboxRow[] }) {
           {rows.map((row) => (
             <tr key={row.id} className="border-b border-border/70 last:border-0 hover:bg-muted/30">
               <td className="px-4 py-3">
-                <Link to="/email-accounts" className="font-medium hover:underline">
+                <Link to="/sending" className="font-medium hover:underline">
                   {row.label}
                 </Link>
                 <p className="text-[11px] text-muted-foreground">{row.email}</p>
