@@ -874,8 +874,8 @@ export async function dispatchDueMessages(
       logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_disabled" });
       continue;
     }
-    // Whichever limit is lowest wins; the daily cap is checked before the
-    // mailbox, campaign-total and plan reservations below.
+    // Whichever active limit is lowest wins; the campaign daily cap is checked
+    // before rolling mailbox capacity and workspace plan metering.
     if (dailyCap > 0 && sentTodaySoFar >= dailyCap) {
       result.skipped += 1;
       if (result.errors.length < 5)
@@ -902,6 +902,14 @@ export async function dispatchDueMessages(
       logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached" });
       continue;
     }
+    logDispatchDiagnostic({
+      ...diagnosticBase,
+      phase: "mailbox_check",
+      messageId: message.id,
+      mailboxId: account.id,
+      mailboxEligible: true,
+      reason: "mailbox_capacity_available",
+    });
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
     try {
@@ -1032,7 +1040,7 @@ export async function dispatchDueMessages(
       // `processing` forever. Treat it exactly like a failed send.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await fail(error instanceof Error ? error.message : "Sending failed.");
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
       continue;
     }
 
@@ -1040,7 +1048,7 @@ export async function dispatchDueMessages(
       // Give the reserved allowance back: nothing left the platform.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await fail(send.message);
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_rejected", providerResult: "rejected" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_rejected", providerResult: "rejected" });
       continue;
     }
 
