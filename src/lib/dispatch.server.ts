@@ -246,7 +246,9 @@ export async function ensureInitialCampaignMessages(
     return account?.id ?? null;
   };
 
-  const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
+  const { aiExtras, personalizationByLead, pendingPersonalizationLeads } = await import(
+    "@/lib/ai-personalization.server"
+  );
   const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
   const aiEnabled = Boolean(campaign.ai_enabled);
   const aiConfig = normalizeAiConfig(campaign.ai_config);
@@ -254,6 +256,12 @@ export async function ensureInitialCampaignMessages(
   const aiContent = aiEnabled
     ? await personalizationByLead(supabase, campaignId, leadIds)
     : new Map<string, string>();
+  // Leads whose snippet is still generating are held back: queueing them now
+  // would freeze the un-personalized copy into the outgoing email.
+  const aiPending = aiEnabled
+    ? await pendingPersonalizationLeads(supabase, campaignId, leadIds)
+    : new Set<string>();
+
 
   const slot = nextSendSlot(sendBaseFor(campaign, now), campaignWindow(campaign)).toISOString();
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
@@ -269,7 +277,7 @@ export async function ensureInitialCampaignMessages(
     const ai = aiEnabled
       ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
       : { extras: {} as Record<string, string>, hold: false };
-    if (ai.hold) continue;
+    if (ai.hold || (aiEnabled && aiPending.has(recipient.lead_id))) continue;
 
     inserts.push({
       workspace_id: campaign.workspace_id,
@@ -428,13 +436,20 @@ export async function scheduleFollowUps(
 
   // Follow-ups reuse the AI snippet generated for this lead on this campaign, so
   // the whole sequence stays consistent instead of re-billing a generation.
-  const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
+  const { aiExtras, personalizationByLead, pendingPersonalizationLeads } = await import(
+    "@/lib/ai-personalization.server"
+  );
   const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
   const aiEnabled = Boolean(campaign.ai_enabled);
   const aiConfig = normalizeAiConfig(campaign.ai_config);
   const aiContent = aiEnabled
     ? await personalizationByLead(supabase, campaignId, leadIds)
     : new Map<string, string>();
+  // Still generating: hold the lead rather than baking a fallback into the copy.
+  const aiPending = aiEnabled
+    ? await pendingPersonalizationLeads(supabase, campaignId, leadIds)
+    : new Set<string>();
+
   const window = {
     timezone: campaign.timezone,
     sendDays: campaign.send_days,
@@ -484,7 +499,8 @@ export async function scheduleFollowUps(
       ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
       : { extras: {} as Record<string, string>, hold: false };
     // "hold" keeps the follow-up unqueued until its personalization lands.
-    if (ai.hold) continue;
+    if (ai.hold || (aiEnabled && aiPending.has(recipient.lead_id))) continue;
+
 
     inserts.push({
       workspace_id: campaign.workspace_id,
@@ -576,7 +592,7 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
