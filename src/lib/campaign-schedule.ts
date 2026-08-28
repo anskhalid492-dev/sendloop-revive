@@ -157,6 +157,14 @@ export function campaignScheduleState(now: Date, window: ScheduleWindow): Campai
   };
 }
 
+/**
+ * Backward-compatible queue API. It contains no scheduling calculation of its
+ * own; every caller receives the canonical configured start from windowStartAt.
+ */
+export function nextSendSlot(from: Date, window: ScheduleWindow): Date {
+  return windowStartAt(from, window, { includeCurrentDay: true });
+}
+
 export function zonedDateTimeLocalValue(value: string | null, timezone: string): string {
   if (!value) return "";
   const date = new Date(value);
