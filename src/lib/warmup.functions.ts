@@ -12,10 +12,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   classifyMailboxPause,
   type MailboxPauseKind,
+  evaluateMailboxSafety,
   evaluateSafetyViolation,
   resumeDecision,
+  SAFETY_WINDOW_DAYS,
+  type SafetyMetrics,
   type SafetyStatRow,
 } from "@/lib/mailbox-pause-state";
+
 import { WARMUP_MODES } from "@/lib/warmup-model";
 import type {
   MailboxCheck,
