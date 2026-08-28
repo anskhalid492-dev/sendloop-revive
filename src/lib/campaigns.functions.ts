@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
-import { nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
 import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
@@ -862,12 +862,12 @@ export const addLeadsToCampaign = createServerFn({ method: "POST" })
 
     const accounts = c.sending_account_ids;
 
-    const slot = nextSendSlot(new Date(), {
+    const slot = windowStartAt(new Date(), {
       timezone: c.timezone,
       sendDays: c.send_days,
       startHour: c.send_start_hour,
       endHour: c.send_end_hour,
-    }).toISOString();
+    }, { includeCurrentDay: true }).toISOString();
 
     if (fresh.length) {
       const rows = fresh.map((lead, index) => ({
@@ -1376,12 +1376,12 @@ export const launchCampaign = createServerFn({ method: "POST" })
     );
     const already = new Set(existing.map((r) => r.lead_id));
 
-    const firstSlot = nextSendSlot(c.start_at ? new Date(c.start_at) : new Date(), {
+    const firstSlot = windowStartAt(c.start_at ? new Date(c.start_at) : new Date(), {
       timezone: c.timezone,
       sendDays: c.send_days,
       startHour: c.send_start_hour,
       endHour: c.send_end_hour,
-    }).toISOString();
+    }, { includeCurrentDay: true }).toISOString();
 
     const fresh = leads.filter((l) => !already.has(String(l["id"]))) as Array<
       Record<string, unknown> & { id: string; email: string }
