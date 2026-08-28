@@ -11,6 +11,11 @@ import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWin
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
+import {
+  NO_MAILBOX_AVAILABLE_MESSAGE,
+  mailboxRetryAt,
+  selectMailboxForMessage,
+} from "@/lib/mailbox-assignment";
 import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
@@ -653,7 +658,7 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config, sending_account_ids")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
@@ -782,8 +787,17 @@ export async function dispatchDueMessages(
     due.map((m: { to_email: string }) => m.to_email),
   );
 
+  // The campaign's own mailbox pool is loaded alongside the mailboxes already
+  // referenced by queued rows, so a message that lost (or never got) its
+  // mailbox can be repaired instead of failed.
+  const campaignMailboxPool = (
+    ((campaignRow as { sending_account_ids?: string[] | null }).sending_account_ids ?? []) as string[]
+  ).filter(Boolean);
   const accountIds = [
-    ...new Set(due.map((m: { sending_account_id: string | null }) => m.sending_account_id).filter(Boolean)),
+    ...new Set([
+      ...(due.map((m: { sending_account_id: string | null }) => m.sending_account_id).filter(Boolean) as string[]),
+      ...campaignMailboxPool,
+    ]),
   ] as string[];
   const { data: accounts, error: aErr } = await supabase
     .from("sending_accounts")
@@ -845,7 +859,7 @@ export async function dispatchDueMessages(
       break;
     }
     result.processed += 1;
-    const account = message.sending_account_id
+    let account = message.sending_account_id
       ? accountById.get(message.sending_account_id)
       : undefined;
 
@@ -874,9 +888,46 @@ export async function dispatchDueMessages(
     }
 
     if (!account) {
-      await fail("No mailbox assigned to this message.");
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: "mailbox_not_found" });
-      continue;
+      // Missing/stale mailbox: repair from the campaign pool instead of
+      // failing the message. Nothing about the recipient is wrong.
+      const usageById = new Map<string, number>();
+      for (const id of campaignMailboxPool) {
+        const candidate = accountById.get(id);
+        if (!candidate) continue;
+        usageById.set(
+          id,
+          mailboxSentToday(candidate, windowStart, sentTodayByAccount.get(id) ?? 0) +
+            (sentPerAccount.get(id) ?? 0),
+        );
+      }
+      const pickedId = selectMailboxForMessage({
+        poolIds: campaignMailboxPool,
+        accountsById: accountById,
+        usageById,
+      });
+      const picked = pickedId ? accountById.get(pickedId) : undefined;
+      if (!picked) {
+        // TEMPORARY condition — keep the message queued and retry later.
+        result.skipped += 1;
+        if (result.errors.length < 5) result.errors.push(NO_MAILBOX_AVAILABLE_MESSAGE);
+        await supabase
+          .from("campaign_messages")
+          .update({
+            status: "scheduled",
+            scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+            last_error: NO_MAILBOX_AVAILABLE_MESSAGE,
+          })
+          .eq("id", message.id);
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: "no_mailbox_available_deferred" });
+        continue;
+      }
+      await supabase
+        .from("campaign_messages")
+        .update({ sending_account_id: picked.id })
+        .eq("id", message.id);
+      message.sending_account_id = picked.id;
+      account = picked;
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: picked.id, mailboxEligible: true, reason: "mailbox_assigned_from_campaign_pool" });
     }
     if (account.paused || !account.customer_enabled || account.status === "disabled") {
       result.skipped += 1;
