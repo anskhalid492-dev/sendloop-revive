@@ -214,15 +214,17 @@ function WarmupPage() {
                           {row.state === "on"
                             ? "Warming"
                             : row.state === "blocked"
-                              ? row.pause_kind === "bounce_safety"
-                                ? "Blocked by bounce-rate protection"
-                                : row.pause_kind === "complaint_safety"
-                                  ? "Blocked by complaint-rate protection"
-                                  : row.pause_kind === "provider_failure"
-                                    ? "Blocked by provider/authentication failure"
-                                    : row.pause_kind === "manual"
-                                      ? "Paused"
-                                      : "Blocked"
+                              ? !row.safety_active && row.safety_stale
+                                ? "Paused — safe to resume"
+                                : row.pause_kind === "bounce_safety"
+                                  ? "Blocked by bounce-rate protection"
+                                  : row.pause_kind === "complaint_safety"
+                                    ? "Blocked by complaint-rate protection"
+                                    : row.pause_kind === "provider_failure"
+                                      ? "Blocked by provider/authentication failure"
+                                      : row.pause_kind === "manual"
+                                        ? "Paused"
+                                        : "Blocked"
                               : "Off"}
                         </Badge>
                         {row.failed_today > 0 ? (
@@ -236,6 +238,21 @@ function WarmupPage() {
                           {row.block_reason ?? row.pause_reason}
                         </p>
                       ) : null}
+                      {row.state === "blocked" ? (
+                        <p className="mt-1 max-w-xs text-[11px] text-muted-foreground">
+                          Bounce rate {row.safety_metrics.bounceRate}% of{" "}
+                          {row.safety_metrics.maxBounceRate}% limit ·{" "}
+                          {row.safety_metrics.bounced}/{row.safety_metrics.sent} sends in the last{" "}
+                          {row.safety_metrics.windowDays} days
+                          {row.safety_metrics.sampleSufficient
+                            ? ""
+                            : ` · below the ${row.safety_metrics.minSample}-send minimum sample`}
+                          {row.safety_active
+                            ? ` · re-checked ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                            : ""}
+                        </p>
+                      ) : null}
+
                     </td>
                     <td className="px-3 py-2.5">
                       <Badge
@@ -291,12 +308,13 @@ function WarmupPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={toggleMutation.isPending || (row.paused_by_system && !row.resumable)}
+                          disabled={toggleMutation.isPending || !row.resumable}
                           title={
-                            row.paused_by_system && !row.resumable
-                              ? (row.pause_reason ?? "Resume cannot override this safety block.")
+                            !row.resumable
+                              ? `${row.block_reason ?? "Resume cannot override this safety block."} Resume becomes available as soon as the condition clears (next check ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).`
                               : undefined
                           }
+
                           onClick={() =>
                             toggleMutation.mutate({
                               accountId: row.id,

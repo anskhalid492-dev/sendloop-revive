@@ -278,3 +278,106 @@ export function resumeDecision(state: MailboxPauseState): ResumeDecision {
   }
   return { allowed: true, kind: state.kind, message: "Sending resumed." };
 }
+
+/* --------------------------------------------------- live safety snapshot */
+
+/** Rolling window (days) the bounce/complaint rates are measured over. */
+export const SAFETY_WINDOW_DAYS = 7;
+
+/** Safety conditions are re-evaluated by the runner on the hour. */
+export function nextSafetyEvaluationAt(now: Date = new Date()): Date {
+  const next = new Date(now);
+  next.setUTCMinutes(0, 0, 0);
+  next.setUTCHours(next.getUTCHours() + 1);
+  return next;
+}
+
+export type SafetyMetrics = {
+  windowDays: number;
+  sent: number;
+  bounced: number;
+  complained: number;
+  failed: number;
+  bounceRate: number;
+  complaintRate: number;
+  maxBounceRate: number;
+  maxComplaintRate: number;
+  /** Below this many sends in the window, rates are not enforced. */
+  minSample: number;
+  sampleSufficient: boolean;
+};
+
+export type MailboxSafetySnapshot = {
+  state: MailboxPauseState;
+  violation: SafetyViolation;
+  metrics: SafetyMetrics;
+  /** A stored system pause whose condition is no longer present. */
+  stale: boolean;
+  nextEvaluationAt: string;
+};
+
+/**
+ * One evaluation used by the mailbox list, the Resume action and the runner so
+ * the UI can never show a stale "Blocked by bounce-rate protection" badge for a
+ * mailbox whose recent numbers are healthy again.
+ */
+export function evaluateMailboxSafety(input: {
+  stats: SafetyStatRow[];
+  maxBounceRate: number;
+  maxComplaintRate?: number | null;
+  minHealthScore: number;
+  healthScore?: number | null;
+  accountStatus?: string | null;
+  authStatuses?: Array<string | null | undefined>;
+  minSample?: number;
+  manuallyPaused?: boolean | null;
+  customerEnabled?: boolean | null;
+  pausedBySystem?: boolean | null;
+  pauseReason?: string | null;
+  capacityExhausted?: boolean | null;
+  windowDays?: number;
+  now?: Date;
+}): MailboxSafetySnapshot {
+  const minSample = input.minSample ?? SAFETY_MIN_SAMPLE;
+  const totals = aggregateSafetyStats(input.stats);
+  const violation = evaluateSafetyViolation({
+    stats: input.stats,
+    maxBounceRate: input.maxBounceRate,
+    maxComplaintRate: input.maxComplaintRate ?? null,
+    minHealthScore: input.minHealthScore,
+    healthScore: input.healthScore ?? null,
+    accountStatus: input.accountStatus ?? null,
+    authStatuses: input.authStatuses ?? [],
+    minSample,
+  });
+  const state = classifyMailboxPause({
+    manuallyPaused: input.manuallyPaused ?? false,
+    customerEnabled: input.customerEnabled ?? true,
+    pausedBySystem: input.pausedBySystem ?? false,
+    pauseReason: input.pauseReason ?? null,
+    accountStatus: input.accountStatus ?? null,
+    capacityExhausted: input.capacityExhausted ?? false,
+    violation,
+  });
+
+  return {
+    state,
+    violation,
+    stale: Boolean(input.pausedBySystem) && !violation.active,
+    nextEvaluationAt: nextSafetyEvaluationAt(input.now ?? new Date()).toISOString(),
+    metrics: {
+      windowDays: input.windowDays ?? SAFETY_WINDOW_DAYS,
+      sent: totals.sent,
+      bounced: totals.bounced,
+      complained: totals.complained,
+      failed: totals.failed,
+      bounceRate: Math.round(bounceRatePct(totals) * 10) / 10,
+      complaintRate: Math.round(complaintRatePct(totals) * 100) / 100,
+      maxBounceRate: input.maxBounceRate,
+      maxComplaintRate: input.maxComplaintRate ?? DEFAULT_MAX_COMPLAINT_RATE,
+      minSample,
+      sampleSufficient: totals.sent >= minSample,
+    },
+  };
+}
+

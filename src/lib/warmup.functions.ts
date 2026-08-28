@@ -12,10 +12,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   classifyMailboxPause,
   type MailboxPauseKind,
+  evaluateMailboxSafety,
   evaluateSafetyViolation,
   resumeDecision,
+  SAFETY_WINDOW_DAYS,
+  type SafetyMetrics,
   type SafetyStatRow,
 } from "@/lib/mailbox-pause-state";
+
 import { WARMUP_MODES } from "@/lib/warmup-model";
 import type {
   MailboxCheck,
@@ -65,6 +69,15 @@ export type WarmupAccountRow = {
   pause_kind: MailboxPauseKind;
   /** Whether the Resume button may clear it. */
   resumable: boolean;
+  /** True only while a safety condition is measurably active right now. */
+  safety_active: boolean;
+  /** True when a stored system pause is no longer backed by live numbers. */
+  safety_stale: boolean;
+  /** Live bounce/complaint numbers behind the decision. */
+  safety_metrics: SafetyMetrics;
+  /** When the runner next re-checks the safety conditions. */
+  next_evaluation_at: string;
+
   failed_today: number;
   delivery_rate: number | null;
   ramp_day: number;
@@ -73,14 +86,8 @@ export type WarmupAccountRow = {
   last_activity_at: string | null;
 };
 
-/** Maps a stored safety reason back onto its pause kind for display only. */
-function pauseKindFromReason(reason: string | null | undefined): MailboxPauseKind {
-  const text = (reason ?? "").toLowerCase();
-  if (text.includes("bounce rate")) return "bounce_safety";
-  if (text.includes("complaint")) return "complaint_safety";
-  if (text.includes("connection test") || text.includes("authentication")) return "provider_failure";
-  return "auto_safety";
-}
+
+
 
 function statusOf(row: {
   paused: boolean;
@@ -120,14 +127,32 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
     const ids = (accounts ?? []).map((a: { id: string }) => a.id);
     if (ids.length === 0) return { accounts: [] as WarmupAccountRow[] };
 
-    const [{ data: settings }, { data: stats }] = await Promise.all([
+    const safetySince = new Date(Date.now() - SAFETY_WINDOW_DAYS * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+
+    const [{ data: settings }, { data: stats }, { data: windowStats }] = await Promise.all([
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
         .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied")
         .in("sending_account_id", ids)
         .eq("day", today),
+      client
+        .from("warmup_daily_stats")
+        .select("sending_account_id, sent, bounced, failed")
+        .in("sending_account_id", ids)
+        .gte("day", safetySince),
     ]);
+
+    const windowStatsById = new Map<string, SafetyStatRow[]>();
+    for (const row of (windowStats ?? []) as Array<Record<string, unknown>>) {
+      const key = row["sending_account_id"] as string;
+      const list = windowStatsById.get(key) ?? [];
+      list.push(row as SafetyStatRow);
+      windowStatsById.set(key, list);
+    }
+
 
     // Last real warmup activity per mailbox (send/delivery/bounce/reply event).
     const { data: recentEvents } = await client
@@ -177,29 +202,43 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
             Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) + 1,
           )
         : 0;
+      // Live safety evaluation — never trust the stored reason string alone,
+      // otherwise a mailbox stays "Blocked by bounce-rate protection" forever
+      // after the numbers recover.
+      const snapshot = evaluateMailboxSafety({
+        stats: windowStatsById.get(a["id"] as string) ?? [],
+        maxBounceRate: Number(setting?.["max_bounce_rate"] ?? 5),
+        minHealthScore: Number(setting?.["min_health_score"] ?? 0),
+        healthScore: base.health_score,
+        accountStatus: base.status,
+        authStatuses: [a["spf_status"], a["dkim_status"], a["dmarc_status"]] as string[],
+        manuallyPaused: base.paused,
+        customerEnabled: base.customer_enabled,
+        pausedBySystem: base.paused_by_system,
+        pauseReason: (setting?.["pause_reason"] as string | null) ?? null,
+      });
+      const safetyActive = snapshot.violation.active;
+      const pauseKind: MailboxPauseKind = base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
+        ? snapshot.state.kind
+        : "none";
+      const resumable = pauseKind === "none" ? true : snapshot.state.resumable;
       const blockReason = !base.warmup_enabled
         ? null
-        : base.paused_by_system
-          ? ((setting?.["pause_reason"] as string | null) ?? "Warmup paused by the safety system.")
-          : base.paused || !base.customer_enabled
-            ? "Mailbox sending is paused."
-            : base.status === "failed"
-              ? "The mailbox connection test is failing."
-              : ((setting?.["last_run_reason"] as string | null) ?? null);
-      const pauseKind: MailboxPauseKind = !base.customer_enabled
-        ? "disabled"
-        : base.status === "failed"
-          ? "provider_failure"
+        : safetyActive
+          ? snapshot.violation.reason
           : base.paused_by_system
-            ? pauseKindFromReason(setting?.["pause_reason"] as string | null)
-            : base.paused
-              ? "manual"
-              : "none";
+            ? `${(setting?.["pause_reason"] as string | null) ?? "Paused automatically."} This condition is no longer active — you can resume this mailbox.`
+            : base.paused || !base.customer_enabled
+              ? "Mailbox sending is paused."
+              : base.status === "failed"
+                ? "The mailbox connection test is failing."
+                : ((setting?.["last_run_reason"] as string | null) ?? null);
       const state: "on" | "off" | "blocked" = !base.warmup_enabled
         ? "off"
         : base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
           ? "blocked"
           : "on";
+
       return {
         id: a["id"] as string,
         from_email: a["from_email"] as string,
@@ -230,10 +269,12 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         state,
         block_reason: blockReason,
         pause_kind: pauseKind,
-        resumable: pauseKind !== "bounce_safety" &&
-          pauseKind !== "complaint_safety" &&
-          pauseKind !== "provider_failure" &&
-          pauseKind !== "disabled",
+        resumable,
+        safety_active: safetyActive,
+        safety_stale: snapshot.stale,
+        safety_metrics: snapshot.metrics,
+        next_evaluation_at: snapshot.nextEvaluationAt,
+
         failed_today: (stat?.["failed"] as number) ?? 0,
         delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
         ramp_day: rampDay,
