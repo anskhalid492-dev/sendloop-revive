@@ -78,6 +78,19 @@ export function campaignDispatchSchedule(now: Date, window: ScheduleWindow) {
   return campaignScheduleState(now, window);
 }
 
+/** Pure parity check for the database due-message filter at a scheduler tick. */
+export function isMessageDispatchEligible(
+  message: { status: string; scheduledAt: Date | null },
+  now: Date,
+  window: ScheduleWindow,
+): boolean {
+  return (
+    campaignDispatchSchedule(now, window).inWindow &&
+    ["pending", "scheduled"].includes(message.status) &&
+    (!message.scheduledAt || message.scheduledAt.getTime() <= now.getTime())
+  );
+}
+
 type StepRow = {
   id: string;
   step_order: number;
