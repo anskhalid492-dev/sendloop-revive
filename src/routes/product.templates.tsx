@@ -1,317 +1,350 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Sparkles,
-  FileText,
-  Wand2,
-  Variable,
-  FolderOpen,
-  Copy,
-  FileX,
-  Repeat,
-  ShieldAlert,
-  Tags,
-  Users,
-  Eye,
-  History,
-  Search,
-  Building2,
   Briefcase,
-  UserSearch,
-  Handshake,
-  Megaphone,
+  Building2,
+  Eye,
+  FileStack,
+  FileX,
+  Layers,
+  PenLine,
+  Repeat,
+  Rocket,
+  Shuffle,
+  Sparkles,
+  Target,
+  Users,
 } from "lucide-react";
 
 import {
-  BeforeAfter,
   BigPreview,
   BulletList,
   CtaBlock,
-  DocSection,
-  FeatureBento,
+  FeatureGrid,
   MarketingLayout,
-  MockPanel,
-  MockRows,
   PageHero,
   PainPoints,
   Section,
   UseCaseGrid,
-  Walkthrough,
   WorkflowStrip,
   metaFor,
 } from "@/components/site/MarketingPage";
+import {
+  FlowRail,
+  TemplateDetailMock,
+  TemplateLibraryMock,
+  TemplateToBuilderMock,
+  TemplateToCampaignFlow,
+  VariablesMock,
+} from "@/components/site/TemplatesProductMocks";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
-  { q: "Are templates free to use?", a: "Yes. The full library — official MunchReach templates and anything your workspace creates — is included on every plan with no cap on how many you insert into campaigns." },
-  { q: "Will my emails look identical to every other sender using the same template?", a: "A template is a starting point, not a fixed script. Merge fields, custom fallbacks and your own edits mean the wording you actually send is unique to each campaign." },
-  { q: "Can I build and save my own templates?", a: "Yes. Save any subject and body as a new template, tag it with a category, and it appears in your workspace library for every teammate to reuse." },
-  { q: "Do templates include follow-up steps, or just the first email?", a: "You can save a template for any step — first touch, follow-up or breakup — and insert each one into the matching step of a sequence." },
-  { q: "What happens if a variable like {{company}} is missing for a prospect?", a: "You set a fallback value when you save the template, so a missing field falls back to safe wording instead of sending a broken merge tag." },
-  { q: "Can I see who created a template and how it's performing?", a: "Every template shows whether it's an official MunchReach template or one created by your workspace, and you can preview the rendered copy before using it." },
-  { q: "Can I organize templates by category or use case?", a: "Yes. Templates are grouped into categories such as Cold Outreach, Follow-Ups, SaaS, Agencies, Recruiting and Breakup, and you can filter or search by name, subject or body text." },
-  { q: "Can I preview a template before sending?", a: "Yes. Open the preview dialog to see the rendered subject, body and every variable used before inserting it into a campaign." },
-  { q: "Can I edit or delete templates my team no longer uses?", a: "Anyone with manage permissions can edit, duplicate or delete a workspace template. Official MunchReach templates can be duplicated into your own editable copy." },
-  { q: "Can I reuse an official template as a base for my own version?", a: "Yes. Duplicate any official or teammate's template into your workspace library, then edit the copy, subject or category without touching the original." },
+  {
+    q: "What exactly is a MunchReach template?",
+    a: "A saved outreach structure: a subject, a body and — for multi-step templates — the follow-up steps and their timing. You use it as the starting point for a campaign sequence instead of writing from a blank editor.",
+  },
+  {
+    q: "Can I see the whole sequence before I use a template?",
+    a: "Yes. The preview shows every step in order with its subject, body, variables and delay, so you know exactly what would be added to your campaign before you click Use template.",
+  },
+  {
+    q: "Is a template locked once I use it?",
+    a: "No. The sequence is copied into your campaign. You can rewrite subjects and bodies, change delays, and add or remove steps — the saved template stays untouched.",
+  },
+  {
+    q: "Which categories can I browse?",
+    a: "Cold Outreach, Follow-Ups, SaaS, Agencies, Sales, Recruiting, Lead Generation, Partnership, Breakup and Referral. You can also search across template name, subject and body text.",
+  },
+  {
+    q: "Do templates support personalization variables?",
+    a: "Yes. Templates can include variables such as {{first_name}}, {{company}}, {{job_title}} and {{ai_personalization}}, and MunchReach detects every variable a template uses so you can see what data it expects.",
+  },
+  {
+    q: "Can my team save its own templates?",
+    a: "Yes. Save any campaign copy as a workspace template with a name, category and description. It appears in the same library beside the official MunchReach templates for every teammate with access.",
+  },
 ];
 
 export const Route = createFileRoute("/product/templates")({
-  head: () => metaFor(
-    "Cold Email Templates for Better Outreach | MunchReach",
-    "Create, save, tag and reuse cold email templates across every campaign — with variables, fallbacks and a shared team library.",
-    "/product/templates",
-    faqs,
-  ),
+  head: () =>
+    metaFor(
+      "MunchReach Templates — Start Outbound Campaigns From a Proven Structure",
+      "Browse ready-made outreach sequences, preview every step, customize the copy for your audience, and launch — without writing each campaign from a blank page.",
+      "/product/templates",
+      faqs,
+    ),
   component: Page,
 });
 
-const pains = [
-  { icon: FileX, title: "Blank page fatigue", text: "Writing a fresh subject and opener for every sequence burns an hour before you even send." },
-  { icon: Repeat, title: "No record of what works", text: "Your best-performing email lives in one rep's folder, unfindable by anyone else." },
-  { icon: ShieldAlert, title: "Broken merge fields", text: "A missing {{company}} value turns polished copy into an obvious mail-merge accident." },
+const problems = [
+  {
+    icon: FileX,
+    title: "The blank page",
+    text: "Every new campaign starts with an empty subject line and no structure to build on.",
+  },
+  {
+    icon: Shuffle,
+    title: "Inconsistent messaging",
+    text: "Two reps write the same offer two different ways, so nothing is comparable.",
+  },
+  {
+    icon: Repeat,
+    title: "Rewriting the same outreach",
+    text: "Copy that worked last quarter gets retyped from memory instead of reused.",
+  },
 ];
 
-const walkthroughSteps = [
+const customize = [
   {
-    title: "Start from the library, not a blank draft",
-    youDo: "Search or filter by category — Cold Outreach, Follow-Ups, SaaS, Agencies, Recruiting, Breakup and more.",
-    weHandle: "MunchReach surfaces official templates alongside anything your workspace has already built, sorted by featured and recently used.",
-    youGet: "A ready subject and body in seconds instead of a blinking cursor.",
-    visual: (
-      <MockPanel title="Template library">
-        <MockRows rows={[
-          { left: "SaaS trial expiring", muted: "Cold Outreach · Official", right: "Featured" },
-          { left: "Agency case study drop", muted: "Agencies · Workspace" },
-          { left: "Passive candidate opener", muted: "Recruiting · Official" },
-          { left: "Breakup email v2", muted: "Breakup · Workspace" },
-        ]} />
-      </MockPanel>
-    ),
+    icon: PenLine,
+    title: "Change the Copy",
+    text: "Customize subject lines and email bodies.",
   },
   {
-    title: "Preview before you commit to it",
-    youDo: "Open the preview dialog to read the exact subject, body and description.",
-    weHandle: "MunchReach lists every merge field the template uses so you know what data it expects before inserting it.",
-    youGet: "Confidence the copy fits your offer before it touches a live campaign.",
-    visual: (
-      <MockPanel title="Preview — Passive candidate opener">
-        <MockRows rows={[
-          { left: "Subject", right: "Quick one, {{first_name}}?" },
-          { left: "Variables used", right: "{{first_name}}, {{company}}, {{role}}" },
-          { left: "Category", right: "Recruiting" },
-          { left: "Source", right: "Official MunchReach template" },
-        ]} />
-      </MockPanel>
-    ),
+    icon: Sparkles,
+    title: "Make It Yours",
+    text: "Adjust variables, messaging, and campaign details.",
   },
   {
-    title: "Add variables and set safe fallbacks",
-    youDo: "Drop in merge fields like {{first_name}} or {{company}} anywhere in the subject or body.",
-    weHandle: "Every variable in the template is detected automatically, and you define what each one falls back to if a prospect record is missing that field.",
-    youGet: "A template that always renders cleanly, even on incomplete lead data.",
-    visual: (
-      <MockPanel title="Editing — variables">
-        <MockRows rows={[
-          { left: "{{first_name}}", muted: "Fallback: \"there\"", right: "Detected" },
-          { left: "{{company}}", muted: "Fallback: \"your company\"", right: "Detected" },
-          { left: "{{role}}", muted: "Fallback: \"your role\"", right: "Detected" },
-        ]} />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Insert into a sequence step",
-    youDo: "Pick the template while building a campaign step, or send a draft straight to the editor.",
-    weHandle: "The subject and body drop into that step with variables already wired up to your prospect fields.",
-    youGet: "A sequence step that's ready to personalize instead of write from scratch.",
-    visual: (
-      <MockPanel title="Sequence — Step 2: Follow-up">
-        <MockRows rows={[
-          { left: "Template applied", right: "Breakup email v2" },
-          { left: "Delay", right: "3 business days after Step 1" },
-          { left: "Status", right: "Ready to review", badge: "Draft" },
-        ]} />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Save your own version back to the library",
-    youDo: "Edit the wording, give it a name, a category and mark it featured if it's a go-to." ,
-    weHandle: "MunchReach saves it to your workspace library, visible to every teammate with access, without touching the original official template.",
-    youGet: "A growing, tagged library instead of one-off drafts scattered across campaigns.",
-    visual: (
-      <MockPanel title="Save template">
-        <MockRows rows={[
-          { left: "Name", right: "\"Series B\" opener — v2" },
-          { left: "Category", right: "Sales" },
-          { left: "Featured", right: "On" },
-          { left: "Visibility", right: "Workspace" },
-        ]} />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Duplicate, tag and prune over time",
-    youDo: "Duplicate a strong template to branch a variant, retag it, or delete versions nobody uses anymore.",
-    weHandle: "Duplicates land as independent workspace copies, and every template keeps its category and featured flag intact.",
-    youGet: "A library that reflects what your team is actually sending today, not last year's drafts.",
-    visual: (
-      <MockPanel title="Workspace templates">
-        <MockRows rows={[
-          { left: "\"Series B\" opener — v2", muted: "Sales", right: "Duplicated" },
-          { left: "Old cold open (unused)", muted: "Cold Outreach", right: "Deleted" },
-          { left: "Referral ask", muted: "Referral", right: "Edited" },
-        ]} />
-      </MockPanel>
-    ),
+    icon: Target,
+    title: "Build Around Your Audience",
+    text: "Adapt the template to your ICP and offer.",
   },
 ];
 
 const features = [
-  { icon: Sparkles, title: "Official template library", text: "Curated templates across Cold Outreach, SaaS, Agencies, Recruiting and more." },
-  { icon: FileText, title: "One-click insert", text: "Drop any template's subject and body into a campaign without retyping." },
-  { icon: Variable, title: "Automatic variable detection", text: "Merge fields are parsed automatically the moment you type them." },
-  { icon: Wand2, title: "Fallback values", text: "Set what each variable falls back to on incomplete prospect data." },
-  { icon: FolderOpen, title: "Workspace template library", text: "Save your own templates so every teammate can find and reuse them." },
-  { icon: Eye, title: "Full preview before use", text: "Read the rendered subject, body and variables before inserting anywhere." },
-  { icon: Tags, title: "Category tagging", text: "Every template carries a category so the library stays searchable." },
-  { icon: Search, title: "Search across name, subject and body", text: "Find the right template by keyword, no matter the category." },
-  { icon: Copy, title: "Duplicate to branch a variant", text: "Copy any template into an editable version without touching the source." },
-  { icon: Users, title: "Featured and recently used views", text: "Surface your team's best templates and pick up where you left off." },
-  { icon: History, title: "Publish or unpublish drafts", text: "Keep drafts hidden until they're ready for the whole workspace." },
-  { icon: FolderOpen, title: "Official vs. workspace source", text: "Every card is labelled official or workspace-created for clarity." },
-];
-
-const workflowSteps = [
-  { title: "Search or browse", text: "Filter the library by category, or search directly." },
-  { title: "Preview the copy", text: "Read the full subject, body and variables first." },
-  { title: "Insert into a step", text: "Apply the template to a draft or sequence step." },
-  { title: "Save it back", text: "Name and categorize your edited version for the team." },
-];
-
-const useCases = [
-  { icon: Building2, audience: "SaaS founders", scenario: "Reuse a trial-expiring or demo-follow-up template across every campaign.", outcome: "Consistent messaging, launched in minutes." },
-  { icon: Briefcase, audience: "Agencies", scenario: "Keep a categorized library of case-study openers tagged by service line.", outcome: "New pitches reuse proven structure." },
-  { icon: UserSearch, audience: "Recruiters", scenario: "Save passive-candidate openers with safe fallbacks for role and company.", outcome: "Faster outreach with clean copy." },
-  { icon: Users, audience: "Sales teams", scenario: "Promote a rep's best subject line into a shared, featured template.", outcome: "The whole team sends the strongest version." },
-  { icon: Handshake, audience: "Partnership managers", scenario: "Tag templates by stage — intro, proposal, follow-up — so nothing's out of order.", outcome: "A predictable outreach cadence." },
-  { icon: Megaphone, audience: "Growth and marketing", scenario: "Duplicate a breakup or referral template and adapt the tone.", outcome: "Faster experimentation, no blank page." },
-];
-
-const docGroups = [
   {
-    title: "Variables, fallbacks and personalization",
-    items: [
-      "Merge fields like {{first_name}}, {{company}} and custom fields parsed automatically from subject and body",
-      "Per-variable fallback text so a missing field never sends a broken merge tag",
-      "Personalize any inserted template per campaign without changing the saved original",
-      "Preview shows the exact variables a template expects before you use it",
-    ],
+    icon: Layers,
+    title: "Ready-made sequences",
+    text: "Multi-step outreach structures with timing already set.",
   },
   {
-    title: "Team, sharing and use in sequences",
-    items: [
-      "Workspace templates are visible to every teammate with library access",
-      "Official MunchReach templates sit alongside your own in the same searchable library",
-      "Insert a template directly into any step of a multi-step sequence",
-      "Duplicate a template to branch a variant without touching the shared original",
-    ],
+    icon: Eye,
+    title: "Template previews",
+    text: "Read every step, subject and variable before you use it.",
   },
   {
-    title: "Organization, tagging and testing",
-    items: [
-      "Categories — Cold Outreach, Follow-Ups, SaaS, Agencies, Sales, Recruiting, Lead Generation, Partnership, Breakup, Referral",
-      "Featured flag to surface your team's go-to templates above the rest",
-      "Search across name, subject, body and description text",
-      "Preview and publish/unpublish controls to test wording before it's live",
-    ],
+    icon: FileStack,
+    title: "Reusable campaign structures",
+    text: "Save a structure once and reuse it across campaigns.",
+  },
+  {
+    icon: Sparkles,
+    title: "Personalization support",
+    text: "Variables and AI personalization work inside template copy.",
+  },
+  {
+    icon: PenLine,
+    title: "Editable messaging",
+    text: "Every imported step stays fully editable in the builder.",
+  },
+  {
+    icon: Rocket,
+    title: "Faster campaign setup",
+    text: "Go from library to launch without drafting from zero.",
   },
 ];
 
-const bullets = [
-  "Templates cover both first-touch and follow-up steps, including breakup emails",
-  "Variables are extracted from the subject and body the moment you type them",
-  "Fallback values are set per template, not guessed at send time",
-  "Recently Used and Featured views surface what your team reaches for most",
-  "Category filter and free-text search work together to narrow the library",
-  "Duplicate creates an independent, editable copy — the source is never modified",
-  "Manage permissions control who can edit, publish or delete workspace templates",
-  "Preview dialog renders the full subject, body and variable list before use",
+const audiences = [
+  {
+    icon: Users,
+    audience: "Sales Teams",
+    scenario: "Reps start from the same approved structure instead of their own draft.",
+    outcome: "Launch campaigns faster and keep messaging consistent.",
+  },
+  {
+    icon: Building2,
+    audience: "Agencies",
+    scenario: "Save a structure per offer, then adapt it for each client account.",
+    outcome: "Create repeatable campaign structures for different clients.",
+  },
+  {
+    icon: Briefcase,
+    audience: "Founders",
+    scenario: "Pick a sequence that already handles the follow-ups and edit the pitch.",
+    outcome: "Start outbound without writing every sequence from scratch.",
+  },
 ];
 
-const beforeAfter = {
-  before: [
-    "Every campaign starts from an empty subject and body field",
-    "Your best-performing email lives in one person's sent folder",
-    "Untagged drafts scattered across old campaigns are hard to find again",
-    "Missing prospect data produces broken merge tags in live sends",
-    "No visibility into whether a template is official or someone's edit",
-  ],
-  after: [
-    "A searchable, categorized library is the starting point for every send",
-    "Strong copy is saved once and reused across the whole workspace",
-    "Templates are tagged by category and surfaced by Featured or Recently Used",
-    "Fallback values keep every render clean, even on incomplete records",
-    "Every card shows whether it's official or workspace-created",
-  ],
-};
+const howItWorks = [
+  { title: "Browse", text: "Search the library or filter by category." },
+  { title: "Preview", text: "Read the full sequence, step by step." },
+  { title: "Customize", text: "Edit copy, variables and timing." },
+  { title: "Launch", text: "Add leads, pick mailboxes and start sending." },
+];
+
+const details = [
+  "Templates cover single emails and full multi-step sequences with follow-up timing",
+  "Categories: Cold Outreach, Follow-Ups, SaaS, Agencies, Sales, Recruiting, Lead Generation, Partnership, Breakup, Referral",
+  "Search matches template name, subject and body text",
+  "Official MunchReach templates and your workspace templates live in the same library",
+  "The preview lists every variable a template uses before you insert it",
+  "Using a template copies the sequence into the campaign — the original is never modified",
+  "Imported steps stay editable: rewrite copy, change delays, add or remove steps",
+  "Save any campaign sequence back to the library as a workspace template",
+];
+
+const beforeSteps = ["Blank page", "Research", "Write", "Rewrite", "Build sequence", "Launch"];
+const afterSteps = ["Choose template", "Customize", "Add leads", "Launch"];
 
 function Page() {
   return (
     <MarketingLayout>
+      {/* 1. Hero */}
       <PageHero
-        eyebrow="Templates"
-        title="A reusable copy library,"
-        highlight="not a blank page"
-        description="Search, preview and insert proven cold email templates into any campaign — with variables, safe fallbacks and a shared workspace library your whole team can build on."
-        benefits={["Official + workspace templates in one library", "Variables with per-field fallback values", "Insert straight into any sequence step"]}
-        secondaryCta="See How It Works"
-        secondaryHref="#how-it-works"
-      />
-      <BigPreview id="product" eyebrow="Template library" title="Everything you need to launch faster" description="Browse, preview and insert templates without leaving your campaign.">
+        eyebrow="MunchReach Templates"
+        title="Start With Outreach"
+        highlight="That's Already Built."
+        description="Choose a proven campaign structure, customize the message for your audience, and launch without starting every email from a blank page."
+        benefits={[
+          "Full sequences, not just one email",
+          "Preview every step before using it",
+          "Editable the moment it lands in your campaign",
+        ]}
+        primaryCta="Browse Templates"
+        secondaryCta="Create a Campaign"
+        secondaryHref="/auth"
+      >
+        <TemplateLibraryMock />
+      </PageHero>
+
+      {/* 2. The problem */}
+      <Section
+        title="Starting Every Campaign From Scratch Takes Too Long."
+        description="The slow part of outbound is rarely sending. It's writing the same thing again."
+      >
+        <PainPoints items={problems} />
+      </Section>
+
+      {/* 3. Template library */}
+      <BigPreview
+        id="library"
+        eyebrow="Template library"
+        title="Find a Starting Point for Your Campaign"
+        description="Search by keyword, filter by category, preview the sequence, then use it."
+      >
         <div className="p-4 sm:p-6">
-          <MockPanel title="Templates — All">
-            <MockRows rows={[
-              { left: "SaaS trial expiring", muted: "Cold Outreach · Official", right: "Featured" },
-              { left: "Agency case study drop", muted: "Agencies · Workspace" },
-              { left: "Passive candidate opener", muted: "Recruiting · Official", right: "Featured" },
-              { left: "Breakup email v2", muted: "Breakup · Workspace" },
-              { left: "Referral ask", muted: "Referral · Workspace" },
-            ]} />
-          </MockPanel>
+          <TemplateLibraryMock />
         </div>
       </BigPreview>
-      <Section title="The problem with writing every email from scratch" description="Cold email quality suffers when nothing you've written before is easy to find and reuse.">
-        <PainPoints items={pains} />
+
+      {/* 4. Template preview */}
+      <Section
+        title="See the Entire Sequence Before You Use It"
+        description="Open any template to read the initial email and both follow-ups — subject, body, variables and timing — before it touches a campaign."
+      >
+        <TemplateDetailMock />
       </Section>
-      <Section id="how-it-works" title="How the template library works" description="From search to a saved, reusable version of your own.">
-        <Walkthrough steps={walkthroughSteps} />
+
+      {/* 5. From template to campaign */}
+      <Section
+        id="workflow"
+        title="From Template to Campaign"
+        description="Seven steps between picking a structure and sending your first email."
+      >
+        <div className="space-y-8">
+          <div className="overflow-x-auto pb-1">
+            <FlowRail
+              steps={[
+                "Choose template",
+                "Review sequence",
+                "Customize copy",
+                "Add leads",
+                "Sending accounts",
+                "Schedule",
+                "Launch",
+              ]}
+            />
+          </div>
+          <TemplateToCampaignFlow />
+        </div>
       </Section>
-      <Section title="What you get" description="Everything below is included on every plan.">
-        <FeatureBento items={features} />
+
+      {/* 6. Customize everything */}
+      <Section
+        title="Customize Everything"
+        description="A template decides where you start, never what you send."
+        muted
+      >
+        <FeatureGrid items={customize} />
       </Section>
-      <Section title="A typical template workflow" description="From first search to a version your team reuses next quarter.">
-        <WorkflowStrip steps={workflowSteps} />
+
+      {/* 7. Variables and personalization */}
+      <Section
+        title="Variables & Personalization"
+        description="Templates give you the structure. Variables and AI personalization make the message specific to the person reading it."
+      >
+        <VariablesMock />
       </Section>
-      <Section title="Built for how different teams write outreach" description="The same library, organized around each team's outreach style.">
-        <UseCaseGrid items={useCases} />
+
+      {/* 8. Template to campaign builder */}
+      <BigPreview
+        id="builder"
+        eyebrow="Template → campaign builder"
+        title="A Starting Point, Not a Locked Campaign"
+        description="The sequence is imported into your builder as an editable draft."
+      >
+        <div className="p-4 sm:p-6">
+          <TemplateToBuilderMock />
+        </div>
+      </BigPreview>
+
+      {/* 9. What you get */}
+      <Section title="What You Get" description="Everything the template library includes.">
+        <FeatureGrid items={features} />
       </Section>
-      <Section title="Deep capabilities" description="What's actually under the hood of the template library.">
-        <DocSection groups={docGroups} />
+
+      {/* 10. Before vs after */}
+      <Section title="Before vs After" description="Same campaign. Fewer steps to get it live." muted>
+        <div className="space-y-8">
+          <div className="min-w-0">
+            <h3 className="mb-4 text-center text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+              Before
+            </h3>
+            <div className="overflow-x-auto pb-1">
+              <FlowRail steps={beforeSteps} tone="muted" />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <h3 className="mb-4 text-center text-sm font-semibold tracking-wide text-primary uppercase">
+              After
+            </h3>
+            <div className="overflow-x-auto pb-1">
+              <FlowRail steps={afterSteps} />
+            </div>
+          </div>
+        </div>
       </Section>
-      <Section title="Details that matter" muted>
-        <BulletList items={bullets} />
+
+      {/* 11. Who it's for */}
+      <Section title="Who It's For" description="Three teams, one shared starting point.">
+        <UseCaseGrid items={audiences} />
       </Section>
-      <Section title="Before and after a shared template library">
-        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+
+      {/* 12. How it works */}
+      <Section title="How It Works" description="Four steps from library to live campaign.">
+        <WorkflowStrip steps={howItWorks} />
       </Section>
+
+      {/* 13. Details that matter */}
+      <Section title="Details That Matter" muted>
+        <BulletList items={details} />
+      </Section>
+
+      {/* 14. Loved by outreach teams — unchanged */}
       <TestimonialCarousel page="templates" title="Copy that gets replies" />
+
+      {/* 15. FAQ */}
       <Section muted>
         <PageFaqs page="templates" defaults={faqs} />
       </Section>
+
+      {/* 16. Final CTA */}
       <CtaBlock
-        title="Build a copy library your whole team can reuse"
-        description="Stop rewriting the same email every campaign — save it once, tag it, and let your team find it next time."
+        title="Stop Starting Every Campaign From Zero."
+        description="Start with a strong structure, customize it for your audience, and launch."
+        cta="Browse Templates"
       />
     </MarketingLayout>
   );
