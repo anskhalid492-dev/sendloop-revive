@@ -242,21 +242,31 @@ function Home() {
       <main>
         {/* ---------------------------------------------------------- Hero */}
         <section className="hero-glow relative overflow-hidden">
-          <div className="mx-auto max-w-7xl px-4 pt-14 pb-10 text-center sm:px-6 sm:pt-20">
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-              <Star className="size-4 fill-current" />
-              #1 Cold Email Platform for Growth-Focused Teams
+          {/* Subtle blue/sky ambience + soft glow behind the headline */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.16),transparent_70%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-24 size-[34rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]"
+          />
+
+          <div className="relative mx-auto max-w-5xl px-4 pt-20 pb-8 text-center sm:px-6 sm:pt-28">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-medium tracking-wide text-primary sm:text-sm">
+              <Sparkles className="size-4" />
+              The outbound platform built for real conversations
             </span>
-            <h2 className="mx-auto mt-6 max-w-5xl text-[2.4rem] font-extrabold leading-[1.08] tracking-tight text-balance sm:text-[3.5rem] lg:text-[4.25rem]">
+            <h2 className="mx-auto mt-8 max-w-4xl text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-balance sm:text-[3.75rem] lg:text-[4.5rem]">
               Your Next Customer
               <br />
               <span className="text-gradient">Could Be One Email Away.</span>
             </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Build targeted campaigns, follow up automatically, and manage every prospect
-              conversation in one place.
+            <p className="mx-auto mt-7 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Find the right prospects, personalize every message, automate follow-ups, and manage
+              replies, all from one simple outbound platform.
             </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="rounded-xl px-8 shadow-lg shadow-primary/20" asChild>
                 <Link to="/signup">
                   Start Sending Free
@@ -270,56 +280,30 @@ function Home() {
                 </a>
               </Button>
             </div>
-            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-sm text-muted-foreground">
-              {["14-day free trial", "No credit card", "Cancel anytime"].map((item) => (
-                <li key={item} className="inline-flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-primary" />
-                  {item}
-                </li>
-              ))}
-            </ul>
+            <p className="mt-6 text-sm text-muted-foreground">
+              14-day free trial · No credit card required · Cancel anytime
+            </p>
           </div>
 
-          {/* Hero product visual with orbiting feature cards */}
-          <div className="mx-auto max-w-[1400px] px-4 pb-16 sm:px-6">
-            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,15rem)_1fr_minmax(0,15rem)]">
-              <div className="order-2 grid gap-4 sm:grid-cols-3 lg:order-1 lg:grid-cols-1">
-                {heroLeftCards.map((card, i) => (
-                  <Reveal key={card.title} delay={i * 80}>
-                    <HeroFeatureCard card={card} />
-                  </Reveal>
-                ))}
-              </div>
-
-              <div className="order-1 lg:order-2">
-                <div className="float-slow browser-frame">
-                  <div className="flex items-center gap-1.5 border-b border-border bg-secondary/50 px-4 py-3">
-                    <span className="size-2.5 rounded-full bg-destructive/40" />
-                    <span className="size-2.5 rounded-full bg-primary/30" />
-                    <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                    <span className="ml-3 text-xs text-muted-foreground">
-                      app.munchreach.com / dashboard
+          {/* Abstract outbound flow — no screenshots, no statistics */}
+          <div className="relative mx-auto max-w-4xl px-4 pb-20 sm:px-6">
+            <div
+              aria-hidden
+              className="mx-auto h-px w-full max-w-3xl bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+            />
+            <div className="-mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-medium text-muted-foreground sm:gap-x-10">
+              {["Find", "Personalize", "Send", "Follow Up", "Reply"].map((step, i) => (
+                <Reveal key={step} delay={i * 90}>
+                  <span className="float-slow inline-flex items-center gap-3">
+                    <span className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 backdrop-blur">
+                      {step}
                     </span>
-                  </div>
-                  <img
-                    src={dashboardPreview}
-                    alt="MunchReach dashboard showing active campaigns, replies and outreach analytics"
-                    width={1600}
-                    height={1008}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              <div className="order-3 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-                {heroRightCards.map((card, i) => (
-                  <Reveal key={card.title} delay={i * 80}>
-                    <HeroFeatureCard card={card} />
-                  </Reveal>
-                ))}
-              </div>
+                  </span>
+                </Reveal>
+              ))}
             </div>
           </div>
+
 
           {/* Logo strip */}
           <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
