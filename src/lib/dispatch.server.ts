@@ -1057,7 +1057,7 @@ export async function requeueRetryableMessages(
   const dayStart = zonedStartOfDay(now, campaign.timezone || "UTC");
   const { data: rows } = await supabase
     .from("campaign_messages")
-    .select("id, status, attempts, sent_at, bounced_at, updated_at, created_at")
+    .select("id, status, attempts, sent_at, bounced_at, last_error, provider_message_id, updated_at, created_at")
     .eq("campaign_id", campaignId)
     .eq("status", "failed")
     .is("sent_at", null)
