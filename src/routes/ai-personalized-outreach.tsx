@@ -2,14 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   Building2,
   Clock,
-  Globe,
   Languages,
   ListChecks,
   MessageSquareText,
   Rocket,
   Ruler,
   ShieldQuestion,
-  Sparkles,
   Type,
   Users,
 } from "lucide-react";
@@ -365,7 +363,3 @@ function Page() {
     </MarketingLayout>
   );
 }
-
-/* Icons referenced only through the config arrays above. */
-void Sparkles;
-void Globe;
