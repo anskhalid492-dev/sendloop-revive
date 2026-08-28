@@ -62,10 +62,9 @@ export const Route = createFileRoute("/product/warmup")({
 });
 
 const painPoints = [
-  { icon: ThermometerSnowflake, title: "Cold mailboxes get flagged fast", text: "A brand new domain sending 200 emails on day one looks exactly like a spammer to every major provider, no matter how good the copy is." },
-  { icon: Inbox, title: "Landing in spam, silently", text: "Without placement visibility, a whole campaign can run without you ever knowing it never reached the inbox tab." },
-  { icon: ShieldAlert, title: "One bad sequence, weeks of damage", text: "A bounce or complaint spike can tank sender reputation in hours, and recovery takes far longer than the campaign that caused it." },
-  { icon: AlertTriangle, title: "No warning before the damage is done", text: "By the time reply rates collapse, the mailbox has already been throttled or blacklisted — the alert that should have paused sending never existed." },
+  { icon: ThermometerSnowflake, title: "Cold mailboxes get flagged", text: "New domains have little sending history, so providers may treat sudden volume as risky." },
+  { icon: Inbox, title: "Spam is hard to see", text: "Emails can miss the inbox without you realizing it until replies start disappearing." },
+  { icon: ShieldAlert, title: "Reputation takes time to recover", text: "Bounces and complaints can hurt a mailbox long after the original campaign ends." },
 ];
 
 const walkthroughSteps = [
