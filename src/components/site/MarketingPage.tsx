@@ -783,9 +783,11 @@ export function UseCaseGrid({
 }: {
   items: { icon?: LucideIcon; audience: string; scenario: string; outcome: string }[];
 }) {
+  // Keep the grid to complete rows of three so no orphan card is left behind.
+  const shown = items.length >= 6 ? items.slice(0, 6) : items.slice(0, 3);
   return (
-    <div className="grid min-w-0 gap-4 md:grid-cols-3">
-      {items.map((item) => (
+    <div className="grid min-w-0 gap-5 md:grid-cols-3">
+      {shown.map((item) => (
         <div
           key={item.audience}
           className="min-w-0 rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/40"
