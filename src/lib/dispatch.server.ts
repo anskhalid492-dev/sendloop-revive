@@ -7,7 +7,7 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
-import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { isInSendWindow, nextSendSlot, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
@@ -620,7 +620,11 @@ export async function dispatchDueMessages(
 
   const window = campaignWindow(campaignRow as CampaignDispatchRow);
   if (!isInSendWindow(now, window)) {
-    const nextSlot = nextSendSlot(sendBaseFor(campaignRow as CampaignDispatchRow, now), window).toISOString();
+    // Always the configured window START of the next sending day — never now,
+    // never the previous run's finish time.
+    const nextSlot = windowStartAt(sendBaseFor(campaignRow as CampaignDispatchRow, now), window, {
+      includeCurrentDay: false,
+    }).toISOString();
     await supabase
       .from("campaign_messages")
       .update({ scheduled_at: nextSlot })
@@ -722,6 +726,7 @@ export async function dispatchDueMessages(
   const aiSendConfig = normalizeSendAiConfig((campaignRow as { ai_config?: unknown }).ai_config);
 
   const sentPerAccount = new Map<string, number>();
+  let quotaDeferralSlot: string | null = null;
 
 
   for (const message of due) {
@@ -767,6 +772,9 @@ export async function dispatchDueMessages(
       result.skipped += 1;
       if (result.errors.length < 5)
         result.errors.push(`Daily sending limit reached (${dailyCap} emails/day).`);
+      // The run waits for the NEXT scheduled day's window start. The campaign
+      // stays active: quota exhaustion never completes or pauses it.
+      quotaDeferralSlot = windowStartAt(now, window, { includeCurrentDay: false }).toISOString();
       break;
     }
 
@@ -1115,9 +1123,10 @@ export async function requeueRetryableMessages(
   const retryable = selectRetryableMessages((rows ?? []) as RetryableMessageRow[], dayStart);
   if (!retryable.length) return 0;
 
-  const slot = nextSendSlot(
+  const slot = windowStartAt(
     sendBaseFor(campaign as CampaignDispatchRow, now),
     campaignWindow(campaign as CampaignDispatchRow),
+    { includeCurrentDay: true },
   ).toISOString();
   await supabase
     .from("campaign_messages")
