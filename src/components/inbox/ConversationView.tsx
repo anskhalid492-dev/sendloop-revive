@@ -587,18 +587,12 @@ export function ConversationView({
         </Tabs>
       </div>
 
-      </ResizablePanel>
-
-      {showProspect ? <ResizableHandle withHandle className="hidden xl:flex" /> : null}
-
-      <ResizablePanel
-        id="prospect"
-        defaultSize="30"
-        minSize="18"
-        maxSize="45"
-        className={showProspect ? "" : "hidden"}
+      <div
+        className={cn(
+          "h-full w-full shrink-0 min-w-0 overflow-y-auto border-t border-border xl:w-[300px] xl:border-l xl:border-t-0",
+          showProspect ? "" : "hidden",
+        )}
       >
-      <div className="h-full w-full min-w-0 overflow-y-auto border-t border-border xl:border-l xl:border-t-0">
         <ProspectPanel
           lead={data.lead as never}
           prospectEmail={conversation.prospect_email}
@@ -610,7 +604,8 @@ export function ConversationView({
           events={data.events as never}
         />
       </div>
-      </ResizablePanel>
+    </div>
+
     </ResizablePanelGroup>
   );
 }
