@@ -247,6 +247,61 @@ function CommunityPage() {
 
       <Section
         muted
+        title="How it works"
+        description="Three small steps and you're part of the conversation — most people post their first question the same day."
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          {steps.map((step, index) => (
+            <div key={step.title} className="surface-card p-6">
+              <span className="flex size-9 items-center justify-center rounded-full bg-primary/12 text-sm font-bold text-primary">
+                {index + 1}
+              </span>
+              <h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{step.text}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <JoinButton placement="how-it-works" />
+        </div>
+      </Section>
+
+      <Section
+        title="Who it's for"
+        description="Different roles, one shared problem: getting replies from people who never asked to hear from you."
+      >
+        <div className="grid gap-4 lg:grid-cols-3">
+          {audiences.map((item) => (
+            <div key={item.title} className="surface-card p-6">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                <item.icon className="size-5" />
+              </span>
+              <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section
+        muted
+        title="What you can post"
+        description="The feed stays useful because the posts stay concrete. These are the threads members show up for."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {postTypes.map((item) => (
+            <div key={item.title} className="surface-card p-6">
+              <h3 className="text-base font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+
+
+      <Section
+        muted
         title="Wins from the community"
         description="A sample of the kind of results members post — specific, measurable and repeatable."
       >
