@@ -6,6 +6,7 @@
  * first. Nothing here trusts the caller on its own.
  */
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
+import { mergeCommunityConfig, type CommunityConfig } from "@/lib/community-model";
 import {
   normalizePath,
   renderRobots,
@@ -82,6 +83,7 @@ export type SiteContentBundle = {
   footer: NavItem[];
   social: NavItem[];
   footerConfig: FooterConfig;
+  community: CommunityConfig;
   redirects: { source: string; destination: string; statusCode: number }[];
 };
 
@@ -139,6 +141,7 @@ export async function loadSiteContent(): Promise<SiteContentBundle> {
     footer: navRows.filter((n) => n.location === "footer"),
     social: navRows.filter((n) => n.location === "social"),
     footerConfig: { ...DEFAULT_FOOTER, ...((settingsMap.get("footer") as FooterConfig) ?? {}) },
+    community: mergeCommunityConfig(settingsMap.get("community")),
     redirects: ((redirects.data ?? []) as any[]).map((r) => ({
       source: r.source_path,
       destination: r.destination_path,

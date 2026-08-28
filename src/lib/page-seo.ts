@@ -12,7 +12,7 @@ import type { SiteContentBundle, PageSeoEntry } from "@/lib/site-content.server"
 
 type Bundle = Pick<
   SiteContentBundle,
-  "seo" | "globalSeo" | "header" | "footer" | "social" | "footerConfig"
+  "seo" | "globalSeo" | "header" | "footer" | "social" | "footerConfig" | "community"
 >;
 
 let bundle: Bundle | null = null;
