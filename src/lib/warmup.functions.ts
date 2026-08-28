@@ -418,7 +418,13 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       })
       .eq("id", accountId);
 
-    return { ok: true };
+    return {
+      ok: true as const,
+      resumed: wantsResume,
+      blocked: false as const,
+      kind: "none" as const,
+      message: wantsResume ? "Sending resumed." : "Settings saved.",
+    };
   });
 
 /** Bulk enable/disable warmup across selected mailboxes. */
