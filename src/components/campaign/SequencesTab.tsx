@@ -60,7 +60,7 @@ import {
 } from "@/lib/campaign-model";
 
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
-import { AiTab } from "./AiTab";
+import { AiPersonalizationSidebar } from "./AiPersonalizationSidebar";
 
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -102,6 +102,7 @@ export function SequencesTab({
 }) {
   const { steps, updateSteps, leads, settings, patchSettings } = builder;
   const [activeIndex, setActiveIndex] = useState(0);
+  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [variantIndex, setVariantIndex] = useState(0);
   const [variableDialogOpen, setVariableDialogOpen] = useState(false);
   const [newVarLabel, setNewVarLabel] = useState("");
@@ -959,7 +960,11 @@ export function SequencesTab({
     </div>
 
     {/* AI personalization lives with the copy it rewrites, not in a separate tab. */}
-    <AiTab builder={builder} />
+    <AiPersonalizationSidebar
+      builder={builder}
+      open={aiSidebarOpen}
+      onOpenChange={setAiSidebarOpen}
+    />
     </div>
   );
 
