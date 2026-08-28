@@ -344,7 +344,7 @@ export function AppShell({
 
         <>
           <AnnouncementBar />
-          <main className="px-4 py-8 sm:px-6">{children}</main>
+          <main className={contentClassName ?? "px-4 py-8 sm:px-6"}>{children}</main>
         </>
       </div>
     </div>
