@@ -50,7 +50,7 @@ async function run(request: Request) {
   if (!secrets.some((secret) => secretMatches(provided, secret))) {
     return json({ error: "Unauthorized" }, 401);
   }
-  const { runCampaign } = await import("@/lib/dispatch.server");
+  const { runCampaignScheduler } = await import("@/lib/campaign-scheduler.server");
 
   const only = url.searchParams.get("campaignId");
   const now = new Date().toISOString();
@@ -63,23 +63,10 @@ async function run(request: Request) {
   const { data: campaigns, error } = await query.limit(50);
   if (error) return json({ error: error.message }, 500);
 
-  const perCampaign: Array<{ id: string; sent: number; failed: number; scheduled: number }> = [];
-  for (const campaign of campaigns ?? []) {
-    try {
-      const result = await runCampaign(supabaseAdmin, { campaignId: campaign.id, limit: 25 });
-      perCampaign.push({
-        id: campaign.id,
-        sent: result.sent,
-        failed: result.failed,
-        scheduled: result.scheduled,
-      });
-    } catch (e) {
-      perCampaign.push({ id: campaign.id, sent: 0, failed: 1, scheduled: 0 });
-      console.error("campaign runner failed", campaign.id, e);
-    }
-  }
-
-  return json({ ok: true, campaigns: perCampaign.length, results: perCampaign }, 200);
+  // Bounded, resumable run: this always answers inside the HTTP timeout and the
+  // next cron tick continues wherever this one stopped.
+  const summary = await runCampaignScheduler(supabaseAdmin, (campaigns ?? []) as { id: string }[]);
+  return json(summary, 200);
 }
 
 export const Route = createFileRoute("/api/public/cron/run-campaigns")({
