@@ -1,334 +1,273 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Activity,
-  AlertTriangle,
-  BadgeCheck,
-  Ban,
-  Gauge,
-  KeyRound,
-  Layers,
-  Mailbox,
-  Pause,
-  RefreshCcw,
-  ShieldCheck,
-  Timer,
-  TriangleAlert,
-  Unplug,
-} from "lucide-react";
+import { Gauge, Layers, ShieldCheck } from "lucide-react";
 
 import {
   BeforeAfter,
-  BigPreview,
-  BulletList,
   CtaBlock,
-  DocSection,
   FeatureGrid,
   MarketingLayout,
-  MockBars,
-  MockPanel,
-  MockRows,
   PageHero,
   PainPoints,
   Section,
   UseCaseGrid,
-  Walkthrough,
   WorkflowStrip,
   metaFor,
 } from "@/components/site/MarketingPage";
+import {
+  AccountsDashboardMock,
+  ActionsPanelMock,
+  CapacityMock,
+  ConnectFlowMock,
+  DomainGroupsMock,
+  DomainReadinessMock,
+  HealthMock,
+  ReadinessNote,
+  RecoveryFlow,
+  SafetyMock,
+  WarmupStatusMock,
+} from "@/components/site/EmailAccountsProductMocks";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
+import { AlertTriangle, Mailbox, SlidersHorizontal } from "lucide-react";
 
 const faqs = [
-  { q: "How many mailboxes can I connect?", a: "As many as your plan allows. Each mailbox is added as its own account with its own domain, limits, health score and rotation settings, so scaling volume just means connecting more accounts." },
-  { q: "What happens during domain verification?", a: "MunchReach checks your domain's SPF, DKIM and DMARC records before the mailbox is allowed to send. If a record is missing or misconfigured, the account is flagged and held back from sending until it's fixed." },
-  { q: "What is the rolling 12-hour sending window?", a: "Instead of a hard reset at midnight, each account's send count is measured over the trailing 12 hours. That keeps volume smooth throughout the day and prevents a burst of sends right after a daily limit resets." },
-  { q: "How does mailbox rotation actually work?", a: "Campaigns spread their volume across every healthy account assigned to them using round robin, random or least-used order, so no single inbox carries a disproportionate share of the send." },
-  { q: "What triggers a safety block?", a: "Sudden bounce spikes, spam-trap hits, provider-side throttling, authentication failures or a burnt sending reputation can each trigger a safety block, which stops an account from sending until it's reviewed." },
-  { q: "Can I pause a single mailbox without stopping campaigns?", a: "Yes. Pausing an account removes it from rotation immediately — active campaigns keep sending from your other healthy accounts instead of stopping entirely." },
-  { q: "Do I need to manage SMTP credentials myself?", a: "No. Authentication is handled and stored server-side. You connect a mailbox through OAuth or a provider integration, and MunchReach manages the credentials from there." },
-  { q: "How do I know if an account's sending health is dropping?", a: "Every account carries a live health score built from bounce rate, spam placement signals and provider responses. When it drops out of a safe range, you're alerted before it affects your campaigns." },
-  { q: "Can I see provider status for each mailbox?", a: "Yes. Each account shows which provider it's on and whether that connection is live, degraded or disconnected, so you always know if an account is actually able to send." },
-  { q: "What happens to replies if I pause an account?", a: "Nothing — pausing only affects new outbound sending. Replies to messages already sent from that mailbox still land in your Unified Inbox." },
+  {
+    q: "Which email accounts can I connect?",
+    a: "You connect the sending accounts MunchReach supports for your workspace — a provider mailbox or your own sending account credentials. Each connected mailbox becomes its own account record with its own status, health, warmup state and sending capacity.",
+  },
+  {
+    q: "How do I know if a mailbox is ready to send?",
+    a: "The email accounts list shows status, health, warmup state and available capacity together. A mailbox is ready when it is connected, not paused, has no active safety block and still has capacity in the current sending window.",
+  },
+  {
+    q: "How does mailbox capacity work?",
+    a: "Each mailbox's sending is measured over a rolling 12-hour window rather than a fixed midnight reset, and only accepted sends count against it. When the window fills, that mailbox pauses sending until capacity frees up again — other available mailboxes keep sending.",
+  },
+  {
+    q: "What happens when a mailbox is blocked?",
+    a: "The mailbox is taken out of sending while the safety condition is active, and the reason is shown on the account. Resume cannot bypass a genuinely active block, but once the condition no longer applies the mailbox becomes resumable instead of staying permanently stuck.",
+  },
+  {
+    q: "How does warmup relate to my email accounts?",
+    a: "Warmup state — whether it is active, its stage and the mailbox health alongside it — is shown on the same account record you send from, so you can tell whether an account is still ramping or ready for campaign volume. Warmup activity is kept out of your campaign reporting.",
+  },
+  {
+    q: "Can I use multiple sending accounts in a campaign?",
+    a: "Yes. Assign several connected mailboxes to a campaign and sending is distributed across the accounts that are currently available, respecting each mailbox's own capacity and safety state. If one mailbox is full or paused, the others continue.",
+  },
 ];
 
 export const Route = createFileRoute("/product/email-accounts")({
   head: () =>
     metaFor(
-      "Email Accounts & Sending Infrastructure | MunchReach",
-      "Connect and protect every sending mailbox: domain verification, SPF/DKIM/DMARC, rolling send limits, rotation, health scores and safety blocks in one place.",
+      "Email Accounts — Connect & Manage Sending Mailboxes | MunchReach",
+      "Connect your sending accounts, monitor mailbox health and warmup, track 12-hour sending capacity and manage domain readiness from one MunchReach workspace.",
       "/product/email-accounts",
       faqs,
     ),
   component: Page,
 });
 
-const painPoints = [
-  { icon: Unplug, title: "Connecting mailboxes safely is fiddly", text: "One missed SPF/DKIM/DMARC step and a mailbox lands straight in spam." },
-  { icon: TriangleAlert, title: "One burnt inbox drags everything down", text: "A single flagged mailbox can quietly tank deliverability for the whole domain." },
-  { icon: Ban, title: "Recovering from a block is manual", text: "Teams often find out about a block days after it happened." },
-];
-
-const walkSteps = [
+const problems = [
   {
-    title: "Connect a mailbox",
-    youDo: "Add a mailbox by OAuth (Google, Microsoft) or by connecting an SMTP/provider like SES, Postmark, SendGrid or Mailgun.",
-    weHandle: "Credentials are validated and stored server-side; nothing is exposed to the browser.",
-    youGet: "A new account row appears immediately, ready for domain verification.",
-    visual: (
-      <MockPanel title="Connect mailbox">
-        <MockRows
-          rows={[
-            { left: "sam@getmunchreach.io", muted: "Google Workspace · OAuth", badge: "Connecting" },
-            { left: "outreach@munchreachmail.com", muted: "Custom SMTP", badge: "Connecting" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    icon: Mailbox,
+    title: "Too Many Mailboxes",
+    text: "Hard to know which accounts are ready to send.",
   },
   {
-    title: "Verify the domain",
-    youDo: "Point SPF, DKIM and DMARC records at the values MunchReach generates for the sending domain.",
-    weHandle: "DNS is checked automatically and rechecked on a schedule, not just once at setup.",
-    youGet: "A pass/fail status per record, so you know exactly what's still missing.",
-    visual: (
-      <MockPanel title="Domain verification — munchreachmail.com">
-        <MockRows
-          rows={[
-            { left: "SPF", muted: "TXT record", badge: "Verified" },
-            { left: "DKIM", muted: "1024-bit selector", badge: "Verified" },
-            { left: "DMARC", muted: "p=quarantine", badge: "Pending" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    icon: SlidersHorizontal,
+    title: "Different Sending Limits",
+    text: "Each mailbox can have different capacity and status.",
   },
   {
-    title: "Set limits and warmup",
-    youDo: "Choose a starting daily cap, or let warmup ramp it up gradually.",
-    weHandle: "Send volume is tracked on a rolling 12-hour window, not a hard midnight reset.",
-    youGet: "A safe, gradually increasing ceiling that won't spike a fresh mailbox's reputation.",
-    visual: (
-      <MockPanel title="Sending limits — sam@getmunchreach.io">
-        <MockBars
-          bars={[
-            { label: "Sent, trailing 12h", value: 64, caption: "58 of 90" },
-            { label: "Daily cap", value: 90, caption: "90 emails/day" },
-            { label: "Warmup ramp", value: 30, caption: "Day 9 of 30" },
-          ]}
-        />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Add it to rotation",
-    youDo: "Assign the account to one or more campaigns.",
-    weHandle: "Sends rotate across every healthy, unpaused account on the campaign using round robin, random or least-used order.",
-    youGet: "Volume spread evenly instead of hammering one inbox.",
-    visual: (
-      <MockPanel title="Rotation — Q3 Outbound">
-        <MockRows
-          rows={[
-            { left: "outreach@munchreachmail.com", muted: "Round robin", badge: "In rotation" },
-            { left: "sam@getmunchreach.io", muted: "Round robin", badge: "In rotation" },
-            { left: "hello@munchreach.dev", muted: "Ramping", badge: "Excluded" },
-          ]}
-        />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Monitor health",
-    youDo: "Check the health score whenever you like — it's live, not a weekly digest.",
-    weHandle: "Bounce rate, spam placement, provider responses and authentication status roll up into one score per mailbox.",
-    youGet: "An early warning before deliverability actually drops.",
-    visual: (
-      <MockPanel title="Account health — sam@getmunchreach.io">
-        <MockBars
-          bars={[
-            { label: "Health score", value: 92, caption: "Healthy" },
-            { label: "Bounce rate", value: 6, caption: "0.6%" },
-            { label: "Provider status", value: 100, caption: "Connected" },
-          ]}
-        />
-      </MockPanel>
-    ),
-  },
-  {
-    title: "Respond to alerts",
-    youDo: "Pause, resume or dig into an account the moment you get flagged.",
-    weHandle: "Safety blocks fire automatically on bounce spikes or auth failures, pulling the account out of rotation before it does more damage.",
-    youGet: "A recoverable mailbox instead of a domain-wide deliverability problem.",
-    visual: (
-      <MockPanel title="Safety block — hello@munchreach.dev">
-        <MockRows
-          rows={[
-            { left: "Reason", muted: "Bounce rate spike (4.2%)", badge: "Blocked" },
-            { left: "Sending", muted: "Paused automatically", badge: "Paused" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    icon: AlertTriangle,
+    title: "Health Is Easy to Miss",
+    text: "A mailbox can develop bounce or safety problems without obvious visibility.",
   },
 ];
 
-const features = [
-  { icon: Mailbox, title: "Multiple mailboxes per workspace", text: "Connect as many sending accounts as your plan allows." },
-  { icon: BadgeCheck, title: "Domain verification", text: "Every domain is checked against SPF, DKIM and DMARC first." },
-  { icon: ShieldCheck, title: "Authentication handled for you", text: "MunchReach stores and manages your credentials server-side." },
-  { icon: Activity, title: "Live sending health", text: "One score per mailbox built from bounce rate and provider signals." },
-  { icon: Timer, title: "Rolling 12-hour limits", text: "Send caps measured on a trailing window, not a hard reset." },
-  { icon: RefreshCcw, title: "Rotation strategies", text: "Round robin, random or least-used rotation spreads volume evenly." },
-  { icon: Gauge, title: "Provider status", text: "See if each mailbox's provider connection is live or degraded." },
-  { icon: Pause, title: "Pause and resume controls", text: "Rest a single mailbox without pausing its campaigns." },
-  { icon: AlertTriangle, title: "Automatic safety blocks", text: "Bounce spikes or auth failures pull an account out of rotation." },
-  { icon: KeyRound, title: "No exposed credentials", text: "SMTP keys and OAuth tokens are encrypted server-side." },
-  { icon: Layers, title: "Per-account attribution", text: "Every send and reply is tied back to its mailbox." },
-  { icon: Unplug, title: "Bring your own provider", text: "Connect Google, Microsoft, SES, Postmark, SendGrid or Mailgun." },
-];
-
-const workflowSteps = [
-  { title: "Connect", text: "Add a mailbox via OAuth or provider credentials." },
-  { title: "Verify", text: "Confirm SPF, DKIM and DMARC on the domain." },
-  { title: "Warm up", text: "Ramp volume gradually before real campaigns start." },
-  { title: "Set limits", text: "Cap sending on a rolling 12-hour window." },
-  { title: "Rotate", text: "Spread volume across every healthy account." },
-  { title: "Monitor", text: "Watch health scores and provider status live." },
-  { title: "React", text: "Safety blocks catch problems automatically." },
-  { title: "Recover", text: "Resume once health checks out again." },
-];
-
-const useCases = [
-  { icon: Mailbox, audience: "Teams sending from Google or Microsoft", scenario: "You want to use existing work mailboxes without risking the domain.", outcome: "Connect via OAuth with warmup-aware limits and health tracking." },
-  { icon: Unplug, audience: "Teams with their own provider", scenario: "You already pay for SES, Postmark, SendGrid or Mailgun.", outcome: "Keep your reputation while MunchReach handles rotation and limits." },
-  { icon: ShieldCheck, audience: "Teams that want fully managed sending", scenario: "You'd rather not run any infrastructure at all.", outcome: "Use MunchReach-managed domains, verified and warmed for you." },
-];
-
-const docGroups = [
+const why = [
   {
-    title: "Mailboxes & authentication",
-    items: [
-      "Connect unlimited mailboxes per workspace, each tracked independently",
-      "OAuth connections for Google and Microsoft accounts",
-      "Provider credentials supported for SES, Postmark, SendGrid and Mailgun",
-      "Credentials encrypted and stored server-side, never returned to the browser",
-    ],
+    icon: Layers,
+    title: "One Workspace",
+    text: "Manage your sending accounts without jumping between tools.",
   },
   {
-    title: "Domain & sending health",
-    items: [
-      "SPF, DKIM and DMARC checked before an account is trusted to send",
-      "DNS records rechecked on a schedule, not just once at setup",
-      "Live health score built from bounce rate, spam placement and provider responses",
-      "Provider status shown per mailbox: live, degraded or disconnected",
-    ],
+    icon: ShieldCheck,
+    title: "Clear Mailbox Health",
+    text: "See which accounts are ready, warming, paused, or blocked.",
   },
   {
-    title: "Limits, rotation & controls",
-    items: [
-      "Sending volume measured on a rolling 12-hour window, not a fixed daily reset",
-      "Round robin, random and least-used rotation strategies across accounts",
-      "Pause and resume any mailbox without affecting the rest of a campaign",
-      "Automatic safety blocks on bounce spikes, spam-trap hits or auth failures",
-    ],
+    icon: Gauge,
+    title: "Better Sending Control",
+    text: "Understand mailbox capacity and status before launching campaigns.",
   },
 ];
 
-const bullets = [
-  "Per-account sent-in-last-12-hours and remaining-capacity counters",
-  "SPF, DKIM, DMARC and MX status shown individually per domain",
-  "Provider connection state visible without leaving the account list",
-  "Warmup progress tracked separately from live campaign sending",
-  "Bulk pause and resume across selected accounts",
-  "Rotation strategy configurable per campaign, not locked platform-wide",
-  "Safety blocks list the exact reason an account was pulled from rotation",
-  "Replies stay routed to the Unified Inbox even while an account is paused",
-  "Filtering by status, warmup state, health and domain across large account lists",
-  "Live status updates as accounts are assigned, paused or reconnected",
+const audiences = [
+  {
+    audience: "Sales Teams",
+    scenario: "Several reps sending from a shared set of mailboxes.",
+    outcome: "Manage the mailboxes used by your outbound team.",
+  },
+  {
+    audience: "Agencies",
+    scenario: "Separate sending accounts and domains per client.",
+    outcome: "Keep client sending infrastructure organized inside the appropriate workspace.",
+  },
+  {
+    audience: "Founders",
+    scenario: "A handful of mailboxes tracked by hand today.",
+    outcome: "Manage your outbound accounts without maintaining a complicated spreadsheet.",
+  },
 ];
 
-const beforeAfter = {
-  before: [
-    "SMTP credentials pasted into a doc and shared over chat",
-    "No idea which mailbox is throttled, paused or failing until deliverability drops",
-    "DNS records set up once, guessed at, and never checked again",
-    "One overworked inbox carrying most of a campaign's volume",
-    "A flagged mailbox keeps sending until someone happens to notice",
-  ],
-  after: [
-    "Credentials encrypted server-side and never exposed to the browser",
-    "Live per-mailbox health, provider status and rolling send counts",
-    "Guided SPF, DKIM and DMARC verification, rechecked on a schedule",
-    "Volume spread automatically across every healthy account in rotation",
-    "Safety blocks pull a flagged mailbox out of sending immediately",
-  ],
-};
+const steps = [
+  { title: "Connect your mailbox", text: "Add a supported sending account to your workspace." },
+  { title: "Verify sending setup", text: "Confirm the domain records and sending status." },
+  { title: "Monitor health and capacity", text: "Watch status, warmup and the 12-hour window." },
+  { title: "Use it in your campaigns", text: "Assign the mailbox to the campaigns that need it." },
+];
 
 function Page() {
   return (
     <MarketingLayout>
       <PageHero
-        eyebrow="Email Accounts"
-        title="Every sending mailbox,"
-        highlight="verified and protected"
-        description="Connect Google, Microsoft or your own provider, verify the domain, and let MunchReach watch sending health, limits and rotation for every account in your workspace."
-        benefits={[
-          "SPF, DKIM and DMARC verified before sending",
-          "Rolling 12-hour sending limits per mailbox",
-          "Automatic safety blocks on bounce spikes and auth failures",
-        ]}
+        eyebrow="MunchReach Email Accounts"
+        title="Manage Every Sending Mailbox"
+        highlight="From One Place."
+        description="Connect your sending accounts, monitor mailbox health, manage sending capacity, and keep your outbound infrastructure organized inside MunchReach."
+        benefits={["Mailbox health", "12-hour capacity", "Warmup status", "Domain readiness"]}
+        primaryCta="Connect an Email Account"
         secondaryCta="See How It Works"
         secondaryHref="#how-it-works"
       />
-      <BigPreview
+
+      <Section
         id="product"
-        eyebrow="Email accounts dashboard"
-        title="Every mailbox, its limits, and its health score in one view"
-        description="See exactly how much each account can send right now and whether it's actually healthy enough to send it."
+        title="See Your Entire Sending Infrastructure at a Glance"
+        description="Instead of checking every inbox separately, manage your sending accounts from one workspace."
       >
-        <div className="p-4 sm:p-6">
-          <MockPanel title="Email accounts — Acme workspace">
-            <MockRows
-              rows={[
-                { left: "outreach@munchreachmail.com", muted: "82 sent · trailing 12h · SPF/DKIM/DMARC ✓", badge: "Healthy" },
-                { left: "sam@getmunchreach.io", muted: "61 sent · trailing 12h · Round robin", badge: "Healthy" },
-                { left: "hello@munchreach.dev", muted: "Bounce rate 4.2% · auto safety block", badge: "Blocked" },
-                { left: "team@munchreachmail.com", muted: "Paused manually", badge: "Paused" },
-              ]}
-            />
-          </MockPanel>
-        </div>
-      </BigPreview>
-      <Section title="Why sending infrastructure keeps breaking outreach">
-        <PainPoints items={painPoints} />
+        <AccountsDashboardMock />
       </Section>
-      <Section id="how-it-works" title="How email accounts work in MunchReach" description="From connecting a mailbox to catching problems before they spread.">
-        <Walkthrough steps={walkSteps} />
+
+      <Section
+        muted
+        title="Managing Multiple Mailboxes Gets Messy Fast."
+        description="As outbound grows, domains, inboxes, sending limits, warmup and mailbox settings end up managed separately."
+      >
+        <PainPoints items={problems} />
       </Section>
-      <Section title="What you get" description="Everything needed to connect, verify and protect a sending mailbox.">
-        <FeatureGrid items={features} />
+
+      <Section
+        title="Connect Your Sending Account"
+        description="Connect a supported sending account and manage it from MunchReach once the connection is verified."
+      >
+        <ConnectFlowMock />
       </Section>
-      <Section title="The end-to-end sending workflow" description="What happens to a mailbox from the moment you connect it.">
-        <WorkflowStrip steps={workflowSteps} />
+
+      <Section
+        muted
+        title="Know Which Mailboxes Are Healthy"
+        description="Health, sending status, warmup, safety state and available capacity are shown on the same account record."
+      >
+        <HealthMock />
       </Section>
-      <Section title="Who it's for" description="Built for however your team sources sending capacity.">
-        <UseCaseGrid items={useCases} />
+
+      <Section
+        title="See Warmup Status Alongside Your Mailboxes"
+        description="MunchReach keeps mailbox status and warmup state visible together so you can understand whether an account is ready to send."
+      >
+        <WarmupStatusMock />
       </Section>
-      <Section title="Deep capabilities" description="What's actually happening behind each account.">
-        <DocSection groups={docGroups} />
+
+      <Section
+        muted
+        title="Know How Much Each Mailbox Can Send"
+        description="Mailbox capacity is managed separately from campaign limits, so you can understand whether a specific sending account is available."
+      >
+        <CapacityMock />
       </Section>
-      <Section title="Details that matter" muted>
-        <BulletList items={bullets} />
+
+      <Section
+        title="Scale Your Sending Infrastructure"
+        description="Keep multiple sending accounts organized without switching between different tools."
+      >
+        <DomainGroupsMock />
       </Section>
-      <Section title="Before and after" description="What changes the week you switch.">
-        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+
+      <Section
+        muted
+        title="Protect Mailboxes When Something Goes Wrong"
+        description="Not every stop is the same — MunchReach separates active safety conditions from temporary capacity and manual pauses."
+      >
+        <SafetyMock />
       </Section>
+
+      <Section
+        title="Temporary Problems Don't Have to Become Permanent"
+        description="Active safety violations stay blocked, while temporary conditions can clear once the underlying condition is resolved."
+      >
+        <RecoveryFlow />
+      </Section>
+
+      <Section
+        muted
+        title="Know When Your Domain Is Ready"
+        description="Domain verification and sending readiness are different from simply adding an email account."
+      >
+        <DomainReadinessMock />
+        <ReadinessNote />
+      </Section>
+
+      <Section
+        title="Every Mailbox Control in One Panel"
+        description="What each action on an email account actually does."
+      >
+        <ActionsPanelMock />
+      </Section>
+
+      <Section muted title="From Mailbox Chaos to One Sending Workspace">
+        <BeforeAfter
+          before={[
+            "Multiple inboxes",
+            "Separate warmup monitoring",
+            "Unknown sending capacity",
+            "Manual status checking",
+            "Hard to see unhealthy accounts",
+          ]}
+          after={[
+            "One mailbox dashboard",
+            "Health visibility",
+            "Capacity visibility",
+            "Warmup status",
+            "Clear mailbox controls",
+          ]}
+        />
+      </Section>
+
+      <Section id="how-it-works" title="How It Works">
+        <WorkflowStrip steps={steps} />
+      </Section>
+
+      <Section muted title="Why MunchReach Email Accounts">
+        <FeatureGrid items={why} />
+      </Section>
+
+      <Section title="Who It's For">
+        <UseCaseGrid items={audiences} />
+      </Section>
+
       <TestimonialCarousel page="email-accounts" title="Sending health, in their words" />
+
       <Section muted>
         <PageFaqs page="email-accounts" defaults={faqs} />
       </Section>
+
       <CtaBlock
-        title="Connect and protect every sending account you own"
-        description="Verified domains, live health scores and automatic safety blocks — so no single mailbox can put your outreach at risk."
+        title="Get Your Sending Accounts Under Control."
+        description="Connect your mailboxes, monitor their health, and manage your outbound sending infrastructure from MunchReach."
+        cta="Connect an Email Account"
       />
     </MarketingLayout>
   );
