@@ -114,7 +114,7 @@ export async function buildCommandCenter(
   const prevStart = nowMs - days * 2 * DAY;
   const fetchSince = new Date(Math.min(prevStart, nowMs - SAFETY_WINDOW_DAYS * DAY)).toISOString();
 
-  const [
+const [
     campaignsRes,
     messages,
     replies,
@@ -124,7 +124,6 @@ export async function buildCommandCenter(
     accountsRes,
     domainsRes,
     conversationsRes,
-    warmupEventsRes,
   ] = await Promise.all([
     supabase
       .from("campaigns")
