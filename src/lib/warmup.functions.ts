@@ -208,29 +208,43 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
             Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) + 1,
           )
         : 0;
+      // Live safety evaluation — never trust the stored reason string alone,
+      // otherwise a mailbox stays "Blocked by bounce-rate protection" forever
+      // after the numbers recover.
+      const snapshot = evaluateMailboxSafety({
+        stats: windowStatsById.get(a["id"] as string) ?? [],
+        maxBounceRate: Number(setting?.["max_bounce_rate"] ?? 5),
+        minHealthScore: Number(setting?.["min_health_score"] ?? 0),
+        healthScore: base.health_score,
+        accountStatus: base.status,
+        authStatuses: [a["spf_status"], a["dkim_status"], a["dmarc_status"]] as string[],
+        manuallyPaused: base.paused,
+        customerEnabled: base.customer_enabled,
+        pausedBySystem: base.paused_by_system,
+        pauseReason: (setting?.["pause_reason"] as string | null) ?? null,
+      });
+      const safetyActive = snapshot.violation.active;
+      const pauseKind: MailboxPauseKind = base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
+        ? snapshot.state.kind
+        : "none";
+      const resumable = pauseKind === "none" ? true : snapshot.state.resumable;
       const blockReason = !base.warmup_enabled
         ? null
-        : base.paused_by_system
-          ? ((setting?.["pause_reason"] as string | null) ?? "Warmup paused by the safety system.")
-          : base.paused || !base.customer_enabled
-            ? "Mailbox sending is paused."
-            : base.status === "failed"
-              ? "The mailbox connection test is failing."
-              : ((setting?.["last_run_reason"] as string | null) ?? null);
-      const pauseKind: MailboxPauseKind = !base.customer_enabled
-        ? "disabled"
-        : base.status === "failed"
-          ? "provider_failure"
+        : safetyActive
+          ? snapshot.violation.reason
           : base.paused_by_system
-            ? pauseKindFromReason(setting?.["pause_reason"] as string | null)
-            : base.paused
-              ? "manual"
-              : "none";
+            ? `${(setting?.["pause_reason"] as string | null) ?? "Paused automatically."} This condition is no longer active — you can resume this mailbox.`
+            : base.paused || !base.customer_enabled
+              ? "Mailbox sending is paused."
+              : base.status === "failed"
+                ? "The mailbox connection test is failing."
+                : ((setting?.["last_run_reason"] as string | null) ?? null);
       const state: "on" | "off" | "blocked" = !base.warmup_enabled
         ? "off"
         : base.paused_by_system || base.paused || !base.customer_enabled || base.status === "failed"
           ? "blocked"
           : "on";
+
       return {
         id: a["id"] as string,
         from_email: a["from_email"] as string,
