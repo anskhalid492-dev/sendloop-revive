@@ -975,6 +975,10 @@ export async function runCampaign(
   supabase: AnySupabase,
   options: { campaignId: string; limit?: number; force?: boolean },
 ): Promise<DispatchResult> {
+  // A recurring campaign continues on the next configured day. Messages that
+  // failed on a previous sending day are re-queued once per day so the campaign
+  // resumes instead of silently ending with recipients still pending.
+  const requeued = await requeueRetryableMessages(supabase, options.campaignId);
   const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId);
   const result = await dispatchDueMessages(supabase, options);
   result.scheduled += initialScheduled;
