@@ -357,7 +357,11 @@ function CommunityPage() {
               ))}
             </ul>
             <div className="mt-6">
-              <JoinButton placement="share-your-win" size="default" label="Post your win" />
+              <JoinButton
+                placement="share-your-win"
+                size="default"
+                label="Share your win in the Facebook Community"
+              />
             </div>
           </div>
           <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-secondary/40 to-background p-6">
@@ -399,10 +403,10 @@ function CommunityPage() {
       <Section muted>
         <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-primary/12 via-secondary/40 to-background p-10 text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Join founders and outbound teams sending with MunchReach
+            Join founders and outbound teams in the MunchReach Community
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Free to join. Bring a question or a win — both are welcome.
+            Free to join on Facebook. Bring a question or a win — both are welcome.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <JoinButton placement="footer-cta" />
