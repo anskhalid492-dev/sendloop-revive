@@ -86,14 +86,8 @@ export type WarmupAccountRow = {
   last_activity_at: string | null;
 };
 
-/** Maps a stored safety reason back onto its pause kind for display only. */
-function pauseKindFromReason(reason: string | null | undefined): MailboxPauseKind {
-  const text = (reason ?? "").toLowerCase();
-  if (text.includes("bounce rate")) return "bounce_safety";
-  if (text.includes("complaint")) return "complaint_safety";
-  if (text.includes("connection test") || text.includes("authentication")) return "provider_failure";
-  return "auto_safety";
-}
+
+
 
 function statusOf(row: {
   paused: boolean;
