@@ -7,7 +7,6 @@ import {
   Lock,
   SlidersHorizontal,
   ShieldAlert,
-  UserX,
   FolderKanban,
   Megaphone,
   CreditCard,
@@ -62,10 +61,9 @@ export const Route = createFileRoute("/product/workspaces")({
 });
 
 const pains = [
-  { icon: ShieldAlert, title: "One login, zero boundaries", text: "A contractor working on one client's campaigns can see every other client's leads, mailboxes and replies, because the tool has no concept of separate accounts." },
-  { icon: UserX, title: "Offboarding is a scramble", text: "When a freelancer or team member leaves, you're hunting through mailboxes, spreadsheets and shared logins instead of revoking access in one place." },
-  { icon: FolderKanban, title: "Client reporting means copy-paste", text: "Every client update means exporting numbers out of your real dashboard into something 'safe enough' to share, because they can't just log in." },
-  { icon: Megaphone, title: "Sending reputation gets tangled", text: "Warmup, sending limits and suppression lists for one client bleed into another's when everything runs through the same undivided account." },
+  { icon: ShieldAlert, title: "Zero boundaries", text: "One login lets a contractor see every client's leads, mailboxes and replies." },
+  { icon: FolderKanban, title: "Reporting is copy-paste", text: "Client updates mean exporting numbers instead of letting them log in." },
+  { icon: Megaphone, title: "Tangled reputation", text: "One client's sending mistakes can quietly hurt another client's deliverability." },
 ];
 
 const walkthroughSteps = [
@@ -145,18 +143,18 @@ const walkthroughSteps = [
 ];
 
 const features = [
-  { icon: Building2, title: "Isolated client workspaces", text: "Every client's campaigns, leads, mailboxes and conversations live in a separate workspace with nothing shared by default." },
-  { icon: Users, title: "Owner, Admin and Member roles", text: "Three built-in roles control exactly who can manage settings, invite people, or just work in campaigns and the inbox." },
-  { icon: KeyRound, title: "Email invitations with roles attached", text: "Invite a teammate or a client by email and their role is set before they ever log in." },
-  { icon: Mail, title: "Per-workspace mailbox separation", text: "Each client's sending accounts, warmup progress and domains are tracked independently of every other workspace." },
-  { icon: Lock, title: "Data-layer isolation", text: "Access is enforced where the data lives, so a workspace boundary can't be bypassed by a misconfigured screen." },
-  { icon: SlidersHorizontal, title: "Per-workspace settings", text: "Name, slug, logo, timezone and sending window are all configured individually for each client workspace." },
+  { icon: Building2, title: "Isolated client workspaces", text: "Every client's campaigns, leads and mailboxes live in a separate workspace." },
+  { icon: Users, title: "Owner, Admin and Member roles", text: "Three built-in roles control who can manage settings or just work inside." },
+  { icon: KeyRound, title: "Email invitations with roles attached", text: "Invite a teammate or client by email with their role already set." },
+  { icon: Mail, title: "Per-workspace mailbox separation", text: "Each client's sending accounts, warmup progress and domains are tracked independently." },
+  { icon: Lock, title: "Data-layer isolation", text: "Access is enforced where the data lives, not just hidden in a screen." },
+  { icon: SlidersHorizontal, title: "Per-workspace settings", text: "Name, slug, logo, timezone and sending window are all configured individually." },
   { icon: Megaphone, title: "Campaign separation", text: "Sequences, templates in use and send history stay attached to the workspace that created them." },
-  { icon: History, title: "Team activity tracking", text: "Invitations, role changes and removals are visible so you always know who currently has access." },
-  { icon: LogOut, title: "Instant workspace switching", text: "Move between client accounts from a single switcher without signing out or re-authenticating." },
-  { icon: Palette, title: "Client-facing branding", text: "Give a workspace its own name and logo so a client viewing their dashboard sees their own identity, not yours." },
-  { icon: Clock, title: "Independent sending schedules", text: "Set sending days and hours per workspace so each client's outreach follows their own business hours." },
-  { icon: CreditCard, title: "Usage visibility per workspace", text: "Sending volume and mailbox counts are reported per workspace, so you can see what each client is actually using." },
+  { icon: History, title: "Team activity tracking", text: "Invitations, role changes and removals are visible so you know who has access." },
+  { icon: LogOut, title: "Instant workspace switching", text: "Move between client accounts from a single switcher without signing out." },
+  { icon: Palette, title: "Client-facing branding", text: "Give a workspace its own name and logo for the client's dashboard." },
+  { icon: Clock, title: "Independent sending schedules", text: "Set sending days and hours per workspace to match each client's hours." },
+  { icon: CreditCard, title: "Usage visibility per workspace", text: "Sending volume and mailbox counts are reported per workspace for each client." },
 ];
 
 const workflowSteps = [
@@ -166,13 +164,13 @@ const workflowSteps = [
   { title: "Connect mailboxes", text: "Add and warm up sending accounts for this client only." },
   { title: "Run campaigns", text: "Build sequences and launch outreach inside the workspace." },
   { title: "Work replies in context", text: "Handle inbox and pipeline without any cross-client noise." },
-  { title: "Report back to the client", text: "Share results scoped to their workspace, or invite them to view it directly." },
+  { title: "Report back to the client", text: "Share scoped results, or invite them to view it directly." },
   { title: "Switch and repeat", text: "Move to the next client's workspace in one click." },
 ];
 
 const useCases = [
   { icon: Building2, audience: "Agencies running multiple clients", scenario: "You manage outbound for a dozen clients and can't risk one seeing another's leads.", outcome: "Each client fully isolated under one login." },
-  { icon: Users, audience: "In-house teams with contractors", scenario: "You bring in freelance SDRs for a quarter and need to grant, then fully revoke, access.", outcome: "Scoped roles and instant offboarding." },
+  { icon: Users, audience: "In-house teams with contractors", scenario: "You bring in freelance SDRs for a quarter and need to fully revoke access later.", outcome: "Scoped roles and instant offboarding." },
   { icon: KeyRound, audience: "Clients who want visibility", scenario: "A client wants to check on progress without emailing you for a screenshot.", outcome: "A Member invite to their own workspace only." },
   { icon: FolderKanban, audience: "Multi-brand companies", scenario: "You run outreach for several product lines or regional entities from one org.", outcome: "Separate workspaces per brand, one bill." },
   { icon: Mail, audience: "Teams protecting sender reputation", scenario: "One client's aggressive sending shouldn't affect another client's deliverability.", outcome: "Mailboxes and warmup isolated per workspace." },
