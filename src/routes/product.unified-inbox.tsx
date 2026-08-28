@@ -6,7 +6,6 @@ import {
   StickyNote,
   Search,
   Zap,
-  MailWarning,
   Split,
   Hourglass,
   History,
@@ -64,10 +63,9 @@ export const Route = createFileRoute("/product/unified-inbox")({
 });
 
 const painPoints = [
-  { icon: Inbox, title: "Replies scattered across mailboxes", text: "Running outreach from five or ten mailboxes means five or ten separate inboxes to check, and a warm reply can sit unread for a day in the wrong one." },
-  { icon: Hourglass, title: "Slow response times cost meetings", text: "By the time someone finally opens the right mailbox, an interested prospect has gone quiet or replied to a competitor instead." },
-  { icon: Split, title: "No shared context across the team", text: "A teammate replies to a prospect without knowing two other reps already spoke to them, and the thread turns into a mess to untangle." },
-  { icon: MailWarning, title: "Signal buried in noise", text: "Bounces, out-of-office autoresponders and unsubscribes flood the same inbox as genuine interest, so real replies get missed in the scroll." },
+  { icon: Inbox, title: "Replies scattered everywhere", text: "Running outreach from ten mailboxes means ten inboxes to check, so warm replies sit unread." },
+  { icon: Hourglass, title: "Slow replies cost meetings", text: "By the time someone opens the right mailbox, an interested prospect has gone quiet." },
+  { icon: Split, title: "No shared team context", text: "A teammate replies without knowing two others already spoke to the same prospect." },
 ];
 
 const walkthroughSteps = [
@@ -174,38 +172,38 @@ const walkthroughSteps = [
 ];
 
 const features = [
-  { icon: Inbox, title: "One shared inbox", text: "Threads from every connected mailbox, grouped by prospect and campaign, replace a folder-by-folder check." },
-  { icon: Bot, title: "AI reply labels", text: "Interested, not interested, out of office, meeting request, wrong person and unsubscribe are applied the moment a reply lands." },
-  { icon: History, title: "Mailbox-accurate threading", text: "Replies match to the exact original send, not just a subject string, so forwarded and reformatted replies still thread correctly." },
-  { icon: Users, title: "Team assignment", text: "Route conversations to an owner by territory or round robin, and reassign a thread in one click without losing history." },
-  { icon: AtSign, title: "@mentions on threads", text: "Bring a teammate into a conversation for a second opinion without forwarding an email out of the system." },
-  { icon: StickyNote, title: "Internal notes", text: "Add private context the prospect never sees, visible to the whole workspace on that thread." },
-  { icon: BellRing, title: "Follow-up reminders", text: "Threads that go quiet after your reply resurface automatically instead of relying on memory." },
-  { icon: MailSearch, title: "Instant search", text: "Search subjects, bodies, prospects, companies and labels in milliseconds across every mailbox at once." },
-  { icon: Zap, title: "Saved replies", text: "One-click templates for booking calls, answering pricing questions or sending a polite decline." },
-  { icon: KanbanSquare, title: "Snooze and follow-up views", text: "Snooze a thread to a chosen date, or pull up a dedicated view of everything due for a follow-up." },
-  { icon: ShieldCheck, title: "Unsubscribe suppression", text: "An unsubscribe reply suppresses the address workspace-wide so no other campaign can email it again." },
-  { icon: Search, title: "Full conversation history", text: "Every send, open, click, reply, label change and note lives on one timeline per prospect." },
+  { icon: Inbox, title: "One shared inbox", text: "Threads from every connected mailbox, grouped by prospect and campaign." },
+  { icon: Bot, title: "AI reply labels", text: "Interested, meeting request, out of office and unsubscribe applied instantly." },
+  { icon: History, title: "Mailbox-accurate threading", text: "Replies match the exact original send, so forwarded messages thread correctly." },
+  { icon: Users, title: "Team assignment", text: "Route conversations by territory or round robin, and reassign in one click." },
+  { icon: AtSign, title: "@mentions on threads", text: "Bring a teammate into a conversation for a second opinion." },
+  { icon: StickyNote, title: "Internal notes", text: "Add private context the prospect never sees, visible to the workspace." },
+  { icon: BellRing, title: "Follow-up reminders", text: "Threads that go quiet after your reply resurface automatically." },
+  { icon: MailSearch, title: "Instant search", text: "Search subjects, bodies, prospects and labels across every mailbox at once." },
+  { icon: Zap, title: "Saved replies", text: "One-click templates for booking calls or sending a polite decline." },
+  { icon: KanbanSquare, title: "Snooze and follow-up views", text: "Snooze a thread, or view everything due for a follow-up." },
+  { icon: ShieldCheck, title: "Unsubscribe suppression", text: "An unsubscribe suppresses the address workspace-wide, across every campaign." },
+  { icon: Search, title: "Full conversation history", text: "Every send, open, click and reply lives on one timeline." },
 ];
 
 const workflowSteps = [
-  { title: "Reply arrives", text: "A prospect replies to any campaign, on any connected mailbox." },
-  { title: "Thread detected", text: "The message is matched to its original send and grouped into one conversation." },
-  { title: "AI labels it", text: "Interested, meeting request, out of office or unsubscribe is applied instantly." },
-  { title: "Sequence stops", text: "Any pending follow-up for that prospect is cancelled the moment the reply lands." },
-  { title: "Conversation assigned", text: "The thread routes to an owner by rule, or stays with whoever already owns the account." },
-  { title: "Reply is sent", text: "The owner replies, or a teammate is @mentioned first for input, from the original mailbox." },
-  { title: "Follow-up tracked", text: "If the prospect goes quiet again, a reminder brings the thread back up." },
-  { title: "History logged", text: "Every action is recorded on the thread for the next person who opens it." },
+  { title: "Reply arrives", text: "A prospect replies to any campaign, on any mailbox." },
+  { title: "Thread detected", text: "The message is matched and grouped into one conversation." },
+  { title: "AI labels it", text: "Interested, meeting request or unsubscribe applied instantly." },
+  { title: "Sequence stops", text: "Any pending follow-up is cancelled the moment it lands." },
+  { title: "Conversation assigned", text: "The thread routes to an owner by rule." },
+  { title: "Reply is sent", text: "The owner replies from the original mailbox." },
+  { title: "Follow-up tracked", text: "If the prospect goes quiet, a reminder resurfaces it." },
+  { title: "History logged", text: "Every action is recorded for the next person." },
 ];
 
 const useCases = [
-  { icon: Inbox, audience: "Solo operators", scenario: "You run five or six mailboxes and check each one manually every morning before anything else gets done.", outcome: "One inbox, one pass through the morning, nothing missed in a forgotten mailbox." },
-  { icon: Users, audience: "SDR teams", scenario: "Replies need to reach the right rep within minutes, not whenever someone happens to check the shared mailbox.", outcome: "Auto-assignment and labelling route the conversation before a human even opens it." },
-  { icon: ShieldCheck, audience: "Agencies", scenario: "Client conversations must stay separated, auditable, and never cross-contaminate between accounts.", outcome: "Per-workspace inboxes with full history and optional read-only client access." },
-  { icon: BellRing, audience: "Founders closing their own pipeline", scenario: "A meeting request comes in while you're heads-down on product, and it needs a same-day reply.", outcome: "Labelled and surfaced instantly, so a hot reply never sits behind cold noise." },
-  { icon: KanbanSquare, audience: "RevOps and team leads", scenario: "You need visibility into who is replying to whom, and whether any conversation has stalled.", outcome: "Assignment, snooze state and follow-up reminders give a live view without extra reporting." },
-  { icon: History, audience: "Teams with long sales cycles", scenario: "A prospect goes quiet for weeks, then comes back, and nobody remembers the earlier context.", outcome: "The full thread and notes are right there, so the reply picks up where it left off." },
+  { icon: Inbox, audience: "Solo operators", scenario: "You run five or six mailboxes and check each one manually every morning.", outcome: "One inbox, one pass, nothing missed." },
+  { icon: Users, audience: "SDR teams", scenario: "Replies need to reach the right rep within minutes, not whenever checked.", outcome: "Auto-assignment routes it before a human opens it." },
+  { icon: ShieldCheck, audience: "Agencies", scenario: "Client conversations must stay separated and never cross-contaminate.", outcome: "Per-workspace inboxes with optional client access." },
+  { icon: BellRing, audience: "Founders", scenario: "A meeting request comes in while you're heads-down on product.", outcome: "Surfaced instantly, ahead of cold noise." },
+  { icon: KanbanSquare, audience: "RevOps and team leads", scenario: "You need visibility into who is replying, and what's stalled.", outcome: "A live view without extra reporting." },
+  { icon: History, audience: "Long sales cycles", scenario: "A prospect goes quiet for weeks, then comes back out of nowhere.", outcome: "The full thread picks up right where it left off." },
 ];
 
 const docGroups = [

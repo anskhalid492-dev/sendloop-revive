@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   GitBranch,
-  MessagesSquare,
 } from "lucide-react";
 
 import {
@@ -62,10 +61,9 @@ export const Route = createFileRoute("/product/crm")({
 });
 
 const pains = [
-  { icon: AlertTriangle, title: "Replies fall through the cracks", text: "A prospect says \"interested\" in your sequencing tool, but nobody follows up because it never turns into a pipeline card anyone owns." },
-  { icon: FileSpreadsheet, title: "Spreadsheets pretending to be a CRM", text: "Reps keep their own tracker, owners overlap, stages mean different things to different people, and nobody can answer 'what's our real pipeline this week?'" },
-  { icon: GitBranch, title: "Context lives in three tools", text: "The email history is in your sender, the notes are in Slack or a doc, and the deal stage is in a CRM that was never updated after the last touch." },
-  { icon: MessagesSquare, title: "No record of outreach history", text: "By the time a prospect is ready to talk, whoever picks up the deal has no idea what was already sent, opened or said." },
+  { icon: AlertTriangle, title: "Replies fall through the cracks", text: "A prospect says \"interested\" and nobody follows up because it never becomes a card." },
+  { icon: FileSpreadsheet, title: "Spreadsheets pretending to be a CRM", text: "Trackers overlap, stages mean different things, and nobody knows the real pipeline." },
+  { icon: GitBranch, title: "Context lives in three tools", text: "Email history, notes and deal stage are scattered across separate tools." },
 ];
 
 const walkSteps = [
@@ -161,37 +159,31 @@ const walkSteps = [
 ];
 
 const features = [
-  { icon: Kanban, title: "Customizable stages", text: "Add, rename, recolor or remove pipeline stages per workspace — New Lead, Meeting Booked, Proposal Sent, Won, Lost, or your own." },
-  { icon: Users, title: "Contact records", text: "Every contact has an email, name, company, lead source and tags, editable inline from the pipeline or the contact drawer." },
-  { icon: History, title: "Full activity timeline", text: "Sends, opens, clicks and replies from campaigns appear on the contact automatically, in chronological order." },
-  { icon: ListTodo, title: "Tasks with due dates", text: "Set a follow-up task on any contact, see it until it's marked done, and never lose track of who's next to call." },
-  { icon: StickyNote, title: "Notes on every contact", text: "Log what a prospect said in a call or reply so any teammate can pick up the conversation with full context." },
-  { icon: UserCheck, title: "Ownership", text: "See who's working which contact and hand off a deal without losing its history." },
-  { icon: Tags, title: "Tags and lead source", text: "Tag contacts on the fly and filter the pipeline by tag or by the source that generated the lead." },
-  { icon: Filter, title: "Search, filter and sort", text: "Search by name or email and sort by recent activity, date added, last reply or next task due." },
-  { icon: ArrowRightLeft, title: "Bulk stage moves", text: "Select multiple contacts and move them all to a new stage in one action instead of one card at a time." },
-  { icon: Inbox, title: "Reply-to-pipeline handoff", text: "A positive reply on any campaign creates or advances a pipeline card automatically, no manual import." },
-  { icon: MousePointerClick, title: "Drag-and-drop board", text: "Move contacts between stages by dragging their card, with the change visible to the team instantly." },
-  { icon: ClipboardList, title: "Real-time updates", text: "Stage moves, new notes and completed tasks sync live across the workspace as teammates work the pipeline." },
+  { icon: Kanban, title: "Customizable stages", text: "Add, rename or remove pipeline stages to match your process." },
+  { icon: Users, title: "Contact records", text: "Every contact holds email, company, lead source and tags." },
+  { icon: History, title: "Full activity timeline", text: "Sends, opens, clicks and replies appear on the contact automatically." },
+  { icon: ListTodo, title: "Tasks with due dates", text: "Set a follow-up task and see it until it's marked done." },
+  { icon: StickyNote, title: "Notes on every contact", text: "Log what a prospect said so any teammate has context." },
+  { icon: UserCheck, title: "Ownership", text: "See who owns each contact and hand off without losing history." },
+  { icon: Tags, title: "Tags and lead source", text: "Tag contacts and filter the pipeline by tag or source." },
+  { icon: Filter, title: "Search, filter and sort", text: "Find contacts by name, email, activity or next task due." },
+  { icon: ArrowRightLeft, title: "Bulk stage moves", text: "Move multiple contacts to a new stage in one action." },
+  { icon: Inbox, title: "Reply-to-pipeline handoff", text: "A positive reply automatically creates or advances a pipeline card." },
+  { icon: MousePointerClick, title: "Drag-and-drop board", text: "Move contacts between stages by dragging their card." },
+  { icon: ClipboardList, title: "Real-time updates", text: "Stage moves and notes sync live across the workspace." },
 ];
 
 const workflowSteps = [
   { title: "Lead", text: "A prospect enters via a campaign reply or a manual add." },
-  { title: "Contact", text: "The lead becomes a contact record with company, source and tags." },
-  { title: "Pipeline", text: "The contact lands on a stage — New Lead, by default." },
+  { title: "Pipeline", text: "The contact lands on a stage, New Lead by default." },
   { title: "Activity", text: "Sends, opens, clicks and replies attach automatically to the contact." },
-  { title: "Follow-up", text: "A task is set with a due date; a note captures what was discussed." },
-  { title: "Opportunity", text: "The contact advances through Meeting Booked and Proposal Sent as the conversation moves." },
-  { title: "Won", text: "The card moves to Won, keeping the full outreach history attached to the closed deal." },
+  { title: "Won", text: "The card moves to Won, keeping the full history attached." },
 ];
 
 const useCases = [
-  { icon: Users, audience: "Sales-led startups", scenario: "You need pipeline visibility without buying and configuring a full CRM.", outcome: "A working pipeline from your first campaign, no setup project." },
-  { icon: Inbox, audience: "Founder-led sales", scenario: "You're sending your own campaigns and need to track replies without losing them in an inbox.", outcome: "Every reply becomes a card you can act on the same day." },
-  { icon: UserCheck, audience: "Small sales teams", scenario: "Multiple reps work the same list and need to know who owns which conversation.", outcome: "Clear ownership and per-stage visibility across the team." },
-  { icon: ArrowRightLeft, audience: "Agencies running outbound for clients", scenario: "You need to show pipeline progress per client without mixing their data.", outcome: "A pipeline scoped to each workspace, one per client." },
-  { icon: History, audience: "Teams with an existing CRM", scenario: "Reps forget to log outbound activity into Salesforce or HubSpot.", outcome: "Activity captured automatically at the source, in the outreach tool itself." },
-  { icon: ClipboardList, audience: "Revenue teams closing the loop", scenario: "You want to know which campaigns and mailboxes actually produce won deals.", outcome: "A closed history from first send to Won, on the same record." },
+  { icon: Users, audience: "Sales-led startups", scenario: "You need pipeline visibility without a full CRM setup.", outcome: "A working pipeline from your first campaign." },
+  { icon: Inbox, audience: "Founder-led sales", scenario: "You send your own campaigns and need to track replies.", outcome: "Every reply becomes a card you can act on." },
+  { icon: UserCheck, audience: "Small sales teams", scenario: "Multiple reps work the same list and need clear ownership.", outcome: "Clear ownership and stage visibility across the team." },
 ];
 
 const docGroups = [

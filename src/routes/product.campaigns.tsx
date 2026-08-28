@@ -14,7 +14,6 @@ import {
   BarChart3,
   Inbox,
   Copy,
-  MailWarning,
   PauseCircle,
   Rocket,
 } from "lucide-react";
@@ -66,10 +65,9 @@ export const Route = createFileRoute("/product/campaigns")({
 });
 
 const painPoints = [
-  { icon: ListX, title: "Spreadsheet chaos", text: "Tracking who got which email, and when, across a dozen tabs falls apart past 50 prospects — and nobody notices until a lead gets emailed twice." },
-  { icon: AlertTriangle, title: "One mailbox, one ceiling", text: "Sending everything from a single account throttles volume and puts your entire domain reputation on the line for every campaign you run." },
-  { icon: Repeat2, title: "No control over volume", text: "Without a real daily and total limit, a single campaign can burn through a whole month's sending allowance before lunch." },
-  { icon: MailWarning, title: "Bounces poison the list", text: "A batch of bad addresses can tank deliverability for every campaign in the workspace if nothing is catching and stopping them." },
+  { icon: ListX, title: "Spreadsheet chaos", text: "Tracking who got which email across tabs falls apart fast, and leads get emailed twice." },
+  { icon: AlertTriangle, title: "One mailbox, one ceiling", text: "A single account throttles volume and risks your whole domain reputation." },
+  { icon: Repeat2, title: "No control over volume", text: "Without real limits, one campaign can burn a month's sending allowance fast." },
 ];
 
 const walkthroughSteps = [
@@ -179,63 +177,63 @@ const walkthroughSteps = [
 ];
 
 const features = [
-  { icon: Layers, title: "Visual sequence builder", text: "Drag steps, set delays in minutes, hours or days, and preview the full journey per prospect before it goes live." },
-  { icon: Split, title: "Conditional branching", text: "Branch on opened, clicked, replied, bounced or no-activity and send a different follow-up down each path." },
-  { icon: Gauge, title: "Daily and total sending limits", text: "Set a total campaign limit and a daily limit, editable straight from the campaigns table. Follow-ups count toward both, and sending stops automatically at the cap." },
-  { icon: Clock, title: "Schedule & throughput", text: "Choose sending days, a sending window and delays, then see the real per-hour, per-day and per-week throughput before you launch." },
-  { icon: Shuffle, title: "Mailbox rotation", text: "Spread volume across connected accounts with per-account daily caps, weighting and warm-up-aware throttling." },
-  { icon: Sparkles, title: "AI personalization", text: "Bring your own OpenAI key and insert an AI-written opening line into any step, with a safe fallback whenever lead data is missing." },
-  { icon: Beaker, title: "A/B/n testing", text: "Test up to five subject lines or bodies per step and let reply-rate data promote the winner automatically." },
-  { icon: Repeat2, title: "Automatic retries", text: "Temporary delivery failures are retried with backoff before ever being marked failed, so a brief mailbox hiccup doesn't lose a lead." },
-  { icon: ShieldCheck, title: "Bounce protection", text: "Hard bounces stop that lead's sequence, mark the address invalid workspace-wide and are excluded from your analytics." },
-  { icon: PauseCircle, title: "Clear campaign states", text: "Every campaign shows exactly what's happening: Running, Daily quota reached, Waiting for next run or Completed." },
-  { icon: Inbox, title: "Live send queue", text: "Watch every queued, sent, skipped and failed message in real time, with the reason behind each outcome." },
-  { icon: BarChart3, title: "Campaign analytics", text: "Sent, opens, replies, reply rate, positive replies and meetings booked per campaign and per step, from real send data only." },
-  { icon: Copy, title: "Duplicate & bulk actions", text: "Clone a winning sequence for a new list, or pause, resume, archive and delete campaigns in bulk." },
+  { icon: Layers, title: "Visual sequence builder", text: "Drag steps, set delays, and preview each prospect's journey before it goes live." },
+  { icon: Split, title: "Conditional branching", text: "Branch on opens, clicks, replies or no activity with a different follow-up per path." },
+  { icon: Gauge, title: "Daily and total sending limits", text: "Set daily and total limits, editable from the campaigns table, enforced automatically." },
+  { icon: Clock, title: "Schedule & throughput", text: "Pick sending days and windows, and see real throughput before you launch." },
+  { icon: Shuffle, title: "Mailbox rotation", text: "Spread volume across accounts with per-account caps and warm-up-aware throttling." },
+  { icon: Sparkles, title: "AI personalization", text: "Insert an AI-written opening line per lead, with a safe fallback when data is missing." },
+  { icon: Beaker, title: "A/B/n testing", text: "Test up to five subject lines or bodies and let reply data promote the winner." },
+  { icon: Repeat2, title: "Automatic retries", text: "Temporary delivery failures retry automatically so a hiccup doesn't lose a lead." },
+  { icon: ShieldCheck, title: "Bounce protection", text: "Hard bounces stop that lead's sequence and mark the address invalid workspace-wide." },
+  { icon: PauseCircle, title: "Clear campaign states", text: "See exactly what's happening: Running, Quota reached, Waiting or Completed." },
+  { icon: Inbox, title: "Live send queue", text: "Watch every queued, sent, skipped and failed message with its reason." },
+  { icon: BarChart3, title: "Campaign analytics", text: "Sent, opens, replies and meetings booked per campaign and per step." },
+  { icon: Copy, title: "Duplicate & bulk actions", text: "Clone a winning sequence, or pause, resume and archive campaigns in bulk." },
 ];
 
 const workflowSteps = [
-  { title: "Import leads", text: "Pull in a list or filter existing leads by tag, industry, status or custom field." },
-  { title: "Write the sequence", text: "Draft the first email and chain follow-ups with variables, spintax and AI openers." },
-  { title: "Assign mailboxes", text: "Attach one or more warmed sending accounts to rotate volume across." },
-  { title: "Set limits & schedule", text: "Choose the total limit, daily limit, sending days and sending window." },
-  { title: "Launch", text: "The readiness checklist confirms leads, steps, mailboxes, schedule and limits are all set." },
-  { title: "Send & retry", text: "Emails go out on schedule; temporary failures retry automatically with backoff." },
-  { title: "Protect the list", text: "Replies, bounces and unsubscribes stop that lead's sequence immediately." },
-  { title: "Review & iterate", text: "Read step-level analytics, promote the winning variant and clone the sequence for the next list." },
+  { title: "Import leads", text: "Pull in a list or filter existing leads by tag or status." },
+  { title: "Write the sequence", text: "Draft the first email and chain follow-ups with variables and AI openers." },
+  { title: "Assign mailboxes", text: "Attach one or more warmed sending accounts to rotate volume." },
+  { title: "Set limits & schedule", text: "Choose the total limit, daily limit and sending window." },
+  { title: "Launch", text: "The readiness checklist confirms everything is set before you send." },
+  { title: "Send & retry", text: "Emails go out on schedule; failures retry automatically." },
+  { title: "Protect the list", text: "Replies, bounces and unsubscribes stop that lead's sequence instantly." },
+  { title: "Review & iterate", text: "Read step-level analytics and clone the sequence for the next list." },
 ];
 
 const useCases = [
   {
     icon: Rocket,
     audience: "Founders selling early",
-    scenario: "You are the only rep and need 20 real conversations a week without living in your inbox.",
-    outcome: "Launch a 4-step sequence with a daily limit in under 10 minutes.",
+    scenario: "You're the only rep and need real conversations without living in your inbox.",
+    outcome: "Launch a sequence with a daily limit in under 10 minutes.",
   },
   {
     audience: "Outbound sales teams",
     scenario: "Several reps, shared lead lists and dozens of campaigns running at once.",
-    outcome: "Per-campaign limits and mailbox rotation keep every rep inside a safe sending ceiling.",
+    outcome: "Per-campaign limits and rotation keep every rep inside a safe ceiling.",
   },
   {
     audience: "Lead gen agencies",
     scenario: "Separate client sequences, mailboxes and reporting that must never mix.",
-    outcome: "One workspace per client with isolated mailboxes, limits and analytics.",
+    outcome: "One workspace per client with isolated mailboxes and analytics.",
   },
   {
     audience: "Recruiters running outreach",
-    scenario: "Sourcing candidates or clients at volume without sounding like a mail merge.",
-    outcome: "AI personalization and variables make each message feel individually written.",
+    scenario: "Sourcing candidates at volume without sounding like a mail merge.",
+    outcome: "AI personalization makes each message feel individually written.",
   },
   {
     audience: "Growth teams testing offers",
-    scenario: "Need to know which subject line or angle actually gets replies before scaling spend.",
-    outcome: "A/B/n testing surfaces the winning variant with real reply-rate data.",
+    scenario: "Need to know which angle gets replies before scaling spend.",
+    outcome: "A/B/n testing surfaces the winner with real reply-rate data.",
   },
   {
-    audience: "Teams recovering a sender reputation",
+    audience: "Teams recovering sender reputation",
     scenario: "A prior mailbox got flagged and volume needs to ramp back up carefully.",
-    outcome: "Conservative daily limits and mailbox rotation rebuild volume without another flag.",
+    outcome: "Conservative limits and rotation rebuild volume safely.",
   },
 ];
 
