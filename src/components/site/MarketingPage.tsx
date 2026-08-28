@@ -694,22 +694,28 @@ export function DocSection({
   groups: { title: string; items: string[] }[];
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <Accordion type="single" collapsible className="mx-auto w-full max-w-4xl">
       {groups.map((g) => (
-        <div key={g.title} className="rounded-2xl border border-border bg-card p-6">
-          <h3 className="text-base font-semibold">{g.title}</h3>
-          <ul className="mt-3 space-y-2">
-            {g.items.map((i) => (
-              <li key={i} className="text-sm text-muted-foreground">
-                {i}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <AccordionItem key={g.title} value={g.title} className="border-b border-border/70">
+          <AccordionTrigger className="py-5 text-left text-base font-medium hover:no-underline">
+            {g.title}
+          </AccordionTrigger>
+          <AccordionContent className="pb-6">
+            <ul className="grid gap-2.5 md:grid-cols-2">
+              {g.items.map((i) => (
+                <li key={i} className="flex gap-2.5 text-sm text-muted-foreground">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{i}</span>
+                </li>
+              ))}
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
       ))}
-    </div>
+    </Accordion>
   );
 }
+
 
 export function faqJsonLd(faqs: { q: string; a: string }[]) {
   return {
