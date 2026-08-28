@@ -1,322 +1,371 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-  ArrowRight,
   Bell,
   Building2,
   Clock,
   GitBranch,
-  Inbox,
   ListTodo,
-  Megaphone,
+  Repeat,
   Rocket,
-  Send,
   Tags,
-  Target,
   Users,
   Workflow,
-  Zap,
 } from "lucide-react";
 
 import {
-  BulletList,
-  CtaBlock,
-  FaqBlock,
-  FeatureBento,
-  MarketingLayout,
-  MockPanel,
-  MockRows,
-  Section,
-  StatStrip,
-  metaFor,
+  BeforeAfter,
   BigPreview,
+  CtaBlock,
+  FeatureGrid,
+  MarketingLayout,
+  PageHero,
+  PainPoints,
+  Section,
+  SolutionSplit,
+  UseCaseGrid,
+  metaFor,
 } from "@/components/site/MarketingPage";
-import { Reveal } from "@/components/site/Reveal";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PageFaqs } from "@/components/site/PageFaqs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
-/** Step-by-step walkthrough of one real workflow, opened from the hero CTA. */
-const walkthrough = [
-  {
-    kind: "Trigger",
-    title: "A prospect replies to your campaign",
-    text: "The inbound webhook records the reply, MunchReach classifies the sentiment, and the workflow starts for that specific lead. Every run is keyed to the event, so the same reply never starts the workflow twice.",
-  },
-  {
-    kind: "Condition",
-    title: "Check whether the reply is positive",
-    text: "Conditions read live lead, campaign and engagement data. If the reply is positive the run continues down the true branch; anything else follows the else branch, so one workflow handles both outcomes.",
-  },
-  {
-    kind: "Action",
-    title: "Stop follow-ups and move the deal forward",
-    text: "Queued follow-up emails for that lead are cancelled, the contact moves to the Replied stage, a task is created for the owner, and a Slack notification goes out through the connected integration.",
-  },
-  {
-    kind: "Wait",
-    title: "Pause without holding a server open",
-    text: "Waits are stored in the database with a resume time. The backend worker picks the run back up when it is due, so workflows survive restarts and deploys.",
-  },
-  {
-    kind: "Result",
-    title: "Everything is logged",
-    text: "Each step writes its status, input and output to the run history, so you can see exactly why an automation did — or did not — take an action.",
-  },
-];
-
-function HowItWorksDialog() {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button size="lg" variant="outline">
-          Walk through a real workflow
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Trigger → Condition → Action, step by step</DialogTitle>
-          <DialogDescription>
-            How MunchReach runs the "positive reply" workflow from the moment the email arrives.
-          </DialogDescription>
-        </DialogHeader>
-        <ol className="mt-2 space-y-4">
-          {walkthrough.map((step, i) => (
-            <li key={step.title} className="rounded-xl border border-border bg-card/60 p-4">
-              <div className="flex items-center gap-3">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
-                  {i + 1}
-                </span>
-                <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
-                  {step.kind}
-                </Badge>
-              </div>
-              <h4 className="mt-3 text-sm font-semibold">{step.title}</h4>
-              <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
-            </li>
-          ))}
-        </ol>
-      </DialogContent>
-    </Dialog>
-  );
-}
+  AutomationBuilderMock,
+  CatalogGrid,
+  DetailList,
+  NumberedSteps,
+  WhenIfThen,
+  WorkflowCards,
+} from "@/components/site/AutomationsProductMocks";
+import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
   {
-    q: "What are MunchReach Automations?",
-    a: "Automations are workflows that run on MunchReach's backend. Each one starts from a real product event, optionally checks conditions, then performs actions such as enrolling a lead in a campaign, updating CRM records, creating tasks or sending notifications.",
+    q: "What can start an automation?",
+    a: "Real product events: a lead is added or enters a campaign, a campaign starts or completes, an email is sent, delivered, opened, clicked or bounced, a reply lands, a reply is classified positive, a lead unsubscribes, a lead status or CRM stage changes, a task is completed, a meeting is booked or cancelled, a mailbox connects, warmup status changes, or a signed webhook hits the automation's endpoint.",
   },
   {
-    q: "What can trigger an automation?",
-    a: "Lead events (lead added, lead status changed), campaign events (lead enters campaign, campaign started or completed), email events from delivery webhooks (sent, delivered, opened, clicked, bounced), inbox events (lead replied, positive reply detected, unsubscribed), CRM events (stage changed, task completed), Calendly meeting booked or cancelled, mailbox connected, warmup status changed, and signed inbound webhooks.",
+    q: "Do I need to know how to code?",
+    a: "No. Every automation is built as WHEN → IF → THEN from dropdown lists. Conditions use plain operators like is, is not, contains, is empty, greater than and less than.",
   },
   {
-    q: "What actions can an automation perform?",
-    a: "Add or remove a lead from a campaign, stop follow-ups, pause enrollment, move a CRM stage, add or remove tags, create a CRM task, update a lead field, assign an owner, log a CRM activity, send an in-app notification, send a Slack message through the connected integration, send a signed webhook, wait, or end the run.",
+    q: "What can an automation actually do?",
+    a: "Add or remove a lead from a campaign, stop follow-ups, pause enrollment, move a CRM stage, add or remove a tag, create a task, update a lead field, assign an owner, log a CRM activity, send an internal or Slack notification, send a signed webhook, wait, or end the run.",
   },
   {
-    q: "Can automations work with campaigns?",
-    a: "Yes. Campaign and email events start workflows, and campaign actions let you enroll leads, remove them, or cancel every queued follow-up for a lead the moment they reply.",
+    q: "How do waits work?",
+    a: "A wait is stored in the database with a resume time and picked back up by the backend worker, so runs survive restarts and deploys. You can wait minutes, hours or days, until a specific time, or until business hours.",
   },
   {
-    q: "Can automations update CRM records?",
-    a: "Yes. Automations move contacts between pipeline stages, edit lead fields, add or remove tags, assign owners, create tasks and write entries into the contact's activity timeline.",
+    q: "Can I see what an automation did?",
+    a: "Yes. Each run records the trigger event, the branch it followed, every step's status and any error, so you can tell the difference between a skipped condition and a genuine failure.",
   },
   {
-    q: "Can I create multi-step workflows?",
-    a: "Yes. Workflows chain triggers, conditions, waits and actions across as many steps as you need. Waits are stored in the database and resumed by the backend worker, and conditions can branch the run down an if/else path.",
+    q: "Can I test an automation before turning it on?",
+    a: "Yes. Automations have an active and inactive state and a test run, so you can check the logic on a real record before it starts acting on your whole workspace.",
   },
 ];
 
 export const Route = createFileRoute("/automations")({
   head: () =>
     metaFor(
-      "Cold Email Automation That Saves Time | MunchReach",
-      "Automate repetitive outreach tasks, follow-ups, and workflows so your campaigns keep moving without manual work.",
+      "Automations — Outbound Workflows on Autopilot | MunchReach",
+      "Connect campaigns, leads, replies, follow-ups and team workflows so the right action happens automatically — built visually with triggers, conditions and actions.",
       "/automations",
       faqs,
     ),
   component: Page,
 });
 
-const features = [
-  { icon: Zap, title: "Trigger-based workflows", text: "Start a run from any real product event — lead added, campaign started, email delivered, reply received, stage changed or a signed inbound webhook." },
-  { icon: Send, title: "Automated follow-ups", text: "Stop pending follow-ups the second a lead replies, or enroll them into the next campaign automatically." },
-  { icon: Target, title: "Lead actions", text: "Update lead fields, add or remove tags, assign an owner and change lead status without touching a record by hand." },
-  { icon: Megaphone, title: "Campaign actions", text: "Add or remove a lead from a campaign, cancel queued sends and pause further enrollment." },
-  { icon: Inbox, title: "Reply-based actions", text: "React to inbound replies from the Unified Inbox, including replies classified as positive, and route them straight into your pipeline." },
-  { icon: GitBranch, title: "CRM updates", text: "Move contacts between pipeline stages and write entries into the contact activity timeline as the workflow runs." },
-  { icon: ListTodo, title: "Task creation", text: "Create real CRM tasks on the contact with a title and a due date offset in days." },
-  { icon: Bell, title: "Notifications", text: "Send in-app notifications to the workspace, or push a message to Slack through the connected integration." },
-  { icon: Workflow, title: "Conditional logic", text: "Evaluate lead, CRM, campaign, email activity, reply sentiment, mailbox and meeting fields, then branch the run accordingly." },
-  { icon: Clock, title: "Multi-step automation", text: "Chain conditions, waits and actions. Waits persist in the database and resume from the backend worker." },
+const problems = [
+  {
+    icon: Clock,
+    title: "Follow-ups get forgotten",
+    text: "A prospect replies on Friday, nobody picks it up, and the thread is cold by Monday.",
+  },
+  {
+    icon: ListTodo,
+    title: "Leads sit without action",
+    text: "A lead changes status and nothing happens — no owner, no tag, no task, no next step.",
+  },
+  {
+    icon: Repeat,
+    title: "Teams repeat the same manual tasks",
+    text: "Stop the sequence, tag the lead, assign a rep, create a task. The same five clicks, every single reply.",
+  },
 ];
 
-const flow = [
-  { kind: "Trigger", title: "Lead replies", text: "An inbound reply lands in the Unified Inbox.", icon: Inbox },
-  { kind: "Condition", title: "Check reply type", text: "Reply sentiment is positive.", icon: GitBranch },
-  { kind: "Action", title: "Update CRM", text: "Move the contact to the next pipeline stage.", icon: Users },
-  { kind: "Action", title: "Create task", text: "Follow up on reply, due in 1 day.", icon: ListTodo },
-  { kind: "Action", title: "Notify team", text: "Send an in-app and Slack notification.", icon: Bell },
+const steps = [
+  {
+    title: "Choose a trigger",
+    text: "Pick the event that starts the workflow — a reply, a bounce, a status change, a booked meeting. Trigger filters let you scope it to one campaign.",
+  },
+  {
+    title: "Add conditions",
+    text: "Conditions read live lead, campaign and engagement data. If they don't match, the run follows the else branch instead of acting.",
+  },
+  {
+    title: "Choose an action",
+    text: "Stack as many actions as you need — update the lead, move the CRM stage, assign an owner, create a task, notify the team.",
+  },
+  {
+    title: "Let MunchReach execute it",
+    text: "Runs are queued per event and processed by the backend worker, with waits resuming on schedule and every step logged.",
+  },
 ];
 
-const useCases = [
-  { icon: Rocket, title: "Sales teams", text: "Interested replies stop the sequence, advance the deal and land on a rep's task list the same minute." },
-  { icon: Building2, title: "Agencies", text: "Run the same reply-handling and reporting workflow across every client workspace without manual admin." },
-  { icon: Workflow, title: "SaaS companies", text: "Route trial-intent replies to the right owner and keep pipeline stages accurate automatically." },
-  { icon: Target, title: "Lead generation", text: "Tag, score and re-route new leads the moment they are imported or enter a campaign." },
-  { icon: Send, title: "Follow-up workflows", text: "Cancel queued follow-ups on reply, or wait a set number of days before enrolling a lead in the next campaign." },
-  { icon: Tags, title: "CRM workflows", text: "Keep owners, tags, fields and activity timelines updated from campaign and inbox events." },
+const triggers = [
+  { title: "Lead added", group: "Leads", text: "A lead is created or imported into the workspace." },
+  { title: "Lead enters campaign", group: "Campaigns", text: "A lead is enrolled as a campaign recipient." },
+  { title: "Email sent", group: "Email", text: "A campaign email is accepted by the sending provider." },
+  { title: "Email delivered", group: "Email", text: "The provider confirms delivery to the recipient." },
+  { title: "Email bounced", group: "Email", text: "The provider reports a bounce for that address." },
+  { title: "Lead replied", group: "Inbox", text: "A real inbound reply lands in the Unified Inbox." },
+  { title: "Positive reply detected", group: "Inbox", text: "An inbound reply is classified as interested." },
+  { title: "Lead status changed", group: "Leads", text: "A lead's status field changes value." },
+  { title: "CRM stage changed", group: "CRM", text: "A contact moves to another pipeline stage." },
+  { title: "Meeting booked", group: "Meetings", text: "A Calendly booking webhook is received." },
+  { title: "Campaign completed", group: "Campaigns", text: "A campaign finishes its sequence." },
+  { title: "Webhook received", group: "Webhooks", text: "A signed request hits this automation's own endpoint." },
 ];
 
-const stats = [
-  { value: "19", label: "Real triggers across leads, campaigns, email, inbox, CRM and webhooks" },
-  { value: "15", label: "Actions from campaign control to CRM, tasks, notifications and webhooks" },
-  { value: "Multi-step", label: "Conditions, waits and branching in a single workflow" },
-  { value: "Backend worker", label: "Runs persist and resume server-side, not in the browser" },
+const actions = [
+  { title: "Update lead field", group: "CRM", text: "Write a value to an editable field such as status, industry or deal value." },
+  { title: "Move CRM stage", group: "CRM", text: "Move the contact in the real pipeline and log the change." },
+  { title: "Add or remove tag", group: "CRM", text: "Keep segments accurate without touching the lead by hand." },
+  { title: "Assign owner", group: "CRM", text: "Give a workspace member the contact so it has a clear next owner." },
+  { title: "Create task", group: "CRM", text: "Create a real CRM task with a title and a due date in days." },
+  { title: "Stop campaign follow-ups", group: "Campaigns", text: "Cancel every pending and scheduled email for that lead." },
+  { title: "Add or remove from campaign", group: "Campaigns", text: "Enrol a lead in a sequence, or pull them out of one." },
+  { title: "Notify the team", group: "Notifications", text: "Send an in-app notification, or a Slack message through the connected integration." },
+  { title: "Wait", group: "Flow", text: "Pause the run for minutes, hours, days, until a time, or until business hours." },
+];
+
+const workflows = [
+  {
+    label: "Workflow A",
+    title: "Positive reply routing",
+    steps: [
+      "Trigger: positive reply detected",
+      "Condition: lead status is not Customer",
+      "Action: stop campaign follow-ups",
+      "Action: add tag “interested”",
+      "Action: assign owner to a sales rep",
+      "Action: create task “Follow up on reply”, due in 1 day",
+    ],
+    note: "Stops the sequence talking over a live conversation and gives the reply an owner.",
+  },
+  {
+    label: "Workflow B",
+    title: "No-response nudge",
+    steps: [
+      "Trigger: email delivered",
+      "Wait: 3 days",
+      "Condition: lead has not replied",
+      "Action: add lead to the follow-up campaign",
+    ],
+    note: "The wait is stored with a resume time, so the run survives restarts and deploys.",
+  },
+  {
+    label: "Workflow C",
+    title: "Lead qualification",
+    steps: [
+      "Trigger: lead status changed",
+      "Condition: status is Qualified",
+      "Action: add tag “qualified”",
+      "Action: assign owner",
+      "Action: create task “Book intro call”",
+    ],
+    note: "Every qualified lead leaves with a tag, an owner and a scheduled next step.",
+  },
+  {
+    label: "Workflow D",
+    title: "Agency client routing",
+    steps: [
+      "Trigger: lead replied",
+      "Condition: campaign is the client's campaign",
+      "Action: assign the account's team member as owner",
+      "Action: create a follow-up task",
+      "Action: send a Slack notification to the client channel",
+    ],
+    note: "Automations are scoped to a workspace, so each client's routing stays separate.",
+  },
+];
+
+const why = [
+  {
+    eyebrow: "Respond faster",
+    title: "A reply gets an owner before anyone opens the inbox",
+    text: "The moment a reply is classified positive, follow-ups stop, the lead is tagged and assigned, and a task lands on the rep's list.",
+    bullets: [
+      "No waiting for someone to notice the reply",
+      "Queued follow-ups cancel so the sequence stops talking over the conversation",
+      "Slack or in-app notification tells the team it happened",
+    ],
+    visual: <AutomationBuilderMock />,
+  },
+  {
+    eyebrow: "Keep your pipeline organized",
+    title: "Status changes always carry the same consequences",
+    text: "When a lead's status or CRM stage changes, the tags, owner and tasks that should follow are applied the same way every time.",
+    bullets: [
+      "Tags applied consistently, not from memory",
+      "Owner set so no record is unassigned",
+      "Activity written to the contact's timeline",
+    ],
+    visual: <WhenIfThen />,
+  },
+];
+
+const capabilities = [
+  { icon: Workflow, title: "Visual automation builder", text: "Build WHEN → IF → THEN from dropdowns, no scripting." },
+  { icon: GitBranch, title: "Triggers", text: "Real lead, campaign, email, inbox, CRM and meeting events." },
+  { icon: ListTodo, title: "Conditions", text: "Live lead and campaign fields with plain operators." },
+  { icon: Tags, title: "Actions", text: "Update, tag, assign, enrol, notify, webhook, end." },
+  { icon: Clock, title: "Delays", text: "Wait minutes, hours, days, until a time, or until business hours." },
+  { icon: Repeat, title: "Lead workflows", text: "Route a lead from reply through to a scheduled next step." },
+  { icon: Users, title: "Team assignments", text: "Assign a workspace member as owner automatically." },
+  { icon: Bell, title: "Execution visibility", text: "Run history with each step's status, result and error." },
+];
+
+const audiences = [
+  {
+    icon: Users,
+    audience: "Sales teams",
+    scenario: "Replies land while reps are in calls and follow-ups slip.",
+    outcome: "Every reply is tagged, assigned and tasked automatically.",
+  },
+  {
+    icon: Building2,
+    audience: "Agencies",
+    scenario: "Several clients, each with their own routing and owners.",
+    outcome: "Workspace-scoped automations keep client workflows separate.",
+  },
+  {
+    icon: Rocket,
+    audience: "Growing outbound teams",
+    scenario: "Process lives in someone's head and breaks when they're away.",
+    outcome: "The process is built once and runs the same way every time.",
+  },
+];
+
+const details = [
+  { title: "Active / inactive state", text: "Turn an automation off without deleting it or losing its history." },
+  { title: "Trigger filters", text: "Scope a trigger to a single campaign so unrelated events don't start the run." },
+  { title: "Branching", text: "Conditions send the run down a true or else path, so one automation handles both outcomes." },
+  { title: "Durable waits", text: "Waits are stored with a resume time and picked up by the backend worker." },
+  { title: "Run history", text: "Each run logs its trigger, steps, statuses and errors for review." },
+  { title: "Signed webhooks", text: "Send the run context to your own endpoint with an HMAC signature header." },
 ];
 
 function Page() {
   return (
     <MarketingLayout>
-      <section className="hero-glow relative overflow-hidden border-b border-border/60">
-        <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-24">
-          <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-medium tracking-wide text-primary uppercase">
-            Automations
-          </span>
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Automate your cold outreach{" "}
-            <span className="text-gradient">from start to finish</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            MunchReach Automations trigger actions, follow-ups and multi-step workflows
-            automatically from your campaign, lead and inbox activity — so replies get
-            handled, CRM records stay accurate and nobody chases updates by hand.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button size="lg" asChild>
-              <Link to="/auth">Start for Free</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <a href="#how-it-works">See How It Works</a>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Automations"
+        title="Turn Repetitive Outreach Tasks"
+        highlight="Into Automations."
+        description="Connect your campaigns, leads, replies, follow-ups and team workflows so the right action happens automatically."
+        benefits={["Visual builder", "Real product events", "Full run history"]}
+        primaryCta="Build an Automation"
+        secondaryCta="See How It Works"
+        secondaryHref="#how-it-works"
+      />
+
+      <Section
+        muted
+        title="Your team shouldn't have to remember every next step."
+        description="Most outbound process failures are not strategy problems — they are someone forgetting a click."
+      >
+        <PainPoints items={problems} />
+      </Section>
 
       <BigPreview
-        eyebrow="Automations workspace"
-        title="Workflows that run on your real outreach data"
-        description="Triggers, conditions, actions and run history — the same objects the MunchReach Automations engine executes."
+        id="product"
+        eyebrow="Automation builder"
+        title="Trigger, conditions, actions — and what actually ran"
+        description="Name, trigger, conditions, actions, delay, active state, test controls and execution history in one screen."
       >
-        <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-2">
-          <MockPanel title="Automation — Positive reply handler">
-            <MockRows
-              rows={[
-                { left: "Status", right: "Active", badge: "Live" },
-                { left: "Trigger", muted: "Unified Inbox", right: "Positive reply detected" },
-                { left: "Condition", muted: "Reply sentiment", right: "is positive" },
-                { left: "Action 1", right: "Stop campaign follow-ups" },
-                { left: "Action 2", right: "Move CRM stage" },
-                { left: "Action 3", muted: "Due in 1 day", right: "Create task" },
-                { left: "Action 4", right: "Send Slack notification" },
-              ]}
-            />
-          </MockPanel>
-          <MockPanel title="Recent executions">
-            <MockRows
-              rows={[
-                { left: "marcus@northwind.io", right: "Completed", badge: "5 steps" },
-                { left: "sara@brightpath.co", right: "Completed", badge: "5 steps" },
-                { left: "team@fieldops.dev", muted: "Condition not met", right: "Skipped" },
-                { left: "dana@arcline.com", muted: "Resumes in 2 days", right: "Waiting" },
-              ]}
-            />
-          </MockPanel>
-        </div>
+        <AutomationBuilderMock />
       </BigPreview>
 
-      <Section
-        title="Real automation capabilities"
-        description="Everything below is executed by the MunchReach Automations engine."
-      >
-        <FeatureBento items={features} />
+      <Section id="how-it-works" muted title="How automations work">
+        <NumberedSteps steps={steps} />
       </Section>
 
       <Section
-        title="How it works"
-        description="A trigger fires, conditions decide, actions run — then the workflow moves to the next step."
-        muted
+        title="Automation triggers"
+        description="Events that already exist in the product — nothing invented."
       >
-        <div id="how-it-works" className="scroll-mt-24">
-          <div className="grid gap-4 md:grid-cols-5">
-            {flow.map((node, i) => (
-              <Reveal key={node.title} delay={i * 80}>
-                <div className="group relative h-full rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg">
-                  <Badge variant="secondary" className="text-[10px] tracking-wide uppercase">
-                    {node.kind}
-                  </Badge>
-                  <node.icon className="mt-4 h-5 w-5 text-primary" />
-                  <h3 className="mt-3 text-sm font-semibold">{node.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{node.text}</p>
-                  {i < flow.length - 1 ? (
-                    <ArrowRight className="absolute top-1/2 -right-3 hidden h-5 w-5 -translate-y-1/2 text-muted-foreground/50 md:block" />
-                  ) : null}
-                </div>
-              </Reveal>
-            ))}
-          </div>
-          <div className="mt-8 text-center">
-            <HowItWorksDialog />
-          </div>
+        <CatalogGrid items={triggers} />
+      </Section>
+
+      <Section muted title="Actions" description="What an automation is allowed to do once its conditions match.">
+        <CatalogGrid items={actions} />
+      </Section>
+
+      <Section title="Real workflows">
+        <WorkflowCards items={workflows} />
+      </Section>
+
+      <Section muted title="Why automation matters">
+        <SolutionSplit rows={why} />
+        <div className="mx-auto mt-12 max-w-3xl rounded-2xl border border-border bg-card p-6">
+          <h3 className="text-base font-semibold">Reduce repetitive work</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Stopping follow-ups, tagging, assigning and creating a task is five manual actions per
+            reply. Built once as an automation, it happens on every reply without anyone touching
+            it — and the run history shows exactly what was done.
+          </p>
         </div>
       </Section>
 
-      <Section title="Built for the way you run outreach">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {useCases.map((useCase, i) => (
-            <Reveal key={useCase.title} delay={i * 60}>
-              <div className="h-full rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/50">
-                <useCase.icon className="h-5 w-5 text-primary" />
-                <h3 className="mt-4 text-base font-semibold">{useCase.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{useCase.text}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Details that matter" muted>
-        <BulletList
-          items={[
-            "Runs execute on the backend worker, with waits stored in the database",
-            "Duplicate events are ignored so a lead is never processed twice for the same trigger",
-            "Every run is logged with its steps, outcome and any skipped actions",
-            "Conditions read lead, CRM, campaign, email activity, reply, mailbox and meeting fields",
-            "Outbound webhooks are signed with an HMAC header",
-            "Automations are scoped to a workspace and respect its permissions",
+      <Section title="Before and after">
+        <BeforeAfter
+          beforeTitle="Without automation"
+          afterTitle="With MunchReach"
+          before={[
+            "Manually checking the inbox for replies worth acting on",
+            "Manually updating status, tags and owners",
+            "Missed actions when someone is busy or away",
+            "Process that only exists in one person's head",
+          ]}
+          after={[
+            "A real product event starts the workflow",
+            "Conditions decide whether it should act",
+            "Actions run automatically, in order",
+            "Every run logged with its result",
           ]}
         />
       </Section>
 
-      <Section>
-        <StatStrip stats={stats} />
+      <Section
+        muted
+        title="Build it the way you'd say it"
+        description="WHEN this happens, IF this is true, THEN do these things."
+      >
+        <WhenIfThen />
       </Section>
+
+      <Section title="What you get">
+        <FeatureGrid items={capabilities} />
+      </Section>
+
+      <Section muted title="Who it's for">
+        <UseCaseGrid items={audiences} />
+      </Section>
+
+      <Section title="Details that matter">
+        <DetailList items={details} />
+      </Section>
+
+      <TestimonialCarousel page="automations" title="Loved by outreach teams" />
 
       <Section muted>
         <PageFaqs page="automations" defaults={faqs} />
       </Section>
 
       <CtaBlock
-        title="Turn repetitive outreach tasks into automated workflows."
-        description="Connect triggers, conditions and actions once — MunchReach runs them on every reply, campaign and CRM change."
+        title="Build the workflow once. Let MunchReach handle the repetitive work."
+        description="Pick a trigger, add your conditions, choose the actions, and turn it on."
+        cta="Build an Automation"
       />
     </MarketingLayout>
   );
