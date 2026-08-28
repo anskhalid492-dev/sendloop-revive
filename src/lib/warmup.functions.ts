@@ -69,6 +69,15 @@ export type WarmupAccountRow = {
   pause_kind: MailboxPauseKind;
   /** Whether the Resume button may clear it. */
   resumable: boolean;
+  /** True only while a safety condition is measurably active right now. */
+  safety_active: boolean;
+  /** True when a stored system pause is no longer backed by live numbers. */
+  safety_stale: boolean;
+  /** Live bounce/complaint numbers behind the decision. */
+  safety_metrics: SafetyMetrics;
+  /** When the runner next re-checks the safety conditions. */
+  next_evaluation_at: string;
+
   failed_today: number;
   delivery_rate: number | null;
   ramp_day: number;
