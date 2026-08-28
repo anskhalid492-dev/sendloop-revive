@@ -394,14 +394,10 @@ function Home() {
           </div>
 
 
-          {/* Capability ticker */}
-          <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-            <div className="space-y-2">
-              <CapabilityMarquee items={capabilityRowOne} />
-              <CapabilityMarquee items={capabilityRowTwo} reverse />
-            </div>
-          </div>
-        </section>
+</section>
+
+        {/* ------------------------------- Workflow: prospect → meeting */}
+        <WorkflowSection />
 
         {/* -------------------------------------------------- Trust strip */}
         <section className="border-y border-border/60 bg-secondary/40 py-9">
