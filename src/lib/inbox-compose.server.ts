@@ -7,6 +7,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { buildThreadKey, previewOf, stripAngle } from "@/lib/inbox-model";
+import { mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 
 type AnyClient = { from: (table: string) => any };
 
@@ -32,7 +33,7 @@ export async function composeAndSend(input: ComposeInput) {
   const { data: account, error: accountError } = await supabase
     .from("sending_accounts")
     .select(
-      "id, label, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, workspace_id",
+      "id, label, provider, provider_id, from_name, from_email, reply_to, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, last_sent_at, workspace_id",
     )
     .eq("id", input.sendingAccountId)
     .maybeSingle();
@@ -229,7 +230,10 @@ export async function composeAndSend(input: ComposeInput) {
 
   await supabase
     .from("sending_accounts")
-    .update({ sent_today: (account.sent_today ?? 0) + 1 })
+    .update({
+      sent_today: nextStoredSentToday(account, mailboxWindowStart(), 1),
+      last_sent_at: new Date().toISOString(),
+    })
     .eq("id", account.id);
 
   if (leadId) {
