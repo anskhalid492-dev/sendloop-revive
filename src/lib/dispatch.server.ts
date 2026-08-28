@@ -50,6 +50,7 @@ export type DispatchResult = {
 };
 
 type DispatchDiagnostic = {
+  phase?: "eligibility" | "selection" | "rejection" | "mailbox_check" | "claim" | "provider_send";
   campaignId: string;
   now: string;
   timezone?: string;
@@ -619,17 +620,35 @@ export async function applySentPatch(
 export async function dispatchDueMessages(
 
   supabase: AnySupabase,
-  options: { campaignId: string; limit?: number; force?: boolean },
+  options: { campaignId: string; limit?: number; force?: boolean; now?: Date },
+  dependencies: {
+    sendManagedEmail?: (...args: any[]) => Promise<any>;
+    consumeUsage?: (...args: any[]) => Promise<any>;
+    releaseUsage?: (...args: any[]) => Promise<any>;
+    EntitlementError?: any;
+    suppressedSet?: (...args: any[]) => Promise<Map<string, string>>;
+    mintCleanReplyAddress?: (...args: any[]) => Promise<string>;
+    createOutboundRfcMessageId?: (...args: any[]) => string;
+    messageIdHeader?: (...args: any[]) => string;
+    recordOutboundCampaignMessage?: (...args: any[]) => Promise<any>;
+    registerOutboundMessage?: (...args: any[]) => Promise<any>;
+    supabaseAdmin?: AnySupabase;
+  } = {},
 ): Promise<DispatchResult> {
-  
-  const { recordOutboundCampaignMessage } = await import("./inbox.server");
-  const { mintCleanReplyAddress } = await import("./inbound-routing.server");
-  const { createOutboundRfcMessageId, messageIdHeader } = await import("./outbound-threading.server");
-  const { suppressedSet } = await import("./suppression.server");
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const recordOutboundCampaignMessage = dependencies.recordOutboundCampaignMessage ??
+    (await import("./inbox.server")).recordOutboundCampaignMessage;
+  const mintCleanReplyAddress = dependencies.mintCleanReplyAddress ??
+    (await import("./inbound-routing.server")).mintCleanReplyAddress;
+  const createOutboundRfcMessageId = dependencies.createOutboundRfcMessageId ??
+    (await import("./outbound-threading.server")).createOutboundRfcMessageId;
+  const messageIdHeader = dependencies.messageIdHeader ??
+    (await import("./outbound-threading.server")).messageIdHeader;
+  const suppressedSet = dependencies.suppressedSet ?? (await import("./suppression.server")).suppressedSet;
+  const supabaseAdmin = dependencies.supabaseAdmin ??
+    (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
   const limit = options.limit ?? 10;
-  const now = new Date();
+  const now = options.now ?? new Date();
   const result = emptyResult();
 
   const { data: campaignRow, error: campaignError } = await supabase
@@ -689,7 +708,7 @@ export async function dispatchDueMessages(
       .in("status", ["pending", "scheduled"])
       .or(`scheduled_at.is.null,scheduled_at.lte.${now.toISOString()}`);
     result.errors.push(`Next sending window opens ${nextSlot}.`);
-    logDispatchDiagnostic({ ...diagnosticBase, reason: "outside_sending_window" });
+    logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", eligibleMessages: 0, selectedMessages: 0, reason: "outside_sending_window" });
     return result;
   }
 
@@ -717,6 +736,7 @@ export async function dispatchDueMessages(
       .in("status", ["pending", "scheduled"]);
     logDispatchDiagnostic({
       ...diagnosticBase,
+      phase: "selection",
       eligibleMessages: 0,
       selectedMessages: 0,
       reason: Number(queuedCount ?? 0) > 0 ? "queued_messages_scheduled_in_future" : "no_queued_messages",
@@ -725,6 +745,7 @@ export async function dispatchDueMessages(
   }
   logDispatchDiagnostic({
     ...diagnosticBase,
+    phase: "selection",
     eligibleMessages: due.length,
     selectedMessages: due.length,
     reason: "messages_selected",
@@ -744,9 +765,15 @@ export async function dispatchDueMessages(
 
   // Plan enforcement: sending is metered against the workspace plan. Both the
   // gate and the counter live server-side so cron and API callers are covered.
-  const { consumeUsage, releaseUsage, EntitlementError } = await import(
-    "@/lib/billing/usage.server"
-  );
+  const usage = dependencies.consumeUsage && dependencies.releaseUsage && dependencies.EntitlementError
+    ? null
+    : await import("@/lib/billing/usage.server");
+  const consumeUsage = dependencies.consumeUsage ?? usage?.consumeUsage;
+  const releaseUsage = dependencies.releaseUsage ?? usage?.releaseUsage;
+  const EntitlementError = dependencies.EntitlementError ?? usage?.EntitlementError;
+  if (!consumeUsage || !releaseUsage || !EntitlementError) {
+    throw new Error("Campaign usage dependencies are unavailable.");
+  }
   // Metering is per-message: a dispatch batch can span workspaces.
 
   // Bounced, complained and unsubscribed addresses are never emailed again.
@@ -792,7 +819,8 @@ export async function dispatchDueMessages(
 
   // Credentials are MunchReach-managed infrastructure resolved per send inside
   // `sendManagedEmail`; customer-supplied provider keys are never read.
-  const { sendManagedEmail } = await import("./managed-sending.server");
+  const sendManagedEmail = dependencies.sendManagedEmail ??
+    (await import("./managed-sending.server")).sendManagedEmail;
 
 
   const { resolveAiTokenAtSend } = await import("@/lib/ai-personalization.server");
@@ -843,11 +871,11 @@ export async function dispatchDueMessages(
     }
     if (account.paused || !account.customer_enabled || account.status === "disabled") {
       result.skipped += 1;
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_disabled" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_disabled" });
       continue;
     }
-    // Whichever limit is lowest wins; the daily cap is checked before the
-    // mailbox, campaign-total and plan reservations below.
+    // Whichever active limit is lowest wins; the campaign daily cap is checked
+    // before rolling mailbox capacity and workspace plan metering.
     if (dailyCap > 0 && sentTodaySoFar >= dailyCap) {
       result.skipped += 1;
       if (result.errors.length < 5)
@@ -855,7 +883,7 @@ export async function dispatchDueMessages(
       // The run waits for the NEXT scheduled day's window start. The campaign
       // stays active: quota exhaustion never completes or pauses it.
       quotaDeferralSlot = dispatchSchedule.nextWindowStart.toISOString();
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "campaign_daily_quota_reached" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "campaign_daily_quota_reached" });
       break;
     }
 
@@ -871,60 +899,31 @@ export async function dispatchDueMessages(
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached" });
       continue;
     }
-
-    // Atomic campaign-level reservation: the customer-chosen campaign limit
-    // covers every email this campaign generates, follow-ups included.
-    const reservation = (await supabaseAdmin.rpc("reserve_campaign_send", {
-      _campaign_id: message.campaign_id as string,
-    })) as {
-      data: { allowed?: boolean; sent?: number; limit?: number } | null;
-      error: { message: string; code?: string } | null;
-    };
-    // A backend that has not run the campaign-limit migration has no reservation
-    // function; plan-level metering below still governs every send.
-    const campaignLimitsAvailable = !(
-      reservation.error &&
-      (reservation.error.code === "PGRST202" ||
-        /reserve_campaign_send/.test(reservation.error.message ?? ""))
-    );
-    if (reservation.error && campaignLimitsAvailable) throw new Error(reservation.error.message);
-    if (campaignLimitsAvailable && !reservation.data?.allowed) {
-
-      const reached = `Campaign email limit reached (${reservation.data?.sent ?? 0} of ${reservation.data?.limit ?? 0} emails sent).`;
-      result.skipped += 1;
-      if (result.errors.length < 5) result.errors.push(reached);
-      // The configured TOTAL allowance is exhausted. That is a sending ceiling,
-      // NOT completion: recipients are still queued, so the campaign stays
-      // active and resumes the moment the limit is raised. Only an empty
-      // audience ever completes a campaign.
-      await supabase
-        .from("campaign_messages")
-        .update({ status: "scheduled", last_error: reached.slice(0, 500) })
-        .eq("id", message.id);
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "campaign_lifetime_limit_reached" });
-      break;
-    }
-
-
-
+    logDispatchDiagnostic({
+      ...diagnosticBase,
+      phase: "mailbox_check",
+      messageId: message.id,
+      mailboxId: account.id,
+      mailboxEligible: true,
+      reason: "mailbox_capacity_available",
+    });
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
     try {
       await consumeUsage(message.workspace_id as string, "emails_monthly", 1, "campaign_send");
     } catch (error) {
-      // Plan allowance is spent: give the campaign reservation back.
-      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       if (error instanceof EntitlementError) {
+        const entitlementMessage = error instanceof Error ? error.message : "Workspace sending limit reached.";
         result.skipped += 1;
-        if (result.errors.length < 5) result.errors.push(error.message);
+        if (result.errors.length < 5) result.errors.push(entitlementMessage);
         await supabase
           .from("campaign_messages")
-          .update({ status: "pending", last_error: error.message.slice(0, 500) })
+          .update({ status: "pending", last_error: entitlementMessage.slice(0, 500) })
           .eq("id", message.id);
-        logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "workspace_plan_limit_reached" });
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "workspace_plan_limit_reached" });
         continue;
       }
       throw error;
@@ -939,10 +938,21 @@ export async function dispatchDueMessages(
       .eq("id", message.id)
       .in("status", ["pending", "scheduled"])
       .select("id");
+    logDispatchDiagnostic({
+      ...diagnosticBase,
+      phase: "claim",
+      messageId: message.id,
+      mailboxId: account.id,
+      mailboxEligible: true,
+      reason: claim.error ? "message_claim_error" : Array.isArray(claim.data) && claim.data.length > 0 ? "message_claimed" : "message_claimed_by_another_runner",
+    });
+    if (claim.error) {
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "claim_failed");
+      throw new Error(claim.error.message);
+    }
     if (!claim.error && Array.isArray(claim.data) && claim.data.length === 0) {
-      // Already claimed by a concurrent run: give the reservations back.
+      // Already claimed by a concurrent run: give the plan reservation back.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "duplicate_claim");
-      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       result.skipped += 1;
       logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "message_claimed_by_another_runner" });
       continue;
@@ -963,7 +973,6 @@ export async function dispatchDueMessages(
       });
     } catch (error) {
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
-      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       await fail(error instanceof Error ? error.message : "Reply routing is not ready for this mailbox.");
       continue;
     }
@@ -977,7 +986,6 @@ export async function dispatchDueMessages(
       ]);
       if (resolvedSubject.hold || resolvedBody.hold) {
         await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "ai_hold");
-        await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
         await supabase
           .from("campaign_messages")
           .update({ status: "scheduled", last_error: "Waiting for AI personalization." })
@@ -1005,6 +1013,7 @@ export async function dispatchDueMessages(
 
     let send: Awaited<ReturnType<typeof sendManagedEmail>>;
     try {
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_send_started" });
       send = await sendManagedEmail(
       supabaseAdmin,
       {
@@ -1030,25 +1039,23 @@ export async function dispatchDueMessages(
       // A thrown provider/transport error used to leave the row stuck in
       // `processing` forever. Treat it exactly like a failed send.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
-      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       await fail(error instanceof Error ? error.message : "Sending failed.");
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
       continue;
     }
 
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
-      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       await fail(send.message);
-      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_rejected", providerResult: "rejected" });
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_rejected", providerResult: "rejected" });
       continue;
     }
 
     result.sent += 1;
     sentTodaySoFar += 1;
     sentPerAccount.set(account.id, usedNow + 1);
-    const sentAt = new Date().toISOString();
+    const sentAt = now.toISOString();
 
     // The provider accepted the email: record the terminal `sent` state first,
     // with the provider/RFC ids, so no later best-effort step (inbox mirroring,
@@ -1065,7 +1072,7 @@ export async function dispatchDueMessages(
       attempts: (message.attempts ?? 0) + 1,
     };
     await applySentPatch(supabase, message.id, campaignMessagePatch);
-    logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_accepted", providerResult: "accepted" });
+    logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_accepted", providerResult: "accepted" });
 
 
     try {
@@ -1091,7 +1098,8 @@ export async function dispatchDueMessages(
     // Explicit classification: provider events for this id can only ever move
     // campaign statistics.
     try {
-      const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+      const registerOutboundMessage = dependencies.registerOutboundMessage ??
+        (await import("@/lib/message-classification.server")).registerOutboundMessage;
       await registerOutboundMessage({
         providerMessageId: send.messageId ?? null,
         messageType: "campaign",
@@ -1129,7 +1137,7 @@ export async function dispatchDueMessages(
       .from("sending_accounts")
       .update({
         sent_today: nextStoredSentToday(account, windowStart, count),
-        last_sent_at: new Date().toISOString(),
+        last_sent_at: now.toISOString(),
       })
       .eq("id", accountId);
   }
@@ -1285,13 +1293,14 @@ export async function finalizeCampaignIfDrained(
 /** Send what is due, then queue the follow-ups that became due. */
 export async function runCampaign(
   supabase: AnySupabase,
-  options: { campaignId: string; limit?: number; force?: boolean },
+  options: { campaignId: string; limit?: number; force?: boolean; now?: Date },
 ): Promise<DispatchResult> {
   // A recurring campaign continues on the next configured day. Messages that
   // failed on a previous sending day are re-queued once per day so the campaign
   // resumes instead of silently ending with recipients still pending.
-  const requeued = await requeueRetryableMessages(supabase, options.campaignId);
-  const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId);
+  const runAt = options.now ?? new Date();
+  const requeued = await requeueRetryableMessages(supabase, options.campaignId, runAt);
+  const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId, runAt);
   const result = await dispatchDueMessages(supabase, options);
   result.scheduled += initialScheduled + requeued;
   try {
