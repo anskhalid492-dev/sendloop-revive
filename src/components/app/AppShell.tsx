@@ -117,12 +117,15 @@ export function AppShell({
   description,
   actions,
   children,
+  contentClassName,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
+  contentClassName?: string;
 }) {
+
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
