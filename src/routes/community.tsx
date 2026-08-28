@@ -349,10 +349,14 @@ function CommunityPage() {
           <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-secondary/40 to-background p-6">
             <div>
               <h3 className="text-lg font-bold">House rules</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Be useful, be honest about numbers, and keep pitches out of the feed. Share what you
-                tried, what happened, and what you'd change next time.
-              </p>
+              <ul className="mt-4 space-y-2.5">
+                {houseRules.map((rule) => (
+                  <li key={rule} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <HeartHandshake className="mt-0.5 size-4 shrink-0 text-primary" />
+                    {rule}
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="mt-6">
               <JoinButton placement="house-rules" size="default" variant="outline" />
@@ -360,6 +364,23 @@ function CommunityPage() {
           </div>
         </div>
       </Section>
+
+      <Section
+        muted
+        title="Questions before you join"
+        description="Everything members usually ask in the first five minutes."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {faqs.map((item) => (
+            <div key={item.q} className="surface-card p-6">
+              <h3 className="text-base font-semibold">{item.q}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+
 
       <Section muted>
         <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-primary/12 via-secondary/40 to-background p-10 text-center">
