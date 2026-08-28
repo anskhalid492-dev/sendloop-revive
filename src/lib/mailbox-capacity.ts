@@ -8,7 +8,7 @@
  * limit system and never mutates any counter.
  */
 
-import { mailboxSentToday, utcStartOfDay } from "@/lib/mailbox-daily-usage";
+import { mailboxSentToday, mailboxWindowStart } from "@/lib/mailbox-daily-usage";
 
 export type MailboxCapacityRow = {
   id: string;
@@ -57,7 +57,7 @@ export function mailboxLimitMessage(message: string) {
 export function evaluateMailboxCapacity(
   row: MailboxCapacityRow,
   sentThisHour = 0,
-  dayStart: Date = utcStartOfDay(),
+  dayStart: Date = mailboxWindowStart(),
 ): MailboxCapacity {
   // Date-aware: a stored counter from a previous day no longer consumes today's
   // allowance, and it can never exceed the mailbox's own daily limit.
