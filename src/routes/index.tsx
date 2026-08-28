@@ -399,17 +399,7 @@ function Home() {
         {/* ------------------------------- Workflow: prospect → meeting */}
         <WorkflowSection />
 
-        {/* -------------------------------------------------- Trust strip */}
-        <section className="border-y border-border/60 bg-secondary/40 py-9">
-          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-            <p className="text-sm text-muted-foreground">
-              Built for agencies, sales teams, SaaS companies, recruiters, and lead generation
-              teams.
-            </p>
-          </div>
-        </section>
-
-        {/* ------------------------------------------- Everything you need */}
+{/* ------------------------------------------- Everything you need */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
           <Reveal>
             <SectionHead
