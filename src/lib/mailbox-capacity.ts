@@ -8,6 +8,7 @@
  * limit system and never mutates any counter.
  */
 
+import { effectiveMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 import {
   mailboxCapacityReturnsAt,
   mailboxSentToday,
