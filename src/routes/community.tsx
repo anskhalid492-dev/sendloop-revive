@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
   BookOpen,
+  Facebook,
   Handshake,
   HeartHandshake,
   Lightbulb,
@@ -149,8 +150,8 @@ const faqs = [
     a: "Yes. The community is free and open to anyone doing outbound — you don't need a MunchReach subscription to join.",
   },
   {
-    q: "Where is it hosted?",
-    a: "It runs on an external group so conversations, notifications and search all work on a platform you already use daily.",
+  q: "Where is it hosted?",
+    a: "In the MunchReach Facebook Community, so conversations, notifications and search all work on a platform you already use daily.",
   },
   {
     q: "Do I have to post?",
@@ -167,7 +168,9 @@ function CommunityPage() {
   const content = useSiteContent();
   const config = content?.community ?? DEFAULT_COMMUNITY;
   const externalUrl = safeExternalUrl(config.external_url);
-  const ctaLabel = config.cta_label || DEFAULT_COMMUNITY.cta_label;
+  const ctaLabel = externalUrl
+    ? "Join the Facebook Community"
+    : config.cta_label || DEFAULT_COMMUNITY.cta_label;
 
   const join = (placement: string) => () =>
     trackEvent("community_join_click", { placement, has_destination: Boolean(externalUrl) });
@@ -190,12 +193,14 @@ function CommunityPage() {
           onClick={join(placement)}
           {...(config.open_in_new_tab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
+          <Facebook className="size-4" aria-hidden />
           {label}
           <ArrowRight className="size-4" />
         </a>
       </Button>
     ) : (
       <Button size={size} variant={variant} disabled title="Community link coming soon">
+        <Facebook className="size-4" aria-hidden />
         Community launching soon
       </Button>
     );
@@ -208,11 +213,20 @@ function CommunityPage() {
             <Users className="size-3.5 text-primary" /> MunchReach Community
           </span>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
-            Outbound is easier <span className="text-primary">with other people in the room</span>
+            <span className="hidden sm:block">
+              Share Your Wins. Learn From Others.
+              <br />
+              Grow Your Outbound With the <span className="text-primary">MunchReach Community</span>.
+            </span>
+            <span className="sm:hidden">
+              Share Your Wins. Learn From Others. Grow Your Outbound With the{" "}
+              <span className="text-primary">MunchReach Community</span>.
+            </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Swap campaigns that worked, get your copy torn apart before you send it, fix
-            deliverability faster, and post the wins you'd otherwise celebrate alone.
+            Join founders, sales teams, and outbound professionals sharing campaigns, lessons,
+            replies, experiments, and real results. Learn what is working, share what worked for
+            you, and help others improve.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <JoinButton placement="hero" />
@@ -229,9 +243,13 @@ function CommunityPage() {
       </section>
 
       <Section
-        title="What you get inside"
-        description="No drip-fed course, no gated PDF. Just operators comparing notes on what is landing in inboxes right now."
+        title="What is the MunchReach Community?"
+        description="A free, members-only Facebook Community where people who send outbound for a living compare real numbers, real copy and real fixes — not recycled theory."
       >
+        <p className="mx-auto -mt-6 mb-8 flex max-w-2xl items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Facebook className="size-4 shrink-0 text-primary" aria-hidden />
+          Hosted in the MunchReach Facebook Community — free to join, no MunchReach subscription required.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {benefits.map((item) => (
             <div key={item.title} className="surface-card p-6">
@@ -247,7 +265,7 @@ function CommunityPage() {
 
       <Section
         muted
-        title="How it works"
+        title="How it works after you join"
         description="Three small steps and you're part of the conversation — most people post their first question the same day."
       >
         <div className="grid gap-4 sm:grid-cols-3">
@@ -267,7 +285,7 @@ function CommunityPage() {
       </Section>
 
       <Section
-        title="Who it's for"
+        title="Who should join"
         description="Different roles, one shared problem: getting replies from people who never asked to hear from you."
       >
         <div className="grid gap-4 lg:grid-cols-3">
@@ -285,7 +303,7 @@ function CommunityPage() {
 
       <Section
         muted
-        title="What you can post"
+        title="What members share and learn"
         description="The feed stays useful because the posts stay concrete. These are the threads members show up for."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -325,7 +343,7 @@ function CommunityPage() {
 
       <Section
         id="share-your-win"
-        title="Post your win"
+        title="How to post a win"
         description="Every post helps someone else send a better campaign. Here's what's worth sharing."
       >
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
@@ -343,7 +361,11 @@ function CommunityPage() {
               ))}
             </ul>
             <div className="mt-6">
-              <JoinButton placement="share-your-win" size="default" label="Post your win" />
+              <JoinButton
+                placement="share-your-win"
+                size="default"
+                label="Share your win in the Facebook Community"
+              />
             </div>
           </div>
           <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-secondary/40 to-background p-6">
@@ -373,7 +395,12 @@ function CommunityPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {faqs.map((item) => (
             <div key={item.q} className="surface-card p-6">
-              <h3 className="text-base font-semibold">{item.q}</h3>
+              <h3 className="flex items-center gap-2 text-base font-semibold">
+                {item.q === "Where is it hosted?" ? (
+                  <Facebook className="size-4 shrink-0 text-primary" aria-hidden />
+                ) : null}
+                {item.q}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
             </div>
           ))}
@@ -385,10 +412,10 @@ function CommunityPage() {
       <Section muted>
         <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-primary/12 via-secondary/40 to-background p-10 text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Join founders and outbound teams sending with MunchReach
+            Join founders and outbound teams in the MunchReach Community
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Free to join. Bring a question or a win — both are welcome.
+            Free to join on Facebook. Bring a question or a win — both are welcome.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <JoinButton placement="footer-cta" />
