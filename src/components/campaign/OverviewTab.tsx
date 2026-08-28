@@ -361,9 +361,8 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                   : ""}
               </p>
             ) : null}
-          </div>
-
             <p className="mt-2 text-[11px] text-muted-foreground">
+
               Mailbox capacity is separate: {dailyUsed.toLocaleString()} of{" "}
               {dailyCapacity.toLocaleString()} sends used in the current rolling 12-hour mailbox
               window.
