@@ -366,45 +366,41 @@ export function BigPreview({
   );
 }
 
-/** Mixed-size bento grid — deliberately not another 3-equal-cards row. */
+/**
+ * Balanced feature layout: up to six scannable cards (three per desktop row),
+ * with any remaining capabilities shown as compact feature rows underneath.
+ */
 export function FeatureBento({ items }: { items: FeatureItem[] }) {
+  const primary = items.slice(0, 6);
+  const rest = items.slice(6);
   return (
-    <div className="grid gap-4 md:grid-cols-6">
-      {items.map((f, i) => {
-        const span = i === 0 ? "md:col-span-4" : i === 1 ? "md:col-span-2" : i === 2 ? "md:col-span-2" : i === 3 ? "md:col-span-4" : "md:col-span-3";
-        return (
-          <div key={f.title} className={`surface-card p-6 ${span}`}>
-            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
-              <f.icon className="size-5" />
-            </span>
-            <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{f.text}</p>
+    <div className="space-y-10">
+      <FeatureGrid items={primary} />
+      {rest.length ? (
+        <div className="rounded-2xl border border-border/70 bg-card/60 p-6 sm:p-8">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+            Also included
+          </h3>
+          <div className="mt-6">
+            <FeatureRows items={rest} />
           </div>
-        );
-      })}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-/** Horizontal workflow strip: step → step → step. */
+/** Horizontal workflow strip: compact numbered steps, four per desktop row. */
 export function WorkflowStrip({ steps }: { steps: { title: string; text: string }[] }) {
   return (
-    <ol className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(0,1fr))]">
+    <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {steps.map((s, i) => (
-        <li key={s.title} className="relative surface-card p-5">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Step {i + 1}
+        <li key={s.title} className="surface-card p-5">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
+            {i + 1}
           </span>
-          <h3 className="mt-2 text-base font-semibold">{s.title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">{s.text}</p>
-          {i < steps.length - 1 ? (
-            <span
-              aria-hidden="true"
-              className="absolute right-[-14px] top-1/2 hidden size-6 -translate-y-1/2 place-items-center rounded-full border border-border bg-background text-xs text-primary md:grid"
-            >
-              →
-            </span>
-          ) : null}
+          <h3 className="mt-3 text-sm font-semibold">{s.title}</h3>
+          <p className="mt-1.5 line-clamp-3 text-sm text-muted-foreground">{s.text}</p>
         </li>
       ))}
     </ol>
