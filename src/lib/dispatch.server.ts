@@ -631,6 +631,7 @@ export async function dispatchDueMessages(
     createOutboundRfcMessageId?: (...args: any[]) => string;
     messageIdHeader?: (...args: any[]) => string;
     recordOutboundCampaignMessage?: (...args: any[]) => Promise<any>;
+    registerOutboundMessage?: (...args: any[]) => Promise<any>;
     supabaseAdmin?: AnySupabase;
   } = {},
 ): Promise<DispatchResult> {
@@ -1089,7 +1090,8 @@ export async function dispatchDueMessages(
     // Explicit classification: provider events for this id can only ever move
     // campaign statistics.
     try {
-      const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+      const registerOutboundMessage = dependencies.registerOutboundMessage ??
+        (await import("@/lib/message-classification.server")).registerOutboundMessage;
       await registerOutboundMessage({
         providerMessageId: send.messageId ?? null,
         messageType: "campaign",
@@ -1127,7 +1129,7 @@ export async function dispatchDueMessages(
       .from("sending_accounts")
       .update({
         sent_today: nextStoredSentToday(account, windowStart, count),
-        last_sent_at: new Date().toISOString(),
+        last_sent_at: now.toISOString(),
       })
       .eq("id", accountId);
   }
