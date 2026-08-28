@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mailboxActivityCopy, warmupActivityCopy } from "@/lib/activity-copy";
+import { mailboxActivityCopy } from "@/lib/activity-copy";
 
 const workspaceInput = (input: unknown) =>
   z.object({ workspaceId: z.string().uuid() }).parse(input);
@@ -37,7 +37,9 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     const { supabase } = context;
     const workspaceId = data.workspaceId;
 
-    const [membership, leads, campaigns, recipients, accounts, domains, warmupEvents] =
+    // Warmup is deliberately absent: warmup traffic is never workspace
+    // outbound activity and must never surface in the customer feed.
+    const [membership, leads, campaigns, recipients, accounts, domains] =
       await Promise.all([
       supabase
         .from("workspace_members")
@@ -70,13 +72,8 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .from("sending_domains")
         .select("id, domain, stage, dns_status, verified_at, ready_at, created_at")
         .eq("workspace_id", workspaceId),
-      supabase
-        .from("warmup_events")
-        .select("id, type, detail, occurred_at, sending_account_id")
-        .eq("workspace_id", workspaceId)
-        .order("occurred_at", { ascending: false })
-        .limit(10),
     ]);
+
 
     if (!membership.data) throw new Error("Workspace not found");
 
@@ -84,7 +81,6 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     const recipientRows = recipients.data ?? [];
     const accountRows = accounts.data ?? [];
     const domainRows = domains.data ?? [];
-    const warmupRows = warmupEvents.data ?? [];
 
 
     const sentStatuses = new Set(["in_progress", "completed", "replied", "bounced", "unsubscribed"]);
@@ -117,7 +113,6 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       };
     });
 
-    const accountLabel = new Map(accountRows.map((a) => [a.id, a.label || a.from_email]));
 
     const activity: ActivityItem[] = [
       ...campaignRows
@@ -155,12 +150,6 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         kind: "mailbox",
         ...mailboxActivityCopy(a.label || a.from_email),
         at: a.created_at,
-      })),
-      ...warmupRows.map((w) => ({
-        id: `warmup-${w.id}`,
-        kind: "warmup",
-        ...warmupActivityCopy(w.type, w.detail, accountLabel.get(w.sending_account_id) ?? null),
-        at: w.occurred_at,
       })),
     ]
       .sort((a, b) => (a.at < b.at ? 1 : -1))

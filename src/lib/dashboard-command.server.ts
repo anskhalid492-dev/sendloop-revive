@@ -137,7 +137,7 @@ const [
       supabase
         .from("campaign_messages")
         .select(
-          "id, campaign_id, lead_id, sending_account_id, status, sent_at, delivered_at, bounced_at, replied_at, unsubscribed_at, failed_at, delivery_status, last_error",
+          "id, campaign_id, lead_id, sending_account_id, status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, bounced_at, replied_at, unsubscribed_at, complained_at, failed_at, last_event_at, delivery_status, last_error",
         )
         .eq("workspace_id", workspaceId)
         .gte("created_at", fetchSince),
@@ -506,7 +506,17 @@ supabase
   });
 
 /* ------------------------------------------------------------ activity */
+  // Outbound rows come from the very same campaign_messages the KPIs count,
+  // so the feed can never show sends the numbers don't know about. Warmup is
+  // never read here, not even as a fallback.
+  const { buildOutboundActivity } = await import("@/lib/dashboard-activity");
+  const outboundActivity = buildOutboundActivity(
+    messageRows,
+    new Map(campaignRows.map((c) => [String(c["id"]), String(c["name"] ?? "Campaign")])),
+  );
+
   const activity: ActivityRow[] = [
+    ...outboundActivity,
     ...campaignRows
       .filter((c) => c["launched_at"])
       .map((c) => ({
@@ -549,6 +559,7 @@ supabase
     .filter((item) => item.at && item.at !== "null")
     .sort((a, b) => (a.at < b.at ? 1 : -1))
     .slice(0, 12);
+
 
   /* -------------------------------------------------- actions & insights */
   const retryableFailures = messageRows.filter(
