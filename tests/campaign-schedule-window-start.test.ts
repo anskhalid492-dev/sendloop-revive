@@ -11,7 +11,28 @@ const dubai = {
   endHour: 23,
 };
 
+const dubaiEightPm = { ...dubai, startHour: 20 };
+
 describe("configured window start (no drift)", () => {
+  test.each([
+    ["20:00", "2026-08-28T16:00:00Z"],
+    ["20:01", "2026-08-28T16:01:00Z"],
+    ["20:04", "2026-08-28T16:04:00Z"],
+  ])("a queued message is dispatch-eligible at %s Dubai", (_label, iso) => {
+    const now = new Date(iso);
+    const schedule = campaignDispatchSchedule(now, dubaiEightPm);
+    expect(schedule.inWindow).toBe(true);
+    expect(schedule.eligibleWindowStart.toISOString()).toBe("2026-08-28T16:00:00.000Z");
+    expect(new Date("2026-08-28T16:00:00Z").getTime()).toBeLessThanOrEqual(now.getTime());
+  });
+
+  test("does not defer to tomorrow after the 20:00 Dubai window opens", () => {
+    const now = new Date("2026-08-28T16:04:00Z");
+    const schedule = campaignDispatchSchedule(now, dubaiEightPm);
+    expect(schedule.eligibleWindowStart.toISOString()).toBe("2026-08-28T16:00:00.000Z");
+    expect(schedule.eligibleWindowStart.toISOString()).not.toBe("2026-08-29T16:00:00.000Z");
+  });
+
   test.each([
     ["19:00", "2026-08-26T15:00:00Z"],
     ["19:04", "2026-08-26T15:04:00Z"],

@@ -151,7 +151,12 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   // Feed the activity list from the live per-lead delivery state (real message
   // events), not the recipient row status, so opens/bounces show up instantly.
   const recentActivity = leads
-    .filter((l) => l.lastEventAt ?? l.last_sent_at)
+    .filter(
+      (l) =>
+        Boolean(l.lastEventAt) &&
+        Boolean(l.last_sent_at) &&
+        !["not_contacted", "queued"].includes(l.deliveryState ?? "not_contacted"),
+    )
     .sort((a, b) => {
       const at = String(a.lastEventAt ?? a.last_sent_at ?? "");
       const bt = String(b.lastEventAt ?? b.last_sent_at ?? "");
@@ -532,9 +537,9 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                   </span>
                   <span
                     className="whitespace-nowrap text-xs text-muted-foreground"
-                    title={new Date(row.lastEventAt ?? row.last_sent_at!).toLocaleString()}
+                    title={row.lastEventAt ? new Date(row.lastEventAt).toLocaleString() : undefined}
                   >
-                    {relativeTime(row.lastEventAt ?? row.last_sent_at)}
+                    {relativeTime(row.lastEventAt)}
                   </span>
                 </li>
               );
