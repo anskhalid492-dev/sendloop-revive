@@ -29,6 +29,7 @@ export function PageHero({
   title,
   highlight,
   description,
+  benefits,
   primaryCta = "Start for Free",
   primaryHref,
   secondaryCta,
@@ -39,14 +40,17 @@ export function PageHero({
   title: string;
   highlight?: string;
   description: string;
+  /** Two to three short benefit points shown under the description. */
+  benefits?: string[];
   primaryCta?: string;
   /** Overrides the primary CTA destination (defaults to the auth screen). */
   primaryHref?: string;
   secondaryCta?: string;
-  /** Anchor the secondary CTA scrolls to — defaults to the product preview. */
+  /** Anchor or route the secondary CTA points to — defaults to the product preview. */
   secondaryHref?: string;
   children?: ReactNode;
 }) {
+  const secondaryIsAnchor = secondaryHref.startsWith("#") || secondaryHref.startsWith("http");
   return (
     <section className="hero-glow relative overflow-hidden border-b border-border/60">
       <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-24">
@@ -59,6 +63,16 @@ export function PageHero({
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
           {description}
         </p>
+        {benefits?.length ? (
+          <ul className="mx-auto mt-6 flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2">
+            {benefits.map((b) => (
+              <li key={b} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button size="lg" asChild>
             {primaryHref ? (
@@ -68,13 +82,77 @@ export function PageHero({
             )}
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link to="/pricing">{secondaryCta ?? "View Pricing"}</Link>
+            {secondaryIsAnchor ? (
+              <a href={secondaryHref}>{secondaryCta ?? "See How It Works"}</a>
+            ) : (
+              <Link to="/pricing">{secondaryCta ?? "View Pricing"}</Link>
+            )}
           </Button>
         </div>
+        {children ? <div className="mt-12 text-left">{children}</div> : null}
       </div>
     </section>
   );
 }
+
+/**
+ * Detailed product walkthrough: each step states what the user does, what
+ * MunchReach handles automatically, and what the user ends up with — beside a
+ * product visual.
+ */
+export function Walkthrough({
+  steps,
+}: {
+  steps: {
+    title: string;
+    youDo: string;
+    weHandle: string;
+    youGet: string;
+    visual?: ReactNode;
+  }[];
+}) {
+  return (
+    <div className="space-y-10">
+      {steps.map((s, i) => (
+        <div
+          key={s.title}
+          className="grid min-w-0 items-center gap-8 lg:grid-cols-2 lg:gap-12"
+        >
+          <div className={i % 2 === 1 ? "min-w-0 lg:order-2" : "min-w-0"}>
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              Step {i + 1}
+            </span>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight">{s.title}</h3>
+            <dl className="mt-5 space-y-4">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-foreground/70">
+                  What you do
+                </dt>
+                <dd className="mt-1 text-sm text-muted-foreground">{s.youDo}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-foreground/70">
+                  What MunchReach handles
+                </dt>
+                <dd className="mt-1 text-sm text-muted-foreground">{s.weHandle}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  What you get
+                </dt>
+                <dd className="mt-1 text-sm text-foreground/90">{s.youGet}</dd>
+              </div>
+            </dl>
+          </div>
+          {s.visual ? (
+            <div className={i % 2 === 1 ? "min-w-0 lg:order-1" : "min-w-0"}>{s.visual}</div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 export function Section({
   id,
