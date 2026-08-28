@@ -22,6 +22,7 @@ import {
   MAX_MAILBOX_EMAILS_PER_HOUR,
   MAX_MAILBOX_HOURLY_MESSAGE,
   clampMailboxHourlyLimit,
+  effectiveMailboxHourlyLimit,
   exceedsMailboxHourlyCap,
 } from "@/lib/mailbox-hourly-cap";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,10 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
   // Mailbox ceiling: what the selected mailboxes can actually handle.
   const selectedAccounts = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
   const mailboxDailyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
-  const mailboxHourlyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.hourly_limit ?? 0), 0);
+  const mailboxHourlyCeiling = selectedAccounts.reduce(
+    (sum, a) => sum + effectiveMailboxHourlyLimit(a.hourly_limit),
+    0,
+  );
 
   // Customer-selected volume first — mailbox capacity only ever trims it.
   const selectedDaily = Math.max(0, settings.dailyCap);
