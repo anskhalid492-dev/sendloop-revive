@@ -17,6 +17,7 @@ import {
   validateRobots,
   type RobotsConfig,
 } from "@/lib/site-content-model";
+import { mergeCommunityConfig, safeExternalUrl } from "@/lib/community-model";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -57,6 +58,7 @@ export const getAdminSiteData = createServerFn({ method: "GET" })
       robots: { ...DEFAULT_ROBOTS, ...((settingsMap.get("robots") as RobotsConfig) ?? {}) },
       footerConfig: { ...DEFAULT_FOOTER, ...((settingsMap.get("footer") as any) ?? {}) },
       globalSeo: { ...DEFAULT_GLOBAL_SEO, ...((settingsMap.get("seo") as any) ?? {}) },
+      community: mergeCommunityConfig(settingsMap.get("community")),
     };
   });
 
@@ -384,4 +386,55 @@ export const saveGlobalSeo = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await logContentChange(context.userId, "site_settings.seo", "site_settings", "seo", { after: data });
     return { ok: true };
+  });
+
+const communityInput = z.object({
+  enabled: z.boolean(),
+  nav_label: z.string().trim().min(1).max(60),
+  landing_path: z.string().trim().min(1).max(200),
+  external_url: z.string().trim().max(600),
+  cta_label: z.string().trim().min(1).max(80),
+  footer_label: z.string().trim().max(60),
+  open_in_new_tab: z.boolean(),
+  show_in_nav: z.boolean(),
+  show_in_footer: z.boolean(),
+  nav_new_tab: z.boolean(),
+  nav_position: z.number().int().min(0).max(999),
+});
+
+/** Admin: community landing page + external community destination. */
+export const saveCommunityConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => communityInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { logContentChange } = await import("@/lib/site-content.server");
+
+    // An empty field is a valid "not configured yet" state; anything present
+    // must be a real http(s) URL so no CTA can ever carry a javascript: link.
+    const external = data.external_url.trim();
+    if (external && !safeExternalUrl(external)) {
+      throw new Error("External community URL must be a full http(s):// address");
+    }
+    const landing = normalizePath(data.landing_path);
+
+    const value = mergeCommunityConfig({
+      ...data,
+      external_url: external ? safeExternalUrl(external)! : "",
+      landing_path: landing,
+      footer_label: data.footer_label.trim() || data.nav_label,
+    });
+
+    const db = context.supabase as any;
+    const { error } = await db
+      .from("site_settings")
+      .upsert(
+        { key: "community", value, updated_by: context.userId, updated_at: new Date().toISOString() },
+        { onConflict: "key" },
+      );
+    if (error) throw new Error(error.message);
+    await logContentChange(context.userId, "site_settings.community", "site_settings", "community", {
+      after: value,
+    });
+    return value;
   });
