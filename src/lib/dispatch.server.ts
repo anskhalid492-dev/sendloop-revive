@@ -714,7 +714,15 @@ export async function dispatchDueMessages(
   const { sendManagedEmail } = await import("./managed-sending.server");
 
 
+  const { resolveAiTokenAtSend } = await import("@/lib/ai-personalization.server");
+  const { normalizeAiConfig: normalizeSendAiConfig } = await import(
+    "@/lib/ai-personalization-model"
+  );
+  const aiSendEnabled = Boolean((campaignRow as { ai_enabled?: boolean | null }).ai_enabled);
+  const aiSendConfig = normalizeSendAiConfig((campaignRow as { ai_config?: unknown }).ai_config);
+
   const sentPerAccount = new Map<string, number>();
+
 
   for (const message of due) {
     result.processed += 1;
