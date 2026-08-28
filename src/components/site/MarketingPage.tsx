@@ -188,8 +188,10 @@ export function Section({
 export type FeatureItem = { icon: LucideIcon; title: string; text: string };
 
 export function FeatureGrid({ items }: { items: FeatureItem[] }) {
+  // Four cards read better as a balanced 2×2 than as a 3 + 1 orphan row.
+  const cols = items.length === 4 ? "lg:grid-cols-2" : "lg:grid-cols-3";
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={`grid gap-5 sm:grid-cols-2 ${cols}`}>
       {items.map((f) => (
         <div key={f.title} className="surface-card p-6">
           <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
