@@ -6,7 +6,7 @@
  * schedule + timezone only — never from when the last email happened to be
  * sent, and never from a lifetime "sent" total.
  */
-import { isInSendWindow, nextSendSlot, zonedParts, zonedDateTimeToUtc, type ScheduleWindow } from "@/lib/campaign-schedule";
+import { isInSendWindow, windowStartAt, type ScheduleWindow } from "@/lib/campaign-schedule";
 
 export type CampaignRunState =
   | "draft"
@@ -40,25 +40,15 @@ export const CAMPAIGN_RUN_STATE_LABELS: Record<CampaignRunState, string> = {
  * evening run on a Mon–Fri campaign points at Monday.
  */
 export function nextRunAt(now: Date, window: ScheduleWindow): Date {
-  const timezone = window.timezone || "UTC";
-  const parts = zonedParts(now, timezone);
-  // Start looking from the beginning of the *next* local day so the current
-  // day's already-consumed run can never be selected again.
-  const tomorrow = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + 1, 12));
-  const nextDayStart = zonedDateTimeToUtc(
-    {
-      year: tomorrow.getUTCFullYear(),
-      month: tomorrow.getUTCMonth() + 1,
-      day: tomorrow.getUTCDate(),
-    },
-    timezone,
-  );
-  return nextSendSlot(nextDayStart, window);
+  // Strictly the next sending day's configured start time. Never `now`, never
+  // the last send, never the cron tick.
+  return windowStartAt(now, window, { includeCurrentDay: false });
 }
 
 /**
- * When the campaign may next send: today's remaining window if the quota is
- * still open and the day still has window left, otherwise the next run.
+ * When the campaign may next send: the current run's configured start time
+ * while today's window is still open and the quota is not exhausted,
+ * otherwise the next scheduled day's start time.
  */
 export function nextEligibleAt(
   now: Date,
@@ -66,8 +56,7 @@ export function nextEligibleAt(
   quotaExhausted: boolean,
 ): Date {
   if (quotaExhausted) return nextRunAt(now, window);
-  const slot = nextSendSlot(now, window);
-  return slot;
+  return windowStartAt(now, window, { includeCurrentDay: true });
 }
 
 export type RunStateInput = {
@@ -130,7 +119,7 @@ export function campaignRunStatus(input: RunStateInput): RunStatus {
 
   if (status === "scheduled") return finish("scheduled", nextEligibleAt(now, window, false));
   if (quotaExhausted) return finish("daily_quota_reached", nextRunAt(now, window));
-  if (!inWindow) return finish("waiting_for_next_run", nextSendSlot(now, window));
+  if (!inWindow) return finish("waiting_for_next_run", windowStartAt(now, window, { includeCurrentDay: false }));
   return finish("running", nextEligibleAt(now, window, false));
 }
 

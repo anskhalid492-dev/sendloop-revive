@@ -107,8 +107,40 @@ export function isInSendWindow(date: Date, window: ScheduleWindow): boolean {
 /**
  * Returns the first moment at or after `from` that falls inside the campaign's
  * sending window, using the campaign timezone rather than browser/server local time.
+/**
+ * The START of a configured sending window — never a mid-window "now".
+ *
+ * `includeCurrentDay` (default true) returns today's window start when `from`
+ * already sits inside today's window; otherwise the first window start strictly
+ * after `from`. This is what a recurring campaign's next run is derived from:
+ * send days + start hour + timezone only.
  */
+export function windowStartAt(
+  from: Date,
+  window: ScheduleWindow,
+  options: { includeCurrentDay?: boolean } = {},
+): Date {
+  const includeCurrentDay = options.includeCurrentDay !== false;
+  const { timezone, days, start, end } = clampWindow(window);
+  const base = zonedParts(from, timezone);
+
+  for (let offset = 0; offset <= 14; offset += 1) {
+    const localDay = addLocalDays(base.year, base.month, base.day, offset);
+    const windowStart = zonedDateTimeToUtc({ ...localDay, hour: start }, timezone);
+    const weekday = zonedParts(windowStart, timezone).weekday;
+    if (!days.includes(weekday)) continue;
+    if (windowStart.getTime() > from.getTime()) return windowStart;
+    if (includeCurrentDay && offset === 0) {
+      const endDay = end === 24 ? addLocalDays(localDay.year, localDay.month, localDay.day, 1) : localDay;
+      const windowEnd = zonedDateTimeToUtc({ ...endDay, hour: end === 24 ? 0 : end }, timezone);
+      if (from.getTime() < windowEnd.getTime()) return windowStart;
+    }
+  }
+  return from;
+}
+
 export function nextSendSlot(from: Date, window: ScheduleWindow): Date {
+
   const { timezone, days, start, end } = clampWindow(window);
   const roundedFrom = new Date(Math.ceil(from.getTime() / 60_000) * 60_000);
   const base = zonedParts(roundedFrom, timezone);
