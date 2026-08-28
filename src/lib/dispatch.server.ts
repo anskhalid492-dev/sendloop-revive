@@ -780,18 +780,22 @@ export async function dispatchDueMessages(
       const reached = `Campaign email limit reached (${reservation.data?.sent ?? 0} of ${reservation.data?.limit ?? 0} emails sent).`;
       result.skipped += 1;
       if (result.errors.length < 5) result.errors.push(reached);
+      // The configured total allowance is exhausted. This is an explicit
+      // customer-set ceiling, so the campaign is COMPLETED — never "paused" —
+      // and the untouched message stays queued so raising the limit resumes it
+      // instead of silently discarding the recipient.
       await supabase
         .from("campaign_messages")
-        .update({ status: "cancelled", last_error: reached.slice(0, 500) })
+        .update({ status: "scheduled", last_error: reached.slice(0, 500) })
         .eq("id", message.id);
-      // Stop the campaign so nothing else is attempted for it.
       await supabase
         .from("campaigns")
-        .update({ status: "paused" })
+        .update({ status: "completed" })
         .eq("id", message.campaign_id)
         .eq("status", "active");
       break;
     }
+
 
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
