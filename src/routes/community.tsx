@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
   BookOpen,
+  Facebook,
   Handshake,
   HeartHandshake,
   Lightbulb,
@@ -149,8 +150,8 @@ const faqs = [
     a: "Yes. The community is free and open to anyone doing outbound — you don't need a MunchReach subscription to join.",
   },
   {
-    q: "Where is it hosted?",
-    a: "It runs on an external group so conversations, notifications and search all work on a platform you already use daily.",
+  q: "Where is it hosted?",
+    a: "In the MunchReach Facebook Community, so conversations, notifications and search all work on a platform you already use daily.",
   },
   {
     q: "Do I have to post?",
