@@ -999,6 +999,8 @@ export type RetryableMessageRow = {
   attempts: number | null;
   sent_at: string | null;
   bounced_at?: string | null;
+  last_error?: string | null;
+  provider_message_id?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
 };
@@ -1006,8 +1008,9 @@ export type RetryableMessageRow = {
 /**
  * Pure selection of failed messages that may be retried on a later sending day.
  *
- * Never returns a message that was accepted (`sent_at`), bounced, cancelled or
- * already spent its attempts, so an accepted email can never be resent.
+ * Never returns a message that was accepted (`sent_at`/`provider_message_id`),
+ * bounced, cancelled, permanently rejected or already out of attempts — so an
+ * accepted email can never be resent and a hard failure is never retried.
  */
 export function selectRetryableMessages(
   rows: RetryableMessageRow[],
@@ -1017,8 +1020,10 @@ export function selectRetryableMessages(
   return rows.filter((row) => {
     if (row.status !== "failed") return false;
     if (row.sent_at) return false;
+    if (row.provider_message_id) return false;
     if (row.bounced_at) return false;
     if ((row.attempts ?? 0) >= maxAttempts) return false;
+    if (!isRetryableFailure(row.last_error ?? null)) return false;
     const last = row.updated_at ?? row.created_at ?? null;
     if (!last) return false;
     const at = new Date(last).getTime();
@@ -1026,6 +1031,7 @@ export function selectRetryableMessages(
     return Number.isFinite(at) && at < dayStart.getTime();
   });
 }
+
 
 /**
  * Re-queues previous days' failed messages at the campaign's next configured
