@@ -2,343 +2,294 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
   AlertTriangle,
+  Ban,
+  Building2,
   Flame,
   Gauge,
-  Inbox,
-  MailCheck,
+  Globe,
+  KeyRound,
   Pause,
-  Play,
-  RefreshCcw,
-  ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
   ThermometerSnowflake,
   TrendingUp,
+  Users,
 } from "lucide-react";
 
 import {
   BeforeAfter,
   BigPreview,
-  BulletList,
   CtaBlock,
-  DocSection,
-  FeatureBento,
+  FeatureGrid,
   MarketingLayout,
-  MockBars,
-  MockPanel,
-  MockRows,
   PageHero,
   PainPoints,
   Section,
   UseCaseGrid,
-  Walkthrough,
-  WorkflowStrip,
   metaFor,
 } from "@/components/site/MarketingPage";
+import {
+  DetailPanel,
+  MailboxManagementMock,
+  PauseVsBlock,
+  RampNote,
+  RampSteps,
+  SafetySignalsMock,
+  WarmupDashboardMock,
+  WarmupScreenNotes,
+} from "@/components/site/WarmupProductMocks";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
-  { q: "How long does warmup take?", a: "Two to four weeks for a brand new domain, depending on your ramp settings. Established domains with a clean history often reach a healthy sending volume in about a week." },
-  { q: "Can I send real campaigns while a mailbox is warming up?", a: "Yes. Warmup runs alongside campaign sending. As health improves, the ramp raises the safe daily volume automatically, and campaigns never exceed it." },
-  { q: "What exactly triggers an automatic pause?", a: "Bounce rate above your configured threshold, a spam complaint, an authentication failure, or a health score that drops below your minimum. Any of these blocks new sending immediately." },
-  { q: "Once a mailbox is auto-paused, how do I get it sending again?", a: "Fix the underlying cause — a bad list, a DNS record, a spike in bounces. Once the rate that triggered the block falls back under your limit, the block clears and you can resume from the warmup page." },
-  { q: "Does resuming a mailbox override an active safety block?", a: "No. If the condition that caused the pause is still active, resuming is refused and you're told exactly why, instead of silently putting the mailbox back at risk." },
-  { q: "What counts toward my daily warmup target versus my campaign volume?", a: "Warmup emails and campaign emails are tracked and counted separately, but they share the same mailbox and the same daily sending ceiling so the mailbox is never pushed past what it can handle." },
-  { q: "Do warmup emails ever reach a real prospect?", a: "No. Warmup sends and replies happen between mailboxes in the warmup network, never to a prospect on your list." },
-  { q: "How is a mailbox's health score calculated?", a: "It combines inbox placement, bounce rate, spam-complaint signals and how much of the daily target is being delivered successfully, rolled into a single score per mailbox." },
-  { q: "Can I pause warmup manually without losing my ramp progress?", a: "Yes. Turning warmup off keeps your accumulated progress; turning it back on resumes the ramp rather than starting over from the first day." },
-  { q: "Do I need to connect a mailbox to a domain I already send campaigns from?", a: "Most teams warm the exact mailbox and domain they plan to send campaigns from, since reputation is built per domain and per mailbox, not transferred between them." },
+  {
+    q: "How does warmup actually work?",
+    a: "Instead of letting a brand new mailbox send at full volume immediately, MunchReach keeps sending to a controlled level and raises it in stages while watching bounce rate, complaints, authentication and mailbox health. If a signal looks wrong, the mailbox slows down or stops rather than pushing more volume through it.",
+  },
+  {
+    q: "How long should a mailbox warm up before I scale?",
+    a: "It depends on the domain, the provider and how your list behaves, so MunchReach does not put a fixed number on it. The ramp stage and health shown on the mailbox are what to watch — move volume up as the account progresses through stages without triggering safety conditions.",
+  },
+  {
+    q: "Can I run campaigns while a mailbox is still warming up?",
+    a: "Yes. Warmup and campaign sending share the same mailbox and the same capacity, so campaigns are limited by whatever the mailbox can currently send. Warmup activity is kept out of your campaign reporting and out of the workspace activity feed.",
+  },
+  {
+    q: "What happens when a mailbox is blocked?",
+    a: "The mailbox is taken out of sending while the safety condition is active, and the specific reason — bounce-rate protection, complaints or authentication — is shown on the account. Your other mailboxes continue sending, so a campaign does not stop because of one account.",
+  },
+  {
+    q: "How does resume work?",
+    a: "Resume clears manual and temporary pauses. It does not bypass a safety condition that is still active: the mailbox is re-checked first, and if the condition no longer applies the mailbox becomes resumable instead of staying stuck forever.",
+  },
+  {
+    q: "What happens when a mailbox reaches its sending capacity?",
+    a: "It pauses for the rest of the current rolling 12-hour window, and only accepted sends count toward that limit. This is a temporary capacity pause, not a safety block — capacity returns as the window rolls forward and other mailboxes keep sending in the meantime.",
+  },
 ];
 
 export const Route = createFileRoute("/product/warmup")({
   head: () =>
     metaFor(
-      "Cold Email Warmup: Better Deliverability | MunchReach",
-      "Warm up your email accounts, monitor mailbox health, and build a stronger sending reputation before scaling your cold outreach.",
+      "Email Warmup — Ramp Mailboxes Safely | MunchReach",
+      "Warm up new sending accounts gradually, monitor mailbox health, and let automatic safety pauses protect your sending reputation before you scale outbound volume.",
       "/product/warmup",
       faqs,
     ),
   component: Page,
 });
 
-const painPoints = [
-  { icon: ThermometerSnowflake, title: "Cold mailboxes get flagged", text: "New domains have little sending history, so providers may treat sudden volume as risky." },
-  { icon: Inbox, title: "Spam is hard to see", text: "Emails can miss the inbox without you realizing it until replies start disappearing." },
-  { icon: ShieldAlert, title: "Reputation takes time to recover", text: "Bounces and complaints can hurt a mailbox long after the original campaign ends." },
+const problems = [
+  {
+    icon: ThermometerSnowflake,
+    title: "Cold mailbox",
+    text: "A brand new account with no sending history that suddenly pushes hundreds of emails looks nothing like a normal mailbox.",
+  },
+  {
+    icon: AlertTriangle,
+    title: "Poor deliverability",
+    text: "Sending more does not help if messages are landing in spam — the volume just makes the pattern worse.",
+  },
+  {
+    icon: Gauge,
+    title: "Reputation damage",
+    text: "Bounces and complaints follow the domain, so bad early sending behaviour affects the campaigns you run months later.",
+  },
 ];
 
-const walkthroughSteps = [
+const screenNotes = [
   {
-    title: "Connect the mailbox",
-    youDo: "Add your sending account with its SMTP/IMAP or provider credentials.",
-    weHandle: "Authentication is checked automatically — SPF, DKIM, DMARC and the tracking domain are verified before warmup can start.",
-    youGet: "A mailbox that's either confirmed ready or flagged with exactly what to fix first.",
-    visual: (
-      <MockPanel title="Connect mailbox — sam@munchreach.dev">
-        <MockRows
-          rows={[
-            { left: "SPF record", right: "Verified", badge: "Pass" },
-            { left: "DKIM signature", right: "Verified", badge: "Pass" },
-            { left: "DMARC policy", right: "p=none — recommend p=quarantine", badge: "Warning" },
-            { left: "Tracking domain (CNAME)", right: "Verified", badge: "Pass" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    title: "Check health before you raise volume",
+    text: "Health, warmup status and safety state sit on the same row, so you can tell whether a mailbox is ready for more sending.",
   },
   {
-    title: "Configure warmup",
-    youDo: "Set a starting volume, a daily target ceiling, and a ramp speed for the mailbox.",
-    weHandle: "The ramp schedule, bounce and health thresholds, and send-day/send-hour windows are stored per mailbox.",
-    youGet: "A ramp plan that fits the domain's age instead of a one-size-fits-all default.",
-    visual: (
-      <MockPanel title="Warmup settings">
-        <MockRows
-          rows={[
-            { left: "Starting volume", right: "5 emails/day" },
-            { left: "Target volume", right: "40 emails/day" },
-            { left: "Daily increase", right: "+2 emails/day" },
-            { left: "Ramp length", right: "18 days" },
-            { left: "Auto-pause on risk", right: "On", badge: "Enabled" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    title: "Read the limit, not just the count",
+    text: "Volume is shown against the mailbox's own limit for the current window, so a full mailbox is obvious at a glance.",
   },
   {
-    title: "Gradual sending",
-    youDo: "Nothing — warmup runs quietly in the background, including weekends.",
-    weHandle: "Volume increases day over day toward the target, and drops back automatically if health dips, instead of climbing on a fixed schedule regardless of reputation.",
-    youGet: "A mailbox that ramps up reputation the way a real, trusted inbox would build it.",
-    visual: (
-      <MockPanel title="Warmup ramp — 18-day plan">
-        <MockBars
-          bars={[
-            { label: "Week 1", value: 20, caption: "8 emails/day" },
-            { label: "Week 2", value: 55, caption: "22 emails/day" },
-            { label: "Week 3", value: 90, caption: "36 emails/day" },
-            { label: "Day 18", value: 100, caption: "40 emails/day · target reached" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    title: "Understand why a mailbox stopped",
+    text: "A capacity pause and a safety block look different, and the reason is written on the row instead of hidden in logs.",
   },
   {
-    title: "Delivery monitoring",
-    youDo: "Check the dashboard whenever you want a status update.",
-    weHandle: "Every warmup send is tracked for inbox placement, spam placement and reply engagement, with anything landing in spam automatically moved to the inbox and marked not-spam.",
-    youGet: "A live read on whether the mailbox is actually reaching the inbox, not just whether emails are being sent.",
-    visual: (
-      <MockPanel title="Placement — last 7 days">
-        <MockBars
-          bars={[
-            { label: "Inbox placement", value: 94, caption: "94%" },
-            { label: "Spam placement", value: 4, caption: "4% (auto-rescued)" },
-            { label: "Reply engagement", value: 71, caption: "71%" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    title: "Act on the right mailbox",
+    text: "Pause or resume a single sending account without touching the rest of your infrastructure.",
+  },
+];
+
+const steps = [
+  {
+    title: "Connect mailbox",
+    text: "Add the sending account to your workspace and let MunchReach verify that it can authenticate and send.",
   },
   {
-    title: "Safety checks",
-    youDo: "Nothing — the safety guard evaluates every mailbox continuously.",
-    weHandle: "Bounce rate, complaint signals, authentication failures and health score are all checked against your thresholds before each send batch goes out.",
-    youGet: "An automatic block the moment a mailbox crosses a risk threshold, before more damage compounds.",
-    visual: (
-      <MockPanel title="Safety guard — hello@munchreachmail.com">
-        <MockRows
-          rows={[
-            { left: "Bounce rate", right: "6.2% (limit 5%)", badge: "Blocked" },
-            { left: "Spam complaints", right: "0 in last 24h", badge: "Pass" },
-            { left: "Health score", right: "41 (minimum 50)", badge: "Blocked" },
-            { left: "Status", right: "Sending paused automatically" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    title: "Start with controlled volume",
+    text: "The mailbox begins at a low daily limit instead of whatever your campaign would like to send.",
   },
   {
-    title: "Healthy mailbox",
-    youDo: "Resume sending once you've fixed whatever triggered the pause.",
-    weHandle: "The block only clears once the rate that caused it falls back under your limit — resuming is refused otherwise, so you can't accidentally re-trigger the same problem.",
-    youGet: "A mailbox with a stable health score, ready to carry full campaign volume.",
-    visual: (
-      <MockPanel title="Mailbox health overview">
-        <MockBars
-          bars={[
-            { label: "sam@munchreach.dev", value: 96, caption: "96 · Healthy" },
-            { label: "hello@munchreachmail.com", value: 74, caption: "74 · Resumed after bounce rate cleared" },
-            { label: "outreach@getmunchreach.io", value: 34, caption: "34 · Still blocked" },
-          ]}
-        />
-      </MockPanel>
-    ),
+    title: "Gradually increase sending",
+    text: "The mailbox moves through ramp stages, raising its limit as it builds a consistent sending history.",
+  },
+  {
+    title: "Monitor health and safety",
+    text: "Bounce rate, complaints, authentication and health are checked continuously, and sending slows or stops when a signal breaks.",
   },
 ];
 
 const features = [
-  { icon: Flame, title: "Gradual ramp-up", text: "Volume climbs day by day, tuned to domain age and current health." },
-  { icon: TrendingUp, title: "Real conversations", text: "A network of live mailboxes opens, replies to and marks warmup emails important." },
-  { icon: MailCheck, title: "Spam-folder rescue", text: "Messages landing in spam are moved to the inbox and marked not-spam." },
-  { icon: ShieldCheck, title: "Authentication checks", text: "SPF, DKIM, DMARC and tracking-domain validation run before warmup starts." },
-  { icon: Gauge, title: "Mailbox health score", text: "One number combining deliverability, bounce rate, spam placement and volume delivered." },
-  { icon: AlertTriangle, title: "Automatic safety pausing", text: "Sending stops the moment bounce rate, complaints or health cross a threshold." },
-  { icon: RefreshCcw, title: "Automatic resuming", text: "Once the triggering rate falls back under the limit, the mailbox can resume." },
-  { icon: Play, title: "Manual resume with a real check", text: "Resuming re-checks the block condition and is refused if it's still active." },
-  { icon: Pause, title: "Pause without losing progress", text: "Turning warmup off keeps your ramp progress instead of resetting it." },
-  { icon: Activity, title: "Delivery signal tracking", text: "Inbox placement, spam placement, bounces and replies are recorded every day." },
-  { icon: ShieldAlert, title: "Bounce and complaint protection", text: "Bounce and complaint signals are checked against your limits on every send." },
-  { icon: Inbox, title: "Sending limit enforcement", text: "Campaigns and warmup share one daily ceiling so no mailbox is overloaded." },
+  { icon: TrendingUp, title: "Gradual volume ramp", text: "Sending starts low and increases in stages instead of jumping to full volume." },
+  { icon: SlidersHorizontal, title: "Mailbox-level limits", text: "Each account has its own limit for the current sending window." },
+  { icon: Activity, title: "Health monitoring", text: "Mailbox health is tracked and shown next to warmup state." },
+  { icon: AlertTriangle, title: "Bounce protection", text: "Rising bounce rates hold sending on that mailbox instead of continuing." },
+  { icon: Ban, title: "Complaint protection", text: "Spam complaints trigger a safety condition on the affected account." },
+  { icon: Pause, title: "Automatic safety pauses", text: "Sending stops on its own when a safety signal is breached." },
+  { icon: KeyRound, title: "Authentication checks", text: "Sending authentication is verified so a broken setup is caught early." },
+  { icon: Flame, title: "Mailbox-level controls", text: "Start, pause or resume warmup per account, not across the whole workspace." },
 ];
 
-const workflowSteps = [
-  { title: "Connect mailbox", text: "Add credentials for the account you plan to send from." },
-  { title: "Configure warmup", text: "Set starting volume, target volume, ramp speed and safety thresholds." },
-  { title: "Gradual sending", text: "Daily volume increases automatically, including weekends, toward your target." },
-  { title: "Delivery monitoring", text: "Inbox placement, spam placement and reply engagement are tracked every day." },
-  { title: "Safety checks", text: "Bounce rate, complaints, authentication and health score are checked before every send." },
-  { title: "Automatic pausing", text: "Sending is blocked immediately if any threshold is crossed." },
-  { title: "Rate clears, block resolves", text: "Once the triggering rate drops back under the limit, the mailbox can resume." },
-  { title: "Healthy mailbox", text: "Warmed reputation carries full campaign volume, monitored in the background." },
+const safetyDetails = [
+  { title: "Bounce-rate protection", text: "Bounces are tracked per mailbox, and sending is held when the rate crosses the threshold for that account." },
+  { title: "Complaint protection", text: "Spam complaints raise a safety condition immediately rather than being averaged away over time." },
+  { title: "Health signals", text: "Health is shown on the mailbox so you can see a problem forming before it becomes a block." },
+  { title: "Automatic pauses", text: "The mailbox stops sending by itself — you do not have to be watching the dashboard when something goes wrong." },
+  { title: "Resume checks", text: "Resuming re-checks the condition first, so a mailbox is never quietly put back at risk." },
+  { title: "Temporary capacity limits", text: "A full 12-hour window pauses that mailbox only, and the capacity returns as the window rolls forward." },
 ];
 
-const docGroups = [
+const audiences = [
   {
-    title: "Ramping and status",
-    items: [
-      "Configurable starting volume, daily increase and target volume per mailbox",
-      "Ramp length in days, with progress preserved if warmup is paused and resumed manually",
-      "Per-mailbox warmup status: off, ramping (\"on\"), or blocked",
-      "Ramp speed adapts to current health score — volume growth slows automatically when health dips into a lower band",
-      "Send-day and send-hour windows so warmup traffic follows a human sending pattern",
-    ],
+    icon: Globe,
+    audience: "New domains",
+    scenario: "A domain and mailbox set up last week with no sending history at all.",
+    outcome: "Volume ramps in stages instead of starting at campaign scale.",
   },
   {
-    title: "Health, monitoring and delivery signals",
-    items: [
-      "A single health score per mailbox combining placement, bounce rate and complaint signals",
-      "Inbox placement, spam placement, bounce count and reply count tracked daily per mailbox",
-      "Spam-placed warmup messages automatically moved to the inbox and marked not-spam",
-      "Live status view showing sent-today against today's target for every connected mailbox",
-    ],
+    icon: Users,
+    audience: "Sales teams",
+    scenario: "Reps need their sending accounts dependable, not blocked mid-quarter.",
+    outcome: "Health and safety state are visible before volume is increased.",
   },
   {
-    title: "Safety protection, pausing and resuming",
-    items: [
-      "Configurable maximum bounce rate and minimum health score per mailbox",
-      "Automatic sending pause the moment bounce rate, complaints, authentication failure or health score cross a threshold",
-      "Pause reason recorded and shown plainly so you know exactly what triggered the block",
-      "A block only clears once the specific rate that caused it falls back under the configured limit",
-      "Manual resume re-checks the block condition first and is refused — with the reason shown — if it is still active",
-      "Auto-pause can be toggled off per mailbox for teams that want to manage risk manually",
-    ],
+    icon: Building2,
+    audience: "Agencies with many accounts",
+    scenario: "Dozens of mailboxes across several client domains to keep healthy.",
+    outcome: "Per-mailbox stages, limits and controls in one warmup view.",
   },
 ];
 
-const bullets = [
-  "Warmup and campaign sends share one daily ceiling per mailbox, tracked separately for reporting",
-  "Authentication (SPF, DKIM, DMARC, tracking domain) checked before warmup can start",
-  "Daily and hourly send windows to keep warmup traffic looking human, including weekends",
-  "Health score recalculated continuously as new delivery signals come in",
-  "Pausing warmup manually preserves ramp progress instead of resetting the schedule",
-  "Automatic pause reasons distinguish bounce-rate protection, complaint protection and health-score blocks",
-  "Resuming a blocked mailbox is refused if the triggering condition is still active",
-  "Spam-placed warmup emails are rescued to the inbox and marked not-spam automatically",
-  "Per-mailbox reporting on sent, inbox-placed, spam-placed, bounced and replied counts",
-  "Ramp speed reduces automatically when health score drops, rather than continuing to climb blindly",
-];
-
-const beforeAfter = {
-  before: [
-    "A brand-new domain sends 200 cold emails on day one",
-    "Nobody notices a bounce spike until reply rate collapses",
-    "A risky mailbox keeps sending campaign volume while reputation quietly drops",
-    "Resuming a paused mailbox just turns sending back on, regardless of the cause",
-    "DNS records are configured once and never checked again",
-  ],
-  after: [
-    "Automated ramp-up with human-like reply patterns tuned to domain age",
-    "Continuous bounce, complaint and health monitoring on every mailbox",
-    "Sending pauses automatically the moment a threshold is crossed",
-    "Resume checks the block condition first and only clears once the rate is back under the limit",
-    "Authentication is verified at setup and monitored for drift afterward",
-  ],
-};
-
-const useCases = [
-  { icon: ThermometerSnowflake, audience: "New domains", scenario: "You just bought sending domains and cannot risk burning them on day one.", outcome: "A warmed, inbox-placing mailbox in weeks instead of months." },
-  { icon: RefreshCcw, audience: "Recovering senders", scenario: "Reputation dropped after an aggressive campaign or a bad list.", outcome: "Automatic pausing stops the bleeding, then a guided ramp rebuilds health." },
-  { icon: Gauge, audience: "High-volume teams", scenario: "Dozens of mailboxes across multiple domains need to stay healthy at once.", outcome: "Fleet-wide health scores and safety status in a single view." },
-  { icon: ShieldCheck, audience: "Agencies managing client domains", scenario: "Client reputation damage is a client relationship problem, not just a metric.", outcome: "Safety protection catches problems automatically, before a client notices." },
-  { icon: Activity, audience: "Teams scaling send volume", scenario: "You want to raise daily volume without guessing what a mailbox can handle.", outcome: "Ramp targets and limits increase together, based on real health data." },
-  { icon: AlertTriangle, audience: "Teams that got burned before", scenario: "A previous cold-sending mistake taught you to want guardrails, not just tools.", outcome: "Bounce and complaint protection block risky sending automatically, every time." },
+const details = [
+  { title: "Per-mailbox controls", text: "Start, pause and resume warmup on a single account without affecting the others." },
+  { title: "Sending limits", text: "Each mailbox carries its own limit for the current rolling window, separate from campaign limits." },
+  { title: "Warmup stages", text: "The ramp stage on each account shows how far into warmup it is." },
+  { title: "Safety checks", text: "Bounce, complaint, authentication and health checks run continuously per mailbox." },
+  { title: "Pause and resume behaviour", text: "Manual pauses clear on resume; active safety conditions are re-verified first." },
+  { title: "Mailbox health visibility", text: "Health, status, stage and safety reason are shown on the same row." },
 ];
 
 function Page() {
   return (
     <MarketingLayout>
       <PageHero
-        eyebrow="Warmup"
-        title="Email warmup that builds"
-        highlight="a sending reputation you can trust"
-        description="New domains and cold mailboxes need reputation before they can send at volume. Warmup ramps sending gradually, watches every delivery signal, and pauses automatically the instant something goes wrong."
-        benefits={[
-          "Automatic ramp-up tuned to mailbox health",
-          "Bounce, complaint and authentication protection built in",
-          "Sending pauses and resumes without you watching a dashboard all day",
-        ]}
-        primaryCta="Start for Free"
+        eyebrow="MunchReach Warmup"
+        title="Warm Up Your Mailboxes"
+        highlight="Before You Scale."
+        description="Build sending history gradually, watch mailbox health, and reduce the risk of damaging a new sending account before you start running serious outbound volume."
+        benefits={["Gradual ramp", "Health monitoring", "Automatic safety pauses"]}
+        primaryCta="Start Warming Up"
         secondaryCta="See How It Works"
         secondaryHref="#how-it-works"
       />
+
+      <Section
+        muted
+        title="New mailboxes cannot go from zero to hundreds of emails overnight."
+        description="Most deliverability problems start in the first two weeks of a mailbox's life."
+      >
+        <PainPoints items={problems} />
+      </Section>
+
       <BigPreview
         id="product"
-        eyebrow="Warmup dashboard"
-        title="Every mailbox's ramp, health and status in one view"
-        description="Sent-today, target, health score and safety status update as warmup runs."
+        eyebrow="Inside warmup"
+        title="Every sending account, with its health and limits"
+        description="Status, volume, ramp stage and safety reason on one screen."
       >
-        <MockPanel title="Warmup — connected mailboxes">
-          <MockRows
-            rows={[
-              { left: "sam@munchreach.dev", muted: "Ramping · 32/40 today", right: "96", badge: "Healthy" },
-              { left: "hello@munchreachmail.com", muted: "Blocked · bounce protection", right: "41", badge: "Blocked" },
-              { left: "outreach@getmunchreach.io", muted: "Ramping · 8/12 today", right: "68", badge: "Ramping" },
-            ]}
-          />
-        </MockPanel>
+        <WarmupDashboardMock />
       </BigPreview>
-      <Section title="Why new domains land in spam">
-        <PainPoints items={painPoints} />
+
+      <Section title="How a customer uses this screen">
+        <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
+          <SafetySignalsMock />
+          <WarmupScreenNotes items={screenNotes} />
+        </div>
       </Section>
-      <Section id="how-it-works" title="How warmup actually works" description="From connecting a mailbox to a reputation that can carry full campaign volume.">
-        <Walkthrough steps={walkthroughSteps} />
+
+      <Section id="how-it-works" muted title="How warmup works">
+        <RampSteps steps={steps} />
       </Section>
-      <Section title="What you get" description="Everything below is included on every plan.">
-        <FeatureBento items={features} />
+
+      <Section title="MunchReach warmup features">
+        <FeatureGrid items={features} />
       </Section>
-      <Section title="The end-to-end warmup workflow" description="What actually happens between connecting a mailbox and sending at full volume.">
-        <WorkflowStrip steps={workflowSteps} />
+
+      <Section
+        muted
+        title="Your mailbox should slow down before a small problem becomes a big one."
+        description="Warmup is not only about ramping up — it is about stopping early when a signal looks wrong."
+      >
+        <DetailPanel items={safetyDetails} />
+        <div className="mt-10">
+          <PauseVsBlock />
+        </div>
+        <RampNote>
+          MunchReach manages sending behaviour and mailbox safety. No tool can guarantee inbox
+          placement — that stays with the receiving provider.
+        </RampNote>
       </Section>
-      <Section title="Who it is for" description="Built for the way outbound teams actually protect sending reputation.">
-        <UseCaseGrid items={useCases} />
+
+      <Section
+        title="Manage every sending account in one view"
+        description="Mailbox, health, daily capacity, warmup stage, safety status and the action available on each account."
+      >
+        <MailboxManagementMock />
       </Section>
-      <Section title="Deep warmup capabilities" description="What's actually configurable and monitored under the hood.">
-        <DocSection groups={docGroups} />
+
+      <Section muted title="Before and after">
+        <BeforeAfter
+          beforeTitle="Without warmup"
+          afterTitle="With MunchReach"
+          before={[
+            "New mailbox with no sending history",
+            "Sudden jump to full campaign volume",
+            "Sending reputation built on guesswork",
+            "Problems found only after bounces pile up",
+          ]}
+          after={[
+            "Gradual ramp through warmup stages",
+            "Controlled volume per mailbox and window",
+            "Health, bounces and complaints monitored",
+            "Automatic safety pauses before it gets worse",
+          ]}
+        />
       </Section>
-      <Section title="Details that matter" muted>
-        <BulletList items={bullets} />
+
+      <Section title="Who it's for">
+        <UseCaseGrid items={audiences} />
       </Section>
-      <Section title="Before and after" description="What changes the week you switch." muted>
-        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
+
+      <Section muted title="Details that matter">
+        <DetailPanel items={details} />
       </Section>
+
       <TestimonialCarousel page="warmup" title="Deliverability, in their words" />
+
       <Section muted>
         <PageFaqs page="warmup" defaults={faqs} />
       </Section>
+
       <CtaBlock
-        title="Build healthier sending infrastructure, one mailbox at a time"
-        description="Warmup, monitor and protect every mailbox automatically — so reputation is an asset, not a risk you're managing by hand."
+        title="Build mailbox health before you build sending volume."
+        description="Connect a sending account, start warmup, and let MunchReach ramp volume while it watches the signals that matter."
+        cta="Start Warmup"
       />
     </MarketingLayout>
   );
