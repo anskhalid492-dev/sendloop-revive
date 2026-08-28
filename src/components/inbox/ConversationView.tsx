@@ -396,7 +396,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="min-h-[8rem] flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="min-h-[8rem] flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
           {timeline.map((entry) =>
             entry.kind === "message" ? (
               <article
@@ -417,7 +417,7 @@ export function ConversationView({
                   <span className="ml-auto">{new Date(entry.m.occurred_at).toLocaleString()}</span>
                 </div>
                 <h4 className="mt-2 text-sm font-medium">{entry.m.subject}</h4>
-                <p className="mt-1 max-w-[80ch] whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-1 w-full whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {entry.m.body}
                 </p>
                 {entry.m.attachments?.length ? (
@@ -468,7 +468,7 @@ export function ConversationView({
           )}
         </div>
 
-        <Tabs defaultValue="reply" className="max-h-[55%] shrink-0 overflow-y-auto border-t border-border px-4 py-3 sm:px-6 lg:px-8">
+        <Tabs defaultValue="reply" className="max-h-[55%] shrink-0 overflow-y-auto border-t border-border px-4 py-3 sm:px-5">
           <TabsList>
             <TabsTrigger value="reply">Reply</TabsTrigger>
             <TabsTrigger value="note">Internal note</TabsTrigger>
@@ -521,7 +521,7 @@ export function ConversationView({
             <Textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              rows={5}
+              rows={7}
               placeholder="Write your reply…"
               aria-label="Reply body"
             />
