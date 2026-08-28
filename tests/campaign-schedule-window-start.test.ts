@@ -36,12 +36,12 @@ describe("configured window start (no drift)", () => {
     expect(windowStartAt(now, dubai).toISOString()).toBe("2026-08-27T15:00:00.000Z");
   });
 
-  test("next run after a mid-window moment is tomorrow at exactly 6 PM", () => {
+  test("next run after a mid-window moment is tomorrow at exactly 7 PM", () => {
     const now = new Date("2026-08-26T15:04:00Z");
     expect(nextRunAt(now, dubai).toISOString()).toBe("2026-08-27T15:00:00.000Z");
   });
 
-  test("consecutive daily runs all land on exactly 18:00 Dubai", () => {
+  test("consecutive daily runs all land on exactly 19:00 Dubai", () => {
     let cursor = new Date("2026-08-26T15:37:00Z"); // drifting run moment
     const runs: string[] = [];
     for (let day = 0; day < 5; day += 1) {
