@@ -211,7 +211,19 @@ function WarmupPage() {
                                 : "text-muted-foreground",
                           )}
                         >
-                          {row.state === "on" ? "Warming" : row.state === "blocked" ? "Blocked" : "Off"}
+                          {row.state === "on"
+                            ? "Warming"
+                            : row.state === "blocked"
+                              ? row.pause_kind === "bounce_safety"
+                                ? "Blocked by bounce-rate protection"
+                                : row.pause_kind === "complaint_safety"
+                                  ? "Blocked by complaint-rate protection"
+                                  : row.pause_kind === "provider_failure"
+                                    ? "Blocked by provider/authentication failure"
+                                    : row.pause_kind === "manual"
+                                      ? "Paused"
+                                      : "Blocked"
+                              : "Off"}
                         </Badge>
                         {row.failed_today > 0 ? (
                           <span className="text-[11px] text-destructive">
@@ -279,7 +291,12 @@ function WarmupPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={toggleMutation.isPending}
+                          disabled={toggleMutation.isPending || (row.paused_by_system && !row.resumable)}
+                          title={
+                            row.paused_by_system && !row.resumable
+                              ? (row.pause_reason ?? "Resume cannot override this safety block.")
+                              : undefined
+                          }
                           onClick={() =>
                             toggleMutation.mutate({
                               accountId: row.id,
