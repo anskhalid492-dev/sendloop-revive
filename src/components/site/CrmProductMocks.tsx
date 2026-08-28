@@ -327,7 +327,9 @@ export function LeadActivityTimeline() {
 /* Pipeline                                                            */
 /* ------------------------------------------------------------------ */
 
-const pipeline = [
+type PipelineCard = { who: string; co: string; meta: string; moving?: boolean };
+
+const pipeline: { name: string; tone: string; cards: PipelineCard[] }[] = [
   {
     name: "New",
     tone: "border-border",
