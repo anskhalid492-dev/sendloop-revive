@@ -246,7 +246,9 @@ export async function ensureInitialCampaignMessages(
     return account?.id ?? null;
   };
 
-  const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
+  const { aiExtras, personalizationByLead, pendingPersonalizationLeads } = await import(
+    "@/lib/ai-personalization.server"
+  );
   const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
   const aiEnabled = Boolean(campaign.ai_enabled);
   const aiConfig = normalizeAiConfig(campaign.ai_config);
@@ -254,6 +256,12 @@ export async function ensureInitialCampaignMessages(
   const aiContent = aiEnabled
     ? await personalizationByLead(supabase, campaignId, leadIds)
     : new Map<string, string>();
+  // Leads whose snippet is still generating are held back: queueing them now
+  // would freeze the un-personalized copy into the outgoing email.
+  const aiPending = aiEnabled
+    ? await pendingPersonalizationLeads(supabase, campaignId, leadIds)
+    : new Set<string>();
+
 
   const slot = nextSendSlot(sendBaseFor(campaign, now), campaignWindow(campaign)).toISOString();
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
@@ -269,7 +277,7 @@ export async function ensureInitialCampaignMessages(
     const ai = aiEnabled
       ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
       : { extras: {} as Record<string, string>, hold: false };
-    if (ai.hold) continue;
+    if (ai.hold || (aiEnabled && aiPending.has(recipient.lead_id))) continue;
 
     inserts.push({
       workspace_id: campaign.workspace_id,
@@ -428,13 +436,20 @@ export async function scheduleFollowUps(
 
   // Follow-ups reuse the AI snippet generated for this lead on this campaign, so
   // the whole sequence stays consistent instead of re-billing a generation.
-  const { aiExtras, personalizationByLead } = await import("@/lib/ai-personalization.server");
+  const { aiExtras, personalizationByLead, pendingPersonalizationLeads } = await import(
+    "@/lib/ai-personalization.server"
+  );
   const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
   const aiEnabled = Boolean(campaign.ai_enabled);
   const aiConfig = normalizeAiConfig(campaign.ai_config);
   const aiContent = aiEnabled
     ? await personalizationByLead(supabase, campaignId, leadIds)
     : new Map<string, string>();
+  // Still generating: hold the lead rather than baking a fallback into the copy.
+  const aiPending = aiEnabled
+    ? await pendingPersonalizationLeads(supabase, campaignId, leadIds)
+    : new Set<string>();
+
   const window = {
     timezone: campaign.timezone,
     sendDays: campaign.send_days,
@@ -484,7 +499,8 @@ export async function scheduleFollowUps(
       ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
       : { extras: {} as Record<string, string>, hold: false };
     // "hold" keeps the follow-up unqueued until its personalization lands.
-    if (ai.hold) continue;
+    if (ai.hold || (aiEnabled && aiPending.has(recipient.lead_id))) continue;
+
 
     inserts.push({
       workspace_id: campaign.workspace_id,
@@ -576,7 +592,7 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only")
+    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
@@ -698,7 +714,15 @@ export async function dispatchDueMessages(
   const { sendManagedEmail } = await import("./managed-sending.server");
 
 
+  const { resolveAiTokenAtSend } = await import("@/lib/ai-personalization.server");
+  const { normalizeAiConfig: normalizeSendAiConfig } = await import(
+    "@/lib/ai-personalization-model"
+  );
+  const aiSendEnabled = Boolean((campaignRow as { ai_enabled?: boolean | null }).ai_enabled);
+  const aiSendConfig = normalizeSendAiConfig((campaignRow as { ai_config?: unknown }).ai_config);
+
   const sentPerAccount = new Map<string, number>();
+
 
   for (const message of due) {
     result.processed += 1;
@@ -854,12 +878,41 @@ export async function dispatchDueMessages(
       await fail(error instanceof Error ? error.message : "Reply routing is not ready for this mailbox.");
       continue;
     }
+    // Send-time safety net: a snippet that landed after the message was
+    // materialised still reaches the recipient, and a "hold" campaign never
+    // sends an email with an unresolved AI line in it.
+    if (aiSendEnabled) {
+      const [resolvedSubject, resolvedBody] = await Promise.all([
+        resolveAiTokenAtSend(supabase, message.campaign_id as string, message.lead_id, message.subject ?? "", aiSendConfig),
+        resolveAiTokenAtSend(supabase, message.campaign_id as string, message.lead_id, message.body ?? "", aiSendConfig),
+      ]);
+      if (resolvedSubject.hold || resolvedBody.hold) {
+        await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "ai_hold");
+        await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+        await supabase
+          .from("campaign_messages")
+          .update({ status: "scheduled", last_error: "Waiting for AI personalization." })
+          .eq("id", message.id);
+        result.skipped += 1;
+        continue;
+      }
+      if (resolvedSubject.text !== message.subject || resolvedBody.text !== message.body) {
+        message.subject = resolvedSubject.text;
+        message.body = resolvedBody.text;
+        await supabase
+          .from("campaign_messages")
+          .update({ subject: message.subject, body: message.body })
+          .eq("id", message.id);
+      }
+    }
+
     const shouldSendHtml =
       !(campaignRow as { text_only?: boolean | null }).text_only &&
       (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||
         Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking));
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
+
 
     let send: Awaited<ReturnType<typeof sendManagedEmail>>;
     try {

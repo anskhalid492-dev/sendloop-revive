@@ -31,8 +31,20 @@ export type PersonalizationField =
   | "notes"
   | "custom_fields";
 
+/** Sales framework that shapes the angle of the generated line. */
+export type PersonalizationFramework =
+  | "offer_driven"
+  | "challenger"
+  | "problem_solution"
+  | "aida"
+  | "before_after_bridge"
+  | "question_led"
+  | "social_proof"
+  | "straight_to_point";
+
 export type AiPersonalizationConfig = {
   level: PersonalizationLevel;
+  framework: PersonalizationFramework;
   tone: PersonalizationTone;
   length: PersonalizationLength;
   language: string;
@@ -42,6 +54,7 @@ export type AiPersonalizationConfig = {
   fallbackMode: FallbackMode;
   fallbackText: string;
 };
+
 
 export const AI_TOKEN = "ai_personalization";
 
@@ -121,9 +134,82 @@ export const PRESET_INSTRUCTIONS: Record<PersonalizationTone, string> = {
     "Write one opening sentence that shows genuine curiosity about this person's role or company, based only on the data provided.",
 };
 
+
+/** Sales angles the opener can be written from. */
+export const FRAMEWORK_OPTIONS: Array<{
+  value: PersonalizationFramework;
+  label: string;
+  hint: string;
+  /** Angle instruction handed to the model. */
+  guidance: string;
+}> = [
+  {
+    value: "offer_driven",
+    label: "Offer-driven",
+    hint: "Lead with the relevance of your offer to their situation.",
+    guidance:
+      "Frame the opener around why your offer is relevant to this specific company, without pitching or naming a price.",
+  },
+  {
+    value: "challenger",
+    label: "Challenger",
+    hint: "Open with a respectful, insight-led challenge.",
+    guidance:
+      "Open with a respectful insight or reframe about their role or market, based only on the given facts. Never criticise them personally.",
+  },
+  {
+    value: "problem_solution",
+    label: "Problem → Solution",
+    hint: "Name a plausible problem, hint at the fix.",
+    guidance:
+      "Name a plausible, non-invented problem their role or business type commonly faces, then hint that a fix exists. Do not claim to know their internal situation.",
+  },
+  {
+    value: "aida",
+    label: "AIDA",
+    hint: "Attention first, interest second.",
+    guidance:
+      "Open with an attention-grabbing but truthful observation, then create light interest. No call to action in this line.",
+  },
+  {
+    value: "before_after_bridge",
+    label: "Before → After → Bridge",
+    hint: "Current state, better state, the bridge.",
+    guidance:
+      "Contrast their likely current state with a better state, and hint at the bridge. Keep it grounded in the provided facts only.",
+  },
+  {
+    value: "question_led",
+    label: "Question-led",
+    hint: "Open with one relevant question.",
+    guidance: "Open with exactly one short, specific and genuinely relevant question.",
+  },
+  {
+    value: "social_proof",
+    label: "Social proof",
+    hint: "Reference similar companies generically.",
+    guidance:
+      "Reference, in generic terms, that similar companies or roles face the same thing. Never invent named customers, logos or statistics.",
+  },
+  {
+    value: "straight_to_point",
+    label: "Straight to the point",
+    hint: "No wind-up, pure relevance.",
+    guidance: "No wind-up and no filler: state the single most relevant piece of context directly.",
+  },
+];
+
+export function frameworkGuidance(framework: PersonalizationFramework): string {
+  return (
+    FRAMEWORK_OPTIONS.find((option) => option.value === framework)?.guidance ??
+    FRAMEWORK_OPTIONS[0]!.guidance
+  );
+}
+
 export function defaultAiConfig(): AiPersonalizationConfig {
   return {
     level: "balanced",
+    framework: "offer_driven",
     tone: "professional",
     length: "one_line",
     language: "English",
@@ -143,6 +229,9 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
   const level = LEVEL_OPTIONS.some((o) => o.value === v["level"])
     ? (v["level"] as PersonalizationLevel)
     : base.level;
+  const framework = FRAMEWORK_OPTIONS.some((o) => o.value === v["framework"])
+    ? (v["framework"] as PersonalizationFramework)
+    : base.framework;
   const tone = TONE_OPTIONS.some((o) => o.value === v["tone"])
     ? (v["tone"] as PersonalizationTone)
     : base.tone;
@@ -159,8 +248,10 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
     : base.fields;
   return {
     level,
+    framework,
     tone,
     length,
+
     language: typeof v["language"] === "string" && v["language"].trim() ? v["language"] : base.language,
     instructions:
       typeof v["instructions"] === "string" && v["instructions"].trim()

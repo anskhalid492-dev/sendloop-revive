@@ -11,6 +11,7 @@ import { generateText } from "ai";
 import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import {
   AI_TOKEN,
+  frameworkGuidance,
   normalizeAiConfig,
   type AiPersonalizationCoverage,
   type AiPersonalizationConfig,
@@ -18,12 +19,39 @@ import {
   type PersonalizationField,
 } from "@/lib/ai-personalization-model";
 
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
 const RUNNER_KEY = "ai_personalization";
-/** Hard ceiling per worker run so a big list never becomes a request storm. */
-const BATCH_SIZE = 10;
+/**
+ * Hard ceiling per worker run so a big list never becomes an unbounded request
+ * storm, and how many of those generations run at the same time. Generation is
+ * network-bound, so a wide-but-capped pool turns a 1,000-lead list from an
+ * hour-long trickle into a handful of seconds per run.
+ */
+const BATCH_SIZE = 120;
+const CONCURRENCY = 20;
+
+/** Run `worker` over `items` with a bounded number of in-flight calls. */
+export async function mapWithConcurrency<T>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const lanes = Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, async () => {
+    for (;;) {
+      const index = cursor;
+      cursor += 1;
+      const item = items[index];
+      if (item === undefined) return;
+      await worker(item);
+    }
+  });
+  await Promise.all(lanes);
+}
+
 
 export type GatewayFailure = { status: number; message: string; retryable: boolean };
 
@@ -167,12 +195,14 @@ export function buildPrompt(
     "- Do not mention that you are an AI or that data was provided.",
     `- Write in ${config.language}.`,
     `- Tone: ${config.tone}.`,
+    `- Angle: ${frameworkGuidance(config.framework)}`,
     `- ${LENGTH_RULE[config.length]}`,
     "- Thin data is normal. With only a name, or only a company, write a short, conservative, truthful line using just that. Never refuse.",
     "",
     'Reply with JSON only, in this exact shape: {"personalization": string, "confidence": "high" | "medium" | "low", "data_used": string[]}',
     '"data_used" lists the fact labels you actually used. "personalization" must never be empty.',
   ].join("\n");
+
 
   const factLines = facts.length
     ? facts.map((f) => `- ${f.label}: ${f.value}`).join("\n")
@@ -327,6 +357,8 @@ export async function generatePersonalization(
 export function promptFingerprint(config: AiPersonalizationConfig): string {
   const payload = JSON.stringify({
     l: config.level,
+    fw: config.framework,
+
     t: config.tone,
     n: config.length,
     g: config.language,
@@ -688,7 +720,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
     const withNotes = await attachLeadNotes(admin, (leads ?? []) as LeadRecord[]);
     const leadById = new Map(withNotes.map((l) => [l.id, l] as const));
 
-    for (const job of jobs) {
+    await mapWithConcurrency(jobs, CONCURRENCY, async (job) => {
       const settings = configById.get(job.campaign_id);
       const lead = leadById.get(job.lead_id);
       if (!settings || !lead) {
@@ -703,7 +735,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           })
           .eq("id", job.id);
         result.failed += 1;
-        continue;
+        return;
       }
 
       if (blockedWorkspaces.has(settings.workspaceId)) {
@@ -711,7 +743,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           .from("ai_personalizations")
           .update({ status: "queued", locked_by: null, locked_until: null })
           .eq("id", job.id);
-        continue;
+        return;
       }
 
       const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
@@ -728,7 +760,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           })
           .eq("id", job.id);
         result.failed += 1;
-        continue;
+        return;
       }
 
       // Plan enforcement: feature access + atomic monthly AI allowance.
@@ -763,7 +795,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
             })
             .eq("id", job.id);
           result.failed += 1;
-          continue;
+          return;
         }
         throw error;
       }
@@ -823,7 +855,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
             result.skipped = "a workspace hit its OpenAI rate limit — its leads stay queued";
         }
       }
-    }
+    });
 
     return result;
   } finally {
@@ -832,4 +864,52 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       .update({ locked_by: null, locked_until: null })
       .eq("key", RUNNER_KEY);
   }
+}
+
+/**
+ * Leads whose personalization is still being generated for this campaign.
+ *
+ * Messages are materialised at queue time, so a lead queued BEFORE its snippet
+ * exists used to have the AI line baked out of the email permanently. Callers
+ * hold these leads back until generation settles.
+ */
+export async function pendingPersonalizationLeads(
+  supabase: Client,
+  campaignId: string,
+  leadIds: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  if (!leadIds.length) return out;
+  for (let i = 0; i < leadIds.length; i += 150) {
+    const { data } = await supabase
+      .from("ai_personalizations")
+      .select("lead_id, status")
+      .eq("campaign_id", campaignId)
+      .in("status", ["queued", "processing"])
+      .in("lead_id", leadIds.slice(i, i + 150));
+    for (const row of (data ?? []) as Array<{ lead_id: string }>) out.add(row.lead_id);
+  }
+  return out;
+}
+
+/**
+ * Send-time safety net: resolve any `{{ai_personalization}}` still sitting in a
+ * stored message, so a snippet that arrived after queueing is used instead of
+ * being sent literally.
+ */
+export async function resolveAiTokenAtSend(
+  supabase: Client,
+  campaignId: string,
+  leadId: string | null,
+  text: string,
+  config: AiPersonalizationConfig,
+): Promise<{ text: string; hold: boolean }> {
+  const token = new RegExp(`\\{\\{\\s*${AI_TOKEN}\\s*(\\|[^}]*)?\\}\\}`, "g");
+  if (!token.test(text)) return { text, hold: false };
+  const content = leadId
+    ? (await personalizationByLead(supabase, campaignId, [leadId])).get(leadId) ?? null
+    : null;
+  const { extras, hold } = aiExtras(config, content);
+  if (hold) return { text, hold: true };
+  return { text: text.replace(token, extras[AI_TOKEN] ?? ""), hold: false };
 }
