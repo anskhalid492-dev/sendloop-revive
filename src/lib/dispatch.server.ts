@@ -870,12 +870,41 @@ export async function dispatchDueMessages(
       await fail(error instanceof Error ? error.message : "Reply routing is not ready for this mailbox.");
       continue;
     }
+    // Send-time safety net: a snippet that landed after the message was
+    // materialised still reaches the recipient, and a "hold" campaign never
+    // sends an email with an unresolved AI line in it.
+    if (aiSendEnabled) {
+      const [resolvedSubject, resolvedBody] = await Promise.all([
+        resolveAiTokenAtSend(supabase, message.campaign_id as string, message.lead_id, message.subject ?? "", aiSendConfig),
+        resolveAiTokenAtSend(supabase, message.campaign_id as string, message.lead_id, message.body ?? "", aiSendConfig),
+      ]);
+      if (resolvedSubject.hold || resolvedBody.hold) {
+        await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "ai_hold");
+        await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+        await supabase
+          .from("campaign_messages")
+          .update({ status: "scheduled", last_error: "Waiting for AI personalization." })
+          .eq("id", message.id);
+        result.skipped += 1;
+        continue;
+      }
+      if (resolvedSubject.text !== message.subject || resolvedBody.text !== message.body) {
+        message.subject = resolvedSubject.text;
+        message.body = resolvedBody.text;
+        await supabase
+          .from("campaign_messages")
+          .update({ subject: message.subject, body: message.body })
+          .eq("id", message.id);
+      }
+    }
+
     const shouldSendHtml =
       !(campaignRow as { text_only?: boolean | null }).text_only &&
       (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||
         Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking));
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
+
 
     let send: Awaited<ReturnType<typeof sendManagedEmail>>;
     try {
