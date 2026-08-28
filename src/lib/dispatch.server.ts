@@ -7,7 +7,7 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
-import { isInSendWindow, nextSendSlot, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
@@ -51,6 +51,11 @@ export type DispatchResult = {
 
 export function emptyResult(): DispatchResult {
   return { processed: 0, sent: 0, failed: 0, skipped: 0, scheduled: 0, errors: [] };
+}
+
+/** Pure scheduling decision used by the dispatcher and parity regression tests. */
+export function campaignDispatchSchedule(now: Date, window: ScheduleWindow) {
+  return campaignScheduleState(now, window);
 }
 
 type StepRow = {
@@ -151,7 +156,7 @@ function campaignWindow(campaign: Pick<CampaignDispatchRow, "timezone" | "send_d
   };
 }
 
-function sendBaseFor(campaign: Pick<CampaignDispatchRow, "start_at" | "timezone" | "send_days" | "send_start_hour" | "send_end_hour">, now: Date) {
+function campaignScheduleAnchor(campaign: Pick<CampaignDispatchRow, "start_at">, now: Date) {
   const start = campaign.start_at ? new Date(campaign.start_at) : null;
   return start && !Number.isNaN(start.getTime()) && start.getTime() > now.getTime() ? start : now;
 }
@@ -263,7 +268,11 @@ export async function ensureInitialCampaignMessages(
     : new Set<string>();
 
 
-  const slot = nextSendSlot(sendBaseFor(campaign, now), campaignWindow(campaign)).toISOString();
+  const slot = windowStartAt(
+    campaignScheduleAnchor(campaign, now),
+    campaignWindow(campaign),
+    { includeCurrentDay: true },
+  ).toISOString();
   const variables = (campaign.custom_variables ?? []) as CustomVariable[];
   const inserts: Array<Record<string, unknown>> = [];
   const recipientAssignments: Array<{ id: string; accountId: string; nextAt: string }> = [];
@@ -494,7 +503,7 @@ export async function scheduleFollowUps(
 
     const lead = leadById.get(recipient.lead_id);
     if (!lead) continue;
-    const slot = nextSendSlot(dueAt, window).toISOString();
+    const slot = windowStartAt(dueAt, window, { includeCurrentDay: true }).toISOString();
     const ai = aiEnabled
       ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
       : { extras: {} as Record<string, string>, hold: false };
@@ -619,12 +628,11 @@ export async function dispatchDueMessages(
   }
 
   const window = campaignWindow(campaignRow as CampaignDispatchRow);
-  if (!isInSendWindow(now, window)) {
+  const dispatchSchedule = campaignDispatchSchedule(now, window);
+  if (!dispatchSchedule.inWindow) {
     // Always the configured window START of the next sending day — never now,
     // never the previous run's finish time.
-    const nextSlot = windowStartAt(sendBaseFor(campaignRow as CampaignDispatchRow, now), window, {
-      includeCurrentDay: false,
-    }).toISOString();
+    const nextSlot = dispatchSchedule.eligibleWindowStart.toISOString();
     await supabase
       .from("campaign_messages")
       .update({ scheduled_at: nextSlot })
@@ -774,7 +782,7 @@ export async function dispatchDueMessages(
         result.errors.push(`Daily sending limit reached (${dailyCap} emails/day).`);
       // The run waits for the NEXT scheduled day's window start. The campaign
       // stays active: quota exhaustion never completes or pauses it.
-      quotaDeferralSlot = windowStartAt(now, window, { includeCurrentDay: false }).toISOString();
+      quotaDeferralSlot = dispatchSchedule.nextWindowStart.toISOString();
       break;
     }
 
@@ -1136,7 +1144,7 @@ export async function requeueRetryableMessages(
   if (!retryable.length) return 0;
 
   const slot = windowStartAt(
-    sendBaseFor(campaign as CampaignDispatchRow, now),
+    campaignScheduleAnchor(campaign as CampaignDispatchRow, now),
     campaignWindow(campaign as CampaignDispatchRow),
     { includeCurrentDay: true },
   ).toISOString();

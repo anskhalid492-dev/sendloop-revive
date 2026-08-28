@@ -216,7 +216,7 @@ export function CampaignBuilderMock() {
               label="Campaign status"
               value="Running · sending window open"
               hint="Next follow-ups queued for tomorrow"
-              right={<Marker n={7} />}
+              right={null}
             />
           </div>
 

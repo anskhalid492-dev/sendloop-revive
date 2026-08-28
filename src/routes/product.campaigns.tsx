@@ -72,8 +72,7 @@ const builderCallouts = [
   { n: 3, text: "Email sequence with the initial email and every follow-up step." },
   { n: 4, text: "Sending accounts assigned to this campaign." },
   { n: 5, text: "Schedule: sending window, timezone and sending days." },
-  { n: 6, text: "Daily sending limit, with today's progress against it." },
-  { n: 7, text: "Live campaign status and tracking options." },
+  { n: 6, text: "Daily limit, live campaign status and tracking options." },
 ];
 
 const launchSteps = [

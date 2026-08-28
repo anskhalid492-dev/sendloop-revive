@@ -104,9 +104,14 @@ export function isInSendWindow(date: Date, window: ScheduleWindow): boolean {
   return days.includes(parts.weekday) && parts.hour >= start && parts.hour < end;
 }
 
-/**
- * Returns the first moment at or after `from` that falls inside the campaign's
- * sending window, using the campaign timezone rather than browser/server local time.
+export type CampaignScheduleState = {
+  inWindow: boolean;
+  /** Today's configured start while active; otherwise the next configured start. */
+  eligibleWindowStart: Date;
+  /** The configured start strictly after the current run. */
+  nextWindowStart: Date;
+};
+
 /**
  * The START of a configured sending window — never a mid-window "now".
  *
@@ -139,25 +144,17 @@ export function windowStartAt(
   return from;
 }
 
-export function nextSendSlot(from: Date, window: ScheduleWindow): Date {
-
-  const { timezone, days, start, end } = clampWindow(window);
-  const roundedFrom = new Date(Math.ceil(from.getTime() / 60_000) * 60_000);
-  const base = zonedParts(roundedFrom, timezone);
-
-  for (let offset = 0; offset <= 14; offset += 1) {
-    const localDay = addLocalDays(base.year, base.month, base.day, offset);
-    const windowStart = zonedDateTimeToUtc({ ...localDay, hour: start }, timezone);
-    const endDay = end === 24 ? addLocalDays(localDay.year, localDay.month, localDay.day, 1) : localDay;
-    const windowEnd = zonedDateTimeToUtc({ ...endDay, hour: end === 24 ? 0 : end }, timezone);
-    const weekday = zonedParts(windowStart, timezone).weekday;
-    if (!days.includes(weekday)) continue;
-
-    if (roundedFrom.getTime() < windowEnd.getTime()) {
-      return roundedFrom.getTime() > windowStart.getTime() ? roundedFrom : windowStart;
-    }
-  }
-  return from;
+/**
+ * Canonical campaign scheduler state consumed by dispatch, run-state and UI.
+ * All returned timestamps are delegated to `windowStartAt`; this function only
+ * names the active/waiting interpretation shared by those consumers.
+ */
+export function campaignScheduleState(now: Date, window: ScheduleWindow): CampaignScheduleState {
+  return {
+    inWindow: isInSendWindow(now, window),
+    eligibleWindowStart: windowStartAt(now, window, { includeCurrentDay: true }),
+    nextWindowStart: windowStartAt(now, window, { includeCurrentDay: false }),
+  };
 }
 
 export function zonedDateTimeLocalValue(value: string | null, timezone: string): string {

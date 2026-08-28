@@ -6,7 +6,7 @@
  * schedule + timezone only — never from when the last email happened to be
  * sent, and never from a lifetime "sent" total.
  */
-import { isInSendWindow, windowStartAt, type ScheduleWindow } from "@/lib/campaign-schedule";
+import { campaignScheduleState, type ScheduleWindow } from "@/lib/campaign-schedule";
 
 export type CampaignRunState =
   | "draft"
@@ -42,7 +42,7 @@ export const CAMPAIGN_RUN_STATE_LABELS: Record<CampaignRunState, string> = {
 export function nextRunAt(now: Date, window: ScheduleWindow): Date {
   // Strictly the next sending day's configured start time. Never `now`, never
   // the last send, never the cron tick.
-  return windowStartAt(now, window, { includeCurrentDay: false });
+  return campaignScheduleState(now, window).nextWindowStart;
 }
 
 /**
@@ -56,7 +56,7 @@ export function nextEligibleAt(
   quotaExhausted: boolean,
 ): Date {
   if (quotaExhausted) return nextRunAt(now, window);
-  return windowStartAt(now, window, { includeCurrentDay: true });
+  return campaignScheduleState(now, window).eligibleWindowStart;
 }
 
 export type RunStateInput = {
@@ -99,7 +99,8 @@ export function campaignRunStatus(input: RunStateInput): RunStatus {
   const quotaExhausted = quota > 0 && sentToday >= quota;
   const lifetimeLimit = Number(input.lifetimeLimit ?? 0) || 0;
   const lifetimeExhausted = lifetimeLimit > 0 && Number(input.lifetimeSent ?? 0) >= lifetimeLimit;
-  const inWindow = isInSendWindow(now, window);
+  const schedule = campaignScheduleState(now, window);
+  const inWindow = schedule.inWindow;
 
   const finish = (state: CampaignRunState, next: Date | null): RunStatus => ({
     state,
@@ -119,7 +120,7 @@ export function campaignRunStatus(input: RunStateInput): RunStatus {
 
   if (status === "scheduled") return finish("scheduled", nextEligibleAt(now, window, false));
   if (quotaExhausted) return finish("daily_quota_reached", nextRunAt(now, window));
-  if (!inWindow) return finish("waiting_for_next_run", windowStartAt(now, window, { includeCurrentDay: false }));
+  if (!inWindow) return finish("waiting_for_next_run", schedule.eligibleWindowStart);
   return finish("running", nextEligibleAt(now, window, false));
 }
 
