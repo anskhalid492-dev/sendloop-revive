@@ -11,6 +11,11 @@ import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWin
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
+import {
+  NO_MAILBOX_AVAILABLE_MESSAGE,
+  mailboxRetryAt,
+  selectMailboxForMessage,
+} from "@/lib/mailbox-assignment";
 import { stripAngle } from "@/lib/inbox-model";
 import {
   renderEmailForLead,
