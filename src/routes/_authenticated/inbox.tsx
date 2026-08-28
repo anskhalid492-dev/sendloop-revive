@@ -453,25 +453,31 @@ function Page() {
 
           return (
             <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-              {/* Desktop: three resizable panes so the reading pane can take all remaining width. */}
-              <ResizablePanelGroup
-                orientation="horizontal"
-                className="hidden min-h-0 lg:flex"
-              >
-                <ResizablePanel id="nav" defaultSize="16" minSize="12" maxSize="24">
-                  {navPane}
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel id="list" defaultSize="24" minSize="16" maxSize="40">
-                  <div className="h-full min-h-0 min-w-0">
-                    {folder === "drafts" ? draftsPane : listPane}
-                  </div>
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel id="reading" defaultSize="60" minSize="30">
-                  <div className="h-full min-h-0 min-w-0">{readingPane}</div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
+              {/* Desktop: fixed nav + list, conversation takes all remaining width. */}
+              <div className="hidden min-h-0 w-full lg:flex">
+                {navOpen ? (
+                  <div className="h-full w-[240px] shrink-0">{navPane}</div>
+                ) : null}
+                <div className="h-full w-[340px] min-w-0 shrink-0 xl:w-[360px]">
+                  {folder === "drafts" ? draftsPane : listPane}
+                </div>
+                <div className="relative h-full min-h-0 min-w-0 flex-1 border-l border-border">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-1 top-1 z-10 h-7 w-7"
+                    aria-label={navOpen ? "Hide folders sidebar" : "Show folders sidebar"}
+                    onClick={() => setNavOpen((v) => !v)}
+                  >
+                    {navOpen ? (
+                      <PanelLeftClose className="h-4 w-4" />
+                    ) : (
+                      <PanelLeftOpen className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <div className="h-full min-h-0 min-w-0 pl-8">{readingPane}</div>
+                </div>
+              </div>
 
               {/* Tablet and mobile: list and reading pane swap in place. */}
               <div className="flex min-h-0 min-w-0 flex-1 lg:hidden">
@@ -488,6 +494,7 @@ function Page() {
               </div>
             </div>
           );
+
         })()}
 
       </div>
