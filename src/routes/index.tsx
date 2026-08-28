@@ -10,7 +10,9 @@ import {
   Inbox,
   Layers,
   LineChart,
+  Globe2,
   Mail,
+  MessageSquare,
   PlayCircle,
   Repeat,
   Rocket,
@@ -18,10 +20,13 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  TrendingUp,
   Upload,
   Users,
   Workflow,
+  Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { FaqBlock, MockBars, MockPanel, MockRows } from "@/components/site/MarketingPage";
 import { Reveal } from "@/components/site/Reveal";
@@ -78,7 +83,63 @@ const faqs = [
   },
 ];
 
-const heroLogos = ["ACME", "NEXTGEN", "GrowthX", "REVOLT", "IMPACT"];
+const capabilityRowOne = [
+  { icon: Target, label: "Targeted Prospecting" },
+  { icon: Mail, label: "Personalized Cold Email" },
+  { icon: Sparkles, label: "AI Personalization" },
+  { icon: Repeat, label: "Automated Follow-Ups" },
+  { icon: Inbox, label: "Unified Inbox" },
+  { icon: BarChart3, label: "Real-Time Analytics" },
+  { icon: Users, label: "Built-In CRM" },
+];
+
+const capabilityRowTwo = [
+  { icon: ShieldCheck, label: "Email Verification" },
+  { icon: Flame, label: "Mailbox Warmup" },
+  { icon: Zap, label: "Smart Sending" },
+  { icon: Globe2, label: "Multi-Mailbox Outreach" },
+  { icon: MessageSquare, label: "Reply Management" },
+  { icon: TrendingUp, label: "Campaign Analytics" },
+  { icon: Workflow, label: "Outbound Automation" },
+];
+
+function CapabilityMarquee({
+  items,
+  reverse = false,
+}: {
+  items: { icon: LucideIcon; label: string }[];
+  reverse?: boolean;
+}) {
+  const doubled = [...items, ...items];
+  return (
+    <div
+      className="group relative overflow-hidden py-1.5"
+      style={{
+        maskImage:
+          "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+        WebkitMaskImage:
+          "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+      }}
+    >
+      <div
+        className={`flex w-max items-center gap-3 group-hover:[animation-play-state:paused] ${
+          reverse ? "sl-marquee-reverse" : "sl-marquee"
+        }`}
+      >
+        {doubled.map((item, i) => (
+          <span
+            key={`${item.label}-${i}`}
+            aria-hidden={i >= items.length}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-sm font-medium text-foreground/80 backdrop-blur"
+          >
+            <item.icon className="h-3.5 w-3.5 text-primary" />
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const coreValues = [
   { icon: Layers, title: "Campaigns", text: "Build multi-step cold email sequences." },
@@ -277,22 +338,11 @@ function Home() {
           </div>
 
 
-          {/* Logo strip */}
-          <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-            <div className="flex flex-col items-center justify-center gap-6 rounded-2xl border border-border/60 bg-card/70 px-6 py-6 backdrop-blur sm:flex-row sm:gap-10">
-              <p className="text-sm text-muted-foreground">
-                Trusted by 1,000+ agencies and sales teams worldwide
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-                {heroLogos.map((logo) => (
-                  <span
-                    key={logo}
-                    className="text-base font-bold tracking-tight text-muted-foreground/70"
-                  >
-                    {logo}
-                  </span>
-                ))}
-              </div>
+          {/* Capability ticker */}
+          <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+            <div className="space-y-2">
+              <CapabilityMarquee items={capabilityRowOne} />
+              <CapabilityMarquee items={capabilityRowTwo} reverse />
             </div>
           </div>
         </section>
