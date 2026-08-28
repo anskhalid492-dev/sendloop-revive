@@ -301,19 +301,32 @@ export const getCampaign = createServerFn({ method: "GET" })
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
-        sentToday: (() => {
-          const dayStart = zonedStartOfDay(
-            new Date(),
-            String((campaign as unknown as Record<string, unknown>)["timezone"] ?? "UTC"),
-          );
-          return sentMessages.filter((m) => {
-            const at = m["sent_at"];
-            return at ? new Date(at).getTime() >= dayStart.getTime() : false;
-          }).length;
-        })(),
+        sentToday: sentTodayCount,
+      },
+      // Today's engagement, strictly separate from the lifetime numbers above.
+      today: {
+        sent: sentTodayCount,
+        delivered: countToday("delivered_at", (m) => !m["bounced_at"] && m["delivery_status"] !== "failed"),
+        opened: countToday("opened_at"),
+        clicked: countToday("clicked_at"),
+        replied: countToday("replied_at"),
+        bounced: countToday("bounced_at"),
+        failed: countToday("failed_at", (m) => !m["bounced_at"]),
+      },
+      // Current run: quota, capacity and the next scheduled run. Reaching the
+      // daily quota is never "paused" and never "completed".
+      run: {
+        ...runStatus,
+        dailyQuota,
+        sentThisRun: sentTodayCount,
+        retryableFailures: selectRetryableMessages(
+          messages as unknown as RetryableMessageRow[],
+          runDayStart,
+        ).length,
       },
     };
   });
+
 
 
 export type CampaignLeadFields = {
