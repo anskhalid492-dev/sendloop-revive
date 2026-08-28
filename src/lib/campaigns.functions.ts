@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
 import { nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
   campaignLimitColumnsAvailable,
@@ -359,10 +360,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         ...runStatus,
         dailyQuota,
         sentThisRun: sentTodayCount,
-        retryableFailures: selectRetryableMessages(
-          messages as unknown as RetryableMessageRow[],
-          runDayStart,
-        ).length,
+        retryableFailures: retryableFailureCount,
       },
     };
   });
