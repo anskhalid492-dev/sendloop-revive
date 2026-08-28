@@ -31,6 +31,7 @@ import {
   updateTransactionalSettings,
 } from "@/lib/transactional-email.functions";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
+import { SesSystemEmailPanel } from "@/components/admin/SesSystemEmailPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/system-emails")({
   head: () => ({
@@ -335,8 +336,17 @@ function SystemEmailsPage() {
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="settings">Delivery settings</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
+          <TabsTrigger value="ses">Amazon SES</TabsTrigger>
           <TabsTrigger value="birthday">Birthday gifts</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="ses" className="space-y-4">
+          <SesSystemEmailPanel
+            enabled={settings?.ses_enabled === true}
+            toggling={saveSettings.isPending}
+            onToggle={(next) => saveSettings.mutate({ ses_enabled: next })}
+          />
+        </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">

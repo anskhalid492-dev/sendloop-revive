@@ -39,6 +39,11 @@ export type TransactionalSettings = {
   retry_count: number;
   retry_delay_seconds: number;
   batch_size: number;
+  /**
+   * Explicit switch for Amazon SES as the system-email delivery provider.
+   * Connecting SES never flips this on by itself.
+   */
+  ses_enabled?: boolean;
   lease_until?: string | null;
 };
 
@@ -54,7 +59,9 @@ const DEFAULT_SETTINGS: TransactionalSettings = {
   retry_count: 3,
   retry_delay_seconds: 300,
   batch_size: 25,
+  ses_enabled: false,
 };
+
 
 export async function getTransactionalSettings(admin: Admin): Promise<TransactionalSettings> {
   const { data } = await admin
@@ -558,6 +565,8 @@ async function deliver(
 ) {
   const { resolveManagedProvider, recordProviderIncident } = await import("@/lib/managed-sending.server");
   const { getAdapter } = await import("@/lib/providers/adapter.server");
+  const { resolveSesCredentials } = await import("@/lib/email-providers/ses-api.server");
+  const { selectSystemEmailProvider } = await import("@/lib/system-email-provider");
 
   const fromEmail = row.from_email || settings.from_email;
   // The display name follows the centralized sender for this From address,
@@ -568,10 +577,10 @@ async function deliver(
     provider_id: null,
     from_email: fromEmail,
   });
-  if (!managed) return { ok: false, error: "Sending infrastructure is not configured.", provider: null };
 
-  const adapter = getAdapter(managed.provider);
-  const result = await adapter.sendEmail(managed.credentials, {
+  // The rendered MunchReach message. Identical for every provider — SES is a
+  // delivery channel only, never a second template system.
+  const message = {
     fromName: mappedSender?.name ?? settings.from_name,
     fromEmail,
     replyTo: row.reply_to || mappedSender?.replyTo || settings.reply_to,
@@ -580,7 +589,40 @@ async function deliver(
     text: row.text_body || "",
     ...(row.html ? { html: row.html } : {}),
     headers: { "X-MunchReach-Type": "transactional" },
+  };
+
+  const sesCredentials = resolveSesCredentials(null);
+  const choice = selectSystemEmailProvider({
+    sesEnabled: settings.ses_enabled === true,
+    sesCredentialsAvailable: sesCredentials !== null,
+    managedAvailable: managed !== null,
   });
+
+  if (choice.provider === "ses" && sesCredentials) {
+    const sesResult = await getAdapter("ses").sendEmail(
+      {
+        access_key_id: sesCredentials.accessKeyId,
+        secret_access_key: sesCredentials.secretAccessKey,
+        region: sesCredentials.region,
+      },
+      message,
+    );
+    if (sesResult.ok || choice.fallback === null) {
+      return {
+        ok: sesResult.ok,
+        provider: "ses",
+        messageId: sesResult.messageId ?? null,
+        statusCode: sesResult.statusCode ?? null,
+        error: sesResult.ok ? null : sesResult.providerResponse || sesResult.message,
+      };
+    }
+    console.warn("[system-email] SES send failed, falling back:", sesResult.message);
+  }
+
+  if (!managed) return { ok: false, error: "Sending infrastructure is not configured.", provider: null };
+
+  const adapter = getAdapter(managed.provider);
+  const result = await adapter.sendEmail(managed.credentials, message);
 
   await recordProviderIncident(admin, managed.providerId, result.ok ? null : result.providerResponse ?? result.message);
 
@@ -592,6 +634,7 @@ async function deliver(
     error: result.ok ? null : result.providerResponse || result.message,
   };
 }
+
 
 /**
  * Processes one bounded batch of queued transactional emails.

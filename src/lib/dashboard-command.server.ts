@@ -229,6 +229,17 @@ supabase
   const leadCampaign = new Map<string, string>();
   const leadsPerCampaign = new Map<string, number>();
   const remainingPerCampaign = new Map<string, number>();
+  // Queued / in-flight / retryable work still owed by the engine.
+  const pendingMessagesPerCampaign = new Map<string, number>();
+  for (const m of messageRows) {
+    const cid = m["campaign_id"] as string | null;
+    if (!cid) continue;
+    const status = String(m["status"] ?? "");
+    const open =
+      ["pending", "scheduled", "processing", "queued"].includes(status) ||
+      (status === "failed" && isRetryableFailure(m["last_error"] as string | null));
+    if (open) pendingMessagesPerCampaign.set(cid, (pendingMessagesPerCampaign.get(cid) ?? 0) + 1);
+  }
   for (const r of recipientRows) {
     const cid = r["campaign_id"] as string;
     leadsPerCampaign.set(cid, (leadsPerCampaign.get(cid) ?? 0) + 1);
@@ -329,7 +340,12 @@ supabase
       status: String(c["status"] ?? "draft"),
       dailyQuota: Number(c["daily_cap"] ?? 0) || 0,
       sentToday,
-      remainingRecipients: remainingPerCampaign.get(id) ?? 0,
+      // A campaign is only "completed" when nothing is left anywhere: no open
+      // recipient AND no queued/in-flight/retryable message.
+      remainingRecipients: Math.max(
+        remainingPerCampaign.get(id) ?? 0,
+        pendingMessagesPerCampaign.get(id) ?? 0,
+      ),
       lifetimeLimit: Number(c["email_send_limit"] ?? 0) || 0,
       lifetimeSent: Number(c["emails_sent_count"] ?? 0) || 0,
       blocked: false,
