@@ -300,6 +300,24 @@
   }
 }
 
+@keyframes sl-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes sl-marquee-reverse {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 @keyframes sl-flow {
   0% {
     background-position: 0 -110%;
