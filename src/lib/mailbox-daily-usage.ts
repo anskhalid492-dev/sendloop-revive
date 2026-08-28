@@ -97,3 +97,19 @@ export const MAILBOX_WINDOW_HOURS = 12;
 export function mailboxWindowStart(now: Date = new Date()): Date {
   return new Date(now.getTime() - MAILBOX_WINDOW_HOURS * 3_600_000);
 }
+
+/**
+ * When a mailbox that is out of capacity regains it: 12 hours after the sends
+ * currently inside the window. This is a self-clearing, temporary state — never
+ * a safety block.
+ */
+export function mailboxCapacityReturnsAt(
+  row: { last_sent_at?: string | null },
+  now: Date = new Date(),
+): Date | null {
+  if (!row.last_sent_at) return null;
+  const last = new Date(row.last_sent_at).getTime();
+  if (!Number.isFinite(last)) return null;
+  return new Date(Math.max(now.getTime(), last + MAILBOX_WINDOW_HOURS * 3_600_000));
+}
+
