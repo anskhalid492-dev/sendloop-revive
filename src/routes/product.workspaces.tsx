@@ -9,21 +9,28 @@ import {
   ShieldAlert,
   UserX,
   FolderKanban,
+  Megaphone,
+  CreditCard,
+  History,
+  LogOut,
+  Palette,
+  Clock,
 } from "lucide-react";
 
 import {
   BulletList,
+  BeforeAfter,
   CtaBlock,
-  FaqBlock,
+  DocSection,
   MarketingLayout,
   MockPanel,
   MockRows,
   PageHero,
   PainPoints,
   Section,
-  SolutionSplit,
-  StatStrip,
-  StepList,
+  UseCaseGrid,
+  Walkthrough,
+  WorkflowStrip,
   metaFor,
   BigPreview,
   FeatureBento,
@@ -32,18 +39,22 @@ import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
 
 const faqs = [
-  { q: "Can one person belong to many workspaces?", a: "Yes, with a different role in each — an agency owner can be Admin in one client workspace and Analyst in another." },
-  { q: "Can a client log in and see only their data?", a: "Yes, invite them as a Client Viewer. They see reporting and pipeline for their workspace only, with no access to settings or billing." },
-  { q: "Is data really isolated?", a: "Yes, every table is protected with row-level security tied to workspace membership, not just hidden in the interface." },
-  { q: "Can I move a campaign between workspaces?", a: "Campaigns stay in the workspace they were created in, but templates and sequences can be shared or duplicated across workspaces." },
-  { q: "What happens if I remove a team member?", a: "Their access is revoked immediately across every workspace they belonged to, and an audit log entry records the change." },
-  { q: "Can I white-label a workspace for a client?", a: "Yes — branding, tracking domain and sender names can all be set per workspace." },
+  { q: "Can one person belong to more than one workspace?", a: "Yes. Your login can hold membership in as many workspaces as you have clients, with a different role in each — Admin for one client and Member for another." },
+  { q: "Can a client log into their own workspace and see only their data?", a: "Yes. Invite them with a role scoped to that workspace only. They see their campaigns and reporting, not any other client's data, and never see your other workspaces at all." },
+  { q: "Is data actually isolated, or just hidden in the UI?", a: "Every campaign, lead, mailbox and conversation belongs to exactly one workspace at the data layer. Switching workspaces changes what the server returns, not just what a menu shows." },
+  { q: "What roles are available inside a workspace?", a: "Owner, Admin and Member. Owners have full control including billing and deletion, Admins can manage settings, team and sending, and Members work inside campaigns, the inbox and CRM without touching workspace-level settings." },
+  { q: "Can a campaign or mailbox move between workspaces?", a: "No — a campaign, sending account and its warmup history stay in the workspace they were created in. That's what keeps one client's sending reputation from ever mixing with another's." },
+  { q: "What happens when I remove a teammate?", a: "Removing someone from a workspace revokes their access to that workspace's campaigns, inbox, leads and settings immediately. If they belong to other workspaces on your account, those memberships are untouched." },
+  { q: "Is billing shared across workspaces or separate per client?", a: "Billing and plan usage are managed at the account level today, so switching workspaces doesn't change your invoice — but sending volume, mailbox counts and usage limits are still tracked and reported per workspace." },
+  { q: "Can each workspace have its own name, logo and sending schedule?", a: "Yes. Name, slug, logo, timezone and sending window are all set per workspace, so each client's outreach runs on their own schedule under their own identity." },
+  { q: "How do I delete a workspace?", a: "From the Danger Zone tab, workspace owners can permanently delete a workspace and everything inside it. This is deliberately restricted to owners and can't be undone." },
+  { q: "Can I see who changed what inside a workspace?", a: "Yes — invitations, role changes and removals are tracked in the workspace's team activity so you always know who has access and when it changed." },
 ];
 
 export const Route = createFileRoute("/product/workspaces")({
   head: () => metaFor(
     "Manage Outreach Teams & Workspaces | MunchReach",
-    "Organize campaigns, leads, sending accounts, and team activity with dedicated MunchReach workspaces.",
+    "Give every client their own isolated workspace with separate mailboxes, campaigns, leads and team roles — all from one MunchReach login.",
     "/product/workspaces",
     faqs,
   ),
@@ -51,52 +62,82 @@ export const Route = createFileRoute("/product/workspaces")({
 });
 
 const pains = [
-  { icon: ShieldAlert, title: "One login, zero boundaries", text: "A junior contractor can see every client's leads and mailboxes because your tool has no concept of separate accounts." },
-  { icon: UserX, title: "Offboarding is a manual scramble", text: "When someone leaves, you're hunting through five tools to revoke access instead of one click." },
-  { icon: FolderKanban, title: "Client reporting means copy-paste", text: "Every client update means exporting numbers out of your real dashboard into something 'safe' to share." },
+  { icon: ShieldAlert, title: "One login, zero boundaries", text: "A contractor working on one client's campaigns can see every other client's leads, mailboxes and replies, because the tool has no concept of separate accounts." },
+  { icon: UserX, title: "Offboarding is a scramble", text: "When a freelancer or team member leaves, you're hunting through mailboxes, spreadsheets and shared logins instead of revoking access in one place." },
+  { icon: FolderKanban, title: "Client reporting means copy-paste", text: "Every client update means exporting numbers out of your real dashboard into something 'safe enough' to share, because they can't just log in." },
+  { icon: Megaphone, title: "Sending reputation gets tangled", text: "Warmup, sending limits and suppression lists for one client bleed into another's when everything runs through the same undivided account." },
 ];
 
-const solutionRows = [
+const walkthroughSteps = [
   {
-    eyebrow: "Isolation",
-    title: "Every client lives in its own locked workspace",
-    text: "Leads, campaigns, mailboxes and replies never cross workspace boundaries — enforced at the database layer, not just hidden in the UI.",
-    bullets: ["Row-level security on every table", "Separate tracking domains and sending limits", "Own suppression and do-not-contact lists"],
+    title: "Create a workspace for the client",
+    youDo: "Name the workspace after the client and set its slug, logo and timezone.",
+    weHandle: "A fresh, fully isolated workspace is created with its own settings, empty of any other client's data.",
+    youGet: "A clean starting point you can hand off or run yourself, with nothing carried over.",
     visual: (
-      <MockPanel title="Workspaces">
+      <MockPanel title="New workspace">
         <MockRows rows={[
-          { left: "Acme Robotics", right: "4 members", badge: "Active" },
-          { left: "Fenwick Logistics", right: "6 members", badge: "Active" },
-          { left: "Northstar Legal", right: "2 members", badge: "Invited" },
+          { left: "Workspace name", right: "Acme Robotics" },
+          { left: "Slug", muted: "acme-robotics", right: "Available" },
+          { left: "Timezone", right: "America/Chicago" },
         ]} />
       </MockPanel>
     ),
   },
   {
-    eyebrow: "Roles",
-    title: "Granular permissions for every kind of teammate",
-    text: "Owner, Admin, Campaign Manager, Inbox Manager, Analyst and Client Viewer — each with exactly the access their job requires, nothing more.",
-    bullets: ["Role changes take effect immediately", "Client Viewer sees reporting only", "Invite by email with a role pre-attached"],
+    title: "Invite the team with the right role",
+    youDo: "Send email invitations to teammates and, if relevant, the client themselves.",
+    weHandle: "Each invite carries a role — Owner, Admin or Member — that controls exactly what that person can see and do in this workspace.",
+    youGet: "Teammates and clients with access scoped precisely to their job, not to your whole account.",
     visual: (
-      <MockPanel title="Members — Acme Robotics">
+      <MockPanel title="Team — Acme Robotics">
         <MockRows rows={[
-          { left: "Priya Shah", muted: "priya@acme.com", right: "Admin" },
-          { left: "Marcus Lee", muted: "marcus@acme.com", right: "Campaign Manager" },
-          { left: "client@acmerobotics.com", muted: "Invited 2 days ago", right: "Client Viewer" },
+          { left: "Priya Shah", muted: "priya@agency.com", right: "Admin" },
+          { left: "Marcus Lee", muted: "marcus@agency.com", right: "Member" },
+          { left: "client@acmerobotics.com", muted: "Invited", right: "Member" },
         ]} />
       </MockPanel>
     ),
   },
   {
-    eyebrow: "Audit",
-    title: "Know exactly who changed what, and when",
-    text: "Every membership and permission change is logged, so offboarding a contractor or investigating an issue takes seconds, not a Slack thread.",
+    title: "Connect this client's mailboxes",
+    youDo: "Add sending accounts and domains that belong only to this client.",
+    weHandle: "Warmup, sending limits, tracking domains and suppression lists are tracked per workspace, never shared with another client's mailboxes.",
+    youGet: "Sending reputation that stays clean and specific to each client's domain.",
     visual: (
-      <MockPanel title="Audit log">
+      <MockPanel title="Mailboxes — Acme Robotics">
         <MockRows rows={[
-          { left: "Priya Shah invited marcus@acme.com as Analyst", right: "2h ago" },
-          { left: "Owner transferred to Priya Shah", right: "Yesterday" },
-          { left: "client@acmerobotics.com role changed to Client Viewer", right: "3d ago" },
+          { left: "hello@acmerobotics.com", right: "Warming up", badge: "Day 6" },
+          { left: "sales@acmerobotics.com", right: "Active" },
+        ]} />
+      </MockPanel>
+    ),
+  },
+  {
+    title: "Build campaigns inside the workspace",
+    youDo: "Create sequences, upload leads and launch campaigns as usual.",
+    weHandle: "Every campaign, lead list, reply and report is written to this workspace only and is invisible from any other workspace.",
+    youGet: "A campaign history and pipeline that belongs entirely to this one client.",
+    visual: (
+      <MockPanel title="Campaigns — Acme Robotics">
+        <MockRows rows={[
+          { left: "Q3 Outbound — Manufacturing", right: "Active", badge: "412 leads" },
+          { left: "Warm re-engagement", right: "Draft" },
+        ]} />
+      </MockPanel>
+    ),
+  },
+  {
+    title: "Switch between clients instantly",
+    youDo: "Pick a different workspace from the switcher whenever you move between clients.",
+    weHandle: "The dashboard, inbox, campaigns and reporting reload to show only that workspace's data — no logging out required.",
+    youGet: "The ability to run five or fifty client accounts from one login without ever mixing them up.",
+    visual: (
+      <MockPanel title="Active workspace">
+        <MockRows rows={[
+          { left: "Acme Robotics", right: "Admin", badge: "Current" },
+          { left: "Fenwick Logistics", right: "Owner" },
+          { left: "Northstar Legal", right: "Member" },
         ]} />
       </MockPanel>
     ),
@@ -104,66 +145,160 @@ const solutionRows = [
 ];
 
 const features = [
-  { icon: Building2, title: "Isolated data", text: "Leads, campaigns, mailboxes and replies never cross workspace boundaries." },
-  { icon: Users, title: "Granular roles", text: "Owner, Admin, Campaign Manager, Inbox Manager, Analyst and Client Viewer." },
-  { icon: KeyRound, title: "Email invitations", text: "Invite teammates or clients by email with a role attached to the invite." },
-  { icon: Mail, title: "Per-workspace mailboxes", text: "Each client sends from their own domains and providers." },
-  { icon: Lock, title: "Row-level security", text: "Access is enforced in the database, not just in the interface." },
-  { icon: SlidersHorizontal, title: "Workspace settings", text: "Branding, tracking domain, sending limits and suppression lists per workspace." },
+  { icon: Building2, title: "Isolated client workspaces", text: "Every client's campaigns, leads, mailboxes and conversations live in a separate workspace with nothing shared by default." },
+  { icon: Users, title: "Owner, Admin and Member roles", text: "Three built-in roles control exactly who can manage settings, invite people, or just work in campaigns and the inbox." },
+  { icon: KeyRound, title: "Email invitations with roles attached", text: "Invite a teammate or a client by email and their role is set before they ever log in." },
+  { icon: Mail, title: "Per-workspace mailbox separation", text: "Each client's sending accounts, warmup progress and domains are tracked independently of every other workspace." },
+  { icon: Lock, title: "Data-layer isolation", text: "Access is enforced where the data lives, so a workspace boundary can't be bypassed by a misconfigured screen." },
+  { icon: SlidersHorizontal, title: "Per-workspace settings", text: "Name, slug, logo, timezone and sending window are all configured individually for each client workspace." },
+  { icon: Megaphone, title: "Campaign separation", text: "Sequences, templates in use and send history stay attached to the workspace that created them." },
+  { icon: History, title: "Team activity tracking", text: "Invitations, role changes and removals are visible so you always know who currently has access." },
+  { icon: LogOut, title: "Instant workspace switching", text: "Move between client accounts from a single switcher without signing out or re-authenticating." },
+  { icon: Palette, title: "Client-facing branding", text: "Give a workspace its own name and logo so a client viewing their dashboard sees their own identity, not yours." },
+  { icon: Clock, title: "Independent sending schedules", text: "Set sending days and hours per workspace so each client's outreach follows their own business hours." },
+  { icon: CreditCard, title: "Usage visibility per workspace", text: "Sending volume and mailbox counts are reported per workspace, so you can see what each client is actually using." },
 ];
 
-const steps = [
-  { title: "Create a workspace", text: "Name it after the client and pick a slug." },
-  { title: "Invite the team", text: "Send role-scoped invitations to teammates and the client." },
-  { title: "Connect providers", text: "Add the client's mailboxes and warm them up." },
-  { title: "Switch instantly", text: "Move between workspaces from the sidebar without logging out." },
+const workflowSteps = [
+  { title: "Sign in once", text: "Log into MunchReach with your single account." },
+  { title: "Pick a workspace", text: "Choose the client you're working on from the switcher." },
+  { title: "Manage the team", text: "Invite or remove people with a role scoped to this workspace." },
+  { title: "Connect mailboxes", text: "Add and warm up sending accounts for this client only." },
+  { title: "Run campaigns", text: "Build sequences and launch outreach inside the workspace." },
+  { title: "Work replies in context", text: "Handle inbox and pipeline without any cross-client noise." },
+  { title: "Report back to the client", text: "Share results scoped to their workspace, or invite them to view it directly." },
+  { title: "Switch and repeat", text: "Move to the next client's workspace in one click." },
 ];
 
-const stats = [
-  { value: "6", label: "Built-in role types" },
-  { value: "Unlimited", label: "Workspaces per account" },
-  { value: "0", label: "Cross-workspace data leaks by design" },
-  { value: "<1 min", label: "To offboard a teammate everywhere" },
+const useCases = [
+  { icon: Building2, audience: "Agencies running multiple clients", scenario: "You manage outbound for a dozen clients and can't risk one seeing another's leads.", outcome: "Each client fully isolated under one login." },
+  { icon: Users, audience: "In-house teams with contractors", scenario: "You bring in freelance SDRs for a quarter and need to grant, then fully revoke, access.", outcome: "Scoped roles and instant offboarding." },
+  { icon: KeyRound, audience: "Clients who want visibility", scenario: "A client wants to check on progress without emailing you for a screenshot.", outcome: "A Member invite to their own workspace only." },
+  { icon: FolderKanban, audience: "Multi-brand companies", scenario: "You run outreach for several product lines or regional entities from one org.", outcome: "Separate workspaces per brand, one bill." },
+  { icon: Mail, audience: "Teams protecting sender reputation", scenario: "One client's aggressive sending shouldn't affect another client's deliverability.", outcome: "Mailboxes and warmup isolated per workspace." },
+  { icon: ShieldAlert, audience: "Compliance-conscious teams", scenario: "You need to prove a client's data was never visible to unrelated staff.", outcome: "Access enforced at the data layer, not just hidden." },
 ];
+
+const docGroups = [
+  {
+    title: "Clients & data isolation",
+    items: [
+      "Each workspace holds its own campaigns, leads, mailboxes and conversations",
+      "Data access is enforced at the database layer, not just hidden in the interface",
+      "A campaign or mailbox created in one workspace never appears in another",
+      "Workspaces can be created and deleted independently without affecting others",
+    ],
+  },
+  {
+    title: "Team, roles & permissions",
+    items: [
+      "Owner, Admin and Member roles control exactly what each person can do",
+      "Owners hold full control including billing visibility and workspace deletion",
+      "Admins manage settings, sending accounts and team membership",
+      "Members work inside campaigns, inbox and CRM without touching settings",
+      "Invitations carry a role from the moment they're sent",
+    ],
+  },
+  {
+    title: "Settings & billing scope",
+    items: [
+      "Name, slug, logo, timezone and sending window are configured per workspace",
+      "Sending volume and mailbox usage are reported at the workspace level",
+      "Billing and plan management sit at the account level across all workspaces",
+      "Workspace deletion is restricted to owners and is permanent",
+    ],
+  },
+];
+
+const details = [
+  "Unlimited workspaces on a single MunchReach account",
+  "Workspace switcher changes campaigns, inbox and reporting instantly",
+  "Role changes take effect immediately, no re-login required",
+  "Each workspace has its own logo, name and slug for client-facing views",
+  "Sending days and hours are set independently per workspace",
+  "Mailboxes, warmup and suppression lists never cross workspace boundaries",
+  "Removing a teammate revokes access to that workspace only",
+  "Workspace deletion is owner-only and cannot be undone",
+  "Campaign, lead and mailbox counts are visible per workspace for reporting",
+];
+
+const beforeAfter = {
+  before: [
+    "Every client's leads and mailboxes sit in one undivided account",
+    "Offboarding means hunting down access across shared logins",
+    "Clients need a screenshot instead of their own login",
+    "Sending reputation for one client can affect another's",
+    "Client updates mean copy-pasting numbers into a report",
+  ],
+  after: [
+    "Each client's data lives in its own isolated workspace",
+    "Removing someone revokes access to that workspace immediately",
+    "Clients can log in and see only their own workspace",
+    "Mailboxes and warmup stay separate per client",
+    "Clients can view their real dashboard directly, live",
+  ],
+};
 
 function Page() {
   return (
     <MarketingLayout>
       <PageHero
-        eyebrow={"Workspaces"}
-        title={"Separate workspaces for every"}
-        highlight={"client and team"}
-        description={"Agencies run dozens of clients from one login. Each workspace has its own mailboxes, leads, campaigns, members and reporting, with strict data isolation."}
-        secondaryCta="Explore Workspaces"
-        secondaryHref="#product"
+        eyebrow="Workspaces"
+        title="A clean, separate workspace for"
+        highlight="every client and team"
+        description="Run every client's outreach from one login while their leads, mailboxes, campaigns and team access stay completely separate — enforced at the data layer, not just the interface."
+        benefits={["Isolated client data", "Owner, Admin and Member roles", "Per-workspace mailboxes and settings"]}
+        secondaryCta="See How It Works"
+        secondaryHref="#how-it-works"
       />
       <BigPreview
-        eyebrow="Workspace preview"
-        title="Built for teams and agencies"
-        description="Client separation, roles and per-workspace reporting."
+        id="product"
+        eyebrow="Workspace switcher"
+        title="Switch clients without switching accounts"
+        description="Every workspace keeps its own team, mailboxes, campaigns and settings."
       >
-        <div className="p-4 sm:p-6">{solutionRows[0]?.visual}</div>
+        <div className="p-4 sm:p-6">
+          <MockPanel title="Workspaces">
+            <MockRows rows={[
+              { left: "Acme Robotics", right: "Admin", badge: "Current" },
+              { left: "Fenwick Logistics", muted: "6 members", right: "Owner" },
+              { left: "Northstar Legal", muted: "2 members", right: "Member" },
+            ]} />
+          </MockPanel>
+        </div>
       </BigPreview>
-      <Section title="How MunchReach solves it" description="A workspace boundary for every client, enforced everywhere.">
-        <SolutionSplit rows={solutionRows} />
+      <Section title="Why one account for every client falls apart">
+        <PainPoints items={pains} />
+      </Section>
+      <Section id="how-it-works" title="How workspaces work" description="From new client to running campaigns, fully separated from everyone else.">
+        <Walkthrough steps={walkthroughSteps} />
       </Section>
       <Section title="What you get" description="Everything below is included on every plan.">
         <FeatureBento items={features} />
       </Section>
-      <Section title="How it works" muted>
-        <StepList steps={steps} />
+      <Section title="A day running multiple clients" muted>
+        <WorkflowStrip steps={workflowSteps} />
       </Section>
-      <Section>
-        <StatStrip stats={stats} />
+      <Section title="Who workspaces are built for">
+        <UseCaseGrid items={useCases} />
+      </Section>
+      <Section title="Deep capabilities" description="Everything workspaces control, grouped by what you're trying to protect.">
+        <DocSection groups={docGroups} />
+      </Section>
+      <Section title="Details that matter" muted>
+        <BulletList items={details} />
+      </Section>
+      <Section title="Before and after" description="What changes once every client has its own workspace.">
+        <BeforeAfter before={beforeAfter.before} after={beforeAfter.after} />
       </Section>
       <TestimonialCarousel page="workspaces" title="Agencies running MunchReach" />
-      <Section title="Details that matter">
-        <BulletList items={["Unlimited workspaces per account", "Role changes take effect immediately", "Client viewers see reporting only", "Audit trail of member and role changes", "Per-workspace suppression and do-not-contact lists", "Transfer ownership without downtime"]} />
-      </Section>
       <Section muted>
         <PageFaqs page="workspaces" defaults={faqs} />
       </Section>
-      <CtaBlock title={"Run every client from one account"} description={"Isolated workspaces, clear roles and reporting your clients can trust."} />
+      <CtaBlock
+        title="Give every client their own clean workspace"
+        description="Separate data, separate teams, separate mailboxes — all run from one account you control."
+      />
     </MarketingLayout>
   );
 }
