@@ -275,10 +275,12 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         state,
         block_reason: blockReason,
         pause_kind: pauseKind,
-        resumable: pauseKind !== "bounce_safety" &&
-          pauseKind !== "complaint_safety" &&
-          pauseKind !== "provider_failure" &&
-          pauseKind !== "disabled",
+        resumable,
+        safety_active: safetyActive,
+        safety_stale: snapshot.stale,
+        safety_metrics: snapshot.metrics,
+        next_evaluation_at: snapshot.nextEvaluationAt,
+
         failed_today: (stat?.["failed"] as number) ?? 0,
         delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
         ramp_day: rampDay,
