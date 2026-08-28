@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { campaignScheduleState, isInSendWindow, nextSendSlot, windowStartAt } from "@/lib/campaign-schedule";
 import { campaignRunStatus, nextRunAt } from "@/lib/campaign-run-state";
-import { campaignDispatchSchedule } from "@/lib/dispatch.server";
+import { campaignDispatchSchedule, isMessageDispatchEligible } from "@/lib/dispatch.server";
 
 // 7:00 PM – 11:00 PM Asia/Dubai (UTC+4, no DST) => 15:00–19:00 UTC, every day.
 const dubai = {
@@ -11,7 +11,34 @@ const dubai = {
   endHour: 23,
 };
 
+const dubaiEightPm = { ...dubai, startHour: 20 };
+
 describe("configured window start (no drift)", () => {
+  test.each([
+    ["20:00", "2026-08-28T16:00:00Z"],
+    ["20:01", "2026-08-28T16:01:00Z"],
+    ["20:04", "2026-08-28T16:04:00Z"],
+  ])("a queued message is dispatch-eligible at %s Dubai", (_label, iso) => {
+    const now = new Date(iso);
+    const schedule = campaignDispatchSchedule(now, dubaiEightPm);
+    expect(schedule.inWindow).toBe(true);
+    expect(schedule.eligibleWindowStart.toISOString()).toBe("2026-08-28T16:00:00.000Z");
+    expect(
+      isMessageDispatchEligible(
+        { status: "scheduled", scheduledAt: new Date("2026-08-28T16:00:00Z") },
+        now,
+        dubaiEightPm,
+      ),
+    ).toBe(true);
+  });
+
+  test("does not defer to tomorrow after the 20:00 Dubai window opens", () => {
+    const now = new Date("2026-08-28T16:04:00Z");
+    const schedule = campaignDispatchSchedule(now, dubaiEightPm);
+    expect(schedule.eligibleWindowStart.toISOString()).toBe("2026-08-28T16:00:00.000Z");
+    expect(schedule.eligibleWindowStart.toISOString()).not.toBe("2026-08-29T16:00:00.000Z");
+  });
+
   test.each([
     ["19:00", "2026-08-26T15:00:00Z"],
     ["19:04", "2026-08-26T15:04:00Z"],

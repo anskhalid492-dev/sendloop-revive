@@ -49,6 +49,26 @@ export type DispatchResult = {
   errors: string[];
 };
 
+type DispatchDiagnostic = {
+  campaignId: string;
+  now: string;
+  timezone?: string;
+  windowStart?: string;
+  windowEnd?: string;
+  inWindow?: boolean;
+  eligibleMessages?: number;
+  selectedMessages?: number;
+  messageId?: string;
+  mailboxId?: string | null;
+  mailboxEligible?: boolean;
+  reason?: string;
+  providerResult?: "accepted" | "rejected" | "error";
+};
+
+function logDispatchDiagnostic(event: DispatchDiagnostic) {
+  console.info("campaign-dispatch-diagnostic", JSON.stringify(event));
+}
+
 export function emptyResult(): DispatchResult {
   return { processed: 0, sent: 0, failed: 0, skipped: 0, scheduled: 0, errors: [] };
 }
@@ -56,6 +76,19 @@ export function emptyResult(): DispatchResult {
 /** Pure scheduling decision used by the dispatcher and parity regression tests. */
 export function campaignDispatchSchedule(now: Date, window: ScheduleWindow) {
   return campaignScheduleState(now, window);
+}
+
+/** Pure parity check for the database due-message filter at a scheduler tick. */
+export function isMessageDispatchEligible(
+  message: { status: string; scheduledAt: Date | null },
+  now: Date,
+  window: ScheduleWindow,
+): boolean {
+  return (
+    campaignDispatchSchedule(now, window).inWindow &&
+    ["pending", "scheduled"].includes(message.status) &&
+    (!message.scheduledAt || message.scheduledAt.getTime() <= now.getTime())
+  );
 }
 
 type StepRow = {
@@ -605,16 +638,23 @@ export async function dispatchDueMessages(
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
-  if (!campaignRow) return result;
+  if (!campaignRow) {
+    logDispatchDiagnostic({ campaignId: options.campaignId, now: now.toISOString(), reason: "campaign_not_found" });
+    return result;
+  }
 
   // Self-heal FIRST, before any status/window gate: a paused or limit-reached
   // campaign must never leave provider-accepted messages stuck in `processing`.
   await completeAcceptedProcessingMessages(supabase, options.campaignId, now);
 
-  if (!options.force && !["active", "scheduled"].includes(campaignRow.status)) return result;
+  if (!options.force && !["active", "scheduled"].includes(campaignRow.status)) {
+    logDispatchDiagnostic({ campaignId: options.campaignId, now: now.toISOString(), reason: `campaign_status_${campaignRow.status}` });
+    return result;
+  }
 
   const startAt = campaignRow.start_at ? new Date(campaignRow.start_at) : null;
   if (!options.force && startAt && !Number.isNaN(startAt.getTime()) && startAt.getTime() > now.getTime()) {
+    logDispatchDiagnostic({ campaignId: options.campaignId, now: now.toISOString(), reason: "campaign_start_at_future" });
     return result;
   }
   if (!options.force && campaignRow.status === "scheduled") {
@@ -624,11 +664,20 @@ export async function dispatchDueMessages(
   const endAt = campaignRow.end_at ? new Date(campaignRow.end_at) : null;
   if (!options.force && endAt && !Number.isNaN(endAt.getTime()) && endAt.getTime() <= now.getTime()) {
     await supabase.from("campaigns").update({ status: "completed" }).eq("id", options.campaignId).eq("status", "active");
+    logDispatchDiagnostic({ campaignId: options.campaignId, now: now.toISOString(), reason: "campaign_end_at_reached" });
     return result;
   }
 
   const window = campaignWindow(campaignRow as CampaignDispatchRow);
   const dispatchSchedule = campaignDispatchSchedule(now, window);
+  const diagnosticBase: DispatchDiagnostic = {
+    campaignId: options.campaignId,
+    now: now.toISOString(),
+    timezone: window.timezone,
+    windowStart: dispatchSchedule.eligibleWindowStart.toISOString(),
+    windowEnd: `${campaignRow.send_end_hour}:00`,
+    inWindow: dispatchSchedule.inWindow,
+  };
   if (!dispatchSchedule.inWindow) {
     // Always the configured window START of the next sending day — never now,
     // never the previous run's finish time.
@@ -640,6 +689,7 @@ export async function dispatchDueMessages(
       .in("status", ["pending", "scheduled"])
       .or(`scheduled_at.is.null,scheduled_at.lte.${now.toISOString()}`);
     result.errors.push(`Next sending window opens ${nextSlot}.`);
+    logDispatchDiagnostic({ ...diagnosticBase, reason: "outside_sending_window" });
     return result;
   }
 
@@ -659,7 +709,26 @@ export async function dispatchDueMessages(
   const { data: due, error } = await query;
   if (error) throw new Error(error.message);
 
-  if (!due?.length) return result;
+  if (!due?.length) {
+    const { count: queuedCount } = await supabase
+      .from("campaign_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", options.campaignId)
+      .in("status", ["pending", "scheduled"]);
+    logDispatchDiagnostic({
+      ...diagnosticBase,
+      eligibleMessages: 0,
+      selectedMessages: 0,
+      reason: Number(queuedCount ?? 0) > 0 ? "queued_messages_scheduled_in_future" : "no_queued_messages",
+    });
+    return result;
+  }
+  logDispatchDiagnostic({
+    ...diagnosticBase,
+    eligibleMessages: due.length,
+    selectedMessages: due.length,
+    reason: "messages_selected",
+  });
 
   // Campaign daily sending limit (campaigns.daily_cap): counted across every
   // email this campaign sends today, follow-ups included.
@@ -763,15 +832,18 @@ export async function dispatchDueMessages(
         .from("campaign_messages")
         .update({ status: "cancelled", last_error: `Recipient ${suppressionReason}` })
         .eq("id", message.id);
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: `recipient_suppressed_${suppressionReason}` });
       continue;
     }
 
     if (!account) {
       await fail("No mailbox assigned to this message.");
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: "mailbox_not_found" });
       continue;
     }
     if (account.paused || !account.customer_enabled || account.status === "disabled") {
       result.skipped += 1;
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_disabled" });
       continue;
     }
     // Whichever limit is lowest wins; the daily cap is checked before the
@@ -783,6 +855,7 @@ export async function dispatchDueMessages(
       // The run waits for the NEXT scheduled day's window start. The campaign
       // stays active: quota exhaustion never completes or pauses it.
       quotaDeferralSlot = dispatchSchedule.nextWindowStart.toISOString();
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "campaign_daily_quota_reached" });
       break;
     }
 
@@ -798,6 +871,7 @@ export async function dispatchDueMessages(
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached" });
       continue;
     }
 
@@ -830,6 +904,7 @@ export async function dispatchDueMessages(
         .from("campaign_messages")
         .update({ status: "scheduled", last_error: reached.slice(0, 500) })
         .eq("id", message.id);
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "campaign_lifetime_limit_reached" });
       break;
     }
 
@@ -849,6 +924,7 @@ export async function dispatchDueMessages(
           .from("campaign_messages")
           .update({ status: "pending", last_error: error.message.slice(0, 500) })
           .eq("id", message.id);
+        logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "workspace_plan_limit_reached" });
         continue;
       }
       throw error;
@@ -868,6 +944,7 @@ export async function dispatchDueMessages(
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "duplicate_claim");
       await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       result.skipped += 1;
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "message_claimed_by_another_runner" });
       continue;
     }
 
@@ -955,6 +1032,7 @@ export async function dispatchDueMessages(
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       await fail(error instanceof Error ? error.message : "Sending failed.");
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
       continue;
     }
 
@@ -963,6 +1041,7 @@ export async function dispatchDueMessages(
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
       await fail(send.message);
+      logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_rejected", providerResult: "rejected" });
       continue;
     }
 
@@ -986,6 +1065,7 @@ export async function dispatchDueMessages(
       attempts: (message.attempts ?? 0) + 1,
     };
     await applySentPatch(supabase, message.id, campaignMessagePatch);
+    logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_accepted", providerResult: "accepted" });
 
 
     try {

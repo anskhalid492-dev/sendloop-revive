@@ -206,7 +206,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         context.supabase
           .from("campaign_messages")
           .select(
-            "id, lead_id, status, delivery_status, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at",
+            "id, recipient_id, lead_id, status, delivery_status, scheduled_at, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at, last_event_at",
           )
           .eq("campaign_id", data.id)
           .order("id", { ascending: true }),
