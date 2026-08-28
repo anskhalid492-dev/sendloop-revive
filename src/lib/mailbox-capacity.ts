@@ -110,7 +110,7 @@ export function evaluateMailboxCapacity(
     dailyRemaining,
     sentThisHour,
     hourlyLimit,
-    hourlyRemaining: hourlyLimit > 0 ? Math.max(0, hourlyLimit - sentThisHour) : 0,
+    hourlyRemaining,
     available: reason === null,
     reason,
     reasonLabel,
