@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
 import { nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
   campaignLimitColumnsAvailable,
@@ -253,6 +254,46 @@ export const getCampaign = createServerFn({ method: "GET" })
       leadStates[state] = (leadStates[state] ?? 0) + 1;
     }
 
+    // ---- Current run (today) ------------------------------------------------
+    const campaignRow = campaign as unknown as Record<string, unknown>;
+    const runTimezone = String(campaignRow["timezone"] ?? "UTC");
+    const runNow = new Date();
+    const runDayStart = zonedStartOfDay(runNow, runTimezone);
+    const inRunDay = (value: unknown) => {
+      if (!value) return false;
+      const at = new Date(String(value)).getTime();
+      return Number.isFinite(at) && at >= runDayStart.getTime();
+    };
+    const sentTodayCount = sentMessages.filter((m) => inRunDay(m["sent_at"])).length;
+    const countToday = (
+      field: string,
+      extra?: (m: Record<string, string | null>) => boolean,
+    ) => messages.filter((m) => inRunDay(m[field]) && (extra ? extra(m) : true)).length;
+
+    const dailyQuota = Number(campaignRow["daily_cap"] ?? 0) || 0;
+    const runWindow = {
+      timezone: runTimezone,
+      sendDays: (campaignRow["send_days"] as number[] | null) ?? [1, 2, 3, 4, 5],
+      startHour: Number(campaignRow["send_start_hour"] ?? 9),
+      endHour: Number(campaignRow["send_end_hour"] ?? 17),
+    };
+    const runStatus = campaignRunStatus({
+      status: String(campaignRow["status"] ?? "draft"),
+      dailyQuota,
+      sentToday: sentTodayCount,
+      remainingRecipients: Math.max(0, totalRecipients - contactedLeads),
+      now: runNow,
+      window: runWindow,
+    });
+    const retryableFailureCount = messages.filter(
+      (m) =>
+        m["status"] === "failed" &&
+        !m["sent_at"] &&
+        !m["bounced_at"] &&
+        isRetryableFailure(m["last_error"] ?? null),
+    ).length;
+
+
     return {
       campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
       steps,
@@ -301,19 +342,29 @@ export const getCampaign = createServerFn({ method: "GET" })
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
-        sentToday: (() => {
-          const dayStart = zonedStartOfDay(
-            new Date(),
-            String((campaign as unknown as Record<string, unknown>)["timezone"] ?? "UTC"),
-          );
-          return sentMessages.filter((m) => {
-            const at = m["sent_at"];
-            return at ? new Date(at).getTime() >= dayStart.getTime() : false;
-          }).length;
-        })(),
+        sentToday: sentTodayCount,
+      },
+      // Today's engagement, strictly separate from the lifetime numbers above.
+      today: {
+        sent: sentTodayCount,
+        delivered: countToday("delivered_at", (m) => !m["bounced_at"] && m["delivery_status"] !== "failed"),
+        opened: countToday("opened_at"),
+        clicked: countToday("clicked_at"),
+        replied: countToday("replied_at"),
+        bounced: countToday("bounced_at"),
+        failed: countToday("failed_at", (m) => !m["bounced_at"]),
+      },
+      // Current run: quota, capacity and the next scheduled run. Reaching the
+      // daily quota is never "paused" and never "completed".
+      run: {
+        ...runStatus,
+        dailyQuota,
+        sentThisRun: sentTodayCount,
+        retryableFailures: retryableFailureCount,
       },
     };
   });
+
 
 
 export type CampaignLeadFields = {

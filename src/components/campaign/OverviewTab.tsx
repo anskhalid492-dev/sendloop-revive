@@ -103,7 +103,7 @@ function MiniStat({
 }
 
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
-  const { campaign, queue, delivery, steps, accounts, settings, leads } = builder;
+  const { campaign, queue, delivery, today, run, steps, accounts, settings, leads } = builder;
   if (!campaign || !settings) return null;
 
   const selected = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
@@ -308,9 +308,16 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Today / current run
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Today / current run
+              </p>
+              {run ? (
+                <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium">
+                  {run.label}
+                </span>
+              ) : null}
+            </div>
             <div className="mt-2 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
               <MiniStat
                 label="Sent today"
@@ -322,8 +329,8 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                 value={eligibleToday}
                 hint={
                   dailyLimit > 0
-                    ? `Daily limit ${dailyLimit.toLocaleString()}`
-                    : "No campaign daily limit"
+                    ? `Daily quota ${dailyLimit.toLocaleString()}`
+                    : "No campaign daily quota"
                 }
               />
               <MiniStat label="Scheduled" value={delivery?.scheduled ?? 0} hint="Queued to send" />
@@ -332,17 +339,39 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                 value={delivery?.processing ?? 0}
                 hint="Handed to the provider"
               />
+              <MiniStat label="Delivered today" value={today?.delivered ?? 0} />
+              <MiniStat label="Opened today" value={today?.opened ?? 0} hint="Unique recipients" />
+              <MiniStat label="Clicked today" value={today?.clicked ?? 0} hint="Unique recipients" />
+              <MiniStat label="Replied today" value={today?.replied ?? 0} hint="Unique recipients" />
             </div>
+            {run ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {run.state === "daily_quota_reached"
+                  ? "Daily quota reached — the campaign is not paused and resumes automatically."
+                  : run.state === "waiting_for_next_run"
+                    ? "Outside the sending window."
+                    : run.state === "running"
+                      ? "Inside the sending window."
+                      : null}
+                {run.nextRunAt
+                  ? ` Next run ${new Date(run.nextRunAt).toLocaleString()}.`
+                  : ""}
+                {run.retryableFailures > 0
+                  ? ` ${run.retryableFailures.toLocaleString()} retryable failure(s) will be re-attempted on the next run.`
+                  : ""}
+              </p>
+            ) : null}
             <p className="mt-2 text-[11px] text-muted-foreground">
+
               Mailbox capacity is separate: {dailyUsed.toLocaleString()} of{" "}
               {dailyCapacity.toLocaleString()} sends used in the current rolling 12-hour mailbox
               window.
             </p>
           </div>
         </div>
-        {campaign.status === "paused" && campaign.limit_reached_at ? (
+        {["paused", "completed"].includes(campaign.status) && campaign.limit_reached_at ? (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
-            This campaign paused automatically because it reached its total send limit of{" "}
+            This campaign stopped automatically because it reached its total send limit of{" "}
             <span className="font-semibold tabular-nums">
               {Number(campaign.email_send_limit ?? 0).toLocaleString()}
             </span>{" "}

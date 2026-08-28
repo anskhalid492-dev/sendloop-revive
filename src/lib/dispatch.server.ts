@@ -8,6 +8,8 @@
  *    the next email step once its delay has elapsed.
  */
 import { isInSendWindow, nextSendSlot, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { isRetryableFailure } from "@/lib/campaign-run-state";
+
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import { stripAngle } from "@/lib/inbox-model";
 import {
@@ -780,18 +782,22 @@ export async function dispatchDueMessages(
       const reached = `Campaign email limit reached (${reservation.data?.sent ?? 0} of ${reservation.data?.limit ?? 0} emails sent).`;
       result.skipped += 1;
       if (result.errors.length < 5) result.errors.push(reached);
+      // The configured total allowance is exhausted. This is an explicit
+      // customer-set ceiling, so the campaign is COMPLETED — never "paused" —
+      // and the untouched message stays queued so raising the limit resumes it
+      // instead of silently discarding the recipient.
       await supabase
         .from("campaign_messages")
-        .update({ status: "cancelled", last_error: reached.slice(0, 500) })
+        .update({ status: "scheduled", last_error: reached.slice(0, 500) })
         .eq("id", message.id);
-      // Stop the campaign so nothing else is attempted for it.
       await supabase
         .from("campaigns")
-        .update({ status: "paused" })
+        .update({ status: "completed" })
         .eq("id", message.campaign_id)
         .eq("status", "active");
       break;
     }
+
 
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
@@ -812,7 +818,23 @@ export async function dispatchDueMessages(
       throw error;
     }
 
-    await supabase.from("campaign_messages").update({ status: "processing" }).eq("id", message.id);
+    // Scheduler idempotency: claim the row by transitioning it out of the
+    // queued states. Two overlapping runner invocations therefore cannot both
+    // send the same message — the loser's update matches zero rows.
+    const claim = await supabase
+      .from("campaign_messages")
+      .update({ status: "processing" })
+      .eq("id", message.id)
+      .in("status", ["pending", "scheduled"])
+      .select("id");
+    if (!claim.error && Array.isArray(claim.data) && claim.data.length === 0) {
+      // Already claimed by a concurrent run: give the reservations back.
+      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "duplicate_claim");
+      await supabaseAdmin.rpc("release_campaign_send", { _campaign_id: message.campaign_id as string });
+      result.skipped += 1;
+      continue;
+    }
+
 
     // Keep the customer-visible Reply-To professional. A backend route record is
     // still created for audit/back-compat, while clean-address replies thread by
@@ -979,6 +1001,8 @@ export type RetryableMessageRow = {
   attempts: number | null;
   sent_at: string | null;
   bounced_at?: string | null;
+  last_error?: string | null;
+  provider_message_id?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
 };
@@ -986,8 +1010,9 @@ export type RetryableMessageRow = {
 /**
  * Pure selection of failed messages that may be retried on a later sending day.
  *
- * Never returns a message that was accepted (`sent_at`), bounced, cancelled or
- * already spent its attempts, so an accepted email can never be resent.
+ * Never returns a message that was accepted (`sent_at`/`provider_message_id`),
+ * bounced, cancelled, permanently rejected or already out of attempts — so an
+ * accepted email can never be resent and a hard failure is never retried.
  */
 export function selectRetryableMessages(
   rows: RetryableMessageRow[],
@@ -997,8 +1022,10 @@ export function selectRetryableMessages(
   return rows.filter((row) => {
     if (row.status !== "failed") return false;
     if (row.sent_at) return false;
+    if (row.provider_message_id) return false;
     if (row.bounced_at) return false;
     if ((row.attempts ?? 0) >= maxAttempts) return false;
+    if (!isRetryableFailure(row.last_error ?? null)) return false;
     const last = row.updated_at ?? row.created_at ?? null;
     if (!last) return false;
     const at = new Date(last).getTime();
@@ -1006,6 +1033,7 @@ export function selectRetryableMessages(
     return Number.isFinite(at) && at < dayStart.getTime();
   });
 }
+
 
 /**
  * Re-queues previous days' failed messages at the campaign's next configured
@@ -1029,7 +1057,7 @@ export async function requeueRetryableMessages(
   const dayStart = zonedStartOfDay(now, campaign.timezone || "UTC");
   const { data: rows } = await supabase
     .from("campaign_messages")
-    .select("id, status, attempts, sent_at, bounced_at, updated_at, created_at")
+    .select("id, status, attempts, sent_at, bounced_at, last_error, provider_message_id, updated_at, created_at")
     .eq("campaign_id", campaignId)
     .eq("status", "failed")
     .is("sent_at", null)
