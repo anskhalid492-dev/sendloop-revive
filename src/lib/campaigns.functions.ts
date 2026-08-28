@@ -282,9 +282,12 @@ export const getCampaign = createServerFn({ method: "GET" })
       dailyQuota,
       sentToday: sentTodayCount,
       remainingRecipients: Math.max(0, totalRecipients - contactedLeads),
+      lifetimeLimit: Number(campaignRow["email_send_limit"] ?? 0) || 0,
+      lifetimeSent: sentMessages.length,
       now: runNow,
       window: runWindow,
     });
+
     const retryableFailureCount = messages.filter(
       (m) =>
         m["status"] === "failed" &&
