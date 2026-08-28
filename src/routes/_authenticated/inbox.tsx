@@ -2,16 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCheck, Inbox as InboxIcon, Menu, PenSquare, Trash2 } from "lucide-react";
+import {
+  CheckCheck,
+  Inbox as InboxIcon,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PenSquare,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,6 +96,7 @@ function Page() {
   const removeDraft = useServerFn(deleteDraft);
 
 
+  const [navOpen, setNavOpen] = useState(true);
   const [folder, setFolder] = useState<InboxFolder>("inbox");
   const [tab, setTab] = useState<"primary" | "other">("primary");
   const [searchInput, setSearchInput] = useState("");
@@ -370,8 +374,8 @@ function Page() {
   );
 
   return (
-    <AppShell title="Unified Inbox">
-      <div className="flex h-[calc(100vh-8rem)] min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <AppShell title="Unified Inbox" contentClassName="px-0 py-0">
+      <div className="flex h-[calc(100vh-4rem)] min-h-0 w-full flex-col overflow-hidden border-t border-border bg-card">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2 lg:hidden">
           <Sheet open={foldersOpen} onOpenChange={setFoldersOpen}>
             <SheetTrigger asChild>
@@ -453,25 +457,31 @@ function Page() {
 
           return (
             <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-              {/* Desktop: three resizable panes so the reading pane can take all remaining width. */}
-              <ResizablePanelGroup
-                orientation="horizontal"
-                className="hidden min-h-0 lg:flex"
-              >
-                <ResizablePanel id="nav" defaultSize="16" minSize="12" maxSize="24">
-                  {navPane}
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel id="list" defaultSize="24" minSize="16" maxSize="40">
-                  <div className="h-full min-h-0 min-w-0">
-                    {folder === "drafts" ? draftsPane : listPane}
-                  </div>
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel id="reading" defaultSize="60" minSize="30">
-                  <div className="h-full min-h-0 min-w-0">{readingPane}</div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
+              {/* Desktop: fixed nav + list, conversation takes all remaining width. */}
+              <div className="hidden min-h-0 w-full lg:flex">
+                {navOpen ? (
+                  <div className="h-full w-[240px] shrink-0">{navPane}</div>
+                ) : null}
+                <div className="h-full w-[340px] min-w-0 shrink-0 xl:w-[360px]">
+                  {folder === "drafts" ? draftsPane : listPane}
+                </div>
+                <div className="relative h-full min-h-0 min-w-0 flex-1 border-l border-border">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-1 top-1 z-10 h-7 w-7"
+                    aria-label={navOpen ? "Hide folders sidebar" : "Show folders sidebar"}
+                    onClick={() => setNavOpen((v) => !v)}
+                  >
+                    {navOpen ? (
+                      <PanelLeftClose className="h-4 w-4" />
+                    ) : (
+                      <PanelLeftOpen className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <div className="h-full min-h-0 min-w-0 pl-8">{readingPane}</div>
+                </div>
+              </div>
 
               {/* Tablet and mobile: list and reading pane swap in place. */}
               <div className="flex min-h-0 min-w-0 flex-1 lg:hidden">
@@ -488,6 +498,7 @@ function Page() {
               </div>
             </div>
           );
+
         })()}
 
       </div>

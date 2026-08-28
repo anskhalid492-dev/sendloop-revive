@@ -117,12 +117,15 @@ export function AppShell({
   description,
   actions,
   children,
+  contentClassName,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
+  contentClassName?: string;
 }) {
+
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -344,7 +347,7 @@ export function AppShell({
 
         <>
           <AnnouncementBar />
-          <main className="px-4 py-8 sm:px-6">{children}</main>
+          <main className={contentClassName ?? "px-4 py-8 sm:px-6"}>{children}</main>
         </>
       </div>
     </div>
