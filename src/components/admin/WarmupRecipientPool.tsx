@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Ban, CheckCircle2, History, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -35,6 +36,7 @@ import {
   adminAddWarmupRecipient,
   adminImportWarmupRecipients,
   adminListWarmupPool,
+  adminWarmupRecipientBulk,
   adminWarmupRecipientControl,
   adminWarmupRecipientHistory,
 } from "@/lib/warmup-pool.functions";
@@ -46,11 +48,13 @@ export function WarmupRecipientPool() {
   const addFn = useServerFn(adminAddWarmupRecipient);
   const controlFn = useServerFn(adminWarmupRecipientControl);
   const historyFn = useServerFn(adminWarmupRecipientHistory);
+  const bulkFn = useServerFn(adminWarmupRecipientBulk);
 
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const poolQuery = useQuery({
@@ -101,6 +105,19 @@ export function WarmupRecipientPool() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const bulkMutation = useMutation({
+    mutationFn: (action: "enable" | "disable" | "remove") =>
+      bulkFn({ data: { ids: selected, action } }),
+    onSuccess: async (r: { affected: number }, action) => {
+      toast.success(
+        `${action === "remove" ? "Removed" : action === "enable" ? "Enabled" : "Disabled"} ${r.affected} recipient(s)`,
+      );
+      setSelected([]);
+      await refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const historyQuery = useQuery({
     queryKey: ["admin", "warmup-pool", "history", historyId],
     queryFn: () => historyFn({ data: { id: historyId! } }),
@@ -116,6 +133,15 @@ export function WarmupRecipientPool() {
 
   const data = poolQuery.data;
   const rows = data?.recipients ?? [];
+  const selectedSet = new Set(selected);
+  const visibleIds = rows.map((r) => r.id);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedSet.has(id));
+  const someSelected = selected.length > 0;
+
+  const toggleAll = (checked: boolean) =>
+    setSelected(checked ? visibleIds : []);
+  const toggleOne = (id: string, checked: boolean) =>
+    setSelected((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
 
   return (
     <div className="space-y-5">
@@ -170,6 +196,41 @@ export function WarmupRecipientPool() {
 
       <SearchInput value={search} onChange={setSearch} placeholder="Search recipient" />
 
+      {someSelected ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 p-3">
+          <span className="text-sm font-medium">{selected.length} selected</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkMutation.isPending}
+              onClick={() => bulkMutation.mutate("enable")}
+            >
+              <CheckCircle2 className="mr-1.5 size-3.5" /> Enable
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkMutation.isPending}
+              onClick={() => bulkMutation.mutate("disable")}
+            >
+              <Ban className="mr-1.5 size-3.5" /> Disable
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={bulkMutation.isPending}
+              onClick={() => bulkMutation.mutate("remove")}
+            >
+              <Trash2 className="mr-1.5 size-3.5" /> Remove
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="rounded-xl border bg-card">
         {poolQuery.isLoading ? (
           <LoadingRows />
@@ -181,6 +242,13 @@ export function WarmupRecipientPool() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(v) => toggleAll(v === true)}
+                    aria-label="Select all recipients"
+                  />
+                </TableHead>
                 <TableHead>Recipient</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Sent</TableHead>
@@ -193,7 +261,14 @@ export function WarmupRecipientPool() {
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow key={r.id} data-state={selectedSet.has(r.id) ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedSet.has(r.id)}
+                      onCheckedChange={(v) => toggleOne(r.id, v === true)}
+                      aria-label={`Select ${r.email}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <p className="font-medium">{r.email}</p>
                     <p className="text-xs text-muted-foreground">

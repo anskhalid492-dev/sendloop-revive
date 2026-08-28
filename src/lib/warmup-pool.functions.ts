@@ -78,3 +78,21 @@ export const adminWarmupRecipientHistory = createServerFn({ method: "GET" })
     const { warmupRecipientHistory } = await import("./warmup-pool.server");
     return warmupRecipientHistory(data.id);
   });
+
+/** Admin: bulk enable, disable or remove warmup recipients. */
+export const adminWarmupRecipientBulk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        ids: z.array(uuid).min(1).max(5000),
+        action: z.enum(["enable", "disable", "remove"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { bulkWarmupRecipients } = await import("./warmup-pool.server");
+    return bulkWarmupRecipients(data.ids, data.action);
+  });
