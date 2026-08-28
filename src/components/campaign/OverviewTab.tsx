@@ -1,5 +1,4 @@
 import {
-  Activity,
   CircleAlert,
   Gauge,
   Mail,
@@ -7,36 +6,16 @@ import {
   Reply,
   Send,
   ShieldAlert,
-  Users,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  LEAD_DELIVERY_LABELS,
-  LEAD_DELIVERY_STYLES,
-  STEP_TYPE_LABELS,
-  type LeadDeliveryState,
-} from "@/lib/campaign-model";
+import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { cn } from "@/lib/utils";
 import { LaunchAuditTrail } from "./LaunchAuditTrail";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
-/** Compact "2m ago" style stamp so the feed reads as live. */
-function relativeTime(value: string | null | undefined) {
-  if (!value) return "—";
-  const then = new Date(value).getTime();
-  if (Number.isNaN(then)) return "—";
-  const seconds = Math.round((Date.now() - then) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(value).toLocaleDateString();
-}
+
 
 function rate(part: number, total: number) {
   if (!total) return null;
@@ -148,21 +127,6 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   ];
   const funnelTotal = funnel.reduce((sum, f) => sum + f.value, 0);
 
-  // Feed the activity list from the live per-lead delivery state (real message
-  // events), not the recipient row status, so opens/bounces show up instantly.
-  const recentActivity = leads
-    .filter(
-      (l) =>
-        Boolean(l.lastEventAt) &&
-        Boolean(l.last_sent_at) &&
-        !["not_contacted", "queued"].includes(l.deliveryState ?? "not_contacted"),
-    )
-    .sort((a, b) => {
-      const at = String(a.lastEventAt ?? a.last_sent_at ?? "");
-      const bt = String(b.lastEventAt ?? b.last_sent_at ?? "");
-      return at < bt ? 1 : -1;
-    })
-    .slice(0, 8);
 
   const statusTone =
     campaign.status === "active"
@@ -503,50 +467,6 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
         </section>
       </div>
 
-      <section className="surface-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <Activity className="size-4 text-primary" /> Recent activity
-          </h2>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/70" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-            </span>
-            Live
-          </span>
-        </div>
-        {recentActivity.length === 0 ? (
-          <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="size-4" /> Nothing sent yet. Activity appears once the queue starts.
-          </p>
-        ) : (
-          <ul className="mt-4 divide-y divide-border/60 text-sm">
-            {recentActivity.map((row) => {
-              const state = (row.deliveryState ?? "not_contacted") as LeadDeliveryState;
-              return (
-                <li key={row.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium">{row.lead?.email ?? "Lead"}</span>
-                    <Badge
-                      variant="secondary"
-                      className={`shrink-0 font-normal ${LEAD_DELIVERY_STYLES[state] ?? ""}`}
-                    >
-                      {LEAD_DELIVERY_LABELS[state] ?? state}
-                    </Badge>
-                  </span>
-                  <span
-                    className="whitespace-nowrap text-xs text-muted-foreground"
-                    title={row.lastEventAt ? new Date(row.lastEventAt).toLocaleString() : undefined}
-                  >
-                    {relativeTime(row.lastEventAt)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
 
       <LaunchAuditTrail campaignId={campaign.id} />
     </div>

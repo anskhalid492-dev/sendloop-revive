@@ -264,6 +264,7 @@ export const updateTransactionalSettings = createServerFn({ method: "POST" })
       retry_count?: number;
       retry_delay_seconds?: number;
       batch_size?: number;
+      ses_enabled?: boolean;
     }) =>
       z
         .object({
@@ -277,6 +278,7 @@ export const updateTransactionalSettings = createServerFn({ method: "POST" })
           retry_count: z.number().int().min(1).max(10).optional(),
           retry_delay_seconds: z.number().int().min(30).max(86_400).optional(),
           batch_size: z.number().int().min(1).max(100).optional(),
+          ses_enabled: z.boolean().optional(),
         })
         .parse(data),
   )
@@ -371,4 +373,109 @@ export const runTransactionalQueueNow = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { processTransactionalQueue } = await import("@/lib/transactional-email.server");
     return processTransactionalQueue(supabaseAdmin, {});
+  });
+
+/* ------------------------------------------------------------ Amazon SES */
+
+/**
+ * Read-only SES posture for the admin console: connection, region, sender
+ * identity, verification, sandbox/production, sending + rate limits.
+ * Reading this never changes which provider production sending uses.
+ */
+export const getSesSystemStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getTransactionalSettings } = await import("@/lib/transactional-email.server");
+    const { resolveSesCredentials, sesRegion, getSesIdentity } = await import(
+      "@/lib/email-providers/ses-api.server"
+    );
+    const { getSesSendingQuota, mapSesIdentityState } = await import(
+      "@/lib/email-providers/ses.server"
+    );
+    const { SYSTEM_SENDERS } = await import("@/lib/system-email-senders");
+
+    const settings = await getTransactionalSettings(supabaseAdmin);
+    const credentials = resolveSesCredentials(null);
+    const senders = Array.from(new Set(Object.values(SYSTEM_SENDERS).map((s) => s.email)));
+
+    if (!credentials) {
+      return {
+        connected: false,
+        enabled: settings.ses_enabled === true,
+        region: sesRegion(null),
+        senders,
+        identities: [] as { domain: string; state: string; detail: string }[],
+        quota: null,
+        detail: "Amazon SES credentials are not configured on the server.",
+      };
+    }
+
+    const domains = Array.from(
+      new Set(senders.map((email) => (email.split("@")[1] ?? "").toLowerCase()).filter(Boolean)),
+    );
+    const [quota, ...identityResults] = await Promise.all([
+      getSesSendingQuota(null),
+      ...domains.map((domain) => getSesIdentity(domain, null)),
+    ]);
+
+    const identities = domains.map((domain, i) => {
+      const res = identityResults[i];
+      const mapped = mapSesIdentityState(res?.json ?? null);
+      return { domain, state: mapped.state, detail: mapped.detail };
+    });
+
+    return {
+      connected: true,
+      enabled: settings.ses_enabled === true,
+      region: credentials.region,
+      senders,
+      identities,
+      quota,
+      detail: quota.detail,
+    };
+  });
+
+/** One-off SES test send from a verified MunchReach system sender. */
+export const sendSesTestEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { from: string; to: string }) =>
+    z.object({ from: z.string().email(), to: z.string().email() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { resolveSesCredentials } = await import("@/lib/email-providers/ses-api.server");
+    const { getAdapter } = await import("@/lib/providers/adapter.server");
+    const { SYSTEM_SENDERS } = await import("@/lib/system-email-senders");
+
+    const credentials = resolveSesCredentials(null);
+    if (!credentials) return { ok: false, messageId: null, detail: "Amazon SES is not connected." };
+
+    const sender = Object.values(SYSTEM_SENDERS).find((s) => s.email === data.from);
+    if (!sender) return { ok: false, messageId: null, detail: "Unknown MunchReach sender identity." };
+
+    const result = await getAdapter("ses").sendEmail(
+      {
+        access_key_id: credentials.accessKeyId,
+        secret_access_key: credentials.secretAccessKey,
+        region: credentials.region,
+      },
+      {
+        fromName: sender.name,
+        fromEmail: sender.email,
+        replyTo: sender.replyTo,
+        to: data.to,
+        subject: "MunchReach — Amazon SES test email",
+        text: "This is a MunchReach test email delivered through Amazon SES.",
+        html: "<p>This is a MunchReach test email delivered through Amazon SES.</p>",
+        headers: { "X-MunchReach-Type": "transactional-test" },
+      },
+    );
+
+    return {
+      ok: result.ok,
+      messageId: result.messageId ?? null,
+      detail: result.providerResponse || result.message,
+    };
   });

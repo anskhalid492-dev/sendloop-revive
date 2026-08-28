@@ -5,18 +5,25 @@ import { EmptyState, SkeletonRows, StatePill } from "@/components/dashboard/comm
 import { pct, type CampaignRow } from "@/lib/dashboard-command-model";
 import type { CampaignRunState } from "@/lib/campaign-run-state";
 
-const TONE: Record<CampaignRunState, "neutral" | "good" | "warn" | "bad" | "info"> = {
+/** Visual tone per live run state (green running, amber limit, red blocking). */
+export const CAMPAIGN_STATE_TONE: Record<
+  CampaignRunState,
+  "neutral" | "good" | "warn" | "bad" | "info"
+> = {
   draft: "neutral",
   scheduled: "info",
   running: "good",
-  daily_quota_reached: "info",
+  daily_quota_reached: "warn",
   lifetime_limit_reached: "warn",
   waiting_for_next_run: "info",
   completed: "neutral",
-  paused: "warn",
+  paused: "neutral",
   blocked: "bad",
   archived: "neutral",
 };
+
+const TONE = CAMPAIGN_STATE_TONE;
+
 
 function nextRun(value: string | null) {
   if (!value) return "—";
@@ -106,7 +113,15 @@ export function CampaignTable({
                 </p>
               </td>
               <td className="px-4 py-3">
-                <StatePill tone={TONE[row.runState]}>{row.runLabel}</StatePill>
+                <StatePill tone={TONE[row.runState]}>
+                  {row.runState === "running" ? (
+                    <span className="relative mr-1.5 flex size-1.5" aria-hidden>
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/70" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                  ) : null}
+                  {row.runLabel}
+                </StatePill>
               </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.leads.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums">
