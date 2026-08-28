@@ -178,29 +178,29 @@ const walkthroughSteps = [
 ];
 
 const features = [
-  { icon: Flame, title: "Gradual ramp-up", text: "Volume starts small and climbs day by day toward your target, following a schedule tuned to domain age and current health." },
-  { icon: TrendingUp, title: "Real conversations", text: "Warmup emails are opened, replied to and marked important by a network of live mailboxes — never sent to an actual prospect." },
-  { icon: MailCheck, title: "Spam-folder rescue", text: "Messages that land in spam are detected and automatically moved to the inbox and marked not-spam." },
-  { icon: ShieldCheck, title: "Authentication checks", text: "SPF, DKIM, DMARC and tracking-domain validation run before warmup starts and are monitored afterward." },
-  { icon: Gauge, title: "Mailbox health score", text: "One number per mailbox combining deliverability, bounce rate, spam placement and volume delivered against target." },
-  { icon: AlertTriangle, title: "Automatic safety pausing", text: "Sending stops the moment bounce rate, complaints, authentication or health cross a configured threshold — no manual watching required." },
-  { icon: RefreshCcw, title: "Automatic resuming", text: "Once the rate that triggered a block falls back under the limit, the mailbox is eligible to resume — but never re-enables itself silently." },
-  { icon: Play, title: "Manual resume with a real check", text: "Resuming a paused mailbox re-checks the block condition first; if it's still active, resume is refused with the exact reason shown." },
-  { icon: Pause, title: "Pause without losing progress", text: "Turning warmup off keeps your accumulated ramp progress, so turning it back on continues rather than restarting from day one." },
-  { icon: Activity, title: "Delivery signal tracking", text: "Inbox placement, spam placement, bounces and replies are recorded per mailbox, per day, so trends are visible before they become problems." },
-  { icon: ShieldAlert, title: "Bounce and complaint protection", text: "Bounce rate and complaint signals are checked against your configured maximums on every send cycle, not just at setup." },
-  { icon: Inbox, title: "Sending limit enforcement", text: "Campaigns and warmup share a single daily ceiling per mailbox, so no combination of sends can push a mailbox past a safe volume." },
+  { icon: Flame, title: "Gradual ramp-up", text: "Volume climbs day by day, tuned to domain age and current health." },
+  { icon: TrendingUp, title: "Real conversations", text: "A network of live mailboxes opens, replies to and marks warmup emails important." },
+  { icon: MailCheck, title: "Spam-folder rescue", text: "Messages landing in spam are moved to the inbox and marked not-spam." },
+  { icon: ShieldCheck, title: "Authentication checks", text: "SPF, DKIM, DMARC and tracking-domain validation run before warmup starts." },
+  { icon: Gauge, title: "Mailbox health score", text: "One number combining deliverability, bounce rate, spam placement and volume delivered." },
+  { icon: AlertTriangle, title: "Automatic safety pausing", text: "Sending stops the moment bounce rate, complaints or health cross a threshold." },
+  { icon: RefreshCcw, title: "Automatic resuming", text: "Once the triggering rate falls back under the limit, the mailbox can resume." },
+  { icon: Play, title: "Manual resume with a real check", text: "Resuming re-checks the block condition and is refused if it's still active." },
+  { icon: Pause, title: "Pause without losing progress", text: "Turning warmup off keeps your ramp progress instead of resetting it." },
+  { icon: Activity, title: "Delivery signal tracking", text: "Inbox placement, spam placement, bounces and replies are recorded every day." },
+  { icon: ShieldAlert, title: "Bounce and complaint protection", text: "Bounce and complaint signals are checked against your limits on every send." },
+  { icon: Inbox, title: "Sending limit enforcement", text: "Campaigns and warmup share one daily ceiling so no mailbox is overloaded." },
 ];
 
 const workflowSteps = [
-  { title: "Connect mailbox", text: "Add SMTP/IMAP or provider credentials for the account you plan to send from." },
+  { title: "Connect mailbox", text: "Add credentials for the account you plan to send from." },
   { title: "Configure warmup", text: "Set starting volume, target volume, ramp speed and safety thresholds." },
   { title: "Gradual sending", text: "Daily volume increases automatically, including weekends, toward your target." },
   { title: "Delivery monitoring", text: "Inbox placement, spam placement and reply engagement are tracked every day." },
   { title: "Safety checks", text: "Bounce rate, complaints, authentication and health score are checked before every send." },
-  { title: "Automatic pausing", text: "Sending is blocked immediately if any threshold is crossed, before the reputation hit spreads." },
-  { title: "Rate clears, block resolves", text: "Once the rate that caused the pause drops back under the limit, the mailbox becomes eligible to resume." },
-  { title: "Healthy mailbox", text: "Warmed reputation carries full campaign volume with continued health monitoring in the background." },
+  { title: "Automatic pausing", text: "Sending is blocked immediately if any threshold is crossed." },
+  { title: "Rate clears, block resolves", text: "Once the triggering rate drops back under the limit, the mailbox can resume." },
+  { title: "Healthy mailbox", text: "Warmed reputation carries full campaign volume, monitored in the background." },
 ];
 
 const docGroups = [
@@ -271,7 +271,7 @@ const useCases = [
   { icon: RefreshCcw, audience: "Recovering senders", scenario: "Reputation dropped after an aggressive campaign or a bad list.", outcome: "Automatic pausing stops the bleeding, then a guided ramp rebuilds health." },
   { icon: Gauge, audience: "High-volume teams", scenario: "Dozens of mailboxes across multiple domains need to stay healthy at once.", outcome: "Fleet-wide health scores and safety status in a single view." },
   { icon: ShieldCheck, audience: "Agencies managing client domains", scenario: "Client reputation damage is a client relationship problem, not just a metric.", outcome: "Safety protection catches problems automatically, before a client notices." },
-  { icon: Activity, audience: "Teams scaling send volume", scenario: "You want to raise daily volume without guessing what a mailbox can handle.", outcome: "Ramp targets and sending limits increase together, based on real health data." },
+  { icon: Activity, audience: "Teams scaling send volume", scenario: "You want to raise daily volume without guessing what a mailbox can handle.", outcome: "Ramp targets and limits increase together, based on real health data." },
   { icon: AlertTriangle, audience: "Teams that got burned before", scenario: "A previous cold-sending mistake taught you to want guardrails, not just tools.", outcome: "Bounce and complaint protection block risky sending automatically, every time." },
 ];
 

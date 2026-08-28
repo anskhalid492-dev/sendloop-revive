@@ -63,10 +63,9 @@ export const Route = createFileRoute("/product/email-accounts")({
 });
 
 const painPoints = [
-  { icon: Unplug, title: "Connecting mailboxes safely is fiddly", text: "OAuth scopes, provider quirks, SPF/DKIM/DMARC records — one missed step and a mailbox lands in spam before it sends a single email." },
-  { icon: TriangleAlert, title: "One burnt inbox drags everything down", text: "A single overworked or flagged mailbox can quietly tank deliverability for the whole domain while campaigns keep sending to it." },
-  { icon: Gauge, title: "No shared view of capacity", text: "Without limits, health and rotation in one place, it's guesswork how much volume you can actually push today without risking your sender reputation." },
-  { icon: Ban, title: "Recovering from a block is manual", text: "When a provider throttles or flags an account, most teams find out from a deliverability drop days later, not from the mailbox itself." },
+  { icon: Unplug, title: "Connecting mailboxes safely is fiddly", text: "One missed SPF/DKIM/DMARC step and a mailbox lands straight in spam." },
+  { icon: TriangleAlert, title: "One burnt inbox drags everything down", text: "A single flagged mailbox can quietly tank deliverability for the whole domain." },
+  { icon: Ban, title: "Recovering from a block is manual", text: "Teams often find out about a block days after it happened." },
 ];
 
 const walkSteps = [
@@ -173,38 +172,35 @@ const walkSteps = [
 ];
 
 const features = [
-  { icon: Mailbox, title: "Multiple mailboxes per workspace", text: "Connect as many sending accounts as your plan allows, each managed and monitored on its own." },
-  { icon: BadgeCheck, title: "Domain verification", text: "Every sending domain is checked against SPF, DKIM and DMARC before it's trusted with real volume." },
-  { icon: ShieldCheck, title: "Authentication handled for you", text: "Connect by OAuth or provider credentials — MunchReach stores and manages them server-side." },
-  { icon: Activity, title: "Live sending health", text: "One score per mailbox built from bounce rate, spam placement and provider responses." },
-  { icon: Timer, title: "Rolling 12-hour limits", text: "Send caps measured on a trailing window instead of a hard daily reset, keeping volume smooth." },
-  { icon: RefreshCcw, title: "Rotation strategies", text: "Round robin, random or least-used rotation spreads volume across every healthy account." },
-  { icon: Gauge, title: "Provider status", text: "See whether each mailbox's connection to its provider is live, degraded or disconnected." },
-  { icon: Pause, title: "Pause and resume controls", text: "Rest a single mailbox without pausing the campaigns it's part of." },
-  { icon: AlertTriangle, title: "Automatic safety blocks", text: "Bounce spikes, spam-trap hits and auth failures pull an account out of rotation before it spreads damage." },
-  { icon: KeyRound, title: "No exposed credentials", text: "SMTP keys and OAuth tokens never touch the browser — everything is encrypted server-side." },
-  { icon: Layers, title: "Per-account attribution", text: "Every send and reply is tied back to the specific mailbox that handled it." },
-  { icon: Unplug, title: "Bring your own provider", text: "Connect Google, Microsoft, SES, Postmark, SendGrid or Mailgun accounts, or use MunchReach-managed mailboxes instead." },
+  { icon: Mailbox, title: "Multiple mailboxes per workspace", text: "Connect as many sending accounts as your plan allows." },
+  { icon: BadgeCheck, title: "Domain verification", text: "Every domain is checked against SPF, DKIM and DMARC first." },
+  { icon: ShieldCheck, title: "Authentication handled for you", text: "MunchReach stores and manages your credentials server-side." },
+  { icon: Activity, title: "Live sending health", text: "One score per mailbox built from bounce rate and provider signals." },
+  { icon: Timer, title: "Rolling 12-hour limits", text: "Send caps measured on a trailing window, not a hard reset." },
+  { icon: RefreshCcw, title: "Rotation strategies", text: "Round robin, random or least-used rotation spreads volume evenly." },
+  { icon: Gauge, title: "Provider status", text: "See if each mailbox's provider connection is live or degraded." },
+  { icon: Pause, title: "Pause and resume controls", text: "Rest a single mailbox without pausing its campaigns." },
+  { icon: AlertTriangle, title: "Automatic safety blocks", text: "Bounce spikes or auth failures pull an account out of rotation." },
+  { icon: KeyRound, title: "No exposed credentials", text: "SMTP keys and OAuth tokens are encrypted server-side." },
+  { icon: Layers, title: "Per-account attribution", text: "Every send and reply is tied back to its mailbox." },
+  { icon: Unplug, title: "Bring your own provider", text: "Connect Google, Microsoft, SES, Postmark, SendGrid or Mailgun." },
 ];
 
 const workflowSteps = [
   { title: "Connect", text: "Add a mailbox via OAuth or provider credentials." },
-  { title: "Verify", text: "Confirm SPF, DKIM and DMARC on the sending domain." },
-  { title: "Warm up", text: "Ramp volume gradually before real campaigns touch it." },
+  { title: "Verify", text: "Confirm SPF, DKIM and DMARC on the domain." },
+  { title: "Warm up", text: "Ramp volume gradually before real campaigns start." },
   { title: "Set limits", text: "Cap sending on a rolling 12-hour window." },
-  { title: "Rotate", text: "Assign to campaigns and spread volume across accounts." },
+  { title: "Rotate", text: "Spread volume across every healthy account." },
   { title: "Monitor", text: "Watch health scores and provider status live." },
-  { title: "React", text: "Pause manually or let safety blocks catch problems." },
-  { title: "Recover", text: "Resume once health and authentication check out again." },
+  { title: "React", text: "Safety blocks catch problems automatically." },
+  { title: "Recover", text: "Resume once health checks out again." },
 ];
 
 const useCases = [
-  { icon: Mailbox, audience: "Teams sending from Google or Microsoft", scenario: "You want to send outreach from existing work mailboxes without risking the domain.", outcome: "Connect via OAuth with warmup-aware limits and per-account health tracking." },
-  { icon: Unplug, audience: "Teams with their own provider", scenario: "You already pay for SES, Postmark, SendGrid or Mailgun.", outcome: "Plug in your credentials and keep your own reputation while MunchReach handles rotation and limits." },
-  { icon: ShieldCheck, audience: "Teams that want fully managed sending", scenario: "You'd rather not run any infrastructure at all.", outcome: "Use MunchReach-managed domains and mailboxes, verified and warmed before anything sends." },
-  { icon: Layers, audience: "High-volume outbound teams", scenario: "You're sending across dozens of mailboxes across multiple domains.", outcome: "Rotation, per-inbox caps and health scores keep volume spread and reputations protected." },
-  { icon: AlertTriangle, audience: "Teams recovering from a deliverability hit", scenario: "One or more mailboxes have been throttled or flagged before.", outcome: "Safety blocks and pause controls isolate problem accounts while the rest keep sending." },
-  { icon: BadgeCheck, audience: "Teams onboarding a new sending domain", scenario: "You just registered a domain and need to start sending safely.", outcome: "Guided SPF/DKIM/DMARC setup plus warmup before real prospects are contacted." },
+  { icon: Mailbox, audience: "Teams sending from Google or Microsoft", scenario: "You want to use existing work mailboxes without risking the domain.", outcome: "Connect via OAuth with warmup-aware limits and health tracking." },
+  { icon: Unplug, audience: "Teams with their own provider", scenario: "You already pay for SES, Postmark, SendGrid or Mailgun.", outcome: "Keep your reputation while MunchReach handles rotation and limits." },
+  { icon: ShieldCheck, audience: "Teams that want fully managed sending", scenario: "You'd rather not run any infrastructure at all.", outcome: "Use MunchReach-managed domains, verified and warmed for you." },
 ];
 
 const docGroups = [

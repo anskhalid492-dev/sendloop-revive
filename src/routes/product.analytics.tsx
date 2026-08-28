@@ -8,7 +8,6 @@ import {
   Timer,
   EyeOff,
   Mailbox,
-  Puzzle,
   Calendar,
   GitCompareArrows,
   Users,
@@ -63,10 +62,9 @@ export const Route = createFileRoute("/product/analytics")({
 });
 
 const pains = [
-  { icon: EyeOff, title: "No answer to \"what's actually working\"", text: "You can see a campaign sent 4,000 emails, but not which step or mailbox is producing the replies that turn into meetings." },
-  { icon: Mailbox, title: "Mailbox problems hide inside campaign totals", text: "A blended reply rate across five mailboxes hides the one account that's bouncing and dragging the average down." },
-  { icon: GitCompareArrows, title: "Comparing campaigns means two spreadsheet tabs", text: "Without a side-by-side view, deciding which sequence to scale means exporting two CSVs and lining up rows by hand." },
-  { icon: Puzzle, title: "Reporting is a manual export job", text: "Every client update or team standup means stitching numbers from several screens into a slide deck." },
+  { icon: EyeOff, title: "No answer to \"what's working\"", text: "You can't tell which step or mailbox is actually producing replies." },
+  { icon: Mailbox, title: "Mailbox problems hide in totals", text: "A blended reply rate hides the one account dragging down the average." },
+  { icon: GitCompareArrows, title: "Comparing campaigns is manual", text: "Deciding which sequence to scale means exporting CSVs and lining up rows by hand." },
 ];
 
 const walkthroughSteps = [
@@ -163,38 +161,38 @@ const walkthroughSteps = [
 ];
 
 const features = [
-  { icon: BarChart3, title: "Campaign performance", text: "Sent, delivered, opened, clicked, replied and bounced counts per campaign, broken down by step and variant." },
-  { icon: Mailbox, title: "Mailbox performance", text: "Send volume, delivery and bounce rate per sending account, independent of which campaigns used it." },
-  { icon: TrendingUp, title: "Reply rate and positive replies", text: "Reply rate calculated against delivered volume, with replies classified positive, neutral, negative or out-of-office." },
-  { icon: ClipboardList, title: "Meetings booked", text: "Meetings logged from CRM stage changes, attributed back to the campaign, step and mailbox that produced them." },
-  { icon: Calendar, title: "Flexible date ranges", text: "Today, yesterday, last 7/30/90 days, this or last month, or any custom start and end date." },
-  { icon: Timer, title: "Today vs current run vs lifetime", text: "The same metric shown across three windows so a single day's spike doesn't get mistaken for a trend, or hide one." },
-  { icon: GitCompareArrows, title: "Campaign comparison", text: "Put two or more campaigns side by side and see sent, reply rate, positive-reply rate and meetings booked together." },
-  { icon: LineChart, title: "Daily trend charts", text: "Sent, delivered, replied and bounced plotted by day so you can see when a change in copy or volume moved the numbers." },
-  { icon: PieChart, title: "Step and variant breakdown", text: "Reply rate per touch and per subject line, so you know exactly which message is doing the work." },
-  { icon: Users, title: "Bounce and deliverability tracking", text: "Bounce rate calculated on sent volume, flagged separately from reply and open rates so a bad mailbox can't hide behind a good campaign." },
-  { icon: Inbox, title: "Unsubscribe and complaint counts", text: "Tracked alongside replies so you can see the full cost of a campaign, not just the wins." },
-  { icon: FileDown, title: "CSV export", text: "Export campaign performance, mailbox performance or the daily trend for client reports or your own dashboards." },
+  { icon: BarChart3, title: "Campaign performance", text: "Sent, delivered, opened and replied counts per campaign, broken down by step." },
+  { icon: Mailbox, title: "Mailbox performance", text: "Delivery and bounce rate per sending account, independent of campaigns." },
+  { icon: TrendingUp, title: "Reply rate and positive replies", text: "Reply rate against delivered volume, with replies classified by sentiment." },
+  { icon: ClipboardList, title: "Meetings booked", text: "Meetings logged from CRM changes, attributed to the campaign and step." },
+  { icon: Calendar, title: "Flexible date ranges", text: "Today, last 7/30/90 days, this or last month, or any custom range." },
+  { icon: Timer, title: "Today vs current run vs lifetime", text: "The same metric across three windows so one spike isn't mistaken for a trend." },
+  { icon: GitCompareArrows, title: "Campaign comparison", text: "Put campaigns side by side to see reply rate and meetings together." },
+  { icon: LineChart, title: "Daily trend charts", text: "Sent, delivered and replied plotted by day to spot what moved the numbers." },
+  { icon: PieChart, title: "Step and variant breakdown", text: "Reply rate per touch and subject line, so you know what's working." },
+  { icon: Users, title: "Bounce and deliverability tracking", text: "Bounce rate flagged separately so a bad mailbox can't hide behind a good campaign." },
+  { icon: Inbox, title: "Unsubscribe and complaint counts", text: "Tracked alongside replies to see the full cost of a campaign." },
+  { icon: FileDown, title: "CSV export", text: "Export campaign, mailbox or trend data for reports or your own dashboards." },
 ];
 
 const workflowSteps = [
-  { title: "Send", text: "Campaigns go out across your connected mailboxes on their configured schedule." },
-  { title: "Track", text: "Send, delivery, open, click, bounce and reply events stream in from each provider." },
-  { title: "Classify", text: "Replies are sorted into positive, neutral, negative or out-of-office automatically." },
-  { title: "Attribute", text: "Meetings booked in the CRM are linked back to the campaign, step and mailbox that produced them." },
-  { title: "Compare", text: "Filter by date range, and view today, current-run or lifetime totals side by side." },
-  { title: "Diagnose", text: "Check mailbox performance separately to catch a bounce problem before it spreads." },
-  { title: "Rank", text: "Compare two or more campaigns to see which one to scale and which to pause." },
-  { title: "Report", text: "Export any table to CSV to share results with your team or a client." },
+  { title: "Send", text: "Campaigns go out across your connected mailboxes on schedule." },
+  { title: "Track", text: "Send, delivery, open and reply events stream in from each provider." },
+  { title: "Classify", text: "Replies are sorted by sentiment automatically." },
+  { title: "Attribute", text: "Meetings booked are linked back to the campaign and step that produced them." },
+  { title: "Compare", text: "Filter by date range and view today, current-run or lifetime totals." },
+  { title: "Diagnose", text: "Check mailbox performance to catch a bounce problem before it spreads." },
+  { title: "Rank", text: "Compare campaigns to see which one to scale and which to pause." },
+  { title: "Report", text: "Export any table to CSV to share with your team or a client." },
 ];
 
 const useCases = [
-  { icon: Target, audience: "Founders sending their own outbound", scenario: "You want to know if this week's campaign is actually booking meetings, not just sending mail.", outcome: "One dashboard with reply rate, positive replies and meetings booked, updated as it happens." },
-  { icon: Users, audience: "Sales teams running multiple sequences", scenario: "Different reps are running different campaigns and you need to know which is working.", outcome: "Campaign comparison ranks every sequence by reply rate and meetings booked." },
-  { icon: Mailbox, audience: "Teams managing several sending mailboxes", scenario: "You need to catch a mailbox before its bounce rate drags down every campaign using it.", outcome: "Per-mailbox performance with today, current-run and lifetime bounce rates." },
-  { icon: GitCompareArrows, audience: "Teams testing new subject lines or steps", scenario: "You want proof one version of a sequence outperforms another before rolling it out further.", outcome: "Step-by-step reply-rate breakdown shows exactly which message is winning." },
-  { icon: FileDown, audience: "Agencies reporting to clients", scenario: "Every client wants a clear, current summary of what their campaigns produced.", outcome: "Exportable campaign and mailbox tables ready to drop into a report." },
-  { icon: Calendar, audience: "Managers reviewing weekly or monthly progress", scenario: "You need to see if outbound is trending up or down over the last month, not just today.", outcome: "Custom date ranges with trend comparison against the prior period." },
+  { icon: Target, audience: "Founders sending their own outbound", scenario: "You want to know if this week's campaign is actually booking meetings.", outcome: "One dashboard with reply rate and meetings booked, updated live." },
+  { icon: Users, audience: "Sales teams running multiple sequences", scenario: "Different reps run different campaigns and you need to know which works.", outcome: "Campaign comparison ranks every sequence by reply rate." },
+  { icon: Mailbox, audience: "Teams managing several mailboxes", scenario: "You need to catch a mailbox before its bounce rate drags down campaigns.", outcome: "Per-mailbox performance with today, current-run and lifetime rates." },
+  { icon: GitCompareArrows, audience: "Teams testing new subject lines or steps", scenario: "You want proof one version outperforms another before rolling it out.", outcome: "Step-by-step breakdown shows exactly which message is winning." },
+  { icon: FileDown, audience: "Agencies reporting to clients", scenario: "Every client wants a clear, current summary of their campaigns.", outcome: "Exportable tables ready to drop into a report." },
+  { icon: Calendar, audience: "Managers reviewing weekly progress", scenario: "You need to see if outbound is trending up or down over time.", outcome: "Custom date ranges with trend comparison against the prior period." },
 ];
 
 const docGroups = [

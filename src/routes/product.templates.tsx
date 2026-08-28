@@ -66,10 +66,9 @@ export const Route = createFileRoute("/product/templates")({
 });
 
 const pains = [
-  { icon: FileX, title: "Every campaign starts from a blank page", text: "Writing a fresh subject and opening line for every new sequence burns an hour before the first send even goes out." },
-  { icon: Repeat, title: "No record of what actually worked", text: "The email that got a 30% reply rate last quarter lived in one rep's sent folder — nobody else on the team can find or reuse it." },
-  { icon: Tags, title: "A pile of untagged drafts", text: "Dozens of saved emails with no category or structure means searching for 'the recruiting one' takes longer than writing a new draft." },
-  { icon: ShieldAlert, title: "Broken merge fields at send time", text: "A missing {{company}} or {{first_name}} value turns a polished template into an email that reads like a mail-merge accident." },
+  { icon: FileX, title: "Blank page fatigue", text: "Writing a fresh subject and opener for every sequence burns an hour before you even send." },
+  { icon: Repeat, title: "No record of what works", text: "Your best-performing email lives in one rep's folder, unfindable by anyone else." },
+  { icon: ShieldAlert, title: "Broken merge fields", text: "A missing {{company}} value turns polished copy into an obvious mail-merge accident." },
 ];
 
 const walkthroughSteps = [
@@ -169,37 +168,34 @@ const walkthroughSteps = [
 ];
 
 const features = [
-  { icon: Sparkles, title: "Official template library", text: "MunchReach-curated templates across Cold Outreach, Follow-Ups, SaaS, Agencies, Sales, Recruiting, Lead Generation, Partnership, Breakup and Referral categories." },
-  { icon: FileText, title: "One-click insert", text: "Drop any template's subject and body straight into a campaign step or draft without retyping." },
-  { icon: Variable, title: "Automatic variable detection", text: "Merge fields in the subject or body are parsed automatically the moment you type them." },
-  { icon: Wand2, title: "Fallback values", text: "Set what each variable falls back to when a prospect record is missing that field, so nothing sends broken." },
-  { icon: FolderOpen, title: "Workspace template library", text: "Save your own templates so every teammate with access can find and reuse them, not just the person who wrote them." },
-  { icon: Eye, title: "Full preview before use", text: "Read the rendered subject, body, description and variable list before inserting a template anywhere." },
-  { icon: Tags, title: "Category tagging", text: "Every template carries a category so the library stays searchable instead of turning into a pile of drafts." },
-  { icon: Search, title: "Search across name, subject and body", text: "Find the right template by keyword even if you don't remember which category it's filed under." },
-  { icon: Copy, title: "Duplicate to branch a variant", text: "Copy any official or workspace template into an editable version without altering the source." },
-  { icon: Users, title: "Featured and recently used views", text: "Surface your team's best-performing templates and pick up where the last campaign left off." },
-  { icon: History, title: "Publish or unpublish drafts", text: "Keep in-progress templates unpublished until they're ready for the rest of the workspace to see." },
-  { icon: FolderOpen, title: "Official vs. workspace source", text: "Every card is labelled as MunchReach official or created by your workspace, so provenance is always clear." },
+  { icon: Sparkles, title: "Official template library", text: "Curated templates across Cold Outreach, SaaS, Agencies, Recruiting and more." },
+  { icon: FileText, title: "One-click insert", text: "Drop any template's subject and body into a campaign without retyping." },
+  { icon: Variable, title: "Automatic variable detection", text: "Merge fields are parsed automatically the moment you type them." },
+  { icon: Wand2, title: "Fallback values", text: "Set what each variable falls back to on incomplete prospect data." },
+  { icon: FolderOpen, title: "Workspace template library", text: "Save your own templates so every teammate can find and reuse them." },
+  { icon: Eye, title: "Full preview before use", text: "Read the rendered subject, body and variables before inserting anywhere." },
+  { icon: Tags, title: "Category tagging", text: "Every template carries a category so the library stays searchable." },
+  { icon: Search, title: "Search across name, subject and body", text: "Find the right template by keyword, no matter the category." },
+  { icon: Copy, title: "Duplicate to branch a variant", text: "Copy any template into an editable version without touching the source." },
+  { icon: Users, title: "Featured and recently used views", text: "Surface your team's best templates and pick up where you left off." },
+  { icon: History, title: "Publish or unpublish drafts", text: "Keep drafts hidden until they're ready for the whole workspace." },
+  { icon: FolderOpen, title: "Official vs. workspace source", text: "Every card is labelled official or workspace-created for clarity." },
 ];
 
 const workflowSteps = [
-  { title: "Search or browse", text: "Filter the library by category, or search templates, subjects and body copy directly." },
-  { title: "Preview the copy", text: "Read the full subject, body and variable list before committing to it." },
-  { title: "Insert into a step", text: "Apply the template to a new draft or a specific step in a sequence." },
-  { title: "Set variable fallbacks", text: "Confirm what each merge field falls back to for incomplete prospect data." },
-  { title: "Personalize", text: "Adjust the offer, proof point or call to action for this specific campaign." },
-  { title: "Save it back", text: "Name, categorize and optionally feature your edited version in the workspace library." },
-  { title: "Reuse next time", text: "Find it again from Featured or Recently Used the next time you build a sequence." },
+  { title: "Search or browse", text: "Filter the library by category, or search directly." },
+  { title: "Preview the copy", text: "Read the full subject, body and variables first." },
+  { title: "Insert into a step", text: "Apply the template to a draft or sequence step." },
+  { title: "Save it back", text: "Name and categorize your edited version for the team." },
 ];
 
 const useCases = [
-  { icon: Building2, audience: "SaaS founders", scenario: "Reuse a trial-expiring or demo-follow-up template across every outbound campaign instead of rewriting the offer each time.", outcome: "Consistent messaging, launched in minutes." },
-  { icon: Briefcase, audience: "Agencies", scenario: "Keep a categorized library of case-study and results-driven openers tagged by service line.", outcome: "New client pitches reuse proven structure." },
-  { icon: UserSearch, audience: "Recruiters", scenario: "Save passive-candidate openers with fallback values for role and company so nothing renders broken.", outcome: "Faster candidate outreach with clean copy." },
-  { icon: Users, audience: "Sales teams", scenario: "Promote a rep's best-performing subject line into a shared, featured workspace template.", outcome: "The whole team sends the strongest version." },
-  { icon: Handshake, audience: "Partnership managers", scenario: "Tag templates by partnership stage — intro, proposal, follow-up — so nothing gets sent out of order.", outcome: "A predictable, organized outreach cadence." },
-  { icon: Megaphone, audience: "Growth and marketing", scenario: "Duplicate an official breakup or referral template and adapt the tone for a specific segment.", outcome: "Faster experimentation without starting from scratch." },
+  { icon: Building2, audience: "SaaS founders", scenario: "Reuse a trial-expiring or demo-follow-up template across every campaign.", outcome: "Consistent messaging, launched in minutes." },
+  { icon: Briefcase, audience: "Agencies", scenario: "Keep a categorized library of case-study openers tagged by service line.", outcome: "New pitches reuse proven structure." },
+  { icon: UserSearch, audience: "Recruiters", scenario: "Save passive-candidate openers with safe fallbacks for role and company.", outcome: "Faster outreach with clean copy." },
+  { icon: Users, audience: "Sales teams", scenario: "Promote a rep's best subject line into a shared, featured template.", outcome: "The whole team sends the strongest version." },
+  { icon: Handshake, audience: "Partnership managers", scenario: "Tag templates by stage — intro, proposal, follow-up — so nothing's out of order.", outcome: "A predictable outreach cadence." },
+  { icon: Megaphone, audience: "Growth and marketing", scenario: "Duplicate a breakup or referral template and adapt the tone.", outcome: "Faster experimentation, no blank page." },
 ];
 
 const docGroups = [
