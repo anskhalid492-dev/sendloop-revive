@@ -6,8 +6,6 @@ import { Activity, AlertTriangle, Flame, Pause, Play, Send, Settings2 } from "lu
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
-import { WarmupAnalytics } from "@/components/warmup/WarmupAnalytics";
-import { WarmupTimeline } from "@/components/warmup/WarmupTimeline";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -354,9 +352,6 @@ function WarmupPage() {
           </div>
         )}
 
-        <WarmupAnalytics />
-
-        <WarmupTimeline />
 
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Activity className="size-3.5" />
