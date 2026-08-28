@@ -18,6 +18,12 @@ import {
   parseZonedDateTimeLocal,
   zonedDateTimeLocalValue,
 } from "@/lib/campaign-schedule";
+import {
+  MAX_MAILBOX_EMAILS_PER_HOUR,
+  MAX_MAILBOX_HOURLY_MESSAGE,
+  clampMailboxHourlyLimit,
+  exceedsMailboxHourlyCap,
+} from "@/lib/mailbox-hourly-cap";
 import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -89,6 +95,10 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
     hourly = mailboxHourlyCeiling;
     if (windowHours > 0) effectiveDaily = Math.min(effectiveDaily, hourly * windowHours);
   }
+
+  // Hard platform ceiling: a stored value above 70 is displayed and saved capped.
+  const hourlyCapHit = exceedsMailboxHourlyCap(settings.maxPerHour)
+    || clampMailboxHourlyLimit(settings.maxPerHour) === MAX_MAILBOX_EMAILS_PER_HOUR;
 
   const cappedByMailboxes = effectiveDaily < selectedDaily;
   const weekly = effectiveDaily * settings.sendDays.length;
@@ -284,7 +294,7 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
                 type="number"
                 min={1}
                 max={MAX_MAILBOX_EMAILS_PER_HOUR}
-                value={settings.maxPerHour}
+                value={clampMailboxHourlyLimit(settings.maxPerHour)}
                 onChange={(e) =>
                   patchSettings({ maxPerHour: clampMailboxHourlyLimit(e.target.value) })
                 }
