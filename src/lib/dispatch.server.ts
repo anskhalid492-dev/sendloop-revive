@@ -854,7 +854,7 @@ export async function dispatchDueMessages(
       break;
     }
     result.processed += 1;
-    const account = message.sending_account_id
+    let account = message.sending_account_id
       ? accountById.get(message.sending_account_id)
       : undefined;
 
