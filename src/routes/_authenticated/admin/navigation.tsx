@@ -24,9 +24,11 @@ import {
   deleteNavItem,
   getAdminSiteData,
   reorderNavItems,
+  saveCommunityConfig,
   saveFooterConfig,
   saveNavItem,
 } from "@/lib/site-content.functions";
+import { DEFAULT_COMMUNITY, type CommunityConfig } from "@/lib/community-model";
 
 export const Route = createFileRoute("/_authenticated/admin/navigation")({
   head: () => ({
@@ -143,10 +145,28 @@ function AdminNavigationRoute() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const [communityDraft, setCommunityDraft] = useState<CommunityConfig | null>(null);
+
   const footerMutation = useMutation({
     mutationFn: (input: { tagline: string; copyright: string }) => saveFooter({ data: input }),
     onSuccess: () => {
       toast.success("Footer settings saved");
+      invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const saveCommunity = useServerFn(saveCommunityConfig);
+  const communitySaved: CommunityConfig = {
+    ...DEFAULT_COMMUNITY,
+    ...((data.data as any)?.community ?? {}),
+  };
+  const community = communityDraft ?? communitySaved;
+  const communityMutation = useMutation({
+    mutationFn: (input: CommunityConfig) => saveCommunity({ data: input }),
+    onSuccess: () => {
+      toast.success("Community settings saved");
+      setCommunityDraft(null);
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -263,6 +283,7 @@ function AdminNavigationRoute() {
             <TabsTrigger value="header">Header mega menu</TabsTrigger>
             <TabsTrigger value="footer">Footer</TabsTrigger>
             <TabsTrigger value="social">Social</TabsTrigger>
+            <TabsTrigger value="community">Community</TabsTrigger>
           </TabsList>
 
           <TabsContent value="header" className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -327,6 +348,103 @@ function AdminNavigationRoute() {
 
           <TabsContent value="social" className="mt-4">
             <LinkGroup location="social" groupKey={null} title="Social links" />
+          </TabsContent>
+
+          <TabsContent value="community" className="mt-4">
+            <div className="rounded-lg border border-border/60 p-4">
+              <p className="text-sm font-medium">Community</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The header and footer link to the internal landing page. The external URL is used
+                only by the join buttons on that page — leave it empty to show “launching soon”.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Navigation label</Label>
+                  <Input
+                    value={community.nav_label}
+                    onChange={(e) => setCommunityDraft({ ...community, nav_label: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Footer label</Label>
+                  <Input
+                    value={community.footer_label}
+                    onChange={(e) =>
+                      setCommunityDraft({ ...community, footer_label: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Landing page path</Label>
+                  <Input
+                    value={community.landing_path}
+                    placeholder="/community"
+                    onChange={(e) =>
+                      setCommunityDraft({ ...community, landing_path: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>External community URL</Label>
+                  <Input
+                    value={community.external_url}
+                    placeholder="https://facebook.com/groups/…"
+                    onChange={(e) =>
+                      setCommunityDraft({ ...community, external_url: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Join button label</Label>
+                  <Input
+                    value={community.cta_label}
+                    onChange={(e) => setCommunityDraft({ ...community, cta_label: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Position in Resources</Label>
+                  <Input
+                    type="number"
+                    value={community.nav_position}
+                    onChange={(e) =>
+                      setCommunityDraft({
+                        ...community,
+                        nav_position: Number(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    ["enabled", "Community enabled"],
+                    ["show_in_nav", "Show in Resources menu"],
+                    ["show_in_footer", "Show in footer"],
+                    ["open_in_new_tab", "Open external community in a new tab"],
+                    ["nav_new_tab", "Open nav link in a new tab"],
+                  ] as [keyof CommunityConfig, string][]
+                ).map(([key, label]) => (
+                  <div key={key} className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+                    <Label className="text-sm font-normal">{label}</Label>
+                    <Switch
+                      checked={Boolean(community[key])}
+                      onCheckedChange={(checked) =>
+                        setCommunityDraft({ ...community, [key]: checked })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button
+                className="mt-4"
+                size="sm"
+                disabled={communityMutation.isPending}
+                onClick={() => communityMutation.mutate(community)}
+              >
+                Save community settings
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       )}
