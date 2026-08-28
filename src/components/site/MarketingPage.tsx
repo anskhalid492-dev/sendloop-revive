@@ -189,19 +189,39 @@ export type FeatureItem = { icon: LucideIcon; title: string; text: string };
 
 export function FeatureGrid({ items }: { items: FeatureItem[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((f) => (
         <div key={f.title} className="surface-card p-6">
           <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
             <f.icon className="size-5" />
           </span>
-          <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">{f.text}</p>
+          <h3 className="mt-4 text-base font-semibold">{f.title}</h3>
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{f.text}</p>
         </div>
       ))}
     </div>
   );
 }
+
+/** Compact two-column checklist for secondary capabilities. */
+export function FeatureRows({ items }: { items: FeatureItem[] }) {
+  return (
+    <div className="grid gap-x-10 gap-y-4 md:grid-cols-2">
+      {items.map((f) => (
+        <div key={f.title} className="flex min-w-0 gap-3">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <f.icon className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold">{f.title}</h4>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{f.text}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 export function StepList({ steps }: { steps: { title: string; text: string }[] }) {
   return (
