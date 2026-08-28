@@ -103,7 +103,7 @@ function MiniStat({
 }
 
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
-  const { campaign, queue, delivery, steps, accounts, settings, leads } = builder;
+  const { campaign, queue, delivery, today, run, steps, accounts, settings, leads } = builder;
   if (!campaign || !settings) return null;
 
   const selected = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
@@ -371,7 +371,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
         </div>
         {campaign.status === "paused" && campaign.limit_reached_at ? (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
-            This campaign paused automatically because it reached its total send limit of{" "}
+            This campaign stopped automatically because it reached its total send limit of{" "}
             <span className="font-semibold tabular-nums">
               {Number(campaign.email_send_limit ?? 0).toLocaleString()}
             </span>{" "}
