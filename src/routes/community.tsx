@@ -168,7 +168,9 @@ function CommunityPage() {
   const content = useSiteContent();
   const config = content?.community ?? DEFAULT_COMMUNITY;
   const externalUrl = safeExternalUrl(config.external_url);
-  const ctaLabel = config.cta_label || DEFAULT_COMMUNITY.cta_label;
+  const ctaLabel = externalUrl
+    ? "Join the Facebook Community"
+    : config.cta_label || DEFAULT_COMMUNITY.cta_label;
 
   const join = (placement: string) => () =>
     trackEvent("community_join_click", { placement, has_destination: Boolean(externalUrl) });
@@ -191,12 +193,14 @@ function CommunityPage() {
           onClick={join(placement)}
           {...(config.open_in_new_tab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
+          <Facebook className="size-4" aria-hidden />
           {label}
           <ArrowRight className="size-4" />
         </a>
       </Button>
     ) : (
       <Button size={size} variant={variant} disabled title="Community link coming soon">
+        <Facebook className="size-4" aria-hidden />
         Community launching soon
       </Button>
     );
