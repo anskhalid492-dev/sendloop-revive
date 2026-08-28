@@ -1,0 +1,52 @@
+import { describe, expect, test } from "vitest";
+import {
+  MAX_MAILBOX_EMAILS_PER_HOUR,
+  MAX_MAILBOX_HOURLY_MESSAGE,
+  clampMailboxHourlyLimit,
+  effectiveMailboxHourlyLimit,
+  exceedsMailboxHourlyCap,
+} from "@/lib/mailbox-hourly-cap";
+import { evaluateMailboxCapacity } from "@/lib/mailbox-capacity";
+
+describe("70 emails per mailbox per hour ceiling", () => {
+  test("copy and constant", () => {
+    expect(MAX_MAILBOX_EMAILS_PER_HOUR).toBe(70);
+    expect(MAX_MAILBOX_HOURLY_MESSAGE).toBe("Maximum 70 emails per mailbox per hour.");
+  });
+
+  test("values above 70 are capped, valid values kept", () => {
+    expect(clampMailboxHourlyLimit(500)).toBe(70);
+    expect(clampMailboxHourlyLimit("120")).toBe(70);
+    expect(clampMailboxHourlyLimit(45)).toBe(45);
+    expect(clampMailboxHourlyLimit(0)).toBe(1);
+    expect(exceedsMailboxHourlyCap(71)).toBe(true);
+    expect(exceedsMailboxHourlyCap(70)).toBe(false);
+  });
+
+  test("unset or oversized stored limits fall back to the ceiling", () => {
+    expect(effectiveMailboxHourlyLimit(null)).toBe(70);
+    expect(effectiveMailboxHourlyLimit(0)).toBe(70);
+    expect(effectiveMailboxHourlyLimit(500)).toBe(70);
+    expect(effectiveMailboxHourlyLimit(20)).toBe(20);
+  });
+
+  test("capacity blocks at 70 even when the mailbox stores a higher limit", () => {
+    const base = {
+      id: "a",
+      from_name: "M",
+      from_email: "m@x.com",
+      paused: false,
+      customer_enabled: true,
+      status: "active",
+      sent_today: 0,
+      daily_limit: 500,
+      hourly_limit: 500,
+      last_sent_at: new Date().toISOString(),
+    };
+    expect(evaluateMailboxCapacity(base, 69).available).toBe(true);
+    const blocked = evaluateMailboxCapacity(base, 70);
+    expect(blocked.available).toBe(false);
+    expect(blocked.reason).toBe("hourly");
+    expect(blocked.hourlyLimit).toBe(70);
+  });
+});

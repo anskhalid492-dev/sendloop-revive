@@ -8,6 +8,7 @@
  * limit system and never mutates any counter.
  */
 
+import { effectiveMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 import {
   mailboxCapacityReturnsAt,
   mailboxSentToday,
@@ -75,9 +76,10 @@ export function evaluateMailboxCapacity(
   // allowance, and it can never exceed the mailbox's own daily limit.
   const sentToday = mailboxSentToday(row, dayStart);
   const dailyLimit = Number(row.daily_limit ?? 0);
-  const hourlyLimit = Number(row.hourly_limit ?? 0);
+  // Hard platform ceiling: never above 70/hour per mailbox, whatever is stored.
+  const hourlyLimit = effectiveMailboxHourlyLimit(row.hourly_limit);
   const dailyRemaining = Math.max(0, dailyLimit - sentToday);
-  const hourlyRemaining = hourlyLimit > 0 ? Math.max(0, hourlyLimit - sentThisHour) : Infinity;
+  const hourlyRemaining = Math.max(0, hourlyLimit - sentThisHour);
 
   let reason: MailboxBlockReason = null;
   if (row.paused) reason = "paused";
@@ -108,7 +110,7 @@ export function evaluateMailboxCapacity(
     dailyRemaining,
     sentThisHour,
     hourlyLimit,
-    hourlyRemaining: hourlyLimit > 0 ? Math.max(0, hourlyLimit - sentThisHour) : 0,
+    hourlyRemaining,
     available: reason === null,
     reason,
     reasonLabel,

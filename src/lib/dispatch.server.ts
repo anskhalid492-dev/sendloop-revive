@@ -7,6 +7,10 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
+import {
+  MAX_MAILBOX_HOURLY_MESSAGE,
+  effectiveMailboxHourlyLimit,
+} from "@/lib/mailbox-hourly-cap";
 import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
@@ -40,6 +44,7 @@ type AccountRow = {
   sent_today: number;
   daily_limit: number;
   last_sent_at?: string | null;
+  hourly_limit?: number | null;
   paused: boolean;
   customer_enabled: boolean;
   status: string;
@@ -802,7 +807,7 @@ export async function dispatchDueMessages(
   const { data: accounts, error: aErr } = await supabase
     .from("sending_accounts")
     .select(
-      "id, provider, provider_id, from_name, from_email, reply_to, sent_today, daily_limit, last_sent_at, paused, customer_enabled, status",
+      "id, provider, provider_id, from_name, from_email, reply_to, sent_today, daily_limit, hourly_limit, last_sent_at, paused, customer_enabled, status",
     )
     .in("id", accountIds.length ? accountIds : ["00000000-0000-0000-0000-000000000000"]);
   if (aErr) throw new Error(aErr.message);
@@ -829,6 +834,28 @@ export async function dispatchDueMessages(
   for (const row of accountSentRows) {
     if (!row.sending_account_id) continue;
     sentTodayByAccount.set(row.sending_account_id, (sentTodayByAccount.get(row.sending_account_id) ?? 0) + 1);
+  }
+
+  // Hard platform ceiling: never more than 70 emails per mailbox per rolling
+  // hour. Counted over accepted sends in the last 60 minutes.
+  const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const hourlyRows = accountIds.length
+    ? await fetchAllRows<{ sending_account_id: string | null }>(() =>
+        supabase
+          .from("campaign_messages")
+          .select("sending_account_id")
+          .eq("status", "sent")
+          .gte("sent_at", hourAgo.toISOString())
+          .in("sending_account_id", accountIds),
+      )
+    : [];
+  const sentThisHourByAccount = new Map<string, number>();
+  for (const row of hourlyRows) {
+    if (!row.sending_account_id) continue;
+    sentThisHourByAccount.set(
+      row.sending_account_id,
+      (sentThisHourByAccount.get(row.sending_account_id) ?? 0) + 1,
+    );
   }
 
   // Credentials are MunchReach-managed infrastructure resolved per send inside
@@ -960,6 +987,15 @@ export async function dispatchDueMessages(
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
       result.skipped += 1;
       logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached" });
+      continue;
+    }
+    // Hard 70/hour per-mailbox ceiling — independent of daily limits/pacing.
+    const hourlyLimit = effectiveMailboxHourlyLimit(account.hourly_limit);
+    const sentThisHour = (sentThisHourByAccount.get(account.id) ?? 0) + usedNow;
+    if (sentThisHour >= hourlyLimit) {
+      result.skipped += 1;
+      if (result.errors.length < 5) result.errors.push(MAX_MAILBOX_HOURLY_MESSAGE);
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_hourly_cap_reached" });
       continue;
     }
     logDispatchDiagnostic({

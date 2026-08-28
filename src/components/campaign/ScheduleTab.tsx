@@ -18,6 +18,13 @@ import {
   parseZonedDateTimeLocal,
   zonedDateTimeLocalValue,
 } from "@/lib/campaign-schedule";
+import {
+  MAX_MAILBOX_EMAILS_PER_HOUR,
+  MAX_MAILBOX_HOURLY_MESSAGE,
+  clampMailboxHourlyLimit,
+  effectiveMailboxHourlyLimit,
+  exceedsMailboxHourlyCap,
+} from "@/lib/mailbox-hourly-cap";
 import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -75,7 +82,10 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
   // Mailbox ceiling: what the selected mailboxes can actually handle.
   const selectedAccounts = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
   const mailboxDailyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
-  const mailboxHourlyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.hourly_limit ?? 0), 0);
+  const mailboxHourlyCeiling = selectedAccounts.reduce(
+    (sum, a) => sum + effectiveMailboxHourlyLimit(a.hourly_limit),
+    0,
+  );
 
   // Customer-selected volume first — mailbox capacity only ever trims it.
   const selectedDaily = Math.max(0, settings.dailyCap);
@@ -89,6 +99,10 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
     hourly = mailboxHourlyCeiling;
     if (windowHours > 0) effectiveDaily = Math.min(effectiveDaily, hourly * windowHours);
   }
+
+  // Hard platform ceiling: a stored value above 70 is displayed and saved capped.
+  const hourlyCapHit = exceedsMailboxHourlyCap(settings.maxPerHour)
+    || clampMailboxHourlyLimit(settings.maxPerHour) === MAX_MAILBOX_EMAILS_PER_HOUR;
 
   const cappedByMailboxes = effectiveDaily < selectedDaily;
   const weekly = effectiveDaily * settings.sendDays.length;
@@ -283,10 +297,20 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
                 id="max-hour"
                 type="number"
                 min={1}
-                max={5000}
-                value={settings.maxPerHour}
-                onChange={(e) => patchSettings({ maxPerHour: Number(e.target.value) || 1 })}
+                max={MAX_MAILBOX_EMAILS_PER_HOUR}
+                value={clampMailboxHourlyLimit(settings.maxPerHour)}
+                onChange={(e) =>
+                  patchSettings({ maxPerHour: clampMailboxHourlyLimit(e.target.value) })
+                }
               />
+              <p
+                className={cn(
+                  "text-xs",
+                  hourlyCapHit ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {MAX_MAILBOX_HOURLY_MESSAGE}
+              </p>
             </div>
           </div>
         </Section>
