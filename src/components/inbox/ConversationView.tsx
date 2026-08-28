@@ -218,12 +218,9 @@ export function ConversationView({
   }
 
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      className="flex h-full min-h-0 flex-col xl:flex-row"
-    >
-      <ResizablePanel id="thread" defaultSize={showProspect ? "70" : "100"} minSize="40">
-      <div className="flex h-full min-h-0 min-w-0 flex-col">
+    <div className="flex h-full min-h-0 w-full flex-col xl:flex-row">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+
 
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border p-3">
           {onBack ? (
