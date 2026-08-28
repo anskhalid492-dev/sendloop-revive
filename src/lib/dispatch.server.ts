@@ -903,13 +903,14 @@ export async function dispatchDueMessages(
       await consumeUsage(message.workspace_id as string, "emails_monthly", 1, "campaign_send");
     } catch (error) {
       if (error instanceof EntitlementError) {
+        const entitlementMessage = error instanceof Error ? error.message : "Workspace sending limit reached.";
         result.skipped += 1;
-        if (result.errors.length < 5) result.errors.push(error.message);
+        if (result.errors.length < 5) result.errors.push(entitlementMessage);
         await supabase
           .from("campaign_messages")
-          .update({ status: "pending", last_error: error.message.slice(0, 500) })
+          .update({ status: "pending", last_error: entitlementMessage.slice(0, 500) })
           .eq("id", message.id);
-        logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "workspace_plan_limit_reached" });
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "workspace_plan_limit_reached" });
         continue;
       }
       throw error;
