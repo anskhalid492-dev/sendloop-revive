@@ -782,8 +782,17 @@ export async function dispatchDueMessages(
     due.map((m: { to_email: string }) => m.to_email),
   );
 
+  // The campaign's own mailbox pool is loaded alongside the mailboxes already
+  // referenced by queued rows, so a message that lost (or never got) its
+  // mailbox can be repaired instead of failed.
+  const campaignMailboxPool = (
+    ((campaignRow as { sending_account_ids?: string[] | null }).sending_account_ids ?? []) as string[]
+  ).filter(Boolean);
   const accountIds = [
-    ...new Set(due.map((m: { sending_account_id: string | null }) => m.sending_account_id).filter(Boolean)),
+    ...new Set([
+      ...(due.map((m: { sending_account_id: string | null }) => m.sending_account_id).filter(Boolean) as string[]),
+      ...campaignMailboxPool,
+    ]),
   ] as string[];
   const { data: accounts, error: aErr } = await supabase
     .from("sending_accounts")
