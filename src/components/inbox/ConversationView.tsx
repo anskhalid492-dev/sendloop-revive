@@ -55,11 +55,6 @@ import {
 } from "@/lib/inbox.functions";
 import { renderEmailForLead, senderExtras } from "@/lib/campaign-model";
 import { listTemplates } from "@/lib/templates.functions";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 import { ProspectPanel } from "@/components/inbox/ProspectPanel";
 import { cn } from "@/lib/utils";
 
