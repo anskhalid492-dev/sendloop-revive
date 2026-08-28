@@ -114,7 +114,7 @@ export function AiPersonalizationSidebar({
     () => builder.steps.some((s) => usesAiToken(s.subject) || usesAiToken(s.body)),
     [builder.steps],
   );
-  const sampleLeadId = builder.leads[0]?.lead_id ?? builder.leads[0]?.id ?? null;
+  const sampleLeadId = builder.leads[0]?.lead_id ?? null;
 
   const patch = (values: Partial<AiPersonalizationConfig>) =>
     setConfig((prev) => ({ ...prev, ...values }));
