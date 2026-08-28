@@ -767,22 +767,38 @@ export async function processTransactionalQueue(
 export async function sendTransactionalNow(
   admin: Admin,
   input: TriggerInput,
-): Promise<{ ok: boolean; message: string; id?: string }> {
+): Promise<{
+  ok: boolean;
+  message: string;
+  id?: string;
+  provider?: string | null;
+  providerMessageId?: string | null;
+  from?: string | null;
+  subject?: string | null;
+}> {
   const queued = await triggerTransactionalEmail(admin, input);
   if (!queued.queued || !queued.id) return { ok: false, message: queued.reason ?? "Could not queue email." };
   const run = await processTransactionalQueue(admin, { limit: 5 });
   const { data } = await admin
     .from("transactional_emails")
-    .select("status, error")
+    .select("status, error, provider, provider_message_id, from_email, subject")
     .eq("id", queued.id)
     .maybeSingle();
-  if (data?.status === "sent") return { ok: true, message: "Email sent.", id: queued.id };
+  const meta = {
+    id: queued.id,
+    provider: (data?.provider as string | null) ?? null,
+    providerMessageId: (data?.provider_message_id as string | null) ?? null,
+    from: (data?.from_email as string | null) ?? null,
+    subject: (data?.subject as string | null) ?? null,
+  };
+  if (data?.status === "sent") return { ok: true, message: "Email sent.", ...meta };
   return {
     ok: false,
     message: data?.error || run.skipped || "The email is queued and will be retried shortly.",
-    id: queued.id,
+    ...meta,
   };
 }
+
 
 /** Marks provider delivery/bounce feedback against a transactional message. */
 export async function recordTransactionalEvent(

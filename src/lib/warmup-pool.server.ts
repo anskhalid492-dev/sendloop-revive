@@ -261,3 +261,29 @@ export async function warmupRecipientHistory(id: string): Promise<WarmupPoolHist
     error: (row["error"] as string | null) ?? null,
   }));
 }
+
+/**
+ * Bulk enable / disable / remove for the admin warmup recipient pool.
+ * Warmup-only: campaign leads and customer mailboxes are never touched here.
+ */
+export async function bulkWarmupRecipients(
+  ids: string[],
+  action: "enable" | "disable" | "remove",
+): Promise<{ affected: number }> {
+  const unique = Array.from(new Set(ids)).filter(Boolean);
+  if (unique.length === 0) return { affected: 0 };
+
+  if (action === "remove") {
+    const { error } = await supabaseAdmin.from("warmup_recipients").delete().in("id", unique);
+    if (error) throw new Error(error.message);
+    return { affected: unique.length };
+  }
+
+  const enabled = action === "enable";
+  const { error } = await supabaseAdmin
+    .from("warmup_recipients")
+    .update({ enabled, status: enabled ? "active" : "disabled", last_error: null } as never)
+    .in("id", unique);
+  if (error) throw new Error(error.message);
+  return { affected: unique.length };
+}

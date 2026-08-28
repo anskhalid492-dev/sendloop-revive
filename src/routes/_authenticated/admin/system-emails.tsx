@@ -30,6 +30,9 @@ import {
   setTransactionalTemplateEnabled,
   updateTransactionalSettings,
 } from "@/lib/transactional-email.functions";
+import { listSystemSenderIdentities } from "@/lib/transactional-email.functions";
+import { isRequiredSystemEmail } from "@/lib/transactional/policy";
+import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
 import { SesSystemEmailPanel } from "@/components/admin/SesSystemEmailPanel";
 
@@ -60,6 +63,9 @@ type TemplateRow = {
   status: string;
   version: number;
   subject: string;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to: string | null;
   is_default: boolean;
   variables: string[];
   draft: Record<string, unknown> | null;
@@ -158,6 +164,20 @@ function SystemEmailsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [testTo, setTestTo] = useState("");
+  const [testKey, setTestKey] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+    provider?: string | null;
+    providerMessageId?: string | null;
+    from?: string | null;
+    subject?: string | null;
+  } | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const fetchSenders = useServerFn(listSystemSenderIdentities);
+  const sendersQuery = useQuery({ queryKey: ["admin", "system-senders"], queryFn: () => fetchSenders() });
+  const senders = sendersQuery.data?.identities ?? [];
+  const provider = sendersQuery.data?.provider ?? null;
 
   const listQuery = useQuery({ queryKey: ["admin", "system-emails"], queryFn: () => fetchList({}) });
 
@@ -283,8 +303,18 @@ function SystemEmailsPage() {
   });
 
   const sendTest = useMutation({
-    mutationFn: () => testFn({ data: { eventKey: activeKey!, to: testTo } }),
-    onSuccess: (res) => (res.ok ? toast.success(res.message) : toast.error(res.message)),
+    mutationFn: () => testFn({ data: { eventKey: testKey ?? activeKey!, to: testTo } }),
+    onSuccess: (res) => {
+      setTestResult(res);
+      if (res.ok) toast.success("Test email sent");
+      else toast.error(res.message);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const previewRow = useMutation({
+    mutationFn: (eventKey: string) => previewFn({ data: { eventKey } }),
+    onSuccess: (res) => setPreviewHtml(res.rendered?.html ?? null),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -331,10 +361,25 @@ function SystemEmailsPage() {
         </div>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryCard label="Transactional emails" value={String(templates.length)} />
+        <SummaryCard
+          label="Enabled"
+          value={String(templates.filter((t) => t.enabled).length)}
+        />
+        <SummaryCard label="Configured senders" value={String(senders.length)} />
+        <SummaryCard
+          label="Active provider"
+          value={provider?.label ?? "—"}
+          tone={provider && !provider.available ? "bad" : "default"}
+        />
+      </div>
+
       <Tabs defaultValue="templates">
         <TabsList>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="settings">Delivery settings</TabsTrigger>
+          <TabsTrigger value="senders">Sender identities</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
           <TabsTrigger value="ses">Amazon SES</TabsTrigger>
           <TabsTrigger value="birthday">Birthday gifts</TabsTrigger>
@@ -381,8 +426,22 @@ function SystemEmailsPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="divide-y">
+                  <div className="hidden gap-3 px-4 py-2 text-xs uppercase text-muted-foreground lg:flex">
+                    <span className="min-w-56 flex-1">Email type</span>
+                    <span className="w-56">From address</span>
+                    <span className="w-40">Provider</span>
+                    <span className="w-28">Status</span>
+                    <span className="w-32">Last updated</span>
+                    <span className="w-64 text-right">Actions</span>
+                  </div>
                   {filtered.map((t) => {
                     const stats = usage[t.event_key];
+                    const required = isRequiredSystemEmail(t.event_key);
+                    const from =
+                      t.from_email ??
+                      senders.find((sn) => sn.purpose === systemEmailPurpose(t.event_key, t.category))?.email ??
+                      settings?.from_email ??
+                      "system default";
                     return (
                       <div key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                         <div className="min-w-56 flex-1">
@@ -390,23 +449,60 @@ function SystemEmailsPage() {
                             <span className="font-medium">{t.name}</span>
                             {t.draft ? <Badge variant="secondary">Draft</Badge> : null}
                             {!t.is_default ? <Badge variant="outline">Customised</Badge> : null}
+                            {required ? <Badge variant="outline">Required</Badge> : null}
                           </div>
                           <p className="truncate text-xs text-muted-foreground">{t.subject}</p>
-                          <p className="font-mono text-[11px] text-muted-foreground">{t.event_key}</p>
+                          <p className="font-mono text-[11px] text-muted-foreground">
+                            {t.event_key} · {t.category} · v{t.version}
+                          </p>
                         </div>
-                        <Badge variant="outline">{t.category}</Badge>
-                        <span className="w-28 text-xs text-muted-foreground">v{t.version}</span>
+                        <span className="w-56 truncate text-xs text-muted-foreground">{from}</span>
+                        <span className="w-40 text-xs">
+                          <Badge variant={provider?.available === false ? "destructive" : "outline"}>
+                            {provider?.label ?? "—"}
+                          </Badge>
+                        </span>
+                        <span className="w-28 text-xs">
+                          <Badge variant={t.enabled ? "default" : "secondary"}>
+                            {t.enabled ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </span>
                         <span className="w-32 text-xs text-muted-foreground">
+                          {new Date(t.updated_at).toLocaleDateString()}
+                          <br />
                           {stats ? `${stats.sent} sent · ${stats.failed} failed` : "No sends (30d)"}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={t.enabled}
-                            onCheckedChange={(enabled) => toggle.mutate({ eventKey: t.event_key, enabled })}
-                            aria-label={`Enable ${t.name}`}
-                          />
+                        <div className="flex w-64 items-center justify-end gap-2">
+                          {required ? (
+                            <span className="text-[11px] text-muted-foreground">Required system email</span>
+                          ) : (
+                            <Switch
+                              checked={t.enabled}
+                              onCheckedChange={(enabled) => toggle.mutate({ eventKey: t.event_key, enabled })}
+                              aria-label={`Enable ${t.name}`}
+                            />
+                          )}
                           <Button size="sm" variant="outline" onClick={() => openEditor(t.event_key)}>
                             Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => previewRow.mutate(t.event_key)}
+                            aria-label={`Preview ${t.name}`}
+                          >
+                            <Eye className="size-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setTestKey(t.event_key);
+                              setTestResult(null);
+                            }}
+                            aria-label={`Send test ${t.name}`}
+                          >
+                            <Send className="size-4" />
                           </Button>
                         </div>
                       </div>
@@ -496,6 +592,61 @@ function SystemEmailsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="senders">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sender identities</CardTitle>
+              <CardDescription>
+                MunchReach system sender addresses and their provider verification state. Credentials and keys are
+                never shown here. When Amazon SES is enabled, only verified identities can be selected on a template.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                      <th className="px-4 py-2">Email</th>
+                      <th className="px-4 py-2">Display name</th>
+                      <th className="px-4 py-2">Provider</th>
+                      <th className="px-4 py-2">Verification</th>
+                      <th className="px-4 py-2">Region</th>
+                      <th className="px-4 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {senders.map((sender) => (
+                      <tr key={sender.email} className="border-b last:border-0">
+                        <td className="px-4 py-2 font-medium">{sender.email}</td>
+                        <td className="px-4 py-2">{sender.name}</td>
+                        <td className="px-4 py-2">{sender.provider}</td>
+                        <td className="px-4 py-2">
+                          <Badge variant={sender.verification === "Verified" ? "default" : "secondary"}>
+                            {sender.verification}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-2 text-muted-foreground">{sender.region}</td>
+                        <td className="px-4 py-2">
+                          <Badge variant={sender.selectable ? "outline" : "secondary"}>
+                            {sender.selectable ? "Active" : "Not selectable"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                    {senders.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                          {sendersQuery.isLoading ? "Loading sender identities…" : "No sender identities."}
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="variables">
           <Card>
             <CardHeader>
@@ -536,9 +687,46 @@ function SystemEmailsPage() {
                 <Field label="Subject" value={effectiveDraft.subject} onChange={(v) => setDraft({ ...effectiveDraft, subject: v })} />
                 <Field label="Preheader" value={effectiveDraft.preheader} onChange={(v) => setDraft({ ...effectiveDraft, preheader: v })} />
                 <Field label="From name (optional)" value={effectiveDraft.from_name} onChange={(v) => setDraft({ ...effectiveDraft, from_name: v })} />
-                <Field label="From address (optional)" value={effectiveDraft.from_email} onChange={(v) => setDraft({ ...effectiveDraft, from_email: v })} />
+                <div className="grid gap-1">
+                  <Label>From address (system sender identity)</Label>
+                  <select
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    value={effectiveDraft.from_email}
+                    onChange={(e) => setDraft({ ...effectiveDraft, from_email: e.target.value })}
+                  >
+                    <option value="">Use mapped system sender</option>
+                    {senders.map((sn) => (
+                      <option key={sn.email} value={sn.email} disabled={!sn.selectable}>
+                        {sn.name} — {sn.email}
+                        {sn.selectable ? "" : ` (${sn.verification})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <Field label="Reply-to (optional)" value={effectiveDraft.reply_to} onChange={(v) => setDraft({ ...effectiveDraft, reply_to: v })} />
               </div>
+
+              <div className="rounded-lg border p-3">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Insert a variable (click to copy)
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEMPLATE_VARIABLES.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(`{{${v}}}`);
+                        toast.success(`Copied {{${v}}}`);
+                      }}
+                      className="rounded-md border px-2 py-1 font-mono text-[11px] hover:bg-muted"
+                    >
+                      {`{{${v}}}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid gap-2">
                 <Label>HTML body</Label>
                 <Textarea
@@ -580,10 +768,22 @@ function SystemEmailsPage() {
                   <Label>Send a test email</Label>
                   <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="you@example.com" />
                 </div>
-                <Button onClick={() => sendTest.mutate()} disabled={!testTo || sendTest.isPending}>
+                <Button
+                  onClick={() => {
+                    setTestKey(activeKey);
+                    sendTest.mutate();
+                  }}
+                  disabled={!testTo || sendTest.isPending}
+                >
                   {sendTest.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Send className="mr-2 size-4" />}
                   Send test
                 </Button>
+                {testResult ? (
+                  <p className="w-full break-all rounded-md bg-muted p-2 text-xs">
+                    {testResult.ok ? "Sent" : "Failed"} · {testResult.provider ?? "provider"} ·{" "}
+                    {testResult.providerMessageId ?? testResult.message}
+                  </p>
+                ) : null}
               </div>
 
               <div className="rounded-lg border">
@@ -622,12 +822,57 @@ function SystemEmailsPage() {
             <DialogTitle>Email preview</DialogTitle>
             <DialogDescription>Rendered with sample data.</DialogDescription>
           </DialogHeader>
-          <iframe
-            title="Email preview"
-            srcDoc={previewHtml ?? ""}
-            sandbox=""
-            className="h-[70vh] w-full border-0 bg-white"
-          />
+          <div className="flex items-center gap-2 px-6">
+            <Button
+              size="sm"
+              variant={previewDevice === "desktop" ? "default" : "outline"}
+              onClick={() => setPreviewDevice("desktop")}
+            >
+              Desktop
+            </Button>
+            <Button
+              size="sm"
+              variant={previewDevice === "mobile" ? "default" : "outline"}
+              onClick={() => setPreviewDevice("mobile")}
+            >
+              Mobile
+            </Button>
+          </div>
+          <div className="flex justify-center overflow-auto bg-muted/40 p-4">
+            <iframe
+              title="Email preview"
+              srcDoc={previewHtml ?? ""}
+              sandbox=""
+              className={`h-[68vh] border-0 bg-white ${previewDevice === "mobile" ? "w-[390px] rounded-xl shadow" : "w-full"}`}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!testKey && !activeKey}
+        onOpenChange={(open) => (open ? null : (setTestKey(null), setTestResult(null)))}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send test email</DialogTitle>
+            <DialogDescription className="font-mono text-xs">{testKey}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1">
+              <Label>Recipient</Label>
+              <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="you@example.com" />
+            </div>
+            <Button onClick={() => sendTest.mutate()} disabled={!testTo || sendTest.isPending}>
+              {sendTest.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Send className="mr-2 size-4" />}
+              Send test
+            </Button>
+            {testResult ? (
+              <p className="break-all rounded-md bg-muted p-3 text-xs">
+                {testResult.ok ? "Sent" : "Failed"} · {testResult.provider ?? "provider"} ·{" "}
+                {testResult.providerMessageId ?? testResult.message}
+              </p>
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -662,6 +907,23 @@ function SettingField({
           Save
         </Button>
       </div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "bad";
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`mt-1 text-xl font-semibold ${tone === "bad" ? "text-destructive" : ""}`}>{value}</p>
     </div>
   );
 }

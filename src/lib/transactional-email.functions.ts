@@ -29,6 +29,115 @@ const draftSchema = z.object({
   text_body: z.string().max(100_000).nullable().optional(),
 });
 
+/**
+ * Sender/provider context shared by the editor guards and the senders list.
+ * SES identity lookups are best-effort: a lookup failure never blocks admins,
+ * it simply means no domain is treated as SES-verified.
+ */
+async function senderContext(admin: unknown) {
+  const { getTransactionalSettings } = await import("@/lib/transactional-email.server");
+  const { SYSTEM_SENDERS } = await import("@/lib/system-email-senders");
+  const { resolveSesCredentials, sesRegion, getSesIdentity } = await import(
+    "@/lib/email-providers/ses-api.server"
+  );
+  const { mapSesIdentityState } = await import("@/lib/email-providers/ses.server");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const settings = await getTransactionalSettings(admin as any);
+  const senders = Object.values(SYSTEM_SENDERS);
+  const knownSenders = senders.map((s) => s.email);
+  const credentials = resolveSesCredentials(null);
+  const region = credentials?.region ?? sesRegion(null);
+
+  const domains = Array.from(
+    new Set(knownSenders.map((email) => (email.split("@")[1] ?? "").toLowerCase()).filter(Boolean)),
+  );
+
+  const states: Record<string, string> = {};
+  if (credentials) {
+    const results = await Promise.all(
+      domains.map(async (domain) => {
+        try {
+          const res = await getSesIdentity(domain, null);
+          return mapSesIdentityState(res?.json ?? null).state;
+        } catch {
+          return "unknown";
+        }
+      }),
+    );
+    domains.forEach((domain, i) => (states[domain] = results[i] ?? "unknown"));
+  }
+
+  const verifiedDomains = domains.filter((d) => states[d] === "verified");
+
+  return {
+    settings,
+    senders,
+    knownSenders,
+    verifiedDomains,
+    domainStates: states,
+    sesEnabled: settings.ses_enabled === true,
+    sesConnected: Boolean(credentials),
+    region,
+  };
+}
+
+/** Every MunchReach system sender identity with its provider verification state. */
+export const listSystemSenderIdentities = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { providerDisplay } = await import("@/lib/transactional/policy");
+    const ctx = await senderContext(supabaseAdmin);
+
+    const provider = providerDisplay({
+      sesEnabled: ctx.sesEnabled,
+      sesConnected: ctx.sesConnected,
+      managedAvailable: true,
+    });
+
+    return {
+      provider,
+      region: ctx.region,
+      sesEnabled: ctx.sesEnabled,
+      sesConnected: ctx.sesConnected,
+      identities: ctx.senders.map((s) => {
+        const domain = (s.email.split("@")[1] ?? "").toLowerCase();
+        const state = ctx.sesConnected ? ctx.domainStates[domain] ?? "unknown" : "not_connected";
+        const verified = state === "verified";
+        return {
+          email: s.email,
+          name: s.name,
+          replyTo: s.replyTo,
+          purpose: s.purpose,
+          description: s.description,
+          domain,
+          provider: provider.label,
+          region: ctx.region,
+          verification: verified ? "Verified" : ctx.sesConnected ? state : "Not connected",
+          /** Selectable as a From address for a transactional email. */
+          selectable: ctx.sesEnabled ? verified : true,
+          active: true,
+        };
+      }),
+    };
+  });
+
+/** Throws when the chosen From address is not a usable system sender. */
+async function assertSenderAllowed(admin: unknown, fromEmail: string | null | undefined) {
+  if (!fromEmail) return;
+  const { senderRejectionReason } = await import("@/lib/transactional/policy");
+  const ctx = await senderContext(admin);
+  const reason = senderRejectionReason({
+    fromEmail,
+    sesEnabled: ctx.sesEnabled,
+    verifiedDomains: ctx.verifiedDomains,
+    knownSenders: ctx.knownSenders,
+  });
+  if (reason) throw new Error(reason);
+}
+
 export const listTransactionalTemplates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -144,6 +253,8 @@ export const saveTransactionalDraft = createServerFn({ method: "POST" })
     const { validateTemplateInput } = await import("@/lib/transactional-email.server");
     const errors = validateTemplateInput(data.draft);
     if (errors.length > 0) throw new Error(errors.join(" "));
+    await assertSenderAllowed(supabaseAdmin, data.draft.from_email ?? null);
+
     const { error } = await supabaseAdmin
       .from("transactional_templates")
       .update({ draft: data.draft, status: "draft", updated_by: context.userId })
@@ -161,8 +272,10 @@ export const publishTransactionalTemplate = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { publishTemplate } = await import("@/lib/transactional-email.server");
+    await assertSenderAllowed(supabaseAdmin, data.draft.from_email ?? null);
     const result = await publishTemplate(
       supabaseAdmin,
+
       data.eventKey,
       {
         subject: data.draft.subject,
@@ -222,7 +335,12 @@ export const setTransactionalTemplateEnabled = createServerFn({ method: "POST" }
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { isRequiredSystemEmail } = await import("@/lib/transactional/policy");
+    if (!data.enabled && isRequiredSystemEmail(data.eventKey)) {
+      throw new Error("Required system email — this email cannot be disabled.");
+    }
     const { error } = await supabaseAdmin
+
       .from("transactional_templates")
       .update({ enabled: data.enabled, updated_by: context.userId })
       .eq("event_key", data.eventKey);
