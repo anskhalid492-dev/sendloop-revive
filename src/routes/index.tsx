@@ -76,61 +76,123 @@ const faqs = [
   },
 ];
 
-const capabilityRowOne = [
-  { icon: Target, label: "Targeted Prospecting" },
-  { icon: Mail, label: "Personalized Cold Email" },
-  { icon: Sparkles, label: "AI Personalization" },
-  { icon: Repeat, label: "Automated Follow-Ups" },
-  { icon: Inbox, label: "Unified Inbox" },
-  { icon: BarChart3, label: "Real-Time Analytics" },
-  { icon: Users, label: "Built-In CRM" },
+const workflowSteps = [
+  {
+    icon: Target,
+    title: "Find Prospects",
+    text: "Build targeted prospect lists and focus your outreach on the people most likely to buy.",
+  },
+  {
+    icon: Sparkles,
+    title: "Personalize",
+    text: "Use AI to create relevant personalization for every prospect without writing every email manually.",
+  },
+  {
+    icon: Send,
+    title: "Launch Campaigns",
+    text: "Create multi-step cold email campaigns and send them through your connected mailboxes.",
+  },
+  {
+    icon: Repeat,
+    title: "Follow Up",
+    text: "Automatically send the right follow-up at the right time without manually tracking prospects.",
+  },
+  {
+    icon: Inbox,
+    title: "Manage Replies",
+    text: "Bring replies into one inbox, organize conversations, and keep every prospect easy to manage.",
+  },
+  {
+    icon: CalendarCheck,
+    title: "Book Meetings",
+    text: "Track positive replies and meetings so users can see which campaigns actually produce results.",
+  },
 ];
 
-const capabilityRowTwo = [
-  { icon: ShieldCheck, label: "Email Verification" },
-  { icon: Flame, label: "Mailbox Warmup" },
-  { icon: Zap, label: "Smart Sending" },
-  { icon: Globe2, label: "Multi-Mailbox Outreach" },
-  { icon: MessageSquare, label: "Reply Management" },
-  { icon: TrendingUp, label: "Campaign Analytics" },
-  { icon: Workflow, label: "Outbound Automation" },
-];
+/**
+ * Premium 6-step outbound workflow directly below the hero. The connecting
+ * line and the soft "active step" pulse only show on wide screens where the
+ * steps sit horizontally; on mobile the steps stack with no line.
+ */
+function WorkflowSection() {
+  const [active, setActive] = React.useState(0);
 
-function CapabilityMarquee({
-  items,
-  reverse = false,
-}: {
-  items: { icon: LucideIcon; label: string }[];
-  reverse?: boolean;
-}) {
-  const doubled = [...items, ...items];
+  React.useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) return;
+    const id = window.setInterval(() => {
+      setActive((prev) => (prev + 1) % workflowSteps.length);
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, []);
+
   return (
-    <div
-      className="group relative overflow-hidden py-1.5"
-      style={{
-        maskImage:
-          "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
-        WebkitMaskImage:
-          "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
-      }}
-    >
-      <div
-        className={`flex w-max items-center gap-3 group-hover:[animation-play-state:paused] ${
-          reverse ? "sl-marquee-reverse" : "sl-marquee"
-        }`}
-      >
-        {doubled.map((item, i) => (
-          <span
-            key={`${item.label}-${i}`}
-            aria-hidden={i >= items.length}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-sm font-medium text-foreground/80 backdrop-blur"
-          >
-            <item.icon className="h-3.5 w-3.5 text-primary" />
-            {item.label}
-          </span>
-        ))}
+    <section className="relative mx-auto max-w-7xl px-4 pb-20 sm:px-6">
+      <div className="mx-auto max-w-2xl text-center">
+        <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+          Everything you need to run outbound
+        </span>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          From first prospect to booked meeting — all in one place.
+        </h2>
+        <p className="mt-3 text-muted-foreground">
+          Find the right prospects, personalize every message, send safely from your mailboxes,
+          manage replies, and track what turns into revenue.
+        </p>
       </div>
-    </div>
+
+      <div className="relative mt-14 lg:mt-16">
+        {/* Connecting progress line — only spans the icon row on wide screens */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-10 top-[26px] hidden h-px bg-gradient-to-r from-primary/0 via-primary/35 to-primary/0 lg:block"
+        />
+        {/* Moving active-step dot along the line */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-[22px] hidden size-2 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_12px_2px_var(--primary)] transition-[left] duration-700 ease-in-out lg:block"
+          style={{ left: `calc(${(active + 0.5) * (100 / workflowSteps.length)}%)` }}
+        />
+
+        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6 lg:gap-5">
+          {workflowSteps.map((step, i) => {
+            const isActive = active === i;
+            return (
+              <li
+                key={step.title}
+                className="relative flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all duration-500 lg:p-6"
+                style={{
+                  borderColor: isActive
+                    ? "var(--primary)"
+                    : "var(--border)",
+                  boxShadow: isActive
+                    ? "0 18px 45px -28px oklch(0.685 0.145 231 / 0.55)"
+                    : undefined,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className="relative flex size-11 items-center justify-center rounded-xl border border-border/70 bg-primary/10 text-primary transition-colors duration-500"
+                    style={
+                      isActive ? { background: "var(--primary)", color: "var(--primary-foreground)" } : undefined
+                    }
+                  >
+                    <step.icon className="size-5" />
+                  </span>
+                  <span className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">
+                    {`0${i + 1}`}
+                  </span>
+                </div>
+                <h3 className="mt-4 text-sm font-semibold sm:text-base">{step.title}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
+                  {step.text}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
   );
 }
 
