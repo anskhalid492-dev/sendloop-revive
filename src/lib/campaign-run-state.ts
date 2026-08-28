@@ -78,6 +78,10 @@ export type RunStateInput = {
   sentToday: number;
   /** Recipients that still have something left to send (ever). */
   remainingRecipients: number;
+  /** Lifetime allowance (`campaigns.email_send_limit`); 0 = unlimited. */
+  lifetimeLimit?: number;
+  /** Lifetime successful sends for this campaign. */
+  lifetimeSent?: number;
   /** True when a safety/provider condition blocks sending right now. */
   blocked?: boolean;
   now: Date;
@@ -96,13 +100,16 @@ export type RunStatus = {
 /**
  * Derives the run state. Reaching the daily quota is explicitly NOT "paused"
  * and NOT "completed": the campaign waits and becomes eligible again at its
- * next scheduled run.
+ * next scheduled run. Reaching the lifetime allowance is its own state too —
+ * only an empty audience is "completed".
  */
 export function campaignRunStatus(input: RunStateInput): RunStatus {
   const { status, dailyQuota, sentToday, remainingRecipients, now, window } = input;
   const quota = dailyQuota > 0 ? dailyQuota : 0;
   const remainingDailyCapacity = quota > 0 ? Math.max(0, quota - Math.max(0, sentToday)) : null;
   const quotaExhausted = quota > 0 && sentToday >= quota;
+  const lifetimeLimit = Number(input.lifetimeLimit ?? 0) || 0;
+  const lifetimeExhausted = lifetimeLimit > 0 && Number(input.lifetimeSent ?? 0) >= lifetimeLimit;
   const inWindow = isInSendWindow(now, window);
 
   const finish = (state: CampaignRunState, next: Date | null): RunStatus => ({
@@ -119,6 +126,8 @@ export function campaignRunStatus(input: RunStateInput): RunStatus {
   if (status === "completed") return finish("completed", null);
   if (input.blocked) return finish("blocked", nextRunAt(now, window));
   if (remainingRecipients <= 0) return finish("completed", null);
+  if (lifetimeExhausted) return finish("lifetime_limit_reached", null);
+
   if (status === "scheduled") return finish("scheduled", nextEligibleAt(now, window, false));
   if (quotaExhausted) return finish("daily_quota_reached", nextRunAt(now, window));
   if (!inWindow) return finish("waiting_for_next_run", nextSendSlot(now, window));
