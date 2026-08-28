@@ -308,12 +308,13 @@ function WarmupPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={toggleMutation.isPending || (row.paused_by_system && !row.resumable)}
+                          disabled={toggleMutation.isPending || !row.resumable}
                           title={
-                            row.paused_by_system && !row.resumable
-                              ? (row.pause_reason ?? "Resume cannot override this safety block.")
+                            !row.resumable
+                              ? `${row.block_reason ?? "Resume cannot override this safety block."} Resume becomes available as soon as the condition clears (next check ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).`
                               : undefined
                           }
+
                           onClick={() =>
                             toggleMutation.mutate({
                               accountId: row.id,
