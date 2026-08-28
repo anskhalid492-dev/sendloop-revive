@@ -422,7 +422,16 @@ export function SequencesTab({
                 ) : null}
 
                 <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setAiSidebarOpen(true)}
+                    className="text-primary"
+                  >
+                    <Sparkles className="mr-1.5 size-3.5" /> AI Personalization
+                  </Button>
                   <DropdownMenu>
+
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
                         <Braces className="mr-1.5 size-3.5" /> Variables
