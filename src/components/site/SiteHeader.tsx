@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { solutionNavLinks } from "@/lib/solutions-content";
 import { useSiteContent } from "@/lib/page-seo";
+import { communityPath } from "@/lib/community-model";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -251,7 +252,22 @@ export function SiteHeader() {
     "usecase",
     solutionNavLinks.map((l) => ({ label: l.label, to: l.to, text: "", icon: Compass })),
   );
-  const resourceLinks = toCards(headerRows, "resources", resourceCards);
+  const baseResourceLinks = toCards(headerRows, "resources", resourceCards);
+  // The Resources entry always points at the internal landing page — the
+  // external destination lives behind its CTAs so we keep the visitor.
+  const community = siteContent?.community;
+  const resourceLinks =
+    community?.enabled && community.show_in_nav
+      ? [
+          ...baseResourceLinks,
+          {
+            label: community.nav_label || "Community",
+            to: communityPath(community),
+            text: "Join other founders and outbound teams sharing wins and playbooks.",
+            icon: Users,
+          } satisfies Card,
+        ]
+      : baseResourceLinks;
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
