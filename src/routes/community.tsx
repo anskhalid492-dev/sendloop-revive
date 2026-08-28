@@ -261,7 +261,7 @@ function CommunityPage() {
 
       <Section
         muted
-        title="How it works"
+        title="How it works after you join"
         description="Three small steps and you're part of the conversation — most people post their first question the same day."
       >
         <div className="grid gap-4 sm:grid-cols-3">
@@ -281,7 +281,7 @@ function CommunityPage() {
       </Section>
 
       <Section
-        title="Who it's for"
+        title="Who should join"
         description="Different roles, one shared problem: getting replies from people who never asked to hear from you."
       >
         <div className="grid gap-4 lg:grid-cols-3">
@@ -299,7 +299,7 @@ function CommunityPage() {
 
       <Section
         muted
-        title="What you can post"
+        title="What members share and learn"
         description="The feed stays useful because the posts stay concrete. These are the threads members show up for."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -339,7 +339,7 @@ function CommunityPage() {
 
       <Section
         id="share-your-win"
-        title="Post your win"
+        title="How to post a win"
         description="Every post helps someone else send a better campaign. Here's what's worth sharing."
       >
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
