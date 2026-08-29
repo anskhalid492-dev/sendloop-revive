@@ -5111,13 +5111,18 @@ export type Database = {
           created_at: string
           created_by: string | null
           duplicated_from: string | null
+          from_email: string | null
           from_name: string | null
           id: string
+          metadata: Json
           name: string
           preview_text: string
           reply_to: string | null
+          status: string
           subject: string
+          type: string
           updated_at: string
+          variables: Json
         }
         Insert: {
           body?: string
@@ -5125,13 +5130,18 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duplicated_from?: string | null
+          from_email?: string | null
           from_name?: string | null
           id?: string
+          metadata?: Json
           name: string
           preview_text?: string
           reply_to?: string | null
+          status?: string
           subject?: string
+          type?: string
           updated_at?: string
+          variables?: Json
         }
         Update: {
           body?: string
@@ -5139,13 +5149,18 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duplicated_from?: string | null
+          from_email?: string | null
           from_name?: string | null
           id?: string
+          metadata?: Json
           name?: string
           preview_text?: string
           reply_to?: string | null
+          status?: string
           subject?: string
+          type?: string
           updated_at?: string
+          variables?: Json
         }
         Relationships: []
       }
