@@ -171,6 +171,19 @@ export type SitemapEntry = {
   priority?: string;
 };
 
+/** Marketing paths that must always be discoverable, even if the CMS row is missing. */
+const REQUIRED_SITEMAP_PATHS: SitemapEntry[] = [
+  { path: "/pricing", changefreq: "weekly", priority: "0.9" },
+  { path: "/features", changefreq: "weekly", priority: "0.9" },
+  { path: "/cold-email", changefreq: "weekly", priority: "0.8" },
+  { path: "/email-campaigns", changefreq: "weekly", priority: "0.8" },
+  { path: "/email-sequences", changefreq: "weekly", priority: "0.8" },
+  { path: "/email-verification", changefreq: "weekly", priority: "0.8" },
+  { path: "/lead-generation", changefreq: "weekly", priority: "0.8" },
+  { path: "/api-docs", changefreq: "weekly", priority: "0.7" },
+  { path: "/blog", changefreq: "daily", priority: "0.9" },
+];
+
 /** Never emits admin, dashboard, auth, unpublished or noindex URLs. */
 const PRIVATE_PREFIXES = [
   "/admin",
@@ -244,6 +257,14 @@ export async function buildSitemap(): Promise<{
       priority: "0.6",
       ...(post.updated_at ? { lastmod: String(post.updated_at).slice(0, 10) } : {}),
     });
+  }
+
+  // Ensure the requested marketing URLs are always present, using the CMS row when available.
+  const seen = new Set(entries.map((e) => e.path));
+  for (const required of REQUIRED_SITEMAP_PATHS) {
+    if (!seen.has(required.path)) {
+      entries.push(required);
+    }
   }
 
   return { entries, excluded };
