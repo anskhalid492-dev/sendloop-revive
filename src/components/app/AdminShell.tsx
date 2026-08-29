@@ -23,6 +23,8 @@ import {
   Menu,
   Plug,
   Search,
+  Megaphone,
+  Filter,
   MailMinus,
   ScrollText,
   Send,
