@@ -486,7 +486,10 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
   }
 
   const { ticket, messages } = query.data;
+  const rating = (query.data as { rating?: SupportTicketRating | null }).rating ?? null;
   const closed = ticket.status === "closed";
+  const rateable = isRateableStatus(ticket.status);
+
 
   return (
     <div className="space-y-4">
