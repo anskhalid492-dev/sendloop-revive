@@ -12,6 +12,7 @@ import {
   markNotificationRead,
 } from "@/lib/notifications.functions";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -32,9 +33,25 @@ export function NotificationBell() {
   const { query, items, unread } = useNotifications();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
-  const readOne = useMutation({ mutationFn: markRead, onSuccess: invalidate });
-  const readAll = useMutation({ mutationFn: markAll, onSuccess: invalidate });
-  const del = useMutation({ mutationFn: remove, onSuccess: invalidate });
+  const onError = (error: unknown) =>
+    toast.error(error instanceof Error ? error.message : "Could not update notifications.");
+  const readOne = useMutation({ mutationFn: markRead, onSuccess: invalidate, onError });
+  const readAll = useMutation({
+    mutationFn: () => markAll({ data: undefined } as never),
+    // Flip the feed locally first so the badge clears instantly, then refetch.
+    onMutate: () => {
+      queryClient.setQueryData(
+        ["notifications"],
+        (current: { items: Array<{ read: boolean }>; unread: number } | undefined) =>
+          current
+            ? { ...current, items: current.items.map((n) => ({ ...n, read: true })), unread: 0 }
+            : current,
+      );
+    },
+    onSettled: invalidate,
+    onError,
+  });
+  const del = useMutation({ mutationFn: remove, onSuccess: invalidate, onError });
 
 
   return (
@@ -55,7 +72,8 @@ export function NotificationBell() {
           {unread > 0 ? (
             <button
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              onClick={() => readAll.mutate({} as never)}
+              disabled={readAll.isPending}
+              onClick={() => readAll.mutate()}
             >
               <CheckCheck className="size-3" /> Mark all read
             </button>
