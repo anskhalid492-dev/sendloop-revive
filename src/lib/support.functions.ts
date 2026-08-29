@@ -10,6 +10,8 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { SUPPORT_CATEGORIES, SUPPORT_PRIORITIES } from "@/lib/support-model";
+import { isRateableStatus, type SupportTicketRating } from "@/lib/support-rating";
+
 
 export type SupportTicket = {
   id: string;
@@ -96,11 +98,72 @@ export const getSupportTicket = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .eq("created_by", context.userId);
 
+    const { data: rating } = await context.supabase
+      .from("support_ticket_ratings")
+      .select("id, ticket_id, rating, feedback, created_at, updated_at")
+      .eq("ticket_id", data.id)
+      .maybeSingle();
+
     return {
       ticket: { ...(ticket as unknown as Omit<SupportTicket, "unread">), unread: 0 },
       messages: (messages ?? []) as unknown as SupportMessage[],
+      rating: (rating ?? null) as SupportTicketRating | null,
     };
   });
+
+/**
+ * Customer rates their SUPPORT EXPERIENCE on a resolved/closed ticket.
+ * One rating per ticket — the unique constraint and RLS both enforce ownership.
+ */
+export const submitSupportRating = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        ticketId: z.string().uuid(),
+        rating: z.number().int().min(1).max(5),
+        feedback: z.string().trim().max(2000).nullish(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: ticket, error: ownErr } = await context.supabase
+      .from("support_tickets")
+      .select("id, status, workspace_id")
+      .eq("id", data.ticketId)
+      .eq("created_by", context.userId)
+      .maybeSingle();
+    if (ownErr) throw new Error(ownErr.message);
+    if (!ticket) throw new Error("Support request not found");
+
+    const row = ticket as unknown as { status: string; workspace_id: string | null };
+    if (!isRateableStatus(row.status)) {
+      throw new Error("You can rate your support experience once the ticket is resolved or closed.");
+    }
+
+    const { data: existing } = await context.supabase
+      .from("support_ticket_ratings")
+      .select("id")
+      .eq("ticket_id", data.ticketId)
+      .maybeSingle();
+    if (existing) throw new Error("You have already rated this support experience.");
+
+    const { data: inserted, error } = await context.supabase
+      .from("support_ticket_ratings")
+      .insert({
+        ticket_id: data.ticketId,
+        user_id: context.userId,
+        workspace_id: row.workspace_id,
+        rating: data.rating,
+        feedback: data.feedback?.trim() ? data.feedback.trim() : null,
+      })
+      .select("id, ticket_id, rating, feedback, created_at, updated_at")
+      .single();
+    if (error) throw new Error(error.message);
+
+    return { rating: inserted as unknown as SupportTicketRating };
+  });
+
 
 const attachment = z
   .object({
