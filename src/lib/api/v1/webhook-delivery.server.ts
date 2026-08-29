@@ -118,10 +118,10 @@ async function deliverOne(admin: Admin, row: DeliveryRow): Promise<boolean> {
     return false;
   }
 
-  const { readCredentials } = await import("@/lib/providers/adapter.server");
+  const { decryptCredentials } = await import("@/lib/provider-credentials.server");
   let secret = "";
   try {
-    secret = (readCredentials(endpoint.secret_ciphertext) as { secret?: string }).secret ?? "";
+    secret = decryptCredentials<{ secret?: string }>(endpoint.secret_ciphertext).secret ?? "";
   } catch {
     secret = "";
   }

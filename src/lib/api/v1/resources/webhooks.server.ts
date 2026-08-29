@@ -82,7 +82,7 @@ export async function listWebhooks(ctx: ApiContext) {
 export async function createWebhook(ctx: ApiContext) {
   const input = parseWith(createSchema, ctx.body);
   const secret = generateWebhookSecret();
-  const { writeCredentials } = await import("@/lib/providers/adapter.server");
+  const { encryptCredentials } = await import("@/lib/provider-credentials.server");
 
   const { data, error } = await ctx.admin
     .from("webhook_endpoints")
@@ -92,7 +92,7 @@ export async function createWebhook(ctx: ApiContext) {
       description: input.description ?? null,
       events: input.events,
       secret_hash: await sha256Hex(secret),
-      secret_ciphertext: writeCredentials({ secret }),
+      secret_ciphertext: encryptCredentials({ secret }),
       created_by: ctx.auth.createdBy,
     })
     .select(FIELDS)
@@ -138,10 +138,10 @@ export async function updateWebhook(ctx: ApiContext) {
 
   let secret: string | undefined;
   if (input.rotate_secret) {
-    const { writeCredentials } = await import("@/lib/providers/adapter.server");
+    const { encryptCredentials } = await import("@/lib/provider-credentials.server");
     secret = generateWebhookSecret();
     patch["secret_hash"] = await sha256Hex(secret);
-    patch["secret_ciphertext"] = writeCredentials({ secret });
+    patch["secret_ciphertext"] = encryptCredentials({ secret });
   }
 
   if (Object.keys(patch).length === 0) {
