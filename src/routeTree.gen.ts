@@ -173,6 +173,7 @@ import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/
 import { Route as ApiPublicCronRunWebhooksRouteImport } from './routes/api/public/cron/run-webhooks'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicMarketingUnsubscribeRouteImport } from './routes/api/public/marketing/unsubscribe'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
 import { Route as ApiPublicV1AnalyticsRouteImport } from './routes/api/public/v1/analytics'
@@ -1088,6 +1089,12 @@ const ApiPublicIntegrationsSlugRoute =
     path: '/api/public/integrations/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMarketingUnsubscribeRoute =
+  ApiPublicMarketingUnsubscribeRouteImport.update({
+    id: '/api/public/marketing/unsubscribe',
+    path: '/api/public/marketing/unsubscribe',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
   id: '/api/public/media/$',
   path: '/api/public/media/$',
@@ -1369,6 +1376,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
@@ -1552,6 +1560,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
@@ -1740,6 +1749,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
@@ -1928,6 +1938,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
     | '/api/public/v1/analytics'
@@ -2111,6 +2122,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
     | '/api/public/v1/analytics'
@@ -2298,6 +2310,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
     | '/api/public/v1/analytics'
@@ -2401,6 +2414,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWebhooksRoute: typeof ApiPublicCronRunWebhooksRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicMarketingUnsubscribeRoute: typeof ApiPublicMarketingUnsubscribeRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
   ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
   ApiPublicV1AnalyticsRoute: typeof ApiPublicV1AnalyticsRoute
@@ -3563,6 +3577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/marketing/unsubscribe': {
+      id: '/api/public/marketing/unsubscribe'
+      path: '/api/public/marketing/unsubscribe'
+      fullPath: '/api/public/marketing/unsubscribe'
+      preLoaderRoute: typeof ApiPublicMarketingUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/media/$': {
       id: '/api/public/media/$'
       path: '/api/public/media/$'
@@ -4151,6 +4172,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWebhooksRoute: ApiPublicCronRunWebhooksRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicMarketingUnsubscribeRoute: ApiPublicMarketingUnsubscribeRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
   ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
   ApiPublicV1AnalyticsRoute: ApiPublicV1AnalyticsRoute,
