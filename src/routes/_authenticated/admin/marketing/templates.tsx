@@ -269,21 +269,48 @@ function TemplatesPage() {
       </MarketingPanel>
 
       <MarketingPanel
-        title={draft.id ? "Edit template" : "New template"}
-        description="Body uses simple block markup. An unsubscribe footer is always appended at render time and cannot be removed."
+        title={
+          draft.builtIn
+            ? `Built-in template — read only`
+            : draft.id
+              ? "Edit template"
+              : "New template"
+        }
+        description={
+          draft.builtIn
+            ? "Built-in templates are owned by the product and cannot be edited or deleted. Duplicate this one to get a fully editable copy."
+            : "Body uses simple block markup. An unsubscribe footer is always appended at render time and cannot be removed."
+        }
         actions={
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => previewMutation.mutate()}>
               Preview
             </Button>
+            {draft.builtIn ? (
+              <Button
+                size="sm"
+                onClick={() => duplicateMutation.mutate({ key: draft.key ?? null })}
+                disabled={duplicateMutation.isPending}
+              >
+                Duplicate to edit
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => saveMutation.mutate()}
+                disabled={!draft.name.trim() || !draft.subject.trim() || saveMutation.isPending}
+              >
+                Save
+              </Button>
+            )}
             <Button
               size="sm"
-              onClick={() => saveMutation.mutate()}
-              disabled={!draft.name.trim() || !draft.subject.trim() || saveMutation.isPending}
+              variant="ghost"
+              onClick={() => {
+                setDraft(EMPTY);
+                setHtml("");
+              }}
             >
-              Save
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setDraft(EMPTY)}>
               Reset
             </Button>
           </div>
@@ -291,22 +318,41 @@ function TemplatesPage() {
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-3">
+            {draft.builtIn ? (
+              <div className="flex items-center gap-2 rounded-md border border-dashed p-2 text-xs text-muted-foreground">
+                <Lock className="h-3.5 w-3.5" />
+                Protected built-in — changes here are not saved.
+              </div>
+            ) : null}
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 <Label>Name</Label>
                 <Input
                   value={draft.name}
+                  readOnly={draft.builtIn}
                   onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                 />
               </div>
               <div>
                 <Label>Category</Label>
-                <Input
+                <select
+                  className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm disabled:opacity-70"
                   value={draft.category}
+                  disabled={draft.builtIn}
                   onChange={(event) => setDraft({ ...draft, category: event.target.value })}
-                />
+                >
+                  {TEMPLATE_CATEGORIES.some((c) => c.id === draft.category) ? null : (
+                    <option value={draft.category}>{categoryLabel(draft.category)}</option>
+                  )}
+                  {TEMPLATE_CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+
             <div>
               <Label>Subject</Label>
               <Input
