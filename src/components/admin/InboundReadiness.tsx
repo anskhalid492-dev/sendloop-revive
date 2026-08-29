@@ -152,6 +152,14 @@ export function InboundReadiness() {
           <p className="break-all text-xs text-muted-foreground">
             {scheduler.data?.url ?? "No runner endpoint stored yet."}
           </p>
+          {scheduler.data?.healthMessage ? (
+            <div className="flex items-start gap-2">
+              <Badge variant={scheduler.data.health === "healthy" ? "secondary" : "destructive"}>
+                {scheduler.data.health === "healthy" ? "Cron live" : "Cron not running"}
+              </Badge>
+              <span className="text-xs text-muted-foreground">{scheduler.data.healthMessage}</span>
+            </div>
+          ) : null}
           <Button
             size="sm"
             variant="outline"
