@@ -46,9 +46,9 @@ export const Route = createFileRoute("/_authenticated/admin/marketing/templates"
 });
 
 type Draft = {
-  id?: string;
-  key?: string | null;
-  builtIn?: boolean;
+  id?: string | undefined;
+  key?: string | null | undefined;
+  builtIn?: boolean | undefined;
   name: string;
   category: string;
   subject: string;
@@ -143,7 +143,7 @@ function TemplatesPage() {
       }
       return save({
         data: {
-          id: draft.id,
+          ...(draft.id ? { id: draft.id } : {}),
           name: draft.name,
           category: draft.category,
           subject: draft.subject,
@@ -230,7 +230,7 @@ function TemplatesPage() {
                 >
                   Duplicate
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => editTemplate(template)}>
+                <Button size="sm" variant="ghost" onClick={() => openTemplate(template)}>
                   Open
                 </Button>
               </div>
@@ -251,7 +251,7 @@ function TemplatesPage() {
                 <p className="text-sm font-medium">{template.name}</p>
                 <p className="text-xs text-muted-foreground">{template.subject}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => editTemplate(template)}>
+                  <Button size="sm" variant="outline" onClick={() => openTemplate(template)}>
                     Edit
                   </Button>
                   <Button
