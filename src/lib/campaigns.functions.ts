@@ -4,7 +4,7 @@ import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
-import { windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { normalizeSendDays, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
 import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
@@ -274,7 +274,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     const dailyQuota = Number(campaignRow["daily_cap"] ?? 0) || 0;
     const runWindow = {
       timezone: runTimezone,
-      sendDays: (campaignRow["send_days"] as number[] | null) ?? [1, 2, 3, 4, 5],
+      sendDays: normalizeSendDays(campaignRow["send_days"]),
       startHour: Number(campaignRow["send_start_hour"] ?? 9),
       endHour: Number(campaignRow["send_end_hour"] ?? 17),
     };
@@ -697,6 +697,23 @@ export const updateCampaign = createServerFn({ method: "POST" })
       .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Changing the sending days / window / timezone must re-plan the queue that
+    // was built against the previous settings, otherwise already-scheduled
+    // messages keep waiting for a day the user no longer selected.
+    if (
+      patch["send_days"] !== undefined ||
+      patch["send_start_hour"] !== undefined ||
+      patch["send_end_hour"] !== undefined ||
+      patch["timezone"] !== undefined
+    ) {
+      try {
+        const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
+        await rescheduleCampaignQueue(context.supabase, data.id);
+      } catch (rescheduleError) {
+        console.error("campaign queue reschedule failed", data.id, rescheduleError);
+      }
+    }
 
     // Any edit that can change the audience recomputes and persists the real
     // eligible recipient count so the readiness bar survives a refresh.
