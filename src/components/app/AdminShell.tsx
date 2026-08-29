@@ -98,6 +98,21 @@ const navSections: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Marketing Engine",
+    items: [
+      { to: "/admin/marketing", label: "Overview", icon: Megaphone },
+      { to: "/admin/marketing/subscribers", label: "Subscribers", icon: ContactRound },
+      { to: "/admin/marketing/segments", label: "Segments", icon: Filter },
+      { to: "/admin/marketing/campaigns", label: "Campaigns", icon: Send },
+      { to: "/admin/marketing/automations", label: "Automations", icon: Workflow },
+      { to: "/admin/marketing/templates", label: "Templates", icon: FileText },
+      { to: "/admin/marketing/providers", label: "Providers", icon: Server },
+      { to: "/admin/marketing/domains", label: "Sending Domains", icon: Globe },
+      { to: "/admin/marketing/analytics", label: "Analytics", icon: BarChart3 },
+      { to: "/admin/marketing/settings", label: "Settings", icon: Settings },
+    ],
+  },
+  {
     title: "Outreach",
     items: [
       { to: "/admin/campaigns", label: "Campaigns", icon: Send },
