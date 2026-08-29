@@ -1395,8 +1395,18 @@ export async function runCampaign(
   // failed on a previous sending day are re-queued once per day so the campaign
   // resumes instead of silently ending with recipients still pending.
   const runAt = options.now ?? new Date();
+  // Self-heal: queue rows built against older schedule settings (or an earlier
+  // Mon–Fri assumption) are recomputed from the campaign's current sending
+  // days + window + timezone before anything is dispatched.
+  try {
+    const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
+    await rescheduleCampaignQueue(supabase, options.campaignId, runAt);
+  } catch (error) {
+    console.error("campaign queue realign failed", options.campaignId, error);
+  }
   const requeued = await requeueRetryableMessages(supabase, options.campaignId, runAt);
   const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId, runAt);
+
   const result = await dispatchDueMessages(supabase, options);
   result.scheduled += initialScheduled + requeued;
   try {
