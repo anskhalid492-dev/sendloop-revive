@@ -432,17 +432,25 @@ export async function configureScheduler(baseUrl: string) {
 }
 
 export async function getSchedulerStatus() {
-  const { data } = await supabaseAdmin
-    .from("platform_settings")
-    .select("value, updated_at")
-    .eq("key", "campaign_runner")
-    .maybeSingle();
-  const value = (data?.value ?? {}) as { url?: string };
+  const { evaluateSchedulerHealth } = await import("./scheduler-health");
+  const [runner, heartbeat] = await Promise.all([
+    supabaseAdmin.from("platform_settings").select("value, updated_at").eq("key", "campaign_runner").maybeSingle(),
+    supabaseAdmin
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "campaign_scheduler_heartbeat")
+      .maybeSingle(),
+  ]);
+  const value = (runner.data?.value ?? {}) as { url?: string };
+  const health = evaluateSchedulerHealth((heartbeat.data?.value ?? null) as { lastTickAt?: string } | null);
   return {
     configured: Boolean(value.url),
     url: value.url ?? null,
-    updatedAt: data?.updated_at ?? null,
+    updatedAt: runner.data?.updated_at ?? null,
     schedule: "*/5 * * * *",
+    health: health.state,
+    healthMessage: health.message,
+    lastTickAt: health.lastTickAt,
   };
 }
 

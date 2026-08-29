@@ -50,6 +50,13 @@ async function run(request: Request) {
   if (!secrets.some((secret) => secretMatches(provided, secret))) {
     return json({ error: "Unauthorized" }, 401);
   }
+  // Liveness heartbeat: proves the external (pg_cron) registration still calls
+  // this endpoint. The admin console alerts when it goes stale.
+  await supabaseAdmin.from("platform_settings").upsert(
+    { key: "campaign_scheduler_heartbeat", value: { lastTickAt: new Date().toISOString() } },
+    { onConflict: "key" },
+  );
+
   const { runCampaignScheduler } = await import("@/lib/campaign-scheduler.server");
 
   const only = url.searchParams.get("campaignId");
