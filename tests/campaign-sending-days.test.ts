@@ -84,7 +84,7 @@ describe("daily limit counts today only", () => {
       window: allDays,
     });
     expect(status.state).toBe("running");
-    expect(status.remainingToday).toBe(700);
+    expect(status.remainingDailyCapacity).toBe(700);
   });
 
   test("only sends with a sent_at inside today count against the quota", async () => {
