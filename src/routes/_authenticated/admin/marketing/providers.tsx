@@ -125,7 +125,7 @@ function ProvidersPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={provider.connectionStatus === "verified" ? "default" : "outline"}
+                    variant={provider.connectionStatus === "connected" ? "default" : "outline"}
                   >
                     {provider.connectionStatus}
                   </Badge>
