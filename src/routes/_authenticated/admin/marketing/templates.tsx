@@ -1,0 +1,325 @@
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { Lock, Monitor, Smartphone } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  MarketingLoading,
+  MarketingPanel,
+} from "@/components/admin/marketing/MarketingUI";
+import {
+  deleteMarketingTemplate,
+  duplicateMarketingTemplate,
+  listMarketingTemplates,
+  previewMarketingTemplate,
+  saveMarketingTemplate,
+} from "@/lib/marketing.functions";
+import type { MarketingTemplate } from "@/lib/marketing/types";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/admin/marketing/templates")({
+  head: () => ({
+    meta: [
+      { title: "Marketing Templates — MunchReach Admin" },
+      {
+        name: "description",
+        content:
+          "Built-in protected marketing templates plus editable duplicates for announcements, onboarding and newsletters.",
+      },
+      { property: "og:title", content: "Marketing Templates — MunchReach Admin" },
+      {
+        property: "og:description",
+        content: "Template library for MunchReach internal marketing email.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: TemplatesPage,
+});
+
+type Draft = {
+  id?: string;
+  name: string;
+  category: string;
+  subject: string;
+  previewText: string;
+  body: string;
+};
+
+const EMPTY: Draft = {
+  name: "",
+  category: "announcement",
+  subject: "",
+  previewText: "",
+  body: "",
+};
+
+function TemplatesPage() {
+  const qc = useQueryClient();
+  const list = useServerFn(listMarketingTemplates);
+  const duplicate = useServerFn(duplicateMarketingTemplate);
+  const save = useServerFn(saveMarketingTemplate);
+  const remove = useServerFn(deleteMarketingTemplate);
+  const preview = useServerFn(previewMarketingTemplate);
+
+  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [category, setCategory] = useState("all");
+  const [html, setHtml] = useState("");
+
+  const query = useQuery({
+    queryKey: ["admin", "marketing", "templates"],
+    queryFn: () => list(),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "marketing"] });
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of query.data?.builtIn ?? []) set.add(t.category);
+    for (const t of query.data?.custom ?? []) set.add(t.category);
+    return ["all", ...[...set].sort()];
+  }, [query.data]);
+
+  const duplicateMutation = useMutation({
+    mutationFn: (vars: { key?: string | null; id?: string | null }) => duplicate({ data: vars }),
+    onSuccess: () => {
+      toast.success("Template duplicated — the copy is editable");
+      invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: () => save({ data: draft }),
+    onSuccess: () => {
+      toast.success("Template saved");
+      setDraft(EMPTY);
+      invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: () =>
+      preview({
+        data: { subject: draft.subject, previewText: draft.previewText, body: draft.body },
+      }),
+    onSuccess: (result) => setHtml(result.html),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Template deleted");
+      invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const editTemplate = (template: MarketingTemplate) =>
+    setDraft({
+      id: template.id,
+      name: template.name,
+      category: template.category,
+      subject: template.subject,
+      previewText: template.previewText,
+      body: template.body,
+    });
+
+  if (query.isLoading) return <MarketingLoading label="Loading templates" />;
+
+  const builtIn = (query.data?.builtIn ?? []).filter(
+    (t) => category === "all" || t.category === category,
+  );
+  const custom = (query.data?.custom ?? []).filter(
+    (t) => category === "all" || t.category === category,
+  );
+
+  return (
+    <div className="space-y-6">
+      <MarketingPanel
+        title="Built-in library"
+        description="Built-in templates are protected: duplicate one to make an editable copy. The original can never be overwritten or deleted."
+        actions={
+          <div className="flex flex-wrap gap-1">
+            {categories.map((value) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={category === value ? "default" : "outline"}
+                onClick={() => setCategory(value)}
+              >
+                {value}
+              </Button>
+            ))}
+          </div>
+        }
+      >
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {builtIn.map((template) => (
+            <div key={template.id} className="space-y-2 rounded-md border p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">{template.name}</p>
+                  <p className="text-xs text-muted-foreground">{template.subject}</p>
+                </div>
+                <Badge variant="outline" className="shrink-0 gap-1">
+                  <Lock className="h-3 w-3" /> built-in
+                </Badge>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => duplicateMutation.mutate({ key: template.key })}
+                >
+                  Duplicate
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => editTemplate(template)}>
+                  Open
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </MarketingPanel>
+
+      <MarketingPanel title="Your templates" description="Editable copies and custom templates.">
+        {custom.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No editable templates yet — duplicate a built-in one to start.
+          </p>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {custom.map((template) => (
+              <div key={template.id} className="space-y-2 rounded-md border p-3">
+                <p className="text-sm font-medium">{template.name}</p>
+                <p className="text-xs text-muted-foreground">{template.subject}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => editTemplate(template)}>
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => deleteMutation.mutate(template.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </MarketingPanel>
+
+      <MarketingPanel
+        title={draft.id ? "Edit template" : "New template"}
+        description="Body uses simple block markup. An unsubscribe footer is always appended at render time and cannot be removed."
+        actions={
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => previewMutation.mutate()}>
+              Preview
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => saveMutation.mutate()}
+              disabled={!draft.name.trim() || !draft.subject.trim() || saveMutation.isPending}
+            >
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setDraft(EMPTY)}>
+              Reset
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={draft.name}
+                  onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Input
+                  value={draft.category}
+                  onChange={(event) => setDraft({ ...draft, category: event.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Subject</Label>
+              <Input
+                value={draft.subject}
+                onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Preview text</Label>
+              <Input
+                value={draft.previewText}
+                onChange={(event) => setDraft({ ...draft, previewText: event.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Body</Label>
+              <Textarea
+                rows={16}
+                className="font-mono text-xs"
+                value={draft.body}
+                onChange={(event) => setDraft({ ...draft, body: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Preview</Label>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant={device === "desktop" ? "default" : "outline"}
+                  onClick={() => setDevice("desktop")}
+                >
+                  <Monitor className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={device === "mobile" ? "default" : "outline"}
+                  onClick={() => setDevice("mobile")}
+                >
+                  <Smartphone className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-md border bg-muted/30 p-2">
+              <iframe
+                title="Template preview"
+                srcDoc={html || "<p style='font-family:sans-serif;color:#666'>Click Preview</p>"}
+                className={cn(
+                  "mx-auto h-[520px] rounded bg-white",
+                  device === "mobile" ? "w-[390px]" : "w-full",
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </MarketingPanel>
+    </div>
+  );
+}
