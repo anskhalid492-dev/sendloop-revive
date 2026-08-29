@@ -63,6 +63,7 @@ export function zonedParts(date: Date, timezone: string): ZonedParts {
 export function normalizeSendDays(days: unknown): number[] {
   const list = Array.isArray(days) ? days : [];
   const parsed = list
+    .filter((d) => d !== null && d !== undefined && d !== "" && typeof d !== "boolean")
     .map((d) => Number(d))
     .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
   const unique = Array.from(new Set(parsed)).sort((a, b) => a - b);
