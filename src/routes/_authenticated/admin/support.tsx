@@ -19,9 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { SupportStars } from "@/components/support/SupportStars";
+import { SUPPORT_RATING_LABEL, SUPPORT_RATING_VALUES } from "@/lib/support-rating";
 import {
   getAdminAttachmentUrl,
   getAdminTicket,
+  getSupportSatisfaction,
   listAdminTickets,
   listSupportAgents,
   replyAdminTicket,
