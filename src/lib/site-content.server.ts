@@ -7,6 +7,7 @@
  */
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
 import { mergeCommunityConfig, type CommunityConfig } from "@/lib/community-model";
+import { normalizeVerificationToken } from "@/lib/verification-token";
 import {
   normalizePath,
   renderRobots,
@@ -136,7 +137,13 @@ export async function loadSiteContent(): Promise<SiteContentBundle> {
 
   return {
     seo,
-    globalSeo: { ...DEFAULT_GLOBAL_SEO, ...((settingsMap.get("seo") as GlobalSeoConfig) ?? {}) },
+    globalSeo: (() => {
+      const merged = { ...DEFAULT_GLOBAL_SEO, ...((settingsMap.get("seo") as GlobalSeoConfig) ?? {}) };
+      // Older records may hold a whole pasted <meta> tag; render the token only.
+      merged.google_verification = normalizeVerificationToken(merged.google_verification);
+      merged.bing_verification = normalizeVerificationToken(merged.bing_verification);
+      return merged;
+    })(),
     header: navRows.filter((n) => n.location === "header"),
     footer: navRows.filter((n) => n.location === "footer"),
     social: navRows.filter((n) => n.location === "social"),

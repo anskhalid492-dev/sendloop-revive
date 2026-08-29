@@ -7,6 +7,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { normalizeVerificationToken } from "@/lib/verification-token";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -364,8 +365,18 @@ const globalSeoInput = z.object({
   og_image_url: z.string().trim().max(600).default(""),
   og_site_name: z.string().trim().max(120).default("MunchReach"),
   twitter_handle: z.string().trim().max(60).default(""),
-  google_verification: z.string().trim().max(200).default(""),
-  bing_verification: z.string().trim().max(200).default(""),
+  google_verification: z
+    .string()
+    .trim()
+    .max(600)
+    .default("")
+    .transform((v) => normalizeVerificationToken(v)),
+  bing_verification: z
+    .string()
+    .trim()
+    .max(600)
+    .default("")
+    .transform((v) => normalizeVerificationToken(v)),
   head_scripts: z.string().max(8000).default(""),
   body_scripts: z.string().max(8000).default(""),
   index_site: z.boolean().default(true),

@@ -19,6 +19,7 @@ import { getSiteContent } from "@/lib/site-content.functions";
 import { ensureProfile } from "@/lib/profile.functions";
 import { getPlatformFlags } from "@/lib/platform-settings.functions";
 import { getGlobalSeo, setSiteContent } from "@/lib/page-seo";
+import { normalizeVerificationToken } from "@/lib/verification-token";
 import { getPublicPlatformConfig } from "@/lib/platform-config.functions";
 import {
   getPlatformConfig,
@@ -173,10 +174,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           ]
         : []),
       ...(global?.twitter_handle ? [{ name: "twitter:site", content: global.twitter_handle }] : []),
-      ...(global?.google_verification
-        ? [{ name: "google-site-verification", content: global.google_verification }]
+      ...(normalizeVerificationToken(global?.google_verification)
+        ? [
+            {
+              name: "google-site-verification",
+              content: normalizeVerificationToken(global?.google_verification),
+            },
+          ]
         : []),
-      ...(global?.bing_verification ? [{ name: "msvalidate.01", content: global.bing_verification }] : []),
+      ...(normalizeVerificationToken(global?.bing_verification)
+        ? [{ name: "msvalidate.01", content: normalizeVerificationToken(global?.bing_verification) }]
+        : []),
       ...(global && global.index_site === false ? [{ name: "robots", content: "noindex, nofollow" }] : []),
     ],
 
