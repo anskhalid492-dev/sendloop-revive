@@ -82,7 +82,7 @@ export async function rescheduleCampaignQueue(
     queued.map((row) => ({
       id: row.id,
       scheduled_at: row.scheduled_at,
-      pull_forward: firstStep === null || row.step_order === null || row.step_order === firstStep,
+      pull_forward: row.step_order === null || (firstStep !== null && row.step_order === firstStep),
     })) as QueuedMessageRow[],
     window,
     now,
