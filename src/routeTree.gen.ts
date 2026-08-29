@@ -148,8 +148,13 @@ import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$sl
 import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
+import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated/admin/marketing/analytics'
+import { Route as AuthenticatedAdminMarketingAutomationsRouteImport } from './routes/_authenticated/admin/marketing/automations'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated/admin/marketing/campaigns'
+import { Route as AuthenticatedAdminMarketingDomainsRouteImport } from './routes/_authenticated/admin/marketing/domains'
+import { Route as AuthenticatedAdminMarketingProvidersRouteImport } from './routes/_authenticated/admin/marketing/providers'
 import { Route as AuthenticatedAdminMarketingSegmentsRouteImport } from './routes/_authenticated/admin/marketing/segments'
+import { Route as AuthenticatedAdminMarketingSettingsRouteImport } from './routes/_authenticated/admin/marketing/settings'
 import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
 import { Route as AuthenticatedAdminMarketingTemplatesRouteImport } from './routes/_authenticated/admin/marketing/templates'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
@@ -168,6 +173,7 @@ import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/
 import { Route as ApiPublicCronRunWebhooksRouteImport } from './routes/api/public/cron/run-webhooks'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicMarketingUnsubscribeRouteImport } from './routes/api/public/marketing/unsubscribe'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
 import { Route as ApiPublicV1AnalyticsRouteImport } from './routes/api/public/v1/analytics'
@@ -937,16 +943,46 @@ const AuthenticatedAdminMarketingIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingAnalyticsRoute =
+  AuthenticatedAdminMarketingAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
+const AuthenticatedAdminMarketingAutomationsRoute =
+  AuthenticatedAdminMarketingAutomationsRouteImport.update({
+    id: '/automations',
+    path: '/automations',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const AuthenticatedAdminMarketingCampaignsRoute =
   AuthenticatedAdminMarketingCampaignsRouteImport.update({
     id: '/campaigns',
     path: '/campaigns',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingDomainsRoute =
+  AuthenticatedAdminMarketingDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
+const AuthenticatedAdminMarketingProvidersRoute =
+  AuthenticatedAdminMarketingProvidersRouteImport.update({
+    id: '/providers',
+    path: '/providers',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const AuthenticatedAdminMarketingSegmentsRoute =
   AuthenticatedAdminMarketingSegmentsRouteImport.update({
     id: '/segments',
     path: '/segments',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
+const AuthenticatedAdminMarketingSettingsRoute =
+  AuthenticatedAdminMarketingSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
 const AuthenticatedAdminMarketingSubscribersRoute =
@@ -1051,6 +1087,12 @@ const ApiPublicIntegrationsSlugRoute =
   ApiPublicIntegrationsSlugRouteImport.update({
     id: '/api/public/integrations/$slug',
     path: '/api/public/integrations/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMarketingUnsubscribeRoute =
+  ApiPublicMarketingUnsubscribeRouteImport.update({
+    id: '/api/public/marketing/unsubscribe',
+    path: '/api/public/marketing/unsubscribe',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
@@ -1309,8 +1351,13 @@ export interface FileRoutesByFullPath {
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
+  '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
+  '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
+  '/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -1329,6 +1376,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
@@ -1487,8 +1535,13 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
+  '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
+  '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
+  '/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -1507,6 +1560,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
@@ -1670,8 +1724,13 @@ export interface FileRoutesById {
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
+  '/_authenticated/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/_authenticated/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
+  '/_authenticated/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/_authenticated/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
+  '/_authenticated/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
   '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/_authenticated/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -1690,6 +1749,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
@@ -1853,8 +1913,13 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/analytics'
+    | '/admin/marketing/automations'
     | '/admin/marketing/campaigns'
+    | '/admin/marketing/domains'
+    | '/admin/marketing/providers'
     | '/admin/marketing/segments'
+    | '/admin/marketing/settings'
     | '/admin/marketing/subscribers'
     | '/admin/marketing/templates'
     | '/api/public/automations/$token'
@@ -1873,6 +1938,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
     | '/api/public/v1/analytics'
@@ -2031,8 +2097,13 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/analytics'
+    | '/admin/marketing/automations'
     | '/admin/marketing/campaigns'
+    | '/admin/marketing/domains'
+    | '/admin/marketing/providers'
     | '/admin/marketing/segments'
+    | '/admin/marketing/settings'
     | '/admin/marketing/subscribers'
     | '/admin/marketing/templates'
     | '/api/public/automations/$token'
@@ -2051,6 +2122,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
     | '/api/public/v1/analytics'
@@ -2213,8 +2285,13 @@ export interface FileRouteTypes {
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/credits/ledger'
     | '/_authenticated/admin/inbound-events/$eventId'
+    | '/_authenticated/admin/marketing/analytics'
+    | '/_authenticated/admin/marketing/automations'
     | '/_authenticated/admin/marketing/campaigns'
+    | '/_authenticated/admin/marketing/domains'
+    | '/_authenticated/admin/marketing/providers'
     | '/_authenticated/admin/marketing/segments'
+    | '/_authenticated/admin/marketing/settings'
     | '/_authenticated/admin/marketing/subscribers'
     | '/_authenticated/admin/marketing/templates'
     | '/api/public/automations/$token'
@@ -2233,6 +2310,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
     | '/api/public/v1/analytics'
@@ -2336,6 +2414,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWebhooksRoute: typeof ApiPublicCronRunWebhooksRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicMarketingUnsubscribeRoute: typeof ApiPublicMarketingUnsubscribeRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
   ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
   ApiPublicV1AnalyticsRoute: typeof ApiPublicV1AnalyticsRoute
@@ -3323,6 +3402,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingIndexRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/analytics': {
+      id: '/_authenticated/admin/marketing/analytics'
+      path: '/analytics'
+      fullPath: '/admin/marketing/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
+    '/_authenticated/admin/marketing/automations': {
+      id: '/_authenticated/admin/marketing/automations'
+      path: '/automations'
+      fullPath: '/admin/marketing/automations'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingAutomationsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/_authenticated/admin/marketing/campaigns': {
       id: '/_authenticated/admin/marketing/campaigns'
       path: '/campaigns'
@@ -3330,11 +3423,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingCampaignsRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/domains': {
+      id: '/_authenticated/admin/marketing/domains'
+      path: '/domains'
+      fullPath: '/admin/marketing/domains'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingDomainsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
+    '/_authenticated/admin/marketing/providers': {
+      id: '/_authenticated/admin/marketing/providers'
+      path: '/providers'
+      fullPath: '/admin/marketing/providers'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingProvidersRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/_authenticated/admin/marketing/segments': {
       id: '/_authenticated/admin/marketing/segments'
       path: '/segments'
       fullPath: '/admin/marketing/segments'
       preLoaderRoute: typeof AuthenticatedAdminMarketingSegmentsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
+    '/_authenticated/admin/marketing/settings': {
+      id: '/_authenticated/admin/marketing/settings'
+      path: '/settings'
+      fullPath: '/admin/marketing/settings'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
     '/_authenticated/admin/marketing/subscribers': {
@@ -3461,6 +3575,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/integrations/$slug'
       fullPath: '/api/public/integrations/$slug'
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/marketing/unsubscribe': {
+      id: '/api/public/marketing/unsubscribe'
+      path: '/api/public/marketing/unsubscribe'
+      fullPath: '/api/public/marketing/unsubscribe'
+      preLoaderRoute: typeof ApiPublicMarketingUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/media/$': {
@@ -3614,8 +3735,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminMarketingRouteRouteChildren {
+  AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
+  AuthenticatedAdminMarketingAutomationsRoute: typeof AuthenticatedAdminMarketingAutomationsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
+  AuthenticatedAdminMarketingDomainsRoute: typeof AuthenticatedAdminMarketingDomainsRoute
+  AuthenticatedAdminMarketingProvidersRoute: typeof AuthenticatedAdminMarketingProvidersRoute
   AuthenticatedAdminMarketingSegmentsRoute: typeof AuthenticatedAdminMarketingSegmentsRoute
+  AuthenticatedAdminMarketingSettingsRoute: typeof AuthenticatedAdminMarketingSettingsRoute
   AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
   AuthenticatedAdminMarketingTemplatesRoute: typeof AuthenticatedAdminMarketingTemplatesRoute
   AuthenticatedAdminMarketingIndexRoute: typeof AuthenticatedAdminMarketingIndexRoute
@@ -3623,10 +3749,20 @@ interface AuthenticatedAdminMarketingRouteRouteChildren {
 
 const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketingRouteRouteChildren =
   {
+    AuthenticatedAdminMarketingAnalyticsRoute:
+      AuthenticatedAdminMarketingAnalyticsRoute,
+    AuthenticatedAdminMarketingAutomationsRoute:
+      AuthenticatedAdminMarketingAutomationsRoute,
     AuthenticatedAdminMarketingCampaignsRoute:
       AuthenticatedAdminMarketingCampaignsRoute,
+    AuthenticatedAdminMarketingDomainsRoute:
+      AuthenticatedAdminMarketingDomainsRoute,
+    AuthenticatedAdminMarketingProvidersRoute:
+      AuthenticatedAdminMarketingProvidersRoute,
     AuthenticatedAdminMarketingSegmentsRoute:
       AuthenticatedAdminMarketingSegmentsRoute,
+    AuthenticatedAdminMarketingSettingsRoute:
+      AuthenticatedAdminMarketingSettingsRoute,
     AuthenticatedAdminMarketingSubscribersRoute:
       AuthenticatedAdminMarketingSubscribersRoute,
     AuthenticatedAdminMarketingTemplatesRoute:
@@ -4036,6 +4172,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWebhooksRoute: ApiPublicCronRunWebhooksRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicMarketingUnsubscribeRoute: ApiPublicMarketingUnsubscribeRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
   ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
   ApiPublicV1AnalyticsRoute: ApiPublicV1AnalyticsRoute,

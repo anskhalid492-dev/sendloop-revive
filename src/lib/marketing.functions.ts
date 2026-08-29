@@ -946,7 +946,7 @@ export const marketingAnalytics = createServerFn({ method: "GET" })
       days,
       timeline: [...byDay.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([day, counts]) => ({ day, ...counts })),
+        .map(([day, counts]) => ({ day, counts })),
       totals: rows.reduce<Record<string, number>>((acc, row) => {
         acc[row.event_type] = (acc[row.event_type] ?? 0) + 1;
         return acc;
