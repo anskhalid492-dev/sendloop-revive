@@ -148,6 +148,7 @@ import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$sl
 import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
+import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated/admin/marketing/analytics'
 import { Route as AuthenticatedAdminMarketingAutomationsRouteImport } from './routes/_authenticated/admin/marketing/automations'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated/admin/marketing/campaigns'
 import { Route as AuthenticatedAdminMarketingDomainsRouteImport } from './routes/_authenticated/admin/marketing/domains'
@@ -940,6 +941,12 @@ const AuthenticatedAdminMarketingIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingAnalyticsRoute =
+  AuthenticatedAdminMarketingAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const AuthenticatedAdminMarketingAutomationsRoute =
   AuthenticatedAdminMarketingAutomationsRouteImport.update({
     id: '/automations',
@@ -1330,6 +1337,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
@@ -1511,6 +1519,7 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
@@ -1697,6 +1706,7 @@ export interface FileRoutesById {
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/_authenticated/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
@@ -1883,6 +1893,7 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/analytics'
     | '/admin/marketing/automations'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/domains'
@@ -2064,6 +2075,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/analytics'
     | '/admin/marketing/automations'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/domains'
@@ -2249,6 +2261,7 @@ export interface FileRouteTypes {
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/credits/ledger'
     | '/_authenticated/admin/inbound-events/$eventId'
+    | '/_authenticated/admin/marketing/analytics'
     | '/_authenticated/admin/marketing/automations'
     | '/_authenticated/admin/marketing/campaigns'
     | '/_authenticated/admin/marketing/domains'
@@ -3362,6 +3375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingIndexRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/analytics': {
+      id: '/_authenticated/admin/marketing/analytics'
+      path: '/analytics'
+      fullPath: '/admin/marketing/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/_authenticated/admin/marketing/automations': {
       id: '/_authenticated/admin/marketing/automations'
       path: '/automations'
@@ -3674,6 +3694,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminMarketingRouteRouteChildren {
+  AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
   AuthenticatedAdminMarketingAutomationsRoute: typeof AuthenticatedAdminMarketingAutomationsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
   AuthenticatedAdminMarketingDomainsRoute: typeof AuthenticatedAdminMarketingDomainsRoute
@@ -3686,6 +3707,8 @@ interface AuthenticatedAdminMarketingRouteRouteChildren {
 
 const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketingRouteRouteChildren =
   {
+    AuthenticatedAdminMarketingAnalyticsRoute:
+      AuthenticatedAdminMarketingAnalyticsRoute,
     AuthenticatedAdminMarketingAutomationsRoute:
       AuthenticatedAdminMarketingAutomationsRoute,
     AuthenticatedAdminMarketingCampaignsRoute:
