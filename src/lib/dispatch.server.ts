@@ -11,7 +11,7 @@ import {
   MAX_MAILBOX_HOURLY_MESSAGE,
   effectiveMailboxHourlyLimit,
 } from "@/lib/mailbox-hourly-cap";
-import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
+import { campaignScheduleState, normalizeSendDays, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
