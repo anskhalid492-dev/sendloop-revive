@@ -60,15 +60,26 @@ describe("queue reschedule after a sending-day change", () => {
       { id: "a", scheduled_at: "2026-08-29T22:00:00.000Z" }, // outside any window
       { id: "b", scheduled_at: null },
       { id: "c", scheduled_at: saturdayMidWindow.toISOString() }, // already valid
-      { id: "d", scheduled_at: "2026-08-31T05:00:00.000Z" }, // valid future follow-up slot
+      // follow-up with a configured wait: keeps its future slot
+      { id: "d", scheduled_at: "2026-08-31T05:00:00.000Z", pull_forward: false },
     ];
     const updates = planQueueReschedule(rows, allDays, saturdayMidWindow);
     expect(updates.map((u) => u.id).sort()).toEqual(["a", "b"]);
-    // "a" rolls to the next configured start (Sunday 09:00 Dubai), "b" is due now.
-    expect(updates.find((u) => u.id === "a")?.scheduledAt).toBe("2026-08-30T05:00:00.000Z");
+    // "a" is a first-step row, so it is pulled forward to today's open window.
+    expect(updates.find((u) => u.id === "a")?.scheduledAt).toBe(saturdayMidWindow.toISOString());
     expect(updates.find((u) => u.id === "b")?.scheduledAt).toBe(saturdayMidWindow.toISOString());
-    expect(groupRescheduleUpdates(updates).length).toBe(2);
+    expect(groupRescheduleUpdates(updates).length).toBe(1);
   });
+
+  test("a first-step row parked on a future day is pulled back to today", () => {
+    const updates = planQueueReschedule(
+      [{ id: "x", scheduled_at: "2026-08-31T05:00:00.000Z" }],
+      allDays,
+      saturdayMidWindow,
+    );
+    expect(updates[0]?.scheduledAt).toBe(saturdayMidWindow.toISOString());
+  });
+
 });
 
 describe("daily limit counts today only", () => {
