@@ -7,6 +7,7 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
+import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import {
   MAX_MAILBOX_HOURLY_MESSAGE,
   effectiveMailboxHourlyLimit,
@@ -1193,6 +1194,24 @@ export async function dispatchDueMessages(
       attempts: (message.attempts ?? 0) + 1,
     };
     await applySentPatch(supabase, message.id, campaignMessagePatch);
+
+    // Public API subscribers are notified from the queue, never inline: this
+    // only enqueues a row and swallows its own failures.
+    void enqueueWebhookEvent(
+      supabase,
+      message.workspace_id as string,
+      "email.sent",
+      `email.sent:${message.id}`,
+      {
+        message_id: message.id,
+        campaign_id: message.campaign_id,
+        lead_id: message.lead_id,
+        mailbox_id: account.id,
+        to_email: message.to_email,
+        subject: message.subject,
+        sent_at: sentAt,
+      },
+    );
     logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_accepted", providerResult: "accepted" });
 
 

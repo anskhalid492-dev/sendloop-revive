@@ -6,6 +6,7 @@
  * webhook retry, a duplicate provider event) resolves to the same conversation
  * and the same message row, and never fires the follow-up automation twice.
  */
+import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   buildThreadKey,
@@ -718,6 +719,16 @@ async function applyReplyAutomation(args: {
     } catch {
       /* analytics mirroring must never break inbox storage */
     }
+
+    void enqueueWebhookEvent(db, workspaceId, "reply.received", `reply.received:${args.dedupeKey}`, {
+      campaign_id: campaignId,
+      lead_id: leadId,
+      campaign_message_id: campaignMessage.id,
+      from_email: args.prospect,
+      subject: args.subject || null,
+      received_at: args.receivedIso,
+      sentiment: args.detected ?? null,
+    });
 
     await db.from("campaign_replies").insert({
       workspace_id: workspaceId,
