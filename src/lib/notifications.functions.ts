@@ -39,15 +39,23 @@ export const markNotificationRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Mark every unread notification for the signed-in user as read.
+ *
+ * Scoped explicitly to `user_id` (not just the RLS predicate) and returns the
+ * rows it actually updated so the UI can tell a no-op from a real failure.
+ */
 export const markAllNotificationsRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { error } = await context.supabase
+    const { data, error } = await context.supabase
       .from("notifications")
       .update({ read: true })
-      .eq("read", false);
+      .eq("user_id", context.userId)
+      .eq("read", false)
+      .select("id");
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, updated: (data ?? []).length };
   });
 
 export const deleteNotification = createServerFn({ method: "POST" })
