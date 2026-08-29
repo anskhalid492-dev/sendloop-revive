@@ -339,13 +339,16 @@ export const duplicateMarketingTemplate = createServerFn({ method: "POST" })
         reply_to: draft.replyTo,
         body: draft.body,
         duplicated_from: draft.duplicatedFrom ?? null,
+        type: "custom",
+        status: "active",
         created_by: (context as Ctx).userId,
-      })
+      } as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
     return { id: created.id as string };
   });
+
 
 export const saveMarketingTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
