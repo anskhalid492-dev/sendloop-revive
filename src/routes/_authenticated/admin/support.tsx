@@ -78,14 +78,20 @@ function Page() {
   const [status, setStatus] = useState<string>("all");
   const [category, setCategory] = useState<string>("all");
   const [priority, setPriority] = useState<string>("all");
+  const [rating, setRating] = useState<string>("all");
   const [selected, setSelected] = useState<string | null>(null);
 
-  const filters = { search: search.trim() || undefined, status, category, priority };
+  const filters = { search: search.trim() || undefined, status, category, priority, rating };
   const tickets = useQuery({
     queryKey: ["admin-tickets", filters],
     queryFn: () => fetchTickets({ data: filters }),
   });
   const agents = useQuery({ queryKey: ["support-agents"], queryFn: () => fetchAgents() });
+  const fetchSatisfaction = useServerFn(getSupportSatisfaction);
+  const satisfaction = useQuery({
+    queryKey: ["support-satisfaction"],
+    queryFn: () => fetchSatisfaction(),
+  });
 
   const rows = tickets.data ?? [];
   const activeId = selected ?? rows[0]?.id ?? null;
@@ -96,6 +102,8 @@ function Page() {
     const progress = rows.filter((t) => t.status === "in_progress").length;
     return { open, waiting, progress, total: rows.length };
   }, [rows]);
+
+  const csat = satisfaction.data;
 
   return (
     <AdminShell
@@ -116,6 +124,56 @@ function Page() {
             </div>
           ))}
         </div>
+
+        <section className="surface-card space-y-4 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold">Support satisfaction</h2>
+              <p className="text-xs text-muted-foreground">
+                How customers rated their support experience on resolved and closed tickets.
+              </p>
+            </div>
+            {csat ? <SupportStars value={Math.round(csat.averageRating)} size="md" /> : null}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Average rating</p>
+              <p className="mt-1 text-2xl font-semibold">
+                {csat && csat.totalRated > 0 ? `${csat.averageRating.toFixed(2)} / 5` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Rated tickets</p>
+              <p className="mt-1 text-2xl font-semibold">{csat?.totalRated ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Rating rate</p>
+              <p className="mt-1 text-2xl font-semibold">{csat ? `${csat.responseRate}%` : "—"}</p>
+              <p className="text-xs text-muted-foreground">
+                of {csat?.eligibleTickets ?? 0} resolved/closed tickets
+              </p>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {[...SUPPORT_RATING_VALUES].reverse().map((star) => {
+              const pct = csat?.percentages[star] ?? 0;
+              return (
+                <div key={star} className="flex items-center gap-3 text-xs">
+                  <span className="w-24 shrink-0 text-muted-foreground">
+                    {star} star · {SUPPORT_RATING_LABEL[star]}
+                  </span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-20 shrink-0 text-right text-muted-foreground">
+                    {pct}% ({csat?.distribution[star] ?? 0})
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
 
         <div className="surface-card flex flex-wrap items-center gap-2 p-3">
           <div className="relative min-w-[200px] flex-1">
