@@ -150,6 +150,7 @@ import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './ro
 import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
 import { Route as AuthenticatedAdminMarketingSegmentsRouteImport } from './routes/_authenticated/admin/marketing/segments'
 import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
+import { Route as AuthenticatedAdminMarketingTemplatesRouteImport } from './routes/_authenticated/admin/marketing/templates'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
@@ -947,6 +948,12 @@ const AuthenticatedAdminMarketingSubscribersRoute =
     path: '/subscribers',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingTemplatesRoute =
+  AuthenticatedAdminMarketingTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const ApiPublicAutomationsTokenRoute =
   ApiPublicAutomationsTokenRouteImport.update({
     id: '/api/public/automations/$token',
@@ -1297,6 +1304,7 @@ export interface FileRoutesByFullPath {
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
+  '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1473,6 +1481,7 @@ export interface FileRoutesByTo {
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
+  '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1654,6 +1663,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/_authenticated/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
+  '/_authenticated/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1835,6 +1845,7 @@ export interface FileRouteTypes {
     | '/admin/inbound-events/$eventId'
     | '/admin/marketing/segments'
     | '/admin/marketing/subscribers'
+    | '/admin/marketing/templates'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -2011,6 +2022,7 @@ export interface FileRouteTypes {
     | '/admin/inbound-events/$eventId'
     | '/admin/marketing/segments'
     | '/admin/marketing/subscribers'
+    | '/admin/marketing/templates'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -2191,6 +2203,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/inbound-events/$eventId'
     | '/_authenticated/admin/marketing/segments'
     | '/_authenticated/admin/marketing/subscribers'
+    | '/_authenticated/admin/marketing/templates'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -3311,6 +3324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingSubscribersRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/templates': {
+      id: '/_authenticated/admin/marketing/templates'
+      path: '/templates'
+      fullPath: '/admin/marketing/templates'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingTemplatesRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/api/public/automations/$token': {
       id: '/api/public/automations/$token'
       path: '/api/public/automations/$token'
@@ -3576,6 +3596,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminMarketingRouteRouteChildren {
   AuthenticatedAdminMarketingSegmentsRoute: typeof AuthenticatedAdminMarketingSegmentsRoute
   AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
+  AuthenticatedAdminMarketingTemplatesRoute: typeof AuthenticatedAdminMarketingTemplatesRoute
   AuthenticatedAdminMarketingIndexRoute: typeof AuthenticatedAdminMarketingIndexRoute
 }
 
@@ -3585,6 +3606,8 @@ const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketing
       AuthenticatedAdminMarketingSegmentsRoute,
     AuthenticatedAdminMarketingSubscribersRoute:
       AuthenticatedAdminMarketingSubscribersRoute,
+    AuthenticatedAdminMarketingTemplatesRoute:
+      AuthenticatedAdminMarketingTemplatesRoute,
     AuthenticatedAdminMarketingIndexRoute:
       AuthenticatedAdminMarketingIndexRoute,
   }
