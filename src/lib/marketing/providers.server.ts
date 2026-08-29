@@ -96,11 +96,11 @@ export async function saveProviderCredentials(
   providerId: string,
   credentials: Record<string, string>,
 ): Promise<void> {
-  const clean = Object.fromEntries(
-    Object.entries(credentials)
-      .map(([key, value]) => [key, String(value ?? "").trim()])
-      .filter(([, value]) => value.length > 0),
-  );
+  const clean: Record<string, string> = {};
+  for (const [key, rawValue] of Object.entries(credentials)) {
+    const value = String(rawValue ?? "").trim();
+    if (value) clean[key] = value;
+  }
   if (Object.keys(clean).length === 0) return;
   const { error } = await supabaseAdmin.from("marketing_provider_secrets").upsert(
     {
