@@ -87,14 +87,20 @@ export const updateApiKey = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
-    if (data.name !== undefined) patch["name"] = data.name;
-    if (data.scopes !== undefined) patch["scopes"] = data.scopes;
+    const patch: {
+      name?: string;
+      scopes?: string[];
+      rate_limit_per_minute?: number;
+      status?: string;
+      revoked_at?: string | null;
+    } = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.scopes !== undefined) patch.scopes = data.scopes;
     if (data.rateLimitPerMinute !== undefined)
-      patch["rate_limit_per_minute"] = data.rateLimitPerMinute;
+      patch.rate_limit_per_minute = data.rateLimitPerMinute;
     if (data.status !== undefined) {
-      patch["status"] = data.status;
-      patch["revoked_at"] = data.status === "revoked" ? new Date().toISOString() : null;
+      patch.status = data.status;
+      patch.revoked_at = data.status === "revoked" ? new Date().toISOString() : null;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
 
