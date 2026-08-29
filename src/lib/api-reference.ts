@@ -460,10 +460,8 @@ export const OUTBOUND_EVENTS: {
 
 /** Areas that are dashboard-only today — no public HTTP endpoint exists yet. */
 export const NOT_YET_PUBLIC = [
-  "Campaign creation, start and pause",
-  "Sending accounts and domains",
-  "Conversations and the unified inbox",
-  "Contacts, lists and segments",
+  "Connecting sending accounts and verifying domains (requires DNS steps)",
   "Warmup configuration",
-  "Usage and plan entitlements",
+  "Billing, plans and entitlements",
+  "Team members and workspace administration",
 ];

@@ -158,6 +158,7 @@ import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/pu
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
 import { Route as ApiPublicCronRunTransactionalEmailRouteImport } from './routes/api/public/cron/run-transactional-email'
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
+import { Route as ApiPublicCronRunWebhooksRouteImport } from './routes/api/public/cron/run-webhooks'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
@@ -166,6 +167,8 @@ import { Route as ApiPublicV1AnalyticsRouteImport } from './routes/api/public/v1
 import { Route as ApiPublicV1CampaignsRouteImport } from './routes/api/public/v1/campaigns'
 import { Route as ApiPublicV1ContactsRouteImport } from './routes/api/public/v1/contacts'
 import { Route as ApiPublicV1MailboxesRouteImport } from './routes/api/public/v1/mailboxes'
+import { Route as ApiPublicV1MeRouteImport } from './routes/api/public/v1/me'
+import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api/public/v1/openapi[.]json'
 import { Route as ApiPublicV1RepliesRouteImport } from './routes/api/public/v1/replies'
 import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/webhooks'
 import { Route as ApiPublicV1CampaignsCampaignIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId'
@@ -177,6 +180,7 @@ import { Route as ApiPublicV1WebhooksWebhookIdRouteImport } from './routes/api/p
 import { Route as ApiPublicV1CampaignsCampaignIdSequenceRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence'
 import { Route as ApiPublicV1CampaignsCampaignIdStatsRouteImport } from './routes/api/public/v1/campaigns.$campaignId.stats'
 import { Route as ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport } from './routes/api/public/v1/webhooks.$webhookId.deliveries'
+import { Route as ApiPublicV1CampaignsCampaignIdActionsActionRouteImport } from './routes/api/public/v1/campaigns.$campaignId.actions.$action'
 import { Route as ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence.$stepId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -983,6 +987,12 @@ const ApiPublicCronRunWarmupRoute = ApiPublicCronRunWarmupRouteImport.update({
   path: '/api/public/cron/run-warmup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronRunWebhooksRoute =
+  ApiPublicCronRunWebhooksRouteImport.update({
+    id: '/api/public/cron/run-webhooks',
+    path: '/api/public/cron/run-webhooks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   id: '/api/public/inbound/email',
   path: '/api/public/inbound/email',
@@ -1025,6 +1035,17 @@ const ApiPublicV1MailboxesRoute = ApiPublicV1MailboxesRouteImport.update({
   path: '/api/public/v1/mailboxes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1MeRoute = ApiPublicV1MeRouteImport.update({
+  id: '/api/public/v1/me',
+  path: '/api/public/v1/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1OpenapiDotjsonRoute =
+  ApiPublicV1OpenapiDotjsonRouteImport.update({
+    id: '/api/public/v1/openapi.json',
+    path: '/api/public/v1/openapi.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1RepliesRoute = ApiPublicV1RepliesRouteImport.update({
   id: '/api/public/v1/replies',
   path: '/api/public/v1/replies',
@@ -1087,6 +1108,12 @@ const ApiPublicV1WebhooksWebhookIdDeliveriesRoute =
     id: '/deliveries',
     path: '/deliveries',
     getParentRoute: () => ApiPublicV1WebhooksWebhookIdRoute,
+  } as any)
+const ApiPublicV1CampaignsCampaignIdActionsActionRoute =
+  ApiPublicV1CampaignsCampaignIdActionsActionRouteImport.update({
+    id: '/actions/$action',
+    path: '/actions/$action',
+    getParentRoute: () => ApiPublicV1CampaignsCampaignIdRoute,
   } as any)
 const ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute =
   ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport.update({
@@ -1244,6 +1271,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
+  '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1252,6 +1280,8 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
   '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
+  '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
@@ -1263,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
   '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/actions/$action': typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
   '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRoutesByTo {
@@ -1412,6 +1443,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
+  '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1420,6 +1452,8 @@ export interface FileRoutesByTo {
   '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
   '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
+  '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
@@ -1431,6 +1465,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
   '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/actions/$action': typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
   '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRoutesById {
@@ -1584,6 +1619,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
+  '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1592,6 +1628,8 @@ export interface FileRoutesById {
   '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
   '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
+  '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
@@ -1603,6 +1641,7 @@ export interface FileRoutesById {
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
   '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/actions/$action': typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
   '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRouteTypes {
@@ -1756,6 +1795,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
+    | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
@@ -1764,6 +1804,8 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns'
     | '/api/public/v1/contacts'
     | '/api/public/v1/mailboxes'
+    | '/api/public/v1/me'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/api/public/v1/campaigns/$campaignId'
@@ -1775,6 +1817,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
     | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/actions/$action'
     | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1924,6 +1967,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
+    | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
@@ -1932,6 +1976,8 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns'
     | '/api/public/v1/contacts'
     | '/api/public/v1/mailboxes'
+    | '/api/public/v1/me'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/api/public/v1/campaigns/$campaignId'
@@ -1943,6 +1989,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
     | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/actions/$action'
     | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   id:
     | '__root__'
@@ -2095,6 +2142,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
+    | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
@@ -2103,6 +2151,8 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns'
     | '/api/public/v1/contacts'
     | '/api/public/v1/mailboxes'
+    | '/api/public/v1/me'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/api/public/v1/campaigns/$campaignId'
@@ -2114,6 +2164,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
     | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/actions/$action'
     | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   fileRoutesById: FileRoutesById
 }
@@ -2193,6 +2244,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicCronRunTransactionalEmailRoute: typeof ApiPublicCronRunTransactionalEmailRoute
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
+  ApiPublicCronRunWebhooksRoute: typeof ApiPublicCronRunWebhooksRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
@@ -2201,6 +2253,8 @@ export interface RootRouteChildren {
   ApiPublicV1CampaignsRoute: typeof ApiPublicV1CampaignsRouteWithChildren
   ApiPublicV1ContactsRoute: typeof ApiPublicV1ContactsRouteWithChildren
   ApiPublicV1MailboxesRoute: typeof ApiPublicV1MailboxesRouteWithChildren
+  ApiPublicV1MeRoute: typeof ApiPublicV1MeRoute
+  ApiPublicV1OpenapiDotjsonRoute: typeof ApiPublicV1OpenapiDotjsonRoute
   ApiPublicV1RepliesRoute: typeof ApiPublicV1RepliesRoute
   ApiPublicV1WebhooksRoute: typeof ApiPublicV1WebhooksRouteWithChildren
 }
@@ -3250,6 +3304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRunWarmupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/run-webhooks': {
+      id: '/api/public/cron/run-webhooks'
+      path: '/api/public/cron/run-webhooks'
+      fullPath: '/api/public/cron/run-webhooks'
+      preLoaderRoute: typeof ApiPublicCronRunWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/inbound/email': {
       id: '/api/public/inbound/email'
       path: '/api/public/inbound/email'
@@ -3304,6 +3365,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/v1/mailboxes'
       fullPath: '/api/public/v1/mailboxes'
       preLoaderRoute: typeof ApiPublicV1MailboxesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/me': {
+      id: '/api/public/v1/me'
+      path: '/api/public/v1/me'
+      fullPath: '/api/public/v1/me'
+      preLoaderRoute: typeof ApiPublicV1MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/openapi.json': {
+      id: '/api/public/v1/openapi.json'
+      path: '/api/public/v1/openapi.json'
+      fullPath: '/api/public/v1/openapi.json'
+      preLoaderRoute: typeof ApiPublicV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/v1/replies': {
@@ -3382,6 +3457,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/v1/webhooks/$webhookId/deliveries'
       preLoaderRoute: typeof ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport
       parentRoute: typeof ApiPublicV1WebhooksWebhookIdRoute
+    }
+    '/api/public/v1/campaigns/$campaignId/actions/$action': {
+      id: '/api/public/v1/campaigns/$campaignId/actions/$action'
+      path: '/actions/$action'
+      fullPath: '/api/public/v1/campaigns/$campaignId/actions/$action'
+      preLoaderRoute: typeof ApiPublicV1CampaignsCampaignIdActionsActionRouteImport
+      parentRoute: typeof ApiPublicV1CampaignsCampaignIdRoute
     }
     '/api/public/v1/campaigns/$campaignId/sequence/$stepId': {
       id: '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
@@ -3620,6 +3702,7 @@ const ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren =
 interface ApiPublicV1CampaignsCampaignIdRouteChildren {
   ApiPublicV1CampaignsCampaignIdSequenceRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   ApiPublicV1CampaignsCampaignIdStatsRoute: typeof ApiPublicV1CampaignsCampaignIdStatsRoute
+  ApiPublicV1CampaignsCampaignIdActionsActionRoute: typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
 }
 
 const ApiPublicV1CampaignsCampaignIdRouteChildren: ApiPublicV1CampaignsCampaignIdRouteChildren =
@@ -3628,6 +3711,8 @@ const ApiPublicV1CampaignsCampaignIdRouteChildren: ApiPublicV1CampaignsCampaignI
       ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren,
     ApiPublicV1CampaignsCampaignIdStatsRoute:
       ApiPublicV1CampaignsCampaignIdStatsRoute,
+    ApiPublicV1CampaignsCampaignIdActionsActionRoute:
+      ApiPublicV1CampaignsCampaignIdActionsActionRoute,
   }
 
 const ApiPublicV1CampaignsCampaignIdRouteWithChildren =
@@ -3778,6 +3863,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunTransactionalEmailRoute:
     ApiPublicCronRunTransactionalEmailRoute,
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
+  ApiPublicCronRunWebhooksRoute: ApiPublicCronRunWebhooksRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
@@ -3786,6 +3872,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1CampaignsRoute: ApiPublicV1CampaignsRouteWithChildren,
   ApiPublicV1ContactsRoute: ApiPublicV1ContactsRouteWithChildren,
   ApiPublicV1MailboxesRoute: ApiPublicV1MailboxesRouteWithChildren,
+  ApiPublicV1MeRoute: ApiPublicV1MeRoute,
+  ApiPublicV1OpenapiDotjsonRoute: ApiPublicV1OpenapiDotjsonRoute,
   ApiPublicV1RepliesRoute: ApiPublicV1RepliesRoute,
   ApiPublicV1WebhooksRoute: ApiPublicV1WebhooksRouteWithChildren,
 }

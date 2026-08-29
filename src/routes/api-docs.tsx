@@ -11,6 +11,8 @@ import { Menu, Search, X } from "lucide-react";
 
 import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
 import { CodeBlock, CopyButton, EndpointCard, MethodBadge } from "@/components/docs/ApiDocsUI";
+import { V1ResourceSection } from "@/components/docs/V1DocsUI";
+import { V1_BASE_PATH, V1_ERROR_CODES, V1_RESOURCES } from "@/lib/api/v1/catalog";
 import { cn } from "@/lib/utils";
 import {
   API_BASE_URL,
@@ -37,8 +39,13 @@ const NAV: NavItem[] = [
   { id: "authentication", label: "Authentication" },
   { id: "getting-started", label: "Getting started" },
   {
+    id: "api-v1",
+    label: "API v1",
+    children: V1_RESOURCES.map((r) => ({ id: r.id, label: r.title })),
+  },
+  {
     id: "reference",
-    label: "API reference",
+    label: "Legacy endpoints",
     children: API_GROUPS.map((g) => ({ id: g.id, label: g.title })),
   },
   {
@@ -81,6 +88,13 @@ const SEARCH_INDEX: SearchEntry[] = [
         hint: `Error · ${e.title}`,
       })),
     ),
+  ),
+  ...V1_RESOURCES.flatMap((r) =>
+    r.operations.map((op) => ({
+      id: op.id,
+      label: `${op.method} ${V1_BASE_PATH}${op.path}`,
+      hint: `API v1 · ${op.summary}`,
+    })),
   ),
   ...OUTBOUND_EVENTS.map((ev) => ({ id: "webhooks", label: ev.name, hint: "Webhook event" })),
 ];
@@ -434,11 +448,57 @@ await fetch("${API_BASE_URL}/api/public/automations/YOUR_WEBHOOK_TOKEN", {
             </div>
           </DocSection>
 
-          <section id="reference" className="scroll-mt-24 border-t border-border/60 pt-10">
-            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">API reference</h2>
+          <section id="api-v1" className="scroll-mt-24 border-t border-border/60 pt-10">
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">API v1</h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Generated from the routes that exist in MunchReach today. Endpoints that the platform
-              calls internally are included so delivery logs are readable, and are labelled as such.
+              The production REST API. Create a key in{" "}
+              <strong>Settings → Developer API</strong>, send it as{" "}
+              <code className="font-mono">Authorization: Bearer mr_live_…</code>, and every request
+              is scoped to that key&rsquo;s workspace. The machine-readable spec lives at{" "}
+              <code className="font-mono">{`${V1_BASE_PATH}/openapi.json`}</code>.
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-border/70 bg-card p-4">
+                <h3 className="text-sm font-semibold">Conventions</h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                  <li>JSON in, JSON out. Successes return a <code className="font-mono">data</code> object.</li>
+                  <li>Lists are cursor-paginated with <code className="font-mono">limit</code> and <code className="font-mono">cursor</code>.</li>
+                  <li>Writes accept <code className="font-mono">x-idempotency-key</code> and are replay-safe for 24 hours.</li>
+                  <li>Rate limits are per key; <code className="font-mono">429</code> responses carry <code className="font-mono">Retry-After</code>.</li>
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-card p-4">
+                <h3 className="text-sm font-semibold">Error codes</h3>
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {V1_ERROR_CODES.map((err) => (
+                    <li key={err.code}>
+                      <code className="font-mono text-xs text-primary">{err.status}</code>{" "}
+                      <code className="font-mono text-xs">{err.code}</code> — {err.meaning}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <CodeBlock
+                caption="Verify your key"
+                code={`curl "${API_BASE_URL}${V1_BASE_PATH}/me" \\
+  -H "Authorization: Bearer $MUNCHREACH_API_KEY"`}
+              />
+            </div>
+
+            {V1_RESOURCES.map((resource) => (
+              <V1ResourceSection key={resource.id} resource={resource} />
+            ))}
+          </section>
+
+          <section id="reference" className="scroll-mt-24 border-t border-border/60 pt-10">
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Legacy endpoints</h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Older, single-purpose endpoints that predate API v1. They keep working unchanged —
+              use them for existing Zapier or Make connections, and API v1 for anything new.
             </p>
 
             {API_GROUPS.map((group) => (
@@ -549,9 +609,15 @@ await fetch("${API_BASE_URL}/api/public/automations/YOUR_WEBHOOK_TOKEN", {
           <DocSection
             id="rate-limits"
             title="Rate limits & usage"
-            description="There is no per-key HTTP rate limit implemented on the public endpoints today, so no numeric limit is published here."
+            description="API v1 keys are rate limited per key, per minute. The default is 120 requests per minute and is shown on each key in Settings → Developer API."
           >
             <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                A throttled request returns <code className="font-mono">429 rate_limited</code> with
+                a <code className="font-mono">Retry-After</code> header. Every response also carries{" "}
+                <code className="font-mono">X-RateLimit-Limit</code> and{" "}
+                <code className="font-mono">X-RateLimit-Remaining</code>.
+              </li>
               <li>
                 Automation webhook bodies are capped at 100,000 characters; larger payloads return{" "}
                 <code className="font-mono">413</code>.

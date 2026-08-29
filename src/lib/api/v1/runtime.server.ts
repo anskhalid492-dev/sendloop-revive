@@ -47,7 +47,8 @@ export type ApiContext = {
 };
 
 export type HandlerSpec = {
-  scope: ApiScope;
+  /** Omitted only for endpoints that expose nothing but the key's own identity. */
+  scope?: ApiScope;
   /** POST/PATCH handlers that create or trigger work should opt into replay. */
   idempotent?: boolean;
   handler: (ctx: ApiContext) => Promise<unknown | Response>;
@@ -161,7 +162,12 @@ async function authenticate(request: Request, admin: Admin): Promise<ApiAuth> {
 // Rate limiting
 // ---------------------------------------------------------------------------
 
-async function enforceRateLimit(admin: Admin, auth: ApiAuth): Promise<void> {
+async function enforceRateLimit(
+  admin: Admin,
+  auth: ApiAuth,
+  meta: RateMeta,
+): Promise<void> {
+  meta.limit = auth.rateLimitPerMinute;
   const now = Date.now();
   const windowStart = new Date(Math.floor(now / 60_000) * 60_000).toISOString();
   const { data, error } = await admin.rpc("api_rate_limit_hit", {
@@ -175,6 +181,7 @@ async function enforceRateLimit(admin: Admin, auth: ApiAuth): Promise<void> {
     return;
   }
   const count = Number(data ?? 0);
+  meta.remaining = Math.max(0, auth.rateLimitPerMinute - count);
   if (count > auth.rateLimitPerMinute) {
     const retryAfter = Math.max(1, Math.ceil((new Date(windowStart).getTime() + 60_000 - now) / 1000));
     throw new ApiError(
@@ -233,10 +240,33 @@ async function fingerprint(value: unknown): Promise<string> {
 // Entry point
 // ---------------------------------------------------------------------------
 
+/** Rate-limit state filled in during the request so every response can report it. */
+type RateMeta = { limit: number | null; remaining: number | null };
+
+/**
+ * Public entry point. Delegates to the request pipeline and then stamps the
+ * rate-limit budget onto whatever response came back, so clients can throttle
+ * themselves before they ever see a 429.
+ */
 export async function handleApiRequest(
   spec: RouteSpec,
   request: Request,
   params: Record<string, string> = {},
+): Promise<Response> {
+  const meta: RateMeta = { limit: null, remaining: null };
+  const response = await runApiRequest(spec, request, params, meta);
+  if (meta.limit !== null && !response.headers.has("x-ratelimit-limit")) {
+    response.headers.set("x-ratelimit-limit", String(meta.limit));
+    response.headers.set("x-ratelimit-remaining", String(meta.remaining ?? 0));
+  }
+  return response;
+}
+
+async function runApiRequest(
+  spec: RouteSpec,
+  request: Request,
+  params: Record<string, string>,
+  meta: RateMeta,
 ): Promise<Response> {
   const requestId = request.headers.get("x-request-id")?.match(/^[A-Za-z0-9_-]{6,64}$/)
     ? request.headers.get("x-request-id")!
@@ -270,9 +300,9 @@ export async function handleApiRequest(
     const admin = supabaseAdmin as Admin;
 
     const auth = await authenticate(request, admin);
-    await enforceRateLimit(admin, auth);
+    await enforceRateLimit(admin, auth, meta);
 
-    if (!scopeSatisfied(auth.scopes, entry.scope)) {
+    if (entry.scope && !scopeSatisfied(auth.scopes, entry.scope)) {
       throw new ApiError(
         "insufficient_scope",
         `This API key is missing the \`${entry.scope}\` permission.`,
@@ -300,7 +330,11 @@ export async function handleApiRequest(
       },
     };
 
-    const idemKey = request.headers.get("idempotency-key")?.trim() ?? "";
+    // Both spellings are accepted: `x-idempotency-key` matches the older
+    // MunchReach endpoints, `Idempotency-Key` matches the wider convention.
+    const idemKey =
+      (request.headers.get("idempotency-key") ?? request.headers.get("x-idempotency-key"))?.trim() ??
+      "";
     if (!entry.idempotent || !idemKey) {
       const result = await entry.handler(ctx);
       if (result instanceof Response) return result;
