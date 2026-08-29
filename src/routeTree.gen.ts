@@ -177,6 +177,7 @@ import { Route as ApiPublicV1WebhooksWebhookIdRouteImport } from './routes/api/p
 import { Route as ApiPublicV1CampaignsCampaignIdSequenceRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence'
 import { Route as ApiPublicV1CampaignsCampaignIdStatsRouteImport } from './routes/api/public/v1/campaigns.$campaignId.stats'
 import { Route as ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport } from './routes/api/public/v1/webhooks.$webhookId.deliveries'
+import { Route as ApiPublicV1CampaignsCampaignIdActionsActionRouteImport } from './routes/api/public/v1/campaigns.$campaignId.actions.$action'
 import { Route as ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence.$stepId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -1088,6 +1089,12 @@ const ApiPublicV1WebhooksWebhookIdDeliveriesRoute =
     path: '/deliveries',
     getParentRoute: () => ApiPublicV1WebhooksWebhookIdRoute,
   } as any)
+const ApiPublicV1CampaignsCampaignIdActionsActionRoute =
+  ApiPublicV1CampaignsCampaignIdActionsActionRouteImport.update({
+    id: '/actions/$action',
+    path: '/actions/$action',
+    getParentRoute: () => ApiPublicV1CampaignsCampaignIdRoute,
+  } as any)
 const ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute =
   ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport.update({
     id: '/$stepId',
@@ -1263,6 +1270,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
   '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/actions/$action': typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
   '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRoutesByTo {
@@ -1431,6 +1439,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
   '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/actions/$action': typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
   '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRoutesById {
@@ -1603,6 +1612,7 @@ export interface FileRoutesById {
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
   '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/actions/$action': typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
   '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRouteTypes {
@@ -1775,6 +1785,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
     | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/actions/$action'
     | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1943,6 +1954,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
     | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/actions/$action'
     | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   id:
     | '__root__'
@@ -2114,6 +2126,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
     | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/actions/$action'
     | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   fileRoutesById: FileRoutesById
 }
@@ -3383,6 +3396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport
       parentRoute: typeof ApiPublicV1WebhooksWebhookIdRoute
     }
+    '/api/public/v1/campaigns/$campaignId/actions/$action': {
+      id: '/api/public/v1/campaigns/$campaignId/actions/$action'
+      path: '/actions/$action'
+      fullPath: '/api/public/v1/campaigns/$campaignId/actions/$action'
+      preLoaderRoute: typeof ApiPublicV1CampaignsCampaignIdActionsActionRouteImport
+      parentRoute: typeof ApiPublicV1CampaignsCampaignIdRoute
+    }
     '/api/public/v1/campaigns/$campaignId/sequence/$stepId': {
       id: '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
       path: '/$stepId'
@@ -3620,6 +3640,7 @@ const ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren =
 interface ApiPublicV1CampaignsCampaignIdRouteChildren {
   ApiPublicV1CampaignsCampaignIdSequenceRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   ApiPublicV1CampaignsCampaignIdStatsRoute: typeof ApiPublicV1CampaignsCampaignIdStatsRoute
+  ApiPublicV1CampaignsCampaignIdActionsActionRoute: typeof ApiPublicV1CampaignsCampaignIdActionsActionRoute
 }
 
 const ApiPublicV1CampaignsCampaignIdRouteChildren: ApiPublicV1CampaignsCampaignIdRouteChildren =
@@ -3628,6 +3649,8 @@ const ApiPublicV1CampaignsCampaignIdRouteChildren: ApiPublicV1CampaignsCampaignI
       ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren,
     ApiPublicV1CampaignsCampaignIdStatsRoute:
       ApiPublicV1CampaignsCampaignIdStatsRoute,
+    ApiPublicV1CampaignsCampaignIdActionsActionRoute:
+      ApiPublicV1CampaignsCampaignIdActionsActionRoute,
   }
 
 const ApiPublicV1CampaignsCampaignIdRouteWithChildren =
