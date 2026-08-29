@@ -154,6 +154,7 @@ import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './rout
 import { Route as AuthenticatedAdminMarketingDomainsRouteImport } from './routes/_authenticated/admin/marketing/domains'
 import { Route as AuthenticatedAdminMarketingProvidersRouteImport } from './routes/_authenticated/admin/marketing/providers'
 import { Route as AuthenticatedAdminMarketingSegmentsRouteImport } from './routes/_authenticated/admin/marketing/segments'
+import { Route as AuthenticatedAdminMarketingSettingsRouteImport } from './routes/_authenticated/admin/marketing/settings'
 import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
 import { Route as AuthenticatedAdminMarketingTemplatesRouteImport } from './routes/_authenticated/admin/marketing/templates'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
@@ -977,6 +978,12 @@ const AuthenticatedAdminMarketingSegmentsRoute =
     path: '/segments',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingSettingsRoute =
+  AuthenticatedAdminMarketingSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const AuthenticatedAdminMarketingSubscribersRoute =
   AuthenticatedAdminMarketingSubscribersRouteImport.update({
     id: '/subscribers',
@@ -1343,6 +1350,7 @@ export interface FileRoutesByFullPath {
   '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
   '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
+  '/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -1525,6 +1533,7 @@ export interface FileRoutesByTo {
   '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
   '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
+  '/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -1712,6 +1721,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
   '/_authenticated/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/_authenticated/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
+  '/_authenticated/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
   '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/_authenticated/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
@@ -1899,6 +1909,7 @@ export interface FileRouteTypes {
     | '/admin/marketing/domains'
     | '/admin/marketing/providers'
     | '/admin/marketing/segments'
+    | '/admin/marketing/settings'
     | '/admin/marketing/subscribers'
     | '/admin/marketing/templates'
     | '/api/public/automations/$token'
@@ -2081,6 +2092,7 @@ export interface FileRouteTypes {
     | '/admin/marketing/domains'
     | '/admin/marketing/providers'
     | '/admin/marketing/segments'
+    | '/admin/marketing/settings'
     | '/admin/marketing/subscribers'
     | '/admin/marketing/templates'
     | '/api/public/automations/$token'
@@ -2267,6 +2279,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/marketing/domains'
     | '/_authenticated/admin/marketing/providers'
     | '/_authenticated/admin/marketing/segments'
+    | '/_authenticated/admin/marketing/settings'
     | '/_authenticated/admin/marketing/subscribers'
     | '/_authenticated/admin/marketing/templates'
     | '/api/public/automations/$token'
@@ -3417,6 +3430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingSegmentsRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/settings': {
+      id: '/_authenticated/admin/marketing/settings'
+      path: '/settings'
+      fullPath: '/admin/marketing/settings'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/_authenticated/admin/marketing/subscribers': {
       id: '/_authenticated/admin/marketing/subscribers'
       path: '/subscribers'
@@ -3700,6 +3720,7 @@ interface AuthenticatedAdminMarketingRouteRouteChildren {
   AuthenticatedAdminMarketingDomainsRoute: typeof AuthenticatedAdminMarketingDomainsRoute
   AuthenticatedAdminMarketingProvidersRoute: typeof AuthenticatedAdminMarketingProvidersRoute
   AuthenticatedAdminMarketingSegmentsRoute: typeof AuthenticatedAdminMarketingSegmentsRoute
+  AuthenticatedAdminMarketingSettingsRoute: typeof AuthenticatedAdminMarketingSettingsRoute
   AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
   AuthenticatedAdminMarketingTemplatesRoute: typeof AuthenticatedAdminMarketingTemplatesRoute
   AuthenticatedAdminMarketingIndexRoute: typeof AuthenticatedAdminMarketingIndexRoute
@@ -3719,6 +3740,8 @@ const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketing
       AuthenticatedAdminMarketingProvidersRoute,
     AuthenticatedAdminMarketingSegmentsRoute:
       AuthenticatedAdminMarketingSegmentsRoute,
+    AuthenticatedAdminMarketingSettingsRoute:
+      AuthenticatedAdminMarketingSettingsRoute,
     AuthenticatedAdminMarketingSubscribersRoute:
       AuthenticatedAdminMarketingSubscribersRoute,
     AuthenticatedAdminMarketingTemplatesRoute:
