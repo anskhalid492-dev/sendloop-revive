@@ -295,7 +295,9 @@ export async function runDueEnrollments(
         .update({
           current_step: result.state.stepIndex,
           next_run_at:
-            status === "active" ? (result.state.waitUntil ?? new Date().toISOString()) : null,
+            status === "active"
+              ? (result.state.waitUntil ?? new Date().toISOString())
+              : new Date().toISOString(),
           status,
           completed_at: status === "active" ? null : new Date().toISOString(),
           last_error: result.exitReason ?? null,
