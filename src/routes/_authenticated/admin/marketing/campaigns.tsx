@@ -136,7 +136,7 @@ function CampaignsPage() {
   const runMutation = useMutation({
     mutationFn: (id: string) => run({ data: { id } }),
     onSuccess: (result) => {
-      toast.success(`Processed ${result.processed} · sent ${result.sent} · skipped ${result.skipped}`);
+      toast.success(`Attempted ${result.attempted} · sent ${result.sent} · skipped ${result.skipped}`);
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
