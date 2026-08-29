@@ -150,6 +150,7 @@ import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './ro
 import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
 import { Route as AuthenticatedAdminMarketingAutomationsRouteImport } from './routes/_authenticated/admin/marketing/automations'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated/admin/marketing/campaigns'
+import { Route as AuthenticatedAdminMarketingDomainsRouteImport } from './routes/_authenticated/admin/marketing/domains'
 import { Route as AuthenticatedAdminMarketingProvidersRouteImport } from './routes/_authenticated/admin/marketing/providers'
 import { Route as AuthenticatedAdminMarketingSegmentsRouteImport } from './routes/_authenticated/admin/marketing/segments'
 import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
@@ -951,6 +952,12 @@ const AuthenticatedAdminMarketingCampaignsRoute =
     path: '/campaigns',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingDomainsRoute =
+  AuthenticatedAdminMarketingDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const AuthenticatedAdminMarketingProvidersRoute =
   AuthenticatedAdminMarketingProvidersRouteImport.update({
     id: '/providers',
@@ -1325,6 +1332,7 @@ export interface FileRoutesByFullPath {
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
   '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
@@ -1505,6 +1513,7 @@ export interface FileRoutesByTo {
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
   '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
@@ -1690,6 +1699,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
   '/_authenticated/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/_authenticated/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
   '/_authenticated/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
   '/_authenticated/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
@@ -1875,6 +1885,7 @@ export interface FileRouteTypes {
     | '/admin/inbound-events/$eventId'
     | '/admin/marketing/automations'
     | '/admin/marketing/campaigns'
+    | '/admin/marketing/domains'
     | '/admin/marketing/providers'
     | '/admin/marketing/segments'
     | '/admin/marketing/subscribers'
@@ -2055,6 +2066,7 @@ export interface FileRouteTypes {
     | '/admin/inbound-events/$eventId'
     | '/admin/marketing/automations'
     | '/admin/marketing/campaigns'
+    | '/admin/marketing/domains'
     | '/admin/marketing/providers'
     | '/admin/marketing/segments'
     | '/admin/marketing/subscribers'
@@ -2239,6 +2251,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/inbound-events/$eventId'
     | '/_authenticated/admin/marketing/automations'
     | '/_authenticated/admin/marketing/campaigns'
+    | '/_authenticated/admin/marketing/domains'
     | '/_authenticated/admin/marketing/providers'
     | '/_authenticated/admin/marketing/segments'
     | '/_authenticated/admin/marketing/subscribers'
@@ -3363,6 +3376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingCampaignsRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/domains': {
+      id: '/_authenticated/admin/marketing/domains'
+      path: '/domains'
+      fullPath: '/admin/marketing/domains'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingDomainsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/_authenticated/admin/marketing/providers': {
       id: '/_authenticated/admin/marketing/providers'
       path: '/providers'
@@ -3656,6 +3676,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminMarketingRouteRouteChildren {
   AuthenticatedAdminMarketingAutomationsRoute: typeof AuthenticatedAdminMarketingAutomationsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
+  AuthenticatedAdminMarketingDomainsRoute: typeof AuthenticatedAdminMarketingDomainsRoute
   AuthenticatedAdminMarketingProvidersRoute: typeof AuthenticatedAdminMarketingProvidersRoute
   AuthenticatedAdminMarketingSegmentsRoute: typeof AuthenticatedAdminMarketingSegmentsRoute
   AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
@@ -3669,6 +3690,8 @@ const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketing
       AuthenticatedAdminMarketingAutomationsRoute,
     AuthenticatedAdminMarketingCampaignsRoute:
       AuthenticatedAdminMarketingCampaignsRoute,
+    AuthenticatedAdminMarketingDomainsRoute:
+      AuthenticatedAdminMarketingDomainsRoute,
     AuthenticatedAdminMarketingProvidersRoute:
       AuthenticatedAdminMarketingProvidersRoute,
     AuthenticatedAdminMarketingSegmentsRoute:
