@@ -162,6 +162,22 @@ import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/i
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
+import { Route as ApiPublicV1AnalyticsRouteImport } from './routes/api/public/v1/analytics'
+import { Route as ApiPublicV1CampaignsRouteImport } from './routes/api/public/v1/campaigns'
+import { Route as ApiPublicV1ContactsRouteImport } from './routes/api/public/v1/contacts'
+import { Route as ApiPublicV1MailboxesRouteImport } from './routes/api/public/v1/mailboxes'
+import { Route as ApiPublicV1RepliesRouteImport } from './routes/api/public/v1/replies'
+import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/webhooks'
+import { Route as ApiPublicV1CampaignsCampaignIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId'
+import { Route as ApiPublicV1ContactsContactIdRouteImport } from './routes/api/public/v1/contacts.$contactId'
+import { Route as ApiPublicV1ContactsBulkRouteImport } from './routes/api/public/v1/contacts.bulk'
+import { Route as ApiPublicV1ContactsExportRouteImport } from './routes/api/public/v1/contacts.export'
+import { Route as ApiPublicV1MailboxesMailboxIdRouteImport } from './routes/api/public/v1/mailboxes.$mailboxId'
+import { Route as ApiPublicV1WebhooksWebhookIdRouteImport } from './routes/api/public/v1/webhooks.$webhookId'
+import { Route as ApiPublicV1CampaignsCampaignIdSequenceRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence'
+import { Route as ApiPublicV1CampaignsCampaignIdStatsRouteImport } from './routes/api/public/v1/campaigns.$campaignId.stats'
+import { Route as ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport } from './routes/api/public/v1/webhooks.$webhookId.deliveries'
+import { Route as ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence.$stepId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -989,6 +1005,95 @@ const ApiPublicReferralBillingRoute =
     path: '/api/public/referral/billing',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicV1AnalyticsRoute = ApiPublicV1AnalyticsRouteImport.update({
+  id: '/api/public/v1/analytics',
+  path: '/api/public/v1/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1CampaignsRoute = ApiPublicV1CampaignsRouteImport.update({
+  id: '/api/public/v1/campaigns',
+  path: '/api/public/v1/campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1ContactsRoute = ApiPublicV1ContactsRouteImport.update({
+  id: '/api/public/v1/contacts',
+  path: '/api/public/v1/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1MailboxesRoute = ApiPublicV1MailboxesRouteImport.update({
+  id: '/api/public/v1/mailboxes',
+  path: '/api/public/v1/mailboxes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1RepliesRoute = ApiPublicV1RepliesRouteImport.update({
+  id: '/api/public/v1/replies',
+  path: '/api/public/v1/replies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1WebhooksRoute = ApiPublicV1WebhooksRouteImport.update({
+  id: '/api/public/v1/webhooks',
+  path: '/api/public/v1/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1CampaignsCampaignIdRoute =
+  ApiPublicV1CampaignsCampaignIdRouteImport.update({
+    id: '/$campaignId',
+    path: '/$campaignId',
+    getParentRoute: () => ApiPublicV1CampaignsRoute,
+  } as any)
+const ApiPublicV1ContactsContactIdRoute =
+  ApiPublicV1ContactsContactIdRouteImport.update({
+    id: '/$contactId',
+    path: '/$contactId',
+    getParentRoute: () => ApiPublicV1ContactsRoute,
+  } as any)
+const ApiPublicV1ContactsBulkRoute = ApiPublicV1ContactsBulkRouteImport.update({
+  id: '/bulk',
+  path: '/bulk',
+  getParentRoute: () => ApiPublicV1ContactsRoute,
+} as any)
+const ApiPublicV1ContactsExportRoute =
+  ApiPublicV1ContactsExportRouteImport.update({
+    id: '/export',
+    path: '/export',
+    getParentRoute: () => ApiPublicV1ContactsRoute,
+  } as any)
+const ApiPublicV1MailboxesMailboxIdRoute =
+  ApiPublicV1MailboxesMailboxIdRouteImport.update({
+    id: '/$mailboxId',
+    path: '/$mailboxId',
+    getParentRoute: () => ApiPublicV1MailboxesRoute,
+  } as any)
+const ApiPublicV1WebhooksWebhookIdRoute =
+  ApiPublicV1WebhooksWebhookIdRouteImport.update({
+    id: '/$webhookId',
+    path: '/$webhookId',
+    getParentRoute: () => ApiPublicV1WebhooksRoute,
+  } as any)
+const ApiPublicV1CampaignsCampaignIdSequenceRoute =
+  ApiPublicV1CampaignsCampaignIdSequenceRouteImport.update({
+    id: '/sequence',
+    path: '/sequence',
+    getParentRoute: () => ApiPublicV1CampaignsCampaignIdRoute,
+  } as any)
+const ApiPublicV1CampaignsCampaignIdStatsRoute =
+  ApiPublicV1CampaignsCampaignIdStatsRouteImport.update({
+    id: '/stats',
+    path: '/stats',
+    getParentRoute: () => ApiPublicV1CampaignsCampaignIdRoute,
+  } as any)
+const ApiPublicV1WebhooksWebhookIdDeliveriesRoute =
+  ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport.update({
+    id: '/deliveries',
+    path: '/deliveries',
+    getParentRoute: () => ApiPublicV1WebhooksWebhookIdRoute,
+  } as any)
+const ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute =
+  ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport.update({
+    id: '/$stepId',
+    path: '/$stepId',
+    getParentRoute: () => ApiPublicV1CampaignsCampaignIdSequenceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1143,6 +1248,22 @@ export interface FileRoutesByFullPath {
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
+  '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
+  '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
+  '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
+  '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
+  '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
+  '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
+  '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
+  '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
+  '/api/public/v1/contacts/export': typeof ApiPublicV1ContactsExportRoute
+  '/api/public/v1/mailboxes/$mailboxId': typeof ApiPublicV1MailboxesMailboxIdRoute
+  '/api/public/v1/webhooks/$webhookId': typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
+  '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1295,6 +1416,22 @@ export interface FileRoutesByTo {
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
+  '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
+  '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
+  '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
+  '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
+  '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
+  '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
+  '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
+  '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
+  '/api/public/v1/contacts/export': typeof ApiPublicV1ContactsExportRoute
+  '/api/public/v1/mailboxes/$mailboxId': typeof ApiPublicV1MailboxesMailboxIdRoute
+  '/api/public/v1/webhooks/$webhookId': typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
+  '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1451,6 +1588,22 @@ export interface FileRoutesById {
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
+  '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
+  '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
+  '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
+  '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
+  '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
+  '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
+  '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
+  '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
+  '/api/public/v1/contacts/export': typeof ApiPublicV1ContactsExportRoute
+  '/api/public/v1/mailboxes/$mailboxId': typeof ApiPublicV1MailboxesMailboxIdRoute
+  '/api/public/v1/webhooks/$webhookId': typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
+  '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
+  '/api/public/v1/webhooks/$webhookId/deliveries': typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+  '/api/public/v1/campaigns/$campaignId/sequence/$stepId': typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1607,6 +1760,22 @@ export interface FileRouteTypes {
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
+    | '/api/public/v1/analytics'
+    | '/api/public/v1/campaigns'
+    | '/api/public/v1/contacts'
+    | '/api/public/v1/mailboxes'
+    | '/api/public/v1/replies'
+    | '/api/public/v1/webhooks'
+    | '/api/public/v1/campaigns/$campaignId'
+    | '/api/public/v1/contacts/$contactId'
+    | '/api/public/v1/contacts/bulk'
+    | '/api/public/v1/contacts/export'
+    | '/api/public/v1/mailboxes/$mailboxId'
+    | '/api/public/v1/webhooks/$webhookId'
+    | '/api/public/v1/campaigns/$campaignId/sequence'
+    | '/api/public/v1/campaigns/$campaignId/stats'
+    | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1759,6 +1928,22 @@ export interface FileRouteTypes {
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
+    | '/api/public/v1/analytics'
+    | '/api/public/v1/campaigns'
+    | '/api/public/v1/contacts'
+    | '/api/public/v1/mailboxes'
+    | '/api/public/v1/replies'
+    | '/api/public/v1/webhooks'
+    | '/api/public/v1/campaigns/$campaignId'
+    | '/api/public/v1/contacts/$contactId'
+    | '/api/public/v1/contacts/bulk'
+    | '/api/public/v1/contacts/export'
+    | '/api/public/v1/mailboxes/$mailboxId'
+    | '/api/public/v1/webhooks/$webhookId'
+    | '/api/public/v1/campaigns/$campaignId/sequence'
+    | '/api/public/v1/campaigns/$campaignId/stats'
+    | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   id:
     | '__root__'
     | '/'
@@ -1914,6 +2099,22 @@ export interface FileRouteTypes {
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
+    | '/api/public/v1/analytics'
+    | '/api/public/v1/campaigns'
+    | '/api/public/v1/contacts'
+    | '/api/public/v1/mailboxes'
+    | '/api/public/v1/replies'
+    | '/api/public/v1/webhooks'
+    | '/api/public/v1/campaigns/$campaignId'
+    | '/api/public/v1/contacts/$contactId'
+    | '/api/public/v1/contacts/bulk'
+    | '/api/public/v1/contacts/export'
+    | '/api/public/v1/mailboxes/$mailboxId'
+    | '/api/public/v1/webhooks/$webhookId'
+    | '/api/public/v1/campaigns/$campaignId/sequence'
+    | '/api/public/v1/campaigns/$campaignId/stats'
+    | '/api/public/v1/webhooks/$webhookId/deliveries'
+    | '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1996,6 +2197,12 @@ export interface RootRouteChildren {
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
   ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
+  ApiPublicV1AnalyticsRoute: typeof ApiPublicV1AnalyticsRoute
+  ApiPublicV1CampaignsRoute: typeof ApiPublicV1CampaignsRouteWithChildren
+  ApiPublicV1ContactsRoute: typeof ApiPublicV1ContactsRouteWithChildren
+  ApiPublicV1MailboxesRoute: typeof ApiPublicV1MailboxesRouteWithChildren
+  ApiPublicV1RepliesRoute: typeof ApiPublicV1RepliesRoute
+  ApiPublicV1WebhooksRoute: typeof ApiPublicV1WebhooksRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -3071,6 +3278,118 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReferralBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/analytics': {
+      id: '/api/public/v1/analytics'
+      path: '/api/public/v1/analytics'
+      fullPath: '/api/public/v1/analytics'
+      preLoaderRoute: typeof ApiPublicV1AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/campaigns': {
+      id: '/api/public/v1/campaigns'
+      path: '/api/public/v1/campaigns'
+      fullPath: '/api/public/v1/campaigns'
+      preLoaderRoute: typeof ApiPublicV1CampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/contacts': {
+      id: '/api/public/v1/contacts'
+      path: '/api/public/v1/contacts'
+      fullPath: '/api/public/v1/contacts'
+      preLoaderRoute: typeof ApiPublicV1ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/mailboxes': {
+      id: '/api/public/v1/mailboxes'
+      path: '/api/public/v1/mailboxes'
+      fullPath: '/api/public/v1/mailboxes'
+      preLoaderRoute: typeof ApiPublicV1MailboxesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/replies': {
+      id: '/api/public/v1/replies'
+      path: '/api/public/v1/replies'
+      fullPath: '/api/public/v1/replies'
+      preLoaderRoute: typeof ApiPublicV1RepliesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/webhooks': {
+      id: '/api/public/v1/webhooks'
+      path: '/api/public/v1/webhooks'
+      fullPath: '/api/public/v1/webhooks'
+      preLoaderRoute: typeof ApiPublicV1WebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/campaigns/$campaignId': {
+      id: '/api/public/v1/campaigns/$campaignId'
+      path: '/$campaignId'
+      fullPath: '/api/public/v1/campaigns/$campaignId'
+      preLoaderRoute: typeof ApiPublicV1CampaignsCampaignIdRouteImport
+      parentRoute: typeof ApiPublicV1CampaignsRoute
+    }
+    '/api/public/v1/contacts/$contactId': {
+      id: '/api/public/v1/contacts/$contactId'
+      path: '/$contactId'
+      fullPath: '/api/public/v1/contacts/$contactId'
+      preLoaderRoute: typeof ApiPublicV1ContactsContactIdRouteImport
+      parentRoute: typeof ApiPublicV1ContactsRoute
+    }
+    '/api/public/v1/contacts/bulk': {
+      id: '/api/public/v1/contacts/bulk'
+      path: '/bulk'
+      fullPath: '/api/public/v1/contacts/bulk'
+      preLoaderRoute: typeof ApiPublicV1ContactsBulkRouteImport
+      parentRoute: typeof ApiPublicV1ContactsRoute
+    }
+    '/api/public/v1/contacts/export': {
+      id: '/api/public/v1/contacts/export'
+      path: '/export'
+      fullPath: '/api/public/v1/contacts/export'
+      preLoaderRoute: typeof ApiPublicV1ContactsExportRouteImport
+      parentRoute: typeof ApiPublicV1ContactsRoute
+    }
+    '/api/public/v1/mailboxes/$mailboxId': {
+      id: '/api/public/v1/mailboxes/$mailboxId'
+      path: '/$mailboxId'
+      fullPath: '/api/public/v1/mailboxes/$mailboxId'
+      preLoaderRoute: typeof ApiPublicV1MailboxesMailboxIdRouteImport
+      parentRoute: typeof ApiPublicV1MailboxesRoute
+    }
+    '/api/public/v1/webhooks/$webhookId': {
+      id: '/api/public/v1/webhooks/$webhookId'
+      path: '/$webhookId'
+      fullPath: '/api/public/v1/webhooks/$webhookId'
+      preLoaderRoute: typeof ApiPublicV1WebhooksWebhookIdRouteImport
+      parentRoute: typeof ApiPublicV1WebhooksRoute
+    }
+    '/api/public/v1/campaigns/$campaignId/sequence': {
+      id: '/api/public/v1/campaigns/$campaignId/sequence'
+      path: '/sequence'
+      fullPath: '/api/public/v1/campaigns/$campaignId/sequence'
+      preLoaderRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceRouteImport
+      parentRoute: typeof ApiPublicV1CampaignsCampaignIdRoute
+    }
+    '/api/public/v1/campaigns/$campaignId/stats': {
+      id: '/api/public/v1/campaigns/$campaignId/stats'
+      path: '/stats'
+      fullPath: '/api/public/v1/campaigns/$campaignId/stats'
+      preLoaderRoute: typeof ApiPublicV1CampaignsCampaignIdStatsRouteImport
+      parentRoute: typeof ApiPublicV1CampaignsCampaignIdRoute
+    }
+    '/api/public/v1/webhooks/$webhookId/deliveries': {
+      id: '/api/public/v1/webhooks/$webhookId/deliveries'
+      path: '/deliveries'
+      fullPath: '/api/public/v1/webhooks/$webhookId/deliveries'
+      preLoaderRoute: typeof ApiPublicV1WebhooksWebhookIdDeliveriesRouteImport
+      parentRoute: typeof ApiPublicV1WebhooksWebhookIdRoute
+    }
+    '/api/public/v1/campaigns/$campaignId/sequence/$stepId': {
+      id: '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
+      path: '/$stepId'
+      fullPath: '/api/public/v1/campaigns/$campaignId/sequence/$stepId'
+      preLoaderRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRouteImport
+      parentRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceRoute
+    }
   }
 }
 
@@ -3283,6 +3602,104 @@ const HelpCenterRouteWithChildren = HelpCenterRoute._addFileChildren(
   HelpCenterRouteChildren,
 )
 
+interface ApiPublicV1CampaignsCampaignIdSequenceRouteChildren {
+  ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute
+}
+
+const ApiPublicV1CampaignsCampaignIdSequenceRouteChildren: ApiPublicV1CampaignsCampaignIdSequenceRouteChildren =
+  {
+    ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute:
+      ApiPublicV1CampaignsCampaignIdSequenceStepIdRoute,
+  }
+
+const ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren =
+  ApiPublicV1CampaignsCampaignIdSequenceRoute._addFileChildren(
+    ApiPublicV1CampaignsCampaignIdSequenceRouteChildren,
+  )
+
+interface ApiPublicV1CampaignsCampaignIdRouteChildren {
+  ApiPublicV1CampaignsCampaignIdSequenceRoute: typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
+  ApiPublicV1CampaignsCampaignIdStatsRoute: typeof ApiPublicV1CampaignsCampaignIdStatsRoute
+}
+
+const ApiPublicV1CampaignsCampaignIdRouteChildren: ApiPublicV1CampaignsCampaignIdRouteChildren =
+  {
+    ApiPublicV1CampaignsCampaignIdSequenceRoute:
+      ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren,
+    ApiPublicV1CampaignsCampaignIdStatsRoute:
+      ApiPublicV1CampaignsCampaignIdStatsRoute,
+  }
+
+const ApiPublicV1CampaignsCampaignIdRouteWithChildren =
+  ApiPublicV1CampaignsCampaignIdRoute._addFileChildren(
+    ApiPublicV1CampaignsCampaignIdRouteChildren,
+  )
+
+interface ApiPublicV1CampaignsRouteChildren {
+  ApiPublicV1CampaignsCampaignIdRoute: typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
+}
+
+const ApiPublicV1CampaignsRouteChildren: ApiPublicV1CampaignsRouteChildren = {
+  ApiPublicV1CampaignsCampaignIdRoute:
+    ApiPublicV1CampaignsCampaignIdRouteWithChildren,
+}
+
+const ApiPublicV1CampaignsRouteWithChildren =
+  ApiPublicV1CampaignsRoute._addFileChildren(ApiPublicV1CampaignsRouteChildren)
+
+interface ApiPublicV1ContactsRouteChildren {
+  ApiPublicV1ContactsContactIdRoute: typeof ApiPublicV1ContactsContactIdRoute
+  ApiPublicV1ContactsBulkRoute: typeof ApiPublicV1ContactsBulkRoute
+  ApiPublicV1ContactsExportRoute: typeof ApiPublicV1ContactsExportRoute
+}
+
+const ApiPublicV1ContactsRouteChildren: ApiPublicV1ContactsRouteChildren = {
+  ApiPublicV1ContactsContactIdRoute: ApiPublicV1ContactsContactIdRoute,
+  ApiPublicV1ContactsBulkRoute: ApiPublicV1ContactsBulkRoute,
+  ApiPublicV1ContactsExportRoute: ApiPublicV1ContactsExportRoute,
+}
+
+const ApiPublicV1ContactsRouteWithChildren =
+  ApiPublicV1ContactsRoute._addFileChildren(ApiPublicV1ContactsRouteChildren)
+
+interface ApiPublicV1MailboxesRouteChildren {
+  ApiPublicV1MailboxesMailboxIdRoute: typeof ApiPublicV1MailboxesMailboxIdRoute
+}
+
+const ApiPublicV1MailboxesRouteChildren: ApiPublicV1MailboxesRouteChildren = {
+  ApiPublicV1MailboxesMailboxIdRoute: ApiPublicV1MailboxesMailboxIdRoute,
+}
+
+const ApiPublicV1MailboxesRouteWithChildren =
+  ApiPublicV1MailboxesRoute._addFileChildren(ApiPublicV1MailboxesRouteChildren)
+
+interface ApiPublicV1WebhooksWebhookIdRouteChildren {
+  ApiPublicV1WebhooksWebhookIdDeliveriesRoute: typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
+}
+
+const ApiPublicV1WebhooksWebhookIdRouteChildren: ApiPublicV1WebhooksWebhookIdRouteChildren =
+  {
+    ApiPublicV1WebhooksWebhookIdDeliveriesRoute:
+      ApiPublicV1WebhooksWebhookIdDeliveriesRoute,
+  }
+
+const ApiPublicV1WebhooksWebhookIdRouteWithChildren =
+  ApiPublicV1WebhooksWebhookIdRoute._addFileChildren(
+    ApiPublicV1WebhooksWebhookIdRouteChildren,
+  )
+
+interface ApiPublicV1WebhooksRouteChildren {
+  ApiPublicV1WebhooksWebhookIdRoute: typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
+}
+
+const ApiPublicV1WebhooksRouteChildren: ApiPublicV1WebhooksRouteChildren = {
+  ApiPublicV1WebhooksWebhookIdRoute:
+    ApiPublicV1WebhooksWebhookIdRouteWithChildren,
+}
+
+const ApiPublicV1WebhooksRouteWithChildren =
+  ApiPublicV1WebhooksRoute._addFileChildren(ApiPublicV1WebhooksRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -3365,6 +3782,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
   ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
+  ApiPublicV1AnalyticsRoute: ApiPublicV1AnalyticsRoute,
+  ApiPublicV1CampaignsRoute: ApiPublicV1CampaignsRouteWithChildren,
+  ApiPublicV1ContactsRoute: ApiPublicV1ContactsRouteWithChildren,
+  ApiPublicV1MailboxesRoute: ApiPublicV1MailboxesRouteWithChildren,
+  ApiPublicV1RepliesRoute: ApiPublicV1RepliesRoute,
+  ApiPublicV1WebhooksRoute: ApiPublicV1WebhooksRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

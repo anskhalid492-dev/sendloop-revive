@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.api_rate_limit_hit(uuid, timestamptz, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.api_rate_limit_hit(uuid, timestamptz, integer) TO service_role;
