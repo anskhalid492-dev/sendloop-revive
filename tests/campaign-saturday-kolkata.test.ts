@@ -14,6 +14,8 @@ const kolkata = {
 const satBeforeWindow = new Date("2026-08-29T02:00:00Z"); // 07:30 IST
 const satInWindow = new Date("2026-08-29T06:00:00Z"); // 11:30 IST
 const mondaySlot = "2026-08-31T16:00:00.000Z";
+const sundayBeforeWindow = new Date("2026-08-30T02:00:00Z"); // 07:30 IST
+const sundayInWindow = new Date("2026-08-30T06:00:00Z"); // 11:30 IST
 
 describe("Saturday + Asia/Kolkata with Sun–Sat selected", () => {
   test("Sun–Sat means every day is valid, no Mon–Fri fallback", () => {
@@ -65,5 +67,54 @@ describe("Saturday + Asia/Kolkata with Sun–Sat selected", () => {
     const noSaturday = { ...kolkata, sendDays: [0, 1, 2, 3, 4, 5] };
     expect(isInSendWindow(satInWindow, noSaturday)).toBe(false);
     expect(earliestEligibleAt(satInWindow, noSaturday).toISOString()).toBe("2026-08-30T03:30:00.000Z");
+  });
+});
+
+describe("Sunday campaign queue replanning", () => {
+  test("Saturday advances to Sunday when Sunday is selected", () => {
+    const saturdayAfterWindow = new Date("2026-08-29T13:00:00Z"); // 18:30 IST
+    expect(earliestEligibleAt(saturdayAfterWindow, kolkata).toISOString()).toBe("2026-08-30T03:30:00.000Z");
+  });
+
+  test("inside the Sunday window first-step messages are eligible immediately", () => {
+    expect(earliestEligibleAt(sundayInWindow, kolkata).toISOString()).toBe(sundayInWindow.toISOString());
+  });
+
+  test("before the Sunday window first-step messages use Sunday 09:00 IST", () => {
+    expect(earliestEligibleAt(sundayBeforeWindow, kolkata).toISOString()).toBe("2026-08-30T03:30:00.000Z");
+  });
+
+  test("Sunday disabled skips to Monday", () => {
+    const mondayToSaturday = { ...kolkata, sendDays: [1, 2, 3, 4, 5, 6] };
+    expect(earliestEligibleAt(sundayInWindow, mondayToSaturday).toISOString()).toBe("2026-08-31T03:30:00.000Z");
+  });
+
+  test("Mon–Fri skips both weekend days", () => {
+    const weekdays = { ...kolkata, sendDays: [1, 2, 3, 4, 5] };
+    expect(earliestEligibleAt(satInWindow, weekdays).toISOString()).toBe("2026-08-31T03:30:00.000Z");
+  });
+
+  test("daily capacity accounts for 156 already used and spills after 244 rows", () => {
+    const rows = Array.from({ length: 246 }, (_, index) => ({
+      id: `quota-${index}`,
+      scheduled_at: mondaySlot,
+      pull_forward: true,
+    }));
+    const updates = planQueueReschedule(rows, kolkata, sundayInWindow, {
+      dailyLimit: 400,
+      occupiedByDay: new Map([["2026-08-30", 156]]),
+    });
+    expect(updates.slice(0, 244).every((row) => row.scheduledAt === sundayInWindow.toISOString())).toBe(true);
+    expect(updates[244]?.scheduledAt).toBe("2026-08-31T03:30:00.000Z");
+    expect(updates[245]?.scheduledAt).toBe("2026-08-31T03:30:00.000Z");
+  });
+
+  test("replanning an already-due legal row is idempotent", () => {
+    const scheduledAt = "2026-08-30T05:59:00.000Z";
+    expect(planQueueReschedule(
+      [{ id: "stable", scheduled_at: scheduledAt, pull_forward: true }],
+      kolkata,
+      sundayInWindow,
+    )).toEqual([]);
   });
 });

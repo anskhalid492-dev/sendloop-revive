@@ -26,6 +26,16 @@ export async function rescheduleCampaignQueue(
     endHour: Number(campaign.send_end_hour ?? 17),
   };
 
+  const { data: firstStepRow, error: stepError } = await supabase
+    .from("campaign_steps")
+    .select("step_order")
+    .eq("campaign_id", campaignId)
+    .eq("step_type", "email")
+    .order("step_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (stepError) throw new Error(stepError.message);
+
   const queued: Array<{ id: string; scheduled_at: string | null; step_order: number | null }> = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
@@ -64,12 +74,9 @@ export async function rescheduleCampaignQueue(
   ]);
   if (sentError) throw new Error(sentError.message);
   if (processingError) throw new Error(processingError.message);
-  // The first configured step has no wait to honour, so those rows may move
-  // forward onto today's window; follow-ups keep their own due time as floor.
-  const firstStep = queued.reduce<number | null>(
-    (min, row) => (row.step_order === null ? min : min === null ? row.step_order : Math.min(min, row.step_order)),
-    null,
-  );
+  // Use the sequence definition rather than the smallest queued step. A queue
+  // containing only follow-ups must never classify them as first-step rows.
+  const firstStep = (firstStepRow as { step_order?: number | null } | null)?.step_order ?? null;
 
   const updates = planQueueReschedule(
     queued.map((row) => ({
