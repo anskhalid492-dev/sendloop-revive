@@ -158,6 +158,7 @@ import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/pu
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
 import { Route as ApiPublicCronRunTransactionalEmailRouteImport } from './routes/api/public/cron/run-transactional-email'
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
+import { Route as ApiPublicCronRunWebhooksRouteImport } from './routes/api/public/cron/run-webhooks'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
@@ -985,6 +986,12 @@ const ApiPublicCronRunWarmupRoute = ApiPublicCronRunWarmupRouteImport.update({
   path: '/api/public/cron/run-warmup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronRunWebhooksRoute =
+  ApiPublicCronRunWebhooksRouteImport.update({
+    id: '/api/public/cron/run-webhooks',
+    path: '/api/public/cron/run-webhooks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   id: '/api/public/inbound/email',
   path: '/api/public/inbound/email',
@@ -1257,6 +1264,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
+  '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1427,6 +1435,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
+  '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1601,6 +1610,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
+  '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1775,6 +1785,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
+    | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
@@ -1945,6 +1956,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
+    | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
@@ -2118,6 +2130,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-campaigns'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
+    | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
     | '/api/public/media/$'
@@ -2218,6 +2231,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
   ApiPublicCronRunTransactionalEmailRoute: typeof ApiPublicCronRunTransactionalEmailRoute
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
+  ApiPublicCronRunWebhooksRoute: typeof ApiPublicCronRunWebhooksRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
@@ -3276,6 +3290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRunWarmupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/run-webhooks': {
+      id: '/api/public/cron/run-webhooks'
+      path: '/api/public/cron/run-webhooks'
+      fullPath: '/api/public/cron/run-webhooks'
+      preLoaderRoute: typeof ApiPublicCronRunWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/inbound/email': {
       id: '/api/public/inbound/email'
       path: '/api/public/inbound/email'
@@ -3821,6 +3842,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunTransactionalEmailRoute:
     ApiPublicCronRunTransactionalEmailRoute,
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,
+  ApiPublicCronRunWebhooksRoute: ApiPublicCronRunWebhooksRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
