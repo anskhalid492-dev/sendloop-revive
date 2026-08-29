@@ -443,6 +443,33 @@ DROP TRIGGER IF EXISTS trg_marketing_forms_updated ON public.marketing_forms;
 CREATE TRIGGER trg_marketing_forms_updated BEFORE UPDATE ON public.marketing_forms
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- ------------------------------------------------------------
+-- Template metadata columns (idempotent; safe on existing rows)
+-- ------------------------------------------------------------
+ALTER TABLE public.marketing_templates
+  ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'custom',
+  ADD COLUMN IF NOT EXISTS from_email TEXT,
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS variables JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'marketing_templates_type_check') THEN
+    ALTER TABLE public.marketing_templates
+      ADD CONSTRAINT marketing_templates_type_check CHECK (type IN ('built_in','custom'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'marketing_templates_status_check') THEN
+    ALTER TABLE public.marketing_templates
+      ADD CONSTRAINT marketing_templates_status_check CHECK (status IN ('active','archived'));
+  END IF;
+END $$;
+
+-- Rows stored in this table are always customer-owned copies; built-in
+-- templates live in application code and are never stored here, so they
+-- cannot be edited or deleted through the Data API.
+CREATE INDEX IF NOT EXISTS idx_marketing_templates_status ON public.marketing_templates (status);
+CREATE INDEX IF NOT EXISTS idx_marketing_templates_category ON public.marketing_templates (category);
+
 COMMIT;
 
 -- Reload the PostgREST schema cache so the Data API sees the new tables.
