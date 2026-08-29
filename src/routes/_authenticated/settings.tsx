@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Bell,
   Building2,
+  KeyRound,
   CreditCard,
   Loader2,
   Monitor,
@@ -44,6 +45,7 @@ import { getSecurityOverview } from "@/lib/settings.functions";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { SendingTab } from "@/components/settings/SendingTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
+import { ApiKeysTab } from "@/components/settings/ApiKeysTab";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { DeleteAccountCard } from "@/components/settings/DeleteAccountCard";
 import {
@@ -99,6 +101,7 @@ const SECTIONS = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "sending", label: "Email & Sending", icon: Send },
   { id: "integrations", label: "Integrations", icon: Plug },
+  { id: "api", label: "Developer API", icon: KeyRound },
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "billing", label: "Billing", icon: CreditCard },
@@ -184,6 +187,7 @@ function Page() {
           {section === "notifications" ? <NotificationsTab /> : null}
           {section === "sending" ? <SendingTab workspaceId={workspaceId} /> : null}
           {section === "integrations" ? <IntegrationsTab /> : null}
+          {section === "api" ? <ApiKeysTab workspaceId={workspaceId} /> : null}
           {section === "security" ? <SecuritySection /> : null}
           {section === "appearance" ? <AppearanceSection /> : null}
           {section === "billing" ? <BillingTab workspaceId={workspaceId} /> : null}
