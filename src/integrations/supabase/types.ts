@@ -330,6 +330,214 @@ export type Database = {
         }
         Relationships: []
       }
+      api_idempotency_keys: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          endpoint: string
+          id: string
+          idempotency_key: string
+          request_fingerprint: string
+          response_body: Json | null
+          state: string
+          status_code: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          endpoint: string
+          id?: string
+          idempotency_key: string
+          request_fingerprint: string
+          response_body?: Json | null
+          state?: string
+          status_code?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          endpoint?: string
+          id?: string
+          idempotency_key?: string
+          request_fingerprint?: string
+          response_body?: Json | null
+          state?: string
+          status_code?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_idempotency_keys_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_idempotency_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_jobs: {
+        Row: {
+          api_key_id: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          kind: string
+          params: Json
+          progress: number
+          result: Json | null
+          started_at: string | null
+          status: string
+          total: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          kind: string
+          params?: Json
+          progress?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          total?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          api_key_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          kind?: string
+          params?: Json
+          progress?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          total?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_jobs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          last_used_at: string | null
+          name: string
+          prefix: string
+          rate_limit_per_minute: number
+          revoked_at: string | null
+          scopes: string[]
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          last_used_at?: string | null
+          name: string
+          prefix: string
+          rate_limit_per_minute?: number
+          revoked_at?: string | null
+          scopes?: string[]
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          last_used_at?: string | null
+          name?: string
+          prefix?: string
+          rate_limit_per_minute?: number
+          revoked_at?: string | null
+          scopes?: string[]
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_rate_counters: {
+        Row: {
+          api_key_id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          api_key_id: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          api_key_id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_rate_counters_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_events: {
         Row: {
           campaign_id: string | null
@@ -7144,6 +7352,134 @@ export type Database = {
           },
         ]
       }
+      webhook_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          endpoint_id: string
+          event_id: string
+          event_type: string
+          failure_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          max_attempts: number
+          next_attempt_at: string
+          payload: Json
+          response_status: number | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          endpoint_id: string
+          event_id: string
+          event_type: string
+          failure_reason?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          payload: Json
+          response_status?: number | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          endpoint_id?: string
+          event_id?: string
+          event_type?: string
+          failure_reason?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          payload?: Json
+          response_status?: number | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_endpoints: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          events: string[]
+          id: string
+          last_delivery_at: string | null
+          last_delivery_status: string | null
+          secret_ciphertext: string | null
+          secret_hash: string
+          status: string
+          updated_at: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          events?: string[]
+          id?: string
+          last_delivery_at?: string | null
+          last_delivery_status?: string | null
+          secret_ciphertext?: string | null
+          secret_hash: string
+          status?: string
+          updated_at?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          events?: string[]
+          id?: string
+          last_delivery_at?: string | null
+          last_delivery_status?: string | null
+          secret_ciphertext?: string | null
+          secret_hash?: string
+          status?: string
+          updated_at?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_endpoints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_activity: {
         Row: {
           actor_id: string | null
@@ -7607,6 +7943,10 @@ export type Database = {
           sent: number
           unsubscribed: number
         }[]
+      }
+      api_rate_limit_hit: {
+        Args: { _api_key_id: string; _limit: number; _window_start: string }
+        Returns: number
       }
       apply_credit_change: {
         Args: {
