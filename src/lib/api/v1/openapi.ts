@@ -110,9 +110,6 @@ export function buildOpenApiDocument() {
     },
     security: [{ bearerAuth: [] }],
     paths,
-    "x-webhooks": WEBHOOK_EVENTS.map((event) => ({
-      event: event.name,
-      description: event.description,
-    })),
+    "x-webhook-events": [...WEBHOOK_EVENTS],
   };
 }
