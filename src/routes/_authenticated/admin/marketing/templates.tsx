@@ -21,6 +21,10 @@ import {
   previewMarketingTemplate,
   saveMarketingTemplate,
 } from "@/lib/marketing.functions";
+import {
+  TEMPLATE_CATEGORIES,
+  categoryLabel,
+} from "@/lib/marketing/template-library";
 import type { MarketingTemplate } from "@/lib/marketing/types";
 import { cn } from "@/lib/utils";
 
@@ -204,7 +208,7 @@ function TemplatesPage() {
                 variant={category === value ? "default" : "outline"}
                 onClick={() => setCategory(value)}
               >
-                {value}
+                {value === "all" ? "All" : categoryLabel(value)}
               </Button>
             ))}
           </div>
@@ -357,6 +361,7 @@ function TemplatesPage() {
               <Label>Subject</Label>
               <Input
                 value={draft.subject}
+                readOnly={draft.builtIn}
                 onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
               />
             </div>
@@ -364,6 +369,7 @@ function TemplatesPage() {
               <Label>Preview text</Label>
               <Input
                 value={draft.previewText}
+                readOnly={draft.builtIn}
                 onChange={(event) => setDraft({ ...draft, previewText: event.target.value })}
               />
             </div>
@@ -372,6 +378,7 @@ function TemplatesPage() {
               <Textarea
                 rows={16}
                 className="font-mono text-xs"
+                readOnly={draft.builtIn}
                 value={draft.body}
                 onChange={(event) => setDraft({ ...draft, body: event.target.value })}
               />
