@@ -148,6 +148,7 @@ import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$sl
 import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
+import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
@@ -933,6 +934,12 @@ const AuthenticatedAdminMarketingIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingSubscribersRoute =
+  AuthenticatedAdminMarketingSubscribersRouteImport.update({
+    id: '/subscribers',
+    path: '/subscribers',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const ApiPublicAutomationsTokenRoute =
   ApiPublicAutomationsTokenRouteImport.update({
     id: '/api/public/automations/$token',
@@ -1281,6 +1288,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1455,6 +1463,7 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1634,6 +1643,7 @@ export interface FileRoutesById {
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1813,6 +1823,7 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/subscribers'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -1987,6 +1998,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/subscribers'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -2165,6 +2177,7 @@ export interface FileRouteTypes {
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/credits/ledger'
     | '/_authenticated/admin/inbound-events/$eventId'
+    | '/_authenticated/admin/marketing/subscribers'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -3271,6 +3284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingIndexRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/subscribers': {
+      id: '/_authenticated/admin/marketing/subscribers'
+      path: '/subscribers'
+      fullPath: '/admin/marketing/subscribers'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingSubscribersRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/api/public/automations/$token': {
       id: '/api/public/automations/$token'
       path: '/api/public/automations/$token'
@@ -3534,11 +3554,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminMarketingRouteRouteChildren {
+  AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
   AuthenticatedAdminMarketingIndexRoute: typeof AuthenticatedAdminMarketingIndexRoute
 }
 
 const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketingRouteRouteChildren =
   {
+    AuthenticatedAdminMarketingSubscribersRoute:
+      AuthenticatedAdminMarketingSubscribersRoute,
     AuthenticatedAdminMarketingIndexRoute:
       AuthenticatedAdminMarketingIndexRoute,
   }

@@ -180,7 +180,6 @@ function SubscribersPage() {
                   <th className="py-2">Email</th>
                   <th className="py-2">Name</th>
                   <th className="py-2">Status</th>
-                  <th className="py-2">Plan</th>
                   <th className="py-2">Source</th>
                   <th className="py-2 text-right">Actions</th>
                 </tr>
@@ -197,7 +196,6 @@ function SubscribersPage() {
                         {String(row.status)}
                       </Badge>
                     </td>
-                    <td className="py-2 text-muted-foreground">{String(row.plan ?? "—")}</td>
                     <td className="py-2 text-muted-foreground">{String(row.source ?? "—")}</td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-2">
