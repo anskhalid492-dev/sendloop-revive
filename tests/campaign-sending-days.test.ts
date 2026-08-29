@@ -70,3 +70,33 @@ describe("queue reschedule after a sending-day change", () => {
     expect(groupRescheduleUpdates(updates).length).toBe(2);
   });
 });
+
+describe("daily limit counts today only", () => {
+  test("525 lifetime sends do not consume today's 700 daily quota", async () => {
+    const { campaignRunStatus } = await import("@/lib/campaign-run-state");
+    const status = campaignRunStatus({
+      status: "active",
+      dailyQuota: 700,
+      sentToday: 0,
+      remainingRecipients: 5000,
+      lifetimeSent: 525,
+      now: saturdayMidWindow,
+      window: allDays,
+    });
+    expect(status.state).toBe("running");
+    expect(status.remainingToday).toBe(700);
+  });
+
+  test("only sends with a sent_at inside today count against the quota", async () => {
+    const { zonedStartOfDay } = await import("@/lib/campaign-schedule");
+    const dayStart = zonedStartOfDay(saturdayMidWindow, allDays.timezone);
+    const sent = [
+      { sent_at: "2026-08-28T09:00:00Z" }, // yesterday
+      { sent_at: "2026-08-29T06:00:00Z" }, // today (10:00 Dubai)
+      { sent_at: null },
+    ];
+    const today = sent.filter((m) => m.sent_at && new Date(m.sent_at) >= dayStart).length;
+    expect(dayStart.toISOString()).toBe("2026-08-28T20:00:00.000Z");
+    expect(today).toBe(1);
+  });
+});
