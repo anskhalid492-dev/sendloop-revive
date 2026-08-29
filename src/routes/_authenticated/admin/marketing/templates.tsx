@@ -21,6 +21,10 @@ import {
   previewMarketingTemplate,
   saveMarketingTemplate,
 } from "@/lib/marketing.functions";
+import {
+  TEMPLATE_CATEGORIES,
+  categoryLabel,
+} from "@/lib/marketing/template-library";
 import type { MarketingTemplate } from "@/lib/marketing/types";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +50,9 @@ export const Route = createFileRoute("/_authenticated/admin/marketing/templates"
 });
 
 type Draft = {
-  id?: string;
+  id?: string | undefined;
+  key?: string | null | undefined;
+  builtIn?: boolean | undefined;
   name: string;
   category: string;
   subject: string;
@@ -56,7 +62,7 @@ type Draft = {
 
 const EMPTY: Draft = {
   name: "",
-  category: "announcement",
+  category: "newsletter",
   subject: "",
   previewText: "",
   body: "",
@@ -89,20 +95,71 @@ function TemplatesPage() {
     return ["all", ...[...set].sort()];
   }, [query.data]);
 
+  const renderPreview = (source: Pick<Draft, "subject" | "previewText" | "body">) => {
+    preview({
+      data: {
+        subject: source.subject,
+        previewText: source.previewText,
+        body: source.body,
+      },
+    })
+      .then((result) => setHtml(result.html))
+      .catch((error: Error) => toast.error(error.message));
+  };
+
+  const openTemplate = (template: MarketingTemplate) => {
+    const next: Draft = {
+      id: template.builtIn ? undefined : template.id,
+      key: template.key ?? null,
+      builtIn: Boolean(template.builtIn),
+      name: template.name,
+      category: template.category,
+      subject: template.subject,
+      previewText: template.previewText,
+      body: template.body,
+    };
+    setDraft(next);
+    renderPreview(next);
+  };
+
   const duplicateMutation = useMutation({
-    mutationFn: (vars: { key?: string | null; id?: string | null }) => duplicate({ data: vars }),
-    onSuccess: () => {
+    mutationFn: (vars: { key?: string | null; id?: string | null; name?: string }) =>
+      duplicate({ data: vars }),
+    onSuccess: async (result) => {
       toast.success("Template duplicated — the copy is editable");
       invalidate();
+      const fresh = await qc.fetchQuery({
+        queryKey: ["admin", "marketing", "templates"],
+        queryFn: () => list(),
+      });
+      const copy = (fresh?.custom ?? []).find((t) => t.id === result.id);
+      if (copy) openTemplate(copy);
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => save({ data: draft }),
+    mutationFn: () => {
+      if (draft.builtIn) {
+        return Promise.reject(
+          new Error("Built-in templates are read-only. Duplicate it to make changes."),
+        );
+      }
+      return save({
+        data: {
+          ...(draft.id ? { id: draft.id } : {}),
+          name: draft.name,
+          category: draft.category,
+          subject: draft.subject,
+          previewText: draft.previewText,
+          body: draft.body,
+        },
+      });
+    },
     onSuccess: () => {
       toast.success("Template saved");
       setDraft(EMPTY);
+      setHtml("");
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -121,22 +178,14 @@ function TemplatesPage() {
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
       toast.success("Template deleted");
+      setDraft(EMPTY);
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const editTemplate = (template: MarketingTemplate) =>
-    setDraft({
-      id: template.id,
-      name: template.name,
-      category: template.category,
-      subject: template.subject,
-      previewText: template.previewText,
-      body: template.body,
-    });
-
   if (query.isLoading) return <MarketingLoading label="Loading templates" />;
+
 
   const builtIn = (query.data?.builtIn ?? []).filter(
     (t) => category === "all" || t.category === category,
@@ -159,7 +208,7 @@ function TemplatesPage() {
                 variant={category === value ? "default" : "outline"}
                 onClick={() => setCategory(value)}
               >
-                {value}
+                {value === "all" ? "All" : categoryLabel(value)}
               </Button>
             ))}
           </div>
@@ -185,7 +234,7 @@ function TemplatesPage() {
                 >
                   Duplicate
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => editTemplate(template)}>
+                <Button size="sm" variant="ghost" onClick={() => openTemplate(template)}>
                   Open
                 </Button>
               </div>
@@ -206,7 +255,7 @@ function TemplatesPage() {
                 <p className="text-sm font-medium">{template.name}</p>
                 <p className="text-xs text-muted-foreground">{template.subject}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => editTemplate(template)}>
+                  <Button size="sm" variant="outline" onClick={() => openTemplate(template)}>
                     Edit
                   </Button>
                   <Button
@@ -224,21 +273,48 @@ function TemplatesPage() {
       </MarketingPanel>
 
       <MarketingPanel
-        title={draft.id ? "Edit template" : "New template"}
-        description="Body uses simple block markup. An unsubscribe footer is always appended at render time and cannot be removed."
+        title={
+          draft.builtIn
+            ? `Built-in template — read only`
+            : draft.id
+              ? "Edit template"
+              : "New template"
+        }
+        description={
+          draft.builtIn
+            ? "Built-in templates are owned by the product and cannot be edited or deleted. Duplicate this one to get a fully editable copy."
+            : "Body uses simple block markup. An unsubscribe footer is always appended at render time and cannot be removed."
+        }
         actions={
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => previewMutation.mutate()}>
               Preview
             </Button>
+            {draft.builtIn ? (
+              <Button
+                size="sm"
+                onClick={() => duplicateMutation.mutate({ key: draft.key ?? null })}
+                disabled={duplicateMutation.isPending}
+              >
+                Duplicate to edit
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => saveMutation.mutate()}
+                disabled={!draft.name.trim() || !draft.subject.trim() || saveMutation.isPending}
+              >
+                Save
+              </Button>
+            )}
             <Button
               size="sm"
-              onClick={() => saveMutation.mutate()}
-              disabled={!draft.name.trim() || !draft.subject.trim() || saveMutation.isPending}
+              variant="ghost"
+              onClick={() => {
+                setDraft(EMPTY);
+                setHtml("");
+              }}
             >
-              Save
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setDraft(EMPTY)}>
               Reset
             </Button>
           </div>
@@ -246,26 +322,46 @@ function TemplatesPage() {
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-3">
+            {draft.builtIn ? (
+              <div className="flex items-center gap-2 rounded-md border border-dashed p-2 text-xs text-muted-foreground">
+                <Lock className="h-3.5 w-3.5" />
+                Protected built-in — changes here are not saved.
+              </div>
+            ) : null}
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 <Label>Name</Label>
                 <Input
                   value={draft.name}
+                  readOnly={draft.builtIn}
                   onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                 />
               </div>
               <div>
                 <Label>Category</Label>
-                <Input
+                <select
+                  className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm disabled:opacity-70"
                   value={draft.category}
+                  disabled={draft.builtIn}
                   onChange={(event) => setDraft({ ...draft, category: event.target.value })}
-                />
+                >
+                  {TEMPLATE_CATEGORIES.some((c) => c.id === draft.category) ? null : (
+                    <option value={draft.category}>{categoryLabel(draft.category)}</option>
+                  )}
+                  {TEMPLATE_CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+
             <div>
               <Label>Subject</Label>
               <Input
                 value={draft.subject}
+                readOnly={draft.builtIn}
                 onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
               />
             </div>
@@ -273,6 +369,7 @@ function TemplatesPage() {
               <Label>Preview text</Label>
               <Input
                 value={draft.previewText}
+                readOnly={draft.builtIn}
                 onChange={(event) => setDraft({ ...draft, previewText: event.target.value })}
               />
             </div>
@@ -281,6 +378,7 @@ function TemplatesPage() {
               <Textarea
                 rows={16}
                 className="font-mono text-xs"
+                readOnly={draft.builtIn}
                 value={draft.body}
                 onChange={(event) => setDraft({ ...draft, body: event.target.value })}
               />
