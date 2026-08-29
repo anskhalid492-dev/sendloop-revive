@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GRANTABLE_SCOPES, SCOPE_DESCRIPTIONS, type ApiScope } from "@/lib/api/v1/scopes";
+import { SCOPE_GROUPS, SCOPE_DESCRIPTIONS, type ApiScope, type GrantableScope } from "@/lib/api/v1/scopes";
 import {
   createApiKey,
   deleteApiKey,
@@ -245,7 +245,7 @@ export function ApiKeysTab({ workspaceId }: { workspaceId: string | null }) {
             <div className="space-y-2">
               <Label>Scopes</Label>
               <div className="grid gap-2 sm:grid-cols-2">
-                {GRANTABLE_SCOPES.map((scope) => {
+                {SCOPE_GROUPS.flatMap((group) => group.scopes).map((scope: GrantableScope) => {
                   const checked = scopes.includes(scope);
                   return (
                     <button
