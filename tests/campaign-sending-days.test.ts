@@ -57,15 +57,16 @@ describe("selected sending days are authoritative", () => {
 describe("queue reschedule after a sending-day change", () => {
   test("re-plans messages parked on a day that is no longer/now selected", () => {
     const rows = [
-      { id: "a", scheduled_at: "2026-08-31T05:00:00.000Z" }, // parked on Monday
+      { id: "a", scheduled_at: "2026-08-29T22:00:00.000Z" }, // outside any window
       { id: "b", scheduled_at: null },
       { id: "c", scheduled_at: saturdayMidWindow.toISOString() }, // already valid
+      { id: "d", scheduled_at: "2026-08-31T05:00:00.000Z" }, // valid future follow-up slot
     ];
     const updates = planQueueReschedule(rows, allDays, saturdayMidWindow);
     expect(updates.map((u) => u.id).sort()).toEqual(["a", "b"]);
-    expect(updates.every((u) => u.scheduledAt === saturdayMidWindow.toISOString())).toBe(true);
-    expect(groupRescheduleUpdates(updates)).toEqual([
-      { scheduledAt: saturdayMidWindow.toISOString(), ids: ["a", "b"] },
-    ]);
+    // "a" rolls to the next configured start (Sunday 09:00 Dubai), "b" is due now.
+    expect(updates.find((u) => u.id === "a")?.scheduledAt).toBe("2026-08-30T05:00:00.000Z");
+    expect(updates.find((u) => u.id === "b")?.scheduledAt).toBe(saturdayMidWindow.toISOString());
+    expect(groupRescheduleUpdates(updates).length).toBe(2);
   });
 });
