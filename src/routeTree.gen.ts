@@ -17,6 +17,7 @@ import { Route as AiPersonalizedOutreachRouteImport } from './routes/ai-personal
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationsRouteImport } from './routes/automations'
+import { Route as ColdEmailRouteImport } from './routes/cold-email'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -26,10 +27,14 @@ import { Route as CustomerReviewsRouteImport } from './routes/customer-reviews'
 import { Route as DeliverabilityGuideRouteImport } from './routes/deliverability-guide'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as DpaRouteImport } from './routes/dpa'
+import { Route as EmailCampaignsRouteImport } from './routes/email-campaigns'
+import { Route as EmailSequencesRouteImport } from './routes/email-sequences'
+import { Route as EmailVerificationRouteImport } from './routes/email-verification'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpCenterRouteImport } from './routes/help-center'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as LeadGenerationRouteImport } from './routes/lead-generation'
 import { Route as LifetimeRouteImport } from './routes/lifetime'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -235,6 +240,11 @@ const AutomationsRoute = AutomationsRouteImport.update({
   path: '/automations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ColdEmailRoute = ColdEmailRouteImport.update({
+  id: '/cold-email',
+  path: '/cold-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
   id: '/cold-email-templates',
   path: '/cold-email-templates',
@@ -280,6 +290,21 @@ const DpaRoute = DpaRouteImport.update({
   path: '/dpa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailCampaignsRoute = EmailCampaignsRouteImport.update({
+  id: '/email-campaigns',
+  path: '/email-campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailSequencesRoute = EmailSequencesRouteImport.update({
+  id: '/email-sequences',
+  path: '/email-sequences',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailVerificationRoute = EmailVerificationRouteImport.update({
+  id: '/email-verification',
+  path: '/email-verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeaturesRoute = FeaturesRouteImport.update({
   id: '/features',
   path: '/features',
@@ -298,6 +323,11 @@ const HelpCenterRoute = HelpCenterRouteImport.update({
 const HowItWorksRoute = HowItWorksRouteImport.update({
   id: '/how-it-works',
   path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadGenerationRoute = LeadGenerationRouteImport.update({
+  id: '/lead-generation',
+  path: '/lead-generation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LifetimeRoute = LifetimeRouteImport.update({
@@ -1221,6 +1251,7 @@ export interface FileRoutesByFullPath {
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
+  '/cold-email': typeof ColdEmailRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
@@ -1230,10 +1261,14 @@ export interface FileRoutesByFullPath {
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/dpa': typeof DpaRoute
+  '/email-campaigns': typeof EmailCampaignsRoute
+  '/email-sequences': typeof EmailSequencesRoute
+  '/email-verification': typeof EmailVerificationRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
+  '/lead-generation': typeof LeadGenerationRoute
   '/lifetime': typeof LifetimeRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -1408,6 +1443,7 @@ export interface FileRoutesByTo {
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
+  '/cold-email': typeof ColdEmailRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
@@ -1417,9 +1453,13 @@ export interface FileRoutesByTo {
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/dpa': typeof DpaRoute
+  '/email-campaigns': typeof EmailCampaignsRoute
+  '/email-sequences': typeof EmailSequencesRoute
+  '/email-verification': typeof EmailVerificationRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/lead-generation': typeof LeadGenerationRoute
   '/lifetime': typeof LifetimeRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -1594,6 +1634,7 @@ export interface FileRoutesById {
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
+  '/cold-email': typeof ColdEmailRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
@@ -1603,10 +1644,14 @@ export interface FileRoutesById {
   '/deliverability-guide': typeof DeliverabilityGuideRoute
   '/docs': typeof DocsRoute
   '/dpa': typeof DpaRoute
+  '/email-campaigns': typeof EmailCampaignsRoute
+  '/email-sequences': typeof EmailSequencesRoute
+  '/email-verification': typeof EmailVerificationRoute
   '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help-center': typeof HelpCenterRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
+  '/lead-generation': typeof LeadGenerationRoute
   '/lifetime': typeof LifetimeRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -1783,6 +1828,7 @@ export interface FileRouteTypes {
     | '/api-docs'
     | '/auth'
     | '/automations'
+    | '/cold-email'
     | '/cold-email-templates'
     | '/community'
     | '/contact'
@@ -1792,10 +1838,14 @@ export interface FileRouteTypes {
     | '/deliverability-guide'
     | '/docs'
     | '/dpa'
+    | '/email-campaigns'
+    | '/email-sequences'
+    | '/email-verification'
     | '/features'
     | '/forgot-password'
     | '/help-center'
     | '/how-it-works'
+    | '/lead-generation'
     | '/lifetime'
     | '/pricing'
     | '/privacy'
@@ -1970,6 +2020,7 @@ export interface FileRouteTypes {
     | '/api-docs'
     | '/auth'
     | '/automations'
+    | '/cold-email'
     | '/cold-email-templates'
     | '/community'
     | '/contact'
@@ -1979,9 +2030,13 @@ export interface FileRouteTypes {
     | '/deliverability-guide'
     | '/docs'
     | '/dpa'
+    | '/email-campaigns'
+    | '/email-sequences'
+    | '/email-verification'
     | '/features'
     | '/forgot-password'
     | '/how-it-works'
+    | '/lead-generation'
     | '/lifetime'
     | '/pricing'
     | '/privacy'
@@ -2155,6 +2210,7 @@ export interface FileRouteTypes {
     | '/api-docs'
     | '/auth'
     | '/automations'
+    | '/cold-email'
     | '/cold-email-templates'
     | '/community'
     | '/contact'
@@ -2164,10 +2220,14 @@ export interface FileRouteTypes {
     | '/deliverability-guide'
     | '/docs'
     | '/dpa'
+    | '/email-campaigns'
+    | '/email-sequences'
+    | '/email-verification'
     | '/features'
     | '/forgot-password'
     | '/help-center'
     | '/how-it-works'
+    | '/lead-generation'
     | '/lifetime'
     | '/pricing'
     | '/privacy'
@@ -2344,6 +2404,7 @@ export interface RootRouteChildren {
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
   AutomationsRoute: typeof AutomationsRoute
+  ColdEmailRoute: typeof ColdEmailRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
@@ -2353,10 +2414,14 @@ export interface RootRouteChildren {
   DeliverabilityGuideRoute: typeof DeliverabilityGuideRoute
   DocsRoute: typeof DocsRoute
   DpaRoute: typeof DpaRoute
+  EmailCampaignsRoute: typeof EmailCampaignsRoute
+  EmailSequencesRoute: typeof EmailSequencesRoute
+  EmailVerificationRoute: typeof EmailVerificationRoute
   FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpCenterRoute: typeof HelpCenterRouteWithChildren
   HowItWorksRoute: typeof HowItWorksRoute
+  LeadGenerationRoute: typeof LeadGenerationRoute
   LifetimeRoute: typeof LifetimeRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -2485,6 +2550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cold-email': {
+      id: '/cold-email'
+      path: '/cold-email'
+      fullPath: '/cold-email'
+      preLoaderRoute: typeof ColdEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cold-email-templates': {
       id: '/cold-email-templates'
       path: '/cold-email-templates'
@@ -2548,6 +2620,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DpaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email-campaigns': {
+      id: '/email-campaigns'
+      path: '/email-campaigns'
+      fullPath: '/email-campaigns'
+      preLoaderRoute: typeof EmailCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-sequences': {
+      id: '/email-sequences'
+      path: '/email-sequences'
+      fullPath: '/email-sequences'
+      preLoaderRoute: typeof EmailSequencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-verification': {
+      id: '/email-verification'
+      path: '/email-verification'
+      fullPath: '/email-verification'
+      preLoaderRoute: typeof EmailVerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/features': {
       id: '/features'
       path: '/features'
@@ -2574,6 +2667,13 @@ declare module '@tanstack/react-router' {
       path: '/how-it-works'
       fullPath: '/how-it-works'
       preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lead-generation': {
+      id: '/lead-generation'
+      path: '/lead-generation'
+      fullPath: '/lead-generation'
+      preLoaderRoute: typeof LeadGenerationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lifetime': {
@@ -4100,6 +4200,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
   AutomationsRoute: AutomationsRoute,
+  ColdEmailRoute: ColdEmailRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
@@ -4109,10 +4210,14 @@ const rootRouteChildren: RootRouteChildren = {
   DeliverabilityGuideRoute: DeliverabilityGuideRoute,
   DocsRoute: DocsRoute,
   DpaRoute: DpaRoute,
+  EmailCampaignsRoute: EmailCampaignsRoute,
+  EmailSequencesRoute: EmailSequencesRoute,
+  EmailVerificationRoute: EmailVerificationRoute,
   FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpCenterRoute: HelpCenterRouteWithChildren,
   HowItWorksRoute: HowItWorksRoute,
+  LeadGenerationRoute: LeadGenerationRoute,
   LifetimeRoute: LifetimeRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
