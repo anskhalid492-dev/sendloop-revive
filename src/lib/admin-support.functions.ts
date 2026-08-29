@@ -39,7 +39,31 @@ export type AdminTicket = {
   customer_name: string | null;
   workspace_name: string | null;
   assignee_email: string | null;
+  /** Satisfaction rating of the support experience, if the customer submitted one. */
+  rating: number | null;
+  rating_feedback: string | null;
+  rated_at: string | null;
 };
+
+/** Ratings keyed by ticket id. Tolerates the table not existing yet. */
+async function loadRatings(supabase: any, ticketIds: string[]) {
+  const map = new Map<string, { rating: number; feedback: string | null; created_at: string }>();
+  if (ticketIds.length === 0) return map;
+  const { data, error } = await supabase
+    .from("support_ticket_ratings")
+    .select("ticket_id, rating, feedback, created_at")
+    .in("ticket_id", ticketIds);
+  if (error) return map;
+  for (const row of (data ?? []) as Array<{
+    ticket_id: string;
+    rating: number;
+    feedback: string | null;
+    created_at: string;
+  }>) {
+    map.set(row.ticket_id, { rating: row.rating, feedback: row.feedback, created_at: row.created_at });
+  }
+  return map;
+}
 
 export const listAdminTickets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -50,6 +74,8 @@ export const listAdminTickets = createServerFn({ method: "GET" })
         status: z.string().optional(),
         category: z.string().optional(),
         priority: z.string().optional(),
+        /** "all" | "unrated" | "1".."5" */
+        rating: z.string().optional(),
         mine: z.boolean().optional(),
       })
       .parse(input ?? {}),
@@ -75,7 +101,16 @@ export const listAdminTickets = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
 
     const tickets = (rows ?? []) as unknown as Array<
-      Omit<AdminTicket, "customer_email" | "customer_name" | "workspace_name" | "assignee_email">
+      Omit<
+        AdminTicket,
+        | "customer_email"
+        | "customer_name"
+        | "workspace_name"
+        | "assignee_email"
+        | "rating"
+        | "rating_feedback"
+        | "rated_at"
+      >
     >;
     if (tickets.length === 0) return [];
 
@@ -86,13 +121,17 @@ export const listAdminTickets = createServerFn({ method: "GET" })
       new Set(tickets.map((t) => t.workspace_id).filter(Boolean) as string[]),
     );
 
-    const [profiles, workspaces] = await Promise.all([
+    const [profiles, workspaces, ratings] = await Promise.all([
       userIds.length
         ? context.supabase.from("profiles").select("id, email, full_name").in("id", userIds)
         : Promise.resolve({ data: [] as any[] }),
       workspaceIds.length
         ? context.supabase.from("workspaces").select("id, name").in("id", workspaceIds)
         : Promise.resolve({ data: [] as any[] }),
+      loadRatings(
+        context.supabase,
+        tickets.map((t) => t.id),
+      ),
     ]);
 
     const profileMap = new Map(
@@ -104,14 +143,47 @@ export const listAdminTickets = createServerFn({ method: "GET" })
       ((workspaces.data ?? []) as Array<{ id: string; name: string }>).map((w) => [w.id, w.name]),
     );
 
-    return tickets.map((t) => ({
-      ...t,
-      customer_email: profileMap.get(t.created_by)?.email ?? null,
-      customer_name: profileMap.get(t.created_by)?.full_name ?? null,
-      assignee_email: t.assigned_to ? (profileMap.get(t.assigned_to)?.email ?? null) : null,
-      workspace_name: t.workspace_id ? (workspaceMap.get(t.workspace_id) ?? null) : null,
-    }));
+    const mapped: AdminTicket[] = tickets.map((t) => {
+      const rating = ratings.get(t.id) ?? null;
+      return {
+        ...t,
+        customer_email: profileMap.get(t.created_by)?.email ?? null,
+        customer_name: profileMap.get(t.created_by)?.full_name ?? null,
+        assignee_email: t.assigned_to ? (profileMap.get(t.assigned_to)?.email ?? null) : null,
+        workspace_name: t.workspace_id ? (workspaceMap.get(t.workspace_id) ?? null) : null,
+        rating: rating?.rating ?? null,
+        rating_feedback: rating?.feedback ?? null,
+        rated_at: rating?.created_at ?? null,
+      };
+    });
+
+    const ratingFilter = data.rating ?? "all";
+    if (ratingFilter === "all") return mapped;
+    if (ratingFilter === "unrated") return mapped.filter((t) => t.rating === null);
+    const wanted = Number(ratingFilter);
+    if (!Number.isFinite(wanted)) return mapped;
+    return mapped.filter((t) => t.rating === wanted);
   });
+
+/** Aggregate support satisfaction metrics for the admin analytics view. */
+export const getSupportSatisfaction = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { summarizeSupportRatings } = await import("@/lib/support-rating");
+
+    const [ratings, eligible] = await Promise.all([
+      context.supabase.from("support_ticket_ratings").select("rating"),
+      context.supabase
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["resolved", "closed"]),
+    ]);
+
+    const rows = (ratings.error ? [] : (ratings.data ?? [])) as Array<{ rating: number }>;
+    return summarizeSupportRatings(rows, eligible.count ?? 0);
+  });
+
 
 export const getAdminTicket = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
