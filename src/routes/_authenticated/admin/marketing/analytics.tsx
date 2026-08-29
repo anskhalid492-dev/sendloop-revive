@@ -119,12 +119,12 @@ function AnalyticsPage() {
                 {data.timeline.map((row) => (
                   <tr key={row.day}>
                     <td className="py-2">{row.day}</td>
-                    <td className="py-2 tabular-nums">{row["marketing_email_sent"] ?? 0}</td>
-                    <td className="py-2 tabular-nums">{row["marketing_email_opened"] ?? 0}</td>
-                    <td className="py-2 tabular-nums">{row["marketing_email_clicked"] ?? 0}</td>
-                    <td className="py-2 tabular-nums">{row["marketing_email_bounced"] ?? 0}</td>
+                    <td className="py-2 tabular-nums">{row.counts["marketing_email_sent"] ?? 0}</td>
+                    <td className="py-2 tabular-nums">{row.counts["marketing_email_opened"] ?? 0}</td>
+                    <td className="py-2 tabular-nums">{row.counts["marketing_email_clicked"] ?? 0}</td>
+                    <td className="py-2 tabular-nums">{row.counts["marketing_email_bounced"] ?? 0}</td>
                     <td className="py-2 tabular-nums">
-                      {row["marketing_email_unsubscribed"] ?? 0}
+                      {row.counts["marketing_email_unsubscribed"] ?? 0}
                     </td>
                   </tr>
                 ))}
