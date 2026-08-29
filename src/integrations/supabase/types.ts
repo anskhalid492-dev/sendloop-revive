@@ -2255,6 +2255,57 @@ export type Database = {
           },
         ]
       }
+      campaign_unsubscribes: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          email: string
+          id: string
+          recipient_id: string | null
+          source: string
+          updated_at: string
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          recipient_id?: string | null
+          source?: string
+          updated_at?: string
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          recipient_id?: string | null
+          source?: string
+          updated_at?: string
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_unsubscribes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_unsubscribes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           ai_config: Json
@@ -7879,6 +7930,20 @@ export type Database = {
       admin_rate_limit_hit: {
         Args: { _bucket: string; _limit: number; _window_seconds: number }
         Returns: Json
+      }
+      admin_unsubscribe_stats: {
+        Args: { _days?: number }
+        Returns: {
+          campaign_id: string
+          campaign_name: string
+          email_link: number
+          last_unsubscribed_at: string
+          list_unsubscribe: number
+          one_click: number
+          total: number
+          workspace_id: string
+          workspace_name: string
+        }[]
       }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
