@@ -47,6 +47,8 @@ export const Route = createFileRoute("/_authenticated/admin/marketing/templates"
 
 type Draft = {
   id?: string;
+  key?: string | null;
+  builtIn?: boolean;
   name: string;
   category: string;
   subject: string;
@@ -56,7 +58,7 @@ type Draft = {
 
 const EMPTY: Draft = {
   name: "",
-  category: "announcement",
+  category: "newsletter",
   subject: "",
   previewText: "",
   body: "",
@@ -89,20 +91,71 @@ function TemplatesPage() {
     return ["all", ...[...set].sort()];
   }, [query.data]);
 
+  const renderPreview = (source: Pick<Draft, "subject" | "previewText" | "body">) => {
+    preview({
+      data: {
+        subject: source.subject,
+        previewText: source.previewText,
+        body: source.body,
+      },
+    })
+      .then((result) => setHtml(result.html))
+      .catch((error: Error) => toast.error(error.message));
+  };
+
+  const openTemplate = (template: MarketingTemplate) => {
+    const next: Draft = {
+      id: template.builtIn ? undefined : template.id,
+      key: template.key ?? null,
+      builtIn: Boolean(template.builtIn),
+      name: template.name,
+      category: template.category,
+      subject: template.subject,
+      previewText: template.previewText,
+      body: template.body,
+    };
+    setDraft(next);
+    renderPreview(next);
+  };
+
   const duplicateMutation = useMutation({
-    mutationFn: (vars: { key?: string | null; id?: string | null }) => duplicate({ data: vars }),
-    onSuccess: () => {
+    mutationFn: (vars: { key?: string | null; id?: string | null; name?: string }) =>
+      duplicate({ data: vars }),
+    onSuccess: async (result) => {
       toast.success("Template duplicated — the copy is editable");
       invalidate();
+      const fresh = await qc.fetchQuery({
+        queryKey: ["admin", "marketing", "templates"],
+        queryFn: () => list(),
+      });
+      const copy = (fresh?.custom ?? []).find((t) => t.id === result.id);
+      if (copy) openTemplate(copy);
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => save({ data: draft }),
+    mutationFn: () => {
+      if (draft.builtIn) {
+        return Promise.reject(
+          new Error("Built-in templates are read-only. Duplicate it to make changes."),
+        );
+      }
+      return save({
+        data: {
+          id: draft.id,
+          name: draft.name,
+          category: draft.category,
+          subject: draft.subject,
+          previewText: draft.previewText,
+          body: draft.body,
+        },
+      });
+    },
     onSuccess: () => {
       toast.success("Template saved");
       setDraft(EMPTY);
+      setHtml("");
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -121,22 +174,14 @@ function TemplatesPage() {
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
       toast.success("Template deleted");
+      setDraft(EMPTY);
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const editTemplate = (template: MarketingTemplate) =>
-    setDraft({
-      id: template.id,
-      name: template.name,
-      category: template.category,
-      subject: template.subject,
-      previewText: template.previewText,
-      body: template.body,
-    });
-
   if (query.isLoading) return <MarketingLoading label="Loading templates" />;
+
 
   const builtIn = (query.data?.builtIn ?? []).filter(
     (t) => category === "all" || t.category === category,
