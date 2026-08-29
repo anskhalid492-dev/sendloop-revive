@@ -383,10 +383,41 @@ function TicketDetail({
   const messages = detail.data.messages as any[];
   const customer = detail.data.customer as any;
   const workspace = detail.data.workspace as any;
+  const ticketRating = (detail.data as any).rating as {
+    rating: number;
+    feedback: string | null;
+    created_at: string;
+  } | null;
 
   return (
     <div className="space-y-4">
+      <section className="surface-card space-y-2 p-4">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Support experience rating
+        </p>
+        {ticketRating ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <SupportStars value={ticketRating.rating} size="md" showLabel />
+              <span className="text-xs text-muted-foreground">
+                · submitted {timeOf(ticketRating.created_at)}
+              </span>
+            </div>
+            {ticketRating.feedback ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {ticketRating.feedback}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">No written feedback.</p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Not Rated</p>
+        )}
+      </section>
+
       <section className="surface-card space-y-3 p-5">
+
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">{ticket.subject}</h2>
