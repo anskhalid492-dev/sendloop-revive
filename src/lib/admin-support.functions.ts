@@ -207,7 +207,7 @@ export const getAdminTicket = createServerFn({ method: "GET" })
       assigned_to: string | null;
     };
 
-    const [messages, profile, workspace] = await Promise.all([
+    const [messages, profile, workspace, rating] = await Promise.all([
       context.supabase
         .from("support_ticket_messages")
         .select(
