@@ -1,9 +1,13 @@
 /**
  * Webhook delivery worker.
  *
- * Called on a schedule (pg_cron or any external scheduler) with the shared
- * runner token. It drains due deliveries and applies the exponential backoff
- * defined in `src/lib/api/v1/webhooks.ts`.
+ * A scheduler calls this endpoint to drain due webhook deliveries and apply the
+ * exponential backoff defined in `src/lib/api/v1/webhooks.ts`. Deliveries are
+ * never attempted inline on a send or reply path, so a dead customer endpoint
+ * can never slow outbound mail down.
+ *
+ * Auth: the same shared runner secret the other cron endpoints accept, via
+ * `x-sendloop-signature`, `Authorization: Bearer`, or `?token=`.
  */
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -16,34 +20,53 @@ export const Route = createFileRoute("/api/public/cron/run-webhooks")({
   },
 });
 
+function json(body: unknown, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function secretMatches(provided: string, expected: string): boolean {
+  if (provided.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i += 1)
+    diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
+}
+
 async function run(request: Request) {
-  const expected = process.env["CRON_RUNNER_TOKEN"] ?? "";
-  const token =
-    new URL(request.url).searchParams.get("token") ??
-    request.headers.get("x-cron-token") ??
+  const url = new URL(request.url);
+  const provided =
+    request.headers.get("x-sendloop-signature") ??
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    url.searchParams.get("token") ??
     "";
 
-  if (!expected || token !== expected) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: runnerSettings } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "campaign_runner")
+    .maybeSingle();
+  const secrets = [
+    (runnerSettings?.value as { token?: string } | null)?.token,
+    process.env["CAMPAIGN_CRON_SECRET"],
+    process.env["INBOUND_EMAIL_SECRET"],
+  ].filter((value): value is string => Boolean(value));
+
+  if (secrets.length === 0) return json({ error: "Runner is not configured" }, 503);
+  if (!secrets.some((secret) => secretMatches(provided, secret))) {
+    return json({ error: "Unauthorized" }, 401);
   }
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { runWebhookDeliveries } = await import("@/lib/api/v1/webhook-delivery.server");
-
   try {
     const result = await runWebhookDeliveries(supabaseAdmin, 50);
-    return new Response(JSON.stringify({ ok: true, ...result }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return json({ ok: true, ...result }, 200);
   } catch (error) {
     console.error("[cron/run-webhooks]", error);
-    return new Response(JSON.stringify({ ok: false, error: "delivery_run_failed" }), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
+    return json({ ok: false, error: "delivery_run_failed" }, 500);
   }
 }
