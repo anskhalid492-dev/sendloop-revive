@@ -168,6 +168,7 @@ import { Route as ApiPublicV1CampaignsRouteImport } from './routes/api/public/v1
 import { Route as ApiPublicV1ContactsRouteImport } from './routes/api/public/v1/contacts'
 import { Route as ApiPublicV1MailboxesRouteImport } from './routes/api/public/v1/mailboxes'
 import { Route as ApiPublicV1MeRouteImport } from './routes/api/public/v1/me'
+import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api/public/v1/openapi[.]json'
 import { Route as ApiPublicV1RepliesRouteImport } from './routes/api/public/v1/replies'
 import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/webhooks'
 import { Route as ApiPublicV1CampaignsCampaignIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId'
@@ -1039,6 +1040,12 @@ const ApiPublicV1MeRoute = ApiPublicV1MeRouteImport.update({
   path: '/api/public/v1/me',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1OpenapiDotjsonRoute =
+  ApiPublicV1OpenapiDotjsonRouteImport.update({
+    id: '/api/public/v1/openapi.json',
+    path: '/api/public/v1/openapi.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1RepliesRoute = ApiPublicV1RepliesRouteImport.update({
   id: '/api/public/v1/replies',
   path: '/api/public/v1/replies',
@@ -1274,6 +1281,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
   '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
@@ -1445,6 +1453,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
   '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
@@ -1620,6 +1629,7 @@ export interface FileRoutesById {
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
   '/api/public/v1/mailboxes': typeof ApiPublicV1MailboxesRouteWithChildren
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
@@ -1795,6 +1805,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/contacts'
     | '/api/public/v1/mailboxes'
     | '/api/public/v1/me'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/api/public/v1/campaigns/$campaignId'
@@ -1966,6 +1977,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/contacts'
     | '/api/public/v1/mailboxes'
     | '/api/public/v1/me'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/api/public/v1/campaigns/$campaignId'
@@ -2140,6 +2152,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/contacts'
     | '/api/public/v1/mailboxes'
     | '/api/public/v1/me'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/api/public/v1/campaigns/$campaignId'
@@ -2241,6 +2254,7 @@ export interface RootRouteChildren {
   ApiPublicV1ContactsRoute: typeof ApiPublicV1ContactsRouteWithChildren
   ApiPublicV1MailboxesRoute: typeof ApiPublicV1MailboxesRouteWithChildren
   ApiPublicV1MeRoute: typeof ApiPublicV1MeRoute
+  ApiPublicV1OpenapiDotjsonRoute: typeof ApiPublicV1OpenapiDotjsonRoute
   ApiPublicV1RepliesRoute: typeof ApiPublicV1RepliesRoute
   ApiPublicV1WebhooksRoute: typeof ApiPublicV1WebhooksRouteWithChildren
 }
@@ -3360,6 +3374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1MeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/openapi.json': {
+      id: '/api/public/v1/openapi.json'
+      path: '/api/public/v1/openapi.json'
+      fullPath: '/api/public/v1/openapi.json'
+      preLoaderRoute: typeof ApiPublicV1OpenapiDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/replies': {
       id: '/api/public/v1/replies'
       path: '/api/public/v1/replies'
@@ -3852,6 +3873,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1ContactsRoute: ApiPublicV1ContactsRouteWithChildren,
   ApiPublicV1MailboxesRoute: ApiPublicV1MailboxesRouteWithChildren,
   ApiPublicV1MeRoute: ApiPublicV1MeRoute,
+  ApiPublicV1OpenapiDotjsonRoute: ApiPublicV1OpenapiDotjsonRoute,
   ApiPublicV1RepliesRoute: ApiPublicV1RepliesRoute,
   ApiPublicV1WebhooksRoute: ApiPublicV1WebhooksRouteWithChildren,
 }
