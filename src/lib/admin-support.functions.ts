@@ -227,12 +227,25 @@ export const getAdminTicket = createServerFn({ method: "GET" })
             .eq("id", row.workspace_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      context.supabase
+        .from("support_ticket_ratings")
+        .select("id, ticket_id, rating, feedback, created_at")
+        .eq("ticket_id", data.id)
+        .maybeSingle(),
     ]);
 
     return {
       ticket,
       messages: messages.data ?? [],
       customer: profile.data ?? null,
+      rating: (rating?.data ?? null) as {
+        id: string;
+        ticket_id: string;
+        rating: number;
+        feedback: string | null;
+        created_at: string;
+      } | null,
+
       workspace: workspace.data ?? null,
     };
   });
