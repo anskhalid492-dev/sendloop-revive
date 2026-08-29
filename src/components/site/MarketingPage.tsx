@@ -33,7 +33,7 @@ export function PageHero({
   primaryCta = "Start for Free",
   primaryHref,
   secondaryCta,
-  secondaryHref = "#product",
+  secondaryHref,
   children,
 }: {
   eyebrow: string;
@@ -46,11 +46,13 @@ export function PageHero({
   /** Overrides the primary CTA destination (defaults to the auth screen). */
   primaryHref?: string;
   secondaryCta?: string;
-  /** Anchor or route the secondary CTA points to — defaults to the product preview. */
+  /** Anchor or route the secondary CTA points to — defaults to the Pricing page. */
   secondaryHref?: string;
   children?: ReactNode;
 }) {
-  const secondaryIsAnchor = secondaryHref.startsWith("#") || secondaryHref.startsWith("http");
+  const secondaryIsAnchor = Boolean(
+    secondaryHref && (secondaryHref.startsWith("#") || secondaryHref.startsWith("http")),
+  );
   return (
     <section className="hero-glow relative overflow-hidden border-b border-border/60">
       <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-24">
