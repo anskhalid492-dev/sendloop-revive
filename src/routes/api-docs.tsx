@@ -497,8 +497,8 @@ await fetch("${API_BASE_URL}/api/public/automations/YOUR_WEBHOOK_TOKEN", {
           <section id="reference" className="scroll-mt-24 border-t border-border/60 pt-10">
             <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Legacy endpoints</h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Generated from the routes that exist in MunchReach today. Endpoints that the platform
-              calls internally are included so delivery logs are readable, and are labelled as such.
+              Older, single-purpose endpoints that predate API v1. They keep working unchanged —
+              use them for existing Zapier or Make connections, and API v1 for anything new.
             </p>
 
             {API_GROUPS.map((group) => (
@@ -609,7 +609,7 @@ await fetch("${API_BASE_URL}/api/public/automations/YOUR_WEBHOOK_TOKEN", {
           <DocSection
             id="rate-limits"
             title="Rate limits & usage"
-            description="There is no per-key HTTP rate limit implemented on the public endpoints today, so no numeric limit is published here."
+            description="API v1 keys are rate limited per key, per minute. The default is 120 requests per minute and is shown on each key in Settings → Developer API."
           >
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
