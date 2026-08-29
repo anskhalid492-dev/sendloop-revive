@@ -282,7 +282,19 @@ export const getCampaign = createServerFn({ method: "GET" })
       status: String(campaignRow["status"] ?? "draft"),
       dailyQuota,
       sentToday: sentTodayCount,
-      remainingRecipients: Math.max(0, totalRecipients - contactedLeads),
+      // A campaign is only "completed" when nothing is owed: no uncontacted
+      // leads AND no queued / in-flight / retryable messages (follow-ups).
+      remainingRecipients: Math.max(
+        0,
+        totalRecipients - contactedLeads,
+        messages.filter((m) => {
+          const s = String(m["status"] ?? "");
+          return (
+            ["pending", "scheduled", "processing", "queued"].includes(s) ||
+            (s === "failed" && !m["sent_at"] && isRetryableFailure(m["last_error"] ?? null))
+          );
+        }).length,
+      ),
       lifetimeLimit: Number(campaignRow["email_send_limit"] ?? 0) || 0,
       lifetimeSent: sentMessages.length,
       now: runNow,
