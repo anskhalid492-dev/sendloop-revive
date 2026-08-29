@@ -224,6 +224,20 @@ function Page() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={rating} onValueChange={setRating}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Rating" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ratings</SelectItem>
+              {[...SUPPORT_RATING_VALUES].reverse().map((star) => (
+                <SelectItem key={star} value={String(star)}>
+                  {star} {star === 1 ? "Star" : "Stars"}
+                </SelectItem>
+              ))}
+              <SelectItem value="unrated">Not rated</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-tickets"] })}
@@ -267,9 +281,14 @@ function Page() {
                         {ticketReference(ticket.id)} · {ticket.customer_email ?? "unknown"} ·{" "}
                         {SUPPORT_CATEGORY_LABEL[ticket.category] ?? ticket.category}
                       </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Updated {timeOf(ticket.last_message_at)}
-                      </p>
+                      <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span>Updated {timeOf(ticket.last_message_at)}</span>
+                        {ticket.rating ? (
+                          <SupportStars value={ticket.rating} />
+                        ) : (
+                          <span>Not Rated</span>
+                        )}
+                      </div>
                     </button>
                   </li>
                 ))}
