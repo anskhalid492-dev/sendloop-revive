@@ -7,7 +7,7 @@
  */
 import { API_BASE_URL } from "@/lib/api-reference";
 import { V1_BASE_PATH, V1_ERROR_CODES, V1_RESOURCES, type V1Operation } from "./catalog";
-import { WEBHOOK_EVENTS } from "./webhooks";
+import { WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "./webhooks";
 
 function jsonExample(raw: string): unknown {
   try {
@@ -110,6 +110,9 @@ export function buildOpenApiDocument() {
     },
     security: [{ bearerAuth: [] }],
     paths,
-    "x-webhook-events": [...WEBHOOK_EVENTS],
+    "x-webhook-events": WEBHOOK_EVENTS.map((event) => ({
+      event,
+      description: WEBHOOK_EVENT_DESCRIPTIONS[event],
+    })),
   };
 }
