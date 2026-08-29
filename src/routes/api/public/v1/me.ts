@@ -23,8 +23,8 @@ async function dispatch(request: Request) {
       name: "/v1/me",
       handlers: {
         GET: {
-          // Any valid key can identify itself; no resource data is exposed.
-          scope: "campaigns:read",
+          // No scope: any valid key may identify itself, and nothing but the
+          // key's own context is returned.
           handler: async (ctx) => {
             const { data: workspace } = await ctx.admin
               .from("workspaces")

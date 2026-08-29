@@ -47,7 +47,8 @@ export type ApiContext = {
 };
 
 export type HandlerSpec = {
-  scope: ApiScope;
+  /** Omitted only for endpoints that expose nothing but the key's own identity. */
+  scope?: ApiScope;
   /** POST/PATCH handlers that create or trigger work should opt into replay. */
   idempotent?: boolean;
   handler: (ctx: ApiContext) => Promise<unknown | Response>;
@@ -272,7 +273,7 @@ export async function handleApiRequest(
     const auth = await authenticate(request, admin);
     await enforceRateLimit(admin, auth);
 
-    if (!scopeSatisfied(auth.scopes, entry.scope)) {
+    if (entry.scope && !scopeSatisfied(auth.scopes, entry.scope)) {
       throw new ApiError(
         "insufficient_scope",
         `This API key is missing the \`${entry.scope}\` permission.`,
