@@ -5,7 +5,7 @@
  * sending window + timezone. Nothing here talks to the database so the
  * calculation stays unit-testable.
  */
-import { isInSendWindow, windowStartAt, type ScheduleWindow } from "./campaign-schedule";
+import { isInSendWindow, windowStartAt, zonedDayKey, type ScheduleWindow } from "./campaign-schedule";
 
 export type QueuedMessageRow = {
   id: string;
@@ -19,6 +19,13 @@ export type QueuedMessageRow = {
 };
 
 export type RescheduleUpdate = { id: string; scheduledAt: string };
+
+export type QueueCapacity = {
+  /** 0 means unlimited. */
+  dailyLimit: number;
+  /** Sends already accepted or claimed, keyed by campaign-local YYYY-MM-DD. */
+  occupiedByDay?: ReadonlyMap<string, number>;
+};
 
 /**
  * Earliest moment at or after `floor` that sits inside a configured window.
@@ -35,14 +42,41 @@ export function planQueueReschedule(
   rows: QueuedMessageRow[],
   window: ScheduleWindow,
   now: Date,
+  capacity: QueueCapacity = { dailyLimit: 0 },
 ): RescheduleUpdate[] {
   const updates: RescheduleUpdate[] = [];
+  const plannedByDay = new Map<string, number>();
+  const dailyLimit = Math.max(0, Math.floor(capacity.dailyLimit));
+
   for (const row of rows) {
     const parsed = row.scheduled_at ? new Date(row.scheduled_at) : null;
     const current = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
     const pullForward = row.pull_forward !== false;
     const floor = pullForward || !current ? now : current.getTime() < now.getTime() ? now : current;
-    const next = earliestEligibleAt(floor, window).toISOString();
+    let candidate = earliestEligibleAt(floor, window);
+
+    if (dailyLimit > 0) {
+      for (let dayAttempts = 0; dayAttempts < 15; dayAttempts += 1) {
+        const day = zonedDayKey(candidate, window.timezone);
+        const occupied = capacity.occupiedByDay?.get(day) ?? 0;
+        const planned = plannedByDay.get(day) ?? 0;
+        if (occupied + planned < dailyLimit) {
+          plannedByDay.set(day, planned + 1);
+          break;
+        }
+        candidate = windowStartAt(candidate, window, { includeCurrentDay: false });
+      }
+    }
+
+    // A due row already in this same legal window remains stable. This avoids
+    // rewriting its timestamp to a slightly newer `now` on every cron tick.
+    const candidateDay = zonedDayKey(candidate, window.timezone);
+    const keepCurrent = current &&
+      isInSendWindow(current, window) &&
+      current.getTime() <= now.getTime() &&
+      candidate.getTime() <= now.getTime() &&
+      zonedDayKey(current, window.timezone) === candidateDay;
+    const next = (keepCurrent ? current : candidate).toISOString();
     if (!current || current.toISOString() !== next) {
       updates.push({ id: row.id, scheduledAt: next });
     }
