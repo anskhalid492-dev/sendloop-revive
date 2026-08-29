@@ -23,7 +23,12 @@ import {
 } from "@/lib/mailbox-assignment";
 import { stripAngle } from "@/lib/inbox-model";
 import { campaignBodyHtml } from "@/lib/email-html";
-import { applyUnsubscribeUrl, unsubscribeExtras, unsubscribeUrl } from "@/lib/unsubscribe";
+import {
+  applyUnsubscribeUrl,
+  unsubscribeExtras,
+  unsubscribeUrl,
+  withUnsubscribeSource,
+} from "@/lib/unsubscribe";
 import {
   renderEmailForLead,
   senderExtras,
@@ -1149,7 +1154,7 @@ export async function dispatchDueMessages(
           "Message-ID": messageIdHeader(outboundMessageId),
           ...(carriesUnsubscribeLink
             ? {
-                "List-Unsubscribe": `<${unsubUrl}>`,
+                "List-Unsubscribe": `<${withUnsubscribeSource(unsubUrl, "list_unsubscribe")}>`,
                 "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
               }
             : {}),

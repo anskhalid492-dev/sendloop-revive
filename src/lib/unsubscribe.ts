@@ -89,6 +89,44 @@ export function unsubscribeUrl(target: UnsubscribeTarget): string {
   return `${SITE_URL}${UNSUBSCRIBE_PATH}?t=${encodeURIComponent(buildUnsubscribeToken(target))}`;
 }
 
+/**
+ * Where an unsubscribe came from.
+ *
+ * `list_unsubscribe` is the mail-client header link (RFC 2369), `one_click` is
+ * the RFC 8058 POST the client sends without asking the reader anything, and
+ * `email_link` is the link inside the email body. Attribution is carried by a
+ * short `s` query parameter on the header URL; the body link stays unmarked so
+ * older messages already in flight keep working and default to `email_link`.
+ */
+export type UnsubscribeSource = "one_click" | "list_unsubscribe" | "email_link";
+
+const SOURCE_CODES: Record<string, UnsubscribeSource> = {
+  h: "list_unsubscribe",
+  o: "one_click",
+  b: "email_link",
+};
+
+/** Tags a URL with its placement so the click can be attributed later. */
+export function withUnsubscribeSource(url: string, source: UnsubscribeSource): string {
+  if (!url) return url;
+  const code = source === "list_unsubscribe" ? "h" : source === "one_click" ? "o" : "b";
+  return `${url}&s=${code}`;
+}
+
+/** Resolves the recorded source from the request shape. */
+export function resolveUnsubscribeSource(args: {
+  method: string;
+  sourceParam?: string | null;
+  body?: string | null;
+}): UnsubscribeSource {
+  // RFC 8058: the client POSTs `List-Unsubscribe=One-Click` with no user click
+  // beyond confirming in their mail app — that is one-click, whatever the tag.
+  if (args.method.toUpperCase() === "POST") return "one_click";
+  const tagged = SOURCE_CODES[(args.sourceParam ?? "").toLowerCase()];
+  return tagged ?? "email_link";
+}
+
+
 /** Extras entry so `renderEmailForLead` resolves `{{unsubscribe_link}}`. */
 export function unsubscribeExtras(target: UnsubscribeTarget): Record<string, string> {
   const url = unsubscribeUrl(target);

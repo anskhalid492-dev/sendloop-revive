@@ -129,6 +129,7 @@ import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedAdminSystemEmailsRouteImport } from './routes/_authenticated/admin/system-emails'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
+import { Route as AuthenticatedAdminUnsubscribesRouteImport } from './routes/_authenticated/admin/unsubscribes'
 import { Route as AuthenticatedAdminUsageRouteImport } from './routes/_authenticated/admin/usage'
 import { Route as AuthenticatedAdminUserGuideRouteImport } from './routes/_authenticated/admin/user-guide'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
@@ -821,6 +822,12 @@ const AuthenticatedAdminTemplatesRoute =
     path: '/templates',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminUnsubscribesRoute =
+  AuthenticatedAdminUnsubscribesRouteImport.update({
+    id: '/unsubscribes',
+    path: '/unsubscribes',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminUsageRoute = AuthenticatedAdminUsageRouteImport.update({
   id: '/usage',
   path: '/usage',
@@ -1241,6 +1248,7 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
+  '/admin/unsubscribes': typeof AuthenticatedAdminUnsubscribesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
   '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -1413,6 +1421,7 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
+  '/admin/unsubscribes': typeof AuthenticatedAdminUnsubscribesRoute
   '/admin/usage': typeof AuthenticatedAdminUsageRoute
   '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -1589,6 +1598,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
+  '/_authenticated/admin/unsubscribes': typeof AuthenticatedAdminUnsubscribesRoute
   '/_authenticated/admin/usage': typeof AuthenticatedAdminUsageRoute
   '/_authenticated/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -1765,6 +1775,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/system-emails'
     | '/admin/templates'
+    | '/admin/unsubscribes'
     | '/admin/usage'
     | '/admin/user-guide'
     | '/admin/users'
@@ -1937,6 +1948,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/system-emails'
     | '/admin/templates'
+    | '/admin/unsubscribes'
     | '/admin/usage'
     | '/admin/user-guide'
     | '/admin/users'
@@ -2112,6 +2124,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-emails'
     | '/_authenticated/admin/templates'
+    | '/_authenticated/admin/unsubscribes'
     | '/_authenticated/admin/usage'
     | '/_authenticated/admin/user-guide'
     | '/_authenticated/admin/users'
@@ -3101,6 +3114,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTemplatesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/unsubscribes': {
+      id: '/_authenticated/admin/unsubscribes'
+      path: '/unsubscribes'
+      fullPath: '/admin/unsubscribes'
+      preLoaderRoute: typeof AuthenticatedAdminUnsubscribesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/usage': {
       id: '/_authenticated/admin/usage'
       path: '/usage'
@@ -3546,6 +3566,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemEmailsRoute: typeof AuthenticatedAdminSystemEmailsRoute
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
+  AuthenticatedAdminUnsubscribesRoute: typeof AuthenticatedAdminUnsubscribesRoute
   AuthenticatedAdminUsageRoute: typeof AuthenticatedAdminUsageRoute
   AuthenticatedAdminUserGuideRoute: typeof AuthenticatedAdminUserGuideRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -3602,6 +3623,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminSystemEmailsRoute: AuthenticatedAdminSystemEmailsRoute,
     AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
+    AuthenticatedAdminUnsubscribesRoute: AuthenticatedAdminUnsubscribesRoute,
     AuthenticatedAdminUsageRoute: AuthenticatedAdminUsageRoute,
     AuthenticatedAdminUserGuideRoute: AuthenticatedAdminUserGuideRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,

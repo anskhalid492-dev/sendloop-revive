@@ -4,7 +4,12 @@ import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { campaignBodyHtml } from "@/lib/email-html";
-import { applyUnsubscribeUrl, unsubscribeExtras, unsubscribeUrl } from "@/lib/unsubscribe";
+import {
+  applyUnsubscribeUrl,
+  unsubscribeExtras,
+  unsubscribeUrl,
+  withUnsubscribeSource,
+} from "@/lib/unsubscribe";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
 import { normalizeSendDays, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
 import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
@@ -1139,7 +1144,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
             "X-MunchReach-Test-Request-ID": requestId,
             ...(rendered.url
               ? {
-                  "List-Unsubscribe": `<${rendered.url}>`,
+                  "List-Unsubscribe": `<${withUnsubscribeSource(rendered.url, "list_unsubscribe")}>`,
                   "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
                 }
               : {}),

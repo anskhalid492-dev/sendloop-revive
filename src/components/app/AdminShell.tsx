@@ -23,6 +23,7 @@ import {
   Menu,
   Plug,
   Search,
+  MailMinus,
   ScrollText,
   Send,
   Server,
@@ -91,6 +92,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/inbound-events", label: "Inbound Events", icon: Inbox },
       { to: "/admin/system-emails", label: "System Emails", icon: Mail },
       { to: "/admin/email-log", label: "System Email Log", icon: ScrollText },
+      { to: "/admin/unsubscribes", label: "Unsubscribes", icon: MailMinus },
       { to: "/admin/notifications", label: "Alert Audit Log", icon: BellRing },
 
     ],
