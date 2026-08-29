@@ -11,7 +11,7 @@ import {
   MAX_MAILBOX_HOURLY_MESSAGE,
   effectiveMailboxHourlyLimit,
 } from "@/lib/mailbox-hourly-cap";
-import { campaignScheduleState, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
+import { campaignScheduleState, normalizeSendDays, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
@@ -194,7 +194,7 @@ function stepDelayMs(step: StepRow): number {
 function campaignWindow(campaign: Pick<CampaignDispatchRow, "timezone" | "send_days" | "send_start_hour" | "send_end_hour">) {
   return {
     timezone: campaign.timezone || "UTC",
-    sendDays: campaign.send_days ?? [],
+    sendDays: normalizeSendDays(campaign.send_days),
     startHour: campaign.send_start_hour ?? 9,
     endHour: campaign.send_end_hour ?? 17,
   };
@@ -505,7 +505,7 @@ export async function scheduleFollowUps(
 
   const window = {
     timezone: campaign.timezone,
-    sendDays: campaign.send_days,
+    sendDays: normalizeSendDays(campaign.send_days),
     startHour: campaign.send_start_hour,
     endHour: campaign.send_end_hour,
   };

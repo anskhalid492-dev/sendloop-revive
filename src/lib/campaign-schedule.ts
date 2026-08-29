@@ -52,12 +52,30 @@ export function zonedParts(date: Date, timezone: string): ZonedParts {
   };
 }
 
+/**
+ * The user's selected sending days are authoritative.
+ *
+ * Values can arrive as numbers or strings (JSON columns / form state), so they
+ * are coerced, de-duplicated and range-checked. When nothing is configured at
+ * all, every day is eligible — silently falling back to Mon–Fri used to push a
+ * Saturday queue to Monday even though Saturday was selected.
+ */
+export function normalizeSendDays(days: unknown): number[] {
+  const list = Array.isArray(days) ? days : [];
+  const parsed = list
+    .filter((d) => d !== null && d !== undefined && d !== "" && typeof d !== "boolean")
+    .map((d) => Number(d))
+    .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
+  const unique = Array.from(new Set(parsed)).sort((a, b) => a - b);
+  return unique.length ? unique : [0, 1, 2, 3, 4, 5, 6];
+}
+
 function clampWindow(window: ScheduleWindow) {
   const start = Math.min(Math.max(window.startHour, 0), 23);
   const end = Math.min(Math.max(window.endHour, start + 1), 24);
   return {
     timezone: validTimezone(window.timezone),
-    days: window.sendDays.length ? window.sendDays : [1, 2, 3, 4, 5],
+    days: normalizeSendDays(window.sendDays),
     start,
     end,
   };
@@ -163,6 +181,19 @@ export function campaignScheduleState(now: Date, window: ScheduleWindow): Campai
  */
 export function nextSendSlot(from: Date, window: ScheduleWindow): Date {
   return windowStartAt(from, window, { includeCurrentDay: true });
+}
+
+/**
+ * Re-aligns an existing queued `scheduled_at` to the campaign's selected
+ * sending days + window + timezone. A timestamp already inside a configured
+ * window is kept as-is; anything else moves to the next configured window
+ * start (never earlier than `now`).
+ */
+export function alignToSendWindow(scheduledAt: Date | null, window: ScheduleWindow, now: Date): Date {
+  const at = scheduledAt && !Number.isNaN(scheduledAt.getTime()) ? scheduledAt : now;
+  const base = at.getTime() < now.getTime() ? now : at;
+  if (isInSendWindow(base, window)) return base;
+  return windowStartAt(base, window, { includeCurrentDay: true });
 }
 
 export function zonedDateTimeLocalValue(value: string | null, timezone: string): string {
