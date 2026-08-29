@@ -147,6 +147,7 @@ import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
 import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
+import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
@@ -926,6 +927,12 @@ const AuthenticatedAdminInboundEventsEventIdRoute =
     path: '/$eventId',
     getParentRoute: () => AuthenticatedAdminInboundEventsRoute,
   } as any)
+const AuthenticatedAdminMarketingIndexRoute =
+  AuthenticatedAdminMarketingIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const ApiPublicAutomationsTokenRoute =
   ApiPublicAutomationsTokenRouteImport.update({
     id: '/api/public/automations/$token',
@@ -1214,7 +1221,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
-  '/admin/marketing': typeof AuthenticatedAdminMarketingRouteRoute
+  '/admin/marketing': typeof AuthenticatedAdminMarketingRouteRouteWithChildren
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
@@ -1300,6 +1307,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
+  '/admin/marketing/': typeof AuthenticatedAdminMarketingIndexRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1388,7 +1396,6 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/help-center': typeof HelpCenterIndexRoute
   '/integrations': typeof IntegrationsIndexRoute
-  '/admin/marketing': typeof AuthenticatedAdminMarketingRouteRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
@@ -1474,6 +1481,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
+  '/admin/marketing': typeof AuthenticatedAdminMarketingIndexRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1566,7 +1574,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
-  '/_authenticated/admin/marketing': typeof AuthenticatedAdminMarketingRouteRoute
+  '/_authenticated/admin/marketing': typeof AuthenticatedAdminMarketingRouteRouteWithChildren
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/automations': typeof AuthenticatedAdminAutomationsRoute
@@ -1652,6 +1660,7 @@ export interface FileRoutesById {
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
+  '/_authenticated/admin/marketing/': typeof AuthenticatedAdminMarketingIndexRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1830,6 +1839,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
+    | '/admin/marketing/'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -1918,7 +1928,6 @@ export interface FileRouteTypes {
     | '/blog'
     | '/help-center'
     | '/integrations'
-    | '/admin/marketing'
     | '/admin/analytics'
     | '/admin/audit'
     | '/admin/automations'
@@ -2004,6 +2013,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
+    | '/admin/marketing'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2181,6 +2191,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
+    | '/_authenticated/admin/marketing/'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -3253,6 +3264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminInboundEventsEventIdRouteImport
       parentRoute: typeof AuthenticatedAdminInboundEventsRoute
     }
+    '/_authenticated/admin/marketing/': {
+      id: '/_authenticated/admin/marketing/'
+      path: '/'
+      fullPath: '/admin/marketing/'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/api/public/automations/$token': {
       id: '/api/public/automations/$token'
       path: '/api/public/automations/$token'
@@ -3515,6 +3533,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminMarketingRouteRouteChildren {
+  AuthenticatedAdminMarketingIndexRoute: typeof AuthenticatedAdminMarketingIndexRoute
+}
+
+const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketingRouteRouteChildren =
+  {
+    AuthenticatedAdminMarketingIndexRoute:
+      AuthenticatedAdminMarketingIndexRoute,
+  }
+
+const AuthenticatedAdminMarketingRouteRouteWithChildren =
+  AuthenticatedAdminMarketingRouteRoute._addFileChildren(
+    AuthenticatedAdminMarketingRouteRouteChildren,
+  )
+
 interface AuthenticatedAdminCreditsRouteChildren {
   AuthenticatedAdminCreditsLedgerRoute: typeof AuthenticatedAdminCreditsLedgerRoute
 }
@@ -3545,7 +3578,7 @@ const AuthenticatedAdminInboundEventsRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteRouteChildren {
-  AuthenticatedAdminMarketingRouteRoute: typeof AuthenticatedAdminMarketingRouteRoute
+  AuthenticatedAdminMarketingRouteRoute: typeof AuthenticatedAdminMarketingRouteRouteWithChildren
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminAutomationsRoute: typeof AuthenticatedAdminAutomationsRoute
@@ -3600,7 +3633,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminMarketingRouteRoute:
-      AuthenticatedAdminMarketingRouteRoute,
+      AuthenticatedAdminMarketingRouteRouteWithChildren,
     AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
     AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
     AuthenticatedAdminAutomationsRoute: AuthenticatedAdminAutomationsRoute,
