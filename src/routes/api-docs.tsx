@@ -613,6 +613,12 @@ await fetch("${API_BASE_URL}/api/public/automations/YOUR_WEBHOOK_TOKEN", {
           >
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
+                A throttled request returns <code className="font-mono">429 rate_limited</code> with
+                a <code className="font-mono">Retry-After</code> header. Every response also carries{" "}
+                <code className="font-mono">X-RateLimit-Limit</code> and{" "}
+                <code className="font-mono">X-RateLimit-Remaining</code>.
+              </li>
+              <li>
                 Automation webhook bodies are capped at 100,000 characters; larger payloads return{" "}
                 <code className="font-mono">413</code>.
               </li>
