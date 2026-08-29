@@ -96,7 +96,6 @@ export async function verifyMarketingSendingDomain(
     .from("marketing_sending_domains")
     .update({
       verification_status: result.status,
-      verification_detail: result.detail,
       dns_records: result.records as never,
       last_checked_at: new Date().toISOString(),
       verified_at: result.status === "verified" ? new Date().toISOString() : null,

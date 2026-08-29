@@ -13,6 +13,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 import { AUTOMATION_BLUEPRINTS, blueprintSteps } from "./marketing/blueprints";
 import { PRODUCT_EVENTS } from "./marketing/events";
@@ -786,7 +787,7 @@ export const saveMarketingAutomation = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await guard(context as Ctx, "save marketing automation");
     const db = await admin();
-    const update: Record<string, string | null> = {};
+    const update: Database["public"]["Tables"]["marketing_automations"]["Update"] = {};
     if (data.name !== undefined) update["name"] = data.name.trim();
     if (data.description !== undefined) update["description"] = data.description;
     if (data.triggerEvent !== undefined) {
