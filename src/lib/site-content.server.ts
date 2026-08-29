@@ -7,8 +7,8 @@
  */
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
 import { mergeCommunityConfig, type CommunityConfig } from "@/lib/community-model";
-import {
 import { normalizeVerificationToken } from "@/lib/verification-token";
+import {
   normalizePath,
   renderRobots,
   type FooterConfig,
