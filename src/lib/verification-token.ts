@@ -15,5 +15,5 @@ export function normalizeVerificationToken(raw: string | null | undefined): stri
   // Pull the content attribute out of a pasted meta tag (single or double quotes).
   const match =
     value.match(/content\s*=\s*"([^"]*)"/i) ?? value.match(/content\s*=\s*'([^']*)'/i);
-  return match ? match[1].trim() : value;
+  return match?.[1] ? match[1].trim() : value;
 }
