@@ -80,8 +80,8 @@ export const marketingOverview = createServerFn({ method: "GET" })
         openRate: sent ? Math.round((count("marketing_email_opened") / sent) * 1000) / 10 : 0,
         clickRate: sent ? Math.round((count("marketing_email_clicked") / sent) * 1000) / 10 : 0,
       },
-      campaigns: (campaigns.data ?? []) as Record<string, unknown>[],
-      automations: (automations.data ?? []) as Record<string, unknown>[],
+      campaigns: campaigns.data ?? [],
+      automations: automations.data ?? [],
       suppressionCount: (suppression.data ?? []).length,
     };
   });
@@ -315,7 +315,7 @@ export const duplicateMarketingTemplate = createServerFn({ method: "POST" })
           id: row.id,
           key: null,
           name: row.name,
-          category: row.category,
+          category: row.category as MarketingTemplate["category"],
           subject: row.subject,
           previewText: row.preview_text ?? "",
           fromName: row.from_name,
@@ -786,7 +786,7 @@ export const saveMarketingAutomation = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await guard(context as Ctx, "save marketing automation");
     const db = await admin();
-    const update: Record<string, unknown> = {};
+    const update: Record<string, string | null> = {};
     if (data.name !== undefined) update["name"] = data.name.trim();
     if (data.description !== undefined) update["description"] = data.description;
     if (data.triggerEvent !== undefined) {
