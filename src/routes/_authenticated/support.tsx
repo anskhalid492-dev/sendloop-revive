@@ -70,6 +70,8 @@ import {
   type SupportStatus,
 } from "@/lib/support-model";
 import { uploadSupportAttachment, type UploadedAttachment } from "@/lib/support-upload";
+import { SupportRatingCard } from "@/components/support/SupportRatingCard";
+import { isRateableStatus, type SupportTicketRating } from "@/lib/support-rating";
 
 export const Route = createFileRoute("/_authenticated/support")({
   head: () => ({
@@ -551,10 +553,13 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
         })}
       </div>
 
+      {rateable ? <SupportRatingCard ticketId={ticket.id} rating={rating} /> : null}
+
       {closed ? (
         <div className="surface-card p-4 text-sm text-muted-foreground">
           This ticket is closed. Reopen it or start a new request to continue.
         </div>
+
       ) : (
         <div className="surface-card space-y-3 p-4">
           <Label htmlFor="support-reply">Reply</Label>
