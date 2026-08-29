@@ -3,6 +3,8 @@ import { z } from "zod";
 import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { campaignBodyHtml } from "@/lib/email-html";
+import { applyUnsubscribeUrl, unsubscribeExtras, unsubscribeUrl } from "@/lib/unsubscribe";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
 import { normalizeSendDays, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
 import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
@@ -1001,7 +1003,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
 
     const { data: campaign } = await context.supabase
       .from("campaigns")
-      .select("id, workspace_id, custom_variables")
+      .select("id, workspace_id, custom_variables, unsubscribe_enabled")
       .eq("id", data.campaignId)
       .maybeSingle();
     if (!campaign || campaign.workspace_id !== account.workspace_id) {
@@ -1032,6 +1034,12 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           .maybeSingle();
         const extras = {
           ...senderExtras(account as never),
+          ...unsubscribeExtras({
+            workspaceId: campaign.workspace_id as string,
+            campaignId: data.campaignId,
+            email: (lead as { email: string }).email,
+            recipientId: null,
+          }),
           ...(snippet?.content ? { [AI_VARIABLE_TOKEN]: snippet.content as string } : {}),
         };
         const rendered = renderEmailForLead({ subject, body }, l, {
@@ -1062,10 +1070,18 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       }
     }
 
-    const html = `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;white-space:pre-wrap">${body
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")}</div>`;
+    // Test emails must render exactly like a real send, unsubscribe link included.
+    const testUnsubUrl =
+      (campaign as { unsubscribe_enabled?: boolean | null }).unsubscribe_enabled === false
+        ? ""
+        : unsubscribeUrl({
+            workspaceId: account.workspace_id as string,
+            campaignId: data.campaignId,
+            email: data.to[0] as string,
+            recipientId: null,
+          });
+    if (testUnsubUrl) body = applyUnsubscribeUrl(body, testUnsubUrl);
+    const html = campaignBodyHtml(body);
 
 
     const results = [] as Array<{
@@ -1466,7 +1482,16 @@ export const launchCampaign = createServerFn({ method: "POST" })
               to_email: (lead as { email: string }).email,
               ...renderEmailForLead(firstStep, lead, {
                 customVariables: campaignVariables,
-                extras: { ...senderFor(recipient.sending_account_id), ...ai.extras },
+                extras: {
+                  ...senderFor(recipient.sending_account_id),
+                  ...unsubscribeExtras({
+                    workspaceId: c.workspace_id as string,
+                    campaignId: c.id as string,
+                    email: (lead as { email: string }).email,
+                    recipientId: recipient.id,
+                  }),
+                  ...ai.extras,
+                },
               }),
 
               scheduled_at: firstSlot,
@@ -1544,6 +1569,12 @@ export const launchCampaign = createServerFn({ method: "POST" })
                 customVariables: campaignVariables,
                 extras: {
                   ...senderExtras((accounts ?? []).find((a) => a.id === accountId) as never),
+                  ...unsubscribeExtras({
+                    workspaceId: c.workspace_id as string,
+                    campaignId: c.id as string,
+                    email: lead.email as string,
+                    recipientId: recipient.id,
+                  }),
                   ...ai.extras,
                 },
               }),
