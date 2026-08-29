@@ -148,6 +148,7 @@ import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$sl
 import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
 import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
 import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
+import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated/admin/marketing/campaigns'
 import { Route as AuthenticatedAdminMarketingSegmentsRouteImport } from './routes/_authenticated/admin/marketing/segments'
 import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
 import { Route as AuthenticatedAdminMarketingTemplatesRouteImport } from './routes/_authenticated/admin/marketing/templates'
@@ -936,6 +937,12 @@ const AuthenticatedAdminMarketingIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
   } as any)
+const AuthenticatedAdminMarketingCampaignsRoute =
+  AuthenticatedAdminMarketingCampaignsRouteImport.update({
+    id: '/campaigns',
+    path: '/campaigns',
+    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+  } as any)
 const AuthenticatedAdminMarketingSegmentsRoute =
   AuthenticatedAdminMarketingSegmentsRouteImport.update({
     id: '/segments',
@@ -1302,6 +1309,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
@@ -1479,6 +1487,7 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
   '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
@@ -1661,6 +1670,7 @@ export interface FileRoutesById {
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
   '/_authenticated/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
   '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
+  '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/_authenticated/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
   '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
   '/_authenticated/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
@@ -1843,6 +1853,7 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/campaigns'
     | '/admin/marketing/segments'
     | '/admin/marketing/subscribers'
     | '/admin/marketing/templates'
@@ -2020,6 +2031,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/admin/credits/ledger'
     | '/admin/inbound-events/$eventId'
+    | '/admin/marketing/campaigns'
     | '/admin/marketing/segments'
     | '/admin/marketing/subscribers'
     | '/admin/marketing/templates'
@@ -2201,6 +2213,7 @@ export interface FileRouteTypes {
     | '/_authenticated/campaigns/'
     | '/_authenticated/admin/credits/ledger'
     | '/_authenticated/admin/inbound-events/$eventId'
+    | '/_authenticated/admin/marketing/campaigns'
     | '/_authenticated/admin/marketing/segments'
     | '/_authenticated/admin/marketing/subscribers'
     | '/_authenticated/admin/marketing/templates'
@@ -3310,6 +3323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingIndexRouteImport
       parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
     }
+    '/_authenticated/admin/marketing/campaigns': {
+      id: '/_authenticated/admin/marketing/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/marketing/campaigns'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingCampaignsRouteImport
+      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+    }
     '/_authenticated/admin/marketing/segments': {
       id: '/_authenticated/admin/marketing/segments'
       path: '/segments'
@@ -3594,6 +3614,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminMarketingRouteRouteChildren {
+  AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
   AuthenticatedAdminMarketingSegmentsRoute: typeof AuthenticatedAdminMarketingSegmentsRoute
   AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
   AuthenticatedAdminMarketingTemplatesRoute: typeof AuthenticatedAdminMarketingTemplatesRoute
@@ -3602,6 +3623,8 @@ interface AuthenticatedAdminMarketingRouteRouteChildren {
 
 const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketingRouteRouteChildren =
   {
+    AuthenticatedAdminMarketingCampaignsRoute:
+      AuthenticatedAdminMarketingCampaignsRoute,
     AuthenticatedAdminMarketingSegmentsRoute:
       AuthenticatedAdminMarketingSegmentsRoute,
     AuthenticatedAdminMarketingSubscribersRoute:
