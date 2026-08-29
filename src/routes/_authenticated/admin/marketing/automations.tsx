@@ -82,7 +82,7 @@ function AutomationsPage() {
   const runMutation = useMutation({
     mutationFn: () => runNow(),
     onSuccess: (result) =>
-      toast.success(`Advanced ${result.advanced} enrolments · sent ${result.sent}`),
+      toast.success(`Processed ${result.processed} enrolments · sent ${result.sent}`),
     onError: (error: Error) => toast.error(error.message),
   });
 
