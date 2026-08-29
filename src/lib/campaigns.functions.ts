@@ -1071,17 +1071,20 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     }
 
     // Test emails must render exactly like a real send, unsubscribe link included.
-    const testUnsubUrl =
-      (campaign as { unsubscribe_enabled?: boolean | null }).unsubscribe_enabled === false
-        ? ""
-        : unsubscribeUrl({
+    const unsubscribeEnabled =
+      (campaign as { unsubscribe_enabled?: boolean | null }).unsubscribe_enabled !== false;
+    const bodyForRecipient = (to: string) => {
+      const url = unsubscribeEnabled
+        ? unsubscribeUrl({
             workspaceId: account.workspace_id as string,
             campaignId: data.campaignId,
-            email: data.to[0] as string,
+            email: to,
             recipientId: null,
-          });
-    if (testUnsubUrl) body = applyUnsubscribeUrl(body, testUnsubUrl);
-    const html = campaignBodyHtml(body);
+          })
+        : "";
+      const text = url ? applyUnsubscribeUrl(body, url) : body;
+      return { text, html: campaignBodyHtml(text), url: text.includes(url) ? url : "" };
+    };
 
 
     const results = [] as Array<{
@@ -1111,6 +1114,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         purpose: "campaign_test",
       });
       const outboundMessageId = createOutboundRfcMessageId(account.from_email);
+      const rendered = bodyForRecipient(to);
       // Test sends leave the platform like any other email, so they meter too.
       await consumeUsage(account.workspace_id, "emails_monthly", 1);
       const result = await sendManagedEmail(
@@ -1128,11 +1132,17 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           replyTo,
           to,
           subject: `[Test] ${subject}`,
-          text: body,
-          html,
+          text: rendered.text,
+          html: rendered.html,
           headers: {
             "Message-ID": messageIdHeader(outboundMessageId),
             "X-MunchReach-Test-Request-ID": requestId,
+            ...(rendered.url
+              ? {
+                  "List-Unsubscribe": `<${rendered.url}>`,
+                  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                }
+              : {}),
           },
         },
         { stage: "test" },
