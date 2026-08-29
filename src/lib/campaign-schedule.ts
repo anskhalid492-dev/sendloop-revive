@@ -116,6 +116,20 @@ export function zonedStartOfDay(date: Date, timezone: string): Date {
   return zonedDateTimeToUtc({ year: p.year, month: p.month, day: p.day }, timezone);
 }
 
+/** Stable key for the calendar day containing `date` in `timezone`. */
+export function zonedDayKey(date: Date, timezone: string): string {
+  const p = zonedParts(date, timezone);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+}
+
+/** Start of the next local calendar day, including DST/offset transitions. */
+export function zonedStartOfNextDay(date: Date, timezone: string): Date {
+  const p = zonedParts(date, timezone);
+  const next = addLocalDays(p.year, p.month, p.day, 1);
+  return zonedDateTimeToUtc(next, timezone);
+}
+
 export function isInSendWindow(date: Date, window: ScheduleWindow): boolean {
   const { timezone, days, start, end } = clampWindow(window);
   const parts = zonedParts(date, timezone);

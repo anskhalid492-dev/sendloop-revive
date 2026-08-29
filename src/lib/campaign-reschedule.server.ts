@@ -2,7 +2,7 @@
  * Applies the queue re-plan (see `campaign-reschedule.ts`) to the campaign's
  * pending/scheduled messages after its schedule settings change.
  */
-import { normalizeSendDays } from "./campaign-schedule";
+import { normalizeSendDays, zonedDayKey, zonedStartOfDay, zonedStartOfNextDay } from "./campaign-schedule";
 import { groupRescheduleUpdates, planQueueReschedule, type QueuedMessageRow } from "./campaign-reschedule";
 
 type AnySupabase = any;
@@ -14,7 +14,7 @@ export async function rescheduleCampaignQueue(
 ): Promise<number> {
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, timezone, send_days, send_start_hour, send_end_hour")
+    .select("id, timezone, send_days, send_start_hour, send_end_hour, daily_cap")
     .eq("id", campaignId)
     .maybeSingle();
   if (!campaign) return 0;
@@ -26,42 +26,85 @@ export async function rescheduleCampaignQueue(
     endHour: Number(campaign.send_end_hour ?? 17),
   };
 
-  const { data: rows } = await supabase
-    .from("campaign_messages")
-    .select("id, scheduled_at, step_order")
+  const { data: firstStepRow, error: stepError } = await supabase
+    .from("campaign_steps")
+    .select("step_order")
     .eq("campaign_id", campaignId)
-    .in("status", ["pending", "scheduled"])
-    .is("sent_at", null)
-    .limit(5000);
+    .eq("step_type", "email")
+    .order("step_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (stepError) throw new Error(stepError.message);
 
-  const queued = (rows ?? []) as Array<{ id: string; scheduled_at: string | null; step_order: number | null }>;
-  // The first configured step has no wait to honour, so those rows may move
-  // forward onto today's window; follow-ups keep their own due time as floor.
-  const firstStep = queued.reduce<number | null>(
-    (min, row) => (row.step_order === null ? min : min === null ? row.step_order : Math.min(min, row.step_order)),
-    null,
-  );
+  const queued: Array<{ id: string; scheduled_at: string | null; step_order: number | null }> = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("campaign_messages")
+      .select("id, scheduled_at, step_order")
+      .eq("campaign_id", campaignId)
+      .in("status", ["pending", "scheduled"])
+      .is("sent_at", null)
+      .order("step_order", { ascending: true, nullsFirst: true })
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []) as typeof queued;
+    queued.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  const dayStart = zonedStartOfDay(now, window.timezone);
+  const nextDayStart = zonedStartOfNextDay(now, window.timezone);
+  const [{ count: sentToday, error: sentError }, { count: processingToday, error: processingError }] = await Promise.all([
+    supabase
+      .from("campaign_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId)
+      .eq("status", "sent")
+      .gte("sent_at", dayStart.toISOString())
+      .lt("sent_at", nextDayStart.toISOString()),
+    supabase
+      .from("campaign_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId)
+      .eq("status", "processing")
+      .gte("scheduled_at", dayStart.toISOString())
+      .lt("scheduled_at", nextDayStart.toISOString()),
+  ]);
+  if (sentError) throw new Error(sentError.message);
+  if (processingError) throw new Error(processingError.message);
+  // Use the sequence definition rather than the smallest queued step. A queue
+  // containing only follow-ups must never classify them as first-step rows.
+  const firstStep = (firstStepRow as { step_order?: number | null } | null)?.step_order ?? null;
 
   const updates = planQueueReschedule(
     queued.map((row) => ({
       id: row.id,
       scheduled_at: row.scheduled_at,
-      pull_forward: firstStep === null || row.step_order === null || row.step_order === firstStep,
+      pull_forward: row.step_order === null || (firstStep !== null && row.step_order === firstStep),
     })) as QueuedMessageRow[],
     window,
     now,
+    {
+      dailyLimit: Number(campaign.daily_cap ?? 0),
+      occupiedByDay: new Map([
+        [zonedDayKey(now, window.timezone), Number(sentToday ?? 0) + Number(processingToday ?? 0)],
+      ]),
+    },
   );
   if (!updates.length) return 0;
 
 
   for (const group of groupRescheduleUpdates(updates)) {
     for (let i = 0; i < group.ids.length; i += 200) {
-      await supabase
+      const { error } = await supabase
         .from("campaign_messages")
         .update({ scheduled_at: group.scheduledAt })
         .in("id", group.ids.slice(i, i + 200))
         .in("status", ["pending", "scheduled"])
         .is("sent_at", null);
+      if (error) throw new Error(error.message);
     }
   }
   return updates.length;
