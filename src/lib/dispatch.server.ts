@@ -21,6 +21,8 @@ import {
   selectMailboxForMessage,
 } from "@/lib/mailbox-assignment";
 import { stripAngle } from "@/lib/inbox-model";
+import { campaignBodyHtml } from "@/lib/email-html";
+import { applyUnsubscribeUrl, unsubscribeExtras, unsubscribeUrl } from "@/lib/unsubscribe";
 import {
   renderEmailForLead,
   senderExtras,
@@ -161,26 +163,6 @@ type InitialAccountRow = {
   customer_enabled: boolean;
   paused: boolean;
 };
-
-function escapeEmailHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function campaignBodyHtml(text: string): string {
-  const paragraphs = text
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => `<p>${escapeEmailHtml(part).replace(/\n/g, "<br>")}</p>`)
-    .join("");
-  const content = paragraphs || `<p>${escapeEmailHtml(text)}</p>`;
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111827;">${content}</div></body></html>`;
-}
 
 /** Total delay in ms configured on a step. */
 function stepDelayMs(step: StepRow): number {
@@ -346,6 +328,12 @@ export async function ensureInitialCampaignMessages(
         customVariables: variables,
         extras: {
           ...senderExtras(account as never),
+          ...unsubscribeExtras({
+            workspaceId: campaign.workspace_id as string,
+            campaignId,
+            email: (lead as unknown as { email: string }).email,
+            recipientId: recipient.id,
+          }),
           ...ai.extras,
         },
       }),
@@ -569,6 +557,12 @@ export async function scheduleFollowUps(
         customVariables: variables,
         extras: {
           ...senderExtras(senderById.get(recipient.sending_account_id ?? "") as never),
+          ...unsubscribeExtras({
+            workspaceId: campaign.workspace_id as string,
+            campaignId,
+            email: (lead as unknown as { email: string }).email,
+            recipientId: recipient.id,
+          }),
           ...ai.extras,
         },
       }),
@@ -663,7 +657,7 @@ export async function dispatchDueMessages(
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, ai_enabled, ai_config, sending_account_ids")
+    .select("id, workspace_id, status, daily_cap, timezone, send_days, send_start_hour, send_end_hour, start_at, end_at, open_tracking, click_tracking, text_only, unsubscribe_enabled, ai_enabled, ai_config, sending_account_ids")
     .eq("id", options.campaignId)
     .maybeSingle();
   if (campaignError) throw new Error(campaignError.message);
@@ -1099,10 +1093,33 @@ export async function dispatchDueMessages(
       }
     }
 
+    // Unsubscribe: resolve the recipient-unique URL at send time so messages
+    // queued before the link existed (empty "Unsubscribe:" footer) are repaired.
+    const unsubUrl = (campaignRow as { unsubscribe_enabled?: boolean | null }).unsubscribe_enabled === false
+      ? ""
+      : unsubscribeUrl({
+          workspaceId: message.workspace_id as string,
+          campaignId: message.campaign_id as string,
+          email: message.to_email as string,
+          recipientId: (message.recipient_id as string | null) ?? null,
+        });
+    if (unsubUrl) {
+      const repaired = applyUnsubscribeUrl(message.body ?? "", unsubUrl);
+      if (repaired !== message.body) {
+        message.body = repaired;
+        await supabase
+          .from("campaign_messages")
+          .update({ body: message.body })
+          .eq("id", message.id);
+      }
+    }
+    const carriesUnsubscribeLink = Boolean(unsubUrl) && (message.body ?? "").includes(unsubUrl);
+
     const shouldSendHtml =
       !(campaignRow as { text_only?: boolean | null }).text_only &&
       (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||
-        Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking));
+        Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking) ||
+        carriesUnsubscribeLink);
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
@@ -1127,7 +1144,15 @@ export async function dispatchDueMessages(
         subject: message.subject,
         text: message.body,
         ...(html ? { html } : {}),
-        headers: { "Message-ID": messageIdHeader(outboundMessageId) },
+        headers: {
+          "Message-ID": messageIdHeader(outboundMessageId),
+          ...(carriesUnsubscribeLink
+            ? {
+                "List-Unsubscribe": `<${unsubUrl}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              }
+            : {}),
+        },
       },
       { stage: "campaign" },
       );
