@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/admin/marketing/segments")
 
 const DEFAULT_RULES: SegmentDefinition = {
   match: "all",
-  rules: [{ field: "plan", operator: "equals", value: "free" }],
+  rules: [{ field: "plan", operator: "eq", value: "free" }],
 };
 
 function SegmentsPage() {
