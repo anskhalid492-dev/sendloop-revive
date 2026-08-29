@@ -417,6 +417,22 @@ export async function launchCampaignService(
       },
     });
 
+    // Public API subscribers see the same launch the dashboard just performed.
+    const { enqueueWebhookEvent } = await import("@/lib/api/v1/webhook-delivery.server");
+    void enqueueWebhookEvent(
+      supabase,
+      c.workspace_id as string,
+      "campaign.launched",
+      `campaign.launched:${c.id as string}`,
+      {
+        campaign_id: c.id,
+        name: c.name,
+        recipients: already.size + fresh.length,
+        queued: fresh.length,
+        first_send_at: firstSlot,
+      },
+    );
+
     return {
       queued: fresh.length,
       total: already.size + fresh.length,
