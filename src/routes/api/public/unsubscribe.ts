@@ -35,12 +35,6 @@ async function unsubscribe(token: string) {
       .from("campaign_recipients")
       .update({ status: "unsubscribed", next_send_at: null })
       .eq("id", target.recipientId);
-  } else {
-    await supabaseAdmin
-      .from("campaign_recipients")
-      .update({ status: "unsubscribed", next_send_at: null })
-      .eq("campaign_id", target.campaignId)
-      .eq("email", target.email);
   }
 
   await supabaseAdmin
