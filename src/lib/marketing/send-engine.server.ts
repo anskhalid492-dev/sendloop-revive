@@ -226,7 +226,7 @@ export async function recordMarketingEvent(args: {
   sendingDomainId?: string | null;
   providerMessageId?: string | null;
   detail?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, string | number | boolean | null>;
 }): Promise<void> {
   await supabaseAdmin.from("marketing_email_events").insert({
     event_type: args.eventType,
