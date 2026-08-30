@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getWarmupAccount, saveWarmupSettings } from "@/lib/warmup.functions";
-import { PLACEMENT_LABEL, WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
+import { WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
 
 type Draft = {
@@ -71,7 +71,7 @@ export function WarmupSettingsDialog({
 
   const settings = detail.data?.settings ?? null;
   const health = detail.data?.health ?? null;
-  const recentJobs = (detail.data?.jobs ?? []).slice(0, 8);
+  
   const placementTotals = (detail.data?.stats ?? []).reduce(
     (acc, day) => ({
       inbox: acc.inbox + (day.inbox ?? 0),
@@ -332,24 +332,7 @@ export function WarmupSettingsDialog({
             </ul>
           ) : null}
 
-          {recentJobs.length ? (
-            <div className="space-y-1">
-              <p className="text-xs font-medium">Recent warmup messages</p>
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                {recentJobs.map((job) => (
-                  <li key={job.id} className="flex items-center justify-between gap-2">
-                    <span className="truncate">{job.to_email}</span>
-                    <span className="shrink-0">
-                      {job.status}
-                      {job.placement && job.placement !== "pending"
-                        ? ` · ${PLACEMENT_LABEL[job.placement] ?? job.placement}`
-                        : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          {/* Warmup network message details are intentionally not shown to customers. */}
         </div>
 
         <DialogFooter>
