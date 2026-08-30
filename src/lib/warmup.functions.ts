@@ -287,7 +287,11 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
     return { accounts: rows };
   });
 
-/** Per-mailbox detail: settings, daily series, health history, recent jobs. */
+/**
+ * Per-mailbox detail: settings, daily series and health history.
+ * Warmup job/message records (network recipients, subjects, providers) are
+ * internal only and are never returned to customers.
+ */
 export const getWarmupAccount = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -299,7 +303,7 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
     const client = context.supabase as Client;
     const since = new Date(Date.now() - data.days * 86_400_000).toISOString().slice(0, 10);
 
-    const [account, settings, stats, health, jobs] = await Promise.all([
+    const [account, settings, stats, health] = await Promise.all([
       client
         .from("sending_accounts")
         .select(
