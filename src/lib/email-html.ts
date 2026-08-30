@@ -33,9 +33,19 @@ export function linkifyEmailHtml(escaped: string): string {
     (_m, label: string, url: string) =>
       `<a href="${hrefFor(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`,
   );
-  return withFooter.replace(URL_RE, (url) => {
-    return `<a href="${hrefFor(url)}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-  });
+  // Linkify only text outside the anchors just generated; re-running URL_RE
+  // over the whole string would match the URL inside the href attribute and
+  // nest a second anchor, corrupting the markup.
+  return withFooter
+    .split(/(<a [^]*?<\/a>)/)
+    .map((segment) =>
+      segment.startsWith("<a ")
+        ? segment
+        : segment.replace(URL_RE, (url) => {
+            return `<a href="${hrefFor(url)}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+          }),
+    )
+    .join("");
 }
 
 function paragraphs(text: string): string {
