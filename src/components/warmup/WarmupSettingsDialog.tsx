@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getWarmupAccount, saveWarmupSettings } from "@/lib/warmup.functions";
-import { PLACEMENT_LABEL, WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
+import { WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
 
 type Draft = {
