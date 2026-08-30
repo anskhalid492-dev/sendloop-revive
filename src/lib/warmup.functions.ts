@@ -330,14 +330,6 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
         .eq("sending_account_id", data.id)
         .order("computed_at", { ascending: false })
         .limit(1),
-      client
-        .from("warmup_jobs")
-        .select(
-          "id, role, status, placement, received_at, to_email, subject, scheduled_at, processed_at, attempts, provider, provider_message_id, error",
-        )
-        .eq("sending_account_id", data.id)
-        .order("scheduled_at", { ascending: false })
-        .limit(25),
     ]);
 
     if (account.error) throw new Error(account.error.message);
@@ -348,7 +340,6 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
       settings: (settings.data ?? null) as WarmupSettings | null,
       stats: (stats.data ?? []) as WarmupDayStat[],
       health: ((health.data ?? [])[0] ?? null) as WarmupHealth | null,
-      jobs: (jobs.data ?? []) as WarmupJob[],
     };
   });
 
