@@ -341,7 +341,13 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
             </p>
           </div>
         </div>
+        {campaign.status === "paused" && campaign.pause_reason ? (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {campaign.pause_reason}
+          </p>
+        ) : null}
         {["paused", "completed"].includes(campaign.status) && campaign.limit_reached_at ? (
+
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
             This campaign stopped automatically because it reached its total send limit of{" "}
             <span className="font-semibold tabular-nums">

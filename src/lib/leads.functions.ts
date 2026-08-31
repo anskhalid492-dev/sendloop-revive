@@ -722,6 +722,10 @@ const FIELD_LABELS: Record<string, string> = {
   custom_fields: "Custom fields",
 };
 
+/** Shown when a customer imports a list they have not verified. */
+export const UNVERIFIED_LIST_MESSAGE =
+  "This list cannot be imported because it has not been verified. Please verify your email list before importing it into MunchReach.";
+
 export const importLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -730,12 +734,18 @@ export const importLeads = createServerFn({ method: "POST" })
         workspaceId: z.string().uuid(),
         listId: z.string().uuid().nullable().optional(),
         tags: z.array(z.string().trim().max(40)).max(10).optional(),
+        // The customer must confirm the list is verified before any contact is
+        // inserted; an unverified list is rejected outright.
+        listVerified: z.boolean().optional(),
         // Rows stay loose here on purpose: a single bad cell must never reject the batch.
         rows: z.array(z.record(z.string(), z.unknown())).min(1).max(10000),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    if (data.listVerified !== true) throw new Error(UNVERIFIED_LIST_MESSAGE);
+
+
     const seen = new Set<string>();
     const cleaned: Array<Record<string, unknown>> = [];
     const failed: Array<{ row: number; field: string; reason: string; email: string }> = [];

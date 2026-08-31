@@ -23,6 +23,8 @@ export type EmailAccountRow = {
   warmup_target_days: number;
   customer_enabled: boolean;
   paused: boolean;
+  /** Reason recorded when MunchReach paused this mailbox automatically. */
+  last_error: string | null;
   status: "untested" | "verified" | "failed" | "disabled";
   spf_status: AuthCheck;
   dkim_status: AuthCheck;

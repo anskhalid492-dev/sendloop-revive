@@ -25,7 +25,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LEAD_FIELDS, validateWebsite } from "@/lib/lead-model";
-import { checkImportDuplicates, importLeads } from "@/lib/leads.functions";
+import {
+  UNVERIFIED_LIST_MESSAGE,
+  checkImportDuplicates,
+  importLeads,
+} from "@/lib/leads.functions";
 import type { LeadList } from "@/lib/leads.functions";
 
 const IGNORE = "__ignore__";
@@ -111,6 +115,7 @@ export function ImportWizard({
   const [listId, setListId] = useState<string | null>(defaultListId);
   const [tagInput, setTagInput] = useState("");
   const [duplicates, setDuplicates] = useState<string[]>([]);
+  const [verified, setVerified] = useState<boolean | null>(null);
   const [summary, setSummary] = useState<{
     received: number;
     inserted: number;
@@ -126,6 +131,7 @@ export function ImportWizard({
     setRows([]);
     setMapping({});
     setDuplicates([]);
+    setVerified(null);
     setSummary(null);
     setTagInput("");
   };
@@ -236,6 +242,7 @@ export function ImportWizard({
             .map((t) => t.trim())
             .filter(Boolean)
             .slice(0, 10),
+          listVerified: verified === true,
           rows: mapped.out as never,
         },
       }),
@@ -428,18 +435,69 @@ export function ImportWizard({
               </table>
             </div>
 
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Is this list verified?</p>
+                <p className="text-xs text-muted-foreground">
+                  MunchReach only accepts contact lists that have been email-verified. This keeps
+                  bounce rates low and protects your sending reputation.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={verified === true ? "default" : "outline"}
+                  onClick={() => setVerified(true)}
+                >
+                  Yes, this list is verified
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={verified === false ? "destructive" : "outline"}
+                  onClick={() => setVerified(false)}
+                >
+                  No, it is not verified
+                </Button>
+              </div>
+
+              {verified === false ? (
+                <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                  <AlertTriangle className="mt-0.5 size-4 text-destructive" />
+                  <div className="space-y-2">
+                    <p className="text-destructive">{UNVERIFIED_LIST_MESSAGE}</p>
+                    <p className="text-xs text-muted-foreground">
+                      No contacts from this file have been added to your Leads.
+                    </p>
+                    <Button size="sm" variant="outline" asChild>
+                      <a href="/email-verification" target="_blank" rel="noreferrer">
+                        Verify My List
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep("map")}>
                 Back
               </Button>
               <Button
-                disabled={!workspaceId || mapped.out.length === 0 || runImport.isPending}
+                disabled={
+                  !workspaceId ||
+                  mapped.out.length === 0 ||
+                  verified !== true ||
+                  runImport.isPending
+                }
                 onClick={() => runImport.mutate()}
               >
                 {runImport.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                 Import {mapped.out.length} leads
               </Button>
             </DialogFooter>
+
           </div>
         ) : null}
 

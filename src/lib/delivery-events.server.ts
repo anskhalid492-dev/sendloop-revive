@@ -78,8 +78,21 @@ export async function applyDeliveryEvent(args: {
     source: args.source ?? "webhook",
   });
 
+  const { runDeliverabilityGuard } = await import("@/lib/deliverability-guard.server");
+
   // Soft delays and delivered receipts need no suppression or lead changes.
   if (args.kind === "sent" || args.kind === "delivered" || args.kind === "delayed") {
+    if (args.kind === "delayed") {
+      await runDeliverabilityGuard({
+        kind: "delayed",
+        workspaceId,
+        campaignId: message?.campaign_id ?? null,
+        sendingAccountId: message?.sending_account_id ?? null,
+        leadId: message?.lead_id ?? null,
+        email,
+        detail: args.reason,
+      });
+    }
     return {
       status: "applied",
       workspaceId,
@@ -96,6 +109,15 @@ export async function applyDeliveryEvent(args: {
         .eq("campaign_id", message.campaign_id)
         .eq("lead_id", message.lead_id);
     }
+    await runDeliverabilityGuard({
+      kind: "failed",
+      workspaceId,
+      campaignId: message?.campaign_id ?? null,
+      sendingAccountId: message?.sending_account_id ?? null,
+      leadId: message?.lead_id ?? null,
+      email,
+      detail: args.reason,
+    });
     return {
       status: "applied",
       workspaceId,
@@ -103,6 +125,7 @@ export async function applyDeliveryEvent(args: {
       sendingAccountId: message?.sending_account_id ?? null,
     };
   }
+
 
   if (email) {
     const { suppressEmail } = await import("@/lib/suppression.server");
@@ -174,6 +197,19 @@ export async function applyDeliveryEvent(args: {
     entity_id: leadId,
   }));
   if (rowsToInsert.length) await db.from("notifications").insert(rowsToInsert);
+
+  // High bounce / complaint rates pause the campaign and mailbox, with reason.
+  await runDeliverabilityGuard({
+    kind: args.kind,
+    workspaceId,
+    campaignId: message?.campaign_id ?? null,
+    sendingAccountId: message?.sending_account_id ?? null,
+    leadId,
+    email,
+    detail: args.reason,
+  });
+
+
 
   return { status: "applied", workspaceId, leadId, sendingAccountId: message?.sending_account_id ?? null };
 }
