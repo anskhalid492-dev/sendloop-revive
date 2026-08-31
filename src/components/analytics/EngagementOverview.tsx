@@ -100,10 +100,10 @@ export function EngagementOverview({ workspaceId }: { workspaceId: string | null
       rate: current ? formatPct(replyRate(current)) : null,
     },
     {
-      label: "Clicked",
-      icon: MousePointerClick,
-      value: formatCount(current?.clicks ?? 0),
-      rate: current ? formatPct(clickRate(current)) : null,
+      label: "Unsubscribe rate",
+      icon: UserX,
+      value: formatCount(current?.unsubscribed ?? 0),
+      rate: current ? formatPct(unsubRate(current)) : null,
     },
   ];
 
