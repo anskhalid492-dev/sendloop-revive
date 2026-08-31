@@ -193,7 +193,7 @@ const REQUIRED_SITEMAP_PATHS: SitemapEntry[] = [
 
 /** Never emits admin, dashboard, auth, unpublished or noindex URLs. */
 const PRIVATE_PREFIXES = [
-  "/admin",
+  "/mranuskhalid",
   "/dashboard",
   "/auth",
   "/signin",

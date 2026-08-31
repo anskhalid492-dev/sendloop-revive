@@ -74,107 +74,107 @@ type NavItem = { to: string; label: string; icon: typeof Users };
 const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: "Overview",
-    items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard }],
+    items: [{ to: "/mranuskhalid", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     title: "Customers",
     items: [
-      { to: "/admin/users", label: "Users", icon: Users },
-      { to: "/admin/workspaces", label: "Workspaces", icon: Building2 },
+      { to: "/mranuskhalid/users", label: "Users", icon: Users },
+      { to: "/mranuskhalid/workspaces", label: "Workspaces", icon: Building2 },
     ],
   },
   {
     title: "Infrastructure",
     items: [
-      { to: "/admin/providers", label: "Email Providers", icon: Server },
-      { to: "/admin/infrastructure", label: "Sending Infrastructure", icon: Share2 },
-      { to: "/admin/webhooks", label: "Webhooks", icon: Webhook },
-      { to: "/admin/environment", label: "System Configuration", icon: KeyRound },
-      { to: "/admin/pool", label: "Sending Pool", icon: Mailbox },
-      { to: "/admin/inbound-events", label: "Inbound Events", icon: Inbox },
-      { to: "/admin/system-emails", label: "System Emails", icon: Mail },
-      { to: "/admin/email-log", label: "System Email Log", icon: ScrollText },
-      { to: "/admin/unsubscribes", label: "Unsubscribes", icon: MailMinus },
-      { to: "/admin/notifications", label: "Alert Audit Log", icon: BellRing },
+      { to: "/mranuskhalid/providers", label: "Email Providers", icon: Server },
+      { to: "/mranuskhalid/infrastructure", label: "Sending Infrastructure", icon: Share2 },
+      { to: "/mranuskhalid/webhooks", label: "Webhooks", icon: Webhook },
+      { to: "/mranuskhalid/environment", label: "System Configuration", icon: KeyRound },
+      { to: "/mranuskhalid/pool", label: "Sending Pool", icon: Mailbox },
+      { to: "/mranuskhalid/inbound-events", label: "Inbound Events", icon: Inbox },
+      { to: "/mranuskhalid/system-emails", label: "System Emails", icon: Mail },
+      { to: "/mranuskhalid/email-log", label: "System Email Log", icon: ScrollText },
+      { to: "/mranuskhalid/unsubscribes", label: "Unsubscribes", icon: MailMinus },
+      { to: "/mranuskhalid/notifications", label: "Alert Audit Log", icon: BellRing },
 
     ],
   },
   {
     title: "Marketing Engine",
     items: [
-      { to: "/admin/marketing", label: "Overview", icon: Megaphone },
-      { to: "/admin/marketing/subscribers", label: "Subscribers", icon: ContactRound },
-      { to: "/admin/marketing/segments", label: "Segments", icon: Filter },
-      { to: "/admin/marketing/campaigns", label: "Campaigns", icon: Send },
-      { to: "/admin/marketing/automations", label: "Automations", icon: Workflow },
-      { to: "/admin/marketing/templates", label: "Templates", icon: FileText },
-      { to: "/admin/marketing/providers", label: "Providers", icon: Server },
-      { to: "/admin/marketing/domains", label: "Sending Domains", icon: Globe },
-      { to: "/admin/marketing/analytics", label: "Analytics", icon: BarChart3 },
-      { to: "/admin/marketing/settings", label: "Settings", icon: Settings },
+      { to: "/mranuskhalid/marketing", label: "Overview", icon: Megaphone },
+      { to: "/mranuskhalid/marketing/subscribers", label: "Subscribers", icon: ContactRound },
+      { to: "/mranuskhalid/marketing/segments", label: "Segments", icon: Filter },
+      { to: "/mranuskhalid/marketing/campaigns", label: "Campaigns", icon: Send },
+      { to: "/mranuskhalid/marketing/automations", label: "Automations", icon: Workflow },
+      { to: "/mranuskhalid/marketing/templates", label: "Templates", icon: FileText },
+      { to: "/mranuskhalid/marketing/providers", label: "Providers", icon: Server },
+      { to: "/mranuskhalid/marketing/domains", label: "Sending Domains", icon: Globe },
+      { to: "/mranuskhalid/marketing/analytics", label: "Analytics", icon: BarChart3 },
+      { to: "/mranuskhalid/marketing/settings", label: "Settings", icon: Settings },
     ],
   },
   {
     title: "Outreach",
     items: [
-      { to: "/admin/campaigns", label: "Campaigns", icon: Send },
-      { to: "/admin/leads", label: "Leads", icon: ContactRound },
-      { to: "/admin/email-accounts", label: "Email Accounts", icon: AtSign },
-      { to: "/admin/domains", label: "Domain Verification", icon: Globe },
-      { to: "/admin/warmup", label: "Warmup", icon: Flame },
-      { to: "/admin/crm", label: "CRM", icon: Users },
-      { to: "/admin/automations", label: "Automations", icon: Workflow },
+      { to: "/mranuskhalid/campaigns", label: "Campaigns", icon: Send },
+      { to: "/mranuskhalid/leads", label: "Leads", icon: ContactRound },
+      { to: "/mranuskhalid/email-accounts", label: "Email Accounts", icon: AtSign },
+      { to: "/mranuskhalid/domains", label: "Domain Verification", icon: Globe },
+      { to: "/mranuskhalid/warmup", label: "Warmup", icon: Flame },
+      { to: "/mranuskhalid/crm", label: "CRM", icon: Users },
+      { to: "/mranuskhalid/automations", label: "Automations", icon: Workflow },
     ],
   },
   {
     title: "Website & Content",
     items: [
-      { to: "/admin/seo", label: "SEO Manager", icon: FileSearch },
-      { to: "/admin/pages", label: "Pages", icon: FileSearch },
-      { to: "/admin/blog", label: "Blog", icon: Newspaper },
-      { to: "/admin/navigation", label: "Navigation & Footer", icon: PanelsTopLeft },
-      { to: "/admin/redirects", label: "Redirects", icon: RouteIcon },
-      { to: "/admin/seo-files", label: "Robots & Sitemap", icon: FileCode },
+      { to: "/mranuskhalid/seo", label: "SEO Manager", icon: FileSearch },
+      { to: "/mranuskhalid/pages", label: "Pages", icon: FileSearch },
+      { to: "/mranuskhalid/blog", label: "Blog", icon: Newspaper },
+      { to: "/mranuskhalid/navigation", label: "Navigation & Footer", icon: PanelsTopLeft },
+      { to: "/mranuskhalid/redirects", label: "Redirects", icon: RouteIcon },
+      { to: "/mranuskhalid/seo-files", label: "Robots & Sitemap", icon: FileCode },
     ],
   },
   {
     title: "Growth",
     items: [
-      { to: "/admin/templates", label: "Templates", icon: FileText },
-      { to: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
-      { to: "/admin/faqs", label: "Website FAQs", icon: HelpCircle },
-      { to: "/admin/referrals", label: "Referral Program", icon: Gift },
-      { to: "/admin/integrations", label: "Integrations", icon: Plug },
+      { to: "/mranuskhalid/templates", label: "Templates", icon: FileText },
+      { to: "/mranuskhalid/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
+      { to: "/mranuskhalid/faqs", label: "Website FAQs", icon: HelpCircle },
+      { to: "/mranuskhalid/referrals", label: "Referral Program", icon: Gift },
+      { to: "/mranuskhalid/integrations", label: "Integrations", icon: Plug },
     ],
   },
   {
     title: "Trust & Support",
     items: [
-      { to: "/admin/subprocessors", label: "Subprocessors", icon: Server },
-      { to: "/admin/user-guide", label: "User Guide & Alerts", icon: FileText },
-      { to: "/admin/privacy-requests", label: "Privacy Requests", icon: Shield },
+      { to: "/mranuskhalid/subprocessors", label: "Subprocessors", icon: Server },
+      { to: "/mranuskhalid/user-guide", label: "User Guide & Alerts", icon: FileText },
+      { to: "/mranuskhalid/privacy-requests", label: "Privacy Requests", icon: Shield },
     ],
   },
 
   {
     title: "Platform",
     items: [
-      { to: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
-      { to: "/admin/plans", label: "Plans & Pricing", icon: CreditCard },
-      { to: "/admin/features", label: "Feature Manager", icon: Settings },
-      { to: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
-      { to: "/admin/payments", label: "Billing & Payments", icon: CreditCard },
-      { to: "/admin/credits", label: "Credit Management", icon: Coins },
-      { to: "/admin/credits/ledger", label: "Credit Ledger", icon: ScrollText },
-      { to: "/admin/billing", label: "Billing", icon: CreditCard },
-      { to: "/admin/billing-providers", label: "Billing Providers", icon: CreditCard },
-      { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
-      { to: "/admin/audit", label: "Change Audit Log", icon: Shield },
-      { to: "/admin/security", label: "Security & Sessions", icon: Shield },
-      { to: "/admin/logs", label: "Logs", icon: ScrollText },
-      { to: "/admin/usage", label: "Usage & Metering", icon: BarChart3 },
-      { to: "/admin/production", label: "Production Checklist", icon: Shield },
-      { to: "/admin/settings", label: "System Settings", icon: Settings },
+      { to: "/mranuskhalid/analytics", label: "Platform Analytics", icon: BarChart3 },
+      { to: "/mranuskhalid/plans", label: "Plans & Pricing", icon: CreditCard },
+      { to: "/mranuskhalid/features", label: "Feature Manager", icon: Settings },
+      { to: "/mranuskhalid/subscriptions", label: "Subscriptions", icon: CreditCard },
+      { to: "/mranuskhalid/payments", label: "Billing & Payments", icon: CreditCard },
+      { to: "/mranuskhalid/credits", label: "Credit Management", icon: Coins },
+      { to: "/mranuskhalid/credits/ledger", label: "Credit Ledger", icon: ScrollText },
+      { to: "/mranuskhalid/billing", label: "Billing", icon: CreditCard },
+      { to: "/mranuskhalid/billing-providers", label: "Billing Providers", icon: CreditCard },
+      { to: "/mranuskhalid/support", label: "Support Tickets", icon: LifeBuoy },
+      { to: "/mranuskhalid/audit", label: "Change Audit Log", icon: Shield },
+      { to: "/mranuskhalid/security", label: "Security & Sessions", icon: Shield },
+      { to: "/mranuskhalid/logs", label: "Logs", icon: ScrollText },
+      { to: "/mranuskhalid/usage", label: "Usage & Metering", icon: BarChart3 },
+      { to: "/mranuskhalid/production", label: "Production Checklist", icon: Shield },
+      { to: "/mranuskhalid/settings", label: "System Settings", icon: Settings },
     ],
   },
 ];
@@ -183,12 +183,12 @@ const allNav = navSections.flatMap((s) => s.items);
 
 function useBreadcrumbs(pathname: string) {
   return useMemo(() => {
-    const crumbs: { label: string; to?: string }[] = [{ label: "Admin", to: "/admin" }];
+    const crumbs: { label: string; to?: string }[] = [{ label: "Admin", to: "/mranuskhalid" }];
     const match = allNav
-      .filter((item) => item.to !== "/admin" && pathname.startsWith(item.to))
+      .filter((item) => item.to !== "/mranuskhalid" && pathname.startsWith(item.to))
       .sort((a, b) => b.to.length - a.to.length)[0];
     if (match) crumbs.push({ label: match.label, to: match.to });
-    else if (pathname === "/admin") crumbs.push({ label: "Dashboard" });
+    else if (pathname === "/mranuskhalid") crumbs.push({ label: "Dashboard" });
     const rest = match ? pathname.slice(match.to.length).split("/").filter(Boolean) : [];
     for (const part of rest) crumbs.push({ label: decodeURIComponent(part) });
     return crumbs;
@@ -212,10 +212,10 @@ function GlobalSearch() {
   });
 
   const destination: Record<string, string> = {
-    user: "/admin/users",
-    workspace: "/admin/workspaces",
-    campaign: "/admin/campaigns",
-    ticket: "/admin/support",
+    user: "/mranuskhalid/users",
+    workspace: "/mranuskhalid/workspaces",
+    campaign: "/mranuskhalid/campaigns",
+    ticket: "/mranuskhalid/support",
   };
 
   return (
@@ -241,7 +241,7 @@ function GlobalSearch() {
           data.map((r) => (
             <Link
               key={`${r.kind}-${r.id}`}
-              to={destination[r.kind] ?? "/admin"}
+              to={destination[r.kind] ?? "/mranuskhalid"}
               onClick={() => setTerm("")}
               className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted"
             >
@@ -312,7 +312,7 @@ function AdminNotifications() {
         </div>
         <div className="border-t border-border/60 p-2">
           <Button asChild variant="ghost" size="sm" className="w-full justify-start">
-            <Link to="/admin/notifications">View alert audit log</Link>
+            <Link to="/mranuskhalid/notifications">View alert audit log</Link>
           </Button>
         </div>
       </PopoverContent>
@@ -355,7 +355,7 @@ export function AdminShell({
 
   const sidebar = (
     <div className="flex h-full flex-col gap-1 overflow-y-auto p-3">
-      <Link to="/admin" className="mb-4 flex items-center gap-2 px-2 py-2">
+      <Link to="/mranuskhalid" className="mb-4 flex items-center gap-2 px-2 py-2">
         <BrandLogo className="h-7 max-w-[150px]" alt={`${BRAND_NAME} admin`} />
         <span className="text-sm font-semibold tracking-tight text-muted-foreground">Admin</span>
       </Link>
@@ -453,7 +453,7 @@ export function AdminShell({
                 <DropdownMenuLabel className="truncate">{email ?? "Admin"}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/admin/settings">
+                  <Link to="/mranuskhalid/settings">
                     <Settings className="size-4" />
                     System settings
                   </Link>

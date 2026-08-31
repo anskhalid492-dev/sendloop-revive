@@ -117,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     let maintenance: { active: boolean; message: string } = { active: false, message: "" };
     const path = location.pathname;
     const exempt =
-      path.startsWith("/admin") ||
+      path.startsWith("/mranuskhalid") ||
       path.startsWith("/auth") ||
       path.startsWith("/login") ||
       path.startsWith("/reset-password") ||
