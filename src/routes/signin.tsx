@@ -124,25 +124,32 @@ function SignInPage() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Log in to your MunchReach workspace."
+      subtitle="Sign in to run campaigns, track replies and keep your pipeline moving."
       footer={
         <>
           Don&apos;t have an account?{" "}
           <Link to="/signup" className="font-medium text-primary hover:underline">
-            Sign up free
+            Create one
           </Link>
         </>
       }
     >
       {googleQuery.data?.googleEnabled !== false && (
         <>
-          <Button variant="outline" className="w-full" onClick={handleGoogle}>
+          <Button
+            variant="outline"
+            className="h-11 w-full gap-3 border-border/80 bg-background text-sm font-medium shadow-sm transition-all hover:bg-muted/60 hover:shadow"
+            onClick={handleGoogle}
+          >
+            <GoogleIcon className="size-[18px]" />
             Continue with Google
           </Button>
 
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="my-6 flex items-center gap-4">
             <span className="h-px flex-1 bg-border" />
-            or use email
+            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              or continue with email
+            </span>
             <span className="h-px flex-1 bg-border" />
           </div>
         </>
@@ -151,23 +158,27 @@ function SignInPage() {
       {/* When Google sign-in is switched off it stays hidden for everyone —
           staff sign in with their email and password like any other account. */}
 
-
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label htmlFor="email">Work email</Label>
+          <Label htmlFor="email" className="text-xs font-medium text-foreground">
+            Work email
+          </Label>
           <Input
             id="email"
             type="email"
             autoComplete="email"
+            placeholder="you@company.com"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="transition-shadow focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
+            className={fieldClass}
           />
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-xs font-medium text-foreground">
+              Password
+            </Label>
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">
               Forgot password?
             </Link>
@@ -176,10 +187,11 @@ function SignInPage() {
             id="password"
             type="password"
             autoComplete="current-password"
+            placeholder="••••••••"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="transition-shadow focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
+            className={fieldClass}
           />
         </div>
 
@@ -189,7 +201,7 @@ function SignInPage() {
             onCheckedChange={(value) => setRemember(value === true)}
             aria-label="Remember me"
           />
-          Remember me
+          Keep me signed in
         </label>
 
         <AnimatePresence>
@@ -205,16 +217,21 @@ function SignInPage() {
           ) : null}
         </AnimatePresence>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="h-11 w-full text-sm font-semibold shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_80%,transparent)] transition-all hover:-translate-y-px active:translate-y-0"
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" /> Signing in…
             </>
           ) : (
-            "Log in"
+            "Sign in"
           )}
         </Button>
       </form>
     </AuthLayout>
   );
 }
+
