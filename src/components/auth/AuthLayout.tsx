@@ -133,7 +133,7 @@ function ProductPanel() {
           ))}
         </motion.div>
 
-        <div className="mt-auto pt-10 text-xs text-muted-foreground">
+        <div className="mt-auto pt-6 text-xs text-muted-foreground">
           © {new Date().getFullYear()} {BRAND_NAME}
           <span className="mx-2 text-border">•</span>
           <Link to="/terms" className="transition-colors hover:text-foreground">
