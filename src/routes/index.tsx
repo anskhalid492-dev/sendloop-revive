@@ -29,7 +29,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Button } from "@/components/ui/button";
 import dashboardPreview from "@/assets/dashboard-preview.jpg";
-import inboxPreview from "@/assets/inbox-preview.jpg";
+import inboxPreview from "@/assets/unified-inbox-preview.png.asset.json";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { applySeoOverrides } from "@/lib/page-seo";
 import { SITE_URL } from "@/lib/seo";
