@@ -326,11 +326,12 @@ function OnboardingPage() {
                       onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     />
                   </div>
-                  <p className={cn("text-xs", birthdayIncomplete ? "text-destructive" : "text-muted-foreground")}>
-                    {birthdayIncomplete
-                      ? "Enter a valid date as MM / DD / YYYY, or leave all three empty."
-                      : "We send you a birthday gift — 1 month free on your plan. 🎁"}
-                  </p>
+                  {birthdayIncomplete ? (
+                    <p className="text-xs text-destructive">
+                      Enter a valid date as MM / DD / YYYY, or leave all three empty.
+                    </p>
+                  ) : null}
+
                 </div>
               </div>
 

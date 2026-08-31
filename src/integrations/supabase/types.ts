@@ -2333,6 +2333,8 @@ export type Database = {
           min_delay_minutes: number
           name: string
           open_tracking: boolean
+          pause_reason: string | null
+          paused_at: string | null
           random_delay_minutes: number
           readiness_checked_at: string | null
           readiness_issues: Json
@@ -2379,6 +2381,8 @@ export type Database = {
           min_delay_minutes?: number
           name: string
           open_tracking?: boolean
+          pause_reason?: string | null
+          paused_at?: string | null
           random_delay_minutes?: number
           readiness_checked_at?: string | null
           readiness_issues?: Json
@@ -2425,6 +2429,8 @@ export type Database = {
           min_delay_minutes?: number
           name?: string
           open_tracking?: boolean
+          pause_reason?: string | null
+          paused_at?: string | null
           random_delay_minutes?: number
           readiness_checked_at?: string | null
           readiness_issues?: Json
@@ -6628,7 +6634,9 @@ export type Database = {
           last_sent_at: string | null
           last_tested_at: string | null
           mx_status: string
+          pause_reason: string | null
           paused: boolean
+          paused_at: string | null
           provider: Database["public"]["Enums"]["sending_provider"]
           provider_id: string | null
           reply_to: string | null
@@ -6665,7 +6673,9 @@ export type Database = {
           last_sent_at?: string | null
           last_tested_at?: string | null
           mx_status?: string
+          pause_reason?: string | null
           paused?: boolean
+          paused_at?: string | null
           provider: Database["public"]["Enums"]["sending_provider"]
           provider_id?: string | null
           reply_to?: string | null
@@ -6702,7 +6712,9 @@ export type Database = {
           last_sent_at?: string | null
           last_tested_at?: string | null
           mx_status?: string
+          pause_reason?: string | null
           paused?: boolean
+          paused_at?: string | null
           provider?: Database["public"]["Enums"]["sending_provider"]
           provider_id?: string | null
           reply_to?: string | null

@@ -21,7 +21,7 @@ import {
 type Client = any;
 
 export const ACCOUNT_COLUMNS =
-  "id, label, from_name, from_email, reply_to, daily_limit, hourly_limit, sent_today, health_score, warmup_status, warmup_daily_target, warmup_started_at, warmup_target_days, customer_enabled, paused, status, spf_status, dkim_status, dmarc_status, mx_status, assigned_at, created_at, last_sent_at, last_reply_at, workspace_id";
+  "id, label, from_name, from_email, reply_to, daily_limit, hourly_limit, sent_today, health_score, warmup_status, warmup_daily_target, warmup_started_at, warmup_target_days, customer_enabled, paused, last_error, status, spf_status, dkim_status, dmarc_status, mx_status, assigned_at, created_at, last_sent_at, last_reply_at, workspace_id";
 
 export type AccountFacets = {
   domains: string[];

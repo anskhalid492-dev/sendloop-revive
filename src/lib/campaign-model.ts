@@ -41,6 +41,8 @@ export type Campaign = {
   email_send_limit: number;
   emails_sent_count: number;
   limit_reached_at: string | null;
+  pause_reason: string | null;
+  paused_at: string | null;
   unsubscribe_enabled: boolean;
   inbox_rotation_enabled: boolean;
   inbox_rotation_strategy: InboxRotationStrategy;
@@ -124,10 +126,14 @@ export const CAMPAIGN_LIMIT_COLUMNS = "email_send_limit, emails_sent_count, limi
 
 export const CAMPAIGN_COLUMNS = `${CAMPAIGN_BASE_COLUMNS}, ${CAMPAIGN_LIMIT_COLUMNS}`;
 
+/** Automatic-pause columns; absent on a backend that has not run the bounce-protection migration. */
+export const CAMPAIGN_PAUSE_COLUMNS = "pause_reason, paused_at";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = any;
 
 let limitColumnsSupported: boolean | null = null;
+let pauseColumnsSupported: boolean | null = null;
 
 /**
  * Probes once whether the connected backend has the campaign send-limit
@@ -144,11 +150,25 @@ export async function campaignLimitColumnsAvailable(client: AnyClient): Promise<
   return limitColumnsSupported;
 }
 
+/** Probes once whether the backend has the automatic-pause reason columns. */
+export async function campaignPauseColumnsAvailable(client: AnyClient): Promise<boolean> {
+  if (pauseColumnsSupported !== null) return pauseColumnsSupported;
+  const { error } = await client.from("campaigns").select("pause_reason").limit(1);
+  const missing =
+    Boolean(error) &&
+    (error.code === "42703" || String(error.message ?? "").includes("pause_reason"));
+  pauseColumnsSupported = !missing;
+  return pauseColumnsSupported;
+}
+
 /** Column list to select for campaigns on the currently connected backend. */
 export async function campaignColumns(client: AnyClient): Promise<string> {
-  return (await campaignLimitColumnsAvailable(client))
+  const base = (await campaignLimitColumnsAvailable(client))
     ? CAMPAIGN_COLUMNS
     : CAMPAIGN_BASE_COLUMNS;
+  return (await campaignPauseColumnsAvailable(client))
+    ? `${base}, ${CAMPAIGN_PAUSE_COLUMNS}`
+    : base;
 }
 
 /** Fills defaults for limit columns when the backend does not have them yet. */
@@ -157,6 +177,8 @@ export function withCampaignDefaults<T extends Record<string, unknown>>(row: T):
     email_send_limit: 1000,
     emails_sent_count: 0,
     limit_reached_at: null,
+    pause_reason: null,
+    paused_at: null,
     ...row,
   } as T;
 }

@@ -154,7 +154,13 @@ export function AccountDetailSheet({
             </SheetHeader>
 
             <div className="mt-5 space-y-4 pb-8">
+              {account.paused && account.last_error ? (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  {account.last_error}
+                </p>
+              ) : null}
               <Block title="Sending">
+
                 <div className="flex items-center justify-between py-1">
                   <span className="text-sm text-muted-foreground">Daily limit</span>
                   <MailboxDailyLimitPopover
