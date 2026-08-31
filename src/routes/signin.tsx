@@ -45,7 +45,7 @@ const REMEMBER_KEY = "sendloop.remember-email";
 
 /** Shared input treatment: taller field, soft border, brand focus ring. */
 const fieldClass =
-  "h-11 rounded-lg border-border/80 bg-background text-sm shadow-sm transition-shadow placeholder:text-muted-foreground/60 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_16%,transparent)]";
+  "h-10 rounded-lg border-border/80 bg-background text-sm shadow-sm transition-shadow placeholder:text-muted-foreground/60 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_16%,transparent)]";
 
 
 function safeRedirect(target: string | undefined): string {
@@ -145,14 +145,14 @@ function SignInPage() {
         <>
           <Button
             variant="outline"
-            className="h-11 w-full gap-3 border-border/80 bg-background text-sm font-medium shadow-sm transition-all hover:bg-muted/60 hover:shadow"
+            className="h-10 w-full gap-3 border-border/80 bg-background text-sm font-medium shadow-sm transition-all hover:bg-muted/60 hover:shadow"
             onClick={handleGoogle}
           >
             <GoogleIcon className="size-[18px]" />
             Continue with Google
           </Button>
 
-          <div className="my-6 flex items-center gap-4">
+          <div className="my-4 flex items-center gap-4">
             <span className="h-px flex-1 bg-border" />
             <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               or continue with email
@@ -165,8 +165,8 @@ function SignInPage() {
       {/* When Google sign-in is switched off it stays hidden for everyone —
           staff sign in with their email and password like any other account. */}
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="space-y-2">
+      <form className="space-y-3.5" onSubmit={handleSubmit}>
+        <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs font-medium text-foreground">
             Work email
           </Label>
@@ -181,7 +181,7 @@ function SignInPage() {
             className={fieldClass}
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-xs font-medium text-foreground">
               Password
@@ -226,7 +226,7 @@ function SignInPage() {
 
         <Button
           type="submit"
-          className="h-11 w-full text-sm font-semibold shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_80%,transparent)] transition-all hover:-translate-y-px active:translate-y-0"
+          className="h-10 w-full text-sm font-semibold shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_80%,transparent)] transition-all hover:-translate-y-px active:translate-y-0"
           disabled={loading}
         >
           {loading ? (

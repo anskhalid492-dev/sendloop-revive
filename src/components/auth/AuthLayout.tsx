@@ -64,17 +64,17 @@ function ProductPanel() {
         }}
       />
 
-      <div className="relative flex h-full flex-col px-6 py-10 sm:px-10 lg:px-14 lg:py-14">
+      <div className="relative flex h-full flex-col px-6 py-7 sm:px-10 lg:px-12 lg:py-9">
         <Link to="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
-          <BrandLogo context="login" className="h-9 max-w-[210px]" />
+          <BrandLogo context="login" className="h-8 max-w-[190px]" />
         </Link>
 
-        <div className="mt-10 lg:mt-16">
+        <div className="mt-6 lg:mt-8">
           <motion.h2
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-[16ch] text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[2.5rem]"
+            className="max-w-[16ch] text-[1.6rem] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-[1.9rem]"
           >
             Turn cold outreach into predictable growth.
           </motion.h2>
@@ -82,28 +82,28 @@ function ProductPanel() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-4 max-w-[46ch] text-[0.975rem] leading-relaxed text-muted-foreground"
+            className="mt-2.5 max-w-[46ch] text-sm leading-relaxed text-muted-foreground"
           >
             {BRAND_NAME} is an all-in-one cold outbound platform — leads, mailboxes, sequences,
             deliverability and replies handled in a single workspace.
           </motion.p>
         </div>
 
-        <ul className="mt-10 max-w-md space-y-3">
+        <ul className="mt-5 max-w-md space-y-2">
           {BENEFITS.map((benefit, i) => (
             <motion.li
               key={benefit.title}
               initial={{ opacity: 0, x: -14 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.08, ease: "easeOut" }}
-              className="flex items-start gap-3.5 rounded-xl border border-border/60 bg-card/70 px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] backdrop-blur-sm"
+              className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] backdrop-blur-sm"
             >
-              <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
+              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
                 <benefit.icon className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">{benefit.title}</span>
-                <span className="mt-0.5 block text-[0.8rem] leading-relaxed text-muted-foreground">
+                <span className="block text-[0.85rem] font-medium text-foreground">{benefit.title}</span>
+                <span className="mt-0.5 block text-[0.78rem] leading-snug text-muted-foreground">
                   {benefit.copy}
                 </span>
               </span>
@@ -116,7 +116,7 @@ function ProductPanel() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-10 hidden max-w-md items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-4 py-3 backdrop-blur-sm lg:flex"
+          className="mt-5 hidden max-w-md items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-4 py-2.5 backdrop-blur-sm xl:flex"
         >
           {["Leads", "Sequence", "Send", "Reply", "Pipeline"].map((step, i, arr) => (
             <span key={step} className="flex min-w-0 flex-1 items-center gap-2">
@@ -133,7 +133,7 @@ function ProductPanel() {
           ))}
         </motion.div>
 
-        <div className="mt-auto pt-10 text-xs text-muted-foreground">
+        <div className="mt-auto pt-6 text-xs text-muted-foreground">
           © {new Date().getFullYear()} {BRAND_NAME}
           <span className="mx-2 text-border">•</span>
           <Link to="/terms" className="transition-colors hover:text-foreground">
@@ -166,29 +166,31 @@ export function AuthLayout({
   footer?: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[1.05fr_1fr]">
-      <ProductPanel />
+    <div className="min-h-screen bg-background lg:grid lg:h-screen lg:min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[1.05fr_1fr]">
+      <div className="lg:h-screen lg:overflow-y-auto">
+        <ProductPanel />
+      </div>
 
-      <div className="relative flex items-center justify-center px-5 py-12 sm:px-10 lg:py-16">
+      <div className="relative flex items-center justify-center px-5 py-8 sm:px-10 lg:h-screen lg:overflow-y-auto lg:py-8">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-[460px]"
+          className="w-full max-w-[420px] py-2"
         >
-          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[2rem]">
+          <h1 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[1.6rem]">
             {title}
           </h1>
           {subtitle ? (
-            <p className="mt-3 max-w-[42ch] text-[0.95rem] leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-[42ch] text-[0.875rem] leading-relaxed text-muted-foreground">
               {subtitle}
             </p>
           ) : null}
 
-          <div className="mt-8">{children}</div>
+          <div className="mt-5">{children}</div>
 
           {footer ? (
-            <div className="mt-7 text-sm text-muted-foreground">{footer}</div>
+            <div className="mt-4 text-sm text-muted-foreground">{footer}</div>
           ) : null}
         </motion.div>
       </div>
