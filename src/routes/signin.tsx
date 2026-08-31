@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { GoogleIcon } from "@/components/auth/GoogleIcon";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
