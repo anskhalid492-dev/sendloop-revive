@@ -166,29 +166,31 @@ export function AuthLayout({
   footer?: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[1.05fr_1fr]">
-      <ProductPanel />
+    <div className="min-h-screen bg-background lg:grid lg:h-screen lg:min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[1.05fr_1fr]">
+      <div className="lg:h-screen lg:overflow-y-auto">
+        <ProductPanel />
+      </div>
 
-      <div className="relative flex items-center justify-center px-5 py-12 sm:px-10 lg:py-16">
+      <div className="relative flex items-center justify-center px-5 py-8 sm:px-10 lg:h-screen lg:overflow-y-auto lg:py-8">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-[460px]"
+          className="w-full max-w-[420px] py-2"
         >
-          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[2rem]">
+          <h1 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[1.6rem]">
             {title}
           </h1>
           {subtitle ? (
-            <p className="mt-3 max-w-[42ch] text-[0.95rem] leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-[42ch] text-[0.875rem] leading-relaxed text-muted-foreground">
               {subtitle}
             </p>
           ) : null}
 
-          <div className="mt-8">{children}</div>
+          <div className="mt-5">{children}</div>
 
           {footer ? (
-            <div className="mt-7 text-sm text-muted-foreground">{footer}</div>
+            <div className="mt-4 text-sm text-muted-foreground">{footer}</div>
           ) : null}
         </motion.div>
       </div>
