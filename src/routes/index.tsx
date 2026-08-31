@@ -29,7 +29,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Button } from "@/components/ui/button";
 import dashboardPreview from "@/assets/dashboard-preview.jpg";
-import inboxPreview from "@/assets/unified-inbox-preview.png.asset.json";
+import inboxPreview from "@/assets/munchreach-unified-inbox.png.asset.json";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { applySeoOverrides } from "@/lib/page-seo";
 import { SITE_URL } from "@/lib/seo";
@@ -622,8 +622,8 @@ function Home() {
                 <img
                   src={inboxPreview.url}
                   alt="MunchReach unified inbox with labelled replies, conversation thread and prospect details"
-                  width={1600}
-                  height={1008}
+                  width={1102}
+                  height={717}
                   loading="lazy"
                   className="w-full"
                 />
