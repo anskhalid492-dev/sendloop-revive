@@ -9,6 +9,8 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { GoogleIcon } from "@/components/auth/GoogleIcon";
+
 import { captureReferralCode } from "@/hooks/useReferralClaim";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,12 +161,13 @@ function SignUpPage() {
   const score = strength(password);
   const labels = ["Too short", "Weak", "Okay", "Good", "Strong"];
   const focusRing =
-    "transition-shadow focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]";
+    "h-11 rounded-lg border-border/80 bg-background text-sm shadow-sm transition-shadow placeholder:text-muted-foreground/60 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_16%,transparent)]";
+  const labelClass = "text-xs font-medium text-foreground";
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Free to start. No sending provider setup required."
+      title="Start sending cold email that lands"
+      subtitle="Create your free MunchReach workspace — import leads, launch sequences and reply from one inbox."
       footer={
         <>
           Already have an account?{" "}
@@ -176,24 +179,34 @@ function SignUpPage() {
     >
       {googleQuery.data?.googleEnabled !== false && (
         <>
-          <Button variant="outline" className="w-full" onClick={handleGoogle}>
-            Continue with Google
+          <Button
+            variant="outline"
+            className="h-11 w-full gap-3 border-border/80 bg-background text-sm font-medium shadow-sm transition-all hover:bg-muted/60 hover:shadow"
+            onClick={handleGoogle}
+          >
+            <GoogleIcon className="size-[18px]" />
+            Sign up with Google
           </Button>
 
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="my-6 flex items-center gap-4">
             <span className="h-px flex-1 bg-border" />
-            or use email
+            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              or continue with email
+            </span>
             <span className="h-px flex-1 bg-border" />
           </div>
         </>
       )}
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label htmlFor="name">Full name</Label>
+          <Label htmlFor="name" className={labelClass}>
+            Full name
+          </Label>
           <Input
             id="name"
             autoComplete="name"
+            placeholder="Alex Morgan"
             required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -201,11 +214,14 @@ function SignUpPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Work email</Label>
+          <Label htmlFor="email" className={labelClass}>
+            Work email
+          </Label>
           <Input
             id="email"
             type="email"
             autoComplete="email"
+            placeholder="you@company.com"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -213,11 +229,14 @@ function SignUpPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className={labelClass}>
+            Password
+          </Label>
           <Input
             id="password"
             type="password"
             autoComplete="new-password"
+            placeholder="At least 8 characters"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -239,11 +258,14 @@ function SignUpPage() {
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm password</Label>
+          <Label htmlFor="confirm" className={labelClass}>
+            Confirm password
+          </Label>
           <Input
             id="confirm"
             type="password"
             autoComplete="new-password"
+            placeholder="Re-enter your password"
             required
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -267,7 +289,11 @@ function SignUpPage() {
           ) : null}
         </AnimatePresence>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="h-11 w-full text-sm font-semibold shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_80%,transparent)] transition-all hover:-translate-y-px active:translate-y-0"
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" /> Creating account…
@@ -276,13 +302,13 @@ function SignUpPage() {
             "Create free account"
           )}
         </Button>
-        <p className="text-center text-xs text-muted-foreground">
-          By signing up you agree to our{" "}
-          <Link to="/terms" className="underline">
+        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+          By creating an account you agree to our{" "}
+          <Link to="/terms" className="text-foreground underline underline-offset-2">
             Terms
           </Link>{" "}
           and{" "}
-          <Link to="/privacy" className="underline">
+          <Link to="/privacy" className="text-foreground underline underline-offset-2">
             Privacy Policy
           </Link>
           .
@@ -291,3 +317,4 @@ function SignUpPage() {
     </AuthLayout>
   );
 }
+
