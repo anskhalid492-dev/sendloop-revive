@@ -166,8 +166,8 @@ function SignUpPage() {
 
   return (
     <AuthLayout
-      title="Start sending cold email that lands"
-      subtitle="Create your free MunchReach workspace — import leads, launch sequences and reply from one inbox."
+      title="Create your MunchReach account"
+      subtitle="Start building your outbound engine today."
       footer={
         <>
           Already have an account?{" "}
