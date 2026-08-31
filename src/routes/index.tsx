@@ -620,7 +620,7 @@ function Home() {
             <Reveal delay={100} className="lg:order-1">
               <div className="browser-frame">
                 <img
-                  src={inboxPreview}
+                  src={inboxPreview.url}
                   alt="MunchReach unified inbox with labelled replies, conversation thread and prospect details"
                   width={1600}
                   height={1008}
