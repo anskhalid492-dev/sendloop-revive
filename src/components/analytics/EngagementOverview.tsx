@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Handshake, Mail, MailOpen, MousePointerClick } from "lucide-react";
+import { Handshake, Mail, MailOpen, UserX } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -22,11 +22,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  clickRate,
   formatCount,
   formatPct,
   openRate,
   replyRate,
+  unsubRate,
 } from "@/lib/analytics-model";
 import {
   getAnalyticsOverview,
@@ -100,10 +100,10 @@ export function EngagementOverview({ workspaceId }: { workspaceId: string | null
       rate: current ? formatPct(replyRate(current)) : null,
     },
     {
-      label: "Clicked",
-      icon: MousePointerClick,
-      value: formatCount(current?.clicks ?? 0),
-      rate: current ? formatPct(clickRate(current)) : null,
+      label: "Unsubscribe rate",
+      icon: UserX,
+      value: formatCount(current?.unsubscribed ?? 0),
+      rate: current ? formatPct(unsubRate(current)) : null,
     },
   ];
 
