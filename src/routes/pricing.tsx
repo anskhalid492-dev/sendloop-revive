@@ -155,7 +155,7 @@ function PricingPage() {
       />
 
       <Section>
-        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <div className="mx-auto flex w-full max-w-sm flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-full border border-border bg-card px-4 py-2.5 sm:max-w-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
           <span className={cn("text-sm font-medium", !yearly && "text-foreground")}>Monthly</span>
           <Switch checked={yearly} onCheckedChange={setYearly} aria-label="Toggle yearly billing" />
           <span className={cn("text-sm font-medium", yearly && "text-foreground")}>
@@ -168,11 +168,12 @@ function PricingPage() {
           )}
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-4">
+        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
             <PricingCard key={plan.id} plan={plan} yearly={yearly} signedIn={signedIn} />
           ))}
         </div>
+
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
           Prices in USD. Sending is fully managed by MunchReach — there is nothing to set up or
@@ -338,8 +339,13 @@ function ComparisonTable({ plans }: { plans: Plan[] }) {
   ];
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-      <table className="w-full min-w-[640px] text-sm">
+    <div>
+      <p className="mb-2 text-center text-xs text-muted-foreground md:hidden">
+        Swipe the table sideways to compare all plans
+      </p>
+      <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-border bg-card">
+        <table className="w-full min-w-[640px] text-sm">
+
         <thead>
           <tr className="border-b border-border">
             <th className="px-6 py-4 text-left font-medium text-muted-foreground">Feature</th>
@@ -364,9 +370,11 @@ function ComparisonTable({ plans }: { plans: Plan[] }) {
             );
           })}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
+
 }
 
 function FragmentGroup({
