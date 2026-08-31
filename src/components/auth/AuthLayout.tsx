@@ -96,14 +96,14 @@ function ProductPanel() {
               initial={{ opacity: 0, x: -14 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.08, ease: "easeOut" }}
-              className="flex items-start gap-3.5 rounded-xl border border-border/60 bg-card/70 px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] backdrop-blur-sm"
+              className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] backdrop-blur-sm"
             >
-              <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
+              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
                 <benefit.icon className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">{benefit.title}</span>
-                <span className="mt-0.5 block text-[0.8rem] leading-relaxed text-muted-foreground">
+                <span className="block text-[0.85rem] font-medium text-foreground">{benefit.title}</span>
+                <span className="mt-0.5 block text-[0.78rem] leading-snug text-muted-foreground">
                   {benefit.copy}
                 </span>
               </span>
@@ -116,7 +116,7 @@ function ProductPanel() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-10 hidden max-w-md items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-4 py-3 backdrop-blur-sm lg:flex"
+          className="mt-5 hidden max-w-md items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-4 py-2.5 backdrop-blur-sm xl:flex"
         >
           {["Leads", "Sequence", "Send", "Reply", "Pipeline"].map((step, i, arr) => (
             <span key={step} className="flex min-w-0 flex-1 items-center gap-2">
