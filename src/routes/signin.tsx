@@ -43,6 +43,11 @@ export const Route = createFileRoute("/signin")({
 
 const REMEMBER_KEY = "sendloop.remember-email";
 
+/** Shared input treatment: taller field, soft border, brand focus ring. */
+const fieldClass =
+  "h-11 rounded-lg border-border/80 bg-background text-sm shadow-sm transition-shadow placeholder:text-muted-foreground/60 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_16%,transparent)]";
+
+
 function safeRedirect(target: string | undefined): string {
   if (!target) return "/dashboard";
   // Only allow same-origin internal paths.
