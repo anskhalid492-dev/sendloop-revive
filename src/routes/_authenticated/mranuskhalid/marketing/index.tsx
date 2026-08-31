@@ -12,7 +12,7 @@ import {
 } from "@/components/admin/marketing/MarketingUI";
 import { marketingOverview } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/")({
   head: () => ({
     meta: [
       { title: "Marketing Engine — MunchReach Admin" },
@@ -78,7 +78,7 @@ function MarketingOverviewPage() {
         description="Marketing campaigns are stored and sent completely separately from customer cold email campaigns."
         actions={
           <Button asChild size="sm">
-            <Link to="/admin/marketing/campaigns">Manage campaigns</Link>
+            <Link to="/mranuskhalid/marketing/campaigns">Manage campaigns</Link>
           </Button>
         }
       >
@@ -116,7 +116,7 @@ function MarketingOverviewPage() {
         description="Lifecycle journeys triggered by real product events."
         actions={
           <Button asChild size="sm" variant="outline">
-            <Link to="/admin/marketing/automations">Manage automations</Link>
+            <Link to="/mranuskhalid/marketing/automations">Manage automations</Link>
           </Button>
         }
       >

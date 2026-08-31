@@ -26,7 +26,7 @@ import {
   type Testimonial,
 } from "@/lib/testimonials.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/reviews")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/reviews")({
   head: () => ({
     meta: [
       { title: "Customer Reviews — MunchReach Admin" },

@@ -30,7 +30,7 @@ import {
 import type { GlobalSeoConfig } from "@/lib/site-content-model";
 import { getAdminSiteData, saveGlobalSeo, saveSitePage } from "@/lib/site-content.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/seo")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/seo")({
   head: () => ({
     meta: [
       { title: "SEO Manager — MunchReach Admin" },
@@ -109,22 +109,22 @@ function SeoManagerRoute() {
           <TabsContent value="files">
             <div className="grid gap-3 sm:grid-cols-2">
               <LinkCard
-                to="/admin/seo-files"
+                to="/mranuskhalid/seo-files"
                 title="Robots.txt & Sitemap"
                 description="Crawl rules, sitemap URL and a live preview of every emitted URL."
               />
               <LinkCard
-                to="/admin/redirects"
+                to="/mranuskhalid/redirects"
                 title="Redirects"
                 description="301/302 rules applied before any page renders."
               />
               <LinkCard
-                to="/admin/pages"
+                to="/mranuskhalid/pages"
                 title="Pages directory"
                 description="Full page inventory with publish status and SEO health."
               />
               <LinkCard
-                to="/admin/blog"
+                to="/mranuskhalid/blog"
                 title="Blog CMS"
                 description="Posts, categories, authors and the shared media library."
               />

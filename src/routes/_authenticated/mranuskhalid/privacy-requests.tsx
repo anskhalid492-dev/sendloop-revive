@@ -24,7 +24,7 @@ import {
   PRIVACY_STATUS_LABEL,
 } from "@/lib/trust-center-model";
 
-export const Route = createFileRoute("/_authenticated/admin/privacy-requests")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/privacy-requests")({
   head: () => ({
     meta: [
       { title: "Privacy Requests — MunchReach Admin" },

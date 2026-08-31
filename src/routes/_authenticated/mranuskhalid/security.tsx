@@ -24,7 +24,7 @@ import {
   adminSecurityOverview,
 } from "@/lib/admin-security.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/security")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/security")({
   component: AdminSecurityPage,
   head: () => ({
     meta: [{ title: "Admin security — MunchReach" }],

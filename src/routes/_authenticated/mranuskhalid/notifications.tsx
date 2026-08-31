@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { listAdminNotifications } from "@/lib/ops.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/notifications")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/notifications")({
   head: () => ({
     meta: [
       { title: "Alert Audit Log — MunchReach Admin" },

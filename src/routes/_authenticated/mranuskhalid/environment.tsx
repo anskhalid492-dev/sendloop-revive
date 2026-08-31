@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { adminGetEnvironmentStatus } from "@/lib/admin-platform.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/environment")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/environment")({
   head: () => ({
     meta: [
       { title: "Environment & Secrets — MunchReach Admin" },

@@ -16,7 +16,7 @@ import {
 import { formatMoney } from "@/lib/billing/model";
 import { listAdminPayments } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/payments")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/payments")({
   head: () => ({
     meta: [
       { title: "Billing & Payments · MunchReach Admin" },

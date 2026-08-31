@@ -14,7 +14,7 @@ import {
   adminUpdateIntegration,
 } from "@/lib/integrations-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/integrations")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/integrations")({
   head: () => ({
     meta: [
       { title: "Admin Integrations — MunchReach" },

@@ -23,7 +23,7 @@ import {
 } from "@/lib/templates.functions";
 import type { EmailTemplateRow } from "@/lib/templates-model";
 
-export const Route = createFileRoute("/_authenticated/admin/templates")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/templates")({
   head: () => ({
     meta: [
       { title: "Admin Templates — MunchReach" },

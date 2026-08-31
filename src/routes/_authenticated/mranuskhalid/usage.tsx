@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { adminLoadUsage, adminUsageAudit } from "@/lib/admin-ops.functions";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/admin/usage")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/usage")({
   component: UsagePage,
 });
 

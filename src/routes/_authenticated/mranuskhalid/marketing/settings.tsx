@@ -28,7 +28,7 @@ import {
   updateMarketingSuppression,
 } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/settings")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/settings")({
   head: () => ({
     meta: [
       { title: "Marketing Settings — MunchReach Admin" },

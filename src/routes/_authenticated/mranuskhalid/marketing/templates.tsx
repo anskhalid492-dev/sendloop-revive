@@ -28,7 +28,7 @@ import {
 import type { MarketingTemplate } from "@/lib/marketing/types";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/templates")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/templates")({
   head: () => ({
     meta: [
       { title: "Marketing Templates — MunchReach Admin" },

@@ -37,7 +37,7 @@ import {
 } from "@/lib/referral.functions";
 import { PAYOUT_METHOD_LABELS, PAYOUT_STATUS_LABELS, formatMoney } from "@/lib/referral-model";
 
-export const Route = createFileRoute("/_authenticated/admin/referrals")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/referrals")({
   head: () => ({
     meta: [
       { title: "Referral Program — MunchReach Admin" },

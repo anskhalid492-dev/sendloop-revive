@@ -44,7 +44,7 @@ import {
   type AdminWorkspaceRow,
 } from "@/lib/admin-directory.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/workspaces")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/workspaces")({
   head: () => ({
     meta: [
       { title: "Workspaces — MunchReach Admin" },

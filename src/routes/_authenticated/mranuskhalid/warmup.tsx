@@ -39,7 +39,7 @@ import {
 } from "@/lib/admin-outreach.functions";
 import { WarmupRecipientPool } from "@/components/admin/WarmupRecipientPool";
 
-export const Route = createFileRoute("/_authenticated/admin/warmup")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/warmup")({
   head: () => ({
     meta: [
       { title: "Warmup — MunchReach Admin" },

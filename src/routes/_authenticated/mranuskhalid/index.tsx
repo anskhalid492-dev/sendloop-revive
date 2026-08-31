@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAdminDashboard } from "@/lib/admin-dashboard.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/")({
   head: () => ({
     meta: [
       { title: "Admin Dashboard — MunchReach" },

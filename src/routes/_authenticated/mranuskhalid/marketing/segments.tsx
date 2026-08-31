@@ -22,7 +22,7 @@ import {
 } from "@/lib/marketing.functions";
 import type { SegmentDefinition } from "@/lib/marketing/types";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/segments")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/segments")({
   head: () => ({
     meta: [
       { title: "Marketing Segments — MunchReach Admin" },

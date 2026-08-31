@@ -41,7 +41,7 @@ import {
   saveSitePage,
 } from "@/lib/site-content.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/pages")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/pages")({
   head: () => ({
     meta: [
       { title: "Pages & SEO — MunchReach Admin" },

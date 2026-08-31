@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { listAdminChangeLog } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/audit")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/audit")({
   component: AdminChangeLogPage,
 });
 

@@ -50,7 +50,7 @@ import {
   setBlogPostStatus,
 } from "@/lib/blog.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/blog")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/blog")({
   head: () => ({
     meta: [
       { title: "Blog CMS — MunchReach Admin" },

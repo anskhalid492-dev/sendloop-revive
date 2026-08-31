@@ -16,7 +16,7 @@ import {
   resendTransactionalEmail,
 } from "@/lib/transactional-email.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/email-log")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/email-log")({
   head: () => ({
     meta: [
       { title: "System Email Log — MunchReach Admin" },
@@ -89,7 +89,7 @@ function EmailLogPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <Link to="/admin/system-emails">Templates</Link>
+            <Link to="/mranuskhalid/system-emails">Templates</Link>
           </Button>
           <Button variant="outline" onClick={() => listQuery.refetch()}>
             <RefreshCw className="mr-2 size-4" /> Refresh

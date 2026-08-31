@@ -49,7 +49,7 @@ import {
   adminOutreachFilters,
 } from "@/lib/admin-outreach.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/campaigns")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/campaigns")({
   head: () => ({
     meta: [
       { title: "Campaigns — MunchReach Admin" },

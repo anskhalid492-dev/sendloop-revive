@@ -39,7 +39,7 @@ import {
 } from "@/lib/ops.functions";
 
 
-export const Route = createFileRoute("/_authenticated/admin/inbound-events")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/inbound-events")({
   head: () => ({
     meta: [
       { title: "Inbound Events — MunchReach Admin" },
@@ -445,7 +445,7 @@ function AdminInboundEventsPage() {
                           <div className="flex justify-end gap-1">
                             <Button asChild size="sm" variant="ghost">
                               <Link
-                                to="/admin/inbound-events/$eventId"
+                                to="/mranuskhalid/inbound-events/$eventId"
                                 params={{ eventId: event.id }}
                               >
                                 Details
@@ -685,7 +685,7 @@ function AdminInboundEventsPage() {
                     </div>
                     <div className="mt-3 flex gap-2">
                       <Button asChild size="sm" variant="ghost">
-                        <Link to="/admin/inbound-events/$eventId" params={{ eventId: row.id }}>
+                        <Link to="/mranuskhalid/inbound-events/$eventId" params={{ eventId: row.id }}>
                           Details
                         </Link>
                       </Button>

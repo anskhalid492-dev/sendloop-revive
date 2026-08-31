@@ -27,7 +27,7 @@ import {
 import { formatCredits } from "@/lib/billing/features";
 import { adjustWorkspaceCredits, searchAdminCredits } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/credits")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/credits")({
   head: () => ({
     meta: [
       { title: "Credit Management · MunchReach Admin" },
@@ -92,7 +92,7 @@ function AdminCreditsPage() {
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link to="/admin/credits/ledger">Open credit ledger</Link>
+          <Link to="/mranuskhalid/credits/ledger">Open credit ledger</Link>
         </Button>
       </header>
 

@@ -44,7 +44,7 @@ import {
   type SupportStatus,
 } from "@/lib/support-model";
 
-export const Route = createFileRoute("/_authenticated/admin/support")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/support")({
   head: () => ({
     meta: [
       { title: "Support Tickets — MunchReach Admin" },

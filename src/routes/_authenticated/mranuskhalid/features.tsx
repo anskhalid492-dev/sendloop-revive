@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { getFeatureMatrix, setPlanFeatureEnabled } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/features")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/features")({
   head: () => ({
     meta: [
       { title: "Feature Manager · MunchReach Admin" },

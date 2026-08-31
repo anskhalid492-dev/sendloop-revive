@@ -12,7 +12,7 @@ import {
 } from "@/components/admin/marketing/MarketingUI";
 import { marketingAnalytics } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/analytics")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/analytics")({
   head: () => ({
     meta: [
       { title: "Marketing Analytics — MunchReach Admin" },

@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { getManagedInfraStatus, getSystemAnalytics } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/infrastructure")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/infrastructure")({
   component: AdminInfrastructurePage,
 });
 
@@ -174,7 +174,7 @@ function AdminInfrastructurePage() {
               <tr>
                 <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">
                   No providers yet —{" "}
-                  <Link to="/admin/providers" className="text-primary hover:underline">
+                  <Link to="/mranuskhalid/providers" className="text-primary hover:underline">
                     add one
                   </Link>
                   .

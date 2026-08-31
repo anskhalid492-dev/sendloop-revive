@@ -38,7 +38,7 @@ import {
   adminSetDomainEnabled,
 } from "@/lib/admin-outreach.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/domains")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/domains")({
   head: () => ({
     meta: [
       { title: "Sending Domains — MunchReach Admin" },

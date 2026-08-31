@@ -51,7 +51,6 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
-import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
@@ -59,6 +58,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDiagnosticsRouteImport } from './routes/_authenticated/diagnostics'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
+import { Route as AuthenticatedMranuskhalidRouteRouteImport } from './routes/_authenticated/mranuskhalid/route'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated/referrals'
 import { Route as AuthenticatedSendingRouteImport } from './routes/_authenticated/sending'
@@ -92,76 +92,76 @@ import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
-import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
-import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
-import { Route as AuthenticatedAdminAutomationsRouteImport } from './routes/_authenticated/admin/automations'
-import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin/billing'
-import { Route as AuthenticatedAdminBillingProvidersRouteImport } from './routes/_authenticated/admin/billing-providers'
-import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin/blog'
-import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin/campaigns'
-import { Route as AuthenticatedAdminCreditsRouteImport } from './routes/_authenticated/admin/credits'
-import { Route as AuthenticatedAdminCrmRouteImport } from './routes/_authenticated/admin/crm'
-import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated/admin/domains'
-import { Route as AuthenticatedAdminEmailAccountsRouteImport } from './routes/_authenticated/admin/email-accounts'
-import { Route as AuthenticatedAdminEmailLogRouteImport } from './routes/_authenticated/admin/email-log'
-import { Route as AuthenticatedAdminEnvironmentRouteImport } from './routes/_authenticated/admin/environment'
-import { Route as AuthenticatedAdminFaqsRouteImport } from './routes/_authenticated/admin/faqs'
-import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin/features'
-import { Route as AuthenticatedAdminInboundEventsRouteImport } from './routes/_authenticated/admin/inbound-events'
-import { Route as AuthenticatedAdminInfrastructureRouteImport } from './routes/_authenticated/admin/infrastructure'
-import { Route as AuthenticatedAdminIntegrationsRouteImport } from './routes/_authenticated/admin/integrations'
-import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated/admin/leads'
-import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin/logs'
-import { Route as AuthenticatedAdminMarketingRouteRouteImport } from './routes/_authenticated/admin/marketing/route'
-import { Route as AuthenticatedAdminNavigationRouteImport } from './routes/_authenticated/admin/navigation'
-import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
-import { Route as AuthenticatedAdminPagesRouteImport } from './routes/_authenticated/admin/pages'
-import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
-import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authenticated/admin/plans'
-import { Route as AuthenticatedAdminPoolRouteImport } from './routes/_authenticated/admin/pool'
-import { Route as AuthenticatedAdminPrivacyRequestsRouteImport } from './routes/_authenticated/admin/privacy-requests'
-import { Route as AuthenticatedAdminProductionRouteImport } from './routes/_authenticated/admin/production'
-import { Route as AuthenticatedAdminProvidersRouteImport } from './routes/_authenticated/admin/providers'
-import { Route as AuthenticatedAdminRedirectsRouteImport } from './routes/_authenticated/admin/redirects'
-import { Route as AuthenticatedAdminReferralsRouteImport } from './routes/_authenticated/admin/referrals'
-import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
-import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authenticated/admin/security'
-import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/admin/seo'
-import { Route as AuthenticatedAdminSeoFilesRouteImport } from './routes/_authenticated/admin/seo-files'
-import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
-import { Route as AuthenticatedAdminSubprocessorsRouteImport } from './routes/_authenticated/admin/subprocessors'
-import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin/subscriptions'
-import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
-import { Route as AuthenticatedAdminSystemEmailsRouteImport } from './routes/_authenticated/admin/system-emails'
-import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated/admin/templates'
-import { Route as AuthenticatedAdminUnsubscribesRouteImport } from './routes/_authenticated/admin/unsubscribes'
-import { Route as AuthenticatedAdminUsageRouteImport } from './routes/_authenticated/admin/usage'
-import { Route as AuthenticatedAdminUserGuideRouteImport } from './routes/_authenticated/admin/user-guide'
-import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
-import { Route as AuthenticatedAdminWarmupRouteImport } from './routes/_authenticated/admin/warmup'
-import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
-import { Route as AuthenticatedAdminWorkspacesRouteImport } from './routes/_authenticated/admin/workspaces'
 import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
 import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_authenticated/automations.activity'
 import { Route as AuthenticatedAutomationsWorkflowsRouteImport } from './routes/_authenticated/automations.workflows'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
+import { Route as AuthenticatedMranuskhalidIndexRouteImport } from './routes/_authenticated/mranuskhalid/index'
+import { Route as AuthenticatedMranuskhalidAnalyticsRouteImport } from './routes/_authenticated/mranuskhalid/analytics'
+import { Route as AuthenticatedMranuskhalidAuditRouteImport } from './routes/_authenticated/mranuskhalid/audit'
+import { Route as AuthenticatedMranuskhalidAutomationsRouteImport } from './routes/_authenticated/mranuskhalid/automations'
+import { Route as AuthenticatedMranuskhalidBillingRouteImport } from './routes/_authenticated/mranuskhalid/billing'
+import { Route as AuthenticatedMranuskhalidBillingProvidersRouteImport } from './routes/_authenticated/mranuskhalid/billing-providers'
+import { Route as AuthenticatedMranuskhalidBlogRouteImport } from './routes/_authenticated/mranuskhalid/blog'
+import { Route as AuthenticatedMranuskhalidCampaignsRouteImport } from './routes/_authenticated/mranuskhalid/campaigns'
+import { Route as AuthenticatedMranuskhalidCreditsRouteImport } from './routes/_authenticated/mranuskhalid/credits'
+import { Route as AuthenticatedMranuskhalidCrmRouteImport } from './routes/_authenticated/mranuskhalid/crm'
+import { Route as AuthenticatedMranuskhalidDomainsRouteImport } from './routes/_authenticated/mranuskhalid/domains'
+import { Route as AuthenticatedMranuskhalidEmailAccountsRouteImport } from './routes/_authenticated/mranuskhalid/email-accounts'
+import { Route as AuthenticatedMranuskhalidEmailLogRouteImport } from './routes/_authenticated/mranuskhalid/email-log'
+import { Route as AuthenticatedMranuskhalidEnvironmentRouteImport } from './routes/_authenticated/mranuskhalid/environment'
+import { Route as AuthenticatedMranuskhalidFaqsRouteImport } from './routes/_authenticated/mranuskhalid/faqs'
+import { Route as AuthenticatedMranuskhalidFeaturesRouteImport } from './routes/_authenticated/mranuskhalid/features'
+import { Route as AuthenticatedMranuskhalidInboundEventsRouteImport } from './routes/_authenticated/mranuskhalid/inbound-events'
+import { Route as AuthenticatedMranuskhalidInfrastructureRouteImport } from './routes/_authenticated/mranuskhalid/infrastructure'
+import { Route as AuthenticatedMranuskhalidIntegrationsRouteImport } from './routes/_authenticated/mranuskhalid/integrations'
+import { Route as AuthenticatedMranuskhalidLeadsRouteImport } from './routes/_authenticated/mranuskhalid/leads'
+import { Route as AuthenticatedMranuskhalidLogsRouteImport } from './routes/_authenticated/mranuskhalid/logs'
+import { Route as AuthenticatedMranuskhalidMarketingRouteRouteImport } from './routes/_authenticated/mranuskhalid/marketing/route'
+import { Route as AuthenticatedMranuskhalidNavigationRouteImport } from './routes/_authenticated/mranuskhalid/navigation'
+import { Route as AuthenticatedMranuskhalidNotificationsRouteImport } from './routes/_authenticated/mranuskhalid/notifications'
+import { Route as AuthenticatedMranuskhalidPagesRouteImport } from './routes/_authenticated/mranuskhalid/pages'
+import { Route as AuthenticatedMranuskhalidPaymentsRouteImport } from './routes/_authenticated/mranuskhalid/payments'
+import { Route as AuthenticatedMranuskhalidPlansRouteImport } from './routes/_authenticated/mranuskhalid/plans'
+import { Route as AuthenticatedMranuskhalidPoolRouteImport } from './routes/_authenticated/mranuskhalid/pool'
+import { Route as AuthenticatedMranuskhalidPrivacyRequestsRouteImport } from './routes/_authenticated/mranuskhalid/privacy-requests'
+import { Route as AuthenticatedMranuskhalidProductionRouteImport } from './routes/_authenticated/mranuskhalid/production'
+import { Route as AuthenticatedMranuskhalidProvidersRouteImport } from './routes/_authenticated/mranuskhalid/providers'
+import { Route as AuthenticatedMranuskhalidRedirectsRouteImport } from './routes/_authenticated/mranuskhalid/redirects'
+import { Route as AuthenticatedMranuskhalidReferralsRouteImport } from './routes/_authenticated/mranuskhalid/referrals'
+import { Route as AuthenticatedMranuskhalidReviewsRouteImport } from './routes/_authenticated/mranuskhalid/reviews'
+import { Route as AuthenticatedMranuskhalidSecurityRouteImport } from './routes/_authenticated/mranuskhalid/security'
+import { Route as AuthenticatedMranuskhalidSeoRouteImport } from './routes/_authenticated/mranuskhalid/seo'
+import { Route as AuthenticatedMranuskhalidSeoFilesRouteImport } from './routes/_authenticated/mranuskhalid/seo-files'
+import { Route as AuthenticatedMranuskhalidSettingsRouteImport } from './routes/_authenticated/mranuskhalid/settings'
+import { Route as AuthenticatedMranuskhalidSubprocessorsRouteImport } from './routes/_authenticated/mranuskhalid/subprocessors'
+import { Route as AuthenticatedMranuskhalidSubscriptionsRouteImport } from './routes/_authenticated/mranuskhalid/subscriptions'
+import { Route as AuthenticatedMranuskhalidSupportRouteImport } from './routes/_authenticated/mranuskhalid/support'
+import { Route as AuthenticatedMranuskhalidSystemEmailsRouteImport } from './routes/_authenticated/mranuskhalid/system-emails'
+import { Route as AuthenticatedMranuskhalidTemplatesRouteImport } from './routes/_authenticated/mranuskhalid/templates'
+import { Route as AuthenticatedMranuskhalidUnsubscribesRouteImport } from './routes/_authenticated/mranuskhalid/unsubscribes'
+import { Route as AuthenticatedMranuskhalidUsageRouteImport } from './routes/_authenticated/mranuskhalid/usage'
+import { Route as AuthenticatedMranuskhalidUserGuideRouteImport } from './routes/_authenticated/mranuskhalid/user-guide'
+import { Route as AuthenticatedMranuskhalidUsersRouteImport } from './routes/_authenticated/mranuskhalid/users'
+import { Route as AuthenticatedMranuskhalidWarmupRouteImport } from './routes/_authenticated/mranuskhalid/warmup'
+import { Route as AuthenticatedMranuskhalidWebhooksRouteImport } from './routes/_authenticated/mranuskhalid/webhooks'
+import { Route as AuthenticatedMranuskhalidWorkspacesRouteImport } from './routes/_authenticated/mranuskhalid/workspaces'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
-import { Route as AuthenticatedAdminCreditsLedgerRouteImport } from './routes/_authenticated/admin/credits.ledger'
-import { Route as AuthenticatedAdminInboundEventsEventIdRouteImport } from './routes/_authenticated/admin/inbound-events.$eventId'
-import { Route as AuthenticatedAdminMarketingIndexRouteImport } from './routes/_authenticated/admin/marketing/index'
-import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated/admin/marketing/analytics'
-import { Route as AuthenticatedAdminMarketingAutomationsRouteImport } from './routes/_authenticated/admin/marketing/automations'
-import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated/admin/marketing/campaigns'
-import { Route as AuthenticatedAdminMarketingDomainsRouteImport } from './routes/_authenticated/admin/marketing/domains'
-import { Route as AuthenticatedAdminMarketingProvidersRouteImport } from './routes/_authenticated/admin/marketing/providers'
-import { Route as AuthenticatedAdminMarketingSegmentsRouteImport } from './routes/_authenticated/admin/marketing/segments'
-import { Route as AuthenticatedAdminMarketingSettingsRouteImport } from './routes/_authenticated/admin/marketing/settings'
-import { Route as AuthenticatedAdminMarketingSubscribersRouteImport } from './routes/_authenticated/admin/marketing/subscribers'
-import { Route as AuthenticatedAdminMarketingTemplatesRouteImport } from './routes/_authenticated/admin/marketing/templates'
+import { Route as AuthenticatedMranuskhalidCreditsLedgerRouteImport } from './routes/_authenticated/mranuskhalid/credits.ledger'
+import { Route as AuthenticatedMranuskhalidInboundEventsEventIdRouteImport } from './routes/_authenticated/mranuskhalid/inbound-events.$eventId'
+import { Route as AuthenticatedMranuskhalidMarketingIndexRouteImport } from './routes/_authenticated/mranuskhalid/marketing/index'
+import { Route as AuthenticatedMranuskhalidMarketingAnalyticsRouteImport } from './routes/_authenticated/mranuskhalid/marketing/analytics'
+import { Route as AuthenticatedMranuskhalidMarketingAutomationsRouteImport } from './routes/_authenticated/mranuskhalid/marketing/automations'
+import { Route as AuthenticatedMranuskhalidMarketingCampaignsRouteImport } from './routes/_authenticated/mranuskhalid/marketing/campaigns'
+import { Route as AuthenticatedMranuskhalidMarketingDomainsRouteImport } from './routes/_authenticated/mranuskhalid/marketing/domains'
+import { Route as AuthenticatedMranuskhalidMarketingProvidersRouteImport } from './routes/_authenticated/mranuskhalid/marketing/providers'
+import { Route as AuthenticatedMranuskhalidMarketingSegmentsRouteImport } from './routes/_authenticated/mranuskhalid/marketing/segments'
+import { Route as AuthenticatedMranuskhalidMarketingSettingsRouteImport } from './routes/_authenticated/mranuskhalid/marketing/settings'
+import { Route as AuthenticatedMranuskhalidMarketingSubscribersRouteImport } from './routes/_authenticated/mranuskhalid/marketing/subscribers'
+import { Route as AuthenticatedMranuskhalidMarketingTemplatesRouteImport } from './routes/_authenticated/mranuskhalid/marketing/templates'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
@@ -411,11 +411,6 @@ const WhyMunchreachRoute = WhyMunchreachRouteImport.update({
   path: '/why-munchreach',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -452,6 +447,12 @@ const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMranuskhalidRouteRoute =
+  AuthenticatedMranuskhalidRouteRouteImport.update({
+    id: '/mranuskhalid',
+    path: '/mranuskhalid',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -623,293 +624,6 @@ const SolutionsSlugRoute = SolutionsSlugRouteImport.update({
   path: '/solutions/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminAnalyticsRoute =
-  AuthenticatedAdminAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminAutomationsRoute =
-  AuthenticatedAdminAutomationsRouteImport.update({
-    id: '/automations',
-    path: '/automations',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminBillingRoute =
-  AuthenticatedAdminBillingRouteImport.update({
-    id: '/billing',
-    path: '/billing',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminBillingProvidersRoute =
-  AuthenticatedAdminBillingProvidersRouteImport.update({
-    id: '/billing-providers',
-    path: '/billing-providers',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminCampaignsRoute =
-  AuthenticatedAdminCampaignsRouteImport.update({
-    id: '/campaigns',
-    path: '/campaigns',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminCreditsRoute =
-  AuthenticatedAdminCreditsRouteImport.update({
-    id: '/credits',
-    path: '/credits',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminCrmRoute = AuthenticatedAdminCrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminDomainsRoute =
-  AuthenticatedAdminDomainsRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminEmailAccountsRoute =
-  AuthenticatedAdminEmailAccountsRouteImport.update({
-    id: '/email-accounts',
-    path: '/email-accounts',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminEmailLogRoute =
-  AuthenticatedAdminEmailLogRouteImport.update({
-    id: '/email-log',
-    path: '/email-log',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminEnvironmentRoute =
-  AuthenticatedAdminEnvironmentRouteImport.update({
-    id: '/environment',
-    path: '/environment',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminFaqsRoute = AuthenticatedAdminFaqsRouteImport.update({
-  id: '/faqs',
-  path: '/faqs',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminFeaturesRoute =
-  AuthenticatedAdminFeaturesRouteImport.update({
-    id: '/features',
-    path: '/features',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminInboundEventsRoute =
-  AuthenticatedAdminInboundEventsRouteImport.update({
-    id: '/inbound-events',
-    path: '/inbound-events',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminInfrastructureRoute =
-  AuthenticatedAdminInfrastructureRouteImport.update({
-    id: '/infrastructure',
-    path: '/infrastructure',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminIntegrationsRoute =
-  AuthenticatedAdminIntegrationsRouteImport.update({
-    id: '/integrations',
-    path: '/integrations',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminLogsRoute = AuthenticatedAdminLogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminMarketingRouteRoute =
-  AuthenticatedAdminMarketingRouteRouteImport.update({
-    id: '/marketing',
-    path: '/marketing',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminNavigationRoute =
-  AuthenticatedAdminNavigationRouteImport.update({
-    id: '/navigation',
-    path: '/navigation',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminNotificationsRoute =
-  AuthenticatedAdminNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminPagesRoute = AuthenticatedAdminPagesRouteImport.update({
-  id: '/pages',
-  path: '/pages',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminPaymentsRoute =
-  AuthenticatedAdminPaymentsRouteImport.update({
-    id: '/payments',
-    path: '/payments',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminPlansRoute = AuthenticatedAdminPlansRouteImport.update({
-  id: '/plans',
-  path: '/plans',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminPoolRoute = AuthenticatedAdminPoolRouteImport.update({
-  id: '/pool',
-  path: '/pool',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminPrivacyRequestsRoute =
-  AuthenticatedAdminPrivacyRequestsRouteImport.update({
-    id: '/privacy-requests',
-    path: '/privacy-requests',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminProductionRoute =
-  AuthenticatedAdminProductionRouteImport.update({
-    id: '/production',
-    path: '/production',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminProvidersRoute =
-  AuthenticatedAdminProvidersRouteImport.update({
-    id: '/providers',
-    path: '/providers',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminRedirectsRoute =
-  AuthenticatedAdminRedirectsRouteImport.update({
-    id: '/redirects',
-    path: '/redirects',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminReferralsRoute =
-  AuthenticatedAdminReferralsRouteImport.update({
-    id: '/referrals',
-    path: '/referrals',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminReviewsRoute =
-  AuthenticatedAdminReviewsRouteImport.update({
-    id: '/reviews',
-    path: '/reviews',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSecurityRoute =
-  AuthenticatedAdminSecurityRouteImport.update({
-    id: '/security',
-    path: '/security',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSeoRoute = AuthenticatedAdminSeoRouteImport.update({
-  id: '/seo',
-  path: '/seo',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminSeoFilesRoute =
-  AuthenticatedAdminSeoFilesRouteImport.update({
-    id: '/seo-files',
-    path: '/seo-files',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSettingsRoute =
-  AuthenticatedAdminSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSubprocessorsRoute =
-  AuthenticatedAdminSubprocessorsRouteImport.update({
-    id: '/subprocessors',
-    path: '/subprocessors',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSubscriptionsRoute =
-  AuthenticatedAdminSubscriptionsRouteImport.update({
-    id: '/subscriptions',
-    path: '/subscriptions',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSupportRoute =
-  AuthenticatedAdminSupportRouteImport.update({
-    id: '/support',
-    path: '/support',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminSystemEmailsRoute =
-  AuthenticatedAdminSystemEmailsRouteImport.update({
-    id: '/system-emails',
-    path: '/system-emails',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminTemplatesRoute =
-  AuthenticatedAdminTemplatesRouteImport.update({
-    id: '/templates',
-    path: '/templates',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminUnsubscribesRoute =
-  AuthenticatedAdminUnsubscribesRouteImport.update({
-    id: '/unsubscribes',
-    path: '/unsubscribes',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminUsageRoute = AuthenticatedAdminUsageRouteImport.update({
-  id: '/usage',
-  path: '/usage',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminUserGuideRoute =
-  AuthenticatedAdminUserGuideRouteImport.update({
-    id: '/user-guide',
-    path: '/user-guide',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
-const AuthenticatedAdminWarmupRoute =
-  AuthenticatedAdminWarmupRouteImport.update({
-    id: '/warmup',
-    path: '/warmup',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminWebhooksRoute =
-  AuthenticatedAdminWebhooksRouteImport.update({
-    id: '/webhooks',
-    path: '/webhooks',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminWorkspacesRoute =
-  AuthenticatedAdminWorkspacesRouteImport.update({
-    id: '/workspaces',
-    path: '/workspaces',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
 const AuthenticatedAutomationsIdRoute =
   AuthenticatedAutomationsIdRouteImport.update({
     id: '/automations/$id',
@@ -940,6 +654,306 @@ const AuthenticatedCampaignsCampaignIdRoute =
     path: '/campaigns/$campaignId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMranuskhalidIndexRoute =
+  AuthenticatedMranuskhalidIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidAnalyticsRoute =
+  AuthenticatedMranuskhalidAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidAuditRoute =
+  AuthenticatedMranuskhalidAuditRouteImport.update({
+    id: '/audit',
+    path: '/audit',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidAutomationsRoute =
+  AuthenticatedMranuskhalidAutomationsRouteImport.update({
+    id: '/automations',
+    path: '/automations',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidBillingRoute =
+  AuthenticatedMranuskhalidBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidBillingProvidersRoute =
+  AuthenticatedMranuskhalidBillingProvidersRouteImport.update({
+    id: '/billing-providers',
+    path: '/billing-providers',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidBlogRoute =
+  AuthenticatedMranuskhalidBlogRouteImport.update({
+    id: '/blog',
+    path: '/blog',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidCampaignsRoute =
+  AuthenticatedMranuskhalidCampaignsRouteImport.update({
+    id: '/campaigns',
+    path: '/campaigns',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidCreditsRoute =
+  AuthenticatedMranuskhalidCreditsRouteImport.update({
+    id: '/credits',
+    path: '/credits',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidCrmRoute =
+  AuthenticatedMranuskhalidCrmRouteImport.update({
+    id: '/crm',
+    path: '/crm',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidDomainsRoute =
+  AuthenticatedMranuskhalidDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidEmailAccountsRoute =
+  AuthenticatedMranuskhalidEmailAccountsRouteImport.update({
+    id: '/email-accounts',
+    path: '/email-accounts',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidEmailLogRoute =
+  AuthenticatedMranuskhalidEmailLogRouteImport.update({
+    id: '/email-log',
+    path: '/email-log',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidEnvironmentRoute =
+  AuthenticatedMranuskhalidEnvironmentRouteImport.update({
+    id: '/environment',
+    path: '/environment',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidFaqsRoute =
+  AuthenticatedMranuskhalidFaqsRouteImport.update({
+    id: '/faqs',
+    path: '/faqs',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidFeaturesRoute =
+  AuthenticatedMranuskhalidFeaturesRouteImport.update({
+    id: '/features',
+    path: '/features',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidInboundEventsRoute =
+  AuthenticatedMranuskhalidInboundEventsRouteImport.update({
+    id: '/inbound-events',
+    path: '/inbound-events',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidInfrastructureRoute =
+  AuthenticatedMranuskhalidInfrastructureRouteImport.update({
+    id: '/infrastructure',
+    path: '/infrastructure',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidIntegrationsRoute =
+  AuthenticatedMranuskhalidIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidLeadsRoute =
+  AuthenticatedMranuskhalidLeadsRouteImport.update({
+    id: '/leads',
+    path: '/leads',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidLogsRoute =
+  AuthenticatedMranuskhalidLogsRouteImport.update({
+    id: '/logs',
+    path: '/logs',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidMarketingRouteRoute =
+  AuthenticatedMranuskhalidMarketingRouteRouteImport.update({
+    id: '/marketing',
+    path: '/marketing',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidNavigationRoute =
+  AuthenticatedMranuskhalidNavigationRouteImport.update({
+    id: '/navigation',
+    path: '/navigation',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidNotificationsRoute =
+  AuthenticatedMranuskhalidNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidPagesRoute =
+  AuthenticatedMranuskhalidPagesRouteImport.update({
+    id: '/pages',
+    path: '/pages',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidPaymentsRoute =
+  AuthenticatedMranuskhalidPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidPlansRoute =
+  AuthenticatedMranuskhalidPlansRouteImport.update({
+    id: '/plans',
+    path: '/plans',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidPoolRoute =
+  AuthenticatedMranuskhalidPoolRouteImport.update({
+    id: '/pool',
+    path: '/pool',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidPrivacyRequestsRoute =
+  AuthenticatedMranuskhalidPrivacyRequestsRouteImport.update({
+    id: '/privacy-requests',
+    path: '/privacy-requests',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidProductionRoute =
+  AuthenticatedMranuskhalidProductionRouteImport.update({
+    id: '/production',
+    path: '/production',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidProvidersRoute =
+  AuthenticatedMranuskhalidProvidersRouteImport.update({
+    id: '/providers',
+    path: '/providers',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidRedirectsRoute =
+  AuthenticatedMranuskhalidRedirectsRouteImport.update({
+    id: '/redirects',
+    path: '/redirects',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidReferralsRoute =
+  AuthenticatedMranuskhalidReferralsRouteImport.update({
+    id: '/referrals',
+    path: '/referrals',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidReviewsRoute =
+  AuthenticatedMranuskhalidReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSecurityRoute =
+  AuthenticatedMranuskhalidSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSeoRoute =
+  AuthenticatedMranuskhalidSeoRouteImport.update({
+    id: '/seo',
+    path: '/seo',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSeoFilesRoute =
+  AuthenticatedMranuskhalidSeoFilesRouteImport.update({
+    id: '/seo-files',
+    path: '/seo-files',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSettingsRoute =
+  AuthenticatedMranuskhalidSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSubprocessorsRoute =
+  AuthenticatedMranuskhalidSubprocessorsRouteImport.update({
+    id: '/subprocessors',
+    path: '/subprocessors',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSubscriptionsRoute =
+  AuthenticatedMranuskhalidSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSupportRoute =
+  AuthenticatedMranuskhalidSupportRouteImport.update({
+    id: '/support',
+    path: '/support',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidSystemEmailsRoute =
+  AuthenticatedMranuskhalidSystemEmailsRouteImport.update({
+    id: '/system-emails',
+    path: '/system-emails',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidTemplatesRoute =
+  AuthenticatedMranuskhalidTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidUnsubscribesRoute =
+  AuthenticatedMranuskhalidUnsubscribesRouteImport.update({
+    id: '/unsubscribes',
+    path: '/unsubscribes',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidUsageRoute =
+  AuthenticatedMranuskhalidUsageRouteImport.update({
+    id: '/usage',
+    path: '/usage',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidUserGuideRoute =
+  AuthenticatedMranuskhalidUserGuideRouteImport.update({
+    id: '/user-guide',
+    path: '/user-guide',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidUsersRoute =
+  AuthenticatedMranuskhalidUsersRouteImport.update({
+    id: '/users',
+    path: '/users',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidWarmupRoute =
+  AuthenticatedMranuskhalidWarmupRouteImport.update({
+    id: '/warmup',
+    path: '/warmup',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidWebhooksRoute =
+  AuthenticatedMranuskhalidWebhooksRouteImport.update({
+    id: '/webhooks',
+    path: '/webhooks',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidWorkspacesRoute =
+  AuthenticatedMranuskhalidWorkspacesRouteImport.update({
+    id: '/workspaces',
+    path: '/workspaces',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
 const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
   id: '/api/public/unsubscribe',
   path: '/api/public/unsubscribe',
@@ -955,77 +969,77 @@ const BlogCategorySlugRoute = BlogCategorySlugRouteImport.update({
   path: '/blog/category/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminCreditsLedgerRoute =
-  AuthenticatedAdminCreditsLedgerRouteImport.update({
+const AuthenticatedMranuskhalidCreditsLedgerRoute =
+  AuthenticatedMranuskhalidCreditsLedgerRouteImport.update({
     id: '/ledger',
     path: '/ledger',
-    getParentRoute: () => AuthenticatedAdminCreditsRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidCreditsRoute,
   } as any)
-const AuthenticatedAdminInboundEventsEventIdRoute =
-  AuthenticatedAdminInboundEventsEventIdRouteImport.update({
+const AuthenticatedMranuskhalidInboundEventsEventIdRoute =
+  AuthenticatedMranuskhalidInboundEventsEventIdRouteImport.update({
     id: '/$eventId',
     path: '/$eventId',
-    getParentRoute: () => AuthenticatedAdminInboundEventsRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidInboundEventsRoute,
   } as any)
-const AuthenticatedAdminMarketingIndexRoute =
-  AuthenticatedAdminMarketingIndexRouteImport.update({
+const AuthenticatedMranuskhalidMarketingIndexRoute =
+  AuthenticatedMranuskhalidMarketingIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingAnalyticsRoute =
-  AuthenticatedAdminMarketingAnalyticsRouteImport.update({
+const AuthenticatedMranuskhalidMarketingAnalyticsRoute =
+  AuthenticatedMranuskhalidMarketingAnalyticsRouteImport.update({
     id: '/analytics',
     path: '/analytics',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingAutomationsRoute =
-  AuthenticatedAdminMarketingAutomationsRouteImport.update({
+const AuthenticatedMranuskhalidMarketingAutomationsRoute =
+  AuthenticatedMranuskhalidMarketingAutomationsRouteImport.update({
     id: '/automations',
     path: '/automations',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingCampaignsRoute =
-  AuthenticatedAdminMarketingCampaignsRouteImport.update({
+const AuthenticatedMranuskhalidMarketingCampaignsRoute =
+  AuthenticatedMranuskhalidMarketingCampaignsRouteImport.update({
     id: '/campaigns',
     path: '/campaigns',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingDomainsRoute =
-  AuthenticatedAdminMarketingDomainsRouteImport.update({
+const AuthenticatedMranuskhalidMarketingDomainsRoute =
+  AuthenticatedMranuskhalidMarketingDomainsRouteImport.update({
     id: '/domains',
     path: '/domains',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingProvidersRoute =
-  AuthenticatedAdminMarketingProvidersRouteImport.update({
+const AuthenticatedMranuskhalidMarketingProvidersRoute =
+  AuthenticatedMranuskhalidMarketingProvidersRouteImport.update({
     id: '/providers',
     path: '/providers',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingSegmentsRoute =
-  AuthenticatedAdminMarketingSegmentsRouteImport.update({
+const AuthenticatedMranuskhalidMarketingSegmentsRoute =
+  AuthenticatedMranuskhalidMarketingSegmentsRouteImport.update({
     id: '/segments',
     path: '/segments',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingSettingsRoute =
-  AuthenticatedAdminMarketingSettingsRouteImport.update({
+const AuthenticatedMranuskhalidMarketingSettingsRoute =
+  AuthenticatedMranuskhalidMarketingSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingSubscribersRoute =
-  AuthenticatedAdminMarketingSubscribersRouteImport.update({
+const AuthenticatedMranuskhalidMarketingSubscribersRoute =
+  AuthenticatedMranuskhalidMarketingSubscribersRouteImport.update({
     id: '/subscribers',
     path: '/subscribers',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
-const AuthenticatedAdminMarketingTemplatesRoute =
-  AuthenticatedAdminMarketingTemplatesRouteImport.update({
+const AuthenticatedMranuskhalidMarketingTemplatesRoute =
+  AuthenticatedMranuskhalidMarketingTemplatesRouteImport.update({
     id: '/templates',
     path: '/templates',
-    getParentRoute: () => AuthenticatedAdminMarketingRouteRoute,
+    getParentRoute: () => AuthenticatedMranuskhalidMarketingRouteRoute,
   } as any)
 const ApiPublicAutomationsTokenRoute =
   ApiPublicAutomationsTokenRouteImport.update({
@@ -1285,7 +1299,7 @@ export interface FileRoutesByFullPath {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
-  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1326,75 +1340,75 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
-  '/admin/marketing': typeof AuthenticatedAdminMarketingRouteRouteWithChildren
-  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
-  '/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
-  '/admin/billing': typeof AuthenticatedAdminBillingRoute
-  '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
-  '/admin/blog': typeof AuthenticatedAdminBlogRoute
-  '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
-  '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
-  '/admin/crm': typeof AuthenticatedAdminCrmRoute
-  '/admin/domains': typeof AuthenticatedAdminDomainsRoute
-  '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
-  '/admin/email-log': typeof AuthenticatedAdminEmailLogRoute
-  '/admin/environment': typeof AuthenticatedAdminEnvironmentRoute
-  '/admin/faqs': typeof AuthenticatedAdminFaqsRoute
-  '/admin/features': typeof AuthenticatedAdminFeaturesRoute
-  '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
-  '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
-  '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
-  '/admin/leads': typeof AuthenticatedAdminLeadsRoute
-  '/admin/logs': typeof AuthenticatedAdminLogsRoute
-  '/admin/navigation': typeof AuthenticatedAdminNavigationRoute
-  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
-  '/admin/pages': typeof AuthenticatedAdminPagesRoute
-  '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
-  '/admin/plans': typeof AuthenticatedAdminPlansRoute
-  '/admin/pool': typeof AuthenticatedAdminPoolRoute
-  '/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
-  '/admin/production': typeof AuthenticatedAdminProductionRoute
-  '/admin/providers': typeof AuthenticatedAdminProvidersRoute
-  '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
-  '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
-  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
-  '/admin/security': typeof AuthenticatedAdminSecurityRoute
-  '/admin/seo': typeof AuthenticatedAdminSeoRoute
-  '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
-  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
-  '/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
-  '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
-  '/admin/support': typeof AuthenticatedAdminSupportRoute
-  '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
-  '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
-  '/admin/unsubscribes': typeof AuthenticatedAdminUnsubscribesRoute
-  '/admin/usage': typeof AuthenticatedAdminUsageRoute
-  '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
-  '/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
-  '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
-  '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
+  '/mranuskhalid/audit': typeof AuthenticatedMranuskhalidAuditRoute
+  '/mranuskhalid/automations': typeof AuthenticatedMranuskhalidAutomationsRoute
+  '/mranuskhalid/billing': typeof AuthenticatedMranuskhalidBillingRoute
+  '/mranuskhalid/billing-providers': typeof AuthenticatedMranuskhalidBillingProvidersRoute
+  '/mranuskhalid/blog': typeof AuthenticatedMranuskhalidBlogRoute
+  '/mranuskhalid/campaigns': typeof AuthenticatedMranuskhalidCampaignsRoute
+  '/mranuskhalid/credits': typeof AuthenticatedMranuskhalidCreditsRouteWithChildren
+  '/mranuskhalid/crm': typeof AuthenticatedMranuskhalidCrmRoute
+  '/mranuskhalid/domains': typeof AuthenticatedMranuskhalidDomainsRoute
+  '/mranuskhalid/email-accounts': typeof AuthenticatedMranuskhalidEmailAccountsRoute
+  '/mranuskhalid/email-log': typeof AuthenticatedMranuskhalidEmailLogRoute
+  '/mranuskhalid/environment': typeof AuthenticatedMranuskhalidEnvironmentRoute
+  '/mranuskhalid/faqs': typeof AuthenticatedMranuskhalidFaqsRoute
+  '/mranuskhalid/features': typeof AuthenticatedMranuskhalidFeaturesRoute
+  '/mranuskhalid/inbound-events': typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
+  '/mranuskhalid/infrastructure': typeof AuthenticatedMranuskhalidInfrastructureRoute
+  '/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
+  '/mranuskhalid/leads': typeof AuthenticatedMranuskhalidLeadsRoute
+  '/mranuskhalid/logs': typeof AuthenticatedMranuskhalidLogsRoute
+  '/mranuskhalid/navigation': typeof AuthenticatedMranuskhalidNavigationRoute
+  '/mranuskhalid/notifications': typeof AuthenticatedMranuskhalidNotificationsRoute
+  '/mranuskhalid/pages': typeof AuthenticatedMranuskhalidPagesRoute
+  '/mranuskhalid/payments': typeof AuthenticatedMranuskhalidPaymentsRoute
+  '/mranuskhalid/plans': typeof AuthenticatedMranuskhalidPlansRoute
+  '/mranuskhalid/pool': typeof AuthenticatedMranuskhalidPoolRoute
+  '/mranuskhalid/privacy-requests': typeof AuthenticatedMranuskhalidPrivacyRequestsRoute
+  '/mranuskhalid/production': typeof AuthenticatedMranuskhalidProductionRoute
+  '/mranuskhalid/providers': typeof AuthenticatedMranuskhalidProvidersRoute
+  '/mranuskhalid/redirects': typeof AuthenticatedMranuskhalidRedirectsRoute
+  '/mranuskhalid/referrals': typeof AuthenticatedMranuskhalidReferralsRoute
+  '/mranuskhalid/reviews': typeof AuthenticatedMranuskhalidReviewsRoute
+  '/mranuskhalid/security': typeof AuthenticatedMranuskhalidSecurityRoute
+  '/mranuskhalid/seo': typeof AuthenticatedMranuskhalidSeoRoute
+  '/mranuskhalid/seo-files': typeof AuthenticatedMranuskhalidSeoFilesRoute
+  '/mranuskhalid/settings': typeof AuthenticatedMranuskhalidSettingsRoute
+  '/mranuskhalid/subprocessors': typeof AuthenticatedMranuskhalidSubprocessorsRoute
+  '/mranuskhalid/subscriptions': typeof AuthenticatedMranuskhalidSubscriptionsRoute
+  '/mranuskhalid/support': typeof AuthenticatedMranuskhalidSupportRoute
+  '/mranuskhalid/system-emails': typeof AuthenticatedMranuskhalidSystemEmailsRoute
+  '/mranuskhalid/templates': typeof AuthenticatedMranuskhalidTemplatesRoute
+  '/mranuskhalid/unsubscribes': typeof AuthenticatedMranuskhalidUnsubscribesRoute
+  '/mranuskhalid/usage': typeof AuthenticatedMranuskhalidUsageRoute
+  '/mranuskhalid/user-guide': typeof AuthenticatedMranuskhalidUserGuideRoute
+  '/mranuskhalid/users': typeof AuthenticatedMranuskhalidUsersRoute
+  '/mranuskhalid/warmup': typeof AuthenticatedMranuskhalidWarmupRoute
+  '/mranuskhalid/webhooks': typeof AuthenticatedMranuskhalidWebhooksRoute
+  '/mranuskhalid/workspaces': typeof AuthenticatedMranuskhalidWorkspacesRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
-  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
-  '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
-  '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
-  '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
-  '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
-  '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
-  '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
-  '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
-  '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
-  '/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
-  '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
-  '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
+  '/mranuskhalid/': typeof AuthenticatedMranuskhalidIndexRoute
+  '/mranuskhalid/credits/ledger': typeof AuthenticatedMranuskhalidCreditsLedgerRoute
+  '/mranuskhalid/inbound-events/$eventId': typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
+  '/mranuskhalid/marketing/analytics': typeof AuthenticatedMranuskhalidMarketingAnalyticsRoute
+  '/mranuskhalid/marketing/automations': typeof AuthenticatedMranuskhalidMarketingAutomationsRoute
+  '/mranuskhalid/marketing/campaigns': typeof AuthenticatedMranuskhalidMarketingCampaignsRoute
+  '/mranuskhalid/marketing/domains': typeof AuthenticatedMranuskhalidMarketingDomainsRoute
+  '/mranuskhalid/marketing/providers': typeof AuthenticatedMranuskhalidMarketingProvidersRoute
+  '/mranuskhalid/marketing/segments': typeof AuthenticatedMranuskhalidMarketingSegmentsRoute
+  '/mranuskhalid/marketing/settings': typeof AuthenticatedMranuskhalidMarketingSettingsRoute
+  '/mranuskhalid/marketing/subscribers': typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
+  '/mranuskhalid/marketing/templates': typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1422,7 +1436,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
-  '/admin/marketing/': typeof AuthenticatedAdminMarketingIndexRoute
+  '/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1516,74 +1530,74 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/help-center': typeof HelpCenterIndexRoute
   '/integrations': typeof IntegrationsIndexRoute
-  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
-  '/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/admin/automations': typeof AuthenticatedAdminAutomationsRoute
-  '/admin/billing': typeof AuthenticatedAdminBillingRoute
-  '/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
-  '/admin/blog': typeof AuthenticatedAdminBlogRoute
-  '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
-  '/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
-  '/admin/crm': typeof AuthenticatedAdminCrmRoute
-  '/admin/domains': typeof AuthenticatedAdminDomainsRoute
-  '/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
-  '/admin/email-log': typeof AuthenticatedAdminEmailLogRoute
-  '/admin/environment': typeof AuthenticatedAdminEnvironmentRoute
-  '/admin/faqs': typeof AuthenticatedAdminFaqsRoute
-  '/admin/features': typeof AuthenticatedAdminFeaturesRoute
-  '/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
-  '/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
-  '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
-  '/admin/leads': typeof AuthenticatedAdminLeadsRoute
-  '/admin/logs': typeof AuthenticatedAdminLogsRoute
-  '/admin/navigation': typeof AuthenticatedAdminNavigationRoute
-  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
-  '/admin/pages': typeof AuthenticatedAdminPagesRoute
-  '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
-  '/admin/plans': typeof AuthenticatedAdminPlansRoute
-  '/admin/pool': typeof AuthenticatedAdminPoolRoute
-  '/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
-  '/admin/production': typeof AuthenticatedAdminProductionRoute
-  '/admin/providers': typeof AuthenticatedAdminProvidersRoute
-  '/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
-  '/admin/referrals': typeof AuthenticatedAdminReferralsRoute
-  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
-  '/admin/security': typeof AuthenticatedAdminSecurityRoute
-  '/admin/seo': typeof AuthenticatedAdminSeoRoute
-  '/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
-  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
-  '/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
-  '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
-  '/admin/support': typeof AuthenticatedAdminSupportRoute
-  '/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
-  '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
-  '/admin/unsubscribes': typeof AuthenticatedAdminUnsubscribesRoute
-  '/admin/usage': typeof AuthenticatedAdminUsageRoute
-  '/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
-  '/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/admin/warmup': typeof AuthenticatedAdminWarmupRoute
-  '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
-  '/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
+  '/mranuskhalid/audit': typeof AuthenticatedMranuskhalidAuditRoute
+  '/mranuskhalid/automations': typeof AuthenticatedMranuskhalidAutomationsRoute
+  '/mranuskhalid/billing': typeof AuthenticatedMranuskhalidBillingRoute
+  '/mranuskhalid/billing-providers': typeof AuthenticatedMranuskhalidBillingProvidersRoute
+  '/mranuskhalid/blog': typeof AuthenticatedMranuskhalidBlogRoute
+  '/mranuskhalid/campaigns': typeof AuthenticatedMranuskhalidCampaignsRoute
+  '/mranuskhalid/credits': typeof AuthenticatedMranuskhalidCreditsRouteWithChildren
+  '/mranuskhalid/crm': typeof AuthenticatedMranuskhalidCrmRoute
+  '/mranuskhalid/domains': typeof AuthenticatedMranuskhalidDomainsRoute
+  '/mranuskhalid/email-accounts': typeof AuthenticatedMranuskhalidEmailAccountsRoute
+  '/mranuskhalid/email-log': typeof AuthenticatedMranuskhalidEmailLogRoute
+  '/mranuskhalid/environment': typeof AuthenticatedMranuskhalidEnvironmentRoute
+  '/mranuskhalid/faqs': typeof AuthenticatedMranuskhalidFaqsRoute
+  '/mranuskhalid/features': typeof AuthenticatedMranuskhalidFeaturesRoute
+  '/mranuskhalid/inbound-events': typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
+  '/mranuskhalid/infrastructure': typeof AuthenticatedMranuskhalidInfrastructureRoute
+  '/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
+  '/mranuskhalid/leads': typeof AuthenticatedMranuskhalidLeadsRoute
+  '/mranuskhalid/logs': typeof AuthenticatedMranuskhalidLogsRoute
+  '/mranuskhalid/navigation': typeof AuthenticatedMranuskhalidNavigationRoute
+  '/mranuskhalid/notifications': typeof AuthenticatedMranuskhalidNotificationsRoute
+  '/mranuskhalid/pages': typeof AuthenticatedMranuskhalidPagesRoute
+  '/mranuskhalid/payments': typeof AuthenticatedMranuskhalidPaymentsRoute
+  '/mranuskhalid/plans': typeof AuthenticatedMranuskhalidPlansRoute
+  '/mranuskhalid/pool': typeof AuthenticatedMranuskhalidPoolRoute
+  '/mranuskhalid/privacy-requests': typeof AuthenticatedMranuskhalidPrivacyRequestsRoute
+  '/mranuskhalid/production': typeof AuthenticatedMranuskhalidProductionRoute
+  '/mranuskhalid/providers': typeof AuthenticatedMranuskhalidProvidersRoute
+  '/mranuskhalid/redirects': typeof AuthenticatedMranuskhalidRedirectsRoute
+  '/mranuskhalid/referrals': typeof AuthenticatedMranuskhalidReferralsRoute
+  '/mranuskhalid/reviews': typeof AuthenticatedMranuskhalidReviewsRoute
+  '/mranuskhalid/security': typeof AuthenticatedMranuskhalidSecurityRoute
+  '/mranuskhalid/seo': typeof AuthenticatedMranuskhalidSeoRoute
+  '/mranuskhalid/seo-files': typeof AuthenticatedMranuskhalidSeoFilesRoute
+  '/mranuskhalid/settings': typeof AuthenticatedMranuskhalidSettingsRoute
+  '/mranuskhalid/subprocessors': typeof AuthenticatedMranuskhalidSubprocessorsRoute
+  '/mranuskhalid/subscriptions': typeof AuthenticatedMranuskhalidSubscriptionsRoute
+  '/mranuskhalid/support': typeof AuthenticatedMranuskhalidSupportRoute
+  '/mranuskhalid/system-emails': typeof AuthenticatedMranuskhalidSystemEmailsRoute
+  '/mranuskhalid/templates': typeof AuthenticatedMranuskhalidTemplatesRoute
+  '/mranuskhalid/unsubscribes': typeof AuthenticatedMranuskhalidUnsubscribesRoute
+  '/mranuskhalid/usage': typeof AuthenticatedMranuskhalidUsageRoute
+  '/mranuskhalid/user-guide': typeof AuthenticatedMranuskhalidUserGuideRoute
+  '/mranuskhalid/users': typeof AuthenticatedMranuskhalidUsersRoute
+  '/mranuskhalid/warmup': typeof AuthenticatedMranuskhalidWarmupRoute
+  '/mranuskhalid/webhooks': typeof AuthenticatedMranuskhalidWebhooksRoute
+  '/mranuskhalid/workspaces': typeof AuthenticatedMranuskhalidWorkspacesRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
-  '/admin': typeof AuthenticatedAdminIndexRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
-  '/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
-  '/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
-  '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
-  '/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
-  '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
-  '/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
-  '/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
-  '/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
-  '/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
-  '/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
-  '/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
+  '/mranuskhalid': typeof AuthenticatedMranuskhalidIndexRoute
+  '/mranuskhalid/credits/ledger': typeof AuthenticatedMranuskhalidCreditsLedgerRoute
+  '/mranuskhalid/inbound-events/$eventId': typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
+  '/mranuskhalid/marketing/analytics': typeof AuthenticatedMranuskhalidMarketingAnalyticsRoute
+  '/mranuskhalid/marketing/automations': typeof AuthenticatedMranuskhalidMarketingAutomationsRoute
+  '/mranuskhalid/marketing/campaigns': typeof AuthenticatedMranuskhalidMarketingCampaignsRoute
+  '/mranuskhalid/marketing/domains': typeof AuthenticatedMranuskhalidMarketingDomainsRoute
+  '/mranuskhalid/marketing/providers': typeof AuthenticatedMranuskhalidMarketingProvidersRoute
+  '/mranuskhalid/marketing/segments': typeof AuthenticatedMranuskhalidMarketingSegmentsRoute
+  '/mranuskhalid/marketing/settings': typeof AuthenticatedMranuskhalidMarketingSettingsRoute
+  '/mranuskhalid/marketing/subscribers': typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
+  '/mranuskhalid/marketing/templates': typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1611,7 +1625,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
-  '/admin/marketing': typeof AuthenticatedAdminMarketingIndexRoute
+  '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1668,7 +1682,7 @@ export interface FileRoutesById {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/_authenticated/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
@@ -1709,75 +1723,75 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
-  '/_authenticated/admin/marketing': typeof AuthenticatedAdminMarketingRouteRouteWithChildren
-  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
-  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/_authenticated/admin/automations': typeof AuthenticatedAdminAutomationsRoute
-  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
-  '/_authenticated/admin/billing-providers': typeof AuthenticatedAdminBillingProvidersRoute
-  '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRoute
-  '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
-  '/_authenticated/admin/credits': typeof AuthenticatedAdminCreditsRouteWithChildren
-  '/_authenticated/admin/crm': typeof AuthenticatedAdminCrmRoute
-  '/_authenticated/admin/domains': typeof AuthenticatedAdminDomainsRoute
-  '/_authenticated/admin/email-accounts': typeof AuthenticatedAdminEmailAccountsRoute
-  '/_authenticated/admin/email-log': typeof AuthenticatedAdminEmailLogRoute
-  '/_authenticated/admin/environment': typeof AuthenticatedAdminEnvironmentRoute
-  '/_authenticated/admin/faqs': typeof AuthenticatedAdminFaqsRoute
-  '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
-  '/_authenticated/admin/inbound-events': typeof AuthenticatedAdminInboundEventsRouteWithChildren
-  '/_authenticated/admin/infrastructure': typeof AuthenticatedAdminInfrastructureRoute
-  '/_authenticated/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
-  '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
-  '/_authenticated/admin/logs': typeof AuthenticatedAdminLogsRoute
-  '/_authenticated/admin/navigation': typeof AuthenticatedAdminNavigationRoute
-  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
-  '/_authenticated/admin/pages': typeof AuthenticatedAdminPagesRoute
-  '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
-  '/_authenticated/admin/plans': typeof AuthenticatedAdminPlansRoute
-  '/_authenticated/admin/pool': typeof AuthenticatedAdminPoolRoute
-  '/_authenticated/admin/privacy-requests': typeof AuthenticatedAdminPrivacyRequestsRoute
-  '/_authenticated/admin/production': typeof AuthenticatedAdminProductionRoute
-  '/_authenticated/admin/providers': typeof AuthenticatedAdminProvidersRoute
-  '/_authenticated/admin/redirects': typeof AuthenticatedAdminRedirectsRoute
-  '/_authenticated/admin/referrals': typeof AuthenticatedAdminReferralsRoute
-  '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
-  '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
-  '/_authenticated/admin/seo': typeof AuthenticatedAdminSeoRoute
-  '/_authenticated/admin/seo-files': typeof AuthenticatedAdminSeoFilesRoute
-  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
-  '/_authenticated/admin/subprocessors': typeof AuthenticatedAdminSubprocessorsRoute
-  '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
-  '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
-  '/_authenticated/admin/system-emails': typeof AuthenticatedAdminSystemEmailsRoute
-  '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
-  '/_authenticated/admin/unsubscribes': typeof AuthenticatedAdminUnsubscribesRoute
-  '/_authenticated/admin/usage': typeof AuthenticatedAdminUsageRoute
-  '/_authenticated/admin/user-guide': typeof AuthenticatedAdminUserGuideRoute
-  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/_authenticated/admin/warmup': typeof AuthenticatedAdminWarmupRoute
-  '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
-  '/_authenticated/admin/workspaces': typeof AuthenticatedAdminWorkspacesRoute
+  '/_authenticated/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
   '/_authenticated/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/_authenticated/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/_authenticated/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
+  '/_authenticated/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
+  '/_authenticated/mranuskhalid/audit': typeof AuthenticatedMranuskhalidAuditRoute
+  '/_authenticated/mranuskhalid/automations': typeof AuthenticatedMranuskhalidAutomationsRoute
+  '/_authenticated/mranuskhalid/billing': typeof AuthenticatedMranuskhalidBillingRoute
+  '/_authenticated/mranuskhalid/billing-providers': typeof AuthenticatedMranuskhalidBillingProvidersRoute
+  '/_authenticated/mranuskhalid/blog': typeof AuthenticatedMranuskhalidBlogRoute
+  '/_authenticated/mranuskhalid/campaigns': typeof AuthenticatedMranuskhalidCampaignsRoute
+  '/_authenticated/mranuskhalid/credits': typeof AuthenticatedMranuskhalidCreditsRouteWithChildren
+  '/_authenticated/mranuskhalid/crm': typeof AuthenticatedMranuskhalidCrmRoute
+  '/_authenticated/mranuskhalid/domains': typeof AuthenticatedMranuskhalidDomainsRoute
+  '/_authenticated/mranuskhalid/email-accounts': typeof AuthenticatedMranuskhalidEmailAccountsRoute
+  '/_authenticated/mranuskhalid/email-log': typeof AuthenticatedMranuskhalidEmailLogRoute
+  '/_authenticated/mranuskhalid/environment': typeof AuthenticatedMranuskhalidEnvironmentRoute
+  '/_authenticated/mranuskhalid/faqs': typeof AuthenticatedMranuskhalidFaqsRoute
+  '/_authenticated/mranuskhalid/features': typeof AuthenticatedMranuskhalidFeaturesRoute
+  '/_authenticated/mranuskhalid/inbound-events': typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
+  '/_authenticated/mranuskhalid/infrastructure': typeof AuthenticatedMranuskhalidInfrastructureRoute
+  '/_authenticated/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
+  '/_authenticated/mranuskhalid/leads': typeof AuthenticatedMranuskhalidLeadsRoute
+  '/_authenticated/mranuskhalid/logs': typeof AuthenticatedMranuskhalidLogsRoute
+  '/_authenticated/mranuskhalid/navigation': typeof AuthenticatedMranuskhalidNavigationRoute
+  '/_authenticated/mranuskhalid/notifications': typeof AuthenticatedMranuskhalidNotificationsRoute
+  '/_authenticated/mranuskhalid/pages': typeof AuthenticatedMranuskhalidPagesRoute
+  '/_authenticated/mranuskhalid/payments': typeof AuthenticatedMranuskhalidPaymentsRoute
+  '/_authenticated/mranuskhalid/plans': typeof AuthenticatedMranuskhalidPlansRoute
+  '/_authenticated/mranuskhalid/pool': typeof AuthenticatedMranuskhalidPoolRoute
+  '/_authenticated/mranuskhalid/privacy-requests': typeof AuthenticatedMranuskhalidPrivacyRequestsRoute
+  '/_authenticated/mranuskhalid/production': typeof AuthenticatedMranuskhalidProductionRoute
+  '/_authenticated/mranuskhalid/providers': typeof AuthenticatedMranuskhalidProvidersRoute
+  '/_authenticated/mranuskhalid/redirects': typeof AuthenticatedMranuskhalidRedirectsRoute
+  '/_authenticated/mranuskhalid/referrals': typeof AuthenticatedMranuskhalidReferralsRoute
+  '/_authenticated/mranuskhalid/reviews': typeof AuthenticatedMranuskhalidReviewsRoute
+  '/_authenticated/mranuskhalid/security': typeof AuthenticatedMranuskhalidSecurityRoute
+  '/_authenticated/mranuskhalid/seo': typeof AuthenticatedMranuskhalidSeoRoute
+  '/_authenticated/mranuskhalid/seo-files': typeof AuthenticatedMranuskhalidSeoFilesRoute
+  '/_authenticated/mranuskhalid/settings': typeof AuthenticatedMranuskhalidSettingsRoute
+  '/_authenticated/mranuskhalid/subprocessors': typeof AuthenticatedMranuskhalidSubprocessorsRoute
+  '/_authenticated/mranuskhalid/subscriptions': typeof AuthenticatedMranuskhalidSubscriptionsRoute
+  '/_authenticated/mranuskhalid/support': typeof AuthenticatedMranuskhalidSupportRoute
+  '/_authenticated/mranuskhalid/system-emails': typeof AuthenticatedMranuskhalidSystemEmailsRoute
+  '/_authenticated/mranuskhalid/templates': typeof AuthenticatedMranuskhalidTemplatesRoute
+  '/_authenticated/mranuskhalid/unsubscribes': typeof AuthenticatedMranuskhalidUnsubscribesRoute
+  '/_authenticated/mranuskhalid/usage': typeof AuthenticatedMranuskhalidUsageRoute
+  '/_authenticated/mranuskhalid/user-guide': typeof AuthenticatedMranuskhalidUserGuideRoute
+  '/_authenticated/mranuskhalid/users': typeof AuthenticatedMranuskhalidUsersRoute
+  '/_authenticated/mranuskhalid/warmup': typeof AuthenticatedMranuskhalidWarmupRoute
+  '/_authenticated/mranuskhalid/webhooks': typeof AuthenticatedMranuskhalidWebhooksRoute
+  '/_authenticated/mranuskhalid/workspaces': typeof AuthenticatedMranuskhalidWorkspacesRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
-  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
-  '/_authenticated/admin/credits/ledger': typeof AuthenticatedAdminCreditsLedgerRoute
-  '/_authenticated/admin/inbound-events/$eventId': typeof AuthenticatedAdminInboundEventsEventIdRoute
-  '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
-  '/_authenticated/admin/marketing/automations': typeof AuthenticatedAdminMarketingAutomationsRoute
-  '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
-  '/_authenticated/admin/marketing/domains': typeof AuthenticatedAdminMarketingDomainsRoute
-  '/_authenticated/admin/marketing/providers': typeof AuthenticatedAdminMarketingProvidersRoute
-  '/_authenticated/admin/marketing/segments': typeof AuthenticatedAdminMarketingSegmentsRoute
-  '/_authenticated/admin/marketing/settings': typeof AuthenticatedAdminMarketingSettingsRoute
-  '/_authenticated/admin/marketing/subscribers': typeof AuthenticatedAdminMarketingSubscribersRoute
-  '/_authenticated/admin/marketing/templates': typeof AuthenticatedAdminMarketingTemplatesRoute
+  '/_authenticated/mranuskhalid/': typeof AuthenticatedMranuskhalidIndexRoute
+  '/_authenticated/mranuskhalid/credits/ledger': typeof AuthenticatedMranuskhalidCreditsLedgerRoute
+  '/_authenticated/mranuskhalid/inbound-events/$eventId': typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
+  '/_authenticated/mranuskhalid/marketing/analytics': typeof AuthenticatedMranuskhalidMarketingAnalyticsRoute
+  '/_authenticated/mranuskhalid/marketing/automations': typeof AuthenticatedMranuskhalidMarketingAutomationsRoute
+  '/_authenticated/mranuskhalid/marketing/campaigns': typeof AuthenticatedMranuskhalidMarketingCampaignsRoute
+  '/_authenticated/mranuskhalid/marketing/domains': typeof AuthenticatedMranuskhalidMarketingDomainsRoute
+  '/_authenticated/mranuskhalid/marketing/providers': typeof AuthenticatedMranuskhalidMarketingProvidersRoute
+  '/_authenticated/mranuskhalid/marketing/segments': typeof AuthenticatedMranuskhalidMarketingSegmentsRoute
+  '/_authenticated/mranuskhalid/marketing/settings': typeof AuthenticatedMranuskhalidMarketingSettingsRoute
+  '/_authenticated/mranuskhalid/marketing/subscribers': typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
+  '/_authenticated/mranuskhalid/marketing/templates': typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
@@ -1805,7 +1819,7 @@ export interface FileRoutesById {
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
-  '/_authenticated/admin/marketing/': typeof AuthenticatedAdminMarketingIndexRoute
+  '/_authenticated/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1862,7 +1876,7 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
-    | '/admin'
+    | '/mranuskhalid'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -1903,75 +1917,75 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/help-center/'
     | '/integrations/'
-    | '/admin/marketing'
-    | '/admin/analytics'
-    | '/admin/audit'
-    | '/admin/automations'
-    | '/admin/billing'
-    | '/admin/billing-providers'
-    | '/admin/blog'
-    | '/admin/campaigns'
-    | '/admin/credits'
-    | '/admin/crm'
-    | '/admin/domains'
-    | '/admin/email-accounts'
-    | '/admin/email-log'
-    | '/admin/environment'
-    | '/admin/faqs'
-    | '/admin/features'
-    | '/admin/inbound-events'
-    | '/admin/infrastructure'
-    | '/admin/integrations'
-    | '/admin/leads'
-    | '/admin/logs'
-    | '/admin/navigation'
-    | '/admin/notifications'
-    | '/admin/pages'
-    | '/admin/payments'
-    | '/admin/plans'
-    | '/admin/pool'
-    | '/admin/privacy-requests'
-    | '/admin/production'
-    | '/admin/providers'
-    | '/admin/redirects'
-    | '/admin/referrals'
-    | '/admin/reviews'
-    | '/admin/security'
-    | '/admin/seo'
-    | '/admin/seo-files'
-    | '/admin/settings'
-    | '/admin/subprocessors'
-    | '/admin/subscriptions'
-    | '/admin/support'
-    | '/admin/system-emails'
-    | '/admin/templates'
-    | '/admin/unsubscribes'
-    | '/admin/usage'
-    | '/admin/user-guide'
-    | '/admin/users'
-    | '/admin/warmup'
-    | '/admin/webhooks'
-    | '/admin/workspaces'
+    | '/mranuskhalid/marketing'
     | '/automations/$id'
     | '/automations/activity'
     | '/automations/workflows'
     | '/campaigns/$campaignId'
+    | '/mranuskhalid/analytics'
+    | '/mranuskhalid/audit'
+    | '/mranuskhalid/automations'
+    | '/mranuskhalid/billing'
+    | '/mranuskhalid/billing-providers'
+    | '/mranuskhalid/blog'
+    | '/mranuskhalid/campaigns'
+    | '/mranuskhalid/credits'
+    | '/mranuskhalid/crm'
+    | '/mranuskhalid/domains'
+    | '/mranuskhalid/email-accounts'
+    | '/mranuskhalid/email-log'
+    | '/mranuskhalid/environment'
+    | '/mranuskhalid/faqs'
+    | '/mranuskhalid/features'
+    | '/mranuskhalid/inbound-events'
+    | '/mranuskhalid/infrastructure'
+    | '/mranuskhalid/integrations'
+    | '/mranuskhalid/leads'
+    | '/mranuskhalid/logs'
+    | '/mranuskhalid/navigation'
+    | '/mranuskhalid/notifications'
+    | '/mranuskhalid/pages'
+    | '/mranuskhalid/payments'
+    | '/mranuskhalid/plans'
+    | '/mranuskhalid/pool'
+    | '/mranuskhalid/privacy-requests'
+    | '/mranuskhalid/production'
+    | '/mranuskhalid/providers'
+    | '/mranuskhalid/redirects'
+    | '/mranuskhalid/referrals'
+    | '/mranuskhalid/reviews'
+    | '/mranuskhalid/security'
+    | '/mranuskhalid/seo'
+    | '/mranuskhalid/seo-files'
+    | '/mranuskhalid/settings'
+    | '/mranuskhalid/subprocessors'
+    | '/mranuskhalid/subscriptions'
+    | '/mranuskhalid/support'
+    | '/mranuskhalid/system-emails'
+    | '/mranuskhalid/templates'
+    | '/mranuskhalid/unsubscribes'
+    | '/mranuskhalid/usage'
+    | '/mranuskhalid/user-guide'
+    | '/mranuskhalid/users'
+    | '/mranuskhalid/warmup'
+    | '/mranuskhalid/webhooks'
+    | '/mranuskhalid/workspaces'
     | '/api/public/unsubscribe'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
-    | '/admin/'
     | '/campaigns/'
-    | '/admin/credits/ledger'
-    | '/admin/inbound-events/$eventId'
-    | '/admin/marketing/analytics'
-    | '/admin/marketing/automations'
-    | '/admin/marketing/campaigns'
-    | '/admin/marketing/domains'
-    | '/admin/marketing/providers'
-    | '/admin/marketing/segments'
-    | '/admin/marketing/settings'
-    | '/admin/marketing/subscribers'
-    | '/admin/marketing/templates'
+    | '/mranuskhalid/'
+    | '/mranuskhalid/credits/ledger'
+    | '/mranuskhalid/inbound-events/$eventId'
+    | '/mranuskhalid/marketing/analytics'
+    | '/mranuskhalid/marketing/automations'
+    | '/mranuskhalid/marketing/campaigns'
+    | '/mranuskhalid/marketing/domains'
+    | '/mranuskhalid/marketing/providers'
+    | '/mranuskhalid/marketing/segments'
+    | '/mranuskhalid/marketing/settings'
+    | '/mranuskhalid/marketing/subscribers'
+    | '/mranuskhalid/marketing/templates'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -1999,7 +2013,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
-    | '/admin/marketing/'
+    | '/mranuskhalid/marketing/'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2093,74 +2107,74 @@ export interface FileRouteTypes {
     | '/blog'
     | '/help-center'
     | '/integrations'
-    | '/admin/analytics'
-    | '/admin/audit'
-    | '/admin/automations'
-    | '/admin/billing'
-    | '/admin/billing-providers'
-    | '/admin/blog'
-    | '/admin/campaigns'
-    | '/admin/credits'
-    | '/admin/crm'
-    | '/admin/domains'
-    | '/admin/email-accounts'
-    | '/admin/email-log'
-    | '/admin/environment'
-    | '/admin/faqs'
-    | '/admin/features'
-    | '/admin/inbound-events'
-    | '/admin/infrastructure'
-    | '/admin/integrations'
-    | '/admin/leads'
-    | '/admin/logs'
-    | '/admin/navigation'
-    | '/admin/notifications'
-    | '/admin/pages'
-    | '/admin/payments'
-    | '/admin/plans'
-    | '/admin/pool'
-    | '/admin/privacy-requests'
-    | '/admin/production'
-    | '/admin/providers'
-    | '/admin/redirects'
-    | '/admin/referrals'
-    | '/admin/reviews'
-    | '/admin/security'
-    | '/admin/seo'
-    | '/admin/seo-files'
-    | '/admin/settings'
-    | '/admin/subprocessors'
-    | '/admin/subscriptions'
-    | '/admin/support'
-    | '/admin/system-emails'
-    | '/admin/templates'
-    | '/admin/unsubscribes'
-    | '/admin/usage'
-    | '/admin/user-guide'
-    | '/admin/users'
-    | '/admin/warmup'
-    | '/admin/webhooks'
-    | '/admin/workspaces'
     | '/automations/$id'
     | '/automations/activity'
     | '/automations/workflows'
     | '/campaigns/$campaignId'
+    | '/mranuskhalid/analytics'
+    | '/mranuskhalid/audit'
+    | '/mranuskhalid/automations'
+    | '/mranuskhalid/billing'
+    | '/mranuskhalid/billing-providers'
+    | '/mranuskhalid/blog'
+    | '/mranuskhalid/campaigns'
+    | '/mranuskhalid/credits'
+    | '/mranuskhalid/crm'
+    | '/mranuskhalid/domains'
+    | '/mranuskhalid/email-accounts'
+    | '/mranuskhalid/email-log'
+    | '/mranuskhalid/environment'
+    | '/mranuskhalid/faqs'
+    | '/mranuskhalid/features'
+    | '/mranuskhalid/inbound-events'
+    | '/mranuskhalid/infrastructure'
+    | '/mranuskhalid/integrations'
+    | '/mranuskhalid/leads'
+    | '/mranuskhalid/logs'
+    | '/mranuskhalid/navigation'
+    | '/mranuskhalid/notifications'
+    | '/mranuskhalid/pages'
+    | '/mranuskhalid/payments'
+    | '/mranuskhalid/plans'
+    | '/mranuskhalid/pool'
+    | '/mranuskhalid/privacy-requests'
+    | '/mranuskhalid/production'
+    | '/mranuskhalid/providers'
+    | '/mranuskhalid/redirects'
+    | '/mranuskhalid/referrals'
+    | '/mranuskhalid/reviews'
+    | '/mranuskhalid/security'
+    | '/mranuskhalid/seo'
+    | '/mranuskhalid/seo-files'
+    | '/mranuskhalid/settings'
+    | '/mranuskhalid/subprocessors'
+    | '/mranuskhalid/subscriptions'
+    | '/mranuskhalid/support'
+    | '/mranuskhalid/system-emails'
+    | '/mranuskhalid/templates'
+    | '/mranuskhalid/unsubscribes'
+    | '/mranuskhalid/usage'
+    | '/mranuskhalid/user-guide'
+    | '/mranuskhalid/users'
+    | '/mranuskhalid/warmup'
+    | '/mranuskhalid/webhooks'
+    | '/mranuskhalid/workspaces'
     | '/api/public/unsubscribe'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
-    | '/admin'
     | '/campaigns'
-    | '/admin/credits/ledger'
-    | '/admin/inbound-events/$eventId'
-    | '/admin/marketing/analytics'
-    | '/admin/marketing/automations'
-    | '/admin/marketing/campaigns'
-    | '/admin/marketing/domains'
-    | '/admin/marketing/providers'
-    | '/admin/marketing/segments'
-    | '/admin/marketing/settings'
-    | '/admin/marketing/subscribers'
-    | '/admin/marketing/templates'
+    | '/mranuskhalid'
+    | '/mranuskhalid/credits/ledger'
+    | '/mranuskhalid/inbound-events/$eventId'
+    | '/mranuskhalid/marketing/analytics'
+    | '/mranuskhalid/marketing/automations'
+    | '/mranuskhalid/marketing/campaigns'
+    | '/mranuskhalid/marketing/domains'
+    | '/mranuskhalid/marketing/providers'
+    | '/mranuskhalid/marketing/segments'
+    | '/mranuskhalid/marketing/settings'
+    | '/mranuskhalid/marketing/subscribers'
+    | '/mranuskhalid/marketing/templates'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -2188,7 +2202,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
-    | '/admin/marketing'
+    | '/mranuskhalid/marketing'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2244,7 +2258,7 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
-    | '/_authenticated/admin'
+    | '/_authenticated/mranuskhalid'
     | '/_authenticated/analytics'
     | '/_authenticated/billing'
     | '/_authenticated/crm'
@@ -2285,75 +2299,75 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/help-center/'
     | '/integrations/'
-    | '/_authenticated/admin/marketing'
-    | '/_authenticated/admin/analytics'
-    | '/_authenticated/admin/audit'
-    | '/_authenticated/admin/automations'
-    | '/_authenticated/admin/billing'
-    | '/_authenticated/admin/billing-providers'
-    | '/_authenticated/admin/blog'
-    | '/_authenticated/admin/campaigns'
-    | '/_authenticated/admin/credits'
-    | '/_authenticated/admin/crm'
-    | '/_authenticated/admin/domains'
-    | '/_authenticated/admin/email-accounts'
-    | '/_authenticated/admin/email-log'
-    | '/_authenticated/admin/environment'
-    | '/_authenticated/admin/faqs'
-    | '/_authenticated/admin/features'
-    | '/_authenticated/admin/inbound-events'
-    | '/_authenticated/admin/infrastructure'
-    | '/_authenticated/admin/integrations'
-    | '/_authenticated/admin/leads'
-    | '/_authenticated/admin/logs'
-    | '/_authenticated/admin/navigation'
-    | '/_authenticated/admin/notifications'
-    | '/_authenticated/admin/pages'
-    | '/_authenticated/admin/payments'
-    | '/_authenticated/admin/plans'
-    | '/_authenticated/admin/pool'
-    | '/_authenticated/admin/privacy-requests'
-    | '/_authenticated/admin/production'
-    | '/_authenticated/admin/providers'
-    | '/_authenticated/admin/redirects'
-    | '/_authenticated/admin/referrals'
-    | '/_authenticated/admin/reviews'
-    | '/_authenticated/admin/security'
-    | '/_authenticated/admin/seo'
-    | '/_authenticated/admin/seo-files'
-    | '/_authenticated/admin/settings'
-    | '/_authenticated/admin/subprocessors'
-    | '/_authenticated/admin/subscriptions'
-    | '/_authenticated/admin/support'
-    | '/_authenticated/admin/system-emails'
-    | '/_authenticated/admin/templates'
-    | '/_authenticated/admin/unsubscribes'
-    | '/_authenticated/admin/usage'
-    | '/_authenticated/admin/user-guide'
-    | '/_authenticated/admin/users'
-    | '/_authenticated/admin/warmup'
-    | '/_authenticated/admin/webhooks'
-    | '/_authenticated/admin/workspaces'
+    | '/_authenticated/mranuskhalid/marketing'
     | '/_authenticated/automations/$id'
     | '/_authenticated/automations/activity'
     | '/_authenticated/automations/workflows'
     | '/_authenticated/campaigns/$campaignId'
+    | '/_authenticated/mranuskhalid/analytics'
+    | '/_authenticated/mranuskhalid/audit'
+    | '/_authenticated/mranuskhalid/automations'
+    | '/_authenticated/mranuskhalid/billing'
+    | '/_authenticated/mranuskhalid/billing-providers'
+    | '/_authenticated/mranuskhalid/blog'
+    | '/_authenticated/mranuskhalid/campaigns'
+    | '/_authenticated/mranuskhalid/credits'
+    | '/_authenticated/mranuskhalid/crm'
+    | '/_authenticated/mranuskhalid/domains'
+    | '/_authenticated/mranuskhalid/email-accounts'
+    | '/_authenticated/mranuskhalid/email-log'
+    | '/_authenticated/mranuskhalid/environment'
+    | '/_authenticated/mranuskhalid/faqs'
+    | '/_authenticated/mranuskhalid/features'
+    | '/_authenticated/mranuskhalid/inbound-events'
+    | '/_authenticated/mranuskhalid/infrastructure'
+    | '/_authenticated/mranuskhalid/integrations'
+    | '/_authenticated/mranuskhalid/leads'
+    | '/_authenticated/mranuskhalid/logs'
+    | '/_authenticated/mranuskhalid/navigation'
+    | '/_authenticated/mranuskhalid/notifications'
+    | '/_authenticated/mranuskhalid/pages'
+    | '/_authenticated/mranuskhalid/payments'
+    | '/_authenticated/mranuskhalid/plans'
+    | '/_authenticated/mranuskhalid/pool'
+    | '/_authenticated/mranuskhalid/privacy-requests'
+    | '/_authenticated/mranuskhalid/production'
+    | '/_authenticated/mranuskhalid/providers'
+    | '/_authenticated/mranuskhalid/redirects'
+    | '/_authenticated/mranuskhalid/referrals'
+    | '/_authenticated/mranuskhalid/reviews'
+    | '/_authenticated/mranuskhalid/security'
+    | '/_authenticated/mranuskhalid/seo'
+    | '/_authenticated/mranuskhalid/seo-files'
+    | '/_authenticated/mranuskhalid/settings'
+    | '/_authenticated/mranuskhalid/subprocessors'
+    | '/_authenticated/mranuskhalid/subscriptions'
+    | '/_authenticated/mranuskhalid/support'
+    | '/_authenticated/mranuskhalid/system-emails'
+    | '/_authenticated/mranuskhalid/templates'
+    | '/_authenticated/mranuskhalid/unsubscribes'
+    | '/_authenticated/mranuskhalid/usage'
+    | '/_authenticated/mranuskhalid/user-guide'
+    | '/_authenticated/mranuskhalid/users'
+    | '/_authenticated/mranuskhalid/warmup'
+    | '/_authenticated/mranuskhalid/webhooks'
+    | '/_authenticated/mranuskhalid/workspaces'
     | '/api/public/unsubscribe'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
-    | '/_authenticated/admin/'
     | '/_authenticated/campaigns/'
-    | '/_authenticated/admin/credits/ledger'
-    | '/_authenticated/admin/inbound-events/$eventId'
-    | '/_authenticated/admin/marketing/analytics'
-    | '/_authenticated/admin/marketing/automations'
-    | '/_authenticated/admin/marketing/campaigns'
-    | '/_authenticated/admin/marketing/domains'
-    | '/_authenticated/admin/marketing/providers'
-    | '/_authenticated/admin/marketing/segments'
-    | '/_authenticated/admin/marketing/settings'
-    | '/_authenticated/admin/marketing/subscribers'
-    | '/_authenticated/admin/marketing/templates'
+    | '/_authenticated/mranuskhalid/'
+    | '/_authenticated/mranuskhalid/credits/ledger'
+    | '/_authenticated/mranuskhalid/inbound-events/$eventId'
+    | '/_authenticated/mranuskhalid/marketing/analytics'
+    | '/_authenticated/mranuskhalid/marketing/automations'
+    | '/_authenticated/mranuskhalid/marketing/campaigns'
+    | '/_authenticated/mranuskhalid/marketing/domains'
+    | '/_authenticated/mranuskhalid/marketing/providers'
+    | '/_authenticated/mranuskhalid/marketing/segments'
+    | '/_authenticated/mranuskhalid/marketing/settings'
+    | '/_authenticated/mranuskhalid/marketing/subscribers'
+    | '/_authenticated/mranuskhalid/marketing/templates'
     | '/api/public/automations/$token'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
@@ -2381,7 +2395,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
-    | '/_authenticated/admin/marketing/'
+    | '/_authenticated/mranuskhalid/marketing/'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2788,13 +2802,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WhyMunchreachRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/analytics': {
       id: '/_authenticated/analytics'
       path: '/analytics'
@@ -2842,6 +2849,13 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/leads'
       preLoaderRoute: typeof AuthenticatedLeadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mranuskhalid': {
+      id: '/_authenticated/mranuskhalid'
+      path: '/mranuskhalid'
+      fullPath: '/mranuskhalid'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -3075,356 +3089,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SolutionsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/': {
-      id: '/_authenticated/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/analytics': {
-      id: '/_authenticated/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/audit': {
-      id: '/_authenticated/admin/audit'
-      path: '/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/automations': {
-      id: '/_authenticated/admin/automations'
-      path: '/automations'
-      fullPath: '/admin/automations'
-      preLoaderRoute: typeof AuthenticatedAdminAutomationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/billing': {
-      id: '/_authenticated/admin/billing'
-      path: '/billing'
-      fullPath: '/admin/billing'
-      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/billing-providers': {
-      id: '/_authenticated/admin/billing-providers'
-      path: '/billing-providers'
-      fullPath: '/admin/billing-providers'
-      preLoaderRoute: typeof AuthenticatedAdminBillingProvidersRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/blog': {
-      id: '/_authenticated/admin/blog'
-      path: '/blog'
-      fullPath: '/admin/blog'
-      preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/campaigns': {
-      id: '/_authenticated/admin/campaigns'
-      path: '/campaigns'
-      fullPath: '/admin/campaigns'
-      preLoaderRoute: typeof AuthenticatedAdminCampaignsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/credits': {
-      id: '/_authenticated/admin/credits'
-      path: '/credits'
-      fullPath: '/admin/credits'
-      preLoaderRoute: typeof AuthenticatedAdminCreditsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/crm': {
-      id: '/_authenticated/admin/crm'
-      path: '/crm'
-      fullPath: '/admin/crm'
-      preLoaderRoute: typeof AuthenticatedAdminCrmRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/domains': {
-      id: '/_authenticated/admin/domains'
-      path: '/domains'
-      fullPath: '/admin/domains'
-      preLoaderRoute: typeof AuthenticatedAdminDomainsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/email-accounts': {
-      id: '/_authenticated/admin/email-accounts'
-      path: '/email-accounts'
-      fullPath: '/admin/email-accounts'
-      preLoaderRoute: typeof AuthenticatedAdminEmailAccountsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/email-log': {
-      id: '/_authenticated/admin/email-log'
-      path: '/email-log'
-      fullPath: '/admin/email-log'
-      preLoaderRoute: typeof AuthenticatedAdminEmailLogRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/environment': {
-      id: '/_authenticated/admin/environment'
-      path: '/environment'
-      fullPath: '/admin/environment'
-      preLoaderRoute: typeof AuthenticatedAdminEnvironmentRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/faqs': {
-      id: '/_authenticated/admin/faqs'
-      path: '/faqs'
-      fullPath: '/admin/faqs'
-      preLoaderRoute: typeof AuthenticatedAdminFaqsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/features': {
-      id: '/_authenticated/admin/features'
-      path: '/features'
-      fullPath: '/admin/features'
-      preLoaderRoute: typeof AuthenticatedAdminFeaturesRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/inbound-events': {
-      id: '/_authenticated/admin/inbound-events'
-      path: '/inbound-events'
-      fullPath: '/admin/inbound-events'
-      preLoaderRoute: typeof AuthenticatedAdminInboundEventsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/infrastructure': {
-      id: '/_authenticated/admin/infrastructure'
-      path: '/infrastructure'
-      fullPath: '/admin/infrastructure'
-      preLoaderRoute: typeof AuthenticatedAdminInfrastructureRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/integrations': {
-      id: '/_authenticated/admin/integrations'
-      path: '/integrations'
-      fullPath: '/admin/integrations'
-      preLoaderRoute: typeof AuthenticatedAdminIntegrationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/leads': {
-      id: '/_authenticated/admin/leads'
-      path: '/leads'
-      fullPath: '/admin/leads'
-      preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/logs': {
-      id: '/_authenticated/admin/logs'
-      path: '/logs'
-      fullPath: '/admin/logs'
-      preLoaderRoute: typeof AuthenticatedAdminLogsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/marketing': {
-      id: '/_authenticated/admin/marketing'
-      path: '/marketing'
-      fullPath: '/admin/marketing'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingRouteRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/navigation': {
-      id: '/_authenticated/admin/navigation'
-      path: '/navigation'
-      fullPath: '/admin/navigation'
-      preLoaderRoute: typeof AuthenticatedAdminNavigationRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/notifications': {
-      id: '/_authenticated/admin/notifications'
-      path: '/notifications'
-      fullPath: '/admin/notifications'
-      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/pages': {
-      id: '/_authenticated/admin/pages'
-      path: '/pages'
-      fullPath: '/admin/pages'
-      preLoaderRoute: typeof AuthenticatedAdminPagesRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/payments': {
-      id: '/_authenticated/admin/payments'
-      path: '/payments'
-      fullPath: '/admin/payments'
-      preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/plans': {
-      id: '/_authenticated/admin/plans'
-      path: '/plans'
-      fullPath: '/admin/plans'
-      preLoaderRoute: typeof AuthenticatedAdminPlansRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/pool': {
-      id: '/_authenticated/admin/pool'
-      path: '/pool'
-      fullPath: '/admin/pool'
-      preLoaderRoute: typeof AuthenticatedAdminPoolRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/privacy-requests': {
-      id: '/_authenticated/admin/privacy-requests'
-      path: '/privacy-requests'
-      fullPath: '/admin/privacy-requests'
-      preLoaderRoute: typeof AuthenticatedAdminPrivacyRequestsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/production': {
-      id: '/_authenticated/admin/production'
-      path: '/production'
-      fullPath: '/admin/production'
-      preLoaderRoute: typeof AuthenticatedAdminProductionRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/providers': {
-      id: '/_authenticated/admin/providers'
-      path: '/providers'
-      fullPath: '/admin/providers'
-      preLoaderRoute: typeof AuthenticatedAdminProvidersRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/redirects': {
-      id: '/_authenticated/admin/redirects'
-      path: '/redirects'
-      fullPath: '/admin/redirects'
-      preLoaderRoute: typeof AuthenticatedAdminRedirectsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/referrals': {
-      id: '/_authenticated/admin/referrals'
-      path: '/referrals'
-      fullPath: '/admin/referrals'
-      preLoaderRoute: typeof AuthenticatedAdminReferralsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/reviews': {
-      id: '/_authenticated/admin/reviews'
-      path: '/reviews'
-      fullPath: '/admin/reviews'
-      preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/security': {
-      id: '/_authenticated/admin/security'
-      path: '/security'
-      fullPath: '/admin/security'
-      preLoaderRoute: typeof AuthenticatedAdminSecurityRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/seo': {
-      id: '/_authenticated/admin/seo'
-      path: '/seo'
-      fullPath: '/admin/seo'
-      preLoaderRoute: typeof AuthenticatedAdminSeoRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/seo-files': {
-      id: '/_authenticated/admin/seo-files'
-      path: '/seo-files'
-      fullPath: '/admin/seo-files'
-      preLoaderRoute: typeof AuthenticatedAdminSeoFilesRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/settings': {
-      id: '/_authenticated/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/subprocessors': {
-      id: '/_authenticated/admin/subprocessors'
-      path: '/subprocessors'
-      fullPath: '/admin/subprocessors'
-      preLoaderRoute: typeof AuthenticatedAdminSubprocessorsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/subscriptions': {
-      id: '/_authenticated/admin/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/admin/subscriptions'
-      preLoaderRoute: typeof AuthenticatedAdminSubscriptionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/support': {
-      id: '/_authenticated/admin/support'
-      path: '/support'
-      fullPath: '/admin/support'
-      preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/system-emails': {
-      id: '/_authenticated/admin/system-emails'
-      path: '/system-emails'
-      fullPath: '/admin/system-emails'
-      preLoaderRoute: typeof AuthenticatedAdminSystemEmailsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/templates': {
-      id: '/_authenticated/admin/templates'
-      path: '/templates'
-      fullPath: '/admin/templates'
-      preLoaderRoute: typeof AuthenticatedAdminTemplatesRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/unsubscribes': {
-      id: '/_authenticated/admin/unsubscribes'
-      path: '/unsubscribes'
-      fullPath: '/admin/unsubscribes'
-      preLoaderRoute: typeof AuthenticatedAdminUnsubscribesRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/usage': {
-      id: '/_authenticated/admin/usage'
-      path: '/usage'
-      fullPath: '/admin/usage'
-      preLoaderRoute: typeof AuthenticatedAdminUsageRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/user-guide': {
-      id: '/_authenticated/admin/user-guide'
-      path: '/user-guide'
-      fullPath: '/admin/user-guide'
-      preLoaderRoute: typeof AuthenticatedAdminUserGuideRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/users': {
-      id: '/_authenticated/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/warmup': {
-      id: '/_authenticated/admin/warmup'
-      path: '/warmup'
-      fullPath: '/admin/warmup'
-      preLoaderRoute: typeof AuthenticatedAdminWarmupRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/webhooks': {
-      id: '/_authenticated/admin/webhooks'
-      path: '/webhooks'
-      fullPath: '/admin/webhooks'
-      preLoaderRoute: typeof AuthenticatedAdminWebhooksRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/workspaces': {
-      id: '/_authenticated/admin/workspaces'
-      path: '/workspaces'
-      fullPath: '/admin/workspaces'
-      preLoaderRoute: typeof AuthenticatedAdminWorkspacesRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
     '/_authenticated/automations/$id': {
       id: '/_authenticated/automations/$id'
       path: '/automations/$id'
@@ -3460,6 +3124,356 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCampaignsCampaignIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mranuskhalid/': {
+      id: '/_authenticated/mranuskhalid/'
+      path: '/'
+      fullPath: '/mranuskhalid/'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidIndexRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/analytics': {
+      id: '/_authenticated/mranuskhalid/analytics'
+      path: '/analytics'
+      fullPath: '/mranuskhalid/analytics'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/audit': {
+      id: '/_authenticated/mranuskhalid/audit'
+      path: '/audit'
+      fullPath: '/mranuskhalid/audit'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidAuditRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/automations': {
+      id: '/_authenticated/mranuskhalid/automations'
+      path: '/automations'
+      fullPath: '/mranuskhalid/automations'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidAutomationsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/billing': {
+      id: '/_authenticated/mranuskhalid/billing'
+      path: '/billing'
+      fullPath: '/mranuskhalid/billing'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidBillingRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/billing-providers': {
+      id: '/_authenticated/mranuskhalid/billing-providers'
+      path: '/billing-providers'
+      fullPath: '/mranuskhalid/billing-providers'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidBillingProvidersRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/blog': {
+      id: '/_authenticated/mranuskhalid/blog'
+      path: '/blog'
+      fullPath: '/mranuskhalid/blog'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidBlogRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/campaigns': {
+      id: '/_authenticated/mranuskhalid/campaigns'
+      path: '/campaigns'
+      fullPath: '/mranuskhalid/campaigns'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidCampaignsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/credits': {
+      id: '/_authenticated/mranuskhalid/credits'
+      path: '/credits'
+      fullPath: '/mranuskhalid/credits'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidCreditsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/crm': {
+      id: '/_authenticated/mranuskhalid/crm'
+      path: '/crm'
+      fullPath: '/mranuskhalid/crm'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidCrmRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/domains': {
+      id: '/_authenticated/mranuskhalid/domains'
+      path: '/domains'
+      fullPath: '/mranuskhalid/domains'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidDomainsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/email-accounts': {
+      id: '/_authenticated/mranuskhalid/email-accounts'
+      path: '/email-accounts'
+      fullPath: '/mranuskhalid/email-accounts'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidEmailAccountsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/email-log': {
+      id: '/_authenticated/mranuskhalid/email-log'
+      path: '/email-log'
+      fullPath: '/mranuskhalid/email-log'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidEmailLogRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/environment': {
+      id: '/_authenticated/mranuskhalid/environment'
+      path: '/environment'
+      fullPath: '/mranuskhalid/environment'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidEnvironmentRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/faqs': {
+      id: '/_authenticated/mranuskhalid/faqs'
+      path: '/faqs'
+      fullPath: '/mranuskhalid/faqs'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidFaqsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/features': {
+      id: '/_authenticated/mranuskhalid/features'
+      path: '/features'
+      fullPath: '/mranuskhalid/features'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidFeaturesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/inbound-events': {
+      id: '/_authenticated/mranuskhalid/inbound-events'
+      path: '/inbound-events'
+      fullPath: '/mranuskhalid/inbound-events'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidInboundEventsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/infrastructure': {
+      id: '/_authenticated/mranuskhalid/infrastructure'
+      path: '/infrastructure'
+      fullPath: '/mranuskhalid/infrastructure'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidInfrastructureRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/integrations': {
+      id: '/_authenticated/mranuskhalid/integrations'
+      path: '/integrations'
+      fullPath: '/mranuskhalid/integrations'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/leads': {
+      id: '/_authenticated/mranuskhalid/leads'
+      path: '/leads'
+      fullPath: '/mranuskhalid/leads'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidLeadsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/logs': {
+      id: '/_authenticated/mranuskhalid/logs'
+      path: '/logs'
+      fullPath: '/mranuskhalid/logs'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidLogsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/marketing': {
+      id: '/_authenticated/mranuskhalid/marketing'
+      path: '/marketing'
+      fullPath: '/mranuskhalid/marketing'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingRouteRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/navigation': {
+      id: '/_authenticated/mranuskhalid/navigation'
+      path: '/navigation'
+      fullPath: '/mranuskhalid/navigation'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidNavigationRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/notifications': {
+      id: '/_authenticated/mranuskhalid/notifications'
+      path: '/notifications'
+      fullPath: '/mranuskhalid/notifications'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidNotificationsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/pages': {
+      id: '/_authenticated/mranuskhalid/pages'
+      path: '/pages'
+      fullPath: '/mranuskhalid/pages'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidPagesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/payments': {
+      id: '/_authenticated/mranuskhalid/payments'
+      path: '/payments'
+      fullPath: '/mranuskhalid/payments'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidPaymentsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/plans': {
+      id: '/_authenticated/mranuskhalid/plans'
+      path: '/plans'
+      fullPath: '/mranuskhalid/plans'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidPlansRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/pool': {
+      id: '/_authenticated/mranuskhalid/pool'
+      path: '/pool'
+      fullPath: '/mranuskhalid/pool'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidPoolRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/privacy-requests': {
+      id: '/_authenticated/mranuskhalid/privacy-requests'
+      path: '/privacy-requests'
+      fullPath: '/mranuskhalid/privacy-requests'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidPrivacyRequestsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/production': {
+      id: '/_authenticated/mranuskhalid/production'
+      path: '/production'
+      fullPath: '/mranuskhalid/production'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidProductionRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/providers': {
+      id: '/_authenticated/mranuskhalid/providers'
+      path: '/providers'
+      fullPath: '/mranuskhalid/providers'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidProvidersRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/redirects': {
+      id: '/_authenticated/mranuskhalid/redirects'
+      path: '/redirects'
+      fullPath: '/mranuskhalid/redirects'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidRedirectsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/referrals': {
+      id: '/_authenticated/mranuskhalid/referrals'
+      path: '/referrals'
+      fullPath: '/mranuskhalid/referrals'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidReferralsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/reviews': {
+      id: '/_authenticated/mranuskhalid/reviews'
+      path: '/reviews'
+      fullPath: '/mranuskhalid/reviews'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidReviewsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/security': {
+      id: '/_authenticated/mranuskhalid/security'
+      path: '/security'
+      fullPath: '/mranuskhalid/security'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSecurityRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/seo': {
+      id: '/_authenticated/mranuskhalid/seo'
+      path: '/seo'
+      fullPath: '/mranuskhalid/seo'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSeoRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/seo-files': {
+      id: '/_authenticated/mranuskhalid/seo-files'
+      path: '/seo-files'
+      fullPath: '/mranuskhalid/seo-files'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSeoFilesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/settings': {
+      id: '/_authenticated/mranuskhalid/settings'
+      path: '/settings'
+      fullPath: '/mranuskhalid/settings'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSettingsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/subprocessors': {
+      id: '/_authenticated/mranuskhalid/subprocessors'
+      path: '/subprocessors'
+      fullPath: '/mranuskhalid/subprocessors'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSubprocessorsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/subscriptions': {
+      id: '/_authenticated/mranuskhalid/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/mranuskhalid/subscriptions'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSubscriptionsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/support': {
+      id: '/_authenticated/mranuskhalid/support'
+      path: '/support'
+      fullPath: '/mranuskhalid/support'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSupportRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/system-emails': {
+      id: '/_authenticated/mranuskhalid/system-emails'
+      path: '/system-emails'
+      fullPath: '/mranuskhalid/system-emails'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidSystemEmailsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/templates': {
+      id: '/_authenticated/mranuskhalid/templates'
+      path: '/templates'
+      fullPath: '/mranuskhalid/templates'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidTemplatesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/unsubscribes': {
+      id: '/_authenticated/mranuskhalid/unsubscribes'
+      path: '/unsubscribes'
+      fullPath: '/mranuskhalid/unsubscribes'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidUnsubscribesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/usage': {
+      id: '/_authenticated/mranuskhalid/usage'
+      path: '/usage'
+      fullPath: '/mranuskhalid/usage'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidUsageRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/user-guide': {
+      id: '/_authenticated/mranuskhalid/user-guide'
+      path: '/user-guide'
+      fullPath: '/mranuskhalid/user-guide'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidUserGuideRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/users': {
+      id: '/_authenticated/mranuskhalid/users'
+      path: '/users'
+      fullPath: '/mranuskhalid/users'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidUsersRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/warmup': {
+      id: '/_authenticated/mranuskhalid/warmup'
+      path: '/warmup'
+      fullPath: '/mranuskhalid/warmup'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidWarmupRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/webhooks': {
+      id: '/_authenticated/mranuskhalid/webhooks'
+      path: '/webhooks'
+      fullPath: '/mranuskhalid/webhooks'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidWebhooksRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
+    '/_authenticated/mranuskhalid/workspaces': {
+      id: '/_authenticated/mranuskhalid/workspaces'
+      path: '/workspaces'
+      fullPath: '/mranuskhalid/workspaces'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidWorkspacesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
     '/api/public/unsubscribe': {
       id: '/api/public/unsubscribe'
       path: '/api/public/unsubscribe'
@@ -3481,89 +3495,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogCategorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/credits/ledger': {
-      id: '/_authenticated/admin/credits/ledger'
+    '/_authenticated/mranuskhalid/credits/ledger': {
+      id: '/_authenticated/mranuskhalid/credits/ledger'
       path: '/ledger'
-      fullPath: '/admin/credits/ledger'
-      preLoaderRoute: typeof AuthenticatedAdminCreditsLedgerRouteImport
-      parentRoute: typeof AuthenticatedAdminCreditsRoute
+      fullPath: '/mranuskhalid/credits/ledger'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidCreditsLedgerRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidCreditsRoute
     }
-    '/_authenticated/admin/inbound-events/$eventId': {
-      id: '/_authenticated/admin/inbound-events/$eventId'
+    '/_authenticated/mranuskhalid/inbound-events/$eventId': {
+      id: '/_authenticated/mranuskhalid/inbound-events/$eventId'
       path: '/$eventId'
-      fullPath: '/admin/inbound-events/$eventId'
-      preLoaderRoute: typeof AuthenticatedAdminInboundEventsEventIdRouteImport
-      parentRoute: typeof AuthenticatedAdminInboundEventsRoute
+      fullPath: '/mranuskhalid/inbound-events/$eventId'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidInboundEventsEventIdRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidInboundEventsRoute
     }
-    '/_authenticated/admin/marketing/': {
-      id: '/_authenticated/admin/marketing/'
+    '/_authenticated/mranuskhalid/marketing/': {
+      id: '/_authenticated/mranuskhalid/marketing/'
       path: '/'
-      fullPath: '/admin/marketing/'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingIndexRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/analytics': {
-      id: '/_authenticated/admin/marketing/analytics'
+    '/_authenticated/mranuskhalid/marketing/analytics': {
+      id: '/_authenticated/mranuskhalid/marketing/analytics'
       path: '/analytics'
-      fullPath: '/admin/marketing/analytics'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/analytics'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/automations': {
-      id: '/_authenticated/admin/marketing/automations'
+    '/_authenticated/mranuskhalid/marketing/automations': {
+      id: '/_authenticated/mranuskhalid/marketing/automations'
       path: '/automations'
-      fullPath: '/admin/marketing/automations'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingAutomationsRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/automations'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingAutomationsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/campaigns': {
-      id: '/_authenticated/admin/marketing/campaigns'
+    '/_authenticated/mranuskhalid/marketing/campaigns': {
+      id: '/_authenticated/mranuskhalid/marketing/campaigns'
       path: '/campaigns'
-      fullPath: '/admin/marketing/campaigns'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingCampaignsRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/campaigns'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingCampaignsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/domains': {
-      id: '/_authenticated/admin/marketing/domains'
+    '/_authenticated/mranuskhalid/marketing/domains': {
+      id: '/_authenticated/mranuskhalid/marketing/domains'
       path: '/domains'
-      fullPath: '/admin/marketing/domains'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingDomainsRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/domains'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingDomainsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/providers': {
-      id: '/_authenticated/admin/marketing/providers'
+    '/_authenticated/mranuskhalid/marketing/providers': {
+      id: '/_authenticated/mranuskhalid/marketing/providers'
       path: '/providers'
-      fullPath: '/admin/marketing/providers'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingProvidersRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/providers'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingProvidersRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/segments': {
-      id: '/_authenticated/admin/marketing/segments'
+    '/_authenticated/mranuskhalid/marketing/segments': {
+      id: '/_authenticated/mranuskhalid/marketing/segments'
       path: '/segments'
-      fullPath: '/admin/marketing/segments'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingSegmentsRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/segments'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingSegmentsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/settings': {
-      id: '/_authenticated/admin/marketing/settings'
+    '/_authenticated/mranuskhalid/marketing/settings': {
+      id: '/_authenticated/mranuskhalid/marketing/settings'
       path: '/settings'
-      fullPath: '/admin/marketing/settings'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/settings'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingSettingsRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/subscribers': {
-      id: '/_authenticated/admin/marketing/subscribers'
+    '/_authenticated/mranuskhalid/marketing/subscribers': {
+      id: '/_authenticated/mranuskhalid/marketing/subscribers'
       path: '/subscribers'
-      fullPath: '/admin/marketing/subscribers'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingSubscribersRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/subscribers'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingSubscribersRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
-    '/_authenticated/admin/marketing/templates': {
-      id: '/_authenticated/admin/marketing/templates'
+    '/_authenticated/mranuskhalid/marketing/templates': {
+      id: '/_authenticated/mranuskhalid/marketing/templates'
       path: '/templates'
-      fullPath: '/admin/marketing/templates'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingTemplatesRouteImport
-      parentRoute: typeof AuthenticatedAdminMarketingRouteRoute
+      fullPath: '/mranuskhalid/marketing/templates'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMarketingTemplatesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidMarketingRouteRoute
     }
     '/api/public/automations/$token': {
       id: '/api/public/automations/$token'
@@ -3834,196 +3848,228 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedAdminMarketingRouteRouteChildren {
-  AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
-  AuthenticatedAdminMarketingAutomationsRoute: typeof AuthenticatedAdminMarketingAutomationsRoute
-  AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
-  AuthenticatedAdminMarketingDomainsRoute: typeof AuthenticatedAdminMarketingDomainsRoute
-  AuthenticatedAdminMarketingProvidersRoute: typeof AuthenticatedAdminMarketingProvidersRoute
-  AuthenticatedAdminMarketingSegmentsRoute: typeof AuthenticatedAdminMarketingSegmentsRoute
-  AuthenticatedAdminMarketingSettingsRoute: typeof AuthenticatedAdminMarketingSettingsRoute
-  AuthenticatedAdminMarketingSubscribersRoute: typeof AuthenticatedAdminMarketingSubscribersRoute
-  AuthenticatedAdminMarketingTemplatesRoute: typeof AuthenticatedAdminMarketingTemplatesRoute
-  AuthenticatedAdminMarketingIndexRoute: typeof AuthenticatedAdminMarketingIndexRoute
+interface AuthenticatedMranuskhalidMarketingRouteRouteChildren {
+  AuthenticatedMranuskhalidMarketingAnalyticsRoute: typeof AuthenticatedMranuskhalidMarketingAnalyticsRoute
+  AuthenticatedMranuskhalidMarketingAutomationsRoute: typeof AuthenticatedMranuskhalidMarketingAutomationsRoute
+  AuthenticatedMranuskhalidMarketingCampaignsRoute: typeof AuthenticatedMranuskhalidMarketingCampaignsRoute
+  AuthenticatedMranuskhalidMarketingDomainsRoute: typeof AuthenticatedMranuskhalidMarketingDomainsRoute
+  AuthenticatedMranuskhalidMarketingProvidersRoute: typeof AuthenticatedMranuskhalidMarketingProvidersRoute
+  AuthenticatedMranuskhalidMarketingSegmentsRoute: typeof AuthenticatedMranuskhalidMarketingSegmentsRoute
+  AuthenticatedMranuskhalidMarketingSettingsRoute: typeof AuthenticatedMranuskhalidMarketingSettingsRoute
+  AuthenticatedMranuskhalidMarketingSubscribersRoute: typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
+  AuthenticatedMranuskhalidMarketingTemplatesRoute: typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
+  AuthenticatedMranuskhalidMarketingIndexRoute: typeof AuthenticatedMranuskhalidMarketingIndexRoute
 }
 
-const AuthenticatedAdminMarketingRouteRouteChildren: AuthenticatedAdminMarketingRouteRouteChildren =
+const AuthenticatedMranuskhalidMarketingRouteRouteChildren: AuthenticatedMranuskhalidMarketingRouteRouteChildren =
   {
-    AuthenticatedAdminMarketingAnalyticsRoute:
-      AuthenticatedAdminMarketingAnalyticsRoute,
-    AuthenticatedAdminMarketingAutomationsRoute:
-      AuthenticatedAdminMarketingAutomationsRoute,
-    AuthenticatedAdminMarketingCampaignsRoute:
-      AuthenticatedAdminMarketingCampaignsRoute,
-    AuthenticatedAdminMarketingDomainsRoute:
-      AuthenticatedAdminMarketingDomainsRoute,
-    AuthenticatedAdminMarketingProvidersRoute:
-      AuthenticatedAdminMarketingProvidersRoute,
-    AuthenticatedAdminMarketingSegmentsRoute:
-      AuthenticatedAdminMarketingSegmentsRoute,
-    AuthenticatedAdminMarketingSettingsRoute:
-      AuthenticatedAdminMarketingSettingsRoute,
-    AuthenticatedAdminMarketingSubscribersRoute:
-      AuthenticatedAdminMarketingSubscribersRoute,
-    AuthenticatedAdminMarketingTemplatesRoute:
-      AuthenticatedAdminMarketingTemplatesRoute,
-    AuthenticatedAdminMarketingIndexRoute:
-      AuthenticatedAdminMarketingIndexRoute,
+    AuthenticatedMranuskhalidMarketingAnalyticsRoute:
+      AuthenticatedMranuskhalidMarketingAnalyticsRoute,
+    AuthenticatedMranuskhalidMarketingAutomationsRoute:
+      AuthenticatedMranuskhalidMarketingAutomationsRoute,
+    AuthenticatedMranuskhalidMarketingCampaignsRoute:
+      AuthenticatedMranuskhalidMarketingCampaignsRoute,
+    AuthenticatedMranuskhalidMarketingDomainsRoute:
+      AuthenticatedMranuskhalidMarketingDomainsRoute,
+    AuthenticatedMranuskhalidMarketingProvidersRoute:
+      AuthenticatedMranuskhalidMarketingProvidersRoute,
+    AuthenticatedMranuskhalidMarketingSegmentsRoute:
+      AuthenticatedMranuskhalidMarketingSegmentsRoute,
+    AuthenticatedMranuskhalidMarketingSettingsRoute:
+      AuthenticatedMranuskhalidMarketingSettingsRoute,
+    AuthenticatedMranuskhalidMarketingSubscribersRoute:
+      AuthenticatedMranuskhalidMarketingSubscribersRoute,
+    AuthenticatedMranuskhalidMarketingTemplatesRoute:
+      AuthenticatedMranuskhalidMarketingTemplatesRoute,
+    AuthenticatedMranuskhalidMarketingIndexRoute:
+      AuthenticatedMranuskhalidMarketingIndexRoute,
   }
 
-const AuthenticatedAdminMarketingRouteRouteWithChildren =
-  AuthenticatedAdminMarketingRouteRoute._addFileChildren(
-    AuthenticatedAdminMarketingRouteRouteChildren,
+const AuthenticatedMranuskhalidMarketingRouteRouteWithChildren =
+  AuthenticatedMranuskhalidMarketingRouteRoute._addFileChildren(
+    AuthenticatedMranuskhalidMarketingRouteRouteChildren,
   )
 
-interface AuthenticatedAdminCreditsRouteChildren {
-  AuthenticatedAdminCreditsLedgerRoute: typeof AuthenticatedAdminCreditsLedgerRoute
+interface AuthenticatedMranuskhalidCreditsRouteChildren {
+  AuthenticatedMranuskhalidCreditsLedgerRoute: typeof AuthenticatedMranuskhalidCreditsLedgerRoute
 }
 
-const AuthenticatedAdminCreditsRouteChildren: AuthenticatedAdminCreditsRouteChildren =
+const AuthenticatedMranuskhalidCreditsRouteChildren: AuthenticatedMranuskhalidCreditsRouteChildren =
   {
-    AuthenticatedAdminCreditsLedgerRoute: AuthenticatedAdminCreditsLedgerRoute,
+    AuthenticatedMranuskhalidCreditsLedgerRoute:
+      AuthenticatedMranuskhalidCreditsLedgerRoute,
   }
 
-const AuthenticatedAdminCreditsRouteWithChildren =
-  AuthenticatedAdminCreditsRoute._addFileChildren(
-    AuthenticatedAdminCreditsRouteChildren,
+const AuthenticatedMranuskhalidCreditsRouteWithChildren =
+  AuthenticatedMranuskhalidCreditsRoute._addFileChildren(
+    AuthenticatedMranuskhalidCreditsRouteChildren,
   )
 
-interface AuthenticatedAdminInboundEventsRouteChildren {
-  AuthenticatedAdminInboundEventsEventIdRoute: typeof AuthenticatedAdminInboundEventsEventIdRoute
+interface AuthenticatedMranuskhalidInboundEventsRouteChildren {
+  AuthenticatedMranuskhalidInboundEventsEventIdRoute: typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
 }
 
-const AuthenticatedAdminInboundEventsRouteChildren: AuthenticatedAdminInboundEventsRouteChildren =
+const AuthenticatedMranuskhalidInboundEventsRouteChildren: AuthenticatedMranuskhalidInboundEventsRouteChildren =
   {
-    AuthenticatedAdminInboundEventsEventIdRoute:
-      AuthenticatedAdminInboundEventsEventIdRoute,
+    AuthenticatedMranuskhalidInboundEventsEventIdRoute:
+      AuthenticatedMranuskhalidInboundEventsEventIdRoute,
   }
 
-const AuthenticatedAdminInboundEventsRouteWithChildren =
-  AuthenticatedAdminInboundEventsRoute._addFileChildren(
-    AuthenticatedAdminInboundEventsRouteChildren,
+const AuthenticatedMranuskhalidInboundEventsRouteWithChildren =
+  AuthenticatedMranuskhalidInboundEventsRoute._addFileChildren(
+    AuthenticatedMranuskhalidInboundEventsRouteChildren,
   )
 
-interface AuthenticatedAdminRouteRouteChildren {
-  AuthenticatedAdminMarketingRouteRoute: typeof AuthenticatedAdminMarketingRouteRouteWithChildren
-  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
-  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
-  AuthenticatedAdminAutomationsRoute: typeof AuthenticatedAdminAutomationsRoute
-  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
-  AuthenticatedAdminBillingProvidersRoute: typeof AuthenticatedAdminBillingProvidersRoute
-  AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
-  AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
-  AuthenticatedAdminCreditsRoute: typeof AuthenticatedAdminCreditsRouteWithChildren
-  AuthenticatedAdminCrmRoute: typeof AuthenticatedAdminCrmRoute
-  AuthenticatedAdminDomainsRoute: typeof AuthenticatedAdminDomainsRoute
-  AuthenticatedAdminEmailAccountsRoute: typeof AuthenticatedAdminEmailAccountsRoute
-  AuthenticatedAdminEmailLogRoute: typeof AuthenticatedAdminEmailLogRoute
-  AuthenticatedAdminEnvironmentRoute: typeof AuthenticatedAdminEnvironmentRoute
-  AuthenticatedAdminFaqsRoute: typeof AuthenticatedAdminFaqsRoute
-  AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
-  AuthenticatedAdminInboundEventsRoute: typeof AuthenticatedAdminInboundEventsRouteWithChildren
-  AuthenticatedAdminInfrastructureRoute: typeof AuthenticatedAdminInfrastructureRoute
-  AuthenticatedAdminIntegrationsRoute: typeof AuthenticatedAdminIntegrationsRoute
-  AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
-  AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
-  AuthenticatedAdminNavigationRoute: typeof AuthenticatedAdminNavigationRoute
-  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
-  AuthenticatedAdminPagesRoute: typeof AuthenticatedAdminPagesRoute
-  AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
-  AuthenticatedAdminPlansRoute: typeof AuthenticatedAdminPlansRoute
-  AuthenticatedAdminPoolRoute: typeof AuthenticatedAdminPoolRoute
-  AuthenticatedAdminPrivacyRequestsRoute: typeof AuthenticatedAdminPrivacyRequestsRoute
-  AuthenticatedAdminProductionRoute: typeof AuthenticatedAdminProductionRoute
-  AuthenticatedAdminProvidersRoute: typeof AuthenticatedAdminProvidersRoute
-  AuthenticatedAdminRedirectsRoute: typeof AuthenticatedAdminRedirectsRoute
-  AuthenticatedAdminReferralsRoute: typeof AuthenticatedAdminReferralsRoute
-  AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
-  AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
-  AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRoute
-  AuthenticatedAdminSeoFilesRoute: typeof AuthenticatedAdminSeoFilesRoute
-  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
-  AuthenticatedAdminSubprocessorsRoute: typeof AuthenticatedAdminSubprocessorsRoute
-  AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
-  AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
-  AuthenticatedAdminSystemEmailsRoute: typeof AuthenticatedAdminSystemEmailsRoute
-  AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
-  AuthenticatedAdminUnsubscribesRoute: typeof AuthenticatedAdminUnsubscribesRoute
-  AuthenticatedAdminUsageRoute: typeof AuthenticatedAdminUsageRoute
-  AuthenticatedAdminUserGuideRoute: typeof AuthenticatedAdminUserGuideRoute
-  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
-  AuthenticatedAdminWarmupRoute: typeof AuthenticatedAdminWarmupRoute
-  AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
-  AuthenticatedAdminWorkspacesRoute: typeof AuthenticatedAdminWorkspacesRoute
-  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+interface AuthenticatedMranuskhalidRouteRouteChildren {
+  AuthenticatedMranuskhalidMarketingRouteRoute: typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
+  AuthenticatedMranuskhalidAnalyticsRoute: typeof AuthenticatedMranuskhalidAnalyticsRoute
+  AuthenticatedMranuskhalidAuditRoute: typeof AuthenticatedMranuskhalidAuditRoute
+  AuthenticatedMranuskhalidAutomationsRoute: typeof AuthenticatedMranuskhalidAutomationsRoute
+  AuthenticatedMranuskhalidBillingRoute: typeof AuthenticatedMranuskhalidBillingRoute
+  AuthenticatedMranuskhalidBillingProvidersRoute: typeof AuthenticatedMranuskhalidBillingProvidersRoute
+  AuthenticatedMranuskhalidBlogRoute: typeof AuthenticatedMranuskhalidBlogRoute
+  AuthenticatedMranuskhalidCampaignsRoute: typeof AuthenticatedMranuskhalidCampaignsRoute
+  AuthenticatedMranuskhalidCreditsRoute: typeof AuthenticatedMranuskhalidCreditsRouteWithChildren
+  AuthenticatedMranuskhalidCrmRoute: typeof AuthenticatedMranuskhalidCrmRoute
+  AuthenticatedMranuskhalidDomainsRoute: typeof AuthenticatedMranuskhalidDomainsRoute
+  AuthenticatedMranuskhalidEmailAccountsRoute: typeof AuthenticatedMranuskhalidEmailAccountsRoute
+  AuthenticatedMranuskhalidEmailLogRoute: typeof AuthenticatedMranuskhalidEmailLogRoute
+  AuthenticatedMranuskhalidEnvironmentRoute: typeof AuthenticatedMranuskhalidEnvironmentRoute
+  AuthenticatedMranuskhalidFaqsRoute: typeof AuthenticatedMranuskhalidFaqsRoute
+  AuthenticatedMranuskhalidFeaturesRoute: typeof AuthenticatedMranuskhalidFeaturesRoute
+  AuthenticatedMranuskhalidInboundEventsRoute: typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
+  AuthenticatedMranuskhalidInfrastructureRoute: typeof AuthenticatedMranuskhalidInfrastructureRoute
+  AuthenticatedMranuskhalidIntegrationsRoute: typeof AuthenticatedMranuskhalidIntegrationsRoute
+  AuthenticatedMranuskhalidLeadsRoute: typeof AuthenticatedMranuskhalidLeadsRoute
+  AuthenticatedMranuskhalidLogsRoute: typeof AuthenticatedMranuskhalidLogsRoute
+  AuthenticatedMranuskhalidNavigationRoute: typeof AuthenticatedMranuskhalidNavigationRoute
+  AuthenticatedMranuskhalidNotificationsRoute: typeof AuthenticatedMranuskhalidNotificationsRoute
+  AuthenticatedMranuskhalidPagesRoute: typeof AuthenticatedMranuskhalidPagesRoute
+  AuthenticatedMranuskhalidPaymentsRoute: typeof AuthenticatedMranuskhalidPaymentsRoute
+  AuthenticatedMranuskhalidPlansRoute: typeof AuthenticatedMranuskhalidPlansRoute
+  AuthenticatedMranuskhalidPoolRoute: typeof AuthenticatedMranuskhalidPoolRoute
+  AuthenticatedMranuskhalidPrivacyRequestsRoute: typeof AuthenticatedMranuskhalidPrivacyRequestsRoute
+  AuthenticatedMranuskhalidProductionRoute: typeof AuthenticatedMranuskhalidProductionRoute
+  AuthenticatedMranuskhalidProvidersRoute: typeof AuthenticatedMranuskhalidProvidersRoute
+  AuthenticatedMranuskhalidRedirectsRoute: typeof AuthenticatedMranuskhalidRedirectsRoute
+  AuthenticatedMranuskhalidReferralsRoute: typeof AuthenticatedMranuskhalidReferralsRoute
+  AuthenticatedMranuskhalidReviewsRoute: typeof AuthenticatedMranuskhalidReviewsRoute
+  AuthenticatedMranuskhalidSecurityRoute: typeof AuthenticatedMranuskhalidSecurityRoute
+  AuthenticatedMranuskhalidSeoRoute: typeof AuthenticatedMranuskhalidSeoRoute
+  AuthenticatedMranuskhalidSeoFilesRoute: typeof AuthenticatedMranuskhalidSeoFilesRoute
+  AuthenticatedMranuskhalidSettingsRoute: typeof AuthenticatedMranuskhalidSettingsRoute
+  AuthenticatedMranuskhalidSubprocessorsRoute: typeof AuthenticatedMranuskhalidSubprocessorsRoute
+  AuthenticatedMranuskhalidSubscriptionsRoute: typeof AuthenticatedMranuskhalidSubscriptionsRoute
+  AuthenticatedMranuskhalidSupportRoute: typeof AuthenticatedMranuskhalidSupportRoute
+  AuthenticatedMranuskhalidSystemEmailsRoute: typeof AuthenticatedMranuskhalidSystemEmailsRoute
+  AuthenticatedMranuskhalidTemplatesRoute: typeof AuthenticatedMranuskhalidTemplatesRoute
+  AuthenticatedMranuskhalidUnsubscribesRoute: typeof AuthenticatedMranuskhalidUnsubscribesRoute
+  AuthenticatedMranuskhalidUsageRoute: typeof AuthenticatedMranuskhalidUsageRoute
+  AuthenticatedMranuskhalidUserGuideRoute: typeof AuthenticatedMranuskhalidUserGuideRoute
+  AuthenticatedMranuskhalidUsersRoute: typeof AuthenticatedMranuskhalidUsersRoute
+  AuthenticatedMranuskhalidWarmupRoute: typeof AuthenticatedMranuskhalidWarmupRoute
+  AuthenticatedMranuskhalidWebhooksRoute: typeof AuthenticatedMranuskhalidWebhooksRoute
+  AuthenticatedMranuskhalidWorkspacesRoute: typeof AuthenticatedMranuskhalidWorkspacesRoute
+  AuthenticatedMranuskhalidIndexRoute: typeof AuthenticatedMranuskhalidIndexRoute
 }
 
-const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+const AuthenticatedMranuskhalidRouteRouteChildren: AuthenticatedMranuskhalidRouteRouteChildren =
   {
-    AuthenticatedAdminMarketingRouteRoute:
-      AuthenticatedAdminMarketingRouteRouteWithChildren,
-    AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
-    AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
-    AuthenticatedAdminAutomationsRoute: AuthenticatedAdminAutomationsRoute,
-    AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
-    AuthenticatedAdminBillingProvidersRoute:
-      AuthenticatedAdminBillingProvidersRoute,
-    AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
-    AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
-    AuthenticatedAdminCreditsRoute: AuthenticatedAdminCreditsRouteWithChildren,
-    AuthenticatedAdminCrmRoute: AuthenticatedAdminCrmRoute,
-    AuthenticatedAdminDomainsRoute: AuthenticatedAdminDomainsRoute,
-    AuthenticatedAdminEmailAccountsRoute: AuthenticatedAdminEmailAccountsRoute,
-    AuthenticatedAdminEmailLogRoute: AuthenticatedAdminEmailLogRoute,
-    AuthenticatedAdminEnvironmentRoute: AuthenticatedAdminEnvironmentRoute,
-    AuthenticatedAdminFaqsRoute: AuthenticatedAdminFaqsRoute,
-    AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
-    AuthenticatedAdminInboundEventsRoute:
-      AuthenticatedAdminInboundEventsRouteWithChildren,
-    AuthenticatedAdminInfrastructureRoute:
-      AuthenticatedAdminInfrastructureRoute,
-    AuthenticatedAdminIntegrationsRoute: AuthenticatedAdminIntegrationsRoute,
-    AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
-    AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
-    AuthenticatedAdminNavigationRoute: AuthenticatedAdminNavigationRoute,
-    AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
-    AuthenticatedAdminPagesRoute: AuthenticatedAdminPagesRoute,
-    AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
-    AuthenticatedAdminPlansRoute: AuthenticatedAdminPlansRoute,
-    AuthenticatedAdminPoolRoute: AuthenticatedAdminPoolRoute,
-    AuthenticatedAdminPrivacyRequestsRoute:
-      AuthenticatedAdminPrivacyRequestsRoute,
-    AuthenticatedAdminProductionRoute: AuthenticatedAdminProductionRoute,
-    AuthenticatedAdminProvidersRoute: AuthenticatedAdminProvidersRoute,
-    AuthenticatedAdminRedirectsRoute: AuthenticatedAdminRedirectsRoute,
-    AuthenticatedAdminReferralsRoute: AuthenticatedAdminReferralsRoute,
-    AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
-    AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
-    AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRoute,
-    AuthenticatedAdminSeoFilesRoute: AuthenticatedAdminSeoFilesRoute,
-    AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
-    AuthenticatedAdminSubprocessorsRoute: AuthenticatedAdminSubprocessorsRoute,
-    AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
-    AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
-    AuthenticatedAdminSystemEmailsRoute: AuthenticatedAdminSystemEmailsRoute,
-    AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
-    AuthenticatedAdminUnsubscribesRoute: AuthenticatedAdminUnsubscribesRoute,
-    AuthenticatedAdminUsageRoute: AuthenticatedAdminUsageRoute,
-    AuthenticatedAdminUserGuideRoute: AuthenticatedAdminUserGuideRoute,
-    AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
-    AuthenticatedAdminWarmupRoute: AuthenticatedAdminWarmupRoute,
-    AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
-    AuthenticatedAdminWorkspacesRoute: AuthenticatedAdminWorkspacesRoute,
-    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+    AuthenticatedMranuskhalidMarketingRouteRoute:
+      AuthenticatedMranuskhalidMarketingRouteRouteWithChildren,
+    AuthenticatedMranuskhalidAnalyticsRoute:
+      AuthenticatedMranuskhalidAnalyticsRoute,
+    AuthenticatedMranuskhalidAuditRoute: AuthenticatedMranuskhalidAuditRoute,
+    AuthenticatedMranuskhalidAutomationsRoute:
+      AuthenticatedMranuskhalidAutomationsRoute,
+    AuthenticatedMranuskhalidBillingRoute:
+      AuthenticatedMranuskhalidBillingRoute,
+    AuthenticatedMranuskhalidBillingProvidersRoute:
+      AuthenticatedMranuskhalidBillingProvidersRoute,
+    AuthenticatedMranuskhalidBlogRoute: AuthenticatedMranuskhalidBlogRoute,
+    AuthenticatedMranuskhalidCampaignsRoute:
+      AuthenticatedMranuskhalidCampaignsRoute,
+    AuthenticatedMranuskhalidCreditsRoute:
+      AuthenticatedMranuskhalidCreditsRouteWithChildren,
+    AuthenticatedMranuskhalidCrmRoute: AuthenticatedMranuskhalidCrmRoute,
+    AuthenticatedMranuskhalidDomainsRoute:
+      AuthenticatedMranuskhalidDomainsRoute,
+    AuthenticatedMranuskhalidEmailAccountsRoute:
+      AuthenticatedMranuskhalidEmailAccountsRoute,
+    AuthenticatedMranuskhalidEmailLogRoute:
+      AuthenticatedMranuskhalidEmailLogRoute,
+    AuthenticatedMranuskhalidEnvironmentRoute:
+      AuthenticatedMranuskhalidEnvironmentRoute,
+    AuthenticatedMranuskhalidFaqsRoute: AuthenticatedMranuskhalidFaqsRoute,
+    AuthenticatedMranuskhalidFeaturesRoute:
+      AuthenticatedMranuskhalidFeaturesRoute,
+    AuthenticatedMranuskhalidInboundEventsRoute:
+      AuthenticatedMranuskhalidInboundEventsRouteWithChildren,
+    AuthenticatedMranuskhalidInfrastructureRoute:
+      AuthenticatedMranuskhalidInfrastructureRoute,
+    AuthenticatedMranuskhalidIntegrationsRoute:
+      AuthenticatedMranuskhalidIntegrationsRoute,
+    AuthenticatedMranuskhalidLeadsRoute: AuthenticatedMranuskhalidLeadsRoute,
+    AuthenticatedMranuskhalidLogsRoute: AuthenticatedMranuskhalidLogsRoute,
+    AuthenticatedMranuskhalidNavigationRoute:
+      AuthenticatedMranuskhalidNavigationRoute,
+    AuthenticatedMranuskhalidNotificationsRoute:
+      AuthenticatedMranuskhalidNotificationsRoute,
+    AuthenticatedMranuskhalidPagesRoute: AuthenticatedMranuskhalidPagesRoute,
+    AuthenticatedMranuskhalidPaymentsRoute:
+      AuthenticatedMranuskhalidPaymentsRoute,
+    AuthenticatedMranuskhalidPlansRoute: AuthenticatedMranuskhalidPlansRoute,
+    AuthenticatedMranuskhalidPoolRoute: AuthenticatedMranuskhalidPoolRoute,
+    AuthenticatedMranuskhalidPrivacyRequestsRoute:
+      AuthenticatedMranuskhalidPrivacyRequestsRoute,
+    AuthenticatedMranuskhalidProductionRoute:
+      AuthenticatedMranuskhalidProductionRoute,
+    AuthenticatedMranuskhalidProvidersRoute:
+      AuthenticatedMranuskhalidProvidersRoute,
+    AuthenticatedMranuskhalidRedirectsRoute:
+      AuthenticatedMranuskhalidRedirectsRoute,
+    AuthenticatedMranuskhalidReferralsRoute:
+      AuthenticatedMranuskhalidReferralsRoute,
+    AuthenticatedMranuskhalidReviewsRoute:
+      AuthenticatedMranuskhalidReviewsRoute,
+    AuthenticatedMranuskhalidSecurityRoute:
+      AuthenticatedMranuskhalidSecurityRoute,
+    AuthenticatedMranuskhalidSeoRoute: AuthenticatedMranuskhalidSeoRoute,
+    AuthenticatedMranuskhalidSeoFilesRoute:
+      AuthenticatedMranuskhalidSeoFilesRoute,
+    AuthenticatedMranuskhalidSettingsRoute:
+      AuthenticatedMranuskhalidSettingsRoute,
+    AuthenticatedMranuskhalidSubprocessorsRoute:
+      AuthenticatedMranuskhalidSubprocessorsRoute,
+    AuthenticatedMranuskhalidSubscriptionsRoute:
+      AuthenticatedMranuskhalidSubscriptionsRoute,
+    AuthenticatedMranuskhalidSupportRoute:
+      AuthenticatedMranuskhalidSupportRoute,
+    AuthenticatedMranuskhalidSystemEmailsRoute:
+      AuthenticatedMranuskhalidSystemEmailsRoute,
+    AuthenticatedMranuskhalidTemplatesRoute:
+      AuthenticatedMranuskhalidTemplatesRoute,
+    AuthenticatedMranuskhalidUnsubscribesRoute:
+      AuthenticatedMranuskhalidUnsubscribesRoute,
+    AuthenticatedMranuskhalidUsageRoute: AuthenticatedMranuskhalidUsageRoute,
+    AuthenticatedMranuskhalidUserGuideRoute:
+      AuthenticatedMranuskhalidUserGuideRoute,
+    AuthenticatedMranuskhalidUsersRoute: AuthenticatedMranuskhalidUsersRoute,
+    AuthenticatedMranuskhalidWarmupRoute: AuthenticatedMranuskhalidWarmupRoute,
+    AuthenticatedMranuskhalidWebhooksRoute:
+      AuthenticatedMranuskhalidWebhooksRoute,
+    AuthenticatedMranuskhalidWorkspacesRoute:
+      AuthenticatedMranuskhalidWorkspacesRoute,
+    AuthenticatedMranuskhalidIndexRoute: AuthenticatedMranuskhalidIndexRoute,
   }
 
-const AuthenticatedAdminRouteRouteWithChildren =
-  AuthenticatedAdminRouteRoute._addFileChildren(
-    AuthenticatedAdminRouteRouteChildren,
+const AuthenticatedMranuskhalidRouteRouteWithChildren =
+  AuthenticatedMranuskhalidRouteRoute._addFileChildren(
+    AuthenticatedMranuskhalidRouteRouteChildren,
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedMranuskhalidRouteRoute: typeof AuthenticatedMranuskhalidRouteRouteWithChildren
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
@@ -4048,7 +4094,8 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedMranuskhalidRouteRoute:
+    AuthenticatedMranuskhalidRouteRouteWithChildren,
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,

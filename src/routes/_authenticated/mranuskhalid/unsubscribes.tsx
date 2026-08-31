@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUnsubscribeReport } from "@/lib/unsubscribes.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/unsubscribes")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/unsubscribes")({
   head: () => ({
     meta: [
       { title: "Unsubscribes — MunchReach Admin" },

@@ -43,7 +43,7 @@ import {
 } from "@/lib/admin-directory.functions";
 import { WorkspacePlanPanel } from "@/components/admin/WorkspacePlanPanel";
 
-export const Route = createFileRoute("/_authenticated/admin/users")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/users")({
   head: () => ({
     meta: [
       { title: "Users — MunchReach Admin" },

@@ -18,7 +18,7 @@ import {
   testBillingProviderConnection,
 } from "@/lib/billing-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/billing-providers")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/billing-providers")({
   component: BillingProvidersPage,
   head: () => ({
     meta: [
@@ -308,7 +308,7 @@ function BillingProvidersPage() {
                           Test connection
                         </Button>
                         <Button size="sm" variant="ghost" asChild>
-                          <a href="/admin/billing">Open setup wizard</a>
+                          <a href="/mranuskhalid/billing">Open setup wizard</a>
                         </Button>
                       </div>
                     </div>

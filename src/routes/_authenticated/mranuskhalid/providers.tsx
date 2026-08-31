@@ -47,7 +47,7 @@ import { ProviderPool } from "@/components/admin/ProviderPool";
 import { deleteProvider, listProviders, saveProvider, testProvider } from "@/lib/admin.functions";
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
 
-export const Route = createFileRoute("/_authenticated/admin/providers")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/providers")({
   head: () => ({
     meta: [
       { title: "Email Providers — MunchReach Admin" },

@@ -28,7 +28,7 @@ import { adminRunProductionChecks } from "@/lib/admin-ops.functions";
 import type { CheckStatus, ProductionCheck } from "@/lib/production-checks.server";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/admin/production")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/production")({
   component: ProductionChecklistPage,
 });
 

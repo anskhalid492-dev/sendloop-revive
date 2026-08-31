@@ -28,7 +28,7 @@ import {
 } from "@/lib/marketing.functions";
 import { MARKETING_PROVIDER_TYPES } from "@/lib/marketing/provider-types";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/providers")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/providers")({
   head: () => ({
     meta: [
       { title: "Marketing Providers — MunchReach Admin" },

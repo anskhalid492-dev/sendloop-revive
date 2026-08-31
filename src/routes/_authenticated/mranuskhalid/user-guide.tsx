@@ -30,7 +30,7 @@ import {
   GUIDE_CATEGORIES,
 } from "@/lib/trust-center-model";
 
-export const Route = createFileRoute("/_authenticated/admin/user-guide")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/user-guide")({
   head: () => ({
     meta: [
       { title: "User Guide & Alerts — MunchReach Admin" },

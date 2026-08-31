@@ -33,7 +33,7 @@ import {
 } from "@/components/app/admin/OutreachUI";
 import { adminAnalytics, adminAnalyticsFilters } from "@/lib/admin-phase5.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/analytics")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/analytics")({
   head: () => ({
     meta: [
       { title: "Platform Analytics — MunchReach Admin" },

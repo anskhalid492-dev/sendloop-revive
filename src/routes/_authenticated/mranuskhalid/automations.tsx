@@ -36,7 +36,7 @@ import {
 } from "@/lib/admin-phase5.functions";
 import { adminOutreachFilters } from "@/lib/admin-outreach.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/automations")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/automations")({
   head: () => ({
     meta: [
       { title: "Automations — MunchReach Admin" },

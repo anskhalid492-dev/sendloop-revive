@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getAdminIdentity } from "@/lib/admin-dashboard.functions";
 import { getAdminSecurityIdentity } from "@/lib/admin-security.functions";
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid")({
   // Server-verified gate: getAdminIdentity resolves the platform role from
   // user_roles with the caller's own token. Every admin server function
   // re-checks the role, so this redirect is convenience, not the only guard.

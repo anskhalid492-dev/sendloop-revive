@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { listSystemLogs } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/logs")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/logs")({
   component: AdminLogsPage,
 });
 

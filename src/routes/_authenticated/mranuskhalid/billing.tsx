@@ -33,7 +33,7 @@ import {
 
 } from "@/lib/billing-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/billing")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/billing")({
   component: AdminBillingPage,
 });
 

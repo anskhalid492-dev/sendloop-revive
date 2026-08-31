@@ -28,7 +28,7 @@ import {
   updateAdminPlan,
 } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/plans")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/plans")({
   head: () => ({
     meta: [
       { title: "Plans & Pricing · MunchReach Admin" },

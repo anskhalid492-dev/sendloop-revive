@@ -21,7 +21,7 @@ import {
   updateMarketingSubscriber,
 } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/subscribers")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/subscribers")({
   head: () => ({
     meta: [
       { title: "Marketing Subscribers — MunchReach Admin" },

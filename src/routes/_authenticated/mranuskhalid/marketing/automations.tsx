@@ -21,7 +21,7 @@ import {
   setAutomationStatus,
 } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/automations")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/automations")({
   head: () => ({
     meta: [
       { title: "Marketing Automations — MunchReach Admin" },

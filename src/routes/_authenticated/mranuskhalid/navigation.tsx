@@ -30,7 +30,7 @@ import {
 } from "@/lib/site-content.functions";
 import { DEFAULT_COMMUNITY, type CommunityConfig } from "@/lib/community-model";
 
-export const Route = createFileRoute("/_authenticated/admin/navigation")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/navigation")({
   head: () => ({
     meta: [
       { title: "Navigation & Footer — MunchReach Admin" },

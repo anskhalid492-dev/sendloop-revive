@@ -35,7 +35,7 @@ import {
   adminRetryWebhookEvent,
 } from "@/lib/admin-platform.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/webhooks")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/webhooks")({
   head: () => ({
     meta: [
       { title: "Webhooks — MunchReach Admin" },

@@ -13,7 +13,7 @@ import {
   retryEmailEvent,
 } from "@/lib/ops.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/inbound-events/$eventId")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/inbound-events/$eventId")({
   head: () => ({
     meta: [
       { title: "Inbound Event Detail — MunchReach Admin" },
@@ -94,7 +94,7 @@ function EventDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1">
-            <Link to="/admin/inbound-events">
+            <Link to="/mranuskhalid/inbound-events">
               <ArrowLeft className="mr-1 h-3.5 w-3.5" /> All events
             </Link>
           </Button>

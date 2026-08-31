@@ -36,7 +36,7 @@ import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
 import { SesSystemEmailPanel } from "@/components/admin/SesSystemEmailPanel";
 
-export const Route = createFileRoute("/_authenticated/admin/system-emails")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/system-emails")({
   head: () => ({
     meta: [
       { title: "System Emails — MunchReach Admin" },
@@ -378,7 +378,7 @@ function SystemEmailsPage() {
             Process queue now
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/admin/email-log">Delivery log</Link>
+            <Link to="/mranuskhalid/email-log">Delivery log</Link>
           </Button>
         </div>
       </div>

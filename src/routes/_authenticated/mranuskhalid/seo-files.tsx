@@ -21,7 +21,7 @@ import {
 import { renderRobots, validateRobots, type RobotsConfig } from "@/lib/site-content-model";
 import { getAdminSiteData, getSitemapPreview, saveRobotsConfig } from "@/lib/site-content.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/seo-files")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/seo-files")({
   head: () => ({
     meta: [
       { title: "Robots & Sitemap — MunchReach Admin" },

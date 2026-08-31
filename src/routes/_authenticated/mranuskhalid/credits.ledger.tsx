@@ -17,7 +17,7 @@ import {
 import { CREDIT_ENTRY_TYPES, CREDIT_TYPE_LABELS, formatCredits } from "@/lib/billing/features";
 import { listCreditLedger } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/credits/ledger")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/credits/ledger")({
   head: () => ({
     meta: [
       { title: "Credit Ledger · MunchReach Admin" },
@@ -58,7 +58,7 @@ function AdminCreditLedgerPage() {
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link to="/admin/credits">
+          <Link to="/mranuskhalid/credits">
             <ArrowLeft className="mr-2 size-4" /> Back to balances
           </Link>
         </Button>

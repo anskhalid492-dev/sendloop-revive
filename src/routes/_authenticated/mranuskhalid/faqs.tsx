@@ -21,7 +21,7 @@ import { deleteFaq, listAllFaqs, saveFaq } from "@/lib/faqs.functions";
 import type { SiteFaq } from "@/lib/faqs.server";
 import { FAQ_PAGE_SLUGS } from "@/lib/faq-pages";
 
-export const Route = createFileRoute("/_authenticated/admin/faqs")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/faqs")({
   head: () => ({
     meta: [
       { title: "Website FAQs — MunchReach Admin" },

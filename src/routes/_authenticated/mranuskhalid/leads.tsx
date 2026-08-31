@@ -35,7 +35,7 @@ import {
 } from "@/lib/admin-outreach.functions";
 import { LeadRetentionPanel } from "@/components/app/admin/LeadRetentionPanel";
 
-export const Route = createFileRoute("/_authenticated/admin/leads")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/leads")({
   head: () => ({
     meta: [
       { title: "Leads — MunchReach Admin" },

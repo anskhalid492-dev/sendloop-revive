@@ -39,7 +39,7 @@ import {
   adminTestEmailAccount,
 } from "@/lib/admin-outreach.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/email-accounts")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/email-accounts")({
   head: () => ({
     meta: [
       { title: "Email Accounts — MunchReach Admin" },

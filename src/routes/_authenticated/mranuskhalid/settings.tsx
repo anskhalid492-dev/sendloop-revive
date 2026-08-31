@@ -46,7 +46,7 @@ import { UploadButton } from "@/components/admin/MediaLibrary";
 import { ReferralTemplatesPanel } from "@/components/admin/ReferralTemplatesPanel";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/admin/settings")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/settings")({
   component: SystemSettingsPage,
 });
 
@@ -134,7 +134,7 @@ function SystemSettingsPage() {
           </p>
         </div>
         <Link
-          to="/admin/production"
+          to="/mranuskhalid/production"
           className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"
         >
           Production checklist <ExternalLink className="size-3.5" />

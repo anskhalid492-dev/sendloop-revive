@@ -24,7 +24,7 @@ import {
 } from "@/lib/trust-center.functions";
 import { SUBPROCESSOR_STATUSES, SUBPROCESSOR_STATUS_LABEL } from "@/lib/trust-center-model";
 
-export const Route = createFileRoute("/_authenticated/admin/subprocessors")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/subprocessors")({
   head: () => ({
     meta: [
       { title: "Subprocessors — MunchReach Admin" },

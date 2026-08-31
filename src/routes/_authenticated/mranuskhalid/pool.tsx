@@ -43,7 +43,7 @@ import {
 } from "@/lib/admin.functions";
 import { providerLabel, type ProviderId } from "@/lib/providers/registry";
 
-export const Route = createFileRoute("/_authenticated/admin/pool")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/pool")({
   head: () => ({
     meta: [
       { title: "Sending Pool — MunchReach Admin" },

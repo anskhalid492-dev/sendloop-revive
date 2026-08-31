@@ -28,7 +28,7 @@ import {
   verifyMarketingDomain,
 } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/domains")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/domains")({
   head: () => ({
     meta: [
       { title: "Marketing Domains — MunchReach Admin" },

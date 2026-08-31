@@ -28,7 +28,7 @@ import {
 import { validateRedirect, type SiteRedirect } from "@/lib/site-content-model";
 import { deleteRedirect, getAdminSiteData, saveRedirect } from "@/lib/site-content.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/redirects")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/redirects")({
   head: () => ({
     meta: [
       { title: "Redirects — MunchReach Admin" },

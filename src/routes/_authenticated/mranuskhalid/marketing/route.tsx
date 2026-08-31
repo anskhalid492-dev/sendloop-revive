@@ -3,21 +3,21 @@ import { Megaphone } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing")({
   component: MarketingLayout,
 });
 
 const TABS = [
-  { to: "/admin/marketing", label: "Overview", exact: true },
-  { to: "/admin/marketing/subscribers", label: "Subscribers" },
-  { to: "/admin/marketing/segments", label: "Segments" },
-  { to: "/admin/marketing/campaigns", label: "Campaigns" },
-  { to: "/admin/marketing/templates", label: "Templates" },
-  { to: "/admin/marketing/automations", label: "Automations" },
-  { to: "/admin/marketing/providers", label: "Providers" },
-  { to: "/admin/marketing/domains", label: "Domains" },
-  { to: "/admin/marketing/analytics", label: "Analytics" },
-  { to: "/admin/marketing/settings", label: "Settings" },
+  { to: "/mranuskhalid/marketing", label: "Overview", exact: true },
+  { to: "/mranuskhalid/marketing/subscribers", label: "Subscribers" },
+  { to: "/mranuskhalid/marketing/segments", label: "Segments" },
+  { to: "/mranuskhalid/marketing/campaigns", label: "Campaigns" },
+  { to: "/mranuskhalid/marketing/templates", label: "Templates" },
+  { to: "/mranuskhalid/marketing/automations", label: "Automations" },
+  { to: "/mranuskhalid/marketing/providers", label: "Providers" },
+  { to: "/mranuskhalid/marketing/domains", label: "Domains" },
+  { to: "/mranuskhalid/marketing/analytics", label: "Analytics" },
+  { to: "/mranuskhalid/marketing/settings", label: "Settings" },
 ];
 
 function MarketingLayout() {

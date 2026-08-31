@@ -30,7 +30,7 @@ import {
 import { adminCrmContact, adminCrmDashboard } from "@/lib/admin-phase5.functions";
 import { adminOutreachFilters } from "@/lib/admin-outreach.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/crm")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/crm")({
   head: () => ({
     meta: [
       { title: "CRM — MunchReach Admin" },

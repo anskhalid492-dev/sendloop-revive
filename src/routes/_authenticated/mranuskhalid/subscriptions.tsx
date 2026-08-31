@@ -29,7 +29,7 @@ import {
   listAdminSubscriptions,
 } from "@/lib/plans-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/subscriptions")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/subscriptions")({
   head: () => ({
     meta: [
       { title: "Subscriptions · MunchReach Admin" },

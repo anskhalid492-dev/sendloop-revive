@@ -33,7 +33,7 @@ import {
   setMarketingCampaignStatus,
 } from "@/lib/marketing.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/marketing/campaigns")({
+export const Route = createFileRoute("/_authenticated/mranuskhalid/marketing/campaigns")({
   head: () => ({
     meta: [
       { title: "Marketing Campaigns — MunchReach Admin" },
