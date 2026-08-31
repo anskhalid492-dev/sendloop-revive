@@ -64,17 +64,17 @@ function ProductPanel() {
         }}
       />
 
-      <div className="relative flex h-full flex-col px-6 py-10 sm:px-10 lg:px-14 lg:py-14">
+      <div className="relative flex h-full flex-col px-6 py-7 sm:px-10 lg:px-12 lg:py-9">
         <Link to="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
-          <BrandLogo context="login" className="h-9 max-w-[210px]" />
+          <BrandLogo context="login" className="h-8 max-w-[190px]" />
         </Link>
 
-        <div className="mt-10 lg:mt-16">
+        <div className="mt-6 lg:mt-8">
           <motion.h2
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-[16ch] text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[2.5rem]"
+            className="max-w-[16ch] text-[1.6rem] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-[1.9rem]"
           >
             Turn cold outreach into predictable growth.
           </motion.h2>
@@ -82,14 +82,14 @@ function ProductPanel() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-4 max-w-[46ch] text-[0.975rem] leading-relaxed text-muted-foreground"
+            className="mt-2.5 max-w-[46ch] text-sm leading-relaxed text-muted-foreground"
           >
             {BRAND_NAME} is an all-in-one cold outbound platform — leads, mailboxes, sequences,
             deliverability and replies handled in a single workspace.
           </motion.p>
         </div>
 
-        <ul className="mt-10 max-w-md space-y-3">
+        <ul className="mt-5 max-w-md space-y-2">
           {BENEFITS.map((benefit, i) => (
             <motion.li
               key={benefit.title}
