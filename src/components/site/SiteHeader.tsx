@@ -421,13 +421,14 @@ export function SiteHeader() {
       <AnimatePresence>
         {open ? (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden border-t border-border/60 bg-background md:hidden"
+            className="mt-2 overflow-hidden rounded-3xl border border-border/70 bg-background shadow-[0_28px_60px_-30px_rgba(15,23,42,0.5)] md:hidden"
           >
-            <div className="mx-auto flex max-h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-1 overflow-y-auto px-4 py-4">
+            <div className="mx-auto flex max-h-[calc(100dvh-7.5rem)] max-w-7xl flex-col gap-1 overflow-y-auto overscroll-contain px-4 py-4">
+
               {leadNav.map((link) => (
                 <Link
                   key={link.to}
