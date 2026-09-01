@@ -83,7 +83,7 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => workspaceScope.parse(input) ?? {})
   .handler(async ({ data, context }) => {
-    const { buildCampaignOverview } = await import("@/lib/campaign-overview");
+    const { buildCampaignOverview, deriveDisplayStatus } = await import("@/lib/campaign-overview");
     const ws = data?.workspaceId;
     // Scope every read to the active workspace (platform admins can otherwise
     // read all tenants' rows through RLS).
