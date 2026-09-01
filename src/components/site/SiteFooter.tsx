@@ -337,11 +337,11 @@ export function SiteFooter() {
               <a href="/pricing" className="transition-colors hover:text-primary">
                 Pricing
               </a>
-              <a href="/contact" className="transition-colors hover:text-primary">
-                Contact
-              </a>
               <a href="/help-center" className="transition-colors hover:text-primary">
                 Help Center
+              </a>
+              <a href="/compliance" className="transition-colors hover:text-primary">
+                Compliance
               </a>
             </nav>
           </div>
