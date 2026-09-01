@@ -135,7 +135,7 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     const failure = [campaignsRes, accountsRes].find((r) => r.error);
     if (failure?.error) throw new Error(failure.error.message);
 
-    return buildCampaignOverview({
+    const rows = buildCampaignOverview({
       campaigns: (campaignsRes.data ?? []) as never,
       recipients: recipients as never,
       messages: messages as never,
@@ -143,7 +143,29 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
       meetings: meetings as never,
       accounts: (accountsRes.data ?? []) as never,
     });
+
+    // Delivery numbers on this table come from the same authoritative reader
+    // as the campaign page, Analytics and the dashboard, so retries and
+    // duplicate rows can never make the list disagree with them.
+    if (ws) {
+      const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+      const { byCampaign } = await fetchCampaignStats(context.supabase, { workspaceId: ws });
+      for (const row of rows) {
+        const stats = byCampaign.get(row.id);
+        if (!stats) continue;
+        row.sent = stats.sent;
+        row.bounced = stats.bounced;
+        row.failed = stats.failed;
+        row.replies = stats.replied;
+        row.positiveReplies = stats.positiveReplied;
+        row.replyRate = stats.sent > 0 ? (stats.replied / stats.sent) * 100 : 0;
+        row.displayStatus = deriveDisplayStatus(row.status, stats.sent, stats.failed);
+      }
+    }
+
+    return rows;
   });
+
 
 
 /**
