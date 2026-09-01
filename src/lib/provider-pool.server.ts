@@ -96,11 +96,27 @@ export function hasCapacity(row: PoolProviderRow): boolean {
 }
 
 export async function loadPool(admin: Admin): Promise<PoolProviderRow[]> {
-  const { data } = await admin
+  const { data, error } = await admin
     .from("email_providers")
     .select(POOL_COLUMNS)
     .order("priority", { ascending: true });
-  return (data ?? []) as PoolProviderRow[];
+  if (!error) return (data ?? []) as PoolProviderRow[];
+
+  // A deployment whose database has not got the scope columns yet must NOT
+  // silently lose its whole provider pool (that collapses routing to a blind
+  // last-resort key and sends domains through the wrong provider). Fall back to
+  // the legacy columns; `isProviderEnabledForScope` treats missing scope flags
+  // as the legacy master switch.
+  console.error("provider pool: scoped columns unavailable, using legacy columns", error.message);
+  const legacy = await admin
+    .from("email_providers")
+    .select(POOL_BASE_COLUMNS)
+    .order("priority", { ascending: true });
+  if (legacy.error) {
+    console.error("provider pool: unable to load providers", legacy.error.message);
+    return [];
+  }
+  return (legacy.data ?? []) as PoolProviderRow[];
 }
 
 /** Server-side only: decrypts stored credentials, else falls back to a platform key. */
