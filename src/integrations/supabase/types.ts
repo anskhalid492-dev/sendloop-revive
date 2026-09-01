@@ -9025,6 +9025,42 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      campaign_stats: {
+        Args: {
+          _campaign_ids?: string[]
+          _from?: string
+          _to?: string
+          _workspace_id: string
+        }
+        Returns: {
+          bounced: number
+          campaign_id: string
+          campaign_name: string
+          clicked: number
+          complained: number
+          delivered: number
+          failed: number
+          leads: number
+          opened: number
+          positive_replied: number
+          queued: number
+          remaining: number
+          replied: number
+          sending: number
+          sent: number
+          status: string
+          unsubscribed: number
+        }[]
+      }
+      campaign_stats_reconcile: {
+        Args: { _campaign_id: string; _workspace_id: string }
+        Returns: {
+          actual: number
+          check_name: string
+          expected: number
+          ok: boolean
+        }[]
+      }
       claim_ai_personalization_jobs: {
         Args: { _limit: number; _worker: string }
         Returns: {

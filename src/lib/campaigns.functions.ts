@@ -236,6 +236,22 @@ export const getCampaign = createServerFn({ method: "GET" })
     const totalRecipients = recipientCountRes.count ?? recipients.length;
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
+    // Single source of truth for every headline number on this campaign. The
+    // same function backs the workspace Analytics page, so the two can never
+    // report different totals for the same campaign.
+    const { toCampaignStats, EMPTY_CAMPAIGN_STATS } = await import("@/lib/campaign-stats");
+    const campaignWorkspaceId = String(
+      (campaign as unknown as Record<string, unknown>)["workspace_id"] ?? "",
+    );
+    const { data: statsRows } = await context.supabase.rpc("campaign_stats", {
+      _workspace_id: campaignWorkspaceId,
+      _campaign_ids: [data.id],
+    });
+
+    const statsRow = ((statsRows ?? []) as Record<string, unknown>[])[0];
+    const stats = statsRow ? toCampaignStats(statsRow) : EMPTY_CAMPAIGN_STATS(data.id);
+
+
     const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
     const sentMessages = messages.filter((m) => m["sent_at"]);
     const bounced = withTimestamp("bounced_at");
@@ -303,7 +319,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         }).length,
       ),
       lifetimeLimit: Number(campaignRow["email_send_limit"] ?? 0) || 0,
-      lifetimeSent: sentMessages.length,
+      lifetimeSent: stats.sent,
       now: runNow,
       window: runWindow,
     });
@@ -332,7 +348,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         unsubscribed: countBy("unsubscribed"),
         failed: countBy("failed"),
         stopped: countBy("stopped"),
-        sent: recipients.filter((r) => r.last_sent_at).length,
+        sent: stats.sent,
         byStep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => ({
           step,
           reached: recipients.filter((r) => (r.current_step ?? 0) >= step).length,
@@ -343,30 +359,33 @@ export const getCampaign = createServerFn({ method: "GET" })
             .filter((v): v is string => Boolean(v))
             .sort()[0] ?? null,
       },
+      // Lifetime totals come from the shared `campaign_stats` source, so this
+      // tab always agrees with the workspace Analytics page.
       delivery: {
-        totalLeads: totalRecipients,
+        totalLeads: stats.leads || totalRecipients,
         contacted: contactedLeads,
-        sent: sentMessages.length,
-        delivered,
+        sent: stats.sent,
+        delivered: stats.delivered,
         delayed: messages.filter((m) => m["delivery_status"] === "delayed").length,
-        opened: withTimestamp("opened_at"),
-        clicked: withTimestamp("clicked_at"),
-        replied: withTimestamp("replied_at") || countBy("replied"),
-        bounced,
-        complained: withTimestamp("complained_at"),
-        unsubscribed: withTimestamp("unsubscribed_at") || countBy("unsubscribed"),
-        failed: failedMessages,
+        opened: stats.opened,
+        clicked: stats.clicked,
+        replied: stats.replied,
+        bounced: stats.bounced,
+        complained: stats.complained,
+        unsubscribed: stats.unsubscribed,
+        failed: stats.failed,
         scheduled: messages.filter((m) => m["status"] === "scheduled" && !m["sent_at"]).length,
         // In flight right now: handed to the provider, no acceptance yet.
-        processing: messages.filter((m) => m["status"] === "processing" && !m["sent_at"]).length,
+        processing: stats.sending,
         // Lifetime remainder: recipients this campaign has never emailed.
-        remaining: Math.max(0, totalRecipients - contactedLeads),
+        remaining: stats.remaining,
         cancelled: messages.filter((m) => m["status"] === "cancelled").length,
         pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
         sentToday: sentTodayCount,
       },
+
       // Today's engagement, strictly separate from the lifetime numbers above.
       today: {
         sent: sentTodayCount,
