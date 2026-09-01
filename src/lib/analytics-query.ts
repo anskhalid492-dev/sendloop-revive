@@ -1,3 +1,5 @@
+import { keepPreviousData } from "@tanstack/react-query";
+
 /**
  * ONE DATABASE STATE -> ONE AUTHORITATIVE QUERY -> SAME CURRENT RESULT EVERYWHERE.
  *
@@ -46,6 +48,6 @@ export function liveQueryOptions(pollMs: number | false = ANALYTICS_POLL_MS) {
     refetchOnReconnect: "always" as const,
     refetchInterval: pollMs,
     refetchIntervalInBackground: false,
-    placeholderData: <T,>(prev: T) => prev,
+    placeholderData: keepPreviousData,
   };
 }

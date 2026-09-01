@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAnalyticsRealtime } from "@/hooks/useAnalyticsRealtime";
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import {
   getAnalyticsByAccount,
   getAnalyticsByCampaign,
