@@ -102,24 +102,25 @@ export const getAnalyticsTimeseries = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    const { data: rows, error } = await client.rpc("analytics_timeseries", {
-      _workspace_id: data.workspaceId,
-      _from: new Date(data.from).toISOString(),
-      _to: new Date(data.to).toISOString(),
-      _bucket: data.bucket,
+    const from = new Date(data.from);
+    const to = new Date(data.to);
+    const [{ fetchCampaignStats }, { collapseMessageUnits, computeTimeseries }] = await Promise.all([
+      import("@/lib/campaign-stats.server"),
+      import("@/lib/campaign-stats"),
+    ]);
+    const bundle = await fetchCampaignStats(client, {
+      workspaceId: data.workspaceId,
+      from,
+      to,
     });
-    if (error) throw new Error(error.message);
-    return ((rows ?? []) as Record<string, unknown>[]).map((r) => ({
-      bucket: String(r["bucket"]),
-      sent: Number(r["sent"] ?? 0),
-      delivered: Number(r["delivered"] ?? 0),
-      opens: Number(r["opens"] ?? 0),
-      clicks: Number(r["clicks"] ?? 0),
-      replies: Number(r["replies"] ?? 0),
-      bounced: Number(r["bounced"] ?? 0),
-      unsubscribed: Number(r["unsubscribed"] ?? 0),
-    })) as AnalyticsTimeseriesPoint[];
+    const units = collapseMessageUnits(bundle.messages, bundle.signals);
+    return computeTimeseries(units.values(), {
+      bucket: data.bucket,
+      from,
+      to,
+    }) as AnalyticsTimeseriesPoint[];
   });
+
 
 /** Per-campaign performance for the range. */
 export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
