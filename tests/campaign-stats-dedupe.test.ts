@@ -51,8 +51,8 @@ describe("campaign stats de-duplication", () => {
 describe("nextEligibleSendAt", () => {
   const window = {
     timezone: "Asia/Dubai",
-    startMinutes: 20 * 60,
-    endMinutes: 22 * 60,
+    start: 20,
+    end: 22,
     days: [0, 1, 2, 3, 4, 5, 6],
   } as never;
 
