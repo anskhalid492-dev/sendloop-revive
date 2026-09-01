@@ -63,26 +63,35 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
     const span = Math.max(to.getTime() - from.getTime(), 60_000);
     const prevFrom = new Date(from.getTime() - span);
 
+    // Same authoritative reader as the Campaign Overview and the dashboard,
+    // so workspace totals always equal the sum of the campaign numbers.
+    const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+    const sum = (rows: Iterable<import("@/lib/campaign-stats").CampaignStats>) => {
+      const total = { ...ZERO };
+      for (const s of rows) {
+        total.sent += s.sent;
+        total.delivered += s.delivered;
+        total.opens += s.opened;
+        total.clicks += s.clicked;
+        total.replies += s.replied;
+        total.bounced += s.bounced;
+        total.unsubscribed += s.unsubscribed;
+        total.complained += s.complained;
+        total.failed += s.failed;
+      }
+      return total;
+    };
+
     const [current, previous] = await Promise.all([
-      client.rpc("analytics_summary", {
-        _workspace_id: data.workspaceId,
-        _from: from.toISOString(),
-        _to: to.toISOString(),
-      }),
-      client.rpc("analytics_summary", {
-        _workspace_id: data.workspaceId,
-        _from: prevFrom.toISOString(),
-        _to: from.toISOString(),
-      }),
+      fetchCampaignStats(client, { workspaceId: data.workspaceId, from, to }),
+      fetchCampaignStats(client, { workspaceId: data.workspaceId, from: prevFrom, to: from }),
     ]);
 
-    if (current.error) throw new Error(current.error.message);
-    if (previous.error) throw new Error(previous.error.message);
-
     return {
-      current: toSummary(current.data?.[0]),
-      previous: toSummary(previous.data?.[0]),
+      current: sum(current.byCampaign.values()),
+      previous: sum(previous.byCampaign.values()),
     };
+
   });
 
 /** Bucketed series for the performance chart. */
