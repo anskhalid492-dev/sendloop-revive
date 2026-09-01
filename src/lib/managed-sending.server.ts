@@ -136,6 +136,9 @@ export async function resolveManagedProvider(
     currentProviderId: account.provider_id,
     requireDomainApi: false,
     scope,
+    // The sender's domain is provisioned on this provider; routing it anywhere
+    // else makes the other provider reject it as an unverified domain.
+    preferredProvider: account.provider || null,
   });
 
   if (selected) {

@@ -1174,6 +1174,27 @@ export async function dispatchDueMessages(
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
       await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      const { DOMAIN_NOT_VERIFIED_MESSAGE, INFRA_NOT_CONFIGURED_MESSAGE } = await import(
+        "@/lib/managed-sending.server"
+      );
+      // Infrastructure blocks (domain not ready on the provider, no provider
+      // credentials configured) say nothing about the recipient: they are
+      // TEMPORARY. Keep the message queued instead of burning it, exactly like
+      // the "no mailbox available" path.
+      if (send.message === DOMAIN_NOT_VERIFIED_MESSAGE || send.message === INFRA_NOT_CONFIGURED_MESSAGE) {
+        result.skipped += 1;
+        if (result.errors.length < 5) result.errors.push(send.message);
+        await supabase
+          .from("campaign_messages")
+          .update({
+            status: "scheduled",
+            scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+            last_error: send.message,
+          })
+          .eq("id", message.id);
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "sending_infrastructure_not_ready_deferred", providerResult: "rejected" });
+        continue;
+      }
       await fail(send.message);
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_rejected", providerResult: "rejected" });
       continue;
