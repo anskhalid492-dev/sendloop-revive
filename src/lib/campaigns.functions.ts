@@ -237,19 +237,18 @@ export const getCampaign = createServerFn({ method: "GET" })
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
     // Single source of truth for every headline number on this campaign. The
-    // same function backs the workspace Analytics page, so the two can never
-    // report different totals for the same campaign.
-    const { toCampaignStats, EMPTY_CAMPAIGN_STATS } = await import("@/lib/campaign-stats");
+    // same reader backs the workspace Analytics page and the dashboard, so
+    // they can never report different totals for the same campaign.
+    const { fetchOneCampaignStats } = await import("@/lib/campaign-stats.server");
     const campaignWorkspaceId = String(
       (campaign as unknown as Record<string, unknown>)["workspace_id"] ?? "",
     );
-    const { data: statsRows } = await context.supabase.rpc("campaign_stats", {
-      _workspace_id: campaignWorkspaceId,
-      _campaign_ids: [data.id],
-    });
+    const { stats } = await fetchOneCampaignStats(
+      context.supabase,
+      campaignWorkspaceId,
+      data.id,
+    );
 
-    const statsRow = ((statsRows ?? []) as Record<string, unknown>[])[0];
-    const stats = statsRow ? toCampaignStats(statsRow) : EMPTY_CAMPAIGN_STATS(data.id);
 
 
     const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
