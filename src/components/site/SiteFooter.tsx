@@ -92,6 +92,7 @@ const fallbackColumns = [
       { label: "Cookie Policy", href: "/cookie-policy" },
       { label: "DPA", href: "/dpa" },
       { label: "Remove My Data", href: "/remove-my-data" },
+      { label: "Compliance", href: "/compliance" },
     ],
   },
 ];
@@ -174,6 +175,11 @@ export function SiteFooter() {
     for (const item of items) {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
+    }
+    // Compliance is a platform rule page and must always appear under Legal.
+    const legal = groups.get("Legal") ?? [];
+    if (!legal.some((l) => l.href === "/compliance")) {
+      groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);
     }
     const order = ["Products", "Resources", "Comparisons", "Company", "Legal"];
     const sorted = [...groups.entries()].sort((a, b) => {
@@ -336,11 +342,11 @@ export function SiteFooter() {
               <a href="/pricing" className="transition-colors hover:text-primary">
                 Pricing
               </a>
-              <a href="/contact" className="transition-colors hover:text-primary">
-                Contact
-              </a>
               <a href="/help-center" className="transition-colors hover:text-primary">
                 Help Center
+              </a>
+              <a href="/compliance" className="transition-colors hover:text-primary">
+                Compliance
               </a>
             </nav>
           </div>

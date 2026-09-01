@@ -20,6 +20,7 @@ import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as ColdEmailRouteImport } from './routes/cold-email'
 import { Route as ColdEmailTemplatesRouteImport } from './routes/cold-email-templates'
 import { Route as CommunityRouteImport } from './routes/community'
+import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ContactSupportRouteImport } from './routes/contact-support'
 import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
@@ -254,6 +255,11 @@ const ColdEmailTemplatesRoute = ColdEmailTemplatesRouteImport.update({
 const CommunityRoute = CommunityRouteImport.update({
   id: '/community',
   path: '/community',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplianceRoute = ComplianceRouteImport.update({
+  id: '/compliance',
+  path: '/compliance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -1274,6 +1280,7 @@ export interface FileRoutesByFullPath {
   '/cold-email': typeof ColdEmailRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/community': typeof CommunityRoute
+  '/compliance': typeof ComplianceRoute
   '/contact': typeof ContactRoute
   '/contact-support': typeof ContactSupportRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -1467,6 +1474,7 @@ export interface FileRoutesByTo {
   '/cold-email': typeof ColdEmailRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/community': typeof CommunityRoute
+  '/compliance': typeof ComplianceRoute
   '/contact': typeof ContactRoute
   '/contact-support': typeof ContactSupportRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -1659,6 +1667,7 @@ export interface FileRoutesById {
   '/cold-email': typeof ColdEmailRoute
   '/cold-email-templates': typeof ColdEmailTemplatesRoute
   '/community': typeof CommunityRoute
+  '/compliance': typeof ComplianceRoute
   '/contact': typeof ContactRoute
   '/contact-support': typeof ContactSupportRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -1854,6 +1863,7 @@ export interface FileRouteTypes {
     | '/cold-email'
     | '/cold-email-templates'
     | '/community'
+    | '/compliance'
     | '/contact'
     | '/contact-support'
     | '/cookie-policy'
@@ -2047,6 +2057,7 @@ export interface FileRouteTypes {
     | '/cold-email'
     | '/cold-email-templates'
     | '/community'
+    | '/compliance'
     | '/contact'
     | '/contact-support'
     | '/cookie-policy'
@@ -2238,6 +2249,7 @@ export interface FileRouteTypes {
     | '/cold-email'
     | '/cold-email-templates'
     | '/community'
+    | '/compliance'
     | '/contact'
     | '/contact-support'
     | '/cookie-policy'
@@ -2433,6 +2445,7 @@ export interface RootRouteChildren {
   ColdEmailRoute: typeof ColdEmailRoute
   ColdEmailTemplatesRoute: typeof ColdEmailTemplatesRoute
   CommunityRoute: typeof CommunityRoute
+  ComplianceRoute: typeof ComplianceRoute
   ContactRoute: typeof ContactRoute
   ContactSupportRoute: typeof ContactSupportRoute
   CookiePolicyRoute: typeof CookiePolicyRoute
@@ -2596,6 +2609,13 @@ declare module '@tanstack/react-router' {
       path: '/community'
       fullPath: '/community'
       preLoaderRoute: typeof CommunityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compliance': {
+      id: '/compliance'
+      path: '/compliance'
+      fullPath: '/compliance'
+      preLoaderRoute: typeof ComplianceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -4270,6 +4290,7 @@ const rootRouteChildren: RootRouteChildren = {
   ColdEmailRoute: ColdEmailRoute,
   ColdEmailTemplatesRoute: ColdEmailTemplatesRoute,
   CommunityRoute: CommunityRoute,
+  ComplianceRoute: ComplianceRoute,
   ContactRoute: ContactRoute,
   ContactSupportRoute: ContactSupportRoute,
   CookiePolicyRoute: CookiePolicyRoute,
