@@ -220,16 +220,23 @@ export const saveProvider = createServerFn({ method: "POST" })
         .from("email_providers")
         .update(row)
         .eq("id", providerId);
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (isMissingScopeColumns(error.message)) throw new Error(SCOPE_COLUMNS_MISSING_MESSAGE);
+        throw new Error(error.message);
+      }
     } else {
       const { data: created, error } = await context.supabase
         .from("email_providers")
         .insert(row)
         .select("id")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (isMissingScopeColumns(error.message)) throw new Error(SCOPE_COLUMNS_MISSING_MESSAGE);
+        throw new Error(error.message);
+      }
       providerId = created.id as string;
     }
+
 
     if (data.credentials && Object.keys(data.credentials).length > 0) {
       const { encryptCredentials, testProviderCredentials } = await import(
