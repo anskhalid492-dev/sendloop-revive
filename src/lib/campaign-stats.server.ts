@@ -87,7 +87,7 @@ export async function fetchCampaignStats(
     status: string | null;
   }>;
   const campaignIds = campaigns.map((c) => c.id);
-  if (!campaignIds.length) return { byCampaign: new Map(), messages: [] };
+  if (!campaignIds.length) return { byCampaign: new Map(), messages: [], signals: new Map() };
 
   const [messages, recipients, events, replies] = await Promise.all([
     fetchAllRows<CampaignMessageRow>(() =>
@@ -178,7 +178,7 @@ export async function fetchCampaignStats(
     );
   }
 
-  return { byCampaign, messages };
+  return { byCampaign, messages, signals };
 }
 
 /** Convenience reader for a single campaign. */
