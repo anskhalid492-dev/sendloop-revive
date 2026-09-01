@@ -94,6 +94,15 @@ export const amIAdmin = createServerFn({ method: "GET" })
     return { isAdmin: Boolean(data) };
   });
 
+/** True when the database predates the per-scope provider permission columns. */
+function isMissingScopeColumns(message: string | null | undefined): boolean {
+  const text = message ?? "";
+  return /customer_enabled|system_enabled/.test(text) && /does not exist|schema cache/i.test(text);
+}
+
+const SCOPE_COLUMNS_MISSING_MESSAGE =
+  "This database is missing the per-scope provider permission columns (customer_enabled / system_enabled). Apply supabase/manual/provider-scopes.sql to this project, then retry.";
+
 export const listProviders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -103,7 +112,13 @@ export const listProviders = createServerFn({ method: "GET" })
       .select("*")
       .order("priority", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as AdminProvider[];
+    // Older databases without the scope columns still render: both scopes fall
+    // back to the legacy master switch until the migration is applied.
+    return (data ?? []).map((row: any) => ({
+      ...row,
+      customer_enabled: row.customer_enabled ?? row.is_enabled ?? false,
+      system_enabled: row.system_enabled ?? row.is_enabled ?? false,
+    })) as AdminProvider[];
   });
 
 /**
@@ -126,10 +141,13 @@ export const setProviderScopeEnabled = createServerFn({ method: "POST" })
 
     const { data: current, error: readError } = await context.supabase
       .from("email_providers")
-      .select("id, name, customer_enabled, system_enabled")
+      .select("id, name, is_enabled, customer_enabled, system_enabled")
       .eq("id", data.id)
       .maybeSingle();
-    if (readError) throw new Error(readError.message);
+    if (readError) {
+      if (isMissingScopeColumns(readError.message)) throw new Error(SCOPE_COLUMNS_MISSING_MESSAGE);
+      throw new Error(readError.message);
+    }
     if (!current) throw new Error("Provider not found");
 
     const next = {
@@ -142,10 +160,14 @@ export const setProviderScopeEnabled = createServerFn({ method: "POST" })
       .from("email_providers")
       .update({ ...next, is_enabled: masterEnabled(next), updated_at: new Date().toISOString() })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (isMissingScopeColumns(error.message)) throw new Error(SCOPE_COLUMNS_MISSING_MESSAGE);
+      throw new Error(error.message);
+    }
 
     return { ok: true, id: data.id, ...next };
   });
+
 
 export const saveProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
