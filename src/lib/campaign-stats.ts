@@ -367,3 +367,96 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.byStep = Array.from(steps.values()).sort((a, b) => a.step - b.step);
   return stats;
 }
+
+export type TimeseriesPoint = {
+  bucket: string;
+  sent: number;
+  delivered: number;
+  opens: number;
+  clicks: number;
+  replies: number;
+  bounced: number;
+  unsubscribed: number;
+};
+
+const bucketKey = (iso: string, bucket: "hour" | "day") =>
+  bucket === "hour" ? `${iso.slice(0, 13)}:00:00.000Z` : `${iso.slice(0, 10)}T00:00:00.000Z`;
+
+/**
+ * Bucketed series built from the SAME de-duplicated units as every headline
+ * number, so the chart can never disagree with the totals above it.
+ */
+export function computeTimeseries(
+  units: Iterable<Unit>,
+  opts: { bucket: "hour" | "day"; from: Date; to: Date },
+): TimeseriesPoint[] {
+  const lo = opts.from.getTime();
+  const hi = opts.to.getTime();
+  const points = new Map<string, TimeseriesPoint>();
+  const at = (iso: string | null, field: keyof Omit<TimeseriesPoint, "bucket">) => {
+    if (!iso) return;
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t) || t < lo || t >= hi) return;
+    const key = bucketKey(new Date(t).toISOString(), opts.bucket);
+    let point = points.get(key);
+    if (!point) {
+      point = { bucket: key, sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, bounced: 0, unsubscribed: 0 };
+      points.set(key, point);
+    }
+    point[field] += 1;
+  };
+
+  for (const u of units) {
+    at(u.sentAt, "sent");
+    if (!u.signals.bounced_at && !u.signals.failed_at) at(u.signals.delivered_at, "delivered");
+    at(u.signals.opened_at, "opens");
+    at(u.signals.clicked_at, "clicks");
+    at(u.signals.replied_at, "replies");
+    at(u.signals.bounced_at, "bounced");
+    at(u.signals.unsubscribed_at, "unsubscribed");
+  }
+
+  return Array.from(points.values()).sort((a, b) => a.bucket.localeCompare(b.bucket));
+}
+
+export type AccountTotals = {
+  accountId: string;
+  sent: number;
+  delivered: number;
+  opens: number;
+  clicks: number;
+  replies: number;
+  bounced: number;
+  failed: number;
+};
+
+/** Per-mailbox totals, derived from the same units as the campaign totals. */
+export function computeAccountTotals(
+  units: Iterable<Unit>,
+  opts: { from: Date; to: Date },
+): AccountTotals[] {
+  const lo = opts.from.getTime();
+  const hi = opts.to.getTime();
+  const inRange = (iso: string | null) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return Number.isFinite(t) && t >= lo && t < hi;
+  };
+  const rows = new Map<string, AccountTotals>();
+  for (const u of units) {
+    if (!u.accountId) continue;
+    let row = rows.get(u.accountId);
+    if (!row) {
+      row = { accountId: u.accountId, sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, bounced: 0, failed: 0 };
+      rows.set(u.accountId, row);
+    }
+    if (inRange(u.sentAt)) row.sent += 1;
+    if (inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at) row.delivered += 1;
+    if (inRange(u.signals.opened_at)) row.opens += 1;
+    if (inRange(u.signals.clicked_at)) row.clicks += 1;
+    if (inRange(u.signals.replied_at)) row.replies += 1;
+    if (inRange(u.signals.bounced_at)) row.bounced += 1;
+    if (!u.signals.bounced_at && inRange(u.signals.failed_at)) row.failed += 1;
+  }
+  return rows.values().toArray?.() ?? Array.from(rows.values());
+}
