@@ -176,24 +176,48 @@ export const getAnalyticsByAccount = createServerFn({ method: "POST" })
   .inputValidator((input) => rangeInput.parse(input))
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    const { data: rows, error } = await client.rpc("analytics_by_account", {
-      _workspace_id: data.workspaceId,
-      _from: new Date(data.from).toISOString(),
-      _to: new Date(data.to).toISOString(),
-    });
-    if (error) throw new Error(error.message);
-    return ((rows ?? []) as Record<string, unknown>[]).map((r) => ({
-      accountId: String(r["account_id"]),
-      fromEmail: String(r["from_email"] ?? ""),
-      sent: Number(r["sent"] ?? 0),
-      delivered: Number(r["delivered"] ?? 0),
-      opens: Number(r["opens"] ?? 0),
-      clicks: Number(r["clicks"] ?? 0),
-      replies: Number(r["replies"] ?? 0),
-      bounced: Number(r["bounced"] ?? 0),
-      unsubscribed: Number(r["unsubscribed"] ?? 0),
-    })) as AnalyticsAccountRow[];
+    const from = new Date(data.from);
+    const to = new Date(data.to);
+    const [{ fetchCampaignStats }, { collapseMessageUnits, computeAccountTotals }] =
+      await Promise.all([
+        import("@/lib/campaign-stats.server"),
+        import("@/lib/campaign-stats"),
+      ]);
+    const bundle = await fetchCampaignStats(client, { workspaceId: data.workspaceId, from, to });
+    const totals = computeAccountTotals(
+      collapseMessageUnits(bundle.messages, bundle.signals).values(),
+      { from, to },
+    );
+
+    const emails = new Map<string, string>();
+    if (totals.length) {
+      const { data: accounts } = await client
+        .from("sending_accounts")
+        .select("id, from_email")
+        .in(
+          "id",
+          totals.map((t) => t.accountId),
+        );
+      for (const a of (accounts ?? []) as Array<Record<string, unknown>>) {
+        emails.set(String(a["id"]), String(a["from_email"] ?? ""));
+      }
+    }
+
+    return totals
+      .map((t) => ({
+        accountId: t.accountId,
+        fromEmail: emails.get(t.accountId) ?? "",
+        sent: t.sent,
+        delivered: t.delivered,
+        opens: t.opens,
+        clicks: t.clicks,
+        replies: t.replies,
+        bounced: t.bounced,
+        unsubscribed: 0,
+      }))
+      .sort((a, b) => b.sent - a.sent) as AnalyticsAccountRow[];
   });
+
 
 export type FunnelStep = "sent" | "delivered" | "opens" | "replies";
 
