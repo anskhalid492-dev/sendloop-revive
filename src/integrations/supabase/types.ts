@@ -3266,6 +3266,7 @@ export type Database = {
         Row: {
           cost_per_1k_cents: number
           created_at: string
+          customer_enabled: boolean
           daily_capacity: number
           failure_count: number
           health_checked_at: string | null
@@ -3291,6 +3292,7 @@ export type Database = {
           sent_hour: number
           status: Database["public"]["Enums"]["connection_status"]
           success_count: number
+          system_enabled: boolean
           updated_at: string
           usage_day: string | null
           usage_hour: string | null
@@ -3298,6 +3300,7 @@ export type Database = {
         Insert: {
           cost_per_1k_cents?: number
           created_at?: string
+          customer_enabled?: boolean
           daily_capacity?: number
           failure_count?: number
           health_checked_at?: string | null
@@ -3323,6 +3326,7 @@ export type Database = {
           sent_hour?: number
           status?: Database["public"]["Enums"]["connection_status"]
           success_count?: number
+          system_enabled?: boolean
           updated_at?: string
           usage_day?: string | null
           usage_hour?: string | null
@@ -3330,6 +3334,7 @@ export type Database = {
         Update: {
           cost_per_1k_cents?: number
           created_at?: string
+          customer_enabled?: boolean
           daily_capacity?: number
           failure_count?: number
           health_checked_at?: string | null
@@ -3355,6 +3360,7 @@ export type Database = {
           sent_hour?: number
           status?: Database["public"]["Enums"]["connection_status"]
           success_count?: number
+          system_enabled?: boolean
           updated_at?: string
           usage_day?: string | null
           usage_hour?: string | null
