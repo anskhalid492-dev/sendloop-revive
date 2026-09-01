@@ -167,7 +167,7 @@ export function AuthLayout({
 }) {
   return (
     <div className="min-h-screen bg-background lg:grid lg:h-screen lg:min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[1.05fr_1fr]">
-      <div className="lg:h-screen lg:overflow-y-auto">
+      <div className="hidden lg:block lg:h-screen lg:overflow-y-auto">
         <ProductPanel />
       </div>
 
