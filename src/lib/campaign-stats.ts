@@ -216,32 +216,28 @@ export type ComputeInput = {
 };
 
 /**
- * Collapse raw message rows into logical units (one per recipient+step) and
- * count every metric from them. This is the only place campaign metrics are
- * derived; the SQL mirror exists purely as an optimisation.
+ * Collapse raw message rows into logical units: exactly one per
+ * recipient+step. Retries, requeues and duplicate webhook writes therefore
+ * can never inflate a count.
  */
-export function computeCampaignStats(input: ComputeInput): CampaignStats {
-  const lo = input.from ? input.from.getTime() : -Infinity;
-  const hi = input.to ? input.to.getTime() : Infinity;
-  const inRange = (value: string | null) => {
-    if (!value) return false;
-    const at = new Date(value).getTime();
-    return Number.isFinite(at) && at >= lo && at < hi;
-  };
-
+export function collapseMessageUnits(
+  messages: CampaignMessageRow[],
+  events?: MessageEventSignals,
+): Map<string, Unit> {
   const units = new Map<string, Unit>();
-  for (const m of input.messages) {
+  for (const m of messages) {
     const leadKey = String(m.recipient_id ?? m.lead_id ?? m.id);
     const step = Math.max(1, Number(m.step_order ?? 1) || 1);
     const key = `${leadKey}|${step}`;
     const status = String(m.status ?? "");
-    const eventSignals = input.events?.get(m.id) ?? {};
+    const eventSignals = events?.get(m.id) ?? {};
 
     const existing = units.get(key);
     const unit: Unit = existing ?? {
       leadKey,
       step,
       status,
+      accountId: m.sending_account_id ? String(m.sending_account_id) : null,
       deliveryStatus: String(m.delivery_status ?? ""),
       sentAt: null,
       signals: {
@@ -276,9 +272,31 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     if (status === "failed" || m.delivery_status === "failed") {
       if (unit.status !== "sent") unit.status = "failed";
     }
-    if (m.sent_at) unit.status = "sent";
+    if (m.sent_at) {
+      unit.status = "sent";
+      if (m.sending_account_id) unit.accountId = String(m.sending_account_id);
+    }
     units.set(key, unit);
   }
+  return units;
+}
+
+/**
+ * Collapse raw message rows into logical units (one per recipient+step) and
+ * count every metric from them. This is the only place campaign metrics are
+ * derived; the SQL mirror exists purely as an optimisation.
+ */
+export function computeCampaignStats(input: ComputeInput): CampaignStats {
+  const lo = input.from ? input.from.getTime() : -Infinity;
+  const hi = input.to ? input.to.getTime() : Infinity;
+  const inRange = (value: string | null) => {
+    if (!value) return false;
+    const at = new Date(value).getTime();
+    return Number.isFinite(at) && at >= lo && at < hi;
+  };
+
+  const units = collapseMessageUnits(input.messages, input.events);
+
 
   const stats = EMPTY_CAMPAIGN_STATS(
     input.campaignId,
