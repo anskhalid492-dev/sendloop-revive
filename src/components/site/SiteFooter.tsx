@@ -92,6 +92,7 @@ const fallbackColumns = [
       { label: "Cookie Policy", href: "/cookie-policy" },
       { label: "DPA", href: "/dpa" },
       { label: "Remove My Data", href: "/remove-my-data" },
+      { label: "Compliance", href: "/compliance" },
     ],
   },
 ];
