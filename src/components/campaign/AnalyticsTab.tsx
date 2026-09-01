@@ -39,12 +39,15 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub?: string
 }
 
 export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
-  const { queue, steps, leadStates, leadTotal } = builder;
-  const total = queue?.total ?? 0;
-  const sent = queue?.sent ?? 0;
-  const replied = queue?.replied ?? 0;
-  const bounced = queue?.bounced ?? 0;
-  const unsubscribed = queue?.unsubscribed ?? 0;
+  const { queue, delivery, steps, leadStates, leadTotal } = builder;
+  // Every headline number comes from the shared campaign stats source, so this
+  // tab always matches the workspace Analytics page for the same campaign.
+  const total = delivery?.totalLeads ?? queue?.total ?? 0;
+  const sent = delivery?.sent ?? 0;
+  const replied = delivery?.replied ?? 0;
+  const bounced = delivery?.bounced ?? 0;
+  const unsubscribed = delivery?.unsubscribed ?? 0;
+
 
   const emailSteps = steps.filter((s) => s.stepType === "email");
   const byStep = (queue?.byStep ?? []).slice(0, Math.max(1, emailSteps.length));

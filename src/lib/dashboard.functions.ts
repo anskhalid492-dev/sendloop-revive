@@ -397,58 +397,48 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       if (b) b.meetings += 1;
     }
 
-    // Per-campaign performance inside the selected window.
+    // Per-campaign performance inside the selected window. Sends, delivery,
+    // bounces and replies come from the shared `campaign_stats` source, so this
+    // table always agrees with the Analytics page and each campaign's own tab.
     const campaignByLead = new Map<string, string>();
-    const leadsPerCampaign = new Map<string, number>();
     for (const r of recipientRows) {
-      leadsPerCampaign.set(r.campaign_id, (leadsPerCampaign.get(r.campaign_id) ?? 0) + 1);
       if (r.lead_id && !campaignByLead.has(r.lead_id)) campaignByLead.set(r.lead_id, r.campaign_id);
     }
 
+    const { toCampaignStats } = await import("@/lib/campaign-stats");
+    const { data: statsRows } = await supabase.rpc("campaign_stats", {
+      _workspace_id: data.workspaceId,
+      _from: start.toISOString(),
+      _to: new Date(now + day).toISOString(),
+    });
+
     const perf = new Map<string, CampaignPerformance>();
-    const ensure = (id: string) => {
-      let row = perf.get(id);
-      if (!row) {
-        row = {
-          id,
-          name: campaignName.get(id) ?? "Campaign",
-          status: campaignRows.find((c) => c.id === id)?.status ?? "draft",
-          leads: leadsPerCampaign.get(id) ?? 0,
-          sent: 0,
-          delivered: 0,
-          replies: 0,
-          positive: 0,
-          meetings: 0,
-          bounced: 0,
-        };
-        perf.set(id, row);
-      }
-      return row;
-    };
-    for (const m of messageRows) {
-      if (!inWindow(m.sent_at, start)) continue;
-      const row = ensure(m.campaign_id);
-      row.sent += 1;
-      if (m.delivered_at) row.delivered += 1;
-      if (m.bounced_at) row.bounced += 1;
-    }
-    for (const r of replyRows) {
-      if (!inWindow(r.received_at, start)) continue;
-      const campaignId = r.campaign_id ?? (r.lead_id ? campaignByLead.get(r.lead_id) : null);
-      if (!campaignId) continue;
-      const row = ensure(campaignId);
-      row.replies += 1;
-      if (r.sentiment === "positive") row.positive += 1;
+    for (const raw of (statsRows ?? []) as Record<string, unknown>[]) {
+      const s = toCampaignStats(raw);
+      perf.set(s.campaignId, {
+        id: s.campaignId,
+        name: s.name || campaignName.get(s.campaignId) || "Campaign",
+        status: s.status,
+        leads: s.leads,
+        sent: s.sent,
+        delivered: s.delivered,
+        replies: s.replied,
+        positive: s.positiveReplied,
+        meetings: 0,
+        bounced: s.bounced,
+      });
     }
     for (const l of meetingRows) {
       if (!inWindow(l.last_activity_at, start)) continue;
       const campaignId = campaignByLead.get(l.id);
-      if (!campaignId) continue;
-      ensure(campaignId).meetings += 1;
+      const row = campaignId ? perf.get(campaignId) : null;
+      if (row) row.meetings += 1;
     }
     const campaignPerformance = Array.from(perf.values())
+      .filter((row) => row.sent > 0 || row.replies > 0 || row.leads > 0)
       .sort((a, b) => b.sent - a.sent || b.replies - a.replies)
       .slice(0, 6);
+
 
     const leadIds = Array.from(new Set(replyRows.slice(0, 8).map((r) => r.lead_id).filter((x): x is string => Boolean(x))));
     const [leadLookup, conversationLookup] = await Promise.all([
