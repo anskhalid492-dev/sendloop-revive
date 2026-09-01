@@ -62,8 +62,10 @@ export type SelectedProvider = {
   region: string | null;
 };
 
-const POOL_COLUMNS =
-  "id, provider, name, is_enabled, customer_enabled, system_enabled, priority, daily_capacity, hourly_capacity, status, mode, region, health_status, health_checked_at, health_detail, sent_hour, sent_day, success_count, failure_count, last_success_at, last_tested_at, last_error";
+const POOL_BASE_COLUMNS =
+  "id, provider, name, is_enabled, priority, daily_capacity, hourly_capacity, status, mode, region, health_status, health_checked_at, health_detail, sent_hour, sent_day, success_count, failure_count, last_success_at, last_tested_at, last_error";
+
+const POOL_COLUMNS = `${POOL_BASE_COLUMNS}, customer_enabled, system_enabled`;
 
 /** Stable 32-bit hash so a given domain keeps landing on the same provider. */
 function stableHash(input: string): number {
