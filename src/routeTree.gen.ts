@@ -39,6 +39,7 @@ import { Route as LifetimeRouteImport } from './routes/lifetime'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReferralRouteImport } from './routes/referral'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as RemoveMyDataRouteImport } from './routes/remove-my-data'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -348,6 +349,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const ReferralRoute = ReferralRouteImport.update({
   id: '/referral',
   path: '/referral',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RemoveMyDataRoute = RemoveMyDataRouteImport.update({
@@ -1287,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -1478,6 +1485,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -1670,6 +1678,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/referral': typeof ReferralRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -1864,6 +1873,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/refund-policy'
     | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
@@ -2055,6 +2065,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/refund-policy'
     | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
@@ -2246,6 +2257,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/referral'
+    | '/refund-policy'
     | '/remove-my-data'
     | '/reset-password'
     | '/robots.txt'
@@ -2440,6 +2452,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReferralRoute: typeof ReferralRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
   RemoveMyDataRoute: typeof RemoveMyDataRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -2716,6 +2729,13 @@ declare module '@tanstack/react-router' {
       path: '/referral'
       fullPath: '/referral'
       preLoaderRoute: typeof ReferralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/remove-my-data': {
@@ -4269,6 +4289,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReferralRoute: ReferralRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
   RemoveMyDataRoute: RemoveMyDataRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,

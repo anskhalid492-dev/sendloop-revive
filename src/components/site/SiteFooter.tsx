@@ -86,10 +86,10 @@ const fallbackColumns = [
     title: "Legal",
     links: [
       { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Refund Policy", href: "/refund-policy" },
       { label: "Acceptable Use", href: "/acceptable-use" },
       { label: "Cookie Policy", href: "/cookie-policy" },
-      { label: "Subprocessors", href: "/subprocessors" },
       { label: "DPA", href: "/dpa" },
       { label: "Remove My Data", href: "/remove-my-data" },
     ],
