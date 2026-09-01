@@ -51,9 +51,9 @@ describe("campaign stats de-duplication", () => {
 describe("nextEligibleSendAt", () => {
   const window = {
     timezone: "Asia/Dubai",
-    start: 20,
-    end: 22,
-    days: [0, 1, 2, 3, 4, 5, 6],
+    startHour: 20,
+    endHour: 22,
+    sendDays: [0, 1, 2, 3, 4, 5, 6],
   } as never;
 
   it("returns null when nothing is pending", () => {
