@@ -468,13 +468,10 @@ export function ImportWizard({
                   <div className="space-y-2">
                     <p className="text-destructive">{UNVERIFIED_LIST_MESSAGE}</p>
                     <p className="text-xs text-muted-foreground">
-                      No contacts from this file have been added to your Leads.
+                      No contacts from this file have been added to your Leads. Verify your list
+                      first, then come back here and import it.
                     </p>
-                    <Button size="sm" variant="outline" asChild>
-                      <a href="/email-verification" target="_blank" rel="noreferrer">
-                        Verify My List
-                      </a>
-                    </Button>
+
                   </div>
                 </div>
               ) : null}
