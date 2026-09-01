@@ -376,3 +376,27 @@ function pickDeterministic(candidates: PoolCandidate[], key: string): PoolCandid
   );
   return tier[stableHash(key) % tier.length]!;
 }
+
+/**
+ * Scope permission for a provider addressed by its provider id (e.g. the one
+ * resolved from platform environment keys rather than a pool row).
+ * Providers with no pool row are permitted — their availability is decided by
+ * credentials alone, exactly as before.
+ */
+export async function isProviderAllowedForScope(
+  admin: Admin,
+  provider: string,
+  scope: EmailScope,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("email_providers")
+    .select("is_enabled, customer_enabled, system_enabled")
+    .eq("provider", provider);
+  const rows = (data ?? []) as Array<{
+    is_enabled: boolean;
+    customer_enabled: boolean | null;
+    system_enabled: boolean | null;
+  }>;
+  if (rows.length === 0) return true;
+  return rows.some((row) => isProviderEnabledForScope(row, scope));
+}
