@@ -178,6 +178,9 @@ export function AuthLayout({
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-[420px] py-2"
         >
+          <Link to="/" className="mb-5 inline-flex items-center lg:hidden" aria-label={BRAND_NAME}>
+            <BrandLogo context="login" className="h-8 max-w-[190px]" />
+          </Link>
           <h1 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[1.6rem]">
             {title}
           </h1>
