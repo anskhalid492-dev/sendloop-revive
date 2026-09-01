@@ -458,5 +458,5 @@ export function computeAccountTotals(
     if (inRange(u.signals.bounced_at)) row.bounced += 1;
     if (!u.signals.bounced_at && inRange(u.signals.failed_at)) row.failed += 1;
   }
-  return rows.values().toArray?.() ?? Array.from(rows.values());
+  return Array.from(rows.values());
 }
