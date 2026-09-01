@@ -212,7 +212,9 @@ export async function runDeliverabilityGuard(args: {
   detail?: string | null;
 }) {
   try {
-    if (args.kind === "delayed" || args.kind === "failed") {
+    // "delayed" is transient (greylisting/deferral) and never restricts a contact.
+    if (args.kind === "delayed") return;
+    if (args.kind === "failed") {
       await flagRepeatedSoftFailures({
         workspaceId: args.workspaceId,
         email: args.email,
