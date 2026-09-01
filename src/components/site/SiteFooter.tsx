@@ -176,6 +176,11 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
+    // Compliance is a platform rule page and must always appear under Legal.
+    const legal = groups.get("Legal") ?? [];
+    if (!legal.some((l) => l.href === "/compliance")) {
+      groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);
+    }
     const order = ["Products", "Resources", "Comparisons", "Company", "Legal"];
     const sorted = [...groups.entries()].sort((a, b) => {
       const ai = order.indexOf(a[0]);
