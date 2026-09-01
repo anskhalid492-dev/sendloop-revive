@@ -61,7 +61,10 @@ export type CampaignStatsBundle = {
   byCampaign: Map<string, CampaignStats>;
   /** Raw message rows, reused by callers that need per-message detail. */
   messages: CampaignMessageRow[];
+  /** Per-message signals from the real provider event feed. */
+  signals: MessageEventSignals;
 };
+
 
 /**
  * Read every campaign statistic for a workspace (optionally a subset of
