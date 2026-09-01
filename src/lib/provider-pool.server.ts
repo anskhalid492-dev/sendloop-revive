@@ -318,12 +318,19 @@ export async function selectProvider(
      * are independent, so each keeps its own priority/fallback ordering.
      */
     scope?: EmailScope;
+    /**
+     * Provider the sender/domain was actually provisioned on. Routing must
+     * never move a domain to a different provider (the other provider does not
+     * know the domain and rejects the send as unverified).
+     */
+    preferredProvider?: string | null;
   },
 ): Promise<SelectedProvider | null> {
   const { DOMAIN_CAPABLE_PROVIDERS } = await import("@/lib/domain-providers/registry.server");
   const pool = await loadPool(admin);
   const exclude = new Set(options.exclude ?? []);
   const scope: EmailScope = options.scope ?? "customer";
+  const preferred = options.preferredProvider ?? null;
 
   const eligible: PoolCandidate[] = [];
   for (const row of pool) {
@@ -337,11 +344,21 @@ export async function selectProvider(
     eligible.push({ row, credentials: creds.credentials, credentialSource: creds.source });
   }
 
-  if (eligible.length === 0) {
-    // Last resort: a platform key for any domain-capable provider so the very
-    // first deployment can verify a domain before the pool is configured.
+  // Provider affinity: when the sender is already provisioned on a provider,
+  // only that provider may carry the send.
+  const affine = preferred ? eligible.filter((c) => c.row.provider === preferred) : [];
+  const pickFrom = affine.length ? affine : preferred ? [] : eligible;
+
+  if (pickFrom.length === 0) {
+    // Last resort: a platform key so the very first deployment can verify a
+    // domain before the pool is configured. The provisioned provider wins;
+    // otherwise any domain-capable provider with a platform key is used.
     const { platformKeyFor } = await import("@/lib/managed-sending.server");
-    for (const provider of DOMAIN_CAPABLE_PROVIDERS) {
+    const order = preferred
+      ? [preferred, ...DOMAIN_CAPABLE_PROVIDERS.filter((p) => p !== preferred)]
+      : DOMAIN_CAPABLE_PROVIDERS;
+    for (const provider of order) {
+      if (preferred && provider !== preferred) break;
       const envKey = platformKeyFor(provider);
       if (envKey) {
         return {
