@@ -1,3 +1,4 @@
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -86,7 +87,7 @@ function AdminAnalyticsPage() {
   const [plan, setPlan] = useState("all");
 
   const options = useQuery({
-    queryKey: ["admin", "analytics", "filters"],
+    queryKey: analyticsKeys.admin("analytics", "filters"),
     queryFn: () => loadOptions(),
   });
 
@@ -114,8 +115,9 @@ function AdminAnalyticsPage() {
   };
 
   const q = useQuery({
-    queryKey: ["admin", "analytics", filters],
+    queryKey: analyticsKeys.admin("analytics", filters),
     queryFn: () => loadAnalytics({ data: filters }),
+    ...liveQueryOptions(),
   });
 
   const scopedCampaigns = (options.data?.campaigns ?? []).filter(
