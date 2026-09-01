@@ -12,6 +12,7 @@
  *         -> managed provider credentials (server-side only)
  */
 
+import type { EmailScope } from "@/lib/email-provider-scope";
 import type { OutboundMessage, SendResult } from "@/lib/providers/adapter.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

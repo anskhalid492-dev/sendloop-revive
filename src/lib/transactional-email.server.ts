@@ -606,11 +606,13 @@ async function deliver(
   const mappedSender =
     identities.find((s) => s.email === fromEmail) ??
     Object.values(SYSTEM_SENDERS).find((s) => s.email === fromEmail);
-  const managed = await resolveManagedProvider(admin, {
-    provider: "resend",
-    provider_id: null,
-    from_email: fromEmail,
-  });
+  // System email uses the ADMIN/SYSTEM provider permissions only; customer
+  // provider toggles never influence this path.
+  const managed = await resolveManagedProvider(
+    admin,
+    { provider: "resend", provider_id: null, from_email: fromEmail },
+    { scope: "system" },
+  );
 
   // The rendered MunchReach message. Identical for every provider — SES is a
   // delivery channel only, never a second template system.
@@ -626,11 +628,13 @@ async function deliver(
   };
 
   const sesCredentials = resolveSesCredentials(null);
+  const { isProviderAllowedForScope } = await import("@/lib/provider-pool.server");
+  const sesAllowedForSystem = await isProviderAllowedForScope(admin, "ses", "system");
   // A per-identity provider preference only narrows the existing selection:
   // it can opt an identity out of SES, or ask for SES when SES is enabled.
   const preference = (mappedSender as { provider?: string } | undefined)?.provider ?? "auto";
   const choice = selectSystemEmailProvider({
-    sesEnabled: settings.ses_enabled === true && preference !== "managed",
+    sesEnabled: settings.ses_enabled === true && preference !== "managed" && sesAllowedForSystem,
     sesCredentialsAvailable: sesCredentials !== null,
     managedAvailable: managed !== null,
   });
