@@ -388,12 +388,16 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                         </span>
                       </span>
                     </span>
-                    <span className="tabular-nums text-muted-foreground">{reached} reached</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {emailed.toLocaleString()} emailed
+                      {stepScheduled > 0 ? ` · ${stepScheduled.toLocaleString()} pending` : ""}
+                    </span>
                   </div>
                   <Progress
                     className="h-1.5"
-                    value={totalLeads ? Math.min(100, (reached / totalLeads) * 100) : 0}
+                    value={totalLeads ? Math.min(100, (emailed / totalLeads) * 100) : 0}
                   />
+
                 </li>
               );
             })}
