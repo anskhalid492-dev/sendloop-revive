@@ -1,3 +1,4 @@
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -104,16 +105,17 @@ function AdminUsersPage() {
   const [confirm, setConfirm] = useState<AdminUserRow | null>(null);
 
   const usersQuery = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: analyticsKeys.admin("users"),
     queryFn: () => fetchUsers(),
+    ...liveQueryOptions(),
   });
 
   const suspendMutation = useMutation({
     mutationFn: (vars: { id: string; suspended: boolean }) => setSuspended({ data: vars }),
     onSuccess: (_r, vars) => {
       toast.success(vars.suspended ? "User suspended" : "User reactivated");
-      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      void queryClient.invalidateQueries({ queryKey: ["admin", "user"] });
+      void queryClient.invalidateQueries({ queryKey: analyticsKeys.admin("users") });
+      void queryClient.invalidateQueries({ queryKey: analyticsKeys.admin("user") });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -474,7 +476,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const fetchUser = useServerFn(adminGetUser);
   const [planWorkspaceId, setPlanWorkspaceId] = useState("");
   const query = useQuery({
-    queryKey: ["admin", "user", userId],
+    queryKey: analyticsKeys.admin("user", userId),
     queryFn: () => fetchUser({ data: { userId: userId! } }),
     enabled: Boolean(userId),
   });

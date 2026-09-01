@@ -41,6 +41,8 @@ import {
 } from "@/components/dashboard/command/primitives";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { useAnalyticsRealtime } from "@/hooks/useAnalyticsRealtime";
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import { getCommandCenter } from "@/lib/dashboard-command.functions";
 import { dismissChecklist } from "@/lib/profile.functions";
 import { getMyProfile } from "@/lib/workspaces.functions";
@@ -103,11 +105,14 @@ function DashboardPage() {
 
   const workspaceId = workspace?.id;
 
+  // Live invalidation: any send/engagement/reply/campaign change refetches.
+  useAnalyticsRealtime(workspaceId ?? null);
+
   const command = useQuery({
-    queryKey: ["command-center", workspaceId, days],
+    queryKey: analyticsKeys.commandCenter(workspaceId ?? null, days),
     enabled: Boolean(workspaceId),
     queryFn: () => fetchCommand({ data: { workspaceId: workspaceId as string, days } }),
-    refetchInterval: 60_000,
+    ...liveQueryOptions(),
   });
 
   const fetchSetup = useServerFn(getSetupProgress);
