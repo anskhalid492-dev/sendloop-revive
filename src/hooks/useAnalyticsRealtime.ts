@@ -33,7 +33,16 @@ export function useAnalyticsRealtime(workspaceId: string | null) {
       if (timer) return;
       timer = setTimeout(() => {
         timer = null;
-        void queryClient.invalidateQueries({ queryKey: [ANALYTICS_ROOT] });
+        // Every surface that renders a metric derived from these tables.
+        for (const key of [
+          [ANALYTICS_ROOT],
+          ["campaign"],
+          ["campaigns"],
+          ["campaign-stats"],
+          ["email-accounts"],
+        ]) {
+          void queryClient.invalidateQueries({ queryKey: key });
+        }
       }, 400);
     };
 
