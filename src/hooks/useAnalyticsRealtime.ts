@@ -14,7 +14,10 @@ import { ANALYTICS_ROOT } from "@/lib/analytics-query";
 const WORKSPACE_TABLES = [
   "campaign_messages",
   "campaign_recipients",
+  // The real per-message provider event feed: every bounce, open and click
+  // lands here first, so campaign stats refresh the moment one arrives.
   "email_engagement_events",
+  "email_events",
   "campaign_replies",
   "campaigns",
   "leads",
