@@ -375,9 +375,9 @@ export async function selectProvider(
 
   // Stickiness first: never move a domain that is already on a healthy provider.
   const current = options.currentProviderId
-    ? eligible.find((c) => c.row.id === options.currentProviderId)
+    ? pickFrom.find((c) => c.row.id === options.currentProviderId)
     : undefined;
-  const chosen = current ?? pickDeterministic(eligible, options.key);
+  const chosen = current ?? pickDeterministic(pickFrom, options.key);
 
   return {
     provider: chosen.row.provider,
