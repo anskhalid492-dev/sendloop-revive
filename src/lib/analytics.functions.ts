@@ -127,15 +127,16 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
   .inputValidator((input) => rangeInput.parse(input))
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    const { data: rows, error } = await client.rpc("analytics_by_campaign", {
-      _workspace_id: data.workspaceId,
-      _from: new Date(data.from).toISOString(),
-      _to: new Date(data.to).toISOString(),
+    const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+    const { byCampaign } = await fetchCampaignStats(client, {
+      workspaceId: data.workspaceId,
+      from: new Date(data.from),
+      to: new Date(data.to),
     });
-    if (error) throw new Error(error.message);
+
     // Open tracking is per campaign: when it is off we must show "Disabled"
     // instead of a misleading 0% open rate.
-    const ids = ((rows ?? []) as Record<string, unknown>[]).map((r) => String(r["campaign_id"]));
+    const ids = Array.from(byCampaign.keys());
     const tracking = new Map<string, boolean>();
     if (ids.length) {
       const { data: campaigns } = await client
@@ -146,23 +147,27 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
         tracking.set(String(c["id"]), Boolean(c["open_tracking"]));
       }
     }
-    return ((rows ?? []) as Record<string, unknown>[]).map((r) => ({
-      openTracking: tracking.get(String(r["campaign_id"])) ?? true,
-      campaignId: String(r["campaign_id"]),
-      name: String(r["campaign_name"] ?? "Untitled campaign"),
-      status: String(r["status"] ?? "draft"),
-      sent: Number(r["sent"] ?? 0),
-      delivered: Number(r["delivered"] ?? 0),
-      opens: Number(r["opens"] ?? 0),
-      clicks: Number(r["clicks"] ?? 0),
-      replies: Number(r["replies"] ?? 0),
-      positiveReplies: Number(r["positive_replies"] ?? 0),
-      bounced: Number(r["bounced"] ?? 0),
-      unsubscribed: Number(r["unsubscribed"] ?? 0),
-      complained: Number(r["complained"] ?? 0),
-      failed: Number(r["failed"] ?? 0),
-    })) as AnalyticsCampaignRow[];
+
+    return Array.from(byCampaign.values())
+      .map((s) => ({
+        openTracking: tracking.get(s.campaignId) ?? true,
+        campaignId: s.campaignId,
+        name: s.name || "Untitled campaign",
+        status: s.status,
+        sent: s.sent,
+        delivered: s.delivered,
+        opens: s.opened,
+        clicks: s.clicked,
+        replies: s.replied,
+        positiveReplies: s.positiveReplied,
+        bounced: s.bounced,
+        unsubscribed: s.unsubscribed,
+        complained: s.complained,
+        failed: s.failed,
+      }))
+      .sort((a, b) => b.sent - a.sent || a.name.localeCompare(b.name)) as AnalyticsCampaignRow[];
   });
+
 
 /** Per-mailbox performance for the range. */
 export const getAnalyticsByAccount = createServerFn({ method: "POST" })
