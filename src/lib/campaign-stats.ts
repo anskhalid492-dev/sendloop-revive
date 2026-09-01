@@ -135,6 +135,7 @@ export function rate(part: number, total: number): number | null {
 export type CampaignMessageRow = {
   id: string;
   campaign_id?: string | null;
+  sending_account_id?: string | null;
   recipient_id?: string | null;
   lead_id?: string | null;
   step_order?: number | string | null;
