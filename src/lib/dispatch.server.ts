@@ -1192,7 +1192,7 @@ export async function dispatchDueMessages(
             last_error: send.message,
           })
           .eq("id", message.id);
-        logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "sending_infrastructure_not_ready_deferred", providerResult: "deferred" });
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "sending_infrastructure_not_ready_deferred", providerResult: "rejected" });
         continue;
       }
       await fail(send.message);
