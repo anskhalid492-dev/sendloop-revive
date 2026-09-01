@@ -39,7 +39,7 @@ export const DEFAULT_COMMUNITY: CommunityConfig = {
   enabled: true,
   nav_label: "Community",
   landing_path: "/community",
-  external_url: "",
+  external_url: "https://www.facebook.com/groups/1584625706483374",
   cta_label: "Join the MunchReach Community",
   footer_label: "Community",
   open_in_new_tab: true,
