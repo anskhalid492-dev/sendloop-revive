@@ -170,10 +170,13 @@ export type SignalKey =
 
 const PENDING_STATUSES = new Set(["pending", "scheduled", "queued"]);
 
-type Unit = {
+export type Unit = {
   leadKey: string;
   step: number;
   status: string;
+  /** Mailbox that sent (or is due to send) this unit. */
+  accountId: string | null;
+
   deliveryStatus: string;
   sentAt: string | null;
   signals: Record<SignalKey, string | null>;
