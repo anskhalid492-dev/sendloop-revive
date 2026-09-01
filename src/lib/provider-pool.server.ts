@@ -13,6 +13,10 @@
  * everything else is automatic, including failover.
  */
 import type { ProviderCredentials } from "@/lib/domain-providers/adapter.server";
+import {
+  isProviderEnabledForScope,
+  type EmailScope,
+} from "@/lib/email-provider-scope";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -22,6 +26,10 @@ export type PoolProviderRow = {
   provider: string;
   name: string;
   is_enabled: boolean;
+  /** May carry customer (campaign) email. */
+  customer_enabled: boolean;
+  /** May carry admin/system transactional email. */
+  system_enabled: boolean;
   priority: number;
   daily_capacity: number;
   hourly_capacity: number;
@@ -55,7 +63,7 @@ export type SelectedProvider = {
 };
 
 const POOL_COLUMNS =
-  "id, provider, name, is_enabled, priority, daily_capacity, hourly_capacity, status, mode, region, health_status, health_checked_at, health_detail, sent_hour, sent_day, success_count, failure_count, last_success_at, last_tested_at, last_error";
+  "id, provider, name, is_enabled, customer_enabled, system_enabled, priority, daily_capacity, hourly_capacity, status, mode, region, health_status, health_checked_at, health_detail, sent_hour, sent_day, success_count, failure_count, last_success_at, last_tested_at, last_error";
 
 /** Stable 32-bit hash so a given domain keeps landing on the same provider. */
 function stableHash(input: string): number {
@@ -287,15 +295,21 @@ export async function selectProvider(
     requireDomainApi?: boolean;
     /** Providers to exclude (failover). */
     exclude?: string[];
+    /**
+     * Which email type this send belongs to. Customer and system permissions
+     * are independent, so each keeps its own priority/fallback ordering.
+     */
+    scope?: EmailScope;
   },
 ): Promise<SelectedProvider | null> {
   const { DOMAIN_CAPABLE_PROVIDERS } = await import("@/lib/domain-providers/registry.server");
   const pool = await loadPool(admin);
   const exclude = new Set(options.exclude ?? []);
+  const scope: EmailScope = options.scope ?? "customer";
 
   const eligible: PoolCandidate[] = [];
   for (const row of pool) {
-    if (!row.is_enabled) continue;
+    if (!isProviderEnabledForScope(row, scope)) continue;
     if (exclude.has(row.id)) continue;
     if (options.requireDomainApi && !DOMAIN_CAPABLE_PROVIDERS.includes(row.provider)) continue;
     if (row.health_status === "down") continue;
@@ -361,4 +375,28 @@ function pickDeterministic(candidates: PoolCandidate[], key: string): PoolCandid
       Math.abs(loadFactor(c.row) - loadFactor(best.row)) <= 0.05,
   );
   return tier[stableHash(key) % tier.length]!;
+}
+
+/**
+ * Scope permission for a provider addressed by its provider id (e.g. the one
+ * resolved from platform environment keys rather than a pool row).
+ * Providers with no pool row are permitted — their availability is decided by
+ * credentials alone, exactly as before.
+ */
+export async function isProviderAllowedForScope(
+  admin: Admin,
+  provider: string,
+  scope: EmailScope,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("email_providers")
+    .select("is_enabled, customer_enabled, system_enabled")
+    .eq("provider", provider);
+  const rows = (data ?? []) as Array<{
+    is_enabled: boolean;
+    customer_enabled: boolean | null;
+    system_enabled: boolean | null;
+  }>;
+  if (rows.length === 0) return true;
+  return rows.some((row) => isProviderEnabledForScope(row, scope));
 }

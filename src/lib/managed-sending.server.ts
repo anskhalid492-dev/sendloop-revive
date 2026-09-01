@@ -12,6 +12,7 @@
  *         -> managed provider credentials (server-side only)
  */
 
+import type { EmailScope } from "@/lib/email-provider-scope";
 import type { OutboundMessage, SendResult } from "@/lib/providers/adapter.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,14 +125,17 @@ export function platformKeyFor(provider: string): string | null {
 export async function resolveManagedProvider(
   admin: Admin,
   account: { provider: string; provider_id: string | null; from_email?: string },
+  options: { scope?: EmailScope } = {},
 ): Promise<ManagedCredentials | null> {
   const { selectProvider } = await import("@/lib/provider-pool.server");
 
   const key = (account.from_email ?? "").split("@")[1] ?? account.provider_id ?? "munchreach";
+  const scope: EmailScope = options.scope ?? "customer";
   const selected = await selectProvider(admin, {
     key,
     currentProviderId: account.provider_id,
     requireDomainApi: false,
+    scope,
   });
 
   if (selected) {
@@ -143,6 +147,8 @@ export async function resolveManagedProvider(
     };
   }
 
+  const { isProviderAllowedForScope } = await import("@/lib/provider-pool.server");
+  if (!(await isProviderAllowedForScope(admin, account.provider, scope))) return null;
   return loadManagedProviderCredentials(admin, account);
 }
 

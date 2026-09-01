@@ -39,8 +39,10 @@ import {
   listProviders,
   runProviderPoolHealthCheck,
   saveProvider,
+  setProviderScopeEnabled,
   testProviderHealth,
 } from "@/lib/admin.functions";
+import { EMAIL_SCOPES, SCOPE_LABEL, type EmailScope } from "@/lib/email-provider-scope";
 import { ProviderDiagnosticsDialog } from "@/components/admin/ProviderDiagnosticsDialog";
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
 
@@ -77,6 +79,7 @@ export function ProviderPool() {
   const save = useServerFn(saveProvider);
   const test = useServerFn(testProviderHealth);
   const remove = useServerFn(deleteProvider);
+  const setScope = useServerFn(setProviderScopeEnabled);
   const health = useServerFn(runProviderPoolHealthCheck);
   const fetchHealth = useServerFn(listProviderHealth);
 
@@ -104,7 +107,8 @@ export function ProviderPool() {
   const [dailyCapacity, setDailyCapacity] = useState(50000);
   const [hourlyCapacity, setHourlyCapacity] = useState(5000);
   const [costPer1k, setCostPer1k] = useState(10);
-  const [isEnabled, setIsEnabled] = useState(true);
+  const [customerEnabled, setCustomerEnabled] = useState(true);
+  const [systemEnabled, setSystemEnabled] = useState(true);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
 
   const definition = PROVIDER_DEFINITIONS.find((p) => p.id === provider)!;
@@ -116,7 +120,9 @@ export function ProviderPool() {
         data: {
           provider,
           name: name.trim() || definition.label,
-          isEnabled,
+          isEnabled: customerEnabled || systemEnabled,
+          customerEnabled,
+          systemEnabled,
           priority,
           mode,
           region: REGION_PROVIDERS.has(provider) ? region.trim() : undefined,
@@ -149,6 +155,16 @@ export function ProviderPool() {
     mutationFn: () => health(),
     onSuccess: (result) => {
       toast.success(`Health checked for ${result.results.length} provider(s)`);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const scopeMutation = useMutation({
+    mutationFn: (input: { id: string; scope: EmailScope; enabled: boolean }) =>
+      setScope({ data: input }),
+    onSuccess: (_r, input) => {
+      toast.success(`${SCOPE_LABEL[input.scope]} ${input.enabled ? "enabled" : "disabled"}`);
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -201,6 +217,7 @@ export function ProviderPool() {
             <TableHeader>
               <TableRow>
                 <TableHead>Provider</TableHead>
+                <TableHead>Permissions</TableHead>
                 <TableHead>Health</TableHead>
                 <TableHead>Mode</TableHead>
                 <TableHead>Priority</TableHead>
@@ -223,7 +240,34 @@ export function ProviderPool() {
                       <div className="text-xs text-muted-foreground">
                         {providerLabel(p.provider)}
                         {p.region ? ` · ${p.region}` : ""}
-                        {p.is_enabled ? "" : " · disabled"}
+                        {p.customer_enabled === false && p.system_enabled === false
+                          ? " · disabled"
+                          : ""}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        {EMAIL_SCOPES.map((scope) => {
+                          const enabled =
+                            scope === "customer"
+                              ? p.customer_enabled !== false
+                              : p.system_enabled !== false;
+                          return (
+                            <div key={scope} className="flex items-center gap-2">
+                              <Switch
+                                checked={enabled}
+                                disabled={scopeMutation.isPending}
+                                aria-label={`${SCOPE_LABEL[scope]} for ${p.name}`}
+                                onCheckedChange={(next) =>
+                                  scopeMutation.mutate({ id: p.id, scope, enabled: next })
+                                }
+                              />
+                              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                                {SCOPE_LABEL[scope]}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -477,14 +521,26 @@ export function ProviderPool() {
               ))}
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border p-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Enabled</p>
-                <p className="text-xs text-muted-foreground">
-                  Disabled providers are skipped by automatic routing.
-                </p>
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <p className="text-sm font-medium">Permissions</p>
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm">{SCOPE_LABEL.customer}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Allow this provider to deliver customer campaign email.
+                  </p>
+                </div>
+                <Switch checked={customerEnabled} onCheckedChange={setCustomerEnabled} />
               </div>
-              <Switch checked={isEnabled} onCheckedChange={setIsEnabled} />
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm">{SCOPE_LABEL.system}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Allow this provider to deliver MunchReach system/transactional email.
+                  </p>
+                </div>
+                <Switch checked={systemEnabled} onCheckedChange={setSystemEnabled} />
+              </div>
             </div>
           </div>
 

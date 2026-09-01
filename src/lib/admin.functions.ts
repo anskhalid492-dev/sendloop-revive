@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { EMAIL_SCOPES, masterEnabled, SCOPE_COLUMN } from "@/lib/email-provider-scope";
 import { PROVIDER_IDS } from "@/lib/providers/registry";
 
 const providerEnum = z.enum(PROVIDER_IDS);
@@ -28,6 +29,8 @@ export type AdminProvider = {
   provider: string;
   name: string;
   is_enabled: boolean;
+  customer_enabled: boolean;
+  system_enabled: boolean;
   priority: number;
   daily_capacity: number;
   hourly_capacity: number;
@@ -103,6 +106,47 @@ export const listProviders = createServerFn({ method: "GET" })
     return (data ?? []) as AdminProvider[];
   });
 
+/**
+ * Flips ONE provider permission (customer or admin/system) without touching
+ * the other. Generic across every provider — nothing is hardcoded.
+ */
+export const setProviderScopeEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        scope: z.enum(EMAIL_SCOPES),
+        enabled: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context, { action: "change email provider permissions" });
+
+    const { data: current, error: readError } = await context.supabase
+      .from("email_providers")
+      .select("id, name, customer_enabled, system_enabled")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!current) throw new Error("Provider not found");
+
+    const next = {
+      customer_enabled: current.customer_enabled !== false,
+      system_enabled: current.system_enabled !== false,
+      [SCOPE_COLUMN[data.scope]]: data.enabled,
+    } as { customer_enabled: boolean; system_enabled: boolean };
+
+    const { error } = await context.supabase
+      .from("email_providers")
+      .update({ ...next, is_enabled: masterEnabled(next), updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+
+    return { ok: true, id: data.id, ...next };
+  });
+
 export const saveProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -112,6 +156,8 @@ export const saveProvider = createServerFn({ method: "POST" })
         provider: providerEnum,
         name: z.string().trim().min(2).max(80),
         isEnabled: z.boolean(),
+        customerEnabled: z.boolean().optional(),
+        systemEnabled: z.boolean().optional(),
         priority: z.number().int().min(1).max(999),
         dailyCapacity: z.number().int().min(0).max(1_000_000),
         hourlyCapacity: z.number().int().min(0).max(100_000),
@@ -126,10 +172,17 @@ export const saveProvider = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context, { sensitive: true, action: "change email provider credentials" });
 
+    // Customer and admin/system permissions are independent. When the caller
+    // does not send them, the legacy switch seeds both.
+    const customerEnabled = data.customerEnabled ?? data.isEnabled;
+    const systemEnabled = data.systemEnabled ?? data.isEnabled;
+
     const row = {
       provider: data.provider,
       name: data.name,
-      is_enabled: data.isEnabled,
+      is_enabled: masterEnabled({ customer_enabled: customerEnabled, system_enabled: systemEnabled }),
+      customer_enabled: customerEnabled,
+      system_enabled: systemEnabled,
       priority: data.priority,
       daily_capacity: data.dailyCapacity,
       hourly_capacity: data.hourlyCapacity,
