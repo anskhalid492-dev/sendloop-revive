@@ -365,7 +365,10 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </h2>
           <ul className="mt-4 space-y-3">
             {steps.map((step, index) => {
-              const reached = queue?.byStep.find((s) => s.step === index + 1)?.reached ?? 0;
+              const stepStats = queue?.byStep.find((s) => s.step === index + 1);
+              const emailed = stepStats?.sent ?? 0;
+              const stepScheduled = stepStats?.scheduled ?? 0;
+
               return (
                 <li key={step.key} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-3 text-sm">
