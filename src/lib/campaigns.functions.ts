@@ -331,6 +331,24 @@ export const getCampaign = createServerFn({ method: "GET" })
         isRetryableFailure(m["last_error"] ?? null),
     ).length;
 
+    // Next send comes from the real queue and the campaign's own window /
+    // timezone, so it can never show a historical date.
+    const pendingTimes = messages
+      .filter(
+        (m) =>
+          !m["sent_at"] &&
+          ["pending", "scheduled", "queued"].includes(String(m["status"] ?? "")),
+      )
+      .map((m) => m["scheduled_at"])
+      .filter((v): v is string => Boolean(v))
+      .sort();
+    const nextSendAt = nextEligibleSendAt({
+      now: runNow,
+      window: runWindow,
+      status: String(campaignRow["status"] ?? "draft"),
+      earliestPendingAt: pendingTimes[0] ? new Date(pendingTimes[0]) : null,
+      pendingCount: stats.scheduled,
+    });
 
     return {
       campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
@@ -348,24 +366,27 @@ export const getCampaign = createServerFn({ method: "GET" })
         failed: countBy("failed"),
         stopped: countBy("stopped"),
         sent: stats.sent,
-        byStep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => ({
-          step,
-          reached: recipients.filter((r) => (r.current_step ?? 0) >= step).length,
+        // Per-step counts come from the same authoritative message units as
+        // every other number: unique recipients this step actually emailed.
+        byStep: stats.byStep.map((row) => ({
+          step: row.step,
+          sent: row.sent,
+          delivered: row.delivered,
+          opened: row.opened,
+          replied: row.replied,
+          scheduled: row.scheduled,
         })),
-        nextSendAt:
-          recipients
-            .map((r) => r.next_send_at)
-            .filter((v): v is string => Boolean(v))
-            .sort()[0] ?? null,
+        nextSendAt: nextSendAt ? nextSendAt.toISOString() : null,
+        timezone: runTimezone,
       },
-      // Lifetime totals come from the shared `campaign_stats` source, so this
+      // Lifetime totals come from the shared campaign stats source, so this
       // tab always agrees with the workspace Analytics page.
       delivery: {
         totalLeads: stats.leads || totalRecipients,
-        contacted: contactedLeads,
+        contacted: stats.contacted,
         sent: stats.sent,
         delivered: stats.delivered,
-        delayed: messages.filter((m) => m["delivery_status"] === "delayed").length,
+        delayed: stats.delayed,
         opened: stats.opened,
         clicked: stats.clicked,
         replied: stats.replied,
@@ -373,17 +394,19 @@ export const getCampaign = createServerFn({ method: "GET" })
         complained: stats.complained,
         unsubscribed: stats.unsubscribed,
         failed: stats.failed,
-        scheduled: messages.filter((m) => m["status"] === "scheduled" && !m["sent_at"]).length,
+        // Pending emails across all steps, de-duplicated per recipient+step.
+        scheduled: stats.scheduled,
         // In flight right now: handed to the provider, no acceptance yet.
         processing: stats.sending,
         // Lifetime remainder: recipients this campaign has never emailed.
         remaining: stats.remaining,
-        cancelled: messages.filter((m) => m["status"] === "cancelled").length,
-        pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
+        cancelled: stats.cancelled,
+        pending: stats.scheduled + stats.sending,
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
         sentToday: sentTodayCount,
       },
+
 
       // Today's engagement, strictly separate from the lifetime numbers above.
       today: {
