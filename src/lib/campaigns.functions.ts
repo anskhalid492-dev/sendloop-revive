@@ -11,7 +11,13 @@ import {
   withUnsubscribeSource,
 } from "@/lib/unsubscribe";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
-import { normalizeSendDays, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
+import {
+  nextEligibleSendAt,
+  normalizeSendDays,
+  windowStartAt,
+  zonedStartOfDay,
+} from "@/lib/campaign-schedule";
+
 import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
@@ -77,7 +83,7 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => workspaceScope.parse(input) ?? {})
   .handler(async ({ data, context }) => {
-    const { buildCampaignOverview } = await import("@/lib/campaign-overview");
+    const { buildCampaignOverview, deriveDisplayStatus } = await import("@/lib/campaign-overview");
     const ws = data?.workspaceId;
     // Scope every read to the active workspace (platform admins can otherwise
     // read all tenants' rows through RLS).
@@ -129,7 +135,7 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     const failure = [campaignsRes, accountsRes].find((r) => r.error);
     if (failure?.error) throw new Error(failure.error.message);
 
-    return buildCampaignOverview({
+    const rows = buildCampaignOverview({
       campaigns: (campaignsRes.data ?? []) as never,
       recipients: recipients as never,
       messages: messages as never,
@@ -137,7 +143,29 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
       meetings: meetings as never,
       accounts: (accountsRes.data ?? []) as never,
     });
+
+    // Delivery numbers on this table come from the same authoritative reader
+    // as the campaign page, Analytics and the dashboard, so retries and
+    // duplicate rows can never make the list disagree with them.
+    if (ws) {
+      const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+      const { byCampaign } = await fetchCampaignStats(context.supabase, { workspaceId: ws });
+      for (const row of rows) {
+        const stats = byCampaign.get(row.id);
+        if (!stats) continue;
+        row.sent = stats.sent;
+        row.bounced = stats.bounced;
+        row.failed = stats.failed;
+        row.replies = stats.replied;
+        row.positiveReplies = stats.positiveReplied;
+        row.replyRate = stats.sent > 0 ? (stats.replied / stats.sent) * 100 : 0;
+        row.displayStatus = deriveDisplayStatus(row.status, stats.sent, stats.failed);
+      }
+    }
+
+    return rows;
   });
+
 
 
 /**
@@ -237,19 +265,18 @@ export const getCampaign = createServerFn({ method: "GET" })
     const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
     // Single source of truth for every headline number on this campaign. The
-    // same function backs the workspace Analytics page, so the two can never
-    // report different totals for the same campaign.
-    const { toCampaignStats, EMPTY_CAMPAIGN_STATS } = await import("@/lib/campaign-stats");
+    // same reader backs the workspace Analytics page and the dashboard, so
+    // they can never report different totals for the same campaign.
+    const { fetchOneCampaignStats } = await import("@/lib/campaign-stats.server");
     const campaignWorkspaceId = String(
       (campaign as unknown as Record<string, unknown>)["workspace_id"] ?? "",
     );
-    const { data: statsRows } = await context.supabase.rpc("campaign_stats", {
-      _workspace_id: campaignWorkspaceId,
-      _campaign_ids: [data.id],
-    });
+    const { stats } = await fetchOneCampaignStats(
+      context.supabase,
+      campaignWorkspaceId,
+      data.id,
+    );
 
-    const statsRow = ((statsRows ?? []) as Record<string, unknown>[])[0];
-    const stats = statsRow ? toCampaignStats(statsRow) : EMPTY_CAMPAIGN_STATS(data.id);
 
 
     const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
@@ -332,6 +359,24 @@ export const getCampaign = createServerFn({ method: "GET" })
         isRetryableFailure(m["last_error"] ?? null),
     ).length;
 
+    // Next send comes from the real queue and the campaign's own window /
+    // timezone, so it can never show a historical date.
+    const pendingTimes = messages
+      .filter(
+        (m) =>
+          !m["sent_at"] &&
+          ["pending", "scheduled", "queued"].includes(String(m["status"] ?? "")),
+      )
+      .map((m) => m["scheduled_at"])
+      .filter((v): v is string => Boolean(v))
+      .sort();
+    const nextSendAt = nextEligibleSendAt({
+      now: runNow,
+      window: runWindow,
+      status: String(campaignRow["status"] ?? "draft"),
+      earliestPendingAt: pendingTimes[0] ? new Date(pendingTimes[0]) : null,
+      pendingCount: stats.scheduled,
+    });
 
     return {
       campaign: withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign,
@@ -349,24 +394,27 @@ export const getCampaign = createServerFn({ method: "GET" })
         failed: countBy("failed"),
         stopped: countBy("stopped"),
         sent: stats.sent,
-        byStep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => ({
-          step,
-          reached: recipients.filter((r) => (r.current_step ?? 0) >= step).length,
+        // Per-step counts come from the same authoritative message units as
+        // every other number: unique recipients this step actually emailed.
+        byStep: stats.byStep.map((row) => ({
+          step: row.step,
+          sent: row.sent,
+          delivered: row.delivered,
+          opened: row.opened,
+          replied: row.replied,
+          scheduled: row.scheduled,
         })),
-        nextSendAt:
-          recipients
-            .map((r) => r.next_send_at)
-            .filter((v): v is string => Boolean(v))
-            .sort()[0] ?? null,
+        nextSendAt: nextSendAt ? nextSendAt.toISOString() : null,
+        timezone: runTimezone,
       },
-      // Lifetime totals come from the shared `campaign_stats` source, so this
+      // Lifetime totals come from the shared campaign stats source, so this
       // tab always agrees with the workspace Analytics page.
       delivery: {
         totalLeads: stats.leads || totalRecipients,
-        contacted: contactedLeads,
+        contacted: stats.contacted,
         sent: stats.sent,
         delivered: stats.delivered,
-        delayed: messages.filter((m) => m["delivery_status"] === "delayed").length,
+        delayed: stats.delayed,
         opened: stats.opened,
         clicked: stats.clicked,
         replied: stats.replied,
@@ -374,17 +422,19 @@ export const getCampaign = createServerFn({ method: "GET" })
         complained: stats.complained,
         unsubscribed: stats.unsubscribed,
         failed: stats.failed,
-        scheduled: messages.filter((m) => m["status"] === "scheduled" && !m["sent_at"]).length,
+        // Pending emails across all steps, de-duplicated per recipient+step.
+        scheduled: stats.scheduled,
         // In flight right now: handed to the provider, no acceptance yet.
         processing: stats.sending,
         // Lifetime remainder: recipients this campaign has never emailed.
         remaining: stats.remaining,
-        cancelled: messages.filter((m) => m["status"] === "cancelled").length,
-        pending: messages.filter((m) => !m["sent_at"] && m["status"] !== "cancelled").length,
+        cancelled: stats.cancelled,
+        pending: stats.scheduled + stats.sending,
         // Emails THIS campaign sent since the campaign timezone's local-day
         // start. Never derived from lead counts.
         sentToday: sentTodayCount,
       },
+
 
       // Today's engagement, strictly separate from the lifetime numbers above.
       today: {

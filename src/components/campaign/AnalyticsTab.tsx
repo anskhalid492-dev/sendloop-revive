@@ -95,13 +95,15 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
                     {step?.name ? ` · ${step.name}` : ""}
                   </span>
                   <span className="tabular-nums text-muted-foreground">
-                    {row.reached} leads · {pct(row.reached, total)}%
+                    {row.sent.toLocaleString()} emailed · {pct(row.sent, total)}%
+                    {row.scheduled > 0 ? ` · ${row.scheduled.toLocaleString()} pending` : ""}
                   </span>
                 </div>
-                <Progress value={pct(row.reached, total)} className="mt-1.5 h-2" />
+                <Progress value={pct(row.sent, total)} className="mt-1.5 h-2" />
               </div>
             );
           })}
+
           {byStep.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Launch the campaign to start collecting funnel data.

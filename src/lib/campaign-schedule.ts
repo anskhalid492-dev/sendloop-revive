@@ -272,3 +272,35 @@ export function renderTemplate(text: string, lead: Record<string, unknown>): str
     return String(value);
   });
 }
+
+/**
+ * The next moment this campaign will actually send, derived from the real
+ * queue plus the campaign's own sending window/timezone.
+ *
+ * A stale historical timestamp is never returned: a pending message whose
+ * planned time already passed is pulled to the current window (when the
+ * campaign is inside it) or to the next configured window start.
+ */
+export function nextEligibleSendAt(input: {
+  now: Date;
+  window: ScheduleWindow;
+  /** Campaign status; only a live campaign has a next send. */
+  status: string;
+  /** Earliest planned time among pending (unsent, uncancelled) messages. */
+  earliestPendingAt: Date | null;
+  /** Number of pending messages still owed. */
+  pendingCount: number;
+}): Date | null {
+  const live = input.status === "active" || input.status === "scheduled";
+  if (!live || input.pendingCount <= 0) return null;
+
+  const planned = input.earliestPendingAt;
+  if (planned && planned.getTime() > input.now.getTime()) {
+    return isInSendWindow(planned, input.window)
+      ? planned
+      : windowStartAt(planned, input.window, { includeCurrentDay: true });
+  }
+  // Overdue (or unplanned) work sends as soon as the window allows.
+  if (isInSendWindow(input.now, input.window)) return input.now;
+  return windowStartAt(input.now, input.window, { includeCurrentDay: true });
+}
