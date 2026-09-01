@@ -11,7 +11,13 @@ import {
   withUnsubscribeSource,
 } from "@/lib/unsubscribe";
 import { partitionBulkTargets } from "@/lib/campaign-bulk";
-import { normalizeSendDays, windowStartAt, zonedStartOfDay } from "@/lib/campaign-schedule";
+import {
+  nextEligibleSendAt,
+  normalizeSendDays,
+  windowStartAt,
+  zonedStartOfDay,
+} from "@/lib/campaign-schedule";
+
 import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
