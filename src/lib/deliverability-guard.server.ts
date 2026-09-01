@@ -77,9 +77,12 @@ async function notifyWorkspace(workspaceId: string, title: string, message: stri
 }
 
 /**
- * Repeated soft failures (delays / temporary errors) for one address restrict
- * that contact through the existing suppression list, so no future campaign
- * email can reach it.
+ * Repeated hard send failures for one address restrict that contact through
+ * the existing suppression list.
+ *
+ * Transient signals ("delayed" — greylisting, deferrals) are explicitly NOT
+ * counted: they resolve on their own and must never permanently block a
+ * reachable prospect. A later successful delivery also clears the history.
  */
 export async function flagRepeatedSoftFailures(args: {
   workspaceId: string;
@@ -92,17 +95,26 @@ export async function flagRepeatedSoftFailures(args: {
 
   const { data, error } = await supabaseAdmin
     .from("campaign_messages")
-    .select("id, delivery_status")
+    .select("id, delivery_status, last_event_at")
     .eq("workspace_id", args.workspaceId)
     .eq("to_email", email)
     .gte("last_event_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString())
-    .in("delivery_status", ["delayed", "failed"]);
+    .in("delivery_status", ["failed", "delivered"]);
   if (error) return { flagged: false, count: 0 };
 
-  const count = data?.length ?? 0;
+  const rows = (data ?? []) as Array<{ delivery_status: string | null; last_event_at: string | null }>;
+  const lastDelivered = rows
+    .filter((r) => r.delivery_status === "delivered")
+    .map((r) => (r.last_event_at ? Date.parse(r.last_event_at) : 0))
+    .reduce((a, b) => Math.max(a, b), 0);
+  const count = rows.filter(
+    (r) =>
+      r.delivery_status === "failed" &&
+      (r.last_event_at ? Date.parse(r.last_event_at) : 0) > lastDelivered,
+  ).length;
   if (count < SOFT_FAILURE_LIMIT) return { flagged: false, count };
 
-  const reason = `Repeated temporary delivery failures (${count} in the last 30 days)`;
+  const reason = `Repeated permanent delivery failures (${count} since the last successful delivery)`;
   const { suppressEmail } = await import("@/lib/suppression.server");
   await suppressEmail({
     workspaceId: args.workspaceId,
@@ -200,7 +212,9 @@ export async function runDeliverabilityGuard(args: {
   detail?: string | null;
 }) {
   try {
-    if (args.kind === "delayed" || args.kind === "failed") {
+    // "delayed" is transient (greylisting/deferral) and never restricts a contact.
+    if (args.kind === "delayed") return;
+    if (args.kind === "failed") {
       await flagRepeatedSoftFailures({
         workspaceId: args.workspaceId,
         email: args.email,

@@ -167,7 +167,7 @@ export function AuthLayout({
 }) {
   return (
     <div className="min-h-screen bg-background lg:grid lg:h-screen lg:min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[1.05fr_1fr]">
-      <div className="lg:h-screen lg:overflow-y-auto">
+      <div className="hidden lg:block lg:h-screen lg:overflow-y-auto">
         <ProductPanel />
       </div>
 
@@ -178,6 +178,9 @@ export function AuthLayout({
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-[420px] py-2"
         >
+          <Link to="/" className="mb-5 inline-flex items-center lg:hidden" aria-label={BRAND_NAME}>
+            <BrandLogo context="login" className="h-8 max-w-[190px]" />
+          </Link>
           <h1 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[1.6rem]">
             {title}
           </h1>
