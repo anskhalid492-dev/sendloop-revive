@@ -350,15 +350,15 @@ export async function selectProvider(
   const pickFrom = affine.length ? affine : preferred ? [] : eligible;
 
   if (pickFrom.length === 0) {
+    // An admin-configured provider that is disabled, unhealthy or out of
+    // capacity must stay off — never silently substituted by a platform key.
+    if (preferred && pool.some((row) => row.provider === preferred)) return null;
     // Last resort: a platform key so the very first deployment can verify a
     // domain before the pool is configured. The provisioned provider wins;
     // otherwise any domain-capable provider with a platform key is used.
     const { platformKeyFor } = await import("@/lib/managed-sending.server");
-    const order = preferred
-      ? [preferred, ...DOMAIN_CAPABLE_PROVIDERS.filter((p) => p !== preferred)]
-      : DOMAIN_CAPABLE_PROVIDERS;
+    const order = preferred ? [preferred] : DOMAIN_CAPABLE_PROVIDERS;
     for (const provider of order) {
-      if (preferred && provider !== preferred) break;
       const envKey = platformKeyFor(provider);
       if (envKey) {
         return {
