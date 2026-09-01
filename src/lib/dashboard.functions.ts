@@ -405,16 +405,16 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       if (r.lead_id && !campaignByLead.has(r.lead_id)) campaignByLead.set(r.lead_id, r.campaign_id);
     }
 
-    const { toCampaignStats } = await import("@/lib/campaign-stats");
-    const { data: statsRows } = await supabase.rpc("campaign_stats", {
-      _workspace_id: data.workspaceId,
-      _from: start.toISOString(),
-      _to: new Date(now + day).toISOString(),
+    const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+    const { byCampaign } = await fetchCampaignStats(supabase, {
+      workspaceId: data.workspaceId,
+      from: start,
+      to: new Date(now + day),
     });
 
     const perf = new Map<string, CampaignPerformance>();
-    for (const raw of (statsRows ?? []) as Record<string, unknown>[]) {
-      const s = toCampaignStats(raw);
+    for (const s of byCampaign.values()) {
+
       perf.set(s.campaignId, {
         id: s.campaignId,
         name: s.name || campaignName.get(s.campaignId) || "Campaign",
