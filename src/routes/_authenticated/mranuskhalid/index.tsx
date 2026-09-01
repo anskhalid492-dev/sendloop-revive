@@ -1,3 +1,4 @@
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -119,9 +120,9 @@ function Empty({ label = "No data" }: { label?: string }) {
 function AdminOverviewPage() {
   const fetchDashboard = useServerFn(getAdminDashboard);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin", "dashboard"],
+    queryKey: analyticsKeys.admin("dashboard"),
     queryFn: () => fetchDashboard(),
-    staleTime: 60_000,
+    ...liveQueryOptions(),
   });
 
   if (isLoading) {

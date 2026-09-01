@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAnalyticsRealtime } from "@/hooks/useAnalyticsRealtime";
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import {
   getAnalyticsByAccount,
   getAnalyticsByCampaign,
@@ -131,24 +132,28 @@ function AnalyticsPage() {
   const fetchAccounts = useServerFn(getAnalyticsByAccount);
 
   const overview = useQuery({
-    queryKey: ["analytics", "overview", ...keyBase],
+    queryKey: analyticsKeys.overview(...keyBase),
     queryFn: () => fetchOverview({ data: range }),
     enabled,
+    ...liveQueryOptions(),
   });
   const series = useQuery({
-    queryKey: ["analytics", "series", ...keyBase, bucket],
+    queryKey: analyticsKeys.series(...keyBase, bucket),
     queryFn: () => fetchSeries({ data: { ...range, bucket } }),
     enabled,
+    ...liveQueryOptions(),
   });
   const campaigns = useQuery({
-    queryKey: ["analytics", "campaigns", ...keyBase],
+    queryKey: analyticsKeys.campaigns(...keyBase),
     queryFn: () => fetchCampaigns({ data: range }),
     enabled,
+    ...liveQueryOptions(),
   });
   const accounts = useQuery({
-    queryKey: ["analytics", "accounts", ...keyBase],
+    queryKey: analyticsKeys.accounts(...keyBase),
     queryFn: () => fetchAccounts({ data: range }),
     enabled,
+    ...liveQueryOptions(),
   });
 
   const current = overview.data?.current;

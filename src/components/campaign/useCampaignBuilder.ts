@@ -1,3 +1,5 @@
+import { useAnalyticsRealtime } from "@/hooks/useAnalyticsRealtime";
+import { liveQueryOptions } from "@/lib/analytics-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -130,6 +132,9 @@ export function useCampaignBuilder(campaignId: string) {
   const campaignQuery = useQuery({
     queryKey: ["campaign", campaignId],
     queryFn: () => fetchCampaign({ data: { id: campaignId } }),
+    // Campaign stats are read live from the authoritative campaign_stats
+    // source; never served stale from cache.
+    ...liveQueryOptions(),
     // The core record is required; retry transient failures a bounded number of
     // times only, never forever, so the page can show a real error state.
     retry: (attempt, error: Error) => {
@@ -151,6 +156,7 @@ export function useCampaignBuilder(campaignId: string) {
     retry: 1,
   });
   const campaignWorkspaceId = campaignQuery.data?.campaign.workspace_id;
+  useAnalyticsRealtime(campaignWorkspaceId ?? null);
   const listsQuery = useQuery({
     queryKey: ["lead-lists", campaignWorkspaceId],
     queryFn: () => fetchLists({ data: { workspaceId: campaignWorkspaceId } } as never),

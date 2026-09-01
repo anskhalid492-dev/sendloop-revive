@@ -28,6 +28,7 @@ import {
   replyRate,
   unsubRate,
 } from "@/lib/analytics-model";
+import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import {
   getAnalyticsOverview,
   getAnalyticsTimeseries,
@@ -68,14 +69,16 @@ export function EngagementOverview({ workspaceId }: { workspaceId: string | null
   const input = { workspaceId: workspaceId ?? "", ...range };
 
   const overview = useQuery({
-    queryKey: ["analytics", "overview", workspaceId, range.from, range.to],
+    queryKey: analyticsKeys.overview(workspaceId, range.from, range.to),
     queryFn: () => fetchOverview({ data: input }),
     enabled,
+    ...liveQueryOptions(),
   });
   const series = useQuery({
-    queryKey: ["analytics", "series", workspaceId, range.from, range.to, "day"],
+    queryKey: analyticsKeys.series(workspaceId, range.from, range.to, "day"),
     queryFn: () => fetchSeries({ data: { ...input, bucket: "day" as const } }),
     enabled,
+    ...liveQueryOptions(),
   });
 
   const current = overview.data?.current ?? null;

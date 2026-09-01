@@ -1,3 +1,4 @@
+import { liveQueryOptions } from "@/lib/analytics-query";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -167,6 +168,7 @@ function EmailAccountsPage() {
 
   const accountsQuery = useQuery({
     queryKey: ["email-accounts", filters],
+    ...liveQueryOptions(),
     queryFn: () => fetchAccounts({ data: filters }),
   });
 
