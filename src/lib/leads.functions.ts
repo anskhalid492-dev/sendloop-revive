@@ -412,6 +412,10 @@ export const updateLead = createServerFn({ method: "POST" })
       .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (patch.status) {
+      const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
+      await syncLeadReplySentiment(context.supabase, data.id, patch.status);
+    }
     return { ok: true };
   });
 
