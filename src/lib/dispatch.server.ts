@@ -1178,6 +1178,20 @@ export async function dispatchDueMessages(
     const html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
+    // Freeze the exact personalized email for this recipient BEFORE handing it
+    // to the provider. This row — not the campaign template — is what the
+    // Unified Inbox shows when the prospect replies.
+    const sentSnapshot = buildSentSnapshot({
+      subject: message.subject,
+      body: message.body,
+      html,
+      fromEmail: account.from_email,
+      fromName: account.from_name,
+      toEmail: message.to_email,
+      renderedAt: now.toISOString(),
+    });
+    await persistSentSnapshot(supabase, message.id, sentSnapshot);
+
 
     let send: Awaited<ReturnType<typeof sendManagedEmail>>;
     try {
