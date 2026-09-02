@@ -276,7 +276,7 @@ export async function ensureInitialCampaignMessages(
   const { data: providerRowsForPlan } = await supabase
     .from("email_providers")
     .select("provider, is_enabled, customer_enabled");
-  const planAllowedProviders = providerRowsForPlan
+  const planAllowedProviders = providerRowsForPlan?.length
     ? new Set(
         (providerRowsForPlan as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
           .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
@@ -836,7 +836,7 @@ export async function dispatchDueMessages(
     const { data: providerRows } = await supabase
       .from("email_providers")
       .select("provider, is_enabled, customer_enabled");
-    if (providerRows) {
+    if (providerRows?.length) {
       allowedProviders = new Set(
         (providerRows as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
           .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
