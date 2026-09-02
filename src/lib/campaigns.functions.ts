@@ -725,41 +725,8 @@ export const updateCampaign = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const map: Record<string, string> = {
-      name: "name",
-      description: "description",
-      listId: "list_id",
-      sendingAccountIds: "sending_account_ids",
-      timezone: "timezone",
-      sendDays: "send_days",
-      sendStartHour: "send_start_hour",
-      sendEndHour: "send_end_hour",
-      dailyCap: "daily_cap",
-      stopOnReply: "stop_on_reply",
-      tags: "tags",
-      startAt: "start_at",
-      endAt: "end_at",
-      minDelayMinutes: "min_delay_minutes",
-      randomDelayMinutes: "random_delay_minutes",
-      maxPerHour: "max_per_hour",
-      businessDaysOnly: "business_days_only",
-      openTracking: "open_tracking",
-      clickTracking: "click_tracking",
-      textOnly: "text_only",
-      stopOnCompanyReply: "stop_on_company_reply",
-      maxContactsPerCompany: "max_contacts_per_company",
-      emailSendLimit: "email_send_limit",
-      unsubscribeEnabled: "unsubscribe_enabled",
-      inboxRotationEnabled: "inbox_rotation_enabled",
-      inboxRotationStrategy: "inbox_rotation_strategy",
-      rotationDailyCapPerInbox: "rotation_daily_cap_per_inbox",
-      customVariables: "custom_variables",
-    };
-    const patch: Record<string, unknown> = {};
-    for (const [key, column] of Object.entries(map)) {
-      const value = (data as Record<string, unknown>)[key];
-      if (key !== "id" && value !== undefined) patch[column] = value;
-    }
+    const patch = buildCampaignUpdatePatch(data as unknown as Record<string, unknown>);
+
     if (
       patch["email_send_limit"] !== undefined &&
       !(await campaignLimitColumnsAvailable(context.supabase))
