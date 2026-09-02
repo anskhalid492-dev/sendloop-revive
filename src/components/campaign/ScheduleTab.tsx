@@ -25,6 +25,12 @@ import {
   effectiveMailboxHourlyLimit,
   exceedsMailboxHourlyCap,
 } from "@/lib/mailbox-hourly-cap";
+import {
+  campaignDailyPlan,
+  mailboxDailyCapacity,
+  type CapacityMailbox,
+} from "@/lib/campaign-capacity";
+
 import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
