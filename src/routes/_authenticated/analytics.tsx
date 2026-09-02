@@ -388,9 +388,8 @@ function AnalyticsPage() {
                     <th className="py-2 pr-3">Sent</th>
                     <th className="py-2 pr-3">Delivered</th>
                     <th className="py-2 pr-3">Open</th>
-                    <th className="py-2 pr-3">Click</th>
                     <th className="py-2 pr-3">Reply</th>
-                    <th className="py-2 pr-3">Positive</th>
+                    <th className="py-2 pr-3">Positive replies</th>
                     <th className="py-2 pr-3">Bounce</th>
                     <th className="py-2 pr-3">Failed</th>
                   </tr>
@@ -409,7 +408,6 @@ function AnalyticsPage() {
                       <td className="py-2 pr-3">{formatCount(row.sent)}</td>
                       <td className="py-2 pr-3">{formatCount(row.delivered)}</td>
                       <td className="py-2 pr-3">{formatOpenRate(row)}</td>
-                      <td className="py-2 pr-3">{formatPct(clickRate(row))}</td>
                       <td className="py-2 pr-3">{formatPct(replyRate(row))}</td>
                       <td className="py-2 pr-3">{formatCount(row.positiveReplies)}</td>
                       <td className="py-2 pr-3">{formatPct(bounceRate(row))}</td>
