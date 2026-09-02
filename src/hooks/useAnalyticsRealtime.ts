@@ -20,8 +20,6 @@ const WORKSPACE_TABLES = [
   "email_events",
   "campaign_replies",
   "campaigns",
-  "leads",
-  "sending_accounts",
 ] as const;
 
 export function useAnalyticsRealtime(workspaceId: string | null) {
@@ -46,7 +44,7 @@ export function useAnalyticsRealtime(workspaceId: string | null) {
         ]) {
           void queryClient.invalidateQueries({ queryKey: key });
         }
-      }, 400);
+      }, 2_000);
     };
 
     const channel = supabase.channel(`analytics-${workspaceId}`);

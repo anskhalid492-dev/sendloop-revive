@@ -33,7 +33,7 @@ export const analyticsKeys = {
 };
 
 /** Fallback poll interval used when realtime cannot cover a table. */
-export const ANALYTICS_POLL_MS = 20_000;
+export const ANALYTICS_POLL_MS = 60_000;
 
 /**
  * Live-read options: nothing is ever served as "fresh from cache". Cached data
@@ -41,10 +41,12 @@ export const ANALYTICS_POLL_MS = 20_000;
  */
 export function liveQueryOptions(pollMs: number | false = ANALYTICS_POLL_MS) {
   return {
-    staleTime: 0,
+    // Short freshness window instead of 0: realtime already pushes the fast
+    // path, so a burst of remounts must not trigger a burst of full reads.
+    staleTime: 15_000,
     gcTime: 60_000,
-    refetchOnMount: "always" as const,
-    refetchOnWindowFocus: "always" as const,
+    refetchOnMount: true as const,
+    refetchOnWindowFocus: true as const,
     refetchOnReconnect: "always" as const,
     refetchInterval: pollMs,
     refetchIntervalInBackground: false,
