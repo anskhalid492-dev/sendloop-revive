@@ -373,9 +373,15 @@ export async function sendManagedEmail(
   // Record provider health for Admin → Providers, then sanitise the customer copy.
   await recordProviderIncident(admin, managed.providerId, send.ok ? null : send.message);
 
-  // A 403 from the provider on an otherwise-unknown domain is a verification
-  // failure — surface the customer-facing DNS message, not raw provider text.
-  if (!send.ok && send.statusCode === 403 && /not verified|domain/i.test(send.message)) {
+  // Providers report identity/verification refusals with different status
+  // codes: Resend uses 403, SES answers 400 with "Email address is not
+  // verified ... identities failed the check in region ...". Both mean the
+  // sender identity is not usable, so surface the customer-facing DNS message
+  // instead of raw provider text.
+  const verificationRefusal =
+    (send.statusCode === 403 || send.statusCode === 400) &&
+    /not verified|identities failed the check|verification/i.test(send.message);
+  if (!send.ok && verificationRefusal) {
     return {
       ...send,
       message: DOMAIN_NOT_VERIFIED_MESSAGE,

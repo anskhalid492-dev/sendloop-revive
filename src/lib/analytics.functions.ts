@@ -213,7 +213,7 @@ export const getAnalyticsByAccount = createServerFn({ method: "POST" })
         clicks: t.clicks,
         replies: t.replies,
         bounced: t.bounced,
-        unsubscribed: 0,
+        unsubscribed: t.unsubscribed,
       }))
       .sort((a, b) => b.sent - a.sent) as AnalyticsAccountRow[];
   });
