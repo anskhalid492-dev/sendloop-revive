@@ -933,7 +933,12 @@ export async function dispatchDueMessages(
       continue;
     }
 
-    if (!account) {
+    // A mailbox that is missing, paused, disabled, disconnected, customer
+    // disabled, or on a provider that is turned off can never send this
+    // message. Repair the assignment from the campaign pool instead of
+    // claiming-and-deferring the same row forever.
+    const assignedIneligible = Boolean(account) && !isEligibleMailbox(account, allowedProviders);
+    if (!account || assignedIneligible) {
       // Missing/stale mailbox: repair from the campaign pool instead of
       // failing the message. Nothing about the recipient is wrong.
       const usageById = new Map<string, number>();
