@@ -74,7 +74,7 @@ export function sentCopyOf(row: StoredSentRow | null | undefined): SentCopy {
   return {
     subject: (exact ? row?.final_subject : null) ?? row?.subject ?? "",
     body: (exact ? finalBody : null) ?? row?.body ?? "",
-    html: (exact ? (row?.final_html ?? null) : null) ?? null,
+    html: exact ? (row?.final_html ?? null) : null,
     fromEmail: row?.final_from_email ?? null,
     fromName: row?.final_from_name ?? null,
     toEmail: row?.final_to_email ?? row?.to_email ?? null,
