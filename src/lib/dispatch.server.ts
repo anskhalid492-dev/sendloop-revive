@@ -271,8 +271,20 @@ export async function ensureInitialCampaignMessages(
         .select("id, provider, from_name, from_email, status, customer_enabled, paused")
         .in("id", configuredAccountIds)
     : { data: [] as InitialAccountRow[] };
-  const accounts = ((accountRows ?? []) as InitialAccountRow[]).filter(
-    (account) => account.status !== "disabled" && account.customer_enabled && !account.paused,
+  // New queue rows are never pinned to a mailbox whose provider is switched off
+  // for customer sending.
+  const { data: providerRowsForPlan } = await supabase
+    .from("email_providers")
+    .select("provider, is_enabled, customer_enabled");
+  const planAllowedProviders = providerRowsForPlan
+    ? new Set(
+        (providerRowsForPlan as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
+          .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
+          .map((p) => String(p.provider)),
+      )
+    : null;
+  const accounts = ((accountRows ?? []) as InitialAccountRow[]).filter((account) =>
+    isEligibleMailbox(account, planAllowedProviders),
   );
   const accountById = new Map(accounts.map((account) => [account.id, account] as const));
   let cursor = 0;
