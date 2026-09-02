@@ -585,6 +585,21 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     return { status: "unmatched", reason: convError?.message ?? "Conversation not created" };
   }
 
+  // A reply must always sit under the exact email this prospect received.
+  if (campaignMessage?.id) {
+    try {
+      await ensureSentEmailMirrored(db, {
+        conversationId: conversation.id,
+        workspaceId,
+        campaignMessageId: campaignMessage.id,
+      });
+    } catch {
+      /* recovery is best-effort: the reply itself must always be stored */
+    }
+  }
+
+
+
   const { data: inserted, error: insertError } = await db
     .from("conversation_messages")
     .insert({
