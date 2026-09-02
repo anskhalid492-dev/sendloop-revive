@@ -166,7 +166,7 @@ function DashboardPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="flex flex-wrap items-end justify-between gap-4"
+          className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_auto]"
         >
           <div>
             <h2 className="text-[26px] font-bold leading-tight tracking-tight">
@@ -183,28 +183,41 @@ function DashboardPage() {
               {data ? ` · sending day in ${data.timezone}` : ""}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_ACTIONS.map((action, i) => (
-              <motion.div
-                key={action.label}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.04 * i }}
-                whileHover={{ y: -2 }}
-              >
-                <Button
-                  asChild
-                  variant={"primary" in action && action.primary ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-9 text-xs"
+
+          {/* Quick Actions panel */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="w-full rounded-xl border bg-muted/30 p-3 lg:w-auto"
+          >
+            <div className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Quick Actions
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-2">
+              {QUICK_ACTIONS.map((action, i) => (
+                <motion.div
+                  key={action.label}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.12 + 0.03 * i }}
+                  whileHover={{ y: -1 }}
                 >
-                  <Link to={action.to}>
-                    <action.icon className="size-3.5" /> {action.label}
-                  </Link>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
+                  <Button
+                    asChild
+                    variant={"primary" in action && action.primary ? "default" : "outline"}
+                    size="sm"
+                    className="h-9 w-full justify-start gap-2 text-xs"
+                  >
+                    <Link to={action.to}>
+                      <action.icon className="size-3.5 shrink-0" />
+                      <span className="truncate">{action.label}</span>
+                    </Link>
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         </motion.header>
 
         <AnimatePresence>
