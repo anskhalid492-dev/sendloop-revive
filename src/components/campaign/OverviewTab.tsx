@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
+import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
 import { cn } from "@/lib/utils";
 import { LaunchAuditTrail } from "./LaunchAuditTrail";
 import type { CampaignBuilder } from "./useCampaignBuilder";
@@ -114,7 +115,9 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const delayed = delivery?.delayed ?? 0;
   const unsubscribed = delivery?.unsubscribed ?? queue?.unsubscribed ?? 0;
   const completed = queue?.completed ?? 0;
-  const pending = queue?.pending ?? 0;
+  // Authoritative message-unit counters — never campaign_recipients.pending.
+  const counters = queueCounters(delivery);
+  const pending = counters.scheduled + counters.processing;
 
   const progress = totalLeads ? Math.min(100, Math.round((contacted / totalLeads) * 100)) : 0;
 
@@ -158,7 +161,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <div className="text-right">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Next send</p>
             <p className="text-sm font-semibold">
-              {queue?.nextSendAt ? new Date(queue.nextSendAt).toLocaleString() : "Not scheduled"}
+              {formatInCampaignTimezone(queue?.nextSendAt, queue?.timezone) ?? "Not scheduled"}
             </p>
           </div>
         </div>
@@ -172,7 +175,9 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </div>
           <Progress className="mt-1.5 h-2" value={progress} />
           <p className="mt-1 text-xs text-muted-foreground">
-            {pending} queued · {completed} finished the sequence
+            {counters.scheduled.toLocaleString()} scheduled · {counters.processing.toLocaleString()} processing ·{" "}
+            {counters.sent.toLocaleString()} sent · {counters.failed.toLocaleString()} failed ·{" "}
+            {counters.cancelled.toLocaleString()} cancelled · {completed} finished the sequence
           </p>
         </div>
       </section>
