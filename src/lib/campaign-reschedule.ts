@@ -52,7 +52,18 @@ export function planQueueReschedule(
     const parsed = row.scheduled_at ? new Date(row.scheduled_at) : null;
     const current = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
     const pullForward = row.pull_forward !== false;
-    const floor = pullForward || !current ? now : current.getTime() < now.getTime() ? now : current;
+    let floor = pullForward || !current ? now : current.getTime() < now.getTime() ? now : current;
+    // A follow-up's own future time is a floor only WITHIN the configured
+    // window. When the campaign window moves earlier, a row parked later in
+    // its own sending day is pulled back to that day's configured start, so an
+    // old timestamp can never override the current configuration. It is never
+    // moved before `now` or before the window itself.
+    if (!pullForward && current && current.getTime() > now.getTime()) {
+      const dayStart = windowStartAt(current, window, { includeCurrentDay: true });
+      if (dayStart.getTime() < current.getTime()) {
+        floor = new Date(Math.max(now.getTime(), dayStart.getTime()));
+      }
+    }
     let candidate = earliestEligibleAt(floor, window);
 
     if (dailyLimit > 0) {
