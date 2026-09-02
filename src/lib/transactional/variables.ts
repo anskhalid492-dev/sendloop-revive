@@ -26,6 +26,7 @@ export const TEMPLATE_VARIABLES = [
   "company_name",
   "campaign_name",
   "reply_preview",
+  "reply_subject",
   "reply_url",
   "campaign_url",
   "workspace_name",
