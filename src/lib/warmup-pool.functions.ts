@@ -23,7 +23,7 @@ export const adminListWarmupPool = createServerFn({ method: "GET" })
 /** Admin: bulk CSV / pasted list import of warmup recipients. */
 export const adminImportWarmupRecipients = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ csv: z.string().min(3).max(500_000) }).parse(input))
+  .inputValidator((input) => z.object({ csv: z.string().min(3).max(8_000_000) }).parse(input))
   .handler(async ({ data, context }) => {
     const { assertSuperAdmin } = await import("./admin-access.server");
     await assertSuperAdmin(context);
