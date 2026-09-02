@@ -5,12 +5,13 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  ChevronDown,
   Clock,
+  Info,
   Loader2,
   Mail,
   MailOpen,
-  PanelRightClose,
-  PanelRightOpen,
+  MoreHorizontal,
   Paperclip,
   Send,
   Tag as TagIcon,
@@ -39,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -73,6 +75,135 @@ function snoozeOptions() {
     { label: "Tomorrow", value: tomorrow.toISOString() },
     { label: "Next week", value: nextWeek.toISOString() },
   ];
+}
+
+type ThreadMessage = {
+  id: string;
+  direction: string;
+  from_name?: string | null;
+  from_email: string;
+  to_email: string;
+  subject: string;
+  body: string;
+  occurred_at: string;
+  opened_at?: string | null;
+  clicked_at?: string | null;
+  attachments?: { name: string; url?: string }[] | null;
+};
+
+/**
+ * A single email in the thread. The body shown here is the stored message
+ * record (the exact sent/received copy) — nothing is re-rendered from a
+ * campaign template.
+ */
+function MessageRow({
+  message,
+  defaultExpanded,
+}: {
+  message: ThreadMessage;
+  defaultExpanded: boolean;
+}) {
+  const [open, setOpen] = useState(defaultExpanded);
+  const [showDetails, setShowDetails] = useState(false);
+  const outbound = message.direction !== "inbound";
+
+  return (
+    <article className="border-b border-border/60 py-4 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-start gap-3 text-left"
+        aria-expanded={open}
+      >
+        <span
+          className={cn(
+            "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+            outbound ? "bg-primary/10 text-primary" : "bg-muted text-foreground",
+          )}
+        >
+          {initialsOf(message.from_name ?? null, message.from_email)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2">
+            <span className="truncate text-sm font-semibold">
+              {message.from_name || message.from_email}
+            </span>
+            <span className="truncate text-xs text-muted-foreground">
+              {message.from_email}
+            </span>
+            <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+              {new Date(message.occurred_at).toLocaleString()}
+            </span>
+          </span>
+          {open ? (
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              to {message.to_email}
+            </span>
+          ) : (
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {message.body}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          className={cn(
+            "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open ? (
+        <div className="mt-3 pl-12">
+          <button
+            type="button"
+            className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+            onClick={() => setShowDetails((v) => !v)}
+          >
+            {showDetails ? "Hide details" : "Details"}
+          </button>
+          {showDetails ? (
+            <dl className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+              <div>
+                <span className="font-medium text-foreground">Subject:</span> {message.subject}
+              </div>
+              <div>
+                <span className="font-medium text-foreground">From:</span> {message.from_email}
+              </div>
+              <div>
+                <span className="font-medium text-foreground">To:</span> {message.to_email}
+              </div>
+              <div>
+                {outbound ? "Sent" : "Prospect reply"}
+                {message.opened_at
+                  ? ` · Opened ${new Date(message.opened_at).toLocaleString()}`
+                  : ""}
+                {message.clicked_at
+                  ? ` · Clicked ${new Date(message.clicked_at).toLocaleString()}`
+                  : ""}
+              </div>
+            </dl>
+          ) : null}
+
+          <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
+            {message.body}
+          </div>
+
+          {message.attachments?.length ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {message.attachments.map((file) => (
+                <li key={file.name}>
+                  <Badge variant="outline" className="gap-1">
+                    <Paperclip className="h-3 w-3" /> {file.name}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
 }
 
 export function ConversationView({
@@ -115,11 +246,12 @@ export function ConversationView({
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [note, setNote] = useState("");
   const [tagDraft, setTagDraft] = useState("");
-  const [showProspect, setShowProspect] = useState(true);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [customSnooze, setCustomSnooze] = useState("");
 
   const conversation = data?.conversation;
-  const messages = data?.messages ?? [];
+  const messages = (data?.messages ?? []) as ThreadMessage[];
 
   useEffect(() => {
     if (!conversation) return;
@@ -127,6 +259,7 @@ export function ConversationView({
     setSubject(`Re: ${base}`);
     setBody("");
     setCc("");
+    setComposerOpen(false);
   }, [conversation?.id]);
 
   // Opening a conversation marks it read, and that must survive a refresh.
@@ -199,6 +332,8 @@ export function ConversationView({
     return [...mails, ...notes].sort((a, b) => (a.at < b.at ? -1 : 1));
   }, [data?.notes, messages]);
 
+  const lastMessageId = messages.length ? messages[messages.length - 1]!.id : null;
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -218,233 +353,208 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col xl:flex-row">
-      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-
-
-        <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border p-3">
-          {onBack ? (
-            <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back to list">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-sm font-semibold">{conversation.subject}</h2>
-            <p className="truncate text-xs text-muted-foreground">{conversation.prospect_email}</p>
-          </div>
-
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
+      <header className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
+        {onBack ? (
           <Button
             variant="ghost"
             size="icon"
-            className="hidden xl:inline-flex"
-            aria-label={showProspect ? "Hide prospect panel" : "Show prospect panel"}
-            title={showProspect ? "Full-width message view" : "Show prospect details"}
-            onClick={() => setShowProspect((v) => !v)}
+            className="h-8 w-8 shrink-0"
+            onClick={onBack}
+            aria-label="Back to list"
           >
-            {showProspect ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" />
-            )}
+            <ArrowLeft className="h-4 w-4" />
           </Button>
+        ) : null}
 
-          <Select
-            value={conversation.status}
-            onValueChange={(value) => mutate.mutate({ status: value })}
-          >
-            <SelectTrigger className="h-8 w-[170px]" aria-label="Conversation status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CONVERSATION_STATUSES.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
-                  {status.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <UserPlus className="mr-2 h-3.5 w-3.5" />
-                {conversation.assignee_name ?? "Assign"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Assign conversation</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => mutate.mutate({ assignedTo: data.me })}>
-                Assign to me
-              </DropdownMenuItem>
-              {members
-                .filter((m) => m.id !== data.me)
-                .map((member) => (
-                  <DropdownMenuItem
-                    key={member.id}
-                    onClick={() => mutate.mutate({ assignedTo: member.id })}
-                  >
-                    {member.name}
-                  </DropdownMenuItem>
-                ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => mutate.mutate({ assignedTo: null })}>
-                Unassign
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Clock className="mr-2 h-3.5 w-3.5" /> Snooze
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              {snoozeOptions().map((option) => (
-                <DropdownMenuItem
-                  key={option.label}
-                  onClick={() => mutate.mutate({ snoozedUntil: option.value })}
-                >
-                  {option.label}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <div className="p-2">
-                <Input
-                  type="datetime-local"
-                  value={customSnooze}
-                  onChange={(event) => setCustomSnooze(event.target.value)}
-                  aria-label="Custom snooze time"
-                />
-                <Button
-                  size="sm"
-                  className="mt-2 w-full"
-                  disabled={!customSnooze}
-                  onClick={() =>
-                    mutate.mutate({ snoozedUntil: new Date(customSnooze).toISOString() })
-                  }
-                >
-                  Snooze until
-                </Button>
-              </div>
-              {conversation.snoozed_until ? (
-                <DropdownMenuItem onClick={() => mutate.mutate({ snoozedUntil: null })}>
-                  Unsnooze
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => mutate.mutate({ archived: !conversation.archived })}
-          >
-            {conversation.archived ? (
-              <>
-                <ArchiveRestore className="mr-2 h-3.5 w-3.5" /> Unarchive
-              </>
-            ) : (
-              <>
-                <Archive className="mr-2 h-3.5 w-3.5" /> Archive
-              </>
-            )}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={conversation.unread ? "Mark read" : "Mark unread"}
-            onClick={() => mutate.mutate({ unread: !conversation.unread })}
-          >
-            {conversation.unread ? (
-              <MailOpen className="h-4 w-4" />
-            ) : (
-              <Mail className="h-4 w-4" />
-            )}
-          </Button>
-        </header>
-
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
-          <TagIcon className="h-3.5 w-3.5 text-muted-foreground" />
-          {conversation.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="gap-1">
-              #{tag}
-              <button
-                type="button"
-                aria-label={`Remove tag ${tag}`}
-                onClick={() =>
-                  mutate.mutate({ tags: conversation.tags.filter((t) => t !== tag) })
-                }
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-          <Input
-            value={tagDraft}
-            onChange={(event) => setTagDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" || !tagDraft.trim()) return;
-              event.preventDefault();
-              mutate.mutate({ tags: [...new Set([...conversation.tags, tagDraft.trim()])] });
-              setTagDraft("");
-            }}
-            placeholder="Add tag"
-            className="h-7 w-28 border-dashed text-xs"
-            aria-label="Add tag"
-          />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-semibold">{conversation.subject}</h2>
+          <p className="truncate text-xs text-muted-foreground">{conversation.prospect_email}</p>
         </div>
 
-        <div className="min-h-[8rem] flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+        <Select
+          value={conversation.status}
+          onValueChange={(value) => mutate.mutate({ status: value })}
+        >
+          <SelectTrigger className="h-8 w-[150px] shrink-0" aria-label="Conversation status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CONVERSATION_STATUSES.map((status) => (
+              <SelectItem key={status.value} value={status.value}>
+                {status.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="hidden shrink-0 sm:inline-flex">
+              <UserPlus className="mr-2 h-3.5 w-3.5" />
+              {conversation.assignee_name ?? "Assign"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Assign conversation</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => mutate.mutate({ assignedTo: data.me })}>
+              Assign to me
+            </DropdownMenuItem>
+            {members
+              .filter((m) => m.id !== data.me)
+              .map((member) => (
+                <DropdownMenuItem
+                  key={member.id}
+                  onClick={() => mutate.mutate({ assignedTo: member.id })}
+                >
+                  {member.name}
+                </DropdownMenuItem>
+              ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => mutate.mutate({ assignedTo: null })}>
+              Unassign
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              aria-label="Snooze conversation"
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            {snoozeOptions().map((option) => (
+              <DropdownMenuItem
+                key={option.label}
+                onClick={() => mutate.mutate({ snoozedUntil: option.value })}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <div className="p-2">
+              <Input
+                type="datetime-local"
+                value={customSnooze}
+                onChange={(event) => setCustomSnooze(event.target.value)}
+                aria-label="Custom snooze time"
+              />
+              <Button
+                size="sm"
+                className="mt-2 w-full"
+                disabled={!customSnooze}
+                onClick={() => mutate.mutate({ snoozedUntil: new Date(customSnooze).toISOString() })}
+              >
+                Snooze until
+              </Button>
+            </div>
+            {conversation.snoozed_until ? (
+              <DropdownMenuItem onClick={() => mutate.mutate({ snoozedUntil: null })}>
+                Unsnooze
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="More actions">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => mutate.mutate({ archived: !conversation.archived })}>
+              {conversation.archived ? (
+                <>
+                  <ArchiveRestore className="mr-2 h-3.5 w-3.5" /> Unarchive
+                </>
+              ) : (
+                <>
+                  <Archive className="mr-2 h-3.5 w-3.5" /> Archive
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => mutate.mutate({ unread: !conversation.unread })}>
+              {conversation.unread ? (
+                <>
+                  <MailOpen className="mr-2 h-3.5 w-3.5" /> Mark read
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-3.5 w-3.5" /> Mark unread
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="sm:hidden" onClick={() => mutate.mutate({ assignedTo: data.me })}>
+              <UserPlus className="mr-2 h-3.5 w-3.5" /> Assign to me
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setContactOpen(true)}>
+              <Info className="mr-2 h-3.5 w-3.5" /> Contact info
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={() => setContactOpen(true)}
+        >
+          <Info className="mr-2 h-3.5 w-3.5" />
+          <span className="hidden md:inline">Contact info</span>
+        </Button>
+      </header>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-4 py-1.5">
+        <TagIcon className="h-3.5 w-3.5 text-muted-foreground" />
+        {conversation.tags.map((tag) => (
+          <Badge key={tag} variant="secondary" className="gap-1">
+            #{tag}
+            <button
+              type="button"
+              aria-label={`Remove tag ${tag}`}
+              onClick={() => mutate.mutate({ tags: conversation.tags.filter((t) => t !== tag) })}
+            >
+              ×
+            </button>
+          </Badge>
+        ))}
+        <Input
+          value={tagDraft}
+          onChange={(event) => setTagDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || !tagDraft.trim()) return;
+            event.preventDefault();
+            mutate.mutate({ tags: [...new Set([...conversation.tags, tagDraft.trim()])] });
+            setTagDraft("");
+          }}
+          placeholder="Add tag"
+          className="h-6 w-24 border-dashed text-xs"
+          aria-label="Add tag"
+        />
+      </div>
+
+      {/* Only the thread scrolls; header, tags and composer stay put. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-5xl px-4 py-2 sm:px-8">
           {timeline.map((entry) =>
             entry.kind === "message" ? (
-              <article
+              <MessageRow
                 key={entry.m.id}
-                className={cn(
-                  "rounded-xl border p-3",
-                  entry.m.direction === "inbound"
-                    ? "border-border bg-card"
-                    : "border-primary/20 bg-primary/5",
-                )}
-              >
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-semibold">
-                    {initialsOf(entry.m.from_name, entry.m.from_email)}
-                  </span>
-                  <span className="font-medium text-foreground">{entry.m.from_email}</span>
-                  <span>→ {entry.m.to_email}</span>
-                  <span className="ml-auto">{new Date(entry.m.occurred_at).toLocaleString()}</span>
-                </div>
-                <h4 className="mt-2 text-sm font-medium">{entry.m.subject}</h4>
-                <p className="mt-1 w-full whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {entry.m.body}
-                </p>
-                {entry.m.attachments?.length ? (
-                  <ul className="mt-2 flex flex-wrap gap-2">
-                    {entry.m.attachments.map((file) => (
-                      <li key={file.name}>
-                        <Badge variant="outline" className="gap-1">
-                          <Paperclip className="h-3 w-3" /> {file.name}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
-                  <span>{entry.m.direction === "inbound" ? "Prospect reply" : "Sent"}</span>
-                  {entry.m.opened_at ? (
-                    <span>Opened {new Date(entry.m.opened_at).toLocaleString()}</span>
-                  ) : null}
-                  {entry.m.clicked_at ? (
-                    <span>Clicked {new Date(entry.m.clicked_at).toLocaleString()}</span>
-                  ) : null}
-                </div>
-              </article>
+                message={entry.m}
+                defaultExpanded={entry.m.id === lastMessageId || entry.m.direction === "inbound"}
+              />
             ) : (
               <article
                 key={entry.n.id}
-                className="rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3"
+                className="my-3 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 p-3"
               >
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="outline">Internal note</Badge>
@@ -467,143 +577,172 @@ export function ConversationView({
             ),
           )}
         </div>
+      </div>
 
-        <Tabs defaultValue="reply" className="max-h-[55%] shrink-0 overflow-y-auto border-t border-border px-4 py-3 sm:px-5">
-          <TabsList>
-            <TabsTrigger value="reply">Reply</TabsTrigger>
-            <TabsTrigger value="note">Internal note</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="reply" className="mt-3 space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <Input
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                placeholder="Subject"
-                className="flex-1 min-w-[220px]"
-                aria-label="Reply subject"
-              />
-              <Input
-                value={cc}
-                onChange={(event) => setCc(event.target.value)}
-                placeholder="Cc (reply all)"
-                className="w-48"
-                aria-label="Cc recipients"
-              />
-              <Select
-                onValueChange={(value) => {
-                  const template = templates.find((t) => t.id === value);
-                  if (!template) return;
-                  // Same renderer as Campaigns/Sequences: lead variables (and
-                  // their fallbacks) resolve immediately against the open lead,
-                  // so the composer never shows a raw {{token}}.
-                  const personalized = renderEmailForLead(
-                    { subject: template.subject, body: template.body },
-                    (data?.lead ?? { email: conversation.prospect_email }) as never,
-                    { extras: senderExtras(data?.account ?? null) },
-                  );
-                  setSubject(personalized.subject);
-                  setBody(personalized.body);
-                }}
-              >
-                <SelectTrigger className="w-44" aria-label="Insert saved template">
-                  <SelectValue placeholder="Template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Textarea
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              rows={7}
-              placeholder="Write your reply…"
-              aria-label="Reply body"
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                value={attachmentName}
-                onChange={(event) => setAttachmentName(event.target.value)}
-                placeholder="Attachment name"
-                className="w-40"
-                aria-label="Attachment name"
-              />
-              <Input
-                value={attachmentUrl}
-                onChange={(event) => setAttachmentUrl(event.target.value)}
-                placeholder="Attachment link"
-                className="w-56"
-                aria-label="Attachment link"
-              />
-              <span className="text-xs text-muted-foreground">
-                Sending from {data.account?.from_email ?? "your assigned mailbox"}
-              </span>
-              <div className="ml-auto flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setBody("")}>
-                  Discard
-                </Button>
+      <div className="shrink-0 border-t border-border">
+        <div className="mx-auto w-full max-w-5xl px-4 py-2 sm:px-8">
+          {composerOpen ? (
+            <Tabs defaultValue="reply" className="max-h-[46vh] overflow-y-auto">
+              <div className="flex items-center gap-2">
+                <TabsList className="h-8">
+                  <TabsTrigger value="reply">Reply</TabsTrigger>
+                  <TabsTrigger value="note">Internal note</TabsTrigger>
+                </TabsList>
                 <Button
+                  variant="ghost"
                   size="sm"
-                  disabled={!body.trim() || !subject.trim() || reply.isPending}
-                  onClick={() => reply.mutate()}
+                  className="ml-auto"
+                  onClick={() => setComposerOpen(false)}
                 >
-                  {reply.isPending ? (
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Send className="mr-2 h-3.5 w-3.5" />
-                  )}
-                  Send reply
+                  Close
                 </Button>
               </div>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="note" className="mt-3 space-y-2">
-            <Textarea
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              rows={3}
-              placeholder="Private note for your team. Use @name to mention a teammate."
-              aria-label="Internal note"
-            />
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                disabled={!note.trim() || noteMutation.isPending}
-                onClick={() => noteMutation.mutate(note)}
+              <TabsContent value="reply" className="mt-2 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    value={subject}
+                    onChange={(event) => setSubject(event.target.value)}
+                    placeholder="Subject"
+                    className="h-8 min-w-[220px] flex-1"
+                    aria-label="Reply subject"
+                  />
+                  <Input
+                    value={cc}
+                    onChange={(event) => setCc(event.target.value)}
+                    placeholder="Cc (reply all)"
+                    className="h-8 w-44"
+                    aria-label="Cc recipients"
+                  />
+                  <Select
+                    onValueChange={(value) => {
+                      const template = templates.find((t) => t.id === value);
+                      if (!template) return;
+                      // Same renderer as Campaigns/Sequences: lead variables (and
+                      // their fallbacks) resolve immediately against the open lead,
+                      // so the composer never shows a raw {{token}}.
+                      const personalized = renderEmailForLead(
+                        { subject: template.subject, body: template.body },
+                        (data?.lead ?? { email: conversation.prospect_email }) as never,
+                        { extras: senderExtras(data?.account ?? null) },
+                      );
+                      setSubject(personalized.subject);
+                      setBody(personalized.body);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-40" aria-label="Insert saved template">
+                      <SelectValue placeholder="Template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Textarea
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  rows={5}
+                  placeholder="Write your reply…"
+                  aria-label="Reply body"
+                />
+                <div className="flex flex-wrap items-center gap-2 pb-2">
+                  <Input
+                    value={attachmentName}
+                    onChange={(event) => setAttachmentName(event.target.value)}
+                    placeholder="Attachment name"
+                    className="h-8 w-36"
+                    aria-label="Attachment name"
+                  />
+                  <Input
+                    value={attachmentUrl}
+                    onChange={(event) => setAttachmentUrl(event.target.value)}
+                    placeholder="Attachment link"
+                    className="h-8 w-48"
+                    aria-label="Attachment link"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Sending from {data.account?.from_email ?? "your assigned mailbox"}
+                  </span>
+                  <div className="ml-auto flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setBody("")}>
+                      Discard
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!body.trim() || !subject.trim() || reply.isPending}
+                      onClick={() => reply.mutate()}
+                    >
+                      {reply.isPending ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      Send reply
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="note" className="mt-2 space-y-2 pb-2">
+                <Textarea
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  rows={3}
+                  placeholder="Private note for your team. Use @name to mention a teammate."
+                  aria-label="Internal note"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    disabled={!note.trim() || noteMutation.isPending}
+                    onClick={() => noteMutation.mutate(note)}
+                  >
+                    {noteMutation.isPending ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : null}
+                    Save note
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="flex items-center gap-2 py-1">
+              <button
+                type="button"
+                onClick={() => setComposerOpen(true)}
+                className="flex-1 rounded-full border border-border px-4 py-2 text-left text-sm text-muted-foreground hover:bg-muted/60"
               >
-                {noteMutation.isPending ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : null}
-                Save note
+                Reply to {conversation.prospect_email}…
+              </button>
+              <Button size="sm" variant="outline" onClick={() => setComposerOpen(true)}>
+                <Send className="mr-2 h-3.5 w-3.5" /> Reply
               </Button>
             </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
 
-      <div
-        className={cn(
-          "h-full w-full shrink-0 min-w-0 overflow-y-auto border-t border-border xl:w-[300px] xl:border-l xl:border-t-0",
-          showProspect ? "" : "hidden",
-        )}
-      >
-        <ProspectPanel
-          lead={data.lead as never}
-          prospectEmail={conversation.prospect_email}
-          status={conversation.status}
-          tags={conversation.tags}
-          campaignName={data.campaign?.name ?? null}
-          accountEmail={data.account?.from_email ?? null}
-          assigneeName={conversation.assignee_name}
-          events={data.events as never}
-        />
-      </div>
+      <Sheet open={contactOpen} onOpenChange={setContactOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
+          <SheetHeader className="border-b border-border px-4 py-3">
+            <SheetTitle>Contact info</SheetTitle>
+          </SheetHeader>
+          <ProspectPanel
+            lead={data.lead as never}
+            prospectEmail={conversation.prospect_email}
+            status={conversation.status}
+            tags={conversation.tags}
+            campaignName={data.campaign?.name ?? null}
+            accountEmail={data.account?.from_email ?? null}
+            assigneeName={conversation.assignee_name}
+            events={data.events as never}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
