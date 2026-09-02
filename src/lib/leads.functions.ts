@@ -412,6 +412,10 @@ export const updateLead = createServerFn({ method: "POST" })
       .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (patch.status) {
+      const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
+      await syncLeadReplySentiment(context.supabase, data.id, patch.status);
+    }
     return { ok: true };
   });
 
@@ -550,6 +554,7 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
     if (data.action === "set_status") {
       if (!data.status) throw new Error("Pick a status first");
       let affected = 0;
+      const touched: string[] = [];
       for (const chunk of chunks) {
         const { data: rows, error } = await supabase
           .from("leads")
@@ -559,6 +564,12 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
           .returns<Array<{ id: string }>>();
         if (error) throw new Error(error.message);
         affected += (rows ?? []).length;
+        for (const r of rows ?? []) touched.push(r.id);
+      }
+      const { sentimentForStatus } = await import("@/lib/positive-reply-sentiment");
+      if (touched.length && sentimentForStatus(data.status)) {
+        const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
+        for (const id of touched) await syncLeadReplySentiment(supabase, id, data.status);
       }
       return { affected, failed: dropped + (ids.length - affected), reasons };
     }

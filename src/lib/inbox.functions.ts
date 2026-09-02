@@ -412,6 +412,12 @@ export const updateConversation = createServerFn({ method: "POST" })
       if (leadStatus[data.status]) leadPatch["status"] = leadStatus[data.status];
       if (crmStage[data.status]) leadPatch["crm_stage"] = crmStage[data.status];
       await context.supabase.from("leads").update(leadPatch as never).eq("id", updated.lead_id);
+
+      // Marking a conversation Interested / booked / won makes the underlying
+      // reply a positive reply, which is what analytics counts.
+      const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
+      await syncLeadReplySentiment(context.supabase, updated.lead_id, data.status);
+
       await context.supabase.from("lead_activities").insert({
         lead_id: updated.lead_id,
         workspace_id: updated.workspace_id,

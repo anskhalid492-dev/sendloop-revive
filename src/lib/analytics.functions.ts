@@ -31,6 +31,7 @@ const ZERO: AnalyticsSummary = {
   opens: 0,
   clicks: 0,
   replies: 0,
+  positiveReplies: 0,
   bounced: 0,
   unsubscribed: 0,
   complained: 0,
@@ -45,6 +46,7 @@ function toSummary(row: Record<string, unknown> | undefined): AnalyticsSummary {
     opens: Number(row["opens"] ?? 0),
     clicks: Number(row["clicks"] ?? 0),
     replies: Number(row["replies"] ?? 0),
+    positiveReplies: Number(row["positive_replied"] ?? row["positiveReplies"] ?? 0),
     bounced: Number(row["bounced"] ?? 0),
     unsubscribed: Number(row["unsubscribed"] ?? 0),
     complained: Number(row["complained"] ?? 0),
@@ -74,6 +76,7 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
         total.opens += s.opened;
         total.clicks += s.clicked;
         total.replies += s.replied;
+        total.positiveReplies += s.positiveReplied;
         total.bounced += s.bounced;
         total.unsubscribed += s.unsubscribed;
         total.complained += s.complained;
