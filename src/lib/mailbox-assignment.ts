@@ -17,14 +17,27 @@ export type AssignableMailbox = {
   customer_enabled?: boolean | null;
   status?: string | null;
   daily_limit?: number | null;
+  provider?: string | null;
 };
 
-/** A mailbox that is allowed to send right now (ignoring capacity). */
-export function isEligibleMailbox(account: AssignableMailbox | null | undefined): boolean {
+/**
+ * A mailbox that is allowed to send right now (ignoring capacity).
+ *
+ * `allowedProviders`, when given, is the set of providers currently enabled for
+ * customer sending. A mailbox on a disabled provider (e.g. SES turned off) is
+ * ineligible: its messages must be repaired onto another mailbox instead of
+ * being claimed and deferred forever.
+ */
+export function isEligibleMailbox(
+  account: AssignableMailbox | null | undefined,
+  allowedProviders?: Set<string> | null,
+): boolean {
   if (!account) return false;
   if (account.paused) return false;
   if (account.customer_enabled === false) return false;
   if (account.status === "disabled") return false;
+  if (account.status === "disconnected") return false;
+  if (allowedProviders && !allowedProviders.has(String(account.provider ?? ""))) return false;
   return true;
 }
 
