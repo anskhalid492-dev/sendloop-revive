@@ -273,17 +273,30 @@ export async function bulkWarmupRecipients(
   const unique = Array.from(new Set(ids)).filter(Boolean);
   if (unique.length === 0) return { affected: 0 };
 
-  if (action === "remove") {
-    const { error } = await supabaseAdmin.from("warmup_recipients").delete().in("id", unique);
+  // PostgREST puts `in.(...)` filters in the URL, so a single call with
+  // thousands of UUIDs exceeds the request-line limit and comes back as a bare
+  // "Bad Request". Chunking keeps every request well inside that limit.
+  const CHUNK = 100;
+  const enabled = action === "enable";
+  let affected = 0;
+
+  for (let i = 0; i < unique.length; i += CHUNK) {
+    const chunk = unique.slice(i, i + CHUNK);
+    const { error } =
+      action === "remove"
+        ? await supabaseAdmin.from("warmup_recipients").delete().in("id", chunk)
+        : await supabaseAdmin
+            .from("warmup_recipients")
+            .update({
+              enabled,
+              status: enabled ? "active" : "disabled",
+              last_error: null,
+            } as never)
+            .in("id", chunk);
     if (error) throw new Error(error.message);
-    return { affected: unique.length };
+    affected += chunk.length;
   }
 
-  const enabled = action === "enable";
-  const { error } = await supabaseAdmin
-    .from("warmup_recipients")
-    .update({ enabled, status: enabled ? "active" : "disabled", last_error: null } as never)
-    .in("id", unique);
-  if (error) throw new Error(error.message);
-  return { affected: unique.length };
+  return { affected };
 }
+
