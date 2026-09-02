@@ -129,7 +129,15 @@ export async function rescheduleCampaignQueue(
     window,
     now,
     {
-      dailyLimit: Number(campaign.daily_cap ?? 0),
+      dailyLimit: campaignDailyPlan({
+        configuredLimit: Number(campaign.daily_cap ?? 0),
+        mailboxCapacity: await campaignMailboxDailyCapacity(
+          supabase,
+          campaign,
+          Math.max(0, window.endHour - window.startHour),
+        ),
+      }).achievableLimit,
+
       occupiedByDay: new Map([
         [zonedDayKey(now, window.timezone), Number(sentToday ?? 0) + Number(processingToday ?? 0)],
       ]),
