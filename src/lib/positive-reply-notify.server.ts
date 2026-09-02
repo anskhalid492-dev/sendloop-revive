@@ -15,6 +15,14 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
 
+/**
+ * Which reply notification is being sent. `reply` fires for EVERY stored
+ * inbound reply, `positive` only when the classifier marks it interested — a
+ * positive reply therefore produces both, each with its own idempotency key
+ * and its own user preference.
+ */
+export type ReplyNotificationKind = "reply" | "positive";
+
 export type PositiveReplyInput = {
   workspaceId: string;
   conversationId: string;
@@ -24,9 +32,20 @@ export type PositiveReplyInput = {
   campaignId: string | null;
   leadEmail: string;
   replyBody: string;
+  subject?: string | null;
+  kind?: ReplyNotificationKind;
 };
 
-const EVENT_KEY = "positive_reply_notification";
+const EVENT_KEYS: Record<ReplyNotificationKind, string> = {
+  reply: "reply.received",
+  positive: "positive_reply_notification",
+};
+
+/** Preference column that switches each notification off. */
+const PREF_COLUMN: Record<ReplyNotificationKind, string> = {
+  reply: "new_replies",
+  positive: "positive_reply_notifications",
+};
 
 function appUrl(): string {
   return process.env["APP_URL"] || process.env["VITE_APP_URL"] || "https://munchreach.com";
