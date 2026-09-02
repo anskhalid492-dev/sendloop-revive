@@ -820,11 +820,14 @@ async function applyReplyAutomation(args: {
     /* automations must never break inbound processing */
   }
 
-  // Positive replies also notify the customer by system email. Best-effort:
-  // the notifier never throws, so the reply stays intact either way.
-  if (args.detected === "interested") {
-    const { notifyPositiveReply } = await import("@/lib/positive-reply-notify.server");
-    await notifyPositiveReply({
+  // Every stored reply notifies the customer by system email; a positive reply
+  // additionally sends the dedicated positive-reply email. Best-effort: the
+  // notifier never throws, so the reply stays intact either way.
+  {
+    const { notifyPositiveReply, notifyReplyReceived } = await import(
+      "@/lib/positive-reply-notify.server"
+    );
+    const payload = {
       workspaceId,
       conversationId,
       inboundMessageId: args.dedupeKey,
@@ -832,7 +835,15 @@ async function applyReplyAutomation(args: {
       campaignId: campaignId ?? null,
       leadEmail: args.prospect,
       replyBody: args.replyBody,
-    });
+      subject: args.subject,
+    };
+    // Bounces and unsubscribes are handled by their own flows, not a "new reply".
+    if (args.detected !== "bounced" && args.detected !== "unsubscribed") {
+      await notifyReplyReceived(payload);
+    }
+    if (args.detected === "interested") {
+      await notifyPositiveReply(payload);
+    }
   }
 }
 
