@@ -50,6 +50,82 @@ function lower(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/**
+ * Guarantees the thread contains the EXACT email this prospect received.
+ *
+ * The send path mirrors every campaign email into the conversation, but that
+ * step is best-effort (it must never fail an already delivered send). When a
+ * reply arrives and the mirror is missing, we recover it from the stored final
+ * render on `campaign_messages` — never by re-rendering the campaign template.
+ */
+export async function ensureSentEmailMirrored(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  args: { conversationId: string; workspaceId: string; campaignMessageId: string },
+): Promise<string | null> {
+  const { sentCopyOf } = await import("@/lib/sent-snapshot");
+  const { SENT_SNAPSHOT_COLUMNS } = await import("@/lib/sent-snapshot.server");
+
+  const { data: existing } = await db
+    .from("conversation_messages")
+    .select("id")
+    .eq("workspace_id", args.workspaceId)
+    .eq("campaign_message_id", args.campaignMessageId)
+    .maybeSingle();
+  if (existing) return existing.id as string;
+
+  const base = "id, subject, body, to_email, sending_account_id, provider_message_id, sent_at";
+  let row = (
+    await db
+      .from("campaign_messages")
+      .select(`${base}, ${SENT_SNAPSHOT_COLUMNS}`)
+      .eq("id", args.campaignMessageId)
+      .maybeSingle()
+  ).data;
+  if (!row) {
+    row = (
+      await db.from("campaign_messages").select(base).eq("id", args.campaignMessageId).maybeSingle()
+    ).data;
+  }
+  if (!row || !row.sent_at) return null;
+
+  const copy = sentCopyOf(row);
+  if (!copy.body && !copy.subject) return null;
+
+  let fromEmail = copy.fromEmail;
+  let fromName = copy.fromName;
+  if (!fromEmail && row.sending_account_id) {
+    const { data: account } = await db
+      .from("sending_accounts")
+      .select("from_email, from_name")
+      .eq("id", row.sending_account_id)
+      .maybeSingle();
+    fromEmail = account?.from_email ?? null;
+    fromName = fromName ?? account?.from_name ?? null;
+  }
+
+  const { data: inserted } = await db
+    .from("conversation_messages")
+    .insert({
+      conversation_id: args.conversationId,
+      workspace_id: args.workspaceId,
+      direction: "outbound",
+      from_email: fromEmail ? lower(fromEmail) : "",
+      from_name: fromName,
+      to_email: lower(copy.toEmail ?? row.to_email ?? ""),
+      subject: copy.subject,
+      body: copy.body,
+      html: copy.html,
+      campaign_message_id: args.campaignMessageId,
+      sending_account_id: row.sending_account_id ?? null,
+      provider_message_id: row.provider_message_id ?? null,
+      occurred_at: row.sent_at,
+    })
+    .select("id")
+    .maybeSingle();
+  return (inserted?.id as string | undefined) ?? null;
+}
+
 /** `anus+tok@Domain.com` -> `anus@domain.com`, so plain replies match mailboxes. */
 function baseAddress(value: string): string {
   const [rawLocal, rawDomain] = lower(value).split("@");
