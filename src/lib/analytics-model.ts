@@ -6,6 +6,8 @@ export type AnalyticsSummary = {
   opens: number;
   clicks: number;
   replies: number;
+  /** Replies marked positive, including CRM statuses like "Interested". */
+  positiveReplies: number;
   bounced: number;
   unsubscribed: number;
   complained: number;
