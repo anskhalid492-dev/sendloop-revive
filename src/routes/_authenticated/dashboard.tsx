@@ -189,7 +189,7 @@ function DashboardPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex flex-wrap items-center gap-2"
+            className="flex flex-wrap items-center gap-2 lg:flex-nowrap"
           >
             {QUICK_ACTIONS.map((action, i) => (
               <motion.div
