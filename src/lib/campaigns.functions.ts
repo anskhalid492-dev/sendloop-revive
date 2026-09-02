@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
+import { buildCampaignUpdatePatch } from "@/lib/campaign-update-patch";
+
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { campaignBodyHtml } from "@/lib/email-html";
@@ -725,41 +727,8 @@ export const updateCampaign = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const map: Record<string, string> = {
-      name: "name",
-      description: "description",
-      listId: "list_id",
-      sendingAccountIds: "sending_account_ids",
-      timezone: "timezone",
-      sendDays: "send_days",
-      sendStartHour: "send_start_hour",
-      sendEndHour: "send_end_hour",
-      dailyCap: "daily_cap",
-      stopOnReply: "stop_on_reply",
-      tags: "tags",
-      startAt: "start_at",
-      endAt: "end_at",
-      minDelayMinutes: "min_delay_minutes",
-      randomDelayMinutes: "random_delay_minutes",
-      maxPerHour: "max_per_hour",
-      businessDaysOnly: "business_days_only",
-      openTracking: "open_tracking",
-      clickTracking: "click_tracking",
-      textOnly: "text_only",
-      stopOnCompanyReply: "stop_on_company_reply",
-      maxContactsPerCompany: "max_contacts_per_company",
-      emailSendLimit: "email_send_limit",
-      unsubscribeEnabled: "unsubscribe_enabled",
-      inboxRotationEnabled: "inbox_rotation_enabled",
-      inboxRotationStrategy: "inbox_rotation_strategy",
-      rotationDailyCapPerInbox: "rotation_daily_cap_per_inbox",
-      customVariables: "custom_variables",
-    };
-    const patch: Record<string, unknown> = {};
-    for (const [key, column] of Object.entries(map)) {
-      const value = (data as Record<string, unknown>)[key];
-      if (key !== "id" && value !== undefined) patch[column] = value;
-    }
+    const patch = buildCampaignUpdatePatch(data as unknown as Record<string, unknown>);
+
     if (
       patch["email_send_limit"] !== undefined &&
       !(await campaignLimitColumnsAvailable(context.supabase))
@@ -768,21 +737,38 @@ export const updateCampaign = createServerFn({ method: "POST" })
     }
     if (Object.keys(patch).length === 0) return { ok: true, readiness: null };
 
-    const { error } = await context.supabase
+    // The write is verified: an update that matches no row (workspace/RLS scope)
+    // must fail loudly instead of leaving the UI showing a value that was never
+    // stored. `daily_cap` is echoed back so the saved limit is provably the one
+    // the customer entered — no silent fallback.
+    const { data: saved, error } = await context.supabase
       .from("campaigns")
       .update(patch as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("id, daily_cap")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!saved) throw new Error("We could not save these campaign settings. Please try again.");
+    if (
+      patch["daily_cap"] !== undefined &&
+      Number((saved as { daily_cap?: number }).daily_cap ?? 0) !== Number(patch["daily_cap"])
+    ) {
+      throw new Error("The daily sending limit could not be saved. Please try again.");
+    }
 
-    // Changing the sending days / window / timezone must re-plan the queue that
-    // was built against the previous settings, otherwise already-scheduled
-    // messages keep waiting for a day the user no longer selected.
+    // Changing the sending days / window / timezone / daily limit must re-plan
+    // the queue that was built against the previous settings, otherwise
+    // already-scheduled messages keep waiting for a day the user no longer
+    // selected — or stay capped at the old daily limit.
     if (
       patch["send_days"] !== undefined ||
       patch["send_start_hour"] !== undefined ||
       patch["send_end_hour"] !== undefined ||
-      patch["timezone"] !== undefined
+      patch["timezone"] !== undefined ||
+      patch["daily_cap"] !== undefined ||
+      patch["sending_account_ids"] !== undefined
     ) {
+
       try {
         const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
         await rescheduleCampaignQueue(context.supabase, data.id);
