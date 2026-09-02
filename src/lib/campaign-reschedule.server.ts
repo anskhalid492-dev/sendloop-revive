@@ -1,11 +1,52 @@
 /**
  * Applies the queue re-plan (see `campaign-reschedule.ts`) to the campaign's
  * pending/scheduled messages after its schedule settings change.
+ *
+ * The per-day ceiling is the campaign's own daily limit (`campaigns.daily_cap`,
+ * the authoritative limit) capped by what the campaign's ELIGIBLE mailboxes can
+ * actually deliver in one sending window. The stored limit is never rewritten:
+ * raising mailbox limits later automatically unlocks the full campaign limit.
  */
 import { normalizeSendDays, zonedDayKey, zonedStartOfDay, zonedStartOfNextDay } from "./campaign-schedule";
 import { groupRescheduleUpdates, planQueueReschedule, type QueuedMessageRow } from "./campaign-reschedule";
+import { campaignDailyPlan, mailboxDailyCapacity, type CapacityMailbox } from "./campaign-capacity";
 
 type AnySupabase = any;
+
+/**
+ * Emails the campaign's eligible mailboxes can deliver in one sending day.
+ * Returns 0 when nothing could be read, which leaves the campaign limit alone.
+ */
+export async function campaignMailboxDailyCapacity(
+  supabase: AnySupabase,
+  campaign: { sending_account_ids?: string[] | null },
+  windowHours: number,
+): Promise<number> {
+  const poolIds = ((campaign.sending_account_ids ?? []) as string[]).filter(Boolean);
+  if (!poolIds.length) return 0;
+  try {
+    const { data: accounts } = await supabase
+      .from("sending_accounts")
+      .select("id, provider, status, paused, customer_enabled, daily_limit, hourly_limit")
+      .in("id", poolIds);
+    if (!accounts?.length) return 0;
+
+    let allowedProviders: Set<string> | null = null;
+    const { data: providerRows } = await supabase
+      .from("email_providers")
+      .select("provider, is_enabled, customer_enabled");
+    if (providerRows?.length) {
+      allowedProviders = new Set(
+        (providerRows as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
+          .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
+          .map((p) => String(p.provider)),
+      );
+    }
+    return mailboxDailyCapacity(accounts as CapacityMailbox[], { windowHours, allowedProviders });
+  } catch {
+    return 0; // capacity unknown: the campaign limit stands on its own
+  }
+}
 
 export async function rescheduleCampaignQueue(
   supabase: AnySupabase,
@@ -14,7 +55,7 @@ export async function rescheduleCampaignQueue(
 ): Promise<number> {
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, timezone, send_days, send_start_hour, send_end_hour, daily_cap")
+    .select("id, timezone, send_days, send_start_hour, send_end_hour, daily_cap, sending_account_ids")
     .eq("id", campaignId)
     .maybeSingle();
   if (!campaign) return 0;
@@ -25,6 +66,7 @@ export async function rescheduleCampaignQueue(
     startHour: Number(campaign.send_start_hour ?? 9),
     endHour: Number(campaign.send_end_hour ?? 17),
   };
+
 
   const { data: firstStepRow, error: stepError } = await supabase
     .from("campaign_steps")
