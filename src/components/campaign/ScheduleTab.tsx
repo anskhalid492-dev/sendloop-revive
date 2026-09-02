@@ -81,17 +81,24 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
 
   // Mailbox ceiling: what the selected mailboxes can actually handle.
   const selectedAccounts = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
-  const mailboxDailyCeiling = selectedAccounts.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
+  // Real capacity: each eligible mailbox's daily limit, further limited by what
+  // its hourly limit allows inside this window.
+  const mailboxDailyCeiling = mailboxDailyCapacity(selectedAccounts as CapacityMailbox[], {
+    windowHours: Math.max(0, settings.sendEndHour - settings.sendStartHour),
+  });
   const mailboxHourlyCeiling = selectedAccounts.reduce(
     (sum, a) => sum + effectiveMailboxHourlyLimit(a.hourly_limit),
     0,
   );
 
-  // Customer-selected volume first — mailbox capacity only ever trims it.
-  const selectedDaily = Math.max(0, settings.dailyCap);
-  let effectiveDaily = mailboxDailyCeiling > 0
-    ? Math.min(selectedDaily, mailboxDailyCeiling)
-    : selectedDaily;
+  // The campaign limit is never lowered — mailbox capacity only caps what is
+  // achievable today.
+  const plan = campaignDailyPlan({
+    configuredLimit: Math.max(0, settings.dailyCap),
+    mailboxCapacity: mailboxDailyCeiling,
+  });
+  const selectedDaily = plan.configuredLimit;
+  let effectiveDaily = plan.achievableLimit;
 
   // Hourly throughput is derived from the daily volume spread over the window.
   let hourly = windowHours > 0 ? Math.ceil(effectiveDaily / windowHours) : effectiveDaily;
@@ -105,6 +112,7 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
     || clampMailboxHourlyLimit(settings.maxPerHour) === MAX_MAILBOX_EMAILS_PER_HOUR;
 
   const cappedByMailboxes = effectiveDaily < selectedDaily;
+
   const weekly = effectiveDaily * settings.sendDays.length;
   const nextWindowBase = settings.startAt ? new Date(settings.startAt) : new Date();
   const nextWindow = campaignScheduleState(
