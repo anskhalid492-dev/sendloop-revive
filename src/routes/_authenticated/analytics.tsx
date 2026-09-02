@@ -34,7 +34,7 @@ import {
 } from "@/lib/analytics.functions";
 import {
   bounceRate,
-  clickRate,
+  rate,
   formatCount,
   formatPct,
   formatOpenRate,
