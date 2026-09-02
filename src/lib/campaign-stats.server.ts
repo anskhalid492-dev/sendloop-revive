@@ -67,10 +67,48 @@ export type CampaignStatsBundle = {
 
 
 /**
+ * A single Analytics page render triggers several server functions that all
+ * need the same workspace/range read. This very short-lived memo collapses
+ * those into one database pass without ever serving visibly stale numbers.
+ */
+const STATS_CACHE_TTL_MS = 5_000;
+const STATS_CACHE = new Map<string, { at: number; value: Promise<CampaignStatsBundle> }>();
+
+function statsCacheKey(scope: CampaignStatsScope): string {
+  return [
+    scope.workspaceId,
+    scope.campaignIds?.filter(Boolean).slice().sort().join(",") ?? "*",
+    scope.from?.toISOString() ?? "",
+    scope.to?.toISOString() ?? "",
+  ].join("|");
+}
+
+function pruneStatsCache(now: number) {
+  for (const [k, v] of STATS_CACHE) {
+    if (now - v.at >= STATS_CACHE_TTL_MS) STATS_CACHE.delete(k);
+  }
+}
+
+/**
  * Read every campaign statistic for a workspace (optionally a subset of
  * campaigns) from the underlying message records and provider event feed.
  */
 export async function fetchCampaignStats(
+  client: Client,
+  scope: CampaignStatsScope,
+): Promise<CampaignStatsBundle> {
+  const key = statsCacheKey(scope);
+  const now = Date.now();
+  const hit = STATS_CACHE.get(key);
+  if (hit && now - hit.at < STATS_CACHE_TTL_MS) return hit.value;
+  const promise = readCampaignStats(client, scope);
+  STATS_CACHE.set(key, { at: now, value: promise });
+  promise.catch(() => STATS_CACHE.delete(key));
+  pruneStatsCache(now);
+  return promise;
+}
+
+async function readCampaignStats(
   client: Client,
   scope: CampaignStatsScope,
 ): Promise<CampaignStatsBundle> {
@@ -93,14 +131,28 @@ export async function fetchCampaignStats(
   if (!campaignIds.length) return { byCampaign: new Map(), messages: [], signals: new Map() };
 
   const [messages, recipients, events, replies] = await Promise.all([
-    fetchAllRows<CampaignMessageRow>(() =>
-      client
+    fetchAllRows<CampaignMessageRow>(() => {
+      // Narrow the read in Postgres instead of downloading the whole table and
+      // filtering in memory. A row matters when it was sent, is still queued,
+      // or was touched (any signal write bumps updated_at) inside the window.
+      const q = client
         .from("campaign_messages")
         .select(MESSAGE_COLUMNS)
         .eq("workspace_id", scope.workspaceId)
         .in("campaign_id", campaignIds)
-        .order("id", { ascending: true }),
-    ),
+        .order("id", { ascending: true });
+      const clauses: string[] = [];
+      if (scope.from && scope.to) {
+        const lo = scope.from.toISOString();
+        const hi = scope.to.toISOString();
+        clauses.push(`and(sent_at.gte.${lo},sent_at.lt.${hi})`);
+        clauses.push(`and(updated_at.gte.${lo},updated_at.lt.${hi})`);
+        clauses.push(`scheduled_at.gte.${lo}`);
+        clauses.push("sent_at.is.null");
+      }
+      if (clauses.length) q.or(clauses.join(","));
+      return q;
+    }),
     fetchAllRows<{ campaign_id: string; lead_id: string | null }>(() =>
       client
         .from("campaign_recipients")
@@ -109,15 +161,18 @@ export async function fetchCampaignStats(
         .in("campaign_id", campaignIds)
         .order("id", { ascending: true }),
     ),
-    fetchAllRows<{ message_id: string | null; event_type: string; occurred_at: string }>(() =>
-      client
+    fetchAllRows<{ message_id: string | null; event_type: string; occurred_at: string }>(() => {
+      const q = client
         .from("email_engagement_events")
         .select("message_id, event_type, occurred_at")
         .eq("workspace_id", scope.workspaceId)
         .in("campaign_id", campaignIds)
         .not("message_id", "is", null)
-        .order("occurred_at", { ascending: true }),
-    ).catch(() => [] as Array<{ message_id: string | null; event_type: string; occurred_at: string }>),
+        .order("occurred_at", { ascending: true });
+      if (scope.from) q.gte("occurred_at", scope.from.toISOString());
+      if (scope.to) q.lt("occurred_at", scope.to.toISOString());
+      return q;
+    }).catch(() => [] as Array<{ message_id: string | null; event_type: string; occurred_at: string }>),
     fetchAllRows<{ campaign_id: string | null; lead_id: string | null; from_email: string | null }>(
       () => {
         // Positive replies must respect the same window as every other metric.
