@@ -428,6 +428,7 @@ export type AccountTotals = {
   replies: number;
   bounced: number;
   failed: number;
+  unsubscribed: number;
 };
 
 /** Per-mailbox totals, derived from the same units as the campaign totals. */
@@ -447,7 +448,17 @@ export function computeAccountTotals(
     if (!u.accountId) continue;
     let row = rows.get(u.accountId);
     if (!row) {
-      row = { accountId: u.accountId, sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, bounced: 0, failed: 0 };
+      row = {
+        accountId: u.accountId,
+        sent: 0,
+        delivered: 0,
+        opens: 0,
+        clicks: 0,
+        replies: 0,
+        bounced: 0,
+        failed: 0,
+        unsubscribed: 0,
+      };
       rows.set(u.accountId, row);
     }
     if (inRange(u.sentAt)) row.sent += 1;
@@ -457,6 +468,7 @@ export function computeAccountTotals(
     if (inRange(u.signals.replied_at)) row.replies += 1;
     if (inRange(u.signals.bounced_at)) row.bounced += 1;
     if (!u.signals.bounced_at && inRange(u.signals.failed_at)) row.failed += 1;
+    if (inRange(u.signals.unsubscribed_at)) row.unsubscribed += 1;
   }
   return Array.from(rows.values());
 }

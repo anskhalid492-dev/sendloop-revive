@@ -119,14 +119,19 @@ export async function fetchCampaignStats(
         .order("occurred_at", { ascending: true }),
     ).catch(() => [] as Array<{ message_id: string | null; event_type: string; occurred_at: string }>),
     fetchAllRows<{ campaign_id: string | null; lead_id: string | null; from_email: string | null }>(
-      () =>
-        client
+      () => {
+        // Positive replies must respect the same window as every other metric.
+        const q = client
           .from("campaign_replies")
           .select("campaign_id, lead_id, from_email")
           .eq("workspace_id", scope.workspaceId)
           .eq("sentiment", "positive")
           .in("campaign_id", campaignIds)
-          .order("id", { ascending: true }),
+          .order("id", { ascending: true });
+        if (scope.from) q.gte("received_at", scope.from.toISOString());
+        if (scope.to) q.lt("received_at", scope.to.toISOString());
+        return q;
+      },
     ).catch(
       () => [] as Array<{ campaign_id: string | null; lead_id: string | null; from_email: string | null }>,
     ),
