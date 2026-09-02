@@ -79,7 +79,7 @@ export function NotificationBell() {
             </button>
           ) : null}
         </div>
-        <ScrollArea className="max-h-80">
+        <ScrollArea className={items.length > 0 ? "h-80" : ""}>
           {query.isLoading ? (
             <div className="space-y-2 p-4">
               <div className="h-10 animate-pulse rounded bg-muted" />
