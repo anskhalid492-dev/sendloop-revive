@@ -15,6 +15,14 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
 
+/**
+ * Which reply notification is being sent. `reply` fires for EVERY stored
+ * inbound reply, `positive` only when the classifier marks it interested — a
+ * positive reply therefore produces both, each with its own idempotency key
+ * and its own user preference.
+ */
+export type ReplyNotificationKind = "reply" | "positive";
+
 export type PositiveReplyInput = {
   workspaceId: string;
   conversationId: string;
@@ -24,9 +32,20 @@ export type PositiveReplyInput = {
   campaignId: string | null;
   leadEmail: string;
   replyBody: string;
+  subject?: string | null;
+  kind?: ReplyNotificationKind;
 };
 
-const EVENT_KEY = "positive_reply_notification";
+const EVENT_KEYS: Record<ReplyNotificationKind, string> = {
+  reply: "reply.received",
+  positive: "positive_reply_notification",
+};
+
+/** Preference column that switches each notification off. */
+const PREF_COLUMN: Record<ReplyNotificationKind, string> = {
+  reply: "new_replies",
+  positive: "positive_reply_notifications",
+};
 
 function appUrl(): string {
   return process.env["APP_URL"] || process.env["VITE_APP_URL"] || "https://munchreach.com";
@@ -41,6 +60,9 @@ function previewText(body: string, max = 280): string {
 }
 
 export async function notifyPositiveReply(input: PositiveReplyInput): Promise<void> {
+  const kind: ReplyNotificationKind = input.kind ?? "positive";
+  const eventKey = EVENT_KEYS[kind];
+  const prefColumn = PREF_COLUMN[kind];
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin: Admin = supabaseAdmin;
@@ -64,7 +86,7 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
 
     const userIds = ((members ?? []) as { user_id: string }[]).map((m) => m.user_id);
     if (userIds.length === 0) {
-      console.warn("positive reply notification: workspace has no members", input.workspaceId);
+      console.warn("reply notification: workspace has no members", input.workspaceId);
       return;
     }
 
@@ -72,7 +94,7 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
       admin.from("profiles").select("id, email, first_name").in("id", userIds),
       admin
         .from("notification_preferences")
-        .select("user_id, email_enabled, positive_reply_notifications")
+        .select(`user_id, email_enabled, ${prefColumn}`)
         .in("user_id", userIds),
     ]);
 
@@ -88,11 +110,10 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
     }
 
     const prefByUser = new Map(
-      ((prefs ?? []) as Array<{
-        user_id: string;
-        email_enabled: boolean | null;
-        positive_reply_notifications: boolean | null;
-      }>).map((p) => [p.user_id, p]),
+      ((prefs ?? []) as Array<Record<string, unknown> & { user_id: string }>).map((p) => [
+        p.user_id,
+        p,
+      ]),
     );
 
     const leadName =
@@ -106,7 +127,9 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
       campaign_name: campaign?.name || "your campaign",
       campaign_url: campaign?.id ? `${base}/campaigns/${campaign.id}` : `${base}/campaigns`,
       reply_preview: previewText(input.replyBody),
+      reply_subject: input.subject || "(no subject)",
       reply_url: `${base}/inbox?conversation=${input.conversationId}`,
+      action_url: `${base}/inbox?conversation=${input.conversationId}`,
       workspace_name: workspace?.name || "your workspace",
       "workspace.name": workspace?.name || "your workspace",
     };
@@ -114,24 +137,24 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
     for (const userId of userIds) {
       const pref = prefByUser.get(userId);
       // Default ON: a member without a preferences row still gets notified.
-      if (pref && pref.positive_reply_notifications === false) continue;
-      if (pref && pref.email_enabled === false) continue;
+      if (pref && pref[prefColumn] === false) continue;
+      if (pref && pref["email_enabled"] === false) continue;
 
       const profile = ((profiles ?? []) as Array<{ id: string; email: string | null; first_name: string | null }>)
         .find((p) => p.id === userId);
       if (!profile?.email) {
-        console.warn("positive reply notification: no email on file for user", userId);
+        console.warn("reply notification: no email on file for user", userId);
         continue;
       }
 
       await triggerTransactionalEmail(admin, {
-        eventKey: EVENT_KEY,
+        eventKey,
         to: profile.email,
         workspaceId: input.workspaceId,
         userId,
-        // One notification per inbound message per recipient. A replayed
-        // webhook hits the unique idempotency key and is skipped.
-        idempotencyKey: `${EVENT_KEY}:${input.inboundMessageId}:${userId}`,
+        // One notification per inbound message per recipient per kind. A
+        // replayed webhook hits the unique idempotency key and is skipped.
+        idempotencyKey: `${eventKey}:${input.inboundMessageId}:${userId}`,
         variables: {
           ...variables,
           "user.first_name": profile.first_name || "there",
@@ -141,6 +164,14 @@ export async function notifyPositiveReply(input: PositiveReplyInput): Promise<vo
     }
   } catch (error) {
     // Logged only: reply ingestion, threading and campaign state are unaffected.
-    console.error("positive reply notification failed", error);
+    console.error("reply notification failed", eventKey, error);
   }
 }
+
+/** Fires for every inbound reply, regardless of sentiment. */
+export async function notifyReplyReceived(
+  input: Omit<PositiveReplyInput, "kind">,
+): Promise<void> {
+  await notifyPositiveReply({ ...input, kind: "reply" });
+}
+

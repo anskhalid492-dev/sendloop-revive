@@ -465,6 +465,23 @@ const SPECS: Spec[] = [
     reason:
       "You are receiving this because positive reply notifications are enabled for {{workspace_name}} in your MunchReach notification settings.",
   },
+  {
+    eventKey: "reply.received",
+    name: "New Reply Received",
+    category: "Transactional",
+    subject: "New reply from {{lead_name}}",
+    preheader: "A prospect replied to your campaign.",
+    heading: "You have a new reply",
+    blocks: [
+      p("{{lead_name}} from {{company_name}} replied to {{campaign_name}}."),
+      note("Subject: {{reply_subject}}<br>From: {{lead_email}}"),
+      p("\u201C{{reply_preview}}\u201D"),
+      cta("Open the conversation", "{{reply_url}}"),
+      p("Replies land in your MunchReach Unified Inbox, where you can respond directly."),
+    ],
+    reason:
+      "You are receiving this because new reply notifications are enabled for {{workspace_name}} in your MunchReach notification settings.",
+  },
   // ── Email Infrastructure ────────────────────────────────────────────────
   {
     eventKey: "domain.verified",
