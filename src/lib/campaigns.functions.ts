@@ -737,21 +737,38 @@ export const updateCampaign = createServerFn({ method: "POST" })
     }
     if (Object.keys(patch).length === 0) return { ok: true, readiness: null };
 
-    const { error } = await context.supabase
+    // The write is verified: an update that matches no row (workspace/RLS scope)
+    // must fail loudly instead of leaving the UI showing a value that was never
+    // stored. `daily_cap` is echoed back so the saved limit is provably the one
+    // the customer entered — no silent fallback.
+    const { data: saved, error } = await context.supabase
       .from("campaigns")
       .update(patch as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("id, daily_cap")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!saved) throw new Error("We could not save these campaign settings. Please try again.");
+    if (
+      patch["daily_cap"] !== undefined &&
+      Number((saved as { daily_cap?: number }).daily_cap ?? 0) !== Number(patch["daily_cap"])
+    ) {
+      throw new Error("The daily sending limit could not be saved. Please try again.");
+    }
 
-    // Changing the sending days / window / timezone must re-plan the queue that
-    // was built against the previous settings, otherwise already-scheduled
-    // messages keep waiting for a day the user no longer selected.
+    // Changing the sending days / window / timezone / daily limit must re-plan
+    // the queue that was built against the previous settings, otherwise
+    // already-scheduled messages keep waiting for a day the user no longer
+    // selected — or stay capped at the old daily limit.
     if (
       patch["send_days"] !== undefined ||
       patch["send_start_hour"] !== undefined ||
       patch["send_end_hour"] !== undefined ||
-      patch["timezone"] !== undefined
+      patch["timezone"] !== undefined ||
+      patch["daily_cap"] !== undefined ||
+      patch["sending_account_ids"] !== undefined
     ) {
+
       try {
         const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
         await rescheduleCampaignQueue(context.supabase, data.id);
