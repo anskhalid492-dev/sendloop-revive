@@ -815,6 +815,25 @@ export async function dispatchDueMessages(
     ((accounts ?? []) as AccountRow[]).map((a) => [a.id, a] as const),
   );
 
+  // Providers currently enabled for CUSTOMER sending. A mailbox on a disabled
+  // provider (e.g. SES switched off) is ineligible: without this the dispatcher
+  // kept claiming its messages and deferring them forever.
+  let allowedProviders: Set<string> | null = null;
+  try {
+    const { data: providerRows } = await supabase
+      .from("email_providers")
+      .select("provider, is_enabled, customer_enabled");
+    if (providerRows) {
+      allowedProviders = new Set(
+        (providerRows as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
+          .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
+          .map((p) => String(p.provider)),
+      );
+    }
+  } catch {
+    allowedProviders = null; // provider table unreadable: fall back to mailbox state only
+  }
+
   const { fetchAllRows } = await import("@/lib/supabase-batch");
   // Mailbox capacity is a ROLLING 12-hour window over accepted sends only
   // (status `sent`), so a mailbox regains capacity 12 hours after the sends
