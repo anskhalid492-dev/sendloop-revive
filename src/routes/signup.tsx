@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -302,16 +302,23 @@ function SignUpPage() {
             "Create free account"
           )}
         </Button>
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          By creating an account you agree to our{" "}
-          <Link to="/terms" className="text-foreground underline underline-offset-2">
-            Terms
-          </Link>{" "}
-          and{" "}
-          <Link to="/privacy" className="text-foreground underline underline-offset-2">
-            Privacy Policy
-          </Link>
-          .
+        <p className="flex items-start justify-center gap-2 text-center text-xs leading-relaxed text-muted-foreground">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          <span>
+            By creating an account you agree to our{" "}
+            <Link to="/terms" className="text-foreground underline underline-offset-2">
+              Terms
+            </Link>
+            ,{" "}
+            <Link to="/privacy" className="text-foreground underline underline-offset-2">
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link to="/compliance" className="text-foreground underline underline-offset-2">
+              Compliance
+            </Link>
+            .
+          </span>
         </p>
       </form>
     </AuthLayout>
