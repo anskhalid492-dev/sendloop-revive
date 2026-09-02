@@ -956,6 +956,7 @@ export async function dispatchDueMessages(
         poolIds: campaignMailboxPool,
         accountsById: accountById,
         usageById,
+        allowedProviders,
       });
       const picked = pickedId ? accountById.get(pickedId) : undefined;
       if (!picked) {
