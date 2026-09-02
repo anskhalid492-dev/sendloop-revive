@@ -93,7 +93,7 @@ describe("allocateAcrossMailboxes", () => {
   });
 
   it("skips ineligible mailboxes entirely", () => {
-    const pool = [mailbox({ id: "a", status: "failed" }), mailbox({ id: "b" })];
+    const pool = [mailbox({ id: "a", status: "disconnected" }), mailbox({ id: "b" })];
     expect(new Set(allocateAcrossMailboxes(4, pool))).toEqual(new Set(["b"]));
   });
 });
