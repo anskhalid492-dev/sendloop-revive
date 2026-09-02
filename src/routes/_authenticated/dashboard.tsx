@@ -205,7 +205,7 @@ function DashboardPage() {
                 >
                   <Button
                     asChild
-                    variant={action.primary ? "default" : "outline"}
+                    variant={"primary" in action && action.primary ? "default" : "outline"}
                     size="sm"
                     className="h-9 w-full justify-start gap-2 text-xs"
                   >
