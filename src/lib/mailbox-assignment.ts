@@ -52,12 +52,14 @@ export function selectMailboxForMessage(input: {
   accountsById: Map<string, AssignableMailbox>;
   /** Sends already consumed in the current rolling window, per mailbox id. */
   usageById?: Map<string, number>;
+  /** Providers currently enabled for customer sending, when known. */
+  allowedProviders?: Set<string> | null;
 }): string | null {
   const usage = input.usageById ?? new Map<string, number>();
   let best: { id: string; used: number } | null = null;
   for (const id of input.poolIds) {
     const account = input.accountsById.get(id);
-    if (!isEligibleMailbox(account)) continue;
+    if (!isEligibleMailbox(account, input.allowedProviders)) continue;
     const limit = Number(account?.daily_limit ?? 0);
     const used = Number(usage.get(id) ?? 0);
     if (limit > 0 && used >= limit) continue;
