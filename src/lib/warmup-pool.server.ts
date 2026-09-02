@@ -70,7 +70,7 @@ export async function listWarmupPool(search?: string | null): Promise<{
     .from("warmup_recipients")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(1000);
+    .limit(20000);
   if (search) query = query.ilike("email", `%${search}%`);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -148,7 +148,8 @@ export async function importWarmupRecipients(
   };
   if (parsed.rows.length === 0) return report;
 
-  const CHUNK = 500;
+  // Keep `in.(...)` email lookups short enough for the PostgREST URL limit.
+  const CHUNK = 200;
   for (let i = 0; i < parsed.rows.length; i += CHUNK) {
     const chunk = parsed.rows.slice(i, i + CHUNK);
     const emails = chunk.map((r) => r.email);
