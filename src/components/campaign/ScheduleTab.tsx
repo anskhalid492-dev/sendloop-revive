@@ -400,13 +400,7 @@ export function ScheduleTab({ builder }: { builder: CampaignBuilder }) {
               </dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-muted-foreground">Mailbox capacity / day</dt>
-              <dd className="font-medium tabular-nums">
-                {mailboxDailyCeiling > 0 ? mailboxDailyCeiling.toLocaleString() : "No mailboxes selected"}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between">
-            <div className="flex items-center justify-between">
+
               <dt className="text-muted-foreground">Campaign limit</dt>
               <dd className="font-medium tabular-nums">
                 {selectedDaily > 0 ? `${selectedDaily.toLocaleString()}/day` : "Not set"}
