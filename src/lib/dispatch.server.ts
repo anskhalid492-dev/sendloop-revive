@@ -982,9 +982,20 @@ export async function dispatchDueMessages(
       account = picked;
       logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: picked.id, mailboxEligible: true, reason: "mailbox_assigned_from_campaign_pool" });
     }
-    if (account.paused || !account.customer_enabled || account.status === "disabled") {
+    if (!isEligibleMailbox(account, allowedProviders)) {
+      // Safety net: no eligible replacement existed. Defer with a clear reason
+      // and a concrete retry time instead of re-claiming the row immediately.
       result.skipped += 1;
-      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_disabled" });
+      if (result.errors.length < 5) result.errors.push(NO_MAILBOX_AVAILABLE_MESSAGE);
+      await supabase
+        .from("campaign_messages")
+        .update({
+          status: "scheduled",
+          scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+          last_error: NO_MAILBOX_AVAILABLE_MESSAGE,
+        })
+        .eq("id", message.id);
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_ineligible_deferred" });
       continue;
     }
     // Whichever active limit is lowest wins; the campaign daily cap is checked
