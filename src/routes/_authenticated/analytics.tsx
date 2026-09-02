@@ -180,10 +180,10 @@ function AnalyticsPage() {
           sub: `${formatCount(current.replies)} replies`,
         },
         {
-          label: "Click rate",
-          value: formatPct(clickRate(current)),
-          delta: deltaRate(clickRate(current), previous ? clickRate(previous) : 0),
-          sub: `${formatCount(current.clicks)} unique clicks`,
+          label: "Positive replies",
+          value: formatCount(current.positiveReplies),
+          delta: deltaCount(current.positiveReplies, previous?.positiveReplies ?? 0),
+          sub: `${formatPct(rate(current.positiveReplies, current.replies))} of replies`,
         },
         {
           label: "Bounce rate",
