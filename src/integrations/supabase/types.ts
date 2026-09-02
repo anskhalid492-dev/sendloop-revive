@@ -1719,6 +1719,12 @@ export type Database = {
           delivery_detail: string | null
           delivery_status: string
           failed_at: string | null
+          final_body: string | null
+          final_from_email: string | null
+          final_from_name: string | null
+          final_html: string | null
+          final_subject: string | null
+          final_to_email: string | null
           id: string
           last_error: string | null
           last_event_at: string | null
@@ -1730,6 +1736,7 @@ export type Database = {
           provider_message_id: string | null
           recipient_id: string | null
           reconciled_at: string | null
+          rendered_at: string | null
           replied_at: string | null
           scheduled_at: string | null
           sending_account_id: string | null
@@ -1757,6 +1764,12 @@ export type Database = {
           delivery_detail?: string | null
           delivery_status?: string
           failed_at?: string | null
+          final_body?: string | null
+          final_from_email?: string | null
+          final_from_name?: string | null
+          final_html?: string | null
+          final_subject?: string | null
+          final_to_email?: string | null
           id?: string
           last_error?: string | null
           last_event_at?: string | null
@@ -1768,6 +1781,7 @@ export type Database = {
           provider_message_id?: string | null
           recipient_id?: string | null
           reconciled_at?: string | null
+          rendered_at?: string | null
           replied_at?: string | null
           scheduled_at?: string | null
           sending_account_id?: string | null
@@ -1795,6 +1809,12 @@ export type Database = {
           delivery_detail?: string | null
           delivery_status?: string
           failed_at?: string | null
+          final_body?: string | null
+          final_from_email?: string | null
+          final_from_name?: string | null
+          final_html?: string | null
+          final_subject?: string | null
+          final_to_email?: string | null
           id?: string
           last_error?: string | null
           last_event_at?: string | null
@@ -1806,6 +1826,7 @@ export type Database = {
           provider_message_id?: string | null
           recipient_id?: string | null
           reconciled_at?: string | null
+          rendered_at?: string | null
           replied_at?: string | null
           scheduled_at?: string | null
           sending_account_id?: string | null
