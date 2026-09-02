@@ -18,6 +18,7 @@ import { isRetryableFailure } from "@/lib/campaign-run-state";
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import {
   NO_MAILBOX_AVAILABLE_MESSAGE,
+  isEligibleMailbox,
   mailboxRetryAt,
   selectMailboxForMessage,
 } from "@/lib/mailbox-assignment";
@@ -270,8 +271,20 @@ export async function ensureInitialCampaignMessages(
         .select("id, provider, from_name, from_email, status, customer_enabled, paused")
         .in("id", configuredAccountIds)
     : { data: [] as InitialAccountRow[] };
-  const accounts = ((accountRows ?? []) as InitialAccountRow[]).filter(
-    (account) => account.status !== "disabled" && account.customer_enabled && !account.paused,
+  // New queue rows are never pinned to a mailbox whose provider is switched off
+  // for customer sending.
+  const { data: providerRowsForPlan } = await supabase
+    .from("email_providers")
+    .select("provider, is_enabled, customer_enabled");
+  const planAllowedProviders = providerRowsForPlan?.length
+    ? new Set(
+        (providerRowsForPlan as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
+          .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
+          .map((p) => String(p.provider)),
+      )
+    : null;
+  const accounts = ((accountRows ?? []) as InitialAccountRow[]).filter((account) =>
+    isEligibleMailbox(account, planAllowedProviders),
   );
   const accountById = new Map(accounts.map((account) => [account.id, account] as const));
   let cursor = 0;
@@ -815,6 +828,25 @@ export async function dispatchDueMessages(
     ((accounts ?? []) as AccountRow[]).map((a) => [a.id, a] as const),
   );
 
+  // Providers currently enabled for CUSTOMER sending. A mailbox on a disabled
+  // provider (e.g. SES switched off) is ineligible: without this the dispatcher
+  // kept claiming its messages and deferring them forever.
+  let allowedProviders: Set<string> | null = null;
+  try {
+    const { data: providerRows } = await supabase
+      .from("email_providers")
+      .select("provider, is_enabled, customer_enabled");
+    if (providerRows?.length) {
+      allowedProviders = new Set(
+        (providerRows as Array<{ provider: string; is_enabled: boolean | null; customer_enabled: boolean | null }>)
+          .filter((p) => p.is_enabled !== false && p.customer_enabled !== false)
+          .map((p) => String(p.provider)),
+      );
+    }
+  } catch {
+    allowedProviders = null; // provider table unreadable: fall back to mailbox state only
+  }
+
   const { fetchAllRows } = await import("@/lib/supabase-batch");
   // Mailbox capacity is a ROLLING 12-hour window over accepted sends only
   // (status `sent`), so a mailbox regains capacity 12 hours after the sends
@@ -914,7 +946,12 @@ export async function dispatchDueMessages(
       continue;
     }
 
-    if (!account) {
+    // A mailbox that is missing, paused, disabled, disconnected, customer
+    // disabled, or on a provider that is turned off can never send this
+    // message. Repair the assignment from the campaign pool instead of
+    // claiming-and-deferring the same row forever.
+    const assignedIneligible = Boolean(account) && !isEligibleMailbox(account, allowedProviders);
+    if (!account || assignedIneligible) {
       // Missing/stale mailbox: repair from the campaign pool instead of
       // failing the message. Nothing about the recipient is wrong.
       const usageById = new Map<string, number>();
@@ -931,6 +968,7 @@ export async function dispatchDueMessages(
         poolIds: campaignMailboxPool,
         accountsById: accountById,
         usageById,
+        allowedProviders,
       });
       const picked = pickedId ? accountById.get(pickedId) : undefined;
       if (!picked) {
@@ -956,9 +994,20 @@ export async function dispatchDueMessages(
       account = picked;
       logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: picked.id, mailboxEligible: true, reason: "mailbox_assigned_from_campaign_pool" });
     }
-    if (account.paused || !account.customer_enabled || account.status === "disabled") {
+    if (!isEligibleMailbox(account, allowedProviders)) {
+      // Safety net: no eligible replacement existed. Defer with a clear reason
+      // and a concrete retry time instead of re-claiming the row immediately.
       result.skipped += 1;
-      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_disabled" });
+      if (result.errors.length < 5) result.errors.push(NO_MAILBOX_AVAILABLE_MESSAGE);
+      await supabase
+        .from("campaign_messages")
+        .update({
+          status: "scheduled",
+          scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+          last_error: NO_MAILBOX_AVAILABLE_MESSAGE,
+        })
+        .eq("id", message.id);
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: account.paused ? "mailbox_paused" : !account.customer_enabled ? "mailbox_customer_disabled" : "mailbox_ineligible_deferred" });
       continue;
     }
     // Whichever active limit is lowest wins; the campaign daily cap is checked

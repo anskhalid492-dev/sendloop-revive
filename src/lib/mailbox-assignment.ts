@@ -17,14 +17,27 @@ export type AssignableMailbox = {
   customer_enabled?: boolean | null;
   status?: string | null;
   daily_limit?: number | null;
+  provider?: string | null;
 };
 
-/** A mailbox that is allowed to send right now (ignoring capacity). */
-export function isEligibleMailbox(account: AssignableMailbox | null | undefined): boolean {
+/**
+ * A mailbox that is allowed to send right now (ignoring capacity).
+ *
+ * `allowedProviders`, when given, is the set of providers currently enabled for
+ * customer sending. A mailbox on a disabled provider (e.g. SES turned off) is
+ * ineligible: its messages must be repaired onto another mailbox instead of
+ * being claimed and deferred forever.
+ */
+export function isEligibleMailbox(
+  account: AssignableMailbox | null | undefined,
+  allowedProviders?: Set<string> | null,
+): boolean {
   if (!account) return false;
   if (account.paused) return false;
   if (account.customer_enabled === false) return false;
   if (account.status === "disabled") return false;
+  if (account.status === "disconnected") return false;
+  if (allowedProviders && !allowedProviders.has(String(account.provider ?? ""))) return false;
   return true;
 }
 
@@ -39,12 +52,14 @@ export function selectMailboxForMessage(input: {
   accountsById: Map<string, AssignableMailbox>;
   /** Sends already consumed in the current rolling window, per mailbox id. */
   usageById?: Map<string, number>;
+  /** Providers currently enabled for customer sending, when known. */
+  allowedProviders?: Set<string> | null;
 }): string | null {
   const usage = input.usageById ?? new Map<string, number>();
   let best: { id: string; used: number } | null = null;
   for (const id of input.poolIds) {
     const account = input.accountsById.get(id);
-    if (!isEligibleMailbox(account)) continue;
+    if (!isEligibleMailbox(account, input.allowedProviders)) continue;
     const limit = Number(account?.daily_limit ?? 0);
     const used = Number(usage.get(id) ?? 0);
     if (limit > 0 && used >= limit) continue;
