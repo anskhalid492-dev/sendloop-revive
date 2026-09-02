@@ -23,6 +23,8 @@ import {
   selectMailboxForMessage,
 } from "@/lib/mailbox-assignment";
 import { stripAngle } from "@/lib/inbox-model";
+import { buildSentSnapshot } from "@/lib/sent-snapshot";
+import { persistSentSnapshot } from "@/lib/sent-snapshot.server";
 import { campaignBodyHtml } from "@/lib/email-html";
 import {
   applyUnsubscribeUrl,
