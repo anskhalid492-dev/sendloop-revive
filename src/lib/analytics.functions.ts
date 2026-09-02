@@ -76,6 +76,7 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
         total.opens += s.opened;
         total.clicks += s.clicked;
         total.replies += s.replied;
+        total.positiveReplies += s.positiveReplied;
         total.bounced += s.bounced;
         total.unsubscribed += s.unsubscribed;
         total.complained += s.complained;
