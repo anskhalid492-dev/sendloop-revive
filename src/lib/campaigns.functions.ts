@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
+import { buildCampaignUpdatePatch } from "@/lib/campaign-update-patch";
+
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { campaignBodyHtml } from "@/lib/email-html";
