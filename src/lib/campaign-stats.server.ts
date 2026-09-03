@@ -130,7 +130,7 @@ async function readCampaignStats(
   const campaignIds = campaigns.map((c) => c.id);
   if (!campaignIds.length) return { byCampaign: new Map(), messages: [], signals: new Map() };
 
-  const [messages, recipients, events, replies] = await Promise.all([
+  const [messages, recipientCounts, events, replies] = await Promise.all([
     fetchAllRows<CampaignMessageRow>(() => {
       // Narrow the read in Postgres instead of downloading the whole table and
       // filtering in memory. A row matters when it was sent, is still queued,
