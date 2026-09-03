@@ -28,6 +28,7 @@ import { formatMoney } from "@/lib/billing/model";
 import type { BillingInterval } from "@/lib/billing/model";
 import {
   cancelSubscription,
+  changeSubscriptionPlan,
   getCustomerBilling,
   listCheckoutProviders,
   openBillingPortal,
@@ -145,6 +146,7 @@ export function BillingTab({
   const fetchProviders = useServerFn(listCheckoutProviders);
   const fetchPlans = useServerFn(getPlans);
   const checkout = useServerFn(startCheckout);
+  const changePlan = useServerFn(changeSubscriptionPlan);
   const portal = useServerFn(openBillingPortal);
   const cancel = useServerFn(cancelSubscription);
   const resume = useServerFn(resumeSubscription);
@@ -162,18 +164,49 @@ export function BillingTab({
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["billing-overview"] });
 
+  /**
+   * A workspace that already pays through a provider switches plan on the
+   * existing subscription (prorated by the provider). Only workspaces without
+   * a live recurring subscription go through a fresh checkout, which is the
+   * only path that needs an available checkout provider.
+   */
+  const hasRecurringSubscription = Boolean(
+    query.data?.provider &&
+      query.data.active &&
+      query.data.planSource === "subscription" &&
+      (query.data.interval === "monthly" || query.data.interval === "yearly"),
+  );
+
   const checkoutMutation = useMutation({
-    mutationFn: (plan: { id: string; billing_type?: string | null }) =>
-      checkout({
+    mutationFn: async (plan: { id: string; billing_type?: string | null }) => {
+      const lifetime = isLifetimePlan(plan);
+      if (hasRecurringSubscription && !lifetime) {
+        await changePlan({
+          data: {
+            workspaceId: workspaceId!,
+            planId: plan.id,
+            interval: interval === "yearly" ? "yearly" : "monthly",
+          },
+        });
+        return { url: null as string | null };
+      }
+      return checkout({
         data: {
           workspaceId: workspaceId!,
           planId: plan.id,
-          interval: isLifetimePlan(plan) ? "lifetime" : interval,
-          provider: (available[0]?.provider || "stripe") as import("@/lib/billing/model").BillingProvider,
+          interval: lifetime ? "lifetime" : interval,
+          provider: (available[0]?.provider ||
+            "stripe") as import("@/lib/billing/model").BillingProvider,
         },
-      }),
+      });
+    },
     onSuccess: (r) => {
-      window.location.href = r.url;
+      if (r?.url) {
+        window.location.href = r.url;
+        return;
+      }
+      toast.success("Plan updated — your subscription now uses the new plan.");
+      invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -435,7 +468,7 @@ export function BillingTab({
           </div>
         </div>
 
-        {available.length === 0 ? (
+        {available.length === 0 && !hasRecurringSubscription ? (
           <p className="text-sm text-muted-foreground">
             Online checkout is not available right now. Contact support to change your plan.
           </p>
@@ -509,16 +542,25 @@ export function BillingTab({
                   <Button
                     className="mt-5 w-full"
                     variant={current ? "outline" : "default"}
-                    disabled={current || available.length === 0 || checkoutMutation.isPending}
+                    disabled={
+                      current ||
+                      checkoutMutation.isPending ||
+                      (available.length === 0 &&
+                        !(hasRecurringSubscription && !planIsLifetime))
+                    }
                     onClick={() => checkoutMutation.mutate(plan)}
                   >
                     {current
                       ? "Current plan"
                       : checkoutMutation.isPending
-                        ? "Starting checkout…"
+                        ? hasRecurringSubscription && !planIsLifetime
+                          ? "Updating plan…"
+                          : "Starting checkout…"
                         : planIsLifetime
                           ? "Get lifetime access"
-                          : `Choose ${plan.name}`}
+                          : hasRecurringSubscription
+                            ? `Switch to ${plan.name}`
+                            : `Choose ${plan.name}`}
                   </Button>
                 </div>
               );
