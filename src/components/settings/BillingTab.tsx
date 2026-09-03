@@ -28,6 +28,7 @@ import { formatMoney } from "@/lib/billing/model";
 import type { BillingInterval } from "@/lib/billing/model";
 import {
   cancelSubscription,
+  changeSubscriptionPlan,
   getCustomerBilling,
   listCheckoutProviders,
   openBillingPortal,
