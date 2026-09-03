@@ -164,18 +164,49 @@ export function BillingTab({
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["billing-overview"] });
 
+  /**
+   * A workspace that already pays through a provider switches plan on the
+   * existing subscription (prorated by the provider). Only workspaces without
+   * a live recurring subscription go through a fresh checkout, which is the
+   * only path that needs an available checkout provider.
+   */
+  const hasRecurringSubscription = Boolean(
+    query.data?.provider &&
+      query.data.active &&
+      query.data.planSource === "subscription" &&
+      (query.data.interval === "monthly" || query.data.interval === "yearly"),
+  );
+
   const checkoutMutation = useMutation({
-    mutationFn: (plan: { id: string; billing_type?: string | null }) =>
-      checkout({
+    mutationFn: async (plan: { id: string; billing_type?: string | null }) => {
+      const lifetime = isLifetimePlan(plan);
+      if (hasRecurringSubscription && !lifetime) {
+        await changePlan({
+          data: {
+            workspaceId: workspaceId!,
+            planId: plan.id,
+            interval: interval === "yearly" ? "yearly" : "monthly",
+          },
+        });
+        return { url: null as string | null };
+      }
+      return checkout({
         data: {
           workspaceId: workspaceId!,
           planId: plan.id,
-          interval: isLifetimePlan(plan) ? "lifetime" : interval,
-          provider: (available[0]?.provider || "stripe") as import("@/lib/billing/model").BillingProvider,
+          interval: lifetime ? "lifetime" : interval,
+          provider: (available[0]?.provider ||
+            "stripe") as import("@/lib/billing/model").BillingProvider,
         },
-      }),
+      });
+    },
     onSuccess: (r) => {
-      window.location.href = r.url;
+      if (r?.url) {
+        window.location.href = r.url;
+        return;
+      }
+      toast.success("Plan updated — your subscription now uses the new plan.");
+      invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
