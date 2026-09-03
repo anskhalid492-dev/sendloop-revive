@@ -206,10 +206,7 @@ async function readCampaignStats(
     else messagesByCampaign.set(cid, [m]);
   }
 
-  const leadsByCampaign = new Map<string, number>();
-  for (const r of recipients) {
-    leadsByCampaign.set(r.campaign_id, (leadsByCampaign.get(r.campaign_id) ?? 0) + 1);
-  }
+  const leadsByCampaign = recipientCounts;
 
   const positiveByCampaign = new Map<string, Set<string>>();
   for (const reply of replies) {
