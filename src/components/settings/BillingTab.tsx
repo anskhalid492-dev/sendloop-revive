@@ -146,6 +146,7 @@ export function BillingTab({
   const fetchProviders = useServerFn(listCheckoutProviders);
   const fetchPlans = useServerFn(getPlans);
   const checkout = useServerFn(startCheckout);
+  const changePlan = useServerFn(changeSubscriptionPlan);
   const portal = useServerFn(openBillingPortal);
   const cancel = useServerFn(cancelSubscription);
   const resume = useServerFn(resumeSubscription);
