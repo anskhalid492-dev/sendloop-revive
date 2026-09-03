@@ -542,7 +542,12 @@ export function BillingTab({
                   <Button
                     className="mt-5 w-full"
                     variant={current ? "outline" : "default"}
-                    disabled={current || available.length === 0 || checkoutMutation.isPending}
+                    disabled={
+                      current ||
+                      checkoutMutation.isPending ||
+                      (available.length === 0 &&
+                        !(hasRecurringSubscription && !planIsLifetime))
+                    }
                     onClick={() => checkoutMutation.mutate(plan)}
                   >
                     {current
