@@ -108,6 +108,36 @@ export async function fetchCampaignStats(
   return promise;
 }
 
+/**
+ * Per-campaign recipient counts via HEAD count queries.
+ * Bounded work per request: a handful of tiny requests instead of paging
+ * through every recipient row in the workspace.
+ */
+async function countRecipientsByCampaign(
+  client: Client,
+  workspaceId: string,
+  campaignIds: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  const CONCURRENCY = 6;
+  for (let i = 0; i < campaignIds.length; i += CONCURRENCY) {
+    const slice = campaignIds.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      slice.map(async (id) => {
+        const { count, error } = await client
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .eq("campaign_id", id);
+        if (error) throw new Error(error.message);
+        return [id, count ?? 0] as const;
+      }),
+    );
+    for (const [id, count] of results) counts.set(id, count);
+  }
+  return counts;
+}
+
 async function readCampaignStats(
   client: Client,
   scope: CampaignStatsScope,
@@ -130,7 +160,7 @@ async function readCampaignStats(
   const campaignIds = campaigns.map((c) => c.id);
   if (!campaignIds.length) return { byCampaign: new Map(), messages: [], signals: new Map() };
 
-  const [messages, recipients, events, replies] = await Promise.all([
+  const [messages, recipientCounts, events, replies] = await Promise.all([
     fetchAllRows<CampaignMessageRow>(() => {
       // Narrow the read in Postgres instead of downloading the whole table and
       // filtering in memory. A row matters when it was sent, is still queued,
@@ -153,14 +183,10 @@ async function readCampaignStats(
       if (clauses.length) q.or(clauses.join(","));
       return q;
     }),
-    fetchAllRows<{ campaign_id: string; lead_id: string | null }>(() =>
-      client
-        .from("campaign_recipients")
-        .select("campaign_id, lead_id")
-        .eq("workspace_id", scope.workspaceId)
-        .in("campaign_id", campaignIds)
-        .order("id", { ascending: true }),
-    ),
+    // Recipients are only needed for a per-campaign lead count. Downloading
+    // every row was the slowest read in this request path (and had no date
+    // window), so ask Postgres for the count instead.
+    countRecipientsByCampaign(client, scope.workspaceId, campaignIds),
     fetchAllRows<{ message_id: string | null; event_type: string; occurred_at: string }>(() => {
       const q = client
         .from("email_engagement_events")
@@ -210,10 +236,7 @@ async function readCampaignStats(
     else messagesByCampaign.set(cid, [m]);
   }
 
-  const leadsByCampaign = new Map<string, number>();
-  for (const r of recipients) {
-    leadsByCampaign.set(r.campaign_id, (leadsByCampaign.get(r.campaign_id) ?? 0) + 1);
-  }
+  const leadsByCampaign = recipientCounts;
 
   const positiveByCampaign = new Map<string, Set<string>>();
   for (const reply of replies) {
