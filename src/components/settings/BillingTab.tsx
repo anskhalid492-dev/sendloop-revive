@@ -553,10 +553,14 @@ export function BillingTab({
                     {current
                       ? "Current plan"
                       : checkoutMutation.isPending
-                        ? "Starting checkout…"
+                        ? hasRecurringSubscription && !planIsLifetime
+                          ? "Updating plan…"
+                          : "Starting checkout…"
                         : planIsLifetime
                           ? "Get lifetime access"
-                          : `Choose ${plan.name}`}
+                          : hasRecurringSubscription
+                            ? `Switch to ${plan.name}`
+                            : `Choose ${plan.name}`}
                   </Button>
                 </div>
               );
