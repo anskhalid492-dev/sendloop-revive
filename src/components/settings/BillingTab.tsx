@@ -468,7 +468,7 @@ export function BillingTab({
           </div>
         </div>
 
-        {available.length === 0 ? (
+        {available.length === 0 && !hasRecurringSubscription ? (
           <p className="text-sm text-muted-foreground">
             Online checkout is not available right now. Contact support to change your plan.
           </p>
