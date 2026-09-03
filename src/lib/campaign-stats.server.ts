@@ -108,6 +108,36 @@ export async function fetchCampaignStats(
   return promise;
 }
 
+/**
+ * Per-campaign recipient counts via HEAD count queries.
+ * Bounded work per request: a handful of tiny requests instead of paging
+ * through every recipient row in the workspace.
+ */
+async function countRecipientsByCampaign(
+  client: Client,
+  workspaceId: string,
+  campaignIds: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  const CONCURRENCY = 6;
+  for (let i = 0; i < campaignIds.length; i += CONCURRENCY) {
+    const slice = campaignIds.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      slice.map(async (id) => {
+        const { count, error } = await client
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .eq("campaign_id", id);
+        if (error) throw new Error(error.message);
+        return [id, count ?? 0] as const;
+      }),
+    );
+    for (const [id, count] of results) counts.set(id, count);
+  }
+  return counts;
+}
+
 async function readCampaignStats(
   client: Client,
   scope: CampaignStatsScope,
