@@ -153,14 +153,10 @@ async function readCampaignStats(
       if (clauses.length) q.or(clauses.join(","));
       return q;
     }),
-    fetchAllRows<{ campaign_id: string; lead_id: string | null }>(() =>
-      client
-        .from("campaign_recipients")
-        .select("campaign_id, lead_id")
-        .eq("workspace_id", scope.workspaceId)
-        .in("campaign_id", campaignIds)
-        .order("id", { ascending: true }),
-    ),
+    // Recipients are only needed for a per-campaign lead count. Downloading
+    // every row was the slowest read in this request path (and had no date
+    // window), so ask Postgres for the count instead.
+    countRecipientsByCampaign(client, scope.workspaceId, campaignIds),
     fetchAllRows<{ message_id: string | null; event_type: string; occurred_at: string }>(() => {
       const q = client
         .from("email_engagement_events")
