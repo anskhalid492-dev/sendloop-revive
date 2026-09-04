@@ -557,7 +557,6 @@ export const solutions: SolutionContent[] = [
       { title: "Sequence", text: "Opener plus follow-ups, personalized from your fields." },
       { title: "Replies", text: "Work answers and book demos from the inbox." },
       { title: "CRM", text: "Track the conversation through your stages." },
-      { title: "Pipeline", text: "Feed qualified conversations into the sales process." },
     ],
     outcomes: [
       { title: "Repeatable outbound process", text: "The same loop runs every month instead of restarting from scratch." },
