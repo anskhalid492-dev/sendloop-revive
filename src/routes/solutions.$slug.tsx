@@ -1,4 +1,5 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import {
   BarChart3,
   CheckCircle2,
@@ -169,7 +170,7 @@ function PillarsSection({ content }: { content: SolutionContent }) {
 }
 
 /** Numbered, alternating workflow with a real product view beside each step. */
-const HOW_IT_WORKS: { title: string; text: string; visual: () => JSX.Element }[] = [
+const HOW_IT_WORKS: { title: string; text: string; visual: () => ReactNode }[] = [
   {
     title: "Build your prospect list",
     text: "Start from the people worth talking to. Import a CSV, map your own columns and let duplicates and previously suppressed addresses drop out on the way in. The list becomes a reusable source rather than a one-off file.",
