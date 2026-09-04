@@ -93,6 +93,7 @@ import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unifie
 import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
 import { Route as RCodeRouteImport } from './routes/r.$code'
+import { Route as SolutionsIndexRouteImport } from './routes/solutions.index'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
 import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
 import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_authenticated/automations.activity'
@@ -629,6 +630,11 @@ const ProductWorkspacesRoute = ProductWorkspacesRouteImport.update({
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolutionsIndexRoute = SolutionsIndexRouteImport.update({
+  id: '/solutions/',
+  path: '/solutions/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SolutionsSlugRoute = SolutionsSlugRouteImport.update({
@@ -1354,6 +1360,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
+  '/solutions/': typeof SolutionsIndexRoute
   '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
@@ -1546,6 +1553,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/help-center': typeof HelpCenterIndexRoute
   '/integrations': typeof IntegrationsIndexRoute
+  '/solutions': typeof SolutionsIndexRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
@@ -1741,6 +1749,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
+  '/solutions/': typeof SolutionsIndexRoute
   '/_authenticated/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
   '/_authenticated/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/_authenticated/automations/activity': typeof AuthenticatedAutomationsActivityRoute
@@ -1937,6 +1946,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/help-center/'
     | '/integrations/'
+    | '/solutions/'
     | '/mranuskhalid/marketing'
     | '/automations/$id'
     | '/automations/activity'
@@ -2129,6 +2139,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/help-center'
     | '/integrations'
+    | '/solutions'
     | '/automations/$id'
     | '/automations/activity'
     | '/automations/workflows'
@@ -2323,6 +2334,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/help-center/'
     | '/integrations/'
+    | '/solutions/'
     | '/_authenticated/mranuskhalid/marketing'
     | '/_authenticated/automations/$id'
     | '/_authenticated/automations/activity'
@@ -2500,6 +2512,7 @@ export interface RootRouteChildren {
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
+  SolutionsIndexRoute: typeof SolutionsIndexRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
@@ -3120,6 +3133,13 @@ declare module '@tanstack/react-router' {
       path: '/r/$code'
       fullPath: '/r/$code'
       preLoaderRoute: typeof RCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/solutions/': {
+      id: '/solutions/'
+      path: '/solutions'
+      fullPath: '/solutions/'
+      preLoaderRoute: typeof SolutionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/solutions/$slug': {
@@ -4345,6 +4365,7 @@ const rootRouteChildren: RootRouteChildren = {
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   IntegrationsIndexRoute: IntegrationsIndexRoute,
+  SolutionsIndexRoute: SolutionsIndexRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
