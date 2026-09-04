@@ -80,29 +80,28 @@ function SolutionNotFound() {
 
 /* -------------------------------------------------------------- sections */
 
-/** Dark, full-width problem section — the visual anchor of the page. */
+/** Editorial problem section in the MunchReach light brand language. */
 function ProblemSection({ content }: { content: SolutionContent }) {
   return (
-    <section className="relative overflow-hidden border-y border-border/60 bg-foreground text-background">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.14] [background:radial-gradient(60%_60%_at_20%_0%,hsl(var(--primary))_0%,transparent_70%)]"
-      />
-      <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-        <h2 className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-[2.75rem] sm:leading-[1.1]">
+    <section className="border-b border-border/60 bg-secondary/30 py-20 sm:py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          The challenge
+        </span>
+        <h2 className="mt-3 max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
           {content.problemHeading}
         </h2>
-        <p className="mt-6 max-w-2xl text-pretty text-base leading-7 opacity-80 sm:text-lg">
+        <p className="mt-5 max-w-2xl text-pretty leading-7 text-muted-foreground">
           {content.problemIntro}
         </p>
         <div className="mt-14 grid gap-x-14 gap-y-10 sm:grid-cols-2">
           {content.problemItems.map((item, i) => (
-            <div key={item.title} className="border-t border-background/20 pt-6">
-              <span className="text-xs font-semibold tracking-[0.2em] opacity-50">
+            <div key={item.title} className="border-t border-border pt-6">
+              <span className="text-xs font-semibold tracking-[0.2em] text-primary tabular-nums">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <h3 className="mt-3 text-xl font-bold tracking-tight">{item.title}</h3>
-              <p className="mt-2 text-sm leading-7 opacity-75">{item.text}</p>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.text}</p>
             </div>
           ))}
         </div>
@@ -110,6 +109,7 @@ function ProblemSection({ content }: { content: SolutionContent }) {
     </section>
   );
 }
+
 
 /** Editorial capability list — deliberately not a card grid. */
 function PillarsSection({ content }: { content: SolutionContent }) {
@@ -452,42 +452,6 @@ function WhySection() {
   );
 }
 
-function ExploreLinks() {
-  return (
-    <section className="border-b border-border/60 py-14">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-lg font-semibold tracking-tight">Keep exploring MunchReach</h2>
-        <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-          <Link to="/features" className="text-primary hover:underline">
-            All features
-          </Link>
-          <Link to="/pricing" className="text-primary hover:underline">
-            Pricing
-          </Link>
-          <Link to="/solutions" className="text-primary hover:underline">
-            All solutions
-          </Link>
-          <Link to="/product/campaigns" className="text-primary hover:underline">
-            Campaigns
-          </Link>
-          <Link to="/product/unified-inbox" className="text-primary hover:underline">
-            Unified inbox
-          </Link>
-          <Link to="/product/analytics" className="text-primary hover:underline">
-            Analytics
-          </Link>
-          <Link to="/blog" className="text-primary hover:underline">
-            Blog
-          </Link>
-          <Link to="/help-center" className="text-primary hover:underline">
-            Help center
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ------------------------------------------------------------------ page */
 
 function SolutionPage() {
@@ -534,8 +498,6 @@ function SolutionPage() {
       <Section title="Frequently asked questions">
         <FaqBlock faqs={content.faqs} />
       </Section>
-
-      <ExploreLinks />
 
       <CtaBlock
         title={content.ctaTitle}
