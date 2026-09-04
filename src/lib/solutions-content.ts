@@ -9,7 +9,6 @@ import {
   Layers,
   LineChart,
   Mail,
-  MailX,
   Megaphone,
   Repeat,
   Search,
@@ -886,5 +885,3 @@ export const solutionNavLinks = solutions.map((s) => ({
   to: `/solutions/${s.slug}`,
   text: s.navText,
 }));
-
-export const MailIcon: LucideIcon = MailX;
