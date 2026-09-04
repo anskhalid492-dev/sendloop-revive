@@ -287,7 +287,6 @@ export const solutions: SolutionContent[] = [
       { title: "Follow-up", text: "Let scheduled touches do the chasing." },
       { title: "Replies", text: "Work answers together from the shared inbox." },
       { title: "CRM", text: "Move the conversation through your stages." },
-      { title: "Opportunities", text: "Hand qualified conversations to the closer." },
     ],
     outcomes: [
       { title: "Less manual follow-up", text: "Reps stop maintaining reminder lists and spend the time on live conversations." },
