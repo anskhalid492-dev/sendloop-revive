@@ -247,11 +247,14 @@ export function SiteHeader() {
   const headerRows = (siteContent?.header ?? []) as NavRow[];
   const coreCards = toCards(headerRows, "core", featuredProducts);
   const moreCards = toCards(headerRows, "more", secondaryProducts);
-  const useCaseLinks = toCards(
-    headerRows,
-    "usecase",
-    solutionNavLinks.map((l) => ({ label: l.label, to: l.to, text: "", icon: Compass })),
-  );
+  // The eight solution pages are the single source of truth for this menu, so
+  // the navigation can never list an audience that has no page behind it.
+  const useCaseLinks = solutionNavLinks.map((l) => ({
+    label: l.label,
+    to: l.to,
+    text: l.text,
+    icon: Compass,
+  }));
   const baseResourceLinks = toCards(headerRows, "resources", resourceCards);
   // The Resources entry always points at the internal landing page — the
   // external destination lives behind its CTAs so we keep the visitor.
@@ -624,11 +627,17 @@ function ProductsPanel({ core, more, useCases }: { core: Card[]; more: Card[]; u
           <Link
             key={l.to}
             to={l.to}
-            className="text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+            className="text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-primary"
           >
             {l.label}
           </Link>
         ))}
+        <Link
+          to="/solutions"
+          className="text-xs font-semibold whitespace-nowrap text-primary transition-colors hover:underline"
+        >
+          View all solutions
+        </Link>
       </div>
     </div>
   );
