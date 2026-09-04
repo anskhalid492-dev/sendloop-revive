@@ -452,42 +452,6 @@ function WhySection() {
   );
 }
 
-function ExploreLinks() {
-  return (
-    <section className="border-b border-border/60 py-14">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-lg font-semibold tracking-tight">Keep exploring MunchReach</h2>
-        <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-          <Link to="/features" className="text-primary hover:underline">
-            All features
-          </Link>
-          <Link to="/pricing" className="text-primary hover:underline">
-            Pricing
-          </Link>
-          <Link to="/solutions" className="text-primary hover:underline">
-            All solutions
-          </Link>
-          <Link to="/product/campaigns" className="text-primary hover:underline">
-            Campaigns
-          </Link>
-          <Link to="/product/unified-inbox" className="text-primary hover:underline">
-            Unified inbox
-          </Link>
-          <Link to="/product/analytics" className="text-primary hover:underline">
-            Analytics
-          </Link>
-          <Link to="/blog" className="text-primary hover:underline">
-            Blog
-          </Link>
-          <Link to="/help-center" className="text-primary hover:underline">
-            Help center
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ------------------------------------------------------------------ page */
 
 function SolutionPage() {
@@ -534,8 +498,6 @@ function SolutionPage() {
       <Section title="Frequently asked questions">
         <FaqBlock faqs={content.faqs} />
       </Section>
-
-      <ExploreLinks />
 
       <CtaBlock
         title={content.ctaTitle}
