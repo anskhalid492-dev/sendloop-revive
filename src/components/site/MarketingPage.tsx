@@ -87,6 +87,8 @@ export function PageHero({
           <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
             {secondaryIsAnchor ? (
               <a href={secondaryHref}>{secondaryCta ?? "See How It Works"}</a>
+            ) : secondaryHref ? (
+              <Link to={secondaryHref}>{secondaryCta ?? "View Pricing"}</Link>
             ) : (
               <Link to="/pricing">{secondaryCta ?? "View Pricing"}</Link>
             )}
