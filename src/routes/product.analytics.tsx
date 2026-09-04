@@ -24,7 +24,6 @@ import {
   metaFor,
 } from "@/components/site/MarketingPage";
 import {
-  AnalyticsDashboardMock,
   CampaignPerformanceTableMock,
   CampaignVsMailboxMock,
   CompareCampaignsMock,
@@ -37,6 +36,7 @@ import {
 } from "@/components/site/AnalyticsProductMocks";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { PageFaqs } from "@/components/site/PageFaqs";
+import analyticsOverview from "@/assets/analytics-engagement-overview.png.asset.json";
 
 const faqs = [
   {
@@ -196,7 +196,12 @@ function Page() {
         title="Your outbound performance at a glance"
         description="Emails sent, reply rate, bounce rate, positive replies and meetings booked — filtered by date range, campaign and workspace."
       >
-        <AnalyticsDashboardMock />
+        <img
+          src={analyticsOverview.url}
+          alt="MunchReach analytics engagement overview showing contacted, opened, replied and unsubscribe rate with a 30-day activity chart"
+          className="w-full rounded-xl border border-border/60"
+          loading="lazy"
+        />
       </BigPreview>
 
       <Section
