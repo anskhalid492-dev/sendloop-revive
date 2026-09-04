@@ -28,6 +28,8 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Button } from "@/components/ui/button";
+import dashboardPreviewAsset from "@/assets/munchreach-dashboard.png.asset.json";
+const dashboardPreview = dashboardPreviewAsset.url;
 import inboxPreview from "@/assets/munchreach-unified-inbox-light.png";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { applySeoOverrides } from "@/lib/page-seo";
