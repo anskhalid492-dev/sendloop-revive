@@ -384,23 +384,20 @@ function Home() {
           </div>
 
 
-          {/* Abstract outbound flow — no screenshots, no statistics */}
-          <div className="relative mx-auto max-w-4xl px-4 pb-20 sm:px-6">
-            <div
-              aria-hidden
-              className="mx-auto h-px w-full max-w-3xl bg-gradient-to-r from-transparent via-primary/40 to-transparent"
-            />
-            <div className="-mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-medium text-muted-foreground sm:gap-x-10">
-              {["Find", "Personalize", "Send", "Follow Up", "Reply"].map((step, i) => (
-                <Reveal key={step} delay={i * 90}>
-                  <span className="float-slow inline-flex items-center gap-3">
-                    <span className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 backdrop-blur">
-                      {step}
-                    </span>
-                  </span>
-                </Reveal>
-              ))}
-            </div>
+          {/* Current dashboard mockup */}
+          <div className="relative mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+            <Reveal delay={150}>
+              <div className="browser-frame overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_40px_120px_-60px_hsl(var(--primary)/0.6)]">
+                <img
+                  src={dashboardPreview}
+                  alt="MunchReach workspace with campaigns, prospects and performance in one view"
+                  width={1600}
+                  height={1008}
+                  loading="eager"
+                  className="w-full"
+                />
+              </div>
+            </Reveal>
           </div>
 
 
