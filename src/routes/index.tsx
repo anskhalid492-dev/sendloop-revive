@@ -384,21 +384,7 @@ function Home() {
           </div>
 
 
-          {/* Current dashboard mockup */}
-          <div className="relative mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-            <Reveal delay={150}>
-              <div className="browser-frame overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_40px_120px_-60px_hsl(var(--primary)/0.6)]">
-                <img
-                  src={dashboardPreview}
-                  alt="MunchReach workspace with campaigns, prospects and performance in one view"
-                  width={1600}
-                  height={1008}
-                  loading="eager"
-                  className="w-full"
-                />
-              </div>
-            </Reveal>
-          </div>
+
 
 
 </section>
