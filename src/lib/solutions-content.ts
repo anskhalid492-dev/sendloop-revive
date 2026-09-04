@@ -287,7 +287,6 @@ export const solutions: SolutionContent[] = [
       { title: "Follow-up", text: "Let scheduled touches do the chasing." },
       { title: "Replies", text: "Work answers together from the shared inbox." },
       { title: "CRM", text: "Move the conversation through your stages." },
-      { title: "Opportunities", text: "Hand qualified conversations to the closer." },
     ],
     outcomes: [
       { title: "Less manual follow-up", text: "Reps stop maintaining reminder lists and spend the time on live conversations." },
@@ -558,7 +557,6 @@ export const solutions: SolutionContent[] = [
       { title: "Sequence", text: "Opener plus follow-ups, personalized from your fields." },
       { title: "Replies", text: "Work answers and book demos from the inbox." },
       { title: "CRM", text: "Track the conversation through your stages." },
-      { title: "Pipeline", text: "Feed qualified conversations into the sales process." },
     ],
     outcomes: [
       { title: "Repeatable outbound process", text: "The same loop runs every month instead of restarting from scratch." },
@@ -829,7 +827,6 @@ export const solutions: SolutionContent[] = [
       { title: "Campaign", text: "Deploy your proven sequence and schedule." },
       { title: "Sending accounts", text: "Connect and warm the client's mailboxes." },
       { title: "Replies", text: "Work conversations and hand over the good ones." },
-      { title: "Reporting", text: "Report from live campaign analytics." },
     ],
     outcomes: [
       { title: "Repeatable acquisition workflows", text: "Your playbook is deployed rather than rebuilt for each engagement." },
