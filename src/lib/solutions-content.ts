@@ -827,7 +827,6 @@ export const solutions: SolutionContent[] = [
       { title: "Campaign", text: "Deploy your proven sequence and schedule." },
       { title: "Sending accounts", text: "Connect and warm the client's mailboxes." },
       { title: "Replies", text: "Work conversations and hand over the good ones." },
-      { title: "Reporting", text: "Report from live campaign analytics." },
     ],
     outcomes: [
       { title: "Repeatable acquisition workflows", text: "Your playbook is deployed rather than rebuilt for each engagement." },
