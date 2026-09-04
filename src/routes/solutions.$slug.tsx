@@ -496,7 +496,7 @@ function SolutionPage() {
 
       <TestimonialCarousel page="solutions" />
 
-      <Section title="Frequently asked questions">
+      <Section>
         <FaqBlock faqs={content.faqs} />
       </Section>
 
