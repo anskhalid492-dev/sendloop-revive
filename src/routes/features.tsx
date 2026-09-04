@@ -53,7 +53,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { applySeoOverrides } from "@/lib/page-seo";
 import { BRAND_NAME } from "@/lib/branding";
-import dashboardPreview from "@/assets/dashboard-preview.jpg";
+import dashboardPreviewAsset from "@/assets/munchreach-dashboard.png.asset.json";
+const dashboardPreview = dashboardPreviewAsset.url;
 
 const CANONICAL = "https://munchreach.com/features";
 const SEO_TITLE = "Features — Cold Email & Outreach Automation";

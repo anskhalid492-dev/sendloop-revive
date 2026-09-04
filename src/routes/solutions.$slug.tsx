@@ -36,7 +36,8 @@ import {
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Button } from "@/components/ui/button";
 import { solutionsBySlug, type SolutionContent } from "@/lib/solutions-content";
-import dashboardPreview from "@/assets/dashboard-preview.jpg";
+import dashboardPreviewAsset from "@/assets/munchreach-dashboard.png.asset.json";
+const dashboardPreview = dashboardPreviewAsset.url;
 
 export const Route = createFileRoute("/solutions/$slug")({
   loader: ({ params }) => {
