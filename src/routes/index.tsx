@@ -129,7 +129,7 @@ function WorkflowSection() {
   }, []);
 
   return (
-    <section className="relative mx-auto max-w-7xl px-4 pt-20 pb-20 sm:px-6 sm:pt-24">
+    <section className="relative mx-auto max-w-7xl px-4 pt-28 pb-20 sm:px-6 sm:pt-36">
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
           Everything you need to run outbound
