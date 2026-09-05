@@ -342,7 +342,7 @@ function Home() {
             className="pointer-events-none absolute left-1/2 top-24 size-[34rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]"
           />
 
-          <div className="relative mx-auto max-w-5xl px-4 pt-14 pb-8 text-center sm:px-6 sm:pt-28">
+          <div className="relative mx-auto max-w-5xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-28 sm:pb-20">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-medium tracking-wide text-primary sm:text-sm">
               <Sparkles className="size-4 shrink-0" />
               The outbound platform built for real conversations
