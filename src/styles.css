@@ -464,8 +464,13 @@
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.85em;
 }
+.cms-content .table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .cms-content table {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
