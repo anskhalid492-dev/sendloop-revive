@@ -20,6 +20,7 @@ import {
   MarketingLoading,
   MarketingPanel,
 } from "@/components/admin/marketing/MarketingUI";
+import { DomainSetupWizard } from "@/components/admin/marketing/DomainSetupWizard";
 import {
   deleteMarketingDomain,
   listMarketingDomains,
