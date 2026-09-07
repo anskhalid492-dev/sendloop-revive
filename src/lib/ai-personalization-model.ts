@@ -302,6 +302,7 @@ export type PersonalizationStats = {
   failed: number;
   queued: number;
   remaining: number;
+  blockedReason?: string | null;
 };
 
 export type AiPersonalizationCoverageLead = {
@@ -334,6 +335,8 @@ export type AiPersonalizationCoverage = {
   promptHashes: string[];
   sampleLeadId: string | null;
   sampleLead: AiPersonalizationCoverageLead | null;
+  /** Plain-language reason generation is stalled, when there is one. */
+  blockedReason: string | null;
 };
 
 
