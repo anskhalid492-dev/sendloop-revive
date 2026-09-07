@@ -1708,3 +1708,55 @@ export async function exportAdminLeadsCsv(
 
   return { csv: lines.join("\n"), count: rows.length };
 }
+
+/* ==================================================== bulk lead deletion */
+
+/**
+ * Permanently deletes contacts from the platform.
+ *
+ * Two scopes: an explicit id selection, or every row matching the current
+ * filters (resolved through `listAdminLeads`, so "all" means exactly what the
+ * admin sees in the table). Deletes run in chunks so one call can never build
+ * an unbounded statement, and campaign history survives because the dependent
+ * tables use ON DELETE SET NULL.
+ */
+export async function deleteAdminLeads(
+  actorId: string,
+  input: { ids?: string[]; filters?: AdminLeadFilters; scope?: "selected" | "all" },
+) {
+  const scope = input.scope ?? "selected";
+  const MAX = 20000;
+
+  let ids: string[] = [];
+  if (scope === "all") {
+    const pageSize = 200;
+    for (let page = 1; ids.length < MAX; page += 1) {
+      const result = await listAdminLeads({ ...(input.filters ?? {}), page, pageSize });
+      ids.push(...result.rows.map((r: any) => r.id));
+      if (result.rows.length < pageSize || ids.length >= (result.total ?? 0)) break;
+    }
+  } else {
+    ids = Array.from(new Set(input.ids ?? []));
+  }
+  ids = ids.filter(Boolean).slice(0, MAX);
+  if (!ids.length) return { deleted: 0 };
+
+  let deleted = 0;
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
+    const { data, error } = await db().from("leads").delete().in("id", chunk).select("id");
+    if (error) throw new Error(error.message);
+    deleted += (data ?? []).length;
+  }
+
+  await db().from("admin_audit_log").insert({
+    actor_id: actorId,
+    action: "leads.bulk_delete",
+    target_type: "lead",
+    target_id: null,
+    target_label: `${deleted} contact${deleted === 1 ? "" : "s"}`,
+    detail: { scope, requested: ids.length, deleted, filters: input.filters ?? null },
+  });
+
+  return { deleted };
+}
