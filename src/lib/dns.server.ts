@@ -34,7 +34,6 @@ function infra() {
     base,
     spfInclude: process.env["SENDING_SPF_INCLUDE"] || `_spf.${base}`,
     dkimHost: process.env["SENDING_DKIM_HOST"] || `dkim.${base}`,
-    trackingHost: process.env["SENDING_TRACKING_HOST"] || `track.${base}`,
     dmarcRua: process.env["SENDING_DMARC_RUA"] || `dmarc@${base}`,
   };
 }
@@ -73,17 +72,11 @@ export function buildDnsRecords(domain: string, dkimSelector: string): DnsRecord
       required: true,
       purpose: "Publishes your alignment policy and reporting address.",
     },
-    {
-      kind: "tracking",
-      type: "CNAME",
-      host: "track",
-      fqdn: `track.${d}`,
-      value: cfg.trackingHost,
-      ttl: 3600,
-      required: false,
-      purpose: "Custom tracking domain for open and click links (recommended).",
-    },
+    // No generic tracking record here: open/click tracking is provider-specific
+    // and lives in `@/lib/domain-tracking` so a value from one provider is never
+    // shown for another.
   ];
+
 }
 
 type DohAnswer = { name: string; type: number; data: string };

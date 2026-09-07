@@ -36,6 +36,8 @@ type Dict = Record<string, unknown>;
 /** SES event type -> the flat `type` string the shared classifier reads. */
 const EVENT_TYPE_MAP: Record<string, string> = {
   send: "email.sent",
+  open: "email.opened",
+  click: "email.clicked",
   delivery: "email.delivered",
   bounce: "email.bounced",
   complaint: "email.complained",
