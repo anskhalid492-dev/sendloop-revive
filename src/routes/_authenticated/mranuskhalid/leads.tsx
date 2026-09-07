@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -137,6 +137,14 @@ function AdminLeadsPage() {
         : prev.filter((id) => !pageIds.includes(id)),
     );
   }
+
+  // Changing filters or page changes what "all matching" means, so a stale
+  // selection can never be carried into a delete.
+  const filterKey = JSON.stringify(filters);
+  useEffect(() => {
+    setSelected([]);
+    setSelectAllMatching(false);
+  }, [filterKey]);
 
   const deleteMutation = useMutation({
     mutationFn: () =>
