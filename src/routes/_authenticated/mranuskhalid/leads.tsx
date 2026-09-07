@@ -40,6 +40,7 @@ import {
   num,
 } from "@/components/app/admin/OutreachUI";
 import {
+  adminDeleteLeads,
   adminExportLeads,
   adminGetLead,
   adminListLeads,
@@ -113,6 +114,48 @@ function AdminLeadsPage() {
   const total = leadsQuery.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / 50));
 
+  const pageIds = useMemo(() => rows.map((r: any) => r.id as string), [rows]);
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const pageAllSelected = pageIds.length > 0 && pageIds.every((id) => selectedSet.has(id));
+  const deleteCount = selectAllMatching ? total : selected.length;
+
+  function clearSelection() {
+    setSelected([]);
+    setSelectAllMatching(false);
+  }
+
+  function toggleRow(id: string, checked: boolean) {
+    setSelectAllMatching(false);
+    setSelected((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
+  }
+
+  function togglePage(checked: boolean) {
+    setSelectAllMatching(false);
+    setSelected((prev) =>
+      checked
+        ? [...new Set([...prev, ...pageIds])]
+        : prev.filter((id) => !pageIds.includes(id)),
+    );
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: () =>
+      deleteLeads({
+        data: selectAllMatching
+          ? { scope: "all" as const, filters }
+          : { scope: "selected" as const, ids: selected },
+      }),
+    onSuccess: (result: any) => {
+      toast.success(
+        `${num(result.deleted)} contact${result.deleted === 1 ? "" : "s"} permanently deleted.`,
+      );
+      clearSelection();
+      setConfirmDelete(false);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "outreach", "leads"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "Could not delete these contacts."),
+  });
+
   const scopedLists = (options.data?.lists ?? []).filter(
     (l: any) => workspace === "all" || l.workspaceId === workspace,
   );
@@ -140,7 +183,7 @@ function AdminLeadsPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Leads"
-        description="Every contact stored on the platform, labelled by workspace. Read-only support view — contacts are never edited or deleted from here."
+        description="Every contact stored on the platform, labelled by workspace. Select contacts to remove them permanently — deletion cannot be undone."
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -225,6 +268,31 @@ function AdminLeadsPage() {
         />
       </FilterBar>
 
+      {deleteCount > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
+          <span className="text-sm font-medium">
+            {num(deleteCount)} contact{deleteCount === 1 ? "" : "s"} selected
+          </span>
+          {!selectAllMatching && pageAllSelected && total > selected.length ? (
+            <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setSelectAllMatching(true)}>
+              Select all {num(total)} matching contacts
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="sm" onClick={clearSelection}>
+            Clear selection
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="ml-auto"
+            disabled={deleteMutation.isPending}
+            onClick={() => setConfirmDelete(true)}
+          >
+            {deleteMutation.isPending ? "Deleting…" : "Delete selected"}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="rounded-xl border bg-card">
         {leadsQuery.isLoading ? (
           <LoadingRows />
@@ -236,6 +304,13 @@ function AdminLeadsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={pageAllSelected}
+                    onCheckedChange={(v) => togglePage(v === true)}
+                    aria-label="Select all contacts on this page"
+                  />
+                </TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Workspace</TableHead>
@@ -248,6 +323,13 @@ function AdminLeadsPage() {
             <TableBody>
               {rows.map((row: any) => (
                 <TableRow key={row.id} className="cursor-pointer" onClick={() => setOpenId(row.id)}>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectAllMatching || selectedSet.has(row.id)}
+                      onCheckedChange={(v) => toggleRow(row.id, v === true)}
+                      aria-label={`Select ${row.email}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="font-medium">{row.name ?? row.email}</div>
                     <div className="text-xs text-muted-foreground">{row.email}</div>
@@ -292,6 +374,31 @@ function AdminLeadsPage() {
           Next
         </Button>
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {num(deleteCount)} contact{deleteCount === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {selectAllMatching ? "every contact matching the current filters" : "the selected contacts"} from the platform. Campaign history, messages and replies are kept, but the contact records cannot be restored.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteMutation.mutate();
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={Boolean(openId)} onOpenChange={(open) => !open && setOpenId(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-3xl">
