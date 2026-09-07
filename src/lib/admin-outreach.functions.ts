@@ -265,3 +265,22 @@ export const adminExportLeads = createServerFn({ method: "POST" })
     const { exportAdminLeadsCsv } = await import("./admin-outreach.server");
     return exportAdminLeadsCsv(data);
   });
+
+/** Permanently deletes selected contacts, or every contact matching the filters. */
+export const adminDeleteLeads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        ids: z.array(uuid).max(1000).optional(),
+        scope: z.enum(["selected", "all"]).optional(),
+        filters: leadFilters.optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { deleteAdminLeads } = await import("./admin-outreach.server");
+    return deleteAdminLeads(context.userId, data);
+  });
