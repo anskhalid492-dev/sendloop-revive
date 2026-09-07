@@ -710,8 +710,26 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
     for (const workspaceId of new Set(campaignRows.map((c) => c.workspace_id))) {
       credsByWorkspace.set(workspaceId, await workspaceAiCredentials(admin, workspaceId));
     }
-    /** Workspaces whose key just failed — their remaining jobs stay queued. */
-    const blockedWorkspaces = new Set<string>();
+    /**
+     * Workspaces that cannot generate right now (no key, plan allowance spent,
+     * OpenAI key/credit/rate problem). This is NOT the lead's fault, so their
+     * remaining jobs stay QUEUED with the reason attached — marking them failed
+     * would burn thousands of leads for a condition that clears by itself.
+     */
+    const blockedWorkspaces = new Map<string, string>();
+
+    const requeue = async (jobId: string, reason: string) => {
+      await admin
+        .from("ai_personalizations")
+        .update({
+          status: "queued",
+          error: reason,
+          locked_by: null,
+          locked_until: null,
+          completed_at: null,
+        })
+        .eq("id", jobId);
+    };
 
     const { data: leads } = await admin
       .from("leads")
@@ -738,28 +756,18 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         return;
       }
 
-      if (blockedWorkspaces.has(settings.workspaceId)) {
-        await admin
-          .from("ai_personalizations")
-          .update({ status: "queued", locked_by: null, locked_until: null })
-          .eq("id", job.id);
+      const blocked = blockedWorkspaces.get(settings.workspaceId);
+      if (blocked) {
+        await requeue(job.id, blocked);
         return;
       }
 
       const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
       if (!credentials) {
-        blockedWorkspaces.add(settings.workspaceId);
-        await admin
-          .from("ai_personalizations")
-          .update({
-            status: "failed",
-            error: "No OpenAI API key is connected for this workspace.",
-            locked_by: null,
-            locked_until: null,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", job.id);
-        result.failed += 1;
+        const reason = "No OpenAI API key is connected for this workspace.";
+        blockedWorkspaces.set(settings.workspaceId, reason);
+        result.skipped = reason;
+        await requeue(job.id, reason);
         return;
       }
 
@@ -783,18 +791,11 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         }
       } catch (error) {
         if (error instanceof EntitlementError) {
-          blockedWorkspaces.add(settings.workspaceId);
-          await admin
-            .from("ai_personalizations")
-            .update({
-              status: "failed",
-              error: error.message,
-              locked_by: null,
-              locked_until: null,
-              completed_at: new Date().toISOString(),
-            })
-            .eq("id", job.id);
-          result.failed += 1;
+          // Plan limits clear on upgrade or at the next billing period — hold
+          // the leads instead of destroying them.
+          blockedWorkspaces.set(settings.workspaceId, error.message);
+          result.skipped = error.message;
+          await requeue(job.id, error.message);
           return;
         }
         throw error;
@@ -835,6 +836,17 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       } catch (error) {
         // Nothing was charged unless a generation actually completed.
         const failure = error instanceof AiGatewayError ? error : mapGatewayError(error);
+
+        // Key, credit and rate-limit problems belong to the workspace, not the
+        // lead: park the workspace and keep every one of its leads queued.
+        const workspaceLevel = [401, 402, 403, 429].includes(failure.status);
+        if (workspaceLevel) {
+          blockedWorkspaces.set(settings.workspaceId, failure.message);
+          result.skipped = failure.message;
+          await requeue(job.id, failure.message);
+          return;
+        }
+
         const terminal = !failure.retryable || job.attempts >= 3;
         await admin
           .from("ai_personalizations")
@@ -847,15 +859,9 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
           })
           .eq("id", job.id);
         if (terminal) result.failed += 1;
-
-        // Key/credit/rate problems are per customer: park that workspace only.
-        if ([401, 402, 403, 429].includes(failure.status)) {
-          blockedWorkspaces.add(settings.workspaceId);
-          if (failure.status === 429)
-            result.skipped = "a workspace hit its OpenAI rate limit — its leads stay queued";
-        }
       }
     });
+
 
     return result;
   } finally {
