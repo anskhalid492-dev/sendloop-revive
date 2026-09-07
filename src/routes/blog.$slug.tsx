@@ -197,7 +197,7 @@ function ArticlePage() {
         </div>
 
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div>
               <div className="aspect-[16/8] overflow-hidden rounded-2xl border border-border">
                 <CoverImage post={post} />

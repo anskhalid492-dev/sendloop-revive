@@ -467,6 +467,8 @@
 .cms-content .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  min-width: 0;
 }
 .cms-content table {
   width: 100%;

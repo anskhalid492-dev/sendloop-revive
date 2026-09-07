@@ -82,6 +82,13 @@ export function parseHtmlToc(html: string): ArticleSection[] {
   return sections;
 }
 
+function wrapTables(html: string): string {
+  if (!html.includes("<table")) return html;
+  return html
+    .replace(/<table\b/g, '<div class="table-wrap"><table')
+    .replace(/<\/table>/g, "</table></div>");
+}
+
 /**
  * Renders rich-text posts authored in the admin CMS. Content is written by
  * platform admins only, so it is rendered as-is with editor styling.
@@ -90,7 +97,7 @@ export function HtmlArticleBody({ html }: { html: string }) {
   return (
     <div
       className="cms-content"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: wrapTables(html) }}
     />
   );
 }
