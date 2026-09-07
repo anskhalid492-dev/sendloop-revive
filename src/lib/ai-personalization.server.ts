@@ -734,6 +734,10 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         .update({
           status: "queued",
           error: reason,
+          // Claims consume an attempt before generation starts. Workspace-level
+          // holds are not lead failures, so they must not exhaust the claim RPC's
+          // attempts < 4 guard while a key, plan or rate-limit issue is unresolved.
+          attempts: 0,
           locked_by: null,
           locked_until: null,
           completed_at: null,
