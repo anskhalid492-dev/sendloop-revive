@@ -6779,6 +6779,81 @@ export type Database = {
           },
         ]
       }
+      sending_domain_tracking: {
+        Row: {
+          created_at: string
+          custom_tracking_enabled: boolean
+          domain_id: string
+          fingerprint: string
+          id: string
+          last_error: string | null
+          provider_id: string | null
+          provider_region: string | null
+          provider_tracking_identifier: string | null
+          provider_type: string | null
+          records: Json
+          tracking_enabled: boolean
+          tracking_hostname: string | null
+          tracking_status: string
+          updated_at: string
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_tracking_enabled?: boolean
+          domain_id: string
+          fingerprint?: string
+          id?: string
+          last_error?: string | null
+          provider_id?: string | null
+          provider_region?: string | null
+          provider_tracking_identifier?: string | null
+          provider_type?: string | null
+          records?: Json
+          tracking_enabled?: boolean
+          tracking_hostname?: string | null
+          tracking_status?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_tracking_enabled?: boolean
+          domain_id?: string
+          fingerprint?: string
+          id?: string
+          last_error?: string | null
+          provider_id?: string | null
+          provider_region?: string | null
+          provider_tracking_identifier?: string | null
+          provider_type?: string | null
+          records?: Json
+          tracking_enabled?: boolean
+          tracking_hostname?: string | null
+          tracking_status?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sending_domain_tracking_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: true
+            referencedRelation: "sending_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sending_domain_tracking_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sending_domains: {
         Row: {
           created_at: string
