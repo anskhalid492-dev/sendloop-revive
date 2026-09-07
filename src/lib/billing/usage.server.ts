@@ -349,6 +349,86 @@ function meterError(resource: UsageResource, decision: MeterDecision): Entitleme
   });
 }
 
+/**
+ * Reserves metered usage directly when the database meter refused under a plan
+ * it resolved itself. Used only by the grant-aware override below.
+ */
+async function reserveCounter(
+  workspaceId: string,
+  resource: string,
+  periodStart: string,
+  used: number,
+  amount: number,
+) {
+  const db = await admin();
+  await db
+    .from("workspace_usage_counters")
+    .upsert(
+      {
+        workspace_id: workspaceId,
+        resource,
+        period_start: periodStart,
+        used: used + amount,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "workspace_id,resource,period_start" },
+    );
+}
+
+/**
+ * The database meter resolves the plan from the workspace subscription only, so
+ * it never sees a plan a staff member granted manually. `getEntitlement` does.
+ * When the two disagree we widen (never tighten) the allowance to the granted
+ * plan, and reserve the usage ourselves if the meter had refused to.
+ */
+async function applyGrantAwareLimits(
+  workspaceId: string,
+  resource: UsageResource,
+  amount: number,
+  dryRun: boolean,
+  decision: MeterDecision,
+): Promise<MeterDecision> {
+  const entitlement = await getEntitlement(workspaceId);
+  const def = resourceDefinition(resource);
+  const toNum = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  const limit = toNum(entitlement.limits[def.limitKey]);
+  const dailyLimit =
+    resource === "emails_monthly" ? toNum(entitlement.limits["max_emails_daily"]) : decision.dailyLimit;
+
+  const wider =
+    (limit === null && decision.limit !== null) ||
+    (limit !== null && decision.limit !== null && limit > decision.limit) ||
+    (resource === "emails_monthly" &&
+      ((dailyLimit === null && decision.dailyLimit !== null) ||
+        (dailyLimit !== null && decision.dailyLimit !== null && dailyLimit > decision.dailyLimit)));
+  if (!wider) return { ...decision, planName: entitlement.planName };
+
+  const withinMonthly = limit === null || decision.used + amount <= limit;
+  const withinDaily =
+    resource !== "emails_monthly" || dailyLimit === null || decision.dailyUsed + amount <= dailyLimit;
+  const allowed = decision.allowed || (withinMonthly && withinDaily);
+
+  const next: MeterDecision = {
+    ...decision,
+    limit,
+    dailyLimit,
+    planName: entitlement.planName,
+    allowed,
+    reason: allowed ? null : !withinMonthly ? "plan_limit" : "daily_limit",
+  };
+
+  if (!dryRun && amount > 0 && allowed && !decision.allowed) {
+    await reserveCounter(workspaceId, resource, decision.periodStart, decision.used, amount);
+    next.used = decision.used + amount;
+    if (resource === "emails_monthly") {
+      await reserveCounter(workspaceId, "emails_daily", dayKey(), decision.dailyUsed, amount);
+      next.dailyUsed = decision.dailyUsed + amount;
+    }
+  }
+  next.remaining = limit === null ? null : Math.max(limit - next.used, 0);
+  return next;
+}
+
 async function callMeter(
   workspaceId: string,
   resource: UsageResource,
@@ -368,8 +448,15 @@ async function callMeter(
     _reason: reason ?? null,
   });
   if (error) throw new Error(error.message);
-  return toDecision(data, "current");
+  return applyGrantAwareLimits(
+    workspaceId,
+    resource,
+    Math.trunc(amount),
+    dryRun,
+    toDecision(data, "current"),
+  );
 }
+
 
 /**
  * Read-only entitlement evaluation for a metered resource. The plan, billing
