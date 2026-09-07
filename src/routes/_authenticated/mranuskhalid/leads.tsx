@@ -76,7 +76,12 @@ function AdminLeadsPage() {
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
   const [exporting, setExporting] = useState<"page" | "all" | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [selectAllMatching, setSelectAllMatching] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const exportLeads = useServerFn(adminExportLeads);
+  const deleteLeads = useServerFn(adminDeleteLeads);
+  const queryClient = useQueryClient();
 
   const options = useQuery({
     queryKey: ["admin", "outreach", "filters"],
