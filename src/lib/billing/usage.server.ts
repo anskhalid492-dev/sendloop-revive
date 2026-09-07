@@ -395,18 +395,19 @@ async function applyGrantAwareLimits(
   const dailyLimit =
     resource === "emails_monthly" ? toNum(entitlement.limits["max_emails_daily"]) : decision.dailyLimit;
 
-  const wider =
-    (limit === null && decision.limit !== null) ||
-    (limit !== null && decision.limit !== null && limit > decision.limit) ||
-    (resource === "emails_monthly" &&
-      ((dailyLimit === null && decision.dailyLimit !== null) ||
-        (dailyLimit !== null && decision.dailyLimit !== null && dailyLimit > decision.dailyLimit)));
-  if (!wider) return { ...decision, planName: entitlement.planName };
+  // The entitlement is authoritative whenever it disagrees with the database
+  // meter — that happens for admin-granted plans, which the meter cannot see.
+  const differs =
+    limit !== decision.limit ||
+    dailyLimit !== decision.dailyLimit ||
+    entitlement.planName !== decision.planName;
+  if (!differs) return { ...decision, planName: entitlement.planName };
 
   const withinMonthly = limit === null || decision.used + amount <= limit;
   const withinDaily =
     resource !== "emails_monthly" || dailyLimit === null || decision.dailyUsed + amount <= dailyLimit;
-  const allowed = decision.allowed || (withinMonthly && withinDaily);
+  const allowed = withinMonthly && withinDaily;
+
 
   const next: MeterDecision = {
     ...decision,
