@@ -1722,7 +1722,11 @@ export async function exportAdminLeadsCsv(
  */
 export async function deleteAdminLeads(
   actorId: string,
-  input: { ids?: string[]; filters?: AdminLeadFilters; scope?: "selected" | "all" },
+  input: {
+    ids?: string[] | undefined;
+    filters?: AdminLeadFilters | undefined;
+    scope?: "selected" | "all" | undefined;
+  },
 ) {
   const scope = input.scope ?? "selected";
   const MAX = 20000;
