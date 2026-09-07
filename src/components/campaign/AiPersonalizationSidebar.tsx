@@ -250,6 +250,12 @@ export function AiPersonalizationSidebar({
             {stats?.paused ? (
               <p className="text-xs text-destructive">{stats.paused}</p>
             ) : null}
+            {stats?.blockedReason && !stats.paused ? (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+                <span className="font-medium">Generation is held up: </span>
+                {stats.blockedReason}
+              </div>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={() => generate.mutate(false)} disabled={generate.isPending}>
                 {generate.isPending ? (
