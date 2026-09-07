@@ -18,7 +18,13 @@ import { sesRequest } from "./ses-api.server";
 import { INBOUND_WEBHOOK_PATH } from "./webhook-status.server";
 import type { EmailProviderCredentials, UnifiedWebhookEntry } from "./types";
 
-/** SES event types MunchReach's provider-neutral processor understands. */
+/**
+ * SES event types MunchReach's provider-neutral processor understands.
+ *
+ * OPEN and CLICK are included so engagement analytics receive real provider
+ * signals as soon as tracking is in place — without them SES publishes no open
+ * event at all and the open rate could only ever read 0%.
+ */
 export const SES_EVENT_TYPES = [
   "SEND",
   "DELIVERY",
@@ -27,6 +33,8 @@ export const SES_EVENT_TYPES = [
   "REJECT",
   "DELIVERY_DELAY",
   "RENDERING_FAILURE",
+  "OPEN",
+  "CLICK",
 ] as const;
 
 export const SES_EVENT_DESTINATION_NAME = "munchreach-sns-events";
@@ -146,4 +154,28 @@ export async function listSesWebhookEntries(
       status: d.Enabled ? "enabled" : "disabled",
       events: d.MatchingEventTypes ?? [],
     }));
+}
+
+/**
+ * Points the configuration set at the customer's verified tracking domain.
+ *
+ * SES only emits OPEN/CLICK events for mail sent through a configuration set,
+ * and the redirect/pixel links must live on a domain the recipient trusts. This
+ * is called once a tracking CNAME has actually verified — never before, so a
+ * broken redirect domain can never be published.
+ */
+export async function ensureSesTrackingOptions(
+  creds: EmailProviderCredentials | null | undefined,
+  trackingDomain: string,
+): Promise<{ ok: boolean; detail: string }> {
+  const name = sesConfigurationSetName();
+  if (!name) return { ok: false, detail: "Event publishing is not configured." };
+  const host = trackingDomain.trim().toLowerCase();
+  if (!host) return { ok: false, detail: "No tracking hostname to configure." };
+
+  const res = await sesRequest<unknown>(creds, "PUT", `${setPath(name)}/tracking-options`, {
+    CustomRedirectDomain: host,
+  });
+  if (!res.ok && res.status !== 409) return { ok: false, detail: res.detail };
+  return { ok: true, detail: "Open and click tracking is active for this domain." };
 }
