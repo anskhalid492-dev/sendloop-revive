@@ -461,6 +461,7 @@ export async function campaignAiCoverage(
       promptHashes: [] as string[],
       sampleLeadId: null as string | null,
       sampleLead: null,
+      blockedReason: null as string | null,
     };
   }
 
@@ -470,10 +471,11 @@ export async function campaignAiCoverage(
     content: string | null;
     quality: string | null;
     prompt_hash: string | null;
+    error: string | null;
   }>(leadIds, (ids) =>
     supabase
       .from("ai_personalizations")
-      .select("lead_id, status, content, quality, prompt_hash")
+      .select("lead_id, status, content, quality, prompt_hash, error")
       .eq("campaign_id", campaignId)
       .eq("workspace_id", workspaceId)
       .in("lead_id", ids),
@@ -486,6 +488,8 @@ export async function campaignAiCoverage(
   let complete = 0;
   let limited = 0;
   let fallback = 0;
+  /** Why generation is not progressing, counted so the UI shows the real cause. */
+  const reasons = new Map<string, number>();
 
   for (const row of rows) {
     if (row.prompt_hash) promptHashes.add(row.prompt_hash);
@@ -499,10 +503,15 @@ export async function campaignAiCoverage(
       validLeadIds.add(row.lead_id);
     } else if (row.status === "queued" || row.status === "processing") {
       queuedLeadIds.add(row.lead_id);
+      if (row.error?.trim()) reasons.set(row.error.trim(), (reasons.get(row.error.trim()) ?? 0) + 1);
     } else if (row.status === "failed") {
       failedLeadIds.add(row.lead_id);
+      if (row.error?.trim()) reasons.set(row.error.trim(), (reasons.get(row.error.trim()) ?? 0) + 1);
     }
   }
+
+  const blockedReason =
+    [...reasons.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
   const sampleLeadId = leadIds.find((leadId) => validLeadIds.has(leadId)) ?? null;
   let sampleLead: AiPersonalizationCoverage["sampleLead"] = null;
@@ -551,6 +560,7 @@ export async function campaignAiCoverage(
     promptHashes: [...promptHashes],
     sampleLeadId,
     sampleLead,
+    blockedReason,
   };
 }
 

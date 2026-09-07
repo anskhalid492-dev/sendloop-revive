@@ -388,6 +388,7 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
       failed: coverage.failed,
       queued: coverage.queued,
       remaining: coverage.missing,
+      blockedReason: coverage.blockedReason,
       paused: (runnerRes.data?.paused_reason as string | null) ?? null,
     };
   });
