@@ -107,6 +107,38 @@ function DomainsPage() {
 
   return (
     <div className="space-y-6">
+      <DomainSetupWizard providers={providers.data ?? []} />
+
+      <MarketingPanel
+        title="Provider connections"
+        description="Connection details are encrypted server-side and never returned to the browser. Update them in step 1 of the wizard above."
+      >
+        {(providers.data ?? []).length === 0 ? (
+          <MarketingEmpty title="No providers configured yet" />
+        ) : (
+          <div className="space-y-2">
+            {(providers.data ?? []).map((provider) => (
+              <div
+                key={provider.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3"
+              >
+                <div>
+                  <p className="text-sm font-medium">{provider.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {provider.providerType} ·{" "}
+                    {provider.hasCredentials ? "details saved" : "no details saved"}
+                    {provider.lastTestMessage ? ` · ${provider.lastTestMessage}` : ""}
+                  </p>
+                </div>
+                <Badge variant={provider.connectionStatus === "connected" ? "default" : "outline"}>
+                  {provider.connectionStatus}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </MarketingPanel>
+
       <MarketingPanel
         title="Add a dedicated marketing domain"
         description="Marketing mail must never share a domain with customer cold outbound — a marketing complaint would otherwise damage outbound reputation."
