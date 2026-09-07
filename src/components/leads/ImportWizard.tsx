@@ -113,6 +113,14 @@ export function ImportWizard({
   const [rows, setRows] = useState<Array<Record<string, string>>>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [listId, setListId] = useState<string | null>(defaultListId);
+
+  // The wizard stays mounted, so the destination must follow the folder the
+  // customer is actually looking at each time they open it — otherwise the
+  // import silently lands in "All leads".
+  useEffect(() => {
+    if (open) setListId(defaultListId);
+  }, [open, defaultListId]);
+
   const [tagInput, setTagInput] = useState("");
   const [duplicates, setDuplicates] = useState<string[]>([]);
   const [verified, setVerified] = useState<boolean | null>(null);
