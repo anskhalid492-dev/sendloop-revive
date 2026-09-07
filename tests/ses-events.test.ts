@@ -103,3 +103,31 @@ describe("SES adapter event wiring", () => {
     expect((await ensureSesEventPublishing({})).ok).toBe(false);
   });
 });
+
+describe("ses open and click tracking", () => {
+  it("subscribes the event destination to OPEN and CLICK", async () => {
+    const { SES_EVENT_TYPES } = await import("@/lib/email-providers/ses-events.server");
+    expect(SES_EVENT_TYPES).toContain("OPEN");
+    expect(SES_EVENT_TYPES).toContain("CLICK");
+  });
+
+  it("refuses to set a tracking domain when publishing is not configured", async () => {
+    delete process.env["AWS_SES_CONFIGURATION_SET"];
+    const { ensureSesTrackingOptions } = await import("@/lib/email-providers/ses-events.server");
+    expect((await ensureSesTrackingOptions({}, "track.example.com")).ok).toBe(false);
+  });
+
+  it("maps provider open and click events to engagement types", async () => {
+    const { sesEmailProvider } = await import("@/lib/email-providers/ses.server");
+    const mail = { messageId: "abc", destination: ["lead@example.com"] };
+    for (const [eventType, expected] of [
+      ["Open", "opened"],
+      ["Click", "clicked"],
+    ] as const) {
+      const flat = sesEmailProvider.normalizeWebhookPayload?.(
+        sns({ eventType, mail }) as Record<string, unknown>,
+      );
+      expect(classifyEvent(flat!)).toBe(expected);
+    }
+  });
+});

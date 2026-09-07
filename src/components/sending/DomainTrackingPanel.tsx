@@ -155,6 +155,12 @@ export function DomainTrackingPanel({ domainId }: { domainId: string }) {
             </div>
           ) : null}
 
+          {config.status === "verified" ? (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              Opens and clicks from new sends now appear on your Analytics page in real time.
+            </p>
+          ) : null}
+
           {config.lastError && config.status !== "verified" ? (
             <p className="text-xs text-destructive">{config.lastError}</p>
           ) : null}

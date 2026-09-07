@@ -187,6 +187,31 @@ export async function verifyDomainTrackingConfig(
     verifiedAt: status === "verified" ? new Date().toISOString() : null,
     lastError: status === "verified" ? null : (failure?.message ?? null),
   };
+
+  // Verified tracking DNS is only half the job: the provider must also be told
+  // to use that hostname for opens and clicks, otherwise it never emits an open
+  // event and analytics could only ever show 0%.
+  if (status === "verified" && config.providerType === "ses" && config.trackingHostname) {
+    try {
+      const { resolveDomainProvider } = await import("@/lib/domain-verification.server");
+      const provider = await resolveDomainProvider(admin, {
+        provider: row.provider,
+        providerId: row.provider_id,
+        key: row.domain,
+      });
+      const { ensureSesTrackingOptions } = await import(
+        "@/lib/email-providers/ses-events.server"
+      );
+      const applied = await ensureSesTrackingOptions(
+        provider?.credentials ?? null,
+        config.trackingHostname,
+      );
+      if (!applied.ok) verified.lastError = applied.detail;
+    } catch {
+      /* tracking activation must never block domain verification */
+    }
+  }
+
   await persist(admin, row, verified);
   return verified;
 }
