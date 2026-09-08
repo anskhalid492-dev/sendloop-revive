@@ -67,7 +67,7 @@ export async function launchCampaignService(
 
 
     // Validate against the persisted audience relationship, never frontend state.
-    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent, refreshReadiness } =
+    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent } =
       await import("@/lib/campaign-launch.server");
 
     const readiness = await evaluateLaunchReadiness(supabase, c.id);
@@ -394,9 +394,11 @@ export async function launchCampaignService(
       .eq("campaign_id", c.id)
       .eq("status", "scheduled");
 
-    const postReadiness = await refreshReadiness(supabase, c.id);
     await recordLaunchEvent(supabase, {
-      readiness: { ...readiness, ...postReadiness, issues: readiness.issues },
+      // Launch validation already computed and persisted this exact snapshot.
+      // Re-running it here duplicated the full audience read while all launch
+      // rows were still resident in memory, which could exhaust the worker.
+      readiness,
       actorId: actorId,
       outcome: "launched",
       queuedMessages: scheduledCount ?? 0,
