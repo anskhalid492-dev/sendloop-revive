@@ -165,6 +165,50 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
   });
 }
 
+/** Per-campaign totals aggregated by `campaign_overview_rollup` in Postgres. */
+export type CampaignRollupRow = {
+  campaign_id: string;
+  leads: number;
+  sent: number;
+  sent_today: number;
+  bounced: number;
+  failed: number;
+  replies: number;
+  positive_replies: number;
+  meetings: number;
+};
+
+/**
+ * Overlay database-side aggregates onto the listing rows.
+ *
+ * The listing never downloads recipients or messages, so these numbers are the
+ * authoritative ones: a campaign with 10,000 leads costs the same as one with
+ * ten.
+ */
+export function applyCampaignRollup(
+  rows: CampaignOverviewRow[],
+  rollup: readonly CampaignRollupRow[],
+  displayStatus: typeof deriveDisplayStatus = deriveDisplayStatus,
+): CampaignOverviewRow[] {
+  const n = (value: unknown) => Number(value ?? 0) || 0;
+  const byId = new Map(rollup.map((r) => [r.campaign_id, r]));
+  for (const row of rows) {
+    const hit = byId.get(row.id);
+    if (!hit) continue;
+    row.leads = n(hit.leads);
+    row.sent = n(hit.sent);
+    row.sentToday = n(hit.sent_today);
+    row.bounced = n(hit.bounced);
+    row.failed = n(hit.failed);
+    row.replies = n(hit.replies);
+    row.positiveReplies = n(hit.positive_replies);
+    row.meetings = n(hit.meetings);
+    row.replyRate = row.sent > 0 ? (row.replies / row.sent) * 100 : 0;
+    row.displayStatus = displayStatus(row.status, row.sent, row.failed);
+  }
+  return rows;
+}
+
 export const CAMPAIGN_STATUS_STYLES: Record<CampaignOverviewRow["displayStatus"], string> = {
   draft: "bg-muted text-muted-foreground",
   active: "bg-emerald-500/15 text-emerald-600",
