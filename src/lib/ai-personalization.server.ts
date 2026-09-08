@@ -13,11 +13,15 @@ import {
   AI_TOKEN,
   frameworkGuidance,
   normalizeAiConfig,
-  type AiPersonalizationCoverage,
   type AiPersonalizationConfig,
-  type FallbackMode,
   type PersonalizationField,
 } from "@/lib/ai-personalization-model";
+import {
+  aiExtras,
+  LEAD_AI_COLUMNS,
+  personalizationByLead,
+  promptFingerprint,
+} from "@/lib/ai-personalization-meta.server";
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,8 +34,8 @@ const RUNNER_KEY = "ai_personalization";
  * network-bound, so a wide-but-capped pool turns a 1,000-lead list from an
  * hour-long trickle into a handful of seconds per run.
  */
-const BATCH_SIZE = 120;
-const CONCURRENCY = 20;
+const BATCH_SIZE = 50;
+const CONCURRENCY = 5;
 
 /** Run `worker` over `items` with a bounded number of in-flight calls. */
 export async function mapWithConcurrency<T>(
@@ -95,9 +99,6 @@ export type LeadRecord = {
   notes?: string | null;
   custom_fields?: Record<string, string> | null;
 };
-
-export const LEAD_AI_COLUMNS =
-  "id, email, first_name, last_name, job_title, company, website, city, state, country, custom_fields";
 
 /**
  * Attach the most recent lead notes so "Lead notes" personalization has real
@@ -354,232 +355,13 @@ export async function generatePersonalization(
 
 
 /** Stable fingerprint of the settings a stored snippet was generated with. */
-export function promptFingerprint(config: AiPersonalizationConfig): string {
-  const payload = JSON.stringify({
-    l: config.level,
-    fw: config.framework,
-
-    t: config.tone,
-    n: config.length,
-    g: config.language,
-    i: config.instructions.trim(),
-    f: [...config.fields].sort(),
-    e: config.exampleOutput.trim(),
-  });
-  let h1 = 0x811c9dc5;
-  for (let i = 0; i < payload.length; i += 1) {
-    h1 ^= payload.charCodeAt(i);
-    h1 = Math.imul(h1, 0x01000193) >>> 0;
-  }
-  return h1.toString(16).padStart(8, "0");
-}
-
 /**
  * Values the sending pipeline substitutes for `{{ai_personalization}}`.
  *
  * `hold` means the lead must not be sent yet — the campaign owner chose to wait
  * for successful personalization rather than send a weaker email.
  */
-export function aiExtras(
-  config: AiPersonalizationConfig,
-  content: string | null,
-): { extras: Record<string, string>; hold: boolean } {
-  if (content && content.trim()) return { extras: { [AI_TOKEN]: content.trim() }, hold: false };
-  const mode: FallbackMode = config.fallbackMode;
-  if (mode === "hold") return { extras: {}, hold: true };
-  if (mode === "skip") return { extras: { [AI_TOKEN]: "" }, hold: false };
-  return { extras: { [AI_TOKEN]: config.fallbackText.trim() }, hold: false };
-}
-
 /** Completed snippets for a set of leads on one campaign, keyed by lead id. */
-export async function personalizationByLead(
-  supabase: Client,
-  campaignId: string,
-  leadIds: string[],
-): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  if (!leadIds.length) return out;
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("workspace_id")
-    .eq("id", campaignId)
-    .maybeSingle();
-  if (!campaign?.workspace_id) return out;
-  for (let i = 0; i < leadIds.length; i += 300) {
-    const { data } = await supabase
-      .from("ai_personalizations")
-      .select("lead_id, content, status")
-      .eq("campaign_id", campaignId)
-      .eq("workspace_id", campaign.workspace_id)
-      .eq("status", "completed")
-      .in("lead_id", leadIds.slice(i, i + 300));
-    for (const row of (data ?? []) as Array<{ lead_id: string; content: string | null }>) {
-      if (row.content?.trim()) out.set(row.lead_id, row.content.trim());
-    }
-  }
-  return out;
-}
-
-/** Exact coverage of stored AI snippets for the campaign's actual recipients. */
-export async function campaignAiCoverage(
-  supabase: Client,
-  campaignId: string,
-): Promise<AiPersonalizationCoverage> {
-  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
-
-  const { data: campaign, error: campaignError } = await supabase
-    .from("campaigns")
-    .select("id, workspace_id")
-    .eq("id", campaignId)
-    .maybeSingle();
-  if (campaignError) throw new Error(campaignError.message);
-  if (!campaign?.workspace_id) throw new Error("Campaign not found.");
-  const workspaceId = campaign.workspace_id as string;
-
-  const recipients = await fetchAllRows<{ lead_id: string }>(() =>
-    supabase
-      .from("campaign_recipients")
-      .select("lead_id")
-      .eq("campaign_id", campaignId)
-      .eq("workspace_id", workspaceId)
-      .order("id", { ascending: true }),
-  );
-  const leadIds = [...new Set(recipients.map((row) => row.lead_id).filter(Boolean))];
-
-  if (!leadIds.length) {
-    return {
-      campaignId,
-      workspaceId,
-      total: 0,
-      personalized: 0,
-      missing: 0,
-      queued: 0,
-      failed: 0,
-      complete: 0,
-      limited: 0,
-      fallback: 0,
-      promptHashes: [] as string[],
-      sampleLeadId: null as string | null,
-      sampleLead: null,
-      blockedReason: null as string | null,
-    };
-  }
-
-  const rows = await fetchByIds<{
-    lead_id: string;
-    status: string | null;
-    content: string | null;
-    quality: string | null;
-    prompt_hash: string | null;
-    error: string | null;
-  }>(leadIds, (ids) =>
-    supabase
-      .from("ai_personalizations")
-      .select("lead_id, status, content, quality, prompt_hash, error")
-      .eq("campaign_id", campaignId)
-      .eq("workspace_id", workspaceId)
-      .in("lead_id", ids),
-  );
-
-  const validLeadIds = new Set<string>();
-  const queuedLeadIds = new Set<string>();
-  const failedLeadIds = new Set<string>();
-  const promptHashes = new Set<string>();
-  let complete = 0;
-  let limited = 0;
-  let fallback = 0;
-  /** Why generation is not progressing, counted so the UI shows the real cause. */
-  const reasons = new Map<string, number>();
-
-  for (const row of rows) {
-    if (row.prompt_hash) promptHashes.add(row.prompt_hash);
-    if (row.status === "completed" && row.content?.trim()) {
-      if (!validLeadIds.has(row.lead_id)) {
-        const quality = row.quality ?? "complete";
-        if (quality === "limited") limited += 1;
-        else if (quality === "fallback") fallback += 1;
-        else complete += 1;
-      }
-      validLeadIds.add(row.lead_id);
-    } else if (row.status === "queued" || row.status === "processing") {
-      queuedLeadIds.add(row.lead_id);
-      if (row.error?.trim()) reasons.set(row.error.trim(), (reasons.get(row.error.trim()) ?? 0) + 1);
-    } else if (row.status === "failed") {
-      failedLeadIds.add(row.lead_id);
-      if (row.error?.trim()) reasons.set(row.error.trim(), (reasons.get(row.error.trim()) ?? 0) + 1);
-    }
-  }
-
-  const blockedReason =
-    [...reasons.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-
-  const sampleLeadId = leadIds.find((leadId) => validLeadIds.has(leadId)) ?? null;
-  let sampleLead: AiPersonalizationCoverage["sampleLead"] = null;
-  if (sampleLeadId) {
-    const { data: lead } = await supabase
-      .from("leads")
-      .select(
-        "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields",
-      )
-      .eq("id", sampleLeadId)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    sampleLead = lead
-      ? {
-          id: String(lead.id),
-          email: typeof lead.email === "string" ? lead.email : null,
-          first_name: typeof lead.first_name === "string" ? lead.first_name : null,
-          last_name: typeof lead.last_name === "string" ? lead.last_name : null,
-          company: typeof lead.company === "string" ? lead.company : null,
-          job_title: typeof lead.job_title === "string" ? lead.job_title : null,
-          country: typeof lead.country === "string" ? lead.country : null,
-          city: typeof lead.city === "string" ? lead.city : null,
-          state: typeof lead.state === "string" ? lead.state : null,
-          website: typeof lead.website === "string" ? lead.website : null,
-          phone: typeof lead.phone === "string" ? lead.phone : null,
-          linkedin_url: typeof lead.linkedin_url === "string" ? lead.linkedin_url : null,
-          custom_fields:
-            lead.custom_fields && typeof lead.custom_fields === "object" && !Array.isArray(lead.custom_fields)
-              ? (lead.custom_fields as Record<string, string>)
-              : null,
-        }
-      : null;
-  }
-
-  return {
-    campaignId,
-    workspaceId,
-    total: leadIds.length,
-    personalized: validLeadIds.size,
-    missing: Math.max(0, leadIds.length - validLeadIds.size),
-    queued: queuedLeadIds.size,
-    failed: failedLeadIds.size,
-    complete,
-    limited,
-    fallback,
-    promptHashes: [...promptHashes],
-    sampleLeadId,
-    sampleLead,
-    blockedReason,
-  };
-}
-
-/** Read the AI settings of a campaign with the caller's client. */
-export async function campaignAiSettings(
-  supabase: Client,
-  campaignId: string,
-): Promise<{ enabled: boolean; config: AiPersonalizationConfig }> {
-  const { data } = await supabase
-    .from("campaigns")
-    .select("ai_enabled, ai_config")
-    .eq("id", campaignId)
-    .maybeSingle();
-  return {
-    enabled: Boolean(data?.ai_enabled),
-    config: normalizeAiConfig(data?.ai_config),
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Background worker
 // ---------------------------------------------------------------------------
@@ -893,25 +675,6 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
  * exists used to have the AI line baked out of the email permanently. Callers
  * hold these leads back until generation settles.
  */
-export async function pendingPersonalizationLeads(
-  supabase: Client,
-  campaignId: string,
-  leadIds: string[],
-): Promise<Set<string>> {
-  const out = new Set<string>();
-  if (!leadIds.length) return out;
-  for (let i = 0; i < leadIds.length; i += 150) {
-    const { data } = await supabase
-      .from("ai_personalizations")
-      .select("lead_id, status")
-      .eq("campaign_id", campaignId)
-      .in("status", ["queued", "processing"])
-      .in("lead_id", leadIds.slice(i, i + 150));
-    for (const row of (data ?? []) as Array<{ lead_id: string }>) out.add(row.lead_id);
-  }
-  return out;
-}
-
 /**
  * Send-time safety net: resolve any `{{ai_personalization}}` still sitting in a
  * stored message, so a snippet that arrived after queueing is used instead of
