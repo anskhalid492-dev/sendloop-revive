@@ -330,12 +330,19 @@ export async function launchCampaignService(
       .eq("id", c.id);
     if (uErr) throw new Error(uErr.message);
 
-    // Real queued message count straight from the queue, for the audit trail.
-    const { count: scheduledCount } = await supabase
-      .from("campaign_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", c.id)
-      .eq("status", "scheduled");
+    // Real totals straight from the database, counted not listed.
+    const [{ count: scheduledCount }, { count: recipientTotal }] = await Promise.all([
+      supabase
+        .from("campaign_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", c.id)
+        .eq("status", "scheduled"),
+      supabase
+        .from("campaign_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", c.id),
+    ]);
+    const totalRecipients = recipientTotal ?? attached;
 
     await recordLaunchEvent(supabase, {
       // Launch validation already computed and persisted this exact snapshot.
@@ -345,7 +352,7 @@ export async function launchCampaignService(
       actorId: actorId,
       outcome: "launched",
       queuedMessages: scheduledCount ?? 0,
-      totalRecipients: already.size + fresh.length,
+      totalRecipients,
       firstSendAt: firstSlot,
     });
 
@@ -357,7 +364,7 @@ export async function launchCampaignService(
       idempotencyKey: `campaign.launched:${c.id as string}`,
       variables: {
         "campaign.name": c.name,
-        "campaign.recipients": String(already.size + fresh.length),
+        "campaign.recipients": String(totalRecipients),
         "campaign.status": "active",
       },
     });
@@ -372,15 +379,15 @@ export async function launchCampaignService(
       {
         campaign_id: c.id,
         name: c.name,
-        recipients: already.size + fresh.length,
-        queued: fresh.length,
+        recipients: totalRecipients,
+        queued: queuedMessages,
         first_send_at: firstSlot,
       },
     );
 
     return {
-      queued: fresh.length,
-      total: already.size + fresh.length,
+      queued: queuedMessages,
+      total: totalRecipients,
       firstSendAt: firstSlot,
       heldForAi,
     };
