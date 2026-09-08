@@ -33,18 +33,15 @@ export async function evaluateLaunchReadiness(
 
   const workspaceId: string = campaign.workspace_id;
 
-  // Anything already queued counts as a valid audience even if the campaign has
-  // no default list (leads can be attached one-by-one from the Leads tab).
-  // Paged: a plain select() caps at 1,000 rows, which under-reports the audience
-  // of large campaigns.
-  const { fetchAllRows } = await import("@/lib/supabase-batch");
-  const recipients = await fetchAllRows<{ lead_id: string; status: string }>(() =>
-    supabase.from("campaign_recipients").select("lead_id, status").eq("campaign_id", campaignId),
-  );
-  const queuedLeadIds = new Set(recipients.map((r) => r.lead_id));
-  const alreadyQueued = recipients.filter((r) =>
-    ["pending", "in_progress"].includes(r.status),
-  ).length;
+  // Audience sizes are counted inside Postgres. Reading the recipient and lead
+  // rows just to size them is what made readiness fail on large campaigns.
+  const { count: alreadyQueued, error: queuedError } = await supabase
+    .from("campaign_recipients")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId)
+    .in("status", ["pending", "in_progress"]);
+  if (queuedError) throw new Error(queuedError.message);
+  const queuedCount = alreadyQueued ?? 0;
 
   // Leads that are not in any list — surfaced in the UI so the user knows why
   // "All leads" looks populated while the campaign has no audience.
@@ -55,10 +52,10 @@ export async function evaluateLaunchReadiness(
     .in("status", LEAD_ELIGIBLE_STATUSES as unknown as string[]);
 
   let listName: string | null = null;
-  let eligibleLeadIds: string[] = [];
+  let eligibleCount = 0;
 
   if (!campaign.list_id) {
-    if (alreadyQueued === 0) {
+    if (queuedCount === 0) {
       issues.push({
         code: "no_list",
         message: "No lead list selected. Pick a saved list (or add leads on the Leads tab).",
@@ -84,16 +81,16 @@ export async function evaluateLaunchReadiness(
       });
     } else {
       listName = list.name;
-      const leadRows = await fetchAllRows<{ id: string }>(() =>
-        supabase
-          .from("leads")
-          .select("id")
-          .eq("list_id", campaign.list_id)
-          .in("status", LEAD_ELIGIBLE_STATUSES as unknown as string[]),
+      // Counted in the database: eligible = in this list, still "new", and not
+      // already attached to the campaign.
+      const { data: eligible, error: eErr } = await supabase.rpc(
+        "campaign_eligible_lead_count",
+        { _campaign_id: campaignId },
       );
-      eligibleLeadIds = leadRows.map((l) => l.id).filter((id) => !queuedLeadIds.has(id));
+      if (eErr) throw new Error(eErr.message);
+      eligibleCount = Number(eligible ?? 0) || 0;
 
-      if (eligibleLeadIds.length === 0 && alreadyQueued === 0) {
+      if (eligibleCount === 0 && queuedCount === 0) {
         issues.push({
           code: "list_empty",
           message: `“${list.name}” contains 0 eligible leads. Import or assign leads to this list first.`,
@@ -101,6 +98,7 @@ export async function evaluateLaunchReadiness(
       }
     }
   }
+
 
   // Mailboxes
   const accountIds: string[] = campaign.sending_account_ids ?? [];
