@@ -85,47 +85,24 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => workspaceScope.parse(input) ?? {})
   .handler(async ({ data, context }) => {
-    const { buildCampaignOverview, deriveDisplayStatus } = await import("@/lib/campaign-overview");
+    const { buildCampaignOverview, applyCampaignRollup, deriveDisplayStatus } = await import(
+      "@/lib/campaign-overview"
+    );
     const ws = data?.workspaceId;
     // Scope every read to the active workspace (platform admins can otherwise
     // read all tenants' rows through RLS).
     const scope = <T>(q: T): T => (ws ? (q as { eq: (c: string, v: string) => T }).eq("workspace_id", ws) : q);
 
-    // Every per-campaign aggregate is derived from these rows, so they must be
-    // read completely: a plain select() stops at 1,000 rows and made large
-    // audiences (e.g. 1,259 recipients) report as 1,000.
-    const { fetchAllRows } = await import("@/lib/supabase-batch");
-
-    const [campaignsRes, recipients, messages, replies, meetings, accountsRes] = await Promise.all([
+    // Every per-campaign number is aggregated inside Postgres. Reading the
+    // workspace's recipients, messages, replies and conversations into the
+    // server was what made this page fall over once a campaign held thousands
+    // of leads.
+    const [campaignsRes, accountsRes] = await Promise.all([
       scope(
         context.supabase
           .from("campaigns")
           .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
           .order("created_at", { ascending: false }),
-      ),
-      fetchAllRows(() =>
-        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")).order("id", {
-          ascending: true,
-        }),
-      ),
-      fetchAllRows(() =>
-        scope(
-          context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at, bounced_at"),
-        ).order("id", { ascending: true }),
-      ),
-      fetchAllRows(() =>
-        scope(
-          context.supabase
-            .from("campaign_replies")
-            .select("campaign_id, lead_id, from_email, sentiment"),
-        ).order("id", { ascending: true }),
-      ),
-      fetchAllRows(() =>
-        scope(
-          context.supabase
-            .from("conversations")
-            .select("campaign_id, lead_id, prospect_email, status"),
-        ).order("id", { ascending: true }),
       ),
       scope(
         context.supabase
@@ -139,34 +116,25 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
 
     const rows = buildCampaignOverview({
       campaigns: (campaignsRes.data ?? []) as never,
-      recipients: recipients as never,
-      messages: messages as never,
-      replies: replies as never,
-      meetings: meetings as never,
+      recipients: [],
+      messages: [],
+      replies: [],
+      meetings: [],
       accounts: (accountsRes.data ?? []) as never,
     });
 
-    // Delivery numbers on this table come from the same authoritative reader
-    // as the campaign page, Analytics and the dashboard, so retries and
-    // duplicate rows can never make the list disagree with them.
     if (ws) {
-      const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
-      const { byCampaign } = await fetchCampaignStats(context.supabase, { workspaceId: ws });
-      for (const row of rows) {
-        const stats = byCampaign.get(row.id);
-        if (!stats) continue;
-        row.sent = stats.sent;
-        row.bounced = stats.bounced;
-        row.failed = stats.failed;
-        row.replies = stats.replied;
-        row.positiveReplies = stats.positiveReplied;
-        row.replyRate = stats.sent > 0 ? (stats.replied / stats.sent) * 100 : 0;
-        row.displayStatus = deriveDisplayStatus(row.status, stats.sent, stats.failed);
-      }
+      const { data: rollup, error: rollupError } = await context.supabase.rpc(
+        "campaign_overview_rollup",
+        { _workspace_id: ws },
+      );
+      if (rollupError) throw new Error(rollupError.message);
+      applyCampaignRollup(rows, (rollup ?? []) as never, deriveDisplayStatus);
     }
 
     return rows;
   });
+
 
 
 
