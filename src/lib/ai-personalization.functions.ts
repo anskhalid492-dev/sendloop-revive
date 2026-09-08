@@ -16,7 +16,7 @@ export const getAiSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { campaignAiSettings } = await import("@/lib/ai-personalization.server");
+    const { campaignAiSettings } = await import("@/lib/ai-personalization-meta.server");
     return campaignAiSettings(context.supabase, data.campaignId);
   });
 
@@ -54,14 +54,10 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const {
-      attachLeadNotes,
-      campaignAiSettings,
-      generatePersonalization,
-      promptFingerprint,
-      AiGatewayError,
-      LEAD_AI_COLUMNS,
-    } = await import("@/lib/ai-personalization.server");
+    const { attachLeadNotes, generatePersonalization, AiGatewayError } =
+      await import("@/lib/ai-personalization.server");
+    const { campaignAiSettings, promptFingerprint, LEAD_AI_COLUMNS } =
+      await import("@/lib/ai-personalization-meta.server");
 
     const config: AiPersonalizationConfig = data.config
       ? normalizeAiConfig(data.config)
@@ -205,7 +201,7 @@ export const queueAiPersonalization = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { promptFingerprint, campaignAiSettings } =
-      await import("@/lib/ai-personalization.server");
+      await import("@/lib/ai-personalization-meta.server");
 
     const { data: campaign, error: cErr } = await context.supabase
       .from("campaigns")
@@ -369,7 +365,7 @@ export const getAiPersonalizationStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.parse(input))
   .handler(async ({ data, context }): Promise<PersonalizationStats & { paused: string | null }> => {
-    const { campaignAiCoverage } = await import("@/lib/ai-personalization.server");
+    const { campaignAiCoverage } = await import("@/lib/ai-personalization-meta.server");
     const [coverage, runnerRes] = await Promise.all([
       campaignAiCoverage(context.supabase, data.campaignId),
       context.supabase
@@ -397,7 +393,7 @@ export const getAiPersonalizationCoverage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => campaignInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { campaignAiCoverage } = await import("@/lib/ai-personalization.server");
+    const { campaignAiCoverage } = await import("@/lib/ai-personalization-meta.server");
     return campaignAiCoverage(context.supabase, data.campaignId);
   });
 

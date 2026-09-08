@@ -299,7 +299,7 @@ export async function ensureInitialCampaignMessages(
   };
 
   const { aiExtras, personalizationByLead, pendingPersonalizationLeads } = await import(
-    "@/lib/ai-personalization.server"
+    "@/lib/ai-personalization-meta.server"
   );
   const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
   const aiEnabled = Boolean(campaign.ai_enabled);
@@ -499,7 +499,7 @@ export async function scheduleFollowUps(
   // Follow-ups reuse the AI snippet generated for this lead on this campaign, so
   // the whole sequence stays consistent instead of re-billing a generation.
   const { aiExtras, personalizationByLead, pendingPersonalizationLeads } = await import(
-    "@/lib/ai-personalization.server"
+    "@/lib/ai-personalization-meta.server"
   );
   const { normalizeAiConfig } = await import("@/lib/ai-personalization-model");
   const aiEnabled = Boolean(campaign.ai_enabled);

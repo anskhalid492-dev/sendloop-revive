@@ -158,7 +158,7 @@ export async function launchCampaignService(
     // completed snippets only. Leads that aren't personalized yet follow the
     // campaign's fallback rule — and with "hold" they are not materialised at
     // all, so no weaker email ever goes out ahead of its personalization.
-    const { campaignAiSettings, aiExtras } = await import("@/lib/ai-personalization.server");
+    const { campaignAiSettings, aiExtras } = await import("@/lib/ai-personalization-meta.server");
     // URL-safe id filters + full pagination: see supabase-batch for why.
     const { fetchByIds, fetchAllRows } = await import("@/lib/supabase-batch");
     const aiSettings = await campaignAiSettings(supabase, c.id);
