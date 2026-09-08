@@ -128,7 +128,17 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
         "campaign_overview_rollup",
         { _workspace_id: ws },
       );
-      if (rollupError && rollupError.code !== "PGRST202") throw new Error(rollupError.message);
+      if (rollupError && rollupError.code !== "PGRST202") {
+        console.error("[campaigns.overview] campaign_overview_rollup failed", {
+          workspaceId: ws,
+          code: rollupError.code,
+          databaseError: rollupError.message,
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error(
+          `Could not load campaign totals (${rollupError.code ?? "error"}): ${rollupError.message}`,
+        );
+      }
       if (rollupError) {
         // The connected database has not received the aggregate yet. Fall back
         // to bounded database-side counts rather than failing the whole page
@@ -224,11 +234,26 @@ export const getCampaign = createServerFn({ method: "GET" })
         _day_start: runDayStart.toISOString(),
       }),
     ]);
-    if (stepsRes.error) throw new Error(stepsRes.error.message);
-    if (variantsRes.error) throw new Error(variantsRes.error.message);
+    const fail = (where: string, err: { code?: string; message: string; details?: unknown }) => {
+      // Never let a database failure reach the customer as a bare
+      // "Internal server error": the real code lands in the worker log and a
+      // readable, specific message reaches the UI.
+      console.error(`[campaign.getCampaign] ${where} failed`, {
+        campaignId: data.id,
+        workspaceId: campaignRow["workspace_id"],
+        userId: context.userId,
+        code: err.code ?? null,
+        databaseError: err.message,
+        details: err.details ?? null,
+        timestamp: new Date().toISOString(),
+      });
+      return new Error(`Could not load ${where} (${err.code ?? "error"}): ${err.message}`);
+    };
+    if (stepsRes.error) throw fail("campaign steps", stepsRes.error);
+    if (variantsRes.error) throw fail("campaign step variants", variantsRes.error);
     let summaryData: unknown = summaryRes.data;
     if (summaryRes.error) {
-      if (summaryRes.error.code !== "PGRST202") throw new Error(summaryRes.error.message);
+      if (summaryRes.error.code !== "PGRST202") throw fail("campaign summary", summaryRes.error);
       const { campaignPageSummaryFallback } = await import("@/lib/campaign-page-summary.server");
       console.error("[campaign.getCampaign] campaign_page_summary unavailable; using bounded fallback", {
         campaignId: data.id,
