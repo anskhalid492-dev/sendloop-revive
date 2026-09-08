@@ -5,7 +5,6 @@ import {
   type AiPersonalizationCoverage,
   type FallbackMode,
 } from "@/lib/ai-personalization-model";
-import { fetchAllRows, fetchByIds } from "@/lib/supabase-batch";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -114,41 +113,39 @@ export async function campaignAiCoverage(
   if (error) throw new Error(error.message);
   if (!campaign?.workspace_id) throw new Error("Campaign not found.");
   const workspaceId = campaign.workspace_id as string;
-  const recipients = await fetchAllRows<{ lead_id: string }>(() =>
-    supabase.from("campaign_recipients").select("lead_id").eq("campaign_id", campaignId)
-      .eq("workspace_id", workspaceId).order("id", { ascending: true }),
-  );
-  const leadIds = [...new Set(recipients.map((row) => row.lead_id).filter(Boolean))];
-  if (!leadIds.length) return { campaignId, workspaceId, total: 0, personalized: 0, missing: 0,
+  const { count: total, error: totalError } = await supabase
+    .from("campaign_recipients")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId)
+    .eq("workspace_id", workspaceId);
+  if (totalError) throw new Error(totalError.message);
+  const audienceTotal = total ?? 0;
+  if (!audienceTotal) return { campaignId, workspaceId, total: 0, personalized: 0, missing: 0,
     queued: 0, failed: 0, complete: 0, limited: 0, fallback: 0, promptHashes: [],
     sampleLeadId: null, sampleLead: null, blockedReason: null };
 
-  const rows = await fetchByIds<{ lead_id: string; status: string | null; content: string | null;
-    quality: string | null; prompt_hash: string | null; error: string | null }>(leadIds, (ids) =>
-    supabase.from("ai_personalizations").select("lead_id, status, content, quality, prompt_hash, error")
-      .eq("campaign_id", campaignId).eq("workspace_id", workspaceId).in("lead_id", ids),
-  );
-  const valid = new Set<string>();
-  const queued = new Set<string>();
-  const failed = new Set<string>();
-  const hashes = new Set<string>();
-  const reasons = new Map<string, number>();
-  let complete = 0, limited = 0, fallback = 0;
-  for (const row of rows) {
-    if (row.prompt_hash) hashes.add(row.prompt_hash);
-    if (row.status === "completed" && row.content?.trim()) {
-      if (!valid.has(row.lead_id)) {
-        if (row.quality === "limited") limited += 1;
-        else if (row.quality === "fallback") fallback += 1;
-        else complete += 1;
-      }
-      valid.add(row.lead_id);
-    } else if (row.status === "queued" || row.status === "processing") queued.add(row.lead_id);
-    else if (row.status === "failed") failed.add(row.lead_id);
-    if (row.error?.trim() && row.status !== "completed")
-      reasons.set(row.error.trim(), (reasons.get(row.error.trim()) ?? 0) + 1);
-  }
-  const sampleLeadId = leadIds.find((id) => valid.has(id)) ?? null;
+  const countRows = async (apply: (query: any) => any) => {
+    const base = supabase.from("ai_personalizations").select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId).eq("workspace_id", workspaceId);
+    const result = await apply(base);
+    if (result.error) throw new Error(result.error.message);
+    return result.count ?? 0;
+  };
+  const [personalized, queued, failed, limited, fallback, sampleResult, blockedResult, hashResult] =
+    await Promise.all([
+      countRows((q) => q.eq("status", "completed").not("content", "is", null)),
+      countRows((q) => q.in("status", ["queued", "processing"])),
+      countRows((q) => q.eq("status", "failed")),
+      countRows((q) => q.eq("status", "completed").eq("quality", "limited").not("content", "is", null)),
+      countRows((q) => q.eq("status", "completed").eq("quality", "fallback").not("content", "is", null)),
+      supabase.from("ai_personalizations").select("lead_id").eq("campaign_id", campaignId)
+        .eq("workspace_id", workspaceId).eq("status", "completed").not("content", "is", null).limit(1).maybeSingle(),
+      supabase.from("ai_personalizations").select("error").eq("campaign_id", campaignId)
+        .eq("workspace_id", workspaceId).neq("status", "completed").not("error", "is", null).limit(1).maybeSingle(),
+      supabase.from("ai_personalizations").select("prompt_hash").eq("campaign_id", campaignId)
+        .eq("workspace_id", workspaceId).not("prompt_hash", "is", null).limit(100),
+    ]);
+  const sampleLeadId = (sampleResult.data?.lead_id as string | undefined) ?? null;
   let sampleLead: AiPersonalizationCoverage["sampleLead"] = null;
   if (sampleLeadId) {
     const { data: lead } = await supabase.from("leads")
@@ -158,8 +155,9 @@ export async function campaignAiCoverage(
       lead.custom_fields && typeof lead.custom_fields === "object" && !Array.isArray(lead.custom_fields)
         ? lead.custom_fields as Record<string, string> : null } as AiPersonalizationCoverage["sampleLead"];
   }
-  return { campaignId, workspaceId, total: leadIds.length, personalized: valid.size,
-    missing: Math.max(0, leadIds.length - valid.size), queued: queued.size, failed: failed.size,
-    complete, limited, fallback, promptHashes: [...hashes], sampleLeadId, sampleLead,
-    blockedReason: [...reasons.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null };
+  return { campaignId, workspaceId, total: audienceTotal, personalized,
+    missing: Math.max(0, audienceTotal - personalized), queued, failed,
+    complete: Math.max(0, personalized - limited - fallback), limited, fallback,
+    promptHashes: [...new Set((hashResult.data ?? []).map((row: { prompt_hash: string }) => row.prompt_hash))],
+    sampleLeadId, sampleLead, blockedReason: blockedResult.data?.error?.trim() || null };
 }
