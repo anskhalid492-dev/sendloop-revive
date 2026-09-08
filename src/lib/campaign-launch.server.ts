@@ -148,23 +148,18 @@ export async function evaluateLaunchReadiness(
       (step) => usesAiToken(String(step["subject"] ?? "")) || usesAiToken(String(step["body"] ?? "")),
     );
     if (aiUsed && aiConfig.fallbackMode === "hold") {
-      const audienceIds = [...new Set([...queuedLeadIds, ...eligibleLeadIds])];
-      if (audienceIds.length) {
-        const aiRows = await fetchAllRows<{ lead_id: string }>(() =>
-          supabase
-            .from("ai_personalizations")
-            .select("lead_id, status")
-            .eq("campaign_id", campaignId)
-            .eq("status", "completed"),
-        );
-        const done = new Set(aiRows.map((row) => row.lead_id));
-        const missing = audienceIds.filter((id) => !done.has(id)).length;
-        if (missing > 0) {
-          issues.push({
-            code: "ai_pending",
-            message: `${missing} lead${missing === 1 ? "" : "s"} still need AI personalization. Generate it on the AI tab, or change the fallback so these leads can send without it.`,
-          });
-        }
+      // Counted in the database across the whole audience (attached recipients
+      // plus still-eligible list leads), never by listing lead ids.
+      const { data: missingRaw, error: aiErr } = await supabase.rpc("campaign_ai_missing_count", {
+        _campaign_id: campaignId,
+      });
+      if (aiErr) throw new Error(aiErr.message);
+      const missing = Number(missingRaw ?? 0) || 0;
+      if (missing > 0) {
+        issues.push({
+          code: "ai_pending",
+          message: `${missing} lead${missing === 1 ? "" : "s"} still need AI personalization. Generate it on the AI tab, or change the fallback so these leads can send without it.`,
+        });
       }
     }
   }
@@ -187,12 +182,11 @@ export async function evaluateLaunchReadiness(
     workspaceId,
     listId: campaign.list_id ?? null,
     listName,
-    eligible: eligibleLeadIds.length,
-    alreadyQueued,
-    audience: eligibleLeadIds.length + alreadyQueued,
+    eligible: eligibleCount,
+    alreadyQueued: queuedCount,
+    audience: eligibleCount + queuedCount,
     unassignedLeads: unassignedLeads ?? 0,
     activeMailboxes,
-    eligibleLeadIds,
   };
 }
 
