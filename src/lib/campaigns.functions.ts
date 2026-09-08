@@ -206,7 +206,24 @@ export const getCampaign = createServerFn({ method: "GET" })
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
-    if (summaryRes.error) throw new Error(summaryRes.error.message);
+    let summaryData = summaryRes.data;
+    if (summaryRes.error) {
+      if (summaryRes.error.code !== "PGRST202") throw new Error(summaryRes.error.message);
+      const { campaignPageSummaryFallback } = await import("@/lib/campaign-page-summary.server");
+      console.error("[campaign.getCampaign] campaign_page_summary unavailable; using bounded fallback", {
+        campaignId: data.id,
+        workspaceId: campaignRow["workspace_id"],
+        userId: context.userId,
+        code: summaryRes.error.code,
+        databaseError: summaryRes.error.message,
+        timestamp: new Date().toISOString(),
+      });
+      summaryData = await campaignPageSummaryFallback(
+        context.supabase,
+        data.id,
+        runDayStart.toISOString(),
+      );
+    }
 
     const variants = (variantsRes.data ?? []) as unknown as CampaignStepVariant[];
     const steps = ((stepsRes.data ?? []) as unknown as CampaignStep[]).map((s) => ({
@@ -215,7 +232,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     }));
 
     const num = (value: unknown) => Number(value ?? 0) || 0;
-    const summary = (summaryRes.data ?? {}) as Record<string, unknown>;
+    const summary = (summaryData ?? {}) as Record<string, unknown>;
     const recipientCounts = (summary["recipients"] ?? {}) as Record<string, unknown>;
     const deliveryCounts = (summary["delivery"] ?? {}) as Record<string, unknown>;
     const todayCounts = (summary["today"] ?? {}) as Record<string, unknown>;

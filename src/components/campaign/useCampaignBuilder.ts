@@ -169,6 +169,10 @@ export function useCampaignBuilder(campaignId: string) {
   const readinessQuery = useQuery({
     queryKey: ["campaign-readiness", campaignId],
     queryFn: () => fetchReadiness({ data: { id: campaignId } }),
+    retry: (attempt, error: Error) => {
+      if (/not found|permission|denied|unauthor|forbidden|row-level|PGRST202/i.test(error.message)) return false;
+      return attempt < 2;
+    },
   });
   const accountsQuery = useQuery({
     queryKey: ["sending-accounts"],
