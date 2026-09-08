@@ -135,14 +135,17 @@ export function useCampaignBuilder(campaignId: string) {
     // Campaign stats are read live from the authoritative campaign_stats
     // source; never served stale from cache.
     ...liveQueryOptions(),
-    // The core record is required; retry transient failures a bounded number of
-    // times only, never forever, so the page can show a real error state.
+    // The core record is required. Real answers ("not found", "no access") show
+    // immediately, but a dropped connection or a hiccup on the server is
+    // retried with backoff instead of dumping the customer on an error screen.
     retry: (attempt, error: Error) => {
       const message = error?.message ?? "";
-      if (/not found|permission|denied|unauthor/i.test(message)) return false;
-      return attempt < 2;
+      if (/not found|permission|denied|unauthor|forbidden|row-level/i.test(message)) return false;
+      return attempt < 4;
     },
+    retryDelay: (attempt) => Math.min(4000, 400 * 2 ** attempt),
   });
+
   // Sample page only: the Leads tab paginates on its own and the campaign
   // totals come from exact server-side counts, so the browser never downloads
   // the whole audience.
