@@ -13,5 +13,4 @@ export type LaunchReadiness = {
   audience: number;
   unassignedLeads: number;
   activeMailboxes: number;
-  eligibleLeadIds: string[];
 };
