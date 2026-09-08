@@ -20,7 +20,7 @@ import {
   zonedStartOfDay,
 } from "@/lib/campaign-schedule";
 
-import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
+import { campaignRunStatus } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
   campaignLimitColumnsAvailable,
