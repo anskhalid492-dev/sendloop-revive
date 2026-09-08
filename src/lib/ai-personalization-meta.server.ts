@@ -158,6 +158,8 @@ export async function campaignAiCoverage(
   return { campaignId, workspaceId, total: audienceTotal, personalized,
     missing: Math.max(0, audienceTotal - personalized), queued, failed,
     complete: Math.max(0, personalized - limited - fallback), limited, fallback,
-    promptHashes: [...new Set((hashResult.data ?? []).map((row: { prompt_hash: string }) => row.prompt_hash))],
+    promptHashes: [...new Set<string>((hashResult.data ?? []).map(
+      (row: { prompt_hash: string }) => row.prompt_hash,
+    ))],
     sampleLeadId, sampleLead, blockedReason: blockedResult.data?.error?.trim() || null };
 }
