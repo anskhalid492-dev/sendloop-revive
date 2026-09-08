@@ -87,8 +87,20 @@ export async function evaluateLaunchReadiness(
         "campaign_eligible_lead_count",
         { _campaign_id: campaignId },
       );
-      if (eErr) throw new Error(eErr.message);
-      eligibleCount = Number(eligible ?? 0) || 0;
+      if (eErr?.code === "PGRST202") {
+        // Keep the request bounded if application code reaches production
+        // before its aggregate RPC migration.
+        const { count, error: countErr } = await supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("list_id", campaign.list_id)
+          .eq("status", "new");
+        if (countErr) throw new Error(countErr.message);
+        eligibleCount = Number(count ?? 0) || 0;
+      } else {
+        if (eErr) throw new Error(eErr.message);
+        eligibleCount = Number(eligible ?? 0) || 0;
+      }
 
       if (eligibleCount === 0 && queuedCount === 0) {
         issues.push({
@@ -153,8 +165,18 @@ export async function evaluateLaunchReadiness(
       const { data: missingRaw, error: aiErr } = await supabase.rpc("campaign_ai_missing_count", {
         _campaign_id: campaignId,
       });
-      if (aiErr) throw new Error(aiErr.message);
-      const missing = Number(missingRaw ?? 0) || 0;
+      let missing = Number(missingRaw ?? 0) || 0;
+      if (aiErr?.code === "PGRST202") {
+        const { count: completed, error: completedErr } = await supabase
+          .from("ai_personalizations")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("status", "completed");
+        if (completedErr) throw new Error(completedErr.message);
+        missing = Math.max(0, queuedCount + eligibleCount - Number(completed ?? 0));
+      } else if (aiErr) {
+        throw new Error(aiErr.message);
+      }
       if (missing > 0) {
         issues.push({
           code: "ai_pending",
