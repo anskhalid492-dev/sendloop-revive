@@ -159,47 +159,8 @@ export async function launchCampaignService(
     // campaign's fallback rule — and with "hold" they are not materialised at
     // all, so no weaker email ever goes out ahead of its personalization.
     const { campaignAiSettings, aiExtras } = await import("@/lib/ai-personalization-meta.server");
-    // URL-safe id filters + full pagination: see supabase-batch for why.
-    const { fetchByIds, fetchAllRows } = await import("@/lib/supabase-batch");
     const aiSettings = await campaignAiSettings(supabase, c.id);
-    const aiContent = new Map<string, string>();
-    if (aiSettings.enabled) {
-      const aiRows = await fetchAllRows<{ lead_id: string; content: string | null }>(() =>
-        supabase
-          .from("ai_personalizations")
-          .select("lead_id, content")
-          .eq("campaign_id", c.id)
-          .eq("status", "completed"),
-      );
-      for (const row of aiRows) {
-        if (row.content?.trim()) aiContent.set(row.lead_id, row.content.trim());
-      }
-    }
-    const aiFor = (leadId: string): { extras: Record<string, string>; hold: boolean } =>
-      aiSettings.enabled
-        ? aiExtras(aiSettings.config, aiContent.get(leadId) ?? null)
-        : { extras: {}, hold: false };
     let heldForAi = 0;
-
-    // Only the lead ids the readiness check proved eligible get queued.
-    // The ids travel in the URL, so they are read back in URL-safe chunks:
-    // a single `in.()` filter with ~1,000 UUIDs is rejected with HTTP 400.
-    const LEAD_FIELDS =
-      "id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields";
-    let leads: Array<Record<string, unknown>> = [];
-    if (readiness.eligibleLeadIds.length) {
-      leads = await fetchByIds<Record<string, unknown>>(
-        readiness.eligibleLeadIds,
-        (ids) => supabase.from("leads").select(LEAD_FIELDS).in("id", ids),
-      );
-    }
-
-    // Paged so campaigns with more than 1,000 recipients are deduplicated
-    // correctly instead of re-inserting rows that already exist.
-    const existing = await fetchAllRows<{ lead_id: string }>(() =>
-      supabase.from("campaign_recipients").select("lead_id").eq("campaign_id", c.id),
-    );
-    const already = new Set(existing.map((r) => r.lead_id));
 
     const firstSlot = windowStartAt(c.start_at ? new Date(c.start_at) : new Date(), {
       timezone: c.timezone,
@@ -208,18 +169,28 @@ export async function launchCampaignService(
       endHour: c.send_end_hour,
     }, { includeCurrentDay: true }).toISOString();
 
-    const fresh = leads.filter((l) => !already.has(String(l["id"]))) as Array<
-      Record<string, unknown> & { id: string; email: string }
-    >;
-    if (fresh.length) {
-      const accountById = new Map(
-        (accounts ?? []).map((a: any) => [a.id, a as { id: string }] as const),
-      );
-      const senderFor = (id: string | null) =>
-        senderExtras(
-          (accounts ?? []).find((a: any) => a.id === id) as never,
-        );
-      const rows = fresh.map((lead) => ({
+    // ---- Phase 1: attach eligible leads, one bounded page at a time ---------
+    //
+    // The database decides which leads are still eligible (in the list, status
+    // "new", not already attached), so the server never holds an audience in
+    // memory. Attaching a page removes it from the next page's result, which
+    // makes the whole loop naturally resumable after any failure.
+    const PAGE = 200;
+    const MAX_PAGES = 120; // hard ceiling: 24,000 leads of work per invocation
+    let attached = 0;
+    let after: string | null = null;
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const { data: batch, error: batchErr } = await supabase.rpc("campaign_eligible_leads", {
+        _campaign_id: c.id,
+        _after: after,
+        _limit: PAGE,
+      });
+      if (batchErr) throw new Error(batchErr.message);
+      const leads = (batch ?? []) as Array<{ id: string }>;
+      if (!leads.length) break;
+      after = leads[leads.length - 1]!.id;
+
+      const rows = leads.map((lead) => ({
         campaign_id: c.id,
         workspace_id: c.workspace_id,
         lead_id: lead.id,
@@ -228,158 +199,130 @@ export async function launchCampaignService(
         current_step: 0,
         next_send_at: firstSlot,
       }));
-      for (let i = 0; i < rows.length; i += 500) {
-        const slice = rows.slice(i, i + 500);
-        const { data: inserted, error: insErr } = await supabase
-          .from("campaign_recipients")
-          .insert(slice)
-          .select("id, lead_id, sending_account_id");
-        if (insErr) throw new Error(insErr.message);
-
-        // Materialise the first email of the sequence into the sending queue.
-        const leadById = new Map(
-          (fresh as unknown as Array<{ id: string }>).map((l) => [l.id, l] as const),
-        );
-        const messages = (inserted ?? [])
-          .map((recipient: any) => {
-            const lead = leadById.get(recipient.lead_id) as never;
-            if (!lead) return null;
-            const ai = aiFor(recipient.lead_id);
-            if (ai.hold) {
-              heldForAi += 1;
-              return null;
-            }
-            return {
-              workspace_id: c.workspace_id,
-              campaign_id: c.id,
-              recipient_id: recipient.id,
-              lead_id: recipient.lead_id,
-              step_id: firstStep.id,
-              sending_account_id: recipient.sending_account_id,
-              step_order: 1,
-              status: "scheduled" as const,
-              to_email: (lead as { email: string }).email,
-              ...renderEmailForLead(firstStep, lead, {
-                customVariables: campaignVariables,
-                extras: {
-                  ...senderFor(recipient.sending_account_id),
-                  ...unsubscribeExtras({
-                    workspaceId: c.workspace_id as string,
-                    campaignId: c.id as string,
-                    email: (lead as { email: string }).email,
-                    recipientId: recipient.id,
-                  }),
-                  ...ai.extras,
-                },
-              }),
-
-              scheduled_at: firstSlot,
-              provider: recipient.sending_account_id
-                ? (accountById.get(recipient.sending_account_id) as never as {
-                    provider?: string;
-                  } | undefined)?.provider ?? null
-                : null,
-            };
-          })
-          .filter(Boolean) as Array<Record<string, unknown>>;
-        if (messages.length) {
-          const { error: mErr } = await supabase
-            .from("campaign_messages")
-            .insert(messages as never);
-          if (mErr) throw new Error(mErr.message);
-        }
-      }
-    }
-
-
-    // Recipients attached before launch (e.g. from the Leads tab) may not have a
-    // first message yet — materialise those too so the campaign actually sends.
-    const pendingRecipients = await fetchAllRows<{
-      id: string;
-      lead_id: string;
-      sending_account_id: string | null;
-    }>(() =>
-      supabase
+      // Idempotent: a second launch (or a browser retry) can never attach the
+      // same lead twice — the unique campaign_id + lead_id key absorbs it.
+      const { error: insErr } = await supabase
         .from("campaign_recipients")
-        .select("id, lead_id, sending_account_id")
-        .eq("campaign_id", c.id)
-        .eq("status", "pending")
-        .eq("current_step", 0),
+        .upsert(rows, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true });
+      if (insErr) throw new Error(insErr.message);
+      attached += rows.length;
+    }
+
+    // ---- Phase 2: materialise the first email for anyone still missing it ---
+    //
+    // Covers freshly attached leads and recipients added earlier from the Leads
+    // tab. The database returns only recipients with no step-1 message, so this
+    // loop both resumes after a failure and never duplicates a queued email.
+    const accountById = new Map(
+      (accounts ?? []).map((a: any) => [a.id, a] as const),
     );
-
-    if (pendingRecipients.length) {
-      const existingMsgs = await fetchAllRows<{ recipient_id: string | null }>(() =>
-        supabase
-          .from("campaign_messages")
-          .select("recipient_id")
-          .eq("campaign_id", c.id)
-          .eq("step_order", 1),
+    let queuedMessages = 0;
+    let afterRecipient: string | null = null;
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const { data: batch, error: pendErr } = await supabase.rpc(
+        "campaign_recipients_missing_first_message",
+        { _campaign_id: c.id, _after: afterRecipient, _limit: PAGE },
       );
-      const hasMessage = new Set(existingMsgs.map((m) => m.recipient_id));
-      const missing = pendingRecipients.filter((r) => !hasMessage.has(r.id));
+      if (pendErr) throw new Error(pendErr.message);
+      const pending = (batch ?? []) as Array<Record<string, unknown>>;
+      if (!pending.length) break;
+      afterRecipient = String(pending[pending.length - 1]!["recipient_id"]);
 
-      if (missing.length) {
-        const leadRows = await fetchByIds<{ id: string; email: string }>(
-          missing.map((r) => r.lead_id),
-          (ids) => supabase.from("leads").select(LEAD_FIELDS).in("id", ids),
-        );
-        const leadById = new Map(leadRows.map((l) => [l.id, l] as const));
-        const backfill = missing
-          .map((recipient: any) => {
-            const lead = leadById.get(recipient.lead_id);
-            if (!lead) return null;
-            const ai = aiFor(recipient.lead_id);
-            if (ai.hold) {
-              heldForAi += 1;
-              return null;
-            }
-            const accountId = recipient.sending_account_id ?? pickAccount();
-            return {
-              workspace_id: c.workspace_id,
-              campaign_id: c.id,
-              recipient_id: recipient.id,
-              lead_id: recipient.lead_id,
-              step_id: firstStep.id,
-              sending_account_id: accountId,
-              step_order: 1,
-              status: "scheduled" as const,
-              to_email: lead.email,
-              ...renderEmailForLead(firstStep, lead as never, {
-                customVariables: campaignVariables,
-                extras: {
-                  ...senderExtras((accounts ?? []).find((a: any) => a.id === accountId) as never),
-                  ...unsubscribeExtras({
-                    workspaceId: c.workspace_id as string,
-                    campaignId: c.id as string,
-                    email: lead.email as string,
-                    recipientId: recipient.id,
-                  }),
-                  ...ai.extras,
-                },
-              }),
-
-              scheduled_at: firstSlot,
-              provider:
-                (accounts ?? []).find((a: any) => a.id === accountId)?.provider ?? null,
-            };
-          })
-          .filter(Boolean) as Array<Record<string, unknown>>;
-
-        for (let i = 0; i < backfill.length; i += 500) {
-          const { error: bErr } = await supabase
-            .from("campaign_messages")
-            .insert(backfill.slice(i, i + 500) as never);
-          if (bErr) throw new Error(bErr.message);
-        }
-        // Recipients without a mailbox get one assigned on launch.
-        for (const recipient of missing.filter((r) => !r.sending_account_id)) {
-          await supabase
-            .from("campaign_recipients")
-            .update({ next_send_at: firstSlot })
-            .eq("id", recipient.id);
+      // AI snippets for this page only.
+      const aiContent = new Map<string, string>();
+      if (aiSettings.enabled) {
+        const leadIds = pending.map((r) => String(r["lead_id"]));
+        const { data: aiRows, error: aiErr } = await supabase
+          .from("ai_personalizations")
+          .select("lead_id, content")
+          .eq("campaign_id", c.id)
+          .eq("status", "completed")
+          .in("lead_id", leadIds);
+        if (aiErr) throw new Error(aiErr.message);
+        for (const row of (aiRows ?? []) as Array<{ lead_id: string; content: string | null }>) {
+          if (row.content?.trim()) aiContent.set(row.lead_id, row.content.trim());
         }
       }
+
+      const messages: Array<Record<string, unknown>> = [];
+      const needsSlot: string[] = [];
+      for (const row of pending) {
+        const recipientId = String(row["recipient_id"]);
+        const leadId = String(row["lead_id"]);
+        const ai = aiSettings.enabled
+          ? aiExtras(aiSettings.config, aiContent.get(leadId) ?? null)
+          : { extras: {} as Record<string, string>, hold: false };
+        if (ai.hold) {
+          heldForAi += 1;
+          continue;
+        }
+        const accountId = (row["sending_account_id"] as string | null) ?? pickAccount();
+        if (!row["sending_account_id"]) needsSlot.push(recipientId);
+        const lead = {
+          id: leadId,
+          email: row["email"],
+          first_name: row["first_name"],
+          last_name: row["last_name"],
+          company: row["company"],
+          job_title: row["job_title"],
+          country: row["country"],
+          city: row["city"],
+          state: row["state"],
+          website: row["website"],
+          phone: row["phone"],
+          linkedin_url: row["linkedin_url"],
+          custom_fields: row["custom_fields"],
+        };
+        messages.push({
+          workspace_id: c.workspace_id,
+          campaign_id: c.id,
+          recipient_id: recipientId,
+          lead_id: leadId,
+          step_id: firstStep.id,
+          sending_account_id: accountId,
+          step_order: 1,
+          status: "scheduled" as const,
+          to_email: lead.email,
+          ...renderEmailForLead(firstStep, lead as never, {
+            customVariables: campaignVariables,
+            extras: {
+              ...senderExtras(accountById.get(accountId) as never),
+              ...unsubscribeExtras({
+                workspaceId: c.workspace_id as string,
+                campaignId: c.id as string,
+                email: String(lead.email),
+                recipientId,
+              }),
+              ...ai.extras,
+            },
+          }),
+          scheduled_at: firstSlot,
+          provider: (accountById.get(accountId) as { provider?: string } | undefined)?.provider ?? null,
+        });
+      }
+
+      if (messages.length) {
+        // The unique (campaign_id, recipient_id, step_order) key makes this
+        // insert safe to repeat: a retried batch updates nothing and adds
+        // nothing.
+        const { error: mErr } = await supabase
+          .from("campaign_messages")
+          .upsert(messages as never, {
+            onConflict: "campaign_id,recipient_id,step_order",
+            ignoreDuplicates: true,
+          });
+        if (mErr) throw new Error(mErr.message);
+        queuedMessages += messages.length;
+      }
+      if (needsSlot.length) {
+        const { error: slotErr } = await supabase
+          .from("campaign_recipients")
+          .update({ next_send_at: firstSlot })
+          .in("id", needsSlot);
+        if (slotErr) throw new Error(slotErr.message);
+      }
     }
+
 
     const { error: uErr } = await supabase
       .from("campaigns")
@@ -387,12 +330,19 @@ export async function launchCampaignService(
       .eq("id", c.id);
     if (uErr) throw new Error(uErr.message);
 
-    // Real queued message count straight from the queue, for the audit trail.
-    const { count: scheduledCount } = await supabase
-      .from("campaign_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", c.id)
-      .eq("status", "scheduled");
+    // Real totals straight from the database, counted not listed.
+    const [{ count: scheduledCount }, { count: recipientTotal }] = await Promise.all([
+      supabase
+        .from("campaign_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", c.id)
+        .eq("status", "scheduled"),
+      supabase
+        .from("campaign_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", c.id),
+    ]);
+    const totalRecipients = recipientTotal ?? attached;
 
     await recordLaunchEvent(supabase, {
       // Launch validation already computed and persisted this exact snapshot.
@@ -402,7 +352,7 @@ export async function launchCampaignService(
       actorId: actorId,
       outcome: "launched",
       queuedMessages: scheduledCount ?? 0,
-      totalRecipients: already.size + fresh.length,
+      totalRecipients,
       firstSendAt: firstSlot,
     });
 
@@ -414,7 +364,7 @@ export async function launchCampaignService(
       idempotencyKey: `campaign.launched:${c.id as string}`,
       variables: {
         "campaign.name": c.name,
-        "campaign.recipients": String(already.size + fresh.length),
+        "campaign.recipients": String(totalRecipients),
         "campaign.status": "active",
       },
     });
@@ -429,15 +379,15 @@ export async function launchCampaignService(
       {
         campaign_id: c.id,
         name: c.name,
-        recipients: already.size + fresh.length,
-        queued: fresh.length,
+        recipients: totalRecipients,
+        queued: queuedMessages,
         first_send_at: firstSlot,
       },
     );
 
     return {
-      queued: fresh.length,
-      total: already.size + fresh.length,
+      queued: queuedMessages,
+      total: totalRecipients,
       firstSendAt: firstSlot,
       heldForAi,
     };

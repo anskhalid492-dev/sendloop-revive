@@ -20,7 +20,7 @@ import {
   zonedStartOfDay,
 } from "@/lib/campaign-schedule";
 
-import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
+import { campaignRunStatus } from "@/lib/campaign-run-state";
 import {
   campaignColumns,
   campaignLimitColumnsAvailable,
@@ -85,47 +85,24 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => workspaceScope.parse(input) ?? {})
   .handler(async ({ data, context }) => {
-    const { buildCampaignOverview, deriveDisplayStatus } = await import("@/lib/campaign-overview");
+    const { buildCampaignOverview, applyCampaignRollup, deriveDisplayStatus } = await import(
+      "@/lib/campaign-overview"
+    );
     const ws = data?.workspaceId;
     // Scope every read to the active workspace (platform admins can otherwise
     // read all tenants' rows through RLS).
     const scope = <T>(q: T): T => (ws ? (q as { eq: (c: string, v: string) => T }).eq("workspace_id", ws) : q);
 
-    // Every per-campaign aggregate is derived from these rows, so they must be
-    // read completely: a plain select() stops at 1,000 rows and made large
-    // audiences (e.g. 1,259 recipients) report as 1,000.
-    const { fetchAllRows } = await import("@/lib/supabase-batch");
-
-    const [campaignsRes, recipients, messages, replies, meetings, accountsRes] = await Promise.all([
+    // Every per-campaign number is aggregated inside Postgres. Reading the
+    // workspace's recipients, messages, replies and conversations into the
+    // server was what made this page fall over once a campaign held thousands
+    // of leads.
+    const [campaignsRes, accountsRes] = await Promise.all([
       scope(
         context.supabase
           .from("campaigns")
           .select("id, name, description, status, tags, created_at, launched_at, sending_account_ids, daily_cap")
           .order("created_at", { ascending: false }),
-      ),
-      fetchAllRows(() =>
-        scope(context.supabase.from("campaign_recipients").select("campaign_id, lead_id")).order("id", {
-          ascending: true,
-        }),
-      ),
-      fetchAllRows(() =>
-        scope(
-          context.supabase.from("campaign_messages").select("campaign_id, status, to_email, sent_at, bounced_at"),
-        ).order("id", { ascending: true }),
-      ),
-      fetchAllRows(() =>
-        scope(
-          context.supabase
-            .from("campaign_replies")
-            .select("campaign_id, lead_id, from_email, sentiment"),
-        ).order("id", { ascending: true }),
-      ),
-      fetchAllRows(() =>
-        scope(
-          context.supabase
-            .from("conversations")
-            .select("campaign_id, lead_id, prospect_email, status"),
-        ).order("id", { ascending: true }),
       ),
       scope(
         context.supabase
@@ -139,34 +116,25 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
 
     const rows = buildCampaignOverview({
       campaigns: (campaignsRes.data ?? []) as never,
-      recipients: recipients as never,
-      messages: messages as never,
-      replies: replies as never,
-      meetings: meetings as never,
+      recipients: [],
+      messages: [],
+      replies: [],
+      meetings: [],
       accounts: (accountsRes.data ?? []) as never,
     });
 
-    // Delivery numbers on this table come from the same authoritative reader
-    // as the campaign page, Analytics and the dashboard, so retries and
-    // duplicate rows can never make the list disagree with them.
     if (ws) {
-      const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
-      const { byCampaign } = await fetchCampaignStats(context.supabase, { workspaceId: ws });
-      for (const row of rows) {
-        const stats = byCampaign.get(row.id);
-        if (!stats) continue;
-        row.sent = stats.sent;
-        row.bounced = stats.bounced;
-        row.failed = stats.failed;
-        row.replies = stats.replied;
-        row.positiveReplies = stats.positiveReplied;
-        row.replyRate = stats.sent > 0 ? (stats.replied / stats.sent) * 100 : 0;
-        row.displayStatus = deriveDisplayStatus(row.status, stats.sent, stats.failed);
-      }
+      const { data: rollup, error: rollupError } = await context.supabase.rpc(
+        "campaign_overview_rollup",
+        { _workspace_id: ws },
+      );
+      if (rollupError) throw new Error(rollupError.message);
+      applyCampaignRollup(rows, (rollup ?? []) as never, deriveDisplayStatus);
     }
 
     return rows;
   });
+
 
 
 
@@ -196,6 +164,13 @@ export const setCampaignDailyLimit = createServerFn({ method: "POST" })
     return { id: row.id as string, dailyCap: Number(row.daily_cap ?? data.dailyCap) };
   });
 
+/**
+ * Campaign header + headline numbers.
+ *
+ * Every statistic is aggregated inside Postgres by `campaign_page_summary`, so
+ * opening a campaign costs the same whether it has 100 or 10,000 leads: the
+ * server never materialises recipient or message rows to count them.
+ */
 export const getCampaign = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
@@ -208,12 +183,12 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!campaign) throw new Error("Campaign not found");
 
-    // Recipients and messages are paged: a plain select() stops at 1,000 rows,
-    // so every status count and engagement metric of a larger campaign was
-    // computed from a truncated set.
-    const { fetchAllRows } = await import("@/lib/supabase-batch");
+    const campaignRow = campaign as unknown as Record<string, unknown>;
+    const runTimezone = String(campaignRow["timezone"] ?? "UTC");
+    const runNow = new Date();
+    const runDayStart = zonedStartOfDay(runNow, runTimezone);
 
-    const [stepsRes, variantsRes, recipients, messages, recipientCountRes] = await Promise.all([
+    const [stepsRes, variantsRes, summaryRes] = await Promise.all([
       context.supabase
         .from("campaign_steps")
         .select(STEP_COLUMNS)
@@ -224,104 +199,45 @@ export const getCampaign = createServerFn({ method: "GET" })
         .select("id, step_id, label, subject, body, weight")
         .eq("campaign_id", data.id)
         .order("label", { ascending: true }),
-      fetchAllRows<{
-        id: string;
-        status: string;
-        current_step: number | null;
-        next_send_at: string | null;
-        last_sent_at: string | null;
-        lead_id: string;
-      }>(() =>
-        context.supabase
-          .from("campaign_recipients")
-          .select("id, status, current_step, next_send_at, last_sent_at, lead_id")
-          .eq("campaign_id", data.id)
-          .order("id", { ascending: true }),
-      ),
-      // Delivery truth comes from the per-message state the provider events
-      // write, never from the initial send response.
-      fetchAllRows<Record<string, string | null>>(() =>
-        context.supabase
-          .from("campaign_messages")
-          .select(
-            "id, recipient_id, lead_id, status, delivery_status, scheduled_at, sent_at, delivered_at, bounced_at, opened_at, clicked_at, complained_at, unsubscribed_at, replied_at, failed_at, delayed_at, last_event_at",
-          )
-          .eq("campaign_id", data.id)
-          .order("id", { ascending: true }),
-      ),
-      // Exact recipient total, immune to the 1,000-row read cap.
-      context.supabase
-        .from("campaign_recipients")
-        .select("id", { count: "exact", head: true })
-        .eq("campaign_id", data.id),
+      context.supabase.rpc("campaign_page_summary", {
+        _campaign_id: data.id,
+        _day_start: runDayStart.toISOString(),
+      }),
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
+    if (summaryRes.error) throw new Error(summaryRes.error.message);
 
     const variants = (variantsRes.data ?? []) as unknown as CampaignStepVariant[];
     const steps = ((stepsRes.data ?? []) as unknown as CampaignStep[]).map((s) => ({
       ...s,
       variants: variants.filter((v) => v.step_id === s.id),
     }));
-    const totalRecipients = recipientCountRes.count ?? recipients.length;
-    const countBy = (status: string) => recipients.filter((r) => r.status === status).length;
 
-    // Single source of truth for every headline number on this campaign. The
-    // same reader backs the workspace Analytics page and the dashboard, so
-    // they can never report different totals for the same campaign.
-    const { fetchOneCampaignStats } = await import("@/lib/campaign-stats.server");
-    const campaignWorkspaceId = String(
-      (campaign as unknown as Record<string, unknown>)["workspace_id"] ?? "",
-    );
-    const { stats } = await fetchOneCampaignStats(
-      context.supabase,
-      campaignWorkspaceId,
-      data.id,
-    );
+    const num = (value: unknown) => Number(value ?? 0) || 0;
+    const summary = (summaryRes.data ?? {}) as Record<string, unknown>;
+    const recipientCounts = (summary["recipients"] ?? {}) as Record<string, unknown>;
+    const deliveryCounts = (summary["delivery"] ?? {}) as Record<string, unknown>;
+    const todayCounts = (summary["today"] ?? {}) as Record<string, unknown>;
+    const leadStates = Object.fromEntries(
+      Object.entries((summary["lead_states"] ?? {}) as Record<string, unknown>).map(
+        ([state, count]) => [state, num(count)],
+      ),
+    ) as Record<string, number>;
+    const byStep = ((summary["by_step"] ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      step: num(row["step"]),
+      sent: num(row["sent"]),
+      delivered: num(row["delivered"]),
+      opened: num(row["opened"]),
+      replied: num(row["replied"]),
+      scheduled: num(row["scheduled"]),
+    }));
 
-
-
-    const withTimestamp = (column: string) => messages.filter((m) => m[column]).length;
-    const sentMessages = messages.filter((m) => m["sent_at"]);
-    const bounced = withTimestamp("bounced_at");
-    const failedMessages = messages.filter(
-      (m) => m["delivery_status"] === "failed" && !m["bounced_at"],
-    ).length;
-    // Delivered never includes a message that later bounced or failed.
-    const delivered = messages.filter(
-      (m) => m["delivered_at"] && !m["bounced_at"] && m["delivery_status"] !== "failed",
-    ).length;
-    const contactedLeads = new Set(
-      sentMessages.map((m) => m["lead_id"]).filter((v): v is string => Boolean(v)),
-    ).size;
-
-    // Per-lead delivery breakdown over the FULL audience (messages above are
-    // paged, so this is not capped at 1,000). Recipients without any message
-    // count as not contacted.
-    const { aggregateDeliveryStates } = await import("@/lib/campaign-delivery-state");
-    const live = aggregateDeliveryStates(messages);
-    const leadStates: Record<string, number> = {};
-    for (const r of recipients) {
-      const hit = live.get(r.id) ?? live.get(`lead:${r.lead_id}`) ?? null;
-      const state = hit?.state ?? "not_contacted";
-      leadStates[state] = (leadStates[state] ?? 0) + 1;
-    }
-
-    // ---- Current run (today) ------------------------------------------------
-    const campaignRow = campaign as unknown as Record<string, unknown>;
-    const runTimezone = String(campaignRow["timezone"] ?? "UTC");
-    const runNow = new Date();
-    const runDayStart = zonedStartOfDay(runNow, runTimezone);
-    const inRunDay = (value: unknown) => {
-      if (!value) return false;
-      const at = new Date(String(value)).getTime();
-      return Number.isFinite(at) && at >= runDayStart.getTime();
-    };
-    const sentTodayCount = sentMessages.filter((m) => inRunDay(m["sent_at"])).length;
-    const countToday = (
-      field: string,
-      extra?: (m: Record<string, string | null>) => boolean,
-    ) => messages.filter((m) => inRunDay(m[field]) && (extra ? extra(m) : true)).length;
+    const totalRecipients = num(recipientCounts["total"]);
+    const contactedLeads = num(deliveryCounts["contacted"]);
+    const sentTodayCount = num(todayCounts["sent"]);
+    const sentTotal = num(deliveryCounts["sent"]);
+    const scheduledTotal = num(deliveryCounts["scheduled"]);
 
     const dailyQuota = Number(campaignRow["daily_cap"] ?? 0) || 0;
     const runWindow = {
@@ -339,45 +255,23 @@ export const getCampaign = createServerFn({ method: "GET" })
       remainingRecipients: Math.max(
         0,
         totalRecipients - contactedLeads,
-        messages.filter((m) => {
-          const s = String(m["status"] ?? "");
-          return (
-            ["pending", "scheduled", "processing", "queued"].includes(s) ||
-            (s === "failed" && !m["sent_at"] && isRetryableFailure(m["last_error"] ?? null))
-          );
-        }).length,
+        num(summary["owed_messages"]),
       ),
       lifetimeLimit: Number(campaignRow["email_send_limit"] ?? 0) || 0,
-      lifetimeSent: stats.sent,
+      lifetimeSent: sentTotal,
       now: runNow,
       window: runWindow,
     });
 
-    const retryableFailureCount = messages.filter(
-      (m) =>
-        m["status"] === "failed" &&
-        !m["sent_at"] &&
-        !m["bounced_at"] &&
-        isRetryableFailure(m["last_error"] ?? null),
-    ).length;
-
-    // Next send comes from the real queue and the campaign's own window /
-    // timezone, so it can never show a historical date.
-    const pendingTimes = messages
-      .filter(
-        (m) =>
-          !m["sent_at"] &&
-          ["pending", "scheduled", "queued"].includes(String(m["status"] ?? "")),
-      )
-      .map((m) => m["scheduled_at"])
-      .filter((v): v is string => Boolean(v))
-      .sort();
+    const earliestPending = summary["next_pending_at"]
+      ? new Date(String(summary["next_pending_at"]))
+      : null;
     const nextSendAt = nextEligibleSendAt({
       now: runNow,
       window: runWindow,
       status: String(campaignRow["status"] ?? "draft"),
-      earliestPendingAt: pendingTimes[0] ? new Date(pendingTimes[0]) : null,
-      pendingCount: stats.scheduled,
+      earliestPendingAt: earliestPending,
+      pendingCount: scheduledTotal,
     });
 
     return {
@@ -387,66 +281,48 @@ export const getCampaign = createServerFn({ method: "GET" })
       leadTotal: totalRecipients,
       queue: {
         total: totalRecipients,
-        pending: countBy("pending"),
-        inProgress: countBy("in_progress"),
-        completed: countBy("completed"),
-        replied: countBy("replied"),
-        bounced: countBy("bounced"),
-        unsubscribed: countBy("unsubscribed"),
-        failed: countBy("failed"),
-        stopped: countBy("stopped"),
-        sent: stats.sent,
-        // Per-step counts come from the same authoritative message units as
-        // every other number: unique recipients this step actually emailed.
-        byStep: stats.byStep.map((row) => ({
-          step: row.step,
-          sent: row.sent,
-          delivered: row.delivered,
-          opened: row.opened,
-          replied: row.replied,
-          scheduled: row.scheduled,
-        })),
+        pending: num(recipientCounts["pending"]),
+        inProgress: num(recipientCounts["in_progress"]),
+        completed: num(recipientCounts["completed"]),
+        replied: num(recipientCounts["replied"]),
+        bounced: num(recipientCounts["bounced"]),
+        unsubscribed: num(recipientCounts["unsubscribed"]),
+        failed: num(recipientCounts["failed"]),
+        stopped: num(recipientCounts["stopped"]),
+        sent: sentTotal,
+        byStep,
         nextSendAt: nextSendAt ? nextSendAt.toISOString() : null,
         timezone: runTimezone,
       },
-      // Lifetime totals come from the shared campaign stats source, so this
-      // tab always agrees with the workspace Analytics page.
       delivery: {
-        totalLeads: stats.leads || totalRecipients,
-        contacted: stats.contacted,
-        sent: stats.sent,
-        delivered: stats.delivered,
-        delayed: stats.delayed,
-        opened: stats.opened,
-        clicked: stats.clicked,
-        replied: stats.replied,
-        bounced: stats.bounced,
-        complained: stats.complained,
-        unsubscribed: stats.unsubscribed,
-        failed: stats.failed,
-        // Pending emails across all steps, de-duplicated per recipient+step.
-        scheduled: stats.scheduled,
-        // In flight right now: handed to the provider, no acceptance yet.
-        processing: stats.sending,
-        // Lifetime remainder: recipients this campaign has never emailed.
-        remaining: stats.remaining,
-        cancelled: stats.cancelled,
-        pending: stats.scheduled + stats.sending,
-        // Emails THIS campaign sent since the campaign timezone's local-day
-        // start. Never derived from lead counts.
+        totalLeads: totalRecipients,
+        contacted: contactedLeads,
+        sent: sentTotal,
+        delivered: num(deliveryCounts["delivered"]),
+        delayed: num(deliveryCounts["delayed"]),
+        opened: num(deliveryCounts["opened"]),
+        clicked: num(deliveryCounts["clicked"]),
+        replied: num(deliveryCounts["replied"]),
+        bounced: num(deliveryCounts["bounced"]),
+        complained: num(deliveryCounts["complained"]),
+        unsubscribed: num(deliveryCounts["unsubscribed"]),
+        failed: num(deliveryCounts["failed"]),
+        scheduled: scheduledTotal,
+        processing: num(deliveryCounts["sending"]),
+        remaining: Math.max(0, totalRecipients - contactedLeads),
+        cancelled: num(deliveryCounts["cancelled"]),
+        pending: scheduledTotal + num(deliveryCounts["sending"]),
         sentToday: sentTodayCount,
       },
-
-
       // Today's engagement, strictly separate from the lifetime numbers above.
       today: {
         sent: sentTodayCount,
-        delivered: countToday("delivered_at", (m) => !m["bounced_at"] && m["delivery_status"] !== "failed"),
-        opened: countToday("opened_at"),
-        clicked: countToday("clicked_at"),
-        replied: countToday("replied_at"),
-        bounced: countToday("bounced_at"),
-        failed: countToday("failed_at", (m) => !m["bounced_at"]),
+        delivered: num(todayCounts["delivered"]),
+        opened: num(todayCounts["opened"]),
+        clicked: num(todayCounts["clicked"]),
+        replied: num(todayCounts["replied"]),
+        bounced: num(todayCounts["bounced"]),
+        failed: num(todayCounts["failed"]),
       },
       // Current run: quota, capacity and the next scheduled run. Reaching the
       // daily quota is never "paused" and never "completed".
@@ -454,10 +330,11 @@ export const getCampaign = createServerFn({ method: "GET" })
         ...runStatus,
         dailyQuota,
         sentThisRun: sentTodayCount,
-        retryableFailures: retryableFailureCount,
+        retryableFailures: num(summary["retryable_failures"]),
       },
     };
   });
+
 
 
 
