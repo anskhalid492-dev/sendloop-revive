@@ -9121,6 +9121,70 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      campaign_ai_missing_count: {
+        Args: { _campaign_id: string }
+        Returns: number
+      }
+      campaign_eligible_lead_count: {
+        Args: { _campaign_id: string }
+        Returns: number
+      }
+      campaign_eligible_leads: {
+        Args: { _after?: string; _campaign_id: string; _limit?: number }
+        Returns: {
+          city: string
+          company: string
+          country: string
+          custom_fields: Json
+          email: string
+          first_name: string
+          id: string
+          job_title: string
+          last_name: string
+          linkedin_url: string
+          phone: string
+          state: string
+          website: string
+        }[]
+      }
+      campaign_overview_rollup: {
+        Args: { _workspace_id: string }
+        Returns: {
+          bounced: number
+          campaign_id: string
+          failed: number
+          leads: number
+          meetings: number
+          positive_replies: number
+          replies: number
+          sent: number
+          sent_today: number
+        }[]
+      }
+      campaign_page_summary: {
+        Args: { _campaign_id: string; _day_start: string }
+        Returns: Json
+      }
+      campaign_recipients_missing_first_message: {
+        Args: { _after?: string; _campaign_id: string; _limit?: number }
+        Returns: {
+          city: string
+          company: string
+          country: string
+          custom_fields: Json
+          email: string
+          first_name: string
+          job_title: string
+          last_name: string
+          lead_id: string
+          linkedin_url: string
+          phone: string
+          recipient_id: string
+          sending_account_id: string
+          state: string
+          website: string
+        }[]
+      }
       campaign_stats: {
         Args: {
           _campaign_ids?: string[]
