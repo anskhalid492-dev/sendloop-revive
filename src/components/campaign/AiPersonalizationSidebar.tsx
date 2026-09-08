@@ -132,7 +132,9 @@ export function AiPersonalizationSidebar({
     mutationFn: async (regenerate: boolean) => {
       await saveFn({ data: { campaignId, enabled: true, config } });
       const queued = await queueFn({ data: { campaignId, regenerate } });
-      const run = await runFn({ data: { campaignId, passes: 8 } });
+      // One bounded batch keeps this request below the server memory ceiling.
+      // The normal runner and this panel's polling continue draining the queue.
+      const run = await runFn({ data: { campaignId, passes: 1 } });
       return { ...queued, ...run };
     },
     onSuccess: async (result) => {
