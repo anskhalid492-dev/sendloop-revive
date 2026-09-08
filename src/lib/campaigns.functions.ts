@@ -128,7 +128,17 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
         "campaign_overview_rollup",
         { _workspace_id: ws },
       );
-      if (rollupError && rollupError.code !== "PGRST202") throw new Error(rollupError.message);
+      if (rollupError && rollupError.code !== "PGRST202") {
+        console.error("[campaigns.overview] campaign_overview_rollup failed", {
+          workspaceId: ws,
+          code: rollupError.code,
+          databaseError: rollupError.message,
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error(
+          `Could not load campaign totals (${rollupError.code ?? "error"}): ${rollupError.message}`,
+        );
+      }
       if (rollupError) {
         // The connected database has not received the aggregate yet. Fall back
         // to bounded database-side counts rather than failing the whole page
