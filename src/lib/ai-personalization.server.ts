@@ -13,11 +13,15 @@ import {
   AI_TOKEN,
   frameworkGuidance,
   normalizeAiConfig,
-  type AiPersonalizationCoverage,
   type AiPersonalizationConfig,
-  type FallbackMode,
   type PersonalizationField,
 } from "@/lib/ai-personalization-model";
+import {
+  aiExtras,
+  LEAD_AI_COLUMNS,
+  personalizationByLead,
+  promptFingerprint,
+} from "@/lib/ai-personalization-meta.server";
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,8 +34,8 @@ const RUNNER_KEY = "ai_personalization";
  * network-bound, so a wide-but-capped pool turns a 1,000-lead list from an
  * hour-long trickle into a handful of seconds per run.
  */
-const BATCH_SIZE = 120;
-const CONCURRENCY = 20;
+const BATCH_SIZE = 50;
+const CONCURRENCY = 5;
 
 /** Run `worker` over `items` with a bounded number of in-flight calls. */
 export async function mapWithConcurrency<T>(
@@ -95,9 +99,6 @@ export type LeadRecord = {
   notes?: string | null;
   custom_fields?: Record<string, string> | null;
 };
-
-export const LEAD_AI_COLUMNS =
-  "id, email, first_name, last_name, job_title, company, website, city, state, country, custom_fields";
 
 /**
  * Attach the most recent lead notes so "Lead notes" personalization has real
@@ -354,43 +355,12 @@ export async function generatePersonalization(
 
 
 /** Stable fingerprint of the settings a stored snippet was generated with. */
-export function promptFingerprint(config: AiPersonalizationConfig): string {
-  const payload = JSON.stringify({
-    l: config.level,
-    fw: config.framework,
-
-    t: config.tone,
-    n: config.length,
-    g: config.language,
-    i: config.instructions.trim(),
-    f: [...config.fields].sort(),
-    e: config.exampleOutput.trim(),
-  });
-  let h1 = 0x811c9dc5;
-  for (let i = 0; i < payload.length; i += 1) {
-    h1 ^= payload.charCodeAt(i);
-    h1 = Math.imul(h1, 0x01000193) >>> 0;
-  }
-  return h1.toString(16).padStart(8, "0");
-}
-
 /**
  * Values the sending pipeline substitutes for `{{ai_personalization}}`.
  *
  * `hold` means the lead must not be sent yet — the campaign owner chose to wait
  * for successful personalization rather than send a weaker email.
  */
-export function aiExtras(
-  config: AiPersonalizationConfig,
-  content: string | null,
-): { extras: Record<string, string>; hold: boolean } {
-  if (content && content.trim()) return { extras: { [AI_TOKEN]: content.trim() }, hold: false };
-  const mode: FallbackMode = config.fallbackMode;
-  if (mode === "hold") return { extras: {}, hold: true };
-  if (mode === "skip") return { extras: { [AI_TOKEN]: "" }, hold: false };
-  return { extras: { [AI_TOKEN]: config.fallbackText.trim() }, hold: false };
-}
-
 /** Completed snippets for a set of leads on one campaign, keyed by lead id. */
 export async function personalizationByLead(
   supabase: Client,
