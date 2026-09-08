@@ -9,7 +9,7 @@ type Client = any;
 
 type CountFilter = {
   column: string;
-  operator: "eq" | "gte" | "is" | "not";
+  operator: "eq" | "gte" | "is" | "notNull";
   value: unknown;
 };
 
@@ -23,7 +23,12 @@ async function exactCount(
     .from(table)
     .select("id", { count: "exact", head: true })
     .eq("campaign_id", campaignId);
-  for (const filter of filters) query = query[filter.operator](filter.column, filter.value);
+  for (const filter of filters) {
+    query =
+      filter.operator === "notNull"
+        ? query.not(filter.column, "is", null)
+        : query[filter.operator](filter.column, filter.value);
+  }
   const { count, error } = await query;
   if (error) throw new Error(error.message);
   return Number(count ?? 0) || 0;
@@ -82,7 +87,7 @@ export async function campaignPageSummaryFallback(
     failedToday,
     nextPendingRes,
   ] = await Promise.all([
-    countMessage([{ column: "sent_at", operator: "not", value: null }]),
+    countMessage([{ column: "sent_at", operator: "notNull", value: null }]),
     countMessage([
       { column: "sent_at", operator: "is", value: null },
       { column: "status", operator: "eq", value: "scheduled" },
@@ -93,22 +98,22 @@ export async function campaignPageSummaryFallback(
     ]),
     countMessage([{ column: "status", operator: "eq", value: "cancelled" }]),
     countMessage([
-      { column: "delivered_at", operator: "not", value: null },
+      { column: "delivered_at", operator: "notNull", value: null },
       { column: "bounced_at", operator: "is", value: null },
     ]),
     countMessage([
-      { column: "delayed_at", operator: "not", value: null },
+      { column: "delayed_at", operator: "notNull", value: null },
       { column: "delivered_at", operator: "is", value: null },
       { column: "bounced_at", operator: "is", value: null },
     ]),
-    countMessage([{ column: "opened_at", operator: "not", value: null }]),
-    countMessage([{ column: "clicked_at", operator: "not", value: null }]),
-    countMessage([{ column: "replied_at", operator: "not", value: null }]),
-    countMessage([{ column: "bounced_at", operator: "not", value: null }]),
-    countMessage([{ column: "complained_at", operator: "not", value: null }]),
-    countMessage([{ column: "unsubscribed_at", operator: "not", value: null }]),
+    countMessage([{ column: "opened_at", operator: "notNull", value: null }]),
+    countMessage([{ column: "clicked_at", operator: "notNull", value: null }]),
+    countMessage([{ column: "replied_at", operator: "notNull", value: null }]),
+    countMessage([{ column: "bounced_at", operator: "notNull", value: null }]),
+    countMessage([{ column: "complained_at", operator: "notNull", value: null }]),
+    countMessage([{ column: "unsubscribed_at", operator: "notNull", value: null }]),
     countMessage([
-      { column: "failed_at", operator: "not", value: null },
+      { column: "failed_at", operator: "notNull", value: null },
       { column: "bounced_at", operator: "is", value: null },
     ]),
     countMessage([{ column: "sent_at", operator: "gte", value: dayStart }]),
