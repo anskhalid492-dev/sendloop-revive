@@ -34,6 +34,25 @@ async function exactCount(
   return Number(count ?? 0) || 0;
 }
 
+async function mapWithConcurrency<T, R>(
+  values: readonly T[],
+  concurrency: number,
+  task: (value: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(values.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, values.length) }, async () => {
+    while (cursor < values.length) {
+      const index = cursor++;
+      const value = values[index];
+      if (value === undefined) continue;
+      results[index] = await task(value);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 export async function campaignPageSummaryFallback(
   supabase: Client,
   campaignId: string,
@@ -59,10 +78,8 @@ export async function campaignPageSummaryFallback(
   const countMessage = (filters: CountFilter[]) =>
     exactCount(supabase, "campaign_messages", campaignId, filters);
 
-  const [
-    recipientTotal,
-    ...recipientStatusCounts
-  ] = await Promise.all([countRecipient(), ...recipientStatuses.map(countRecipient)]);
+  const recipientStatusCounts = await mapWithConcurrency(recipientStatuses, 4, countRecipient);
+  const recipientTotal = await countRecipient();
 
   const [
     sent,
@@ -86,7 +103,7 @@ export async function campaignPageSummaryFallback(
     bouncedToday,
     failedToday,
     nextPendingRes,
-  ] = await Promise.all([
+  ] = await mapWithConcurrency<Promise<unknown>, unknown>([
     countMessage([{ column: "sent_at", operator: "notNull", value: null }]),
     countMessage([
       { column: "sent_at", operator: "is", value: null },
@@ -138,7 +155,11 @@ export async function campaignPageSummaryFallback(
       .order("scheduled_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-  ]);
+  ], 5, (request) => request) as [
+    number, number, number, number, number, number, number, number, number, number,
+    number, number, number, number, number, number, number, number, number, number,
+    { data: { scheduled_at?: string | null } | null; error: { message: string } | null },
+  ];
 
   if (nextPendingRes.error) throw new Error(nextPendingRes.error.message);
   const recipients = Object.fromEntries(
