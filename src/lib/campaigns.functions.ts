@@ -128,9 +128,29 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
         "campaign_overview_rollup",
         { _workspace_id: ws },
       );
-      if (rollupError) throw new Error(rollupError.message);
-      applyCampaignRollup(rows, (rollup ?? []) as never, deriveDisplayStatus);
+      if (rollupError && rollupError.code !== "PGRST202") throw new Error(rollupError.message);
+      if (rollupError) {
+        // The connected database has not received the aggregate yet. Fall back
+        // to bounded database-side counts rather than failing the whole page
+        // with a generic "Internal server error".
+        console.error("[campaigns.overview] campaign_overview_rollup unavailable; using bounded fallback", {
+          workspaceId: ws,
+          code: rollupError.code,
+        });
+        const { campaignOverviewRollupFallback } = await import("@/lib/campaign-overview-rollup.server");
+        const dayStart = new Date();
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const fallback = await campaignOverviewRollupFallback(
+          context.supabase,
+          rows.map((r) => r.id),
+          dayStart.toISOString(),
+        );
+        applyCampaignRollup(rows, fallback as never, deriveDisplayStatus);
+      } else {
+        applyCampaignRollup(rows, (rollup ?? []) as never, deriveDisplayStatus);
+      }
     }
+
 
     return rows;
   });

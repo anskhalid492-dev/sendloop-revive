@@ -76,7 +76,18 @@ const REQUIRED_FUNCTIONS: { name: string; args: Record<string, unknown> }[] = [
   { name: "public_auth_settings", args: {} },
   { name: "is_workspace_member", args: { _workspace_id: "00000000-0000-0000-0000-000000000000", _user_id: "00000000-0000-0000-0000-000000000000" } },
   { name: "public_review_stats", args: {} },
+  // Campaign scale aggregates. These went missing on a live database once and
+  // surfaced as a generic "Internal server error" on every large campaign, so
+  // schema drift is now a first-class, visible check instead of a mystery.
+  { name: "campaign_page_summary", args: { _campaign_id: "00000000-0000-0000-0000-000000000000", _day_start: "1970-01-01T00:00:00Z" } },
+  { name: "campaign_eligible_lead_count", args: { _campaign_id: "00000000-0000-0000-0000-000000000000" } },
+  { name: "campaign_eligible_leads", args: { _campaign_id: "00000000-0000-0000-0000-000000000000" } },
+  { name: "campaign_ai_missing_count", args: { _campaign_id: "00000000-0000-0000-0000-000000000000" } },
+  { name: "campaign_recipients_missing_first_message", args: { _campaign_id: "00000000-0000-0000-0000-000000000000" } },
+  { name: "campaign_overview_rollup", args: { _workspace_id: "00000000-0000-0000-0000-000000000000" } },
+  { name: "campaign_stats", args: { _workspace_id: "00000000-0000-0000-0000-000000000000", _campaign_ids: null, _from: null, _to: null } },
 ];
+
 
 /** Anon-role client: used to prove RLS actually blocks unauthenticated reads. */
 async function anonClient() {
