@@ -206,7 +206,7 @@ export const getCampaign = createServerFn({ method: "GET" })
     ]);
     if (stepsRes.error) throw new Error(stepsRes.error.message);
     if (variantsRes.error) throw new Error(variantsRes.error.message);
-    let summaryData = summaryRes.data;
+    let summaryData: unknown = summaryRes.data;
     if (summaryRes.error) {
       if (summaryRes.error.code !== "PGRST202") throw new Error(summaryRes.error.message);
       const { campaignPageSummaryFallback } = await import("@/lib/campaign-page-summary.server");
