@@ -12,10 +12,10 @@ import {
   launchCampaign,
   saveCampaignSteps,
   setCampaignStatus,
-  updateCampaign,
 } from "@/lib/campaigns.functions";
 import { getCampaign } from "@/lib/campaign-read.functions";
 import { getCampaignLeads } from "@/lib/campaign-leads.functions";
+import { updateCampaign } from "@/lib/campaign-update.functions";
 import { listLeadLists } from "@/lib/leads.functions";
 import { listMySendingAccounts } from "@/lib/sending.functions";
 import type {
