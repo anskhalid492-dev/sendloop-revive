@@ -50,6 +50,11 @@ export type IntegrationMeta = {
   steps: { title: string; text: string }[];
   faqs: { q: string; a: string }[];
   docsUrl: string;
+  /**
+   * Official brand mark key (see `BrandGlyph`). Omitted when no official asset
+   * is available for that company — we never draw a look-alike logo.
+   */
+  brand?: string;
   /** Set when MunchReach can also receive data from the provider. */
   inbound?: boolean;
 };
@@ -118,6 +123,61 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     docsUrl: "https://platform.openai.com/api-keys",
   },
   {
+    slug: "claude",
+    name: "Claude",
+    category: "ai",
+    icon: Bot,
+    brand: "claude",
+    tagline: "Personalize outreach with Claude using your own Anthropic key.",
+    description:
+      "Connect your Anthropic account and MunchReach uses Claude to write the personalized opening line for every lead in a campaign, plus on-demand drafting and reply summaries. Your key is encrypted and used only for requests made from your workspace.",
+    authType: "api_key",
+    fields: [
+      {
+        key: "api_key",
+        label: "Anthropic API key",
+        placeholder: "sk-ant-...",
+        help: "Create a key at console.anthropic.com → Settings → API keys.",
+        secret: true,
+        required: true,
+      },
+      {
+        key: "model",
+        label: "Default model",
+        placeholder: "claude-haiku-4-5",
+        help: "Any Claude model available to your account.",
+        secret: false,
+        required: false,
+      },
+    ],
+    events: [],
+    features: [
+      "Per-lead AI personalization across a whole campaign",
+      "Draft and rewrite sequence steps in your own tone",
+      "Summarise long reply threads before you answer",
+    ],
+    steps: [
+      { title: "Create a key", text: "Generate an API key in the Anthropic console." },
+      { title: "Paste it in MunchReach", text: "Campaign → AI, or Settings → Integrations → Claude." },
+      {
+        title: "Verified live",
+        text: "MunchReach calls the Anthropic models endpoint to confirm the key works.",
+      },
+    ],
+    faqs: [
+      { q: "Who pays for usage?", a: "You do — requests run against your own Anthropic account and key." },
+      {
+        q: "Is my key visible after saving?",
+        a: "No. It is encrypted server-side and only the last characters are ever shown.",
+      },
+      {
+        q: "Can I use Claude and OpenAI together?",
+        a: "One AI provider is active per workspace for campaign personalization; you can switch at any time.",
+      },
+    ],
+    docsUrl: "https://docs.anthropic.com/en/api/messages",
+  },
+  {
     slug: "slack",
     name: "Slack",
     category: "notifications",
@@ -162,6 +222,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   },
   {
     slug: "zapier",
+    brand: "zapier",
     name: "Zapier",
     category: "automation",
     icon: Zap,
@@ -199,6 +260,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   },
   {
     slug: "make",
+    brand: "make",
     name: "Make",
     category: "automation",
     icon: Workflow,
@@ -232,6 +294,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   },
   {
     slug: "hubspot",
+    brand: "hubspot",
     name: "HubSpot",
     category: "crm",
     icon: Users,
@@ -307,6 +370,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   },
   {
     slug: "calendly",
+    brand: "calendly",
     name: "Calendly",
     category: "calendar",
     icon: CalendarClock,
@@ -339,6 +403,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   },
   {
     slug: "google-sheets",
+    brand: "googlesheets",
     name: "Google Sheets",
     category: "data",
     icon: Sheet,

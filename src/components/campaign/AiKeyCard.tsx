@@ -1,9 +1,9 @@
 /**
- * OpenAI key connection for a workspace.
+ * AI provider connection for a workspace (OpenAI or Anthropic's Claude).
  *
- * MunchReach does not supply AI credits: the customer connects their own
- * OpenAI key, is billed by OpenAI directly, and can disconnect at any time.
- * The key is stored encrypted server-side and never returned to the browser.
+ * MunchReach does not supply AI credits: the customer connects their own key,
+ * is billed by the provider directly, and can disconnect at any time. The key
+ * is stored encrypted server-side and never returned to the browser.
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,13 +28,7 @@ import {
   getWorkspaceAiKey,
   saveWorkspaceAiKeyFn,
 } from "@/lib/ai-keys.functions";
-
-const MODEL_OPTIONS = [
-  { value: "gpt-4o-mini", label: "GPT-4o mini — fastest, lowest cost" },
-  { value: "gpt-4o", label: "GPT-4o — highest quality" },
-  { value: "gpt-4.1-mini", label: "GPT-4.1 mini — balanced" },
-  { value: "gpt-4.1", label: "GPT-4.1 — long instructions" },
-];
+import { AI_PROVIDERS, aiProvider, resolveAiModel, type AiProviderId } from "@/lib/ai-providers";
 
 export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefined }) {
   const queryClient = useQueryClient();
@@ -42,13 +36,16 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const saveKey = useServerFn(saveWorkspaceAiKeyFn);
   const removeKey = useServerFn(deleteWorkspaceAiKeyFn);
 
+  const [providerId, setProviderId] = useState<AiProviderId>("openai");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gpt-4o-mini");
+  const [model, setModel] = useState(aiProvider("openai").defaultModel);
+
+  const meta = aiProvider(providerId);
 
   // Same shape check the server runs, so the button state matches the outcome.
   const trimmedKey = apiKey.trim();
-  const keyLooksValid = /^sk-[A-Za-z0-9_-]{20,}$/.test(trimmedKey);
-  const keyError = trimmedKey.length === 0 || keyLooksValid ? null : "Keys start with “sk-”.";
+  const keyLooksValid = meta.keyPattern.test(trimmedKey);
+  const keyError = trimmedKey.length === 0 || keyLooksValid ? null : meta.keyHint;
 
   const keyQuery = useQuery({
     queryKey: ["workspace-ai-key", workspaceId],
@@ -59,15 +56,26 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const info = keyQuery.data;
 
   useEffect(() => {
-    if (info?.model) setModel(info.model);
-  }, [info?.model]);
+    if (!info?.connected) return;
+    const stored = (info.provider as AiProviderId) ?? "openai";
+    setProviderId(stored);
+    setModel(resolveAiModel(stored, info.model));
+  }, [info?.connected, info?.provider, info?.model]);
+
+  const chooseProvider = (next: AiProviderId) => {
+    setProviderId(next);
+    setModel(aiProvider(next).defaultModel);
+    setApiKey("");
+  };
 
   const save = useMutation({
     mutationFn: () =>
-      saveKey({ data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), model } }),
-    onSuccess: async (result) => {
+      saveKey({
+        data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), model, provider: providerId },
+      }),
+    onSuccess: async () => {
       setApiKey("");
-      toast.success("OpenAI connected");
+      toast.success(`${meta.label} connected`);
       await queryClient.invalidateQueries({ queryKey: ["workspace-ai-key", workspaceId] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -76,11 +84,13 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const disconnect = useMutation({
     mutationFn: () => removeKey({ data: { workspaceId: workspaceId! } }),
     onSuccess: async () => {
-      toast.success("OpenAI key removed");
+      toast.success("AI key removed");
       await queryClient.invalidateQueries({ queryKey: ["workspace-ai-key", workspaceId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const connectedLabel = aiProvider(info?.provider).label;
 
   return (
     <Card>
@@ -88,11 +98,11 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-primary" />
-            Your OpenAI connection
+            Your AI connection
           </CardTitle>
           <CardDescription>
-            Personalization runs on your own OpenAI account, so you control the model and pay OpenAI
-            directly. Your key is encrypted and never shown again after saving.
+            Personalization runs on your own OpenAI or Claude account, so you control the model and
+            pay the provider directly. Your key is encrypted and never shown again after saving.
           </CardDescription>
         </div>
         {info?.connected ? (
@@ -116,7 +126,7 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
             <div className="space-y-1">
               <p className="flex items-center gap-2 font-medium">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                OpenAI connected — key ending •••• {info.last4 ?? "----"}
+                {connectedLabel} connected — key ending •••• {info.last4 ?? "----"}
               </p>
               <p className="text-muted-foreground">
                 Model: {info.model}
@@ -140,30 +150,48 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_240px]">
+        <div className="space-y-2">
+          <Label>Provider</Label>
+          <div className="flex flex-wrap gap-2">
+            {AI_PROVIDERS.map((option) => (
+              <Button
+                key={option.id}
+                type="button"
+                variant={providerId === option.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => chooseProvider(option.id)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            One provider is active per workspace. Switching replaces the stored key.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-[1fr_260px]">
           <div className="space-y-2">
-            <Label htmlFor="openai-key">
-              {info?.connected ? "Replace API key" : "OpenAI API key"}
-            </Label>
+            <Label htmlFor="ai-key">{info?.connected ? "Replace API key" : meta.keyLabel}</Label>
             <Input
-              id="openai-key"
+              id="ai-key"
               type="password"
               autoComplete="off"
               spellCheck={false}
-              placeholder="sk-..."
+              placeholder={meta.keyPlaceholder}
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
             />
             {keyError ? <p className="text-xs text-destructive">{keyError}</p> : null}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="openai-model">Model</Label>
+            <Label htmlFor="ai-model">Model</Label>
             <Select value={model} onValueChange={setModel}>
-              <SelectTrigger id="openai-model">
+              <SelectTrigger id="ai-model">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MODEL_OPTIONS.map((option) => (
+                {meta.models.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -183,8 +211,8 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
             {info?.connected ? "Update key" : "Connect key"}
           </Button>
           <Button type="button" variant="ghost" size="sm" asChild>
-            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">
-              Get an API key
+            <a href={meta.keysUrl} target="_blank" rel="noreferrer">
+              Get a {meta.vendor} API key
               <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </a>
           </Button>

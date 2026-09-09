@@ -11,6 +11,7 @@ import {
   WorkflowStrip,
   metaFor,
 } from "@/components/site/MarketingPage";
+import { BrandGlyph, brandIcon } from "@/components/site/BrandGlyph";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Badge } from "@/components/ui/badge";
 import { INTEGRATIONS, INTEGRATION_CATEGORIES, categoryLabel } from "@/lib/integrations-catalog";
@@ -98,7 +99,11 @@ function IntegrationsDirectory() {
               className="surface-card group flex flex-col p-6 transition-transform hover:-translate-y-0.5"
             >
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
-                <item.icon className="size-5" />
+                {brandIcon(item.brand) ? (
+                  <BrandGlyph brand={item.brand} title={item.name} className="size-5" />
+                ) : (
+                  <item.icon className="size-5" />
+                )}
               </span>
               <div className="mt-4 flex items-center gap-2">
                 <h3 className="text-lg font-semibold">{item.name}</h3>

@@ -37,9 +37,10 @@ export const saveWorkspaceAiKeyFn = createServerFn({ method: "POST" })
         apiKey: z
           .string()
           .trim()
-          .min(20, "Invalid OpenAI API key. Please check your key and try again.")
-          .max(500, "Invalid OpenAI API key. Please check your key and try again."),
+          .min(20, "Invalid API key. Please check your key and try again.")
+          .max(500, "Invalid API key. Please check your key and try again."),
         model: z.string().min(2).max(60),
+        provider: z.enum(["openai", "anthropic"]).default("openai"),
       })
       .parse(input),
   )
@@ -51,6 +52,7 @@ export const saveWorkspaceAiKeyFn = createServerFn({ method: "POST" })
       workspaceId: data.workspaceId,
       apiKey: data.apiKey,
       model: data.model,
+      provider: data.provider,
       userId: context.userId,
     });
   });
