@@ -253,7 +253,11 @@ export const getCampaign = createServerFn({ method: "GET" })
     if (variantsRes.error) throw fail("campaign step variants", variantsRes.error);
     let summaryData: unknown = summaryRes.data;
     if (summaryRes.error) {
-      if (summaryRes.error.code !== "PGRST202") throw fail("campaign summary", summaryRes.error);
+      // PGRST202 = function missing, 57014 = statement timeout on a slow
+      // deployed definition. Both mean "the aggregate is unusable here", so we
+      // serve the bounded per-count fallback instead of failing the page.
+      const recoverable = summaryRes.error.code === "PGRST202" || summaryRes.error.code === "57014";
+      if (!recoverable) throw fail("campaign summary", summaryRes.error);
       const { campaignPageSummaryFallback } = await import("@/lib/campaign-page-summary.server");
       console.error("[campaign.getCampaign] campaign_page_summary unavailable; using bounded fallback", {
         campaignId: data.id,
