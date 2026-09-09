@@ -136,13 +136,25 @@ let limitColumnsSupported: boolean | null = null;
 let pauseColumnsSupported: boolean | null = null;
 
 /**
+ * Sentinel id used by the column probes below. Filtering on the primary key
+ * keeps the probe an index lookup that matches no row: an unfiltered
+ * `select ... limit 1` scans every campaign through row-level security and
+ * took >20s on large production workspaces.
+ */
+const PROBE_ID = "00000000-0000-0000-0000-000000000000";
+
+/**
  * Probes once whether the connected backend has the campaign send-limit
  * columns. Without this a backend missing the migration makes every campaign
  * read fail with "column campaigns.email_send_limit does not exist".
  */
 export async function campaignLimitColumnsAvailable(client: AnyClient): Promise<boolean> {
   if (limitColumnsSupported !== null) return limitColumnsSupported;
-  const { error } = await client.from("campaigns").select("email_send_limit").limit(1);
+  const { error } = await client
+    .from("campaigns")
+    .select("email_send_limit")
+    .eq("id", PROBE_ID)
+    .limit(1);
   const missing =
     Boolean(error) &&
     (error.code === "42703" || String(error.message ?? "").includes("email_send_limit"));
@@ -153,7 +165,11 @@ export async function campaignLimitColumnsAvailable(client: AnyClient): Promise<
 /** Probes once whether the backend has the automatic-pause reason columns. */
 export async function campaignPauseColumnsAvailable(client: AnyClient): Promise<boolean> {
   if (pauseColumnsSupported !== null) return pauseColumnsSupported;
-  const { error } = await client.from("campaigns").select("pause_reason").limit(1);
+  const { error } = await client
+    .from("campaigns")
+    .select("pause_reason")
+    .eq("id", PROBE_ID)
+    .limit(1);
   const missing =
     Boolean(error) &&
     (error.code === "42703" || String(error.message ?? "").includes("pause_reason"));
