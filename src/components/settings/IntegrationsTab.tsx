@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { BrandGlyph, brandIcon } from "@/components/site/BrandGlyph";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { INTEGRATIONS_BY_SLUG, INTEGRATION_CATEGORIES, categoryLabel } from "@/lib/integrations-catalog";
 import {
@@ -195,7 +196,11 @@ export function IntegrationsTab() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-5" />
+                      {brandIcon(meta?.brand) ? (
+                        <BrandGlyph brand={meta?.brand} title={item.name} className="size-5" />
+                      ) : (
+                        <Icon className="size-5" />
+                      )}
                     </span>
                     <div>
                       <div className="flex items-center gap-2">

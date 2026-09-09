@@ -43,6 +43,7 @@ import { Route as ReferralRouteImport } from './routes/referral'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as RemoveMyDataRouteImport } from './routes/remove-my-data'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -371,6 +372,11 @@ const RemoveMyDataRoute = RemoveMyDataRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -1309,6 +1315,7 @@ export interface FileRoutesByFullPath {
   '/refund-policy': typeof RefundPolicyRoute
   '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -1503,6 +1510,7 @@ export interface FileRoutesByTo {
   '/refund-policy': typeof RefundPolicyRoute
   '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -1698,6 +1706,7 @@ export interface FileRoutesById {
   '/refund-policy': typeof RefundPolicyRoute
   '/remove-my-data': typeof RemoveMyDataRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -1895,6 +1904,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/remove-my-data'
     | '/reset-password'
+    | '/resources'
     | '/robots.txt'
     | '/signin'
     | '/signup'
@@ -2089,6 +2099,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/remove-my-data'
     | '/reset-password'
+    | '/resources'
     | '/robots.txt'
     | '/signin'
     | '/signup'
@@ -2283,6 +2294,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/remove-my-data'
     | '/reset-password'
+    | '/resources'
     | '/robots.txt'
     | '/signin'
     | '/signup'
@@ -2480,6 +2492,7 @@ export interface RootRouteChildren {
   RefundPolicyRoute: typeof RefundPolicyRoute
   RemoveMyDataRoute: typeof RemoveMyDataRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ResourcesRoute: typeof ResourcesRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
@@ -2783,6 +2796,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -4333,6 +4353,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefundPolicyRoute: RefundPolicyRoute,
   RemoveMyDataRoute: RemoveMyDataRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ResourcesRoute: ResourcesRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,

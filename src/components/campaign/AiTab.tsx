@@ -72,7 +72,7 @@ const STATUS_STYLES: Record<string, string> = {
 function friendlyError(error: unknown): string {
   const raw = error instanceof Error ? error.message.trim() : String(error ?? "").trim();
   if (!raw || /^(bad request|internal server error|failed to fetch|\[object)/i.test(raw)) {
-    return "Couldn't generate personalization. Please check your OpenAI connection and try again.";
+    return "Couldn't generate personalization. Please check your AI connection and try again.";
   }
   return raw;
 }
@@ -252,7 +252,7 @@ export function AiTab({ builder }: { builder: CampaignBuilder }) {
             </CardTitle>
             <CardDescription>
               Write a unique opening line for every lead, generated from the data on their record.
-              Powered by your own OpenAI key, so you stay in control of the model and the cost.
+              Powered by your own OpenAI or Claude key, so you stay in control of the model and the cost.
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">

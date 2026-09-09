@@ -131,6 +131,14 @@ export async function verifyIntegration(
         });
         return res.ok ? { ...res, accountLabel: "OpenAI account" } : res;
       }
+      case "claude": {
+        // Anthropic Messages API auth headers (docs.anthropic.com/en/api).
+        const res = await head("https://api.anthropic.com/v1/models?limit=1", {
+          "x-api-key": credentials["api_key"] ?? "",
+          "anthropic-version": "2023-06-01",
+        });
+        return res.ok ? { ...res, accountLabel: "Anthropic account" } : res;
+      }
       case "hubspot": {
         const token = credentials["access_token"] ?? "";
         const res = await head(

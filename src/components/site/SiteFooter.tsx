@@ -51,6 +51,7 @@ const fallbackColumns = [
   {
     title: "Resources",
     links: [
+      { label: "All Resources", href: "/resources" },
       { label: "Blog", href: "/blog" },
       { label: "Documentation", href: "/docs" },
       { label: "API Documentation", href: "/api-docs" },

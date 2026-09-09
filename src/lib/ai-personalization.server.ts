@@ -9,6 +9,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 
 import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
+import { aiProvider } from "@/lib/ai-providers";
 import {
   AI_TOKEN,
   frameworkGuidance,
@@ -73,7 +74,7 @@ function provider(credentials: WorkspaceAiCredentials) {
   if (!credentials?.apiKey)
     throw new AiGatewayError({
       status: 401,
-      message: "No OpenAI API key is connected for this workspace.",
+      message: `No ${vendorOf(credentials)} API key is connected for this workspace.`,
       retryable: false,
     });
   return createOpenAICompatible({
@@ -81,6 +82,88 @@ function provider(credentials: WorkspaceAiCredentials) {
     baseURL: "https://api.openai.com/v1",
     headers: { Authorization: `Bearer ${credentials.apiKey}` },
   });
+}
+
+export function vendorOf(credentials: Pick<WorkspaceAiCredentials, "provider">): string {
+  return aiProvider(credentials?.provider).vendor;
+}
+
+/**
+ * Anthropic Messages API call (docs.anthropic.com/en/api/messages).
+ *
+ * Claude is not OpenAI-compatible, so it gets its own documented request shape
+ * rather than being forced through the OpenAI-compatible adapter.
+ */
+async function generateWithAnthropic(input: {
+  apiKey: string;
+  model: string;
+  system: string;
+  prompt: string;
+}): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": input.apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      max_tokens: 400,
+      temperature: 0.6,
+      system: input.system,
+      messages: [{ role: "user", content: input.prompt }],
+    }),
+  });
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const body = (await res.json()) as { error?: { message?: string } };
+      detail = body?.error?.message ?? "";
+    } catch {
+      detail = "";
+    }
+    throw new AiGatewayError(
+      anthropicFailure(res.status, detail || `Claude returned HTTP ${res.status}.`),
+    );
+  }
+  const body = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
+  return (body.content ?? [])
+    .filter((part) => part?.type === "text")
+    .map((part) => part.text ?? "")
+    .join("")
+    .trim();
+}
+
+function anthropicFailure(status: number, message: string): GatewayFailure {
+  if (status === 401 || status === 403)
+    return {
+      status,
+      message: "Your Anthropic API key was rejected. Reconnect it in the AI tab.",
+      retryable: false,
+    };
+  if (status === 429)
+    return {
+      status,
+      message:
+        "Claude rate limited this workspace. Remaining leads stay queued and retry automatically.",
+      retryable: true,
+    };
+  if (status === 400 && /credit|billing/i.test(message))
+    return {
+      status: 402,
+      message: "Your Anthropic account has no available credit. Add billing in Anthropic and retry.",
+      retryable: false,
+    };
+  if (status === 400)
+    return { status, message: `Claude rejected the request: ${message}`, retryable: false };
+  if (status === 529 || status >= 500)
+    return {
+      status,
+      message: "Claude is temporarily unavailable. Remaining leads retry automatically.",
+      retryable: true,
+    };
+  return { status, message, retryable: false };
 }
 
 export type LeadRecord = {
@@ -249,7 +332,7 @@ function parseStructured(raw: string): {
 }
 
 
-function mapGatewayError(error: unknown): AiGatewayError {
+function mapGatewayError(error: unknown, vendor = "OpenAI"): AiGatewayError {
   if (error instanceof AiGatewayError) return error;
   const raw = error as { statusCode?: number; status?: number; message?: string };
   const status = raw?.statusCode ?? raw?.status ?? 0;
@@ -259,26 +342,26 @@ function mapGatewayError(error: unknown): AiGatewayError {
       status,
       message:
         status === 402
-          ? "Your OpenAI account has no available credit. Add billing in OpenAI and retry."
-          : "OpenAI rate limited this workspace. Remaining leads stay queued and retry automatically.",
+          ? `Your ${vendor} account has no available credit. Add billing in ${vendor} and retry.`
+          : `${vendor} rate limited this workspace. Remaining leads stay queued and retry automatically.`,
       retryable: status === 429,
     });
   if (status === 403)
     return new AiGatewayError({
       status,
-      message: "OpenAI blocked this request for your key.",
+      message: `${vendor} blocked this request for your key.`,
       retryable: false,
     });
   if (status === 401)
     return new AiGatewayError({
       status,
-      message: "Your OpenAI API key was rejected. Reconnect it in the AI tab.",
+      message: `Your ${vendor} API key was rejected. Reconnect it in the AI tab.`,
       retryable: false,
     });
   if (status === 400)
     return new AiGatewayError({
       status,
-      message: `OpenAI rejected the request: ${message}`,
+      message: `${vendor} rejected the request: ${message}`,
       retryable: false,
     });
   return new AiGatewayError({ status: status || 500, message, retryable: true });
@@ -321,15 +404,30 @@ export async function generatePersonalization(
   const { system, prompt } = buildPrompt(config, facts);
   let text: string;
   try {
-    const result = await generateText({
-      model: provider(credentials)(credentials.model),
-      system,
-      prompt,
-      temperature: 0.6,
-    });
-    text = (result.text ?? "").trim();
+    if (credentials.provider === "anthropic") {
+      if (!credentials.apiKey)
+        throw new AiGatewayError({
+          status: 401,
+          message: "No Anthropic API key is connected for this workspace.",
+          retryable: false,
+        });
+      text = await generateWithAnthropic({
+        apiKey: credentials.apiKey,
+        model: credentials.model,
+        system,
+        prompt,
+      });
+    } else {
+      const result = await generateText({
+        model: provider(credentials)(credentials.model),
+        system,
+        prompt,
+        temperature: 0.6,
+      });
+      text = (result.text ?? "").trim();
+    }
   } catch (error) {
-    throw mapGatewayError(error);
+    throw mapGatewayError(error, vendorOf(credentials));
   }
 
   const structured = parseStructured(text);
@@ -560,7 +658,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
 
       const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
       if (!credentials) {
-        const reason = "No OpenAI API key is connected for this workspace.";
+        const reason = "No AI provider key is connected for this workspace.";
         blockedWorkspaces.set(settings.workspaceId, reason);
         result.skipped = reason;
         await requeue(job.id, reason);
@@ -631,7 +729,8 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         }
       } catch (error) {
         // Nothing was charged unless a generation actually completed.
-        const failure = error instanceof AiGatewayError ? error : mapGatewayError(error);
+        const failure =
+          error instanceof AiGatewayError ? error : mapGatewayError(error, vendorOf(credentials));
 
         // Key, credit and rate-limit problems belong to the workspace, not the
         // lead: park the workspace and keep every one of its leads queued.

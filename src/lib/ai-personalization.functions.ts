@@ -74,7 +74,7 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
 
     const [withNotes] = await attachLeadNotes(context.supabase, [lead as never]);
 
-    // The preview runs on the workspace's own OpenAI key, exactly like sending.
+    // The preview runs on the workspace's own AI key, exactly like sending.
     const { data: campaign } = await context.supabase
       .from("campaigns")
       .select("workspace_id")
@@ -89,9 +89,31 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
       return {
         ok: false as const,
         leadId: data.leadId,
-        message: "Connect your OpenAI API key to generate personalization.",
+        message: "Connect an AI provider key (OpenAI or Claude) to generate personalization.",
         status: 401,
       };
+    }
+
+    // Same plan gate as the bulk runner: a single on-demand generation must not
+    // be a way around the workspace's AI entitlement or monthly allowance.
+    const { requireEntitlement, evaluateEntitlement, consumeUsage, EntitlementError } =
+      await import("@/lib/billing/usage.server");
+    try {
+      await requireEntitlement(campaign.workspace_id, "ai_personalization");
+      const decision = await evaluateEntitlement(campaign.workspace_id, "ai_monthly", 1);
+      if (!decision.allowed) {
+        return {
+          ok: false as const,
+          leadId: data.leadId,
+          message: `You've reached your AI personalization allowance for the ${decision.planName} plan (${decision.used.toLocaleString()} of ${(decision.limit ?? 0).toLocaleString()}). Upgrade your plan to keep generating.`,
+          status: 402,
+        };
+      }
+    } catch (error) {
+      if (error instanceof EntitlementError) {
+        return { ok: false as const, leadId: data.leadId, message: error.message, status: 402 };
+      }
+      throw error;
     }
 
     try {
@@ -100,6 +122,10 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
         withNotes!,
         credentials,
       );
+      // Only a real model generation costs allowance; fallback copy is free.
+      if (quality !== "fallback") {
+        await consumeUsage(campaign.workspace_id, "ai_monthly", 1, "ai_personalization");
+      }
 
       if (data.save) {
         const row = {
