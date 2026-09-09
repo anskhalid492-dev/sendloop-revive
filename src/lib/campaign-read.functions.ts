@@ -50,21 +50,33 @@ export const getCampaign = createServerFn({ method: "GET" })
     const runDayStart = zonedStartOfDay(runNow, runTimezone);
 
     phaseStartedAt = Date.now();
+    const timed = async <T>(phase: string, run: () => PromiseLike<T>): Promise<T> => {
+      const at = Date.now();
+      const res = await run();
+      logPhase(phase, at);
+      return res;
+    };
     const [stepsRes, variantsRes, summaryRes] = await Promise.all([
-      context.supabase
-        .from("campaign_steps")
-        .select(STEP_COLUMNS)
-        .eq("campaign_id", data.id)
-        .order("step_order", { ascending: true }),
-      context.supabase
-        .from("campaign_step_variants")
-        .select("id, step_id, label, subject, body, weight")
-        .eq("campaign_id", data.id)
-        .order("label", { ascending: true }),
-      context.supabase.rpc("campaign_page_summary", {
-        _campaign_id: data.id,
-        _day_start: runDayStart.toISOString(),
-      }),
+      timed("steps", () =>
+        context.supabase
+          .from("campaign_steps")
+          .select(STEP_COLUMNS)
+          .eq("campaign_id", data.id)
+          .order("step_order", { ascending: true }),
+      ),
+      timed("variants", () =>
+        context.supabase
+          .from("campaign_step_variants")
+          .select("id, step_id, label, subject, body, weight")
+          .eq("campaign_id", data.id)
+          .order("label", { ascending: true }),
+      ),
+      timed("summary-rpc", () =>
+        context.supabase.rpc("campaign_page_summary", {
+          _campaign_id: data.id,
+          _day_start: runDayStart.toISOString(),
+        }),
+      ),
     ]);
     logPhase("parallel-reads", phaseStartedAt);
 
