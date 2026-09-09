@@ -5,6 +5,11 @@
  * from `./types` instead.
  */
 import { birdEmailProvider } from "./bird.server";
+import { courierEmailProvider } from "./courier.server";
+import { elasticEmailProvider } from "./elasticemail.server";
+import { mailerooEmailProvider } from "./maileroo.server";
+import { nuntlyEmailProvider } from "./nuntly.server";
+import { uspeedoEmailProvider } from "./uspeedo.server";
 import type { EmailProvider } from "./provider";
 import { resendEmailProvider } from "./resend.server";
 import { sesEmailProvider } from "./ses.server";
@@ -14,6 +19,11 @@ const registry = new Map<string, EmailProvider>([
   [resendEmailProvider.id, resendEmailProvider],
   [sesEmailProvider.id, sesEmailProvider],
   [birdEmailProvider.id, birdEmailProvider],
+  [nuntlyEmailProvider.id, nuntlyEmailProvider],
+  [elasticEmailProvider.id, elasticEmailProvider],
+  [mailerooEmailProvider.id, mailerooEmailProvider],
+  [courierEmailProvider.id, courierEmailProvider],
+  [uspeedoEmailProvider.id, uspeedoEmailProvider],
 ]);
 
 /** Placeholder for providers not yet migrated into this layer. */
