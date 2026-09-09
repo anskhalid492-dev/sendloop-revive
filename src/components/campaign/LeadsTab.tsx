@@ -51,9 +51,9 @@ import {
 } from "@/lib/campaign-model";
 import {
   addLeadsToCampaign,
-  getCampaignLeads,
   updateCampaignRecipients,
 } from "@/lib/campaigns.functions";
+import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const ANY = "__any__";

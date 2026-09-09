@@ -9,13 +9,13 @@ import { toast } from "sonner";
 
 import {
   getCampaignLaunchReadiness,
-  getCampaignLeads,
   launchCampaign,
   saveCampaignSteps,
   setCampaignStatus,
   updateCampaign,
 } from "@/lib/campaigns.functions";
 import { getCampaign } from "@/lib/campaign-read.functions";
+import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import { listLeadLists } from "@/lib/leads.functions";
 import { listMySendingAccounts } from "@/lib/sending.functions";
 import type {
