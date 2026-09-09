@@ -8,7 +8,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import {
-  getCampaign,
   getCampaignLaunchReadiness,
   getCampaignLeads,
   launchCampaign,
@@ -16,6 +15,7 @@ import {
   setCampaignStatus,
   updateCampaign,
 } from "@/lib/campaigns.functions";
+import { getCampaign } from "@/lib/campaign-read.functions";
 import { listLeadLists } from "@/lib/leads.functions";
 import { listMySendingAccounts } from "@/lib/sending.functions";
 import type {

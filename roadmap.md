@@ -8,4 +8,5 @@
 - [x] Fix AI personalization jobs stuck after workspace key or plan blocks
 - [x] Diagnose production large-campaign error against the exact 4,087-lead campaign
 - [x] Add bounded campaign-summary compatibility when the production aggregate RPC is missing
-- [ ] Replace the timed-out live campaign summary join and verify the exact 4,087-lead campaign (blocked: live database access)
+- [x] Replace the timed-out live campaign summary join for the exact 4,087-lead campaign
+- [ ] Eliminate the campaign page server-function CPU failure and verify the live request returns HTTP 200 (blocked until publication)
