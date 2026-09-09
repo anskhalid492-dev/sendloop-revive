@@ -31,3 +31,19 @@ describe("campaign_page_summary SQL", () => {
     }
   });
 });
+describe("campaign_page_summary authorization", () => {
+  const sql = readFileSync("supabase/manual/campaign-scale-rpcs.sql", "utf8");
+  const start = sql.indexOf("CREATE OR REPLACE FUNCTION public.campaign_page_summary");
+  const body = sql.slice(start, sql.indexOf("GRANT EXECUTE", start));
+
+  test("runs as definer so per-row RLS cannot time the aggregate out", () => {
+    expect(body).toContain("SECURITY DEFINER");
+    expect(body).toContain("SET search_path TO 'public'");
+  });
+
+  test("checks workspace membership explicitly", () => {
+    expect(body).toContain("is_workspace_member(_workspace_id, auth.uid())");
+    expect(body).toContain("has_role(auth.uid(), 'admin'::app_role)");
+    expect(body).toContain("42501");
+  });
+});
