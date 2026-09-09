@@ -231,6 +231,10 @@ export async function launchCampaignService(
     let queuedMessages = 0;
     let afterRecipient: string | null = null;
     for (let page = 0; page < MAX_PAGES; page += 1) {
+      if (outOfBudget()) {
+        incomplete = true;
+        break;
+      }
       const { data: batch, error: pendErr } = await supabase.rpc(
         "campaign_recipients_missing_first_message",
         { _campaign_id: c.id, _after: afterRecipient, _limit: PAGE },
