@@ -30,7 +30,15 @@ export async function launchCampaignService(
   supabase: Client,
   actorId: string,
   campaignId: string,
+  options: { budgetMs?: number } = {},
 ) {
+    // One worker invocation has a hard CPU/time limit, so a large audience is
+    // built across several calls. Every step below is idempotent, so the next
+    // call resumes exactly where this one stopped.
+    const startedAt = Date.now();
+    const budgetMs = options.budgetMs ?? 8_000;
+    const outOfBudget = () => Date.now() - startedAt > budgetMs;
+    let incomplete = false;
     const { data: campaign, error } = await supabase
       .from("campaigns")
       .select(await campaignColumns(supabase))
@@ -206,6 +214,10 @@ export async function launchCampaignService(
         .upsert(rows, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true });
       if (insErr) throw new Error(insErr.message);
       attached += rows.length;
+      if (outOfBudget()) {
+        incomplete = true;
+        break;
+      }
     }
 
     // ---- Phase 2: materialise the first email for anyone still missing it ---
@@ -219,6 +231,10 @@ export async function launchCampaignService(
     let queuedMessages = 0;
     let afterRecipient: string | null = null;
     for (let page = 0; page < MAX_PAGES; page += 1) {
+      if (outOfBudget()) {
+        incomplete = true;
+        break;
+      }
       const { data: batch, error: pendErr } = await supabase.rpc(
         "campaign_recipients_missing_first_message",
         { _campaign_id: c.id, _after: afterRecipient, _limit: PAGE },
@@ -324,6 +340,19 @@ export async function launchCampaignService(
     }
 
 
+    // Ran out of invocation budget: the queue is partially built and every
+    // step is idempotent, so the caller simply calls launch again to continue.
+    // The campaign stays out of "active" until the whole audience is queued.
+    if (incomplete) {
+      return {
+        queued: queuedMessages,
+        total: attached,
+        firstSendAt: firstSlot,
+        heldForAi,
+        done: false as const,
+      };
+    }
+
     const { error: uErr } = await supabase
       .from("campaigns")
       .update({ status: "active", launched_at: new Date().toISOString() })
@@ -390,5 +419,6 @@ export async function launchCampaignService(
       total: totalRecipients,
       firstSendAt: firstSlot,
       heldForAi,
+      done: true as const,
     };
 }
