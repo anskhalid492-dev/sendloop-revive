@@ -60,9 +60,19 @@ const HEALTH_STYLES: Record<string, string> = {
   unknown: "bg-muted text-muted-foreground border-border",
 };
 
-const POOL_PROVIDERS: ProviderId[] = ["resend", "ses", "mailgun", "brevo", "sendgrid"].filter((id) =>
-  PROVIDER_DEFINITIONS.some((d) => d.id === id),
-) as ProviderId[];
+const POOL_PROVIDERS: ProviderId[] = [
+  "resend",
+  "ses",
+  "mailgun",
+  "brevo",
+  "sendgrid",
+  "nuntly",
+  "elasticemail",
+  "maileroo",
+  "courier",
+  "uspeedo",
+].filter((id) => PROVIDER_DEFINITIONS.some((d) => d.id === id)) as ProviderId[];
+
 
 /** Region is only meaningful for providers that are region-scoped. */
 const REGION_PROVIDERS = new Set(["ses"]);
