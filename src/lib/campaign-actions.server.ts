@@ -214,7 +214,10 @@ export async function launchCampaignService(
         .upsert(rows, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true });
       if (insErr) throw new Error(insErr.message);
       attached += rows.length;
-      if (outOfBudget()) {
+      // Only stop early when a full page came back, i.e. more leads may remain.
+      // A short page means the audience is fully attached, so the launch can
+      // finish in this same invocation instead of asking for another pass.
+      if (leads.length === PAGE && outOfBudget()) {
         incomplete = true;
         break;
       }
@@ -231,10 +234,8 @@ export async function launchCampaignService(
     let queuedMessages = 0;
     let afterRecipient: string | null = null;
     for (let page = 0; page < MAX_PAGES; page += 1) {
-      if (outOfBudget()) {
-        incomplete = true;
-        break;
-      }
+      // The budget is checked *after* discovering whether work remains, so a
+      // campaign whose queue is already complete always finishes and activates.
       const { data: batch, error: pendErr } = await supabase.rpc(
         "campaign_recipients_missing_first_message",
         { _campaign_id: c.id, _after: afterRecipient, _limit: PAGE },
@@ -336,6 +337,12 @@ export async function launchCampaignService(
           .update({ next_send_at: firstSlot })
           .in("id", needsSlot);
         if (slotErr) throw new Error(slotErr.message);
+      }
+      // Same rule as phase 1: only ask for another pass when a full page came
+      // back, which is the only case where more work can still be waiting.
+      if (pending.length === PAGE && outOfBudget()) {
+        incomplete = true;
+        break;
       }
     }
 

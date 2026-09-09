@@ -345,18 +345,24 @@ export function useCampaignBuilder(
       // Big audiences are queued across several calls so no single request runs
       // out of time. Each call resumes where the last one stopped.
       let queued = 0;
+      let total = 0;
       let result = await launchFn({ data: { id: campaignId } });
       queued += result.queued;
+      total = Math.max(total, result.total, queued);
       for (let pass = 0; pass < 60 && !result.done; pass += 1) {
-        toast.loading(`Preparing your campaign… ${queued.toLocaleString()} emails queued`, {
-          id: "campaign-launch-progress",
-        });
+        toast.loading(
+          total > 0
+            ? `Preparing your campaign… ${queued.toLocaleString()} of ${total.toLocaleString()} emails queued`
+            : "Preparing your campaign…",
+          { id: "campaign-launch-progress" },
+        );
         result = await launchFn({ data: { id: campaignId } });
         queued += result.queued;
+        total = Math.max(total, result.total, queued);
       }
       toast.dismiss("campaign-launch-progress");
       if (!result.done) throw new Error("Still preparing this campaign. Click Launch again to continue.");
-      return { ...result, queued };
+      return { ...result, queued: Math.max(queued, result.total) };
     },
     onSuccess: async (result) => {
       toast.success(
