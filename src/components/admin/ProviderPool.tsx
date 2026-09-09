@@ -436,7 +436,9 @@ export function ProviderPool() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{definition.blurb}</p>
+              <ProviderCapabilityPanel providerId={provider} />
             </div>
+
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
