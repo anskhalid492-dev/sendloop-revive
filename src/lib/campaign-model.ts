@@ -179,12 +179,12 @@ export async function campaignPauseColumnsAvailable(client: AnyClient): Promise<
 
 /** Column list to select for campaigns on the currently connected backend. */
 export async function campaignColumns(client: AnyClient): Promise<string> {
-  const base = (await campaignLimitColumnsAvailable(client))
-    ? CAMPAIGN_COLUMNS
-    : CAMPAIGN_BASE_COLUMNS;
-  return (await campaignPauseColumnsAvailable(client))
-    ? `${base}, ${CAMPAIGN_PAUSE_COLUMNS}`
-    : base;
+  const [hasLimits, hasPause] = await Promise.all([
+    campaignLimitColumnsAvailable(client),
+    campaignPauseColumnsAvailable(client),
+  ]);
+  const base = hasLimits ? CAMPAIGN_COLUMNS : CAMPAIGN_BASE_COLUMNS;
+  return hasPause ? `${base}, ${CAMPAIGN_PAUSE_COLUMNS}` : base;
 }
 
 /** Fills defaults for limit columns when the backend does not have them yet. */
