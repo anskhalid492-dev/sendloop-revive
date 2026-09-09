@@ -126,12 +126,38 @@ $function$
 
 GRANT EXECUTE ON FUNCTION public.campaign_overview_rollup(_workspace_id uuid) TO authenticated, service_role;
 
+-- SECURITY DEFINER on purpose. As SECURITY INVOKER this function ran under the
+-- row-level policies of `campaign_recipients` / `campaign_messages`, which call
+-- is_workspace_member() per row: ~4k recipients x N steps => statement timeout
+-- (57014) in production, while the same query as owner finished in 784 ms.
+-- Access is enforced once, explicitly, at the top of the body instead.
 CREATE OR REPLACE FUNCTION public.campaign_page_summary(_campaign_id uuid, _day_start timestamp with time zone)
  RETURNS jsonb
- LANGUAGE sql
+ LANGUAGE plpgsql
  STABLE
+ SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
+DECLARE
+  _workspace_id uuid;
+  _result jsonb;
+BEGIN
+  SELECT c.workspace_id INTO _workspace_id FROM public.campaigns c WHERE c.id = _campaign_id;
+  IF _workspace_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF auth.uid() IS NOT NULL THEN
+    IF NOT (public.is_workspace_member(_workspace_id, auth.uid())
+            OR public.has_role(auth.uid(), 'admin'::app_role)) THEN
+      RAISE EXCEPTION 'not authorized for this campaign' USING ERRCODE = '42501';
+    END IF;
+  ELSIF current_user NOT IN ('service_role', 'postgres', 'supabase_admin') THEN
+    -- No JWT and not a trusted backend role: refuse.
+    RAISE EXCEPTION 'not authorized for this campaign' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT (
 WITH msg AS MATERIALIZED (
   SELECT
     m.id,
