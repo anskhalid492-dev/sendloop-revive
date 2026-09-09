@@ -676,6 +676,40 @@ export const updateCampaign = createServerFn({ method: "POST" })
     }
     if (Object.keys(patch).length === 0) return { ok: true, readiness: null };
 
+    // Changing the sending days / window / timezone / daily limit must re-plan
+    // the queue that was built against the previous settings. Merely including
+    // unchanged scheduling fields in the payload (the automatic save before
+    // Launch sends them all) must NOT trigger a full re-plan — on large
+    // campaigns that replans every pending message and exceeds the CPU limit.
+    const scheduleKeys = [
+      "send_days",
+      "send_start_hour",
+      "send_end_hour",
+      "timezone",
+      "daily_cap",
+      "sending_account_ids",
+    ] as const;
+    const touchedScheduleKeys = scheduleKeys.filter((key) => patch[key] !== undefined);
+
+    let scheduleChanged = false;
+    if (touchedScheduleKeys.length > 0) {
+      // Read the persisted values BEFORE the write so we can compare.
+      const { data: previous } = await context.supabase
+        .from("campaigns")
+        .select(scheduleKeys.join(", "))
+        .eq("id", data.id)
+        .maybeSingle();
+      const prev = (previous ?? {}) as Record<string, unknown>;
+      const normalize = (value: unknown): string => {
+        if (Array.isArray(value)) return JSON.stringify([...value].map(String).sort());
+        if (value === null || value === undefined) return "";
+        return String(value);
+      };
+      scheduleChanged =
+        previous == null ||
+        touchedScheduleKeys.some((key) => normalize(prev[key]) !== normalize(patch[key]));
+    }
+
     // The write is verified: an update that matches no row (workspace/RLS scope)
     // must fail loudly instead of leaving the UI showing a value that was never
     // stored. `daily_cap` is echoed back so the saved limit is provably the one
@@ -695,39 +729,6 @@ export const updateCampaign = createServerFn({ method: "POST" })
       throw new Error("The daily sending limit could not be saved. Please try again.");
     }
 
-    // Changing the sending days / window / timezone / daily limit must re-plan
-    // the queue that was built against the previous settings. Merely including
-    // unchanged scheduling fields in the payload (the automatic save before
-    // Launch sends them all) must NOT trigger a full re-plan — on large
-    // campaigns that replans every pending message and exceeds the CPU limit.
-    const scheduleKeys = [
-      "send_days",
-      "send_start_hour",
-      "send_end_hour",
-      "timezone",
-      "daily_cap",
-      "sending_account_ids",
-    ] as const;
-    const touchedScheduleKeys = scheduleKeys.filter((key) => patch[key] !== undefined);
-
-    let scheduleChanged = false;
-    if (touchedScheduleKeys.length > 0) {
-      const { data: previous } = await context.supabase
-        .from("campaigns")
-        .select(scheduleKeys.join(", "))
-        .eq("id", data.id)
-        .maybeSingle();
-      const prev = (previous ?? {}) as Record<string, unknown>;
-      const normalize = (value: unknown): string => {
-        if (Array.isArray(value)) return JSON.stringify([...value].map(String).sort());
-        if (value === null || value === undefined) return "";
-        return String(value);
-      };
-      scheduleChanged =
-        previous == null ||
-        touchedScheduleKeys.some((key) => normalize(prev[key]) !== normalize(patch[key]));
-    }
-
     if (scheduleChanged) {
       try {
         const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
@@ -736,6 +737,7 @@ export const updateCampaign = createServerFn({ method: "POST" })
         console.error("campaign queue reschedule failed", data.id, rescheduleError);
       }
     }
+
 
 
     // Any edit that can change the audience recomputes and persists the real
