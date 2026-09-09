@@ -442,8 +442,10 @@ NOTIFY pgrst, 'reload schema';
 --   'campaign_ai_missing_count','campaign_stats','campaign_overview_rollup',
 --   'campaign_recipients_missing_first_message');
 
--- Least privilege: these run with the caller's rights (SECURITY INVOKER), so
--- RLS already protects them, but anon has no business calling them at all.
+-- Least privilege. Most of these run with the caller's rights (SECURITY
+-- INVOKER) so RLS protects them; campaign_page_summary is SECURITY DEFINER and
+-- checks workspace membership itself. Either way anon has no business calling
+-- them at all.
 DO $$
 DECLARE f record;
 BEGIN
