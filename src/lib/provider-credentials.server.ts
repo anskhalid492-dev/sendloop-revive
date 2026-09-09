@@ -354,14 +354,19 @@ export async function sendProviderEmail(
             ...(hasHeaders ? { headers } : {}),
           }),
         });
-      case "ses": {
-        // Provider-specific behaviour lives in the SES adapter (Phase 9B).
+      case "ses":
+      case "nuntly":
+      case "elasticemail":
+      case "maileroo":
+      case "courier":
+      case "uspeedo": {
+        // Provider-specific behaviour lives entirely in the unified adapter.
         const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
-        const provider = getEmailProvider("ses");
-        if (!provider.send) {
+        const adapter = getEmailProvider(provider);
+        if (!adapter.send) {
           return { ok: false, message: "Sending is not available for this provider." };
         }
-        const sent = await provider.send(credentials, {
+        const sent = await adapter.send(credentials, {
           fromName: message.fromName,
           fromEmail: message.fromEmail,
           replyTo: message.replyTo ?? null,
@@ -384,6 +389,7 @@ export async function sendProviderEmail(
           providerResponse: extra.providerResponse ?? undefined,
         };
       }
+
       case "smtp":
         return {
           ok: false,
