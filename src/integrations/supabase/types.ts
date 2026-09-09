@@ -9729,6 +9729,11 @@ export type Database = {
         | "zeptomail"
         | "brevo"
         | "emailit"
+        | "nuntly"
+        | "elasticemail"
+        | "maileroo"
+        | "courier"
+        | "uspeedo"
       workspace_role:
         | "owner"
         | "admin"
@@ -9923,6 +9928,11 @@ export const Constants = {
         "zeptomail",
         "brevo",
         "emailit",
+        "nuntly",
+        "elasticemail",
+        "maileroo",
+        "courier",
+        "uspeedo",
       ],
       workspace_role: [
         "owner",
