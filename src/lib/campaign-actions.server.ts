@@ -338,6 +338,12 @@ export async function launchCampaignService(
           .in("id", needsSlot);
         if (slotErr) throw new Error(slotErr.message);
       }
+      // Same rule as phase 1: only ask for another pass when a full page came
+      // back, which is the only case where more work can still be waiting.
+      if (pending.length === PAGE && outOfBudget()) {
+        incomplete = true;
+        break;
+      }
     }
 
 
