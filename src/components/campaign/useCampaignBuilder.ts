@@ -179,7 +179,13 @@ export function useCampaignBuilder(
       if (/not found|permission|denied|unauthor|forbidden|row-level|PGRST202/i.test(error.message)) return false;
       return attempt < 2;
     },
-    enabled: activeTab !== "Overview",
+    // On Overview the readiness bar and the Launch button guard only matter
+    // while the campaign is still launchable, so fetch it there for draft and
+    // scheduled campaigns instead of skipping the tab entirely.
+    enabled:
+      activeTab !== "Overview" ||
+      campaignQuery.data?.campaign.status === "draft" ||
+      campaignQuery.data?.campaign.status === "scheduled",
   });
   const accountsQuery = useQuery({
     queryKey: ["sending-accounts"],
