@@ -30,7 +30,15 @@ export async function launchCampaignService(
   supabase: Client,
   actorId: string,
   campaignId: string,
+  options: { budgetMs?: number } = {},
 ) {
+    // One worker invocation has a hard CPU/time limit, so a large audience is
+    // built across several calls. Every step below is idempotent, so the next
+    // call resumes exactly where this one stopped.
+    const startedAt = Date.now();
+    const budgetMs = options.budgetMs ?? 8_000;
+    const outOfBudget = () => Date.now() - startedAt > budgetMs;
+    let incomplete = false;
     const { data: campaign, error } = await supabase
       .from("campaigns")
       .select(await campaignColumns(supabase))
