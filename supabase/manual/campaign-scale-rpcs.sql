@@ -262,14 +262,12 @@ SELECT jsonb_build_object(
   ),
   'retryable_failures', (
     SELECT count(*)::bigint FROM msg
-    WHERE status::text = 'failed' AND sent_at IS NULL AND bounced_at IS NULL
-      AND coalesce(last_error, '') !~* '(hard\s*bounce|permanent|invalid\s*(recipient|address|email|destination)|no\s*such\s*(user|mailbox|recipient)|mailbox\s*(does\s*not\s*exist|unavailable)|address\s*rejected|recipient\s*(suppressed|blocked|blacklisted)|suppress|unsubscrib|complaint|5\.[17]\.[0-9]+|domain\s*(not\s*found|does\s*not\s*exist)|account\s*disabled|message\s*rejected)'
+    WHERE status = 'failed' AND sent_at IS NULL AND bounced_at IS NULL AND soft_retryable
   ),
   'owed_messages', (
     SELECT count(*)::bigint FROM msg
-    WHERE status::text IN ('pending','scheduled','processing','queued')
-      OR (status::text = 'failed' AND sent_at IS NULL
-          AND coalesce(last_error, '') !~* '(hard\s*bounce|permanent|invalid\s*(recipient|address|email|destination)|no\s*such\s*(user|mailbox|recipient)|address\s*rejected|suppress|unsubscrib|complaint|5\.[17]\.[0-9]+|domain\s*(not\s*found|does\s*not\s*exist)|account\s*disabled|message\s*rejected)')
+    WHERE status IN ('pending','scheduled','processing','queued')
+      OR (status = 'failed' AND sent_at IS NULL AND soft_owed)
   )
 );
 $function$
