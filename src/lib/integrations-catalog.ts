@@ -81,6 +81,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   {
     slug: "openai",
     name: "OpenAI",
+    brand: "openai",
     category: "ai",
     icon: Bot,
     tagline: "Generate and rewrite cold email copy with your own OpenAI key.",
@@ -180,6 +181,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   {
     slug: "slack",
     name: "Slack",
+    brand: "slack",
     category: "notifications",
     icon: MessageSquare,
     tagline: "Get positive replies and campaign alerts in a Slack channel.",
@@ -332,6 +334,7 @@ export const INTEGRATIONS: IntegrationMeta[] = [
   {
     slug: "gohighlevel",
     name: "GoHighLevel",
+    brand: "gohighlevel",
     category: "crm",
     icon: Users,
     tagline: "Push interested prospects straight into GoHighLevel.",
