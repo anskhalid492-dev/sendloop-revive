@@ -132,8 +132,27 @@ CREATE OR REPLACE FUNCTION public.campaign_page_summary(_campaign_id uuid, _day_
  STABLE
  SET search_path TO 'public'
 AS $function$
-WITH msg AS (
-  SELECT m.*,
+WITH msg AS MATERIALIZED (
+  SELECT
+    m.id,
+    m.recipient_id,
+    m.lead_id,
+    m.step_order,
+    m.status::text AS status,
+    m.delivery_status,
+    m.scheduled_at,
+    m.sent_at,
+    m.delivered_at,
+    m.delayed_at,
+    m.opened_at,
+    m.clicked_at,
+    m.replied_at,
+    m.bounced_at,
+    m.complained_at,
+    m.unsubscribed_at,
+    m.failed_at,
+    (coalesce(m.last_error, '') !~* '(hard\s*bounce|permanent|invalid\s*(recipient|address|email|destination)|no\s*such\s*(user|mailbox|recipient)|mailbox\s*(does\s*not\s*exist|unavailable)|address\s*rejected|recipient\s*(suppressed|blocked|blacklisted)|suppress|unsubscrib|complaint|5\.[17]\.[0-9]+|domain\s*(not\s*found|does\s*not\s*exist)|account\s*disabled|message\s*rejected)') AS soft_retryable,
+    (coalesce(m.last_error, '') !~* '(hard\s*bounce|permanent|invalid\s*(recipient|address|email|destination)|no\s*such\s*(user|mailbox|recipient)|address\s*rejected|suppress|unsubscrib|complaint|5\.[17]\.[0-9]+|domain\s*(not\s*found|does\s*not\s*exist)|account\s*disabled|message\s*rejected)') AS soft_owed,
     CASE
       WHEN m.bounced_at IS NOT NULL OR m.delivery_status = 'bounced' THEN 11
       WHEN m.failed_at IS NOT NULL OR m.status::text = 'failed' THEN 10
@@ -150,6 +169,7 @@ WITH msg AS (
     END AS rank
   FROM public.campaign_messages m
   WHERE m.campaign_id = _campaign_id
+
 ), rec AS (
   SELECT r.id, r.lead_id, r.status::text AS status
   FROM public.campaign_recipients r
