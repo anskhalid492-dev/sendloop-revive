@@ -214,6 +214,10 @@ export async function launchCampaignService(
         .upsert(rows, { onConflict: "campaign_id,lead_id", ignoreDuplicates: true });
       if (insErr) throw new Error(insErr.message);
       attached += rows.length;
+      if (outOfBudget()) {
+        incomplete = true;
+        break;
+      }
     }
 
     // ---- Phase 2: materialise the first email for anyone still missing it ---
