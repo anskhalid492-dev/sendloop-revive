@@ -340,6 +340,19 @@ export async function launchCampaignService(
     }
 
 
+    // Ran out of invocation budget: the queue is partially built and every
+    // step is idempotent, so the caller simply calls launch again to continue.
+    // The campaign stays out of "active" until the whole audience is queued.
+    if (incomplete) {
+      return {
+        queued: queuedMessages,
+        total: attached,
+        firstSendAt: firstSlot,
+        heldForAi,
+        done: false as const,
+      };
+    }
+
     const { error: uErr } = await supabase
       .from("campaigns")
       .update({ status: "active", launched_at: new Date().toISOString() })
