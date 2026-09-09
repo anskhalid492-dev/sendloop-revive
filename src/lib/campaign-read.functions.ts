@@ -120,7 +120,7 @@ export const getCampaign = createServerFn({ method: "GET" })
       variants: variants.filter((variant) => variant.step_id === step.id),
     }));
     const numberValue = (value: unknown) => Number(value ?? 0) || 0;
-    const summary = (summaryRes.data ?? {}) as Record<string, unknown>;
+    const summary = (summaryValue ?? {}) as Record<string, unknown>;
     const recipientCounts = (summary["recipients"] ?? {}) as Record<string, unknown>;
     const deliveryCounts = (summary["delivery"] ?? {}) as Record<string, unknown>;
     const todayCounts = (summary["today"] ?? {}) as Record<string, unknown>;
