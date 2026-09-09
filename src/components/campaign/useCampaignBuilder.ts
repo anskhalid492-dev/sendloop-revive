@@ -116,8 +116,13 @@ function toDraft(step: CampaignStep, index: number): StepDraft {
   };
 }
 
-export function useCampaignBuilder(campaignId: string) {
+export function useCampaignBuilder(
+  campaignId: string,
+  options: { activeTab?: string; needsPreviewData?: boolean } = {},
+) {
   const queryClient = useQueryClient();
+  const activeTab = options.activeTab ?? "Overview";
+  const needsPreviewData = options.needsPreviewData ?? false;
 
   const fetchCampaign = useServerFn(getCampaign);
   const fetchLeads = useServerFn(getCampaignLeads);
@@ -157,13 +162,14 @@ export function useCampaignBuilder(campaignId: string) {
     // into an endless refetch loop.
     refetchInterval: (query) => (query.state.error ? false : 30_000),
     retry: 1,
+    enabled: activeTab === "Leads" || needsPreviewData,
   });
   const campaignWorkspaceId = campaignQuery.data?.campaign.workspace_id;
   useAnalyticsRealtime(campaignWorkspaceId ?? null);
   const listsQuery = useQuery({
     queryKey: ["lead-lists", campaignWorkspaceId],
     queryFn: () => fetchLists({ data: { workspaceId: campaignWorkspaceId } } as never),
-    enabled: Boolean(campaignWorkspaceId),
+    enabled: Boolean(campaignWorkspaceId) && (activeTab === "Leads" || activeTab === "Settings"),
   });
   // Launch validation always comes from the saved campaign in the database.
   const readinessQuery = useQuery({
@@ -173,10 +179,17 @@ export function useCampaignBuilder(campaignId: string) {
       if (/not found|permission|denied|unauthor|forbidden|row-level|PGRST202/i.test(error.message)) return false;
       return attempt < 2;
     },
+    enabled: activeTab !== "Overview",
   });
   const accountsQuery = useQuery({
     queryKey: ["sending-accounts"],
     queryFn: () => fetchAccounts(),
+    enabled:
+      activeTab === "Overview" ||
+      activeTab === "Leads" ||
+      activeTab === "Schedule" ||
+      activeTab === "Email Accounts" ||
+      needsPreviewData,
   });
 
   const [steps, setSteps] = useState<StepDraft[]>([]);

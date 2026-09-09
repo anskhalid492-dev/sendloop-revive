@@ -1,9 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, CheckCircle2, History, Rocket, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { getCampaignLaunchEvents } from "@/lib/campaigns.functions";
+import { getCampaignLaunchEvents } from "@/lib/campaign-launch-events.functions";
 
 const OUTCOME_META: Record<string, { label: string; icon: typeof Rocket; tone: string }> = {
   launched: { label: "Launched", icon: Rocket, tone: "text-emerald-600" },
@@ -17,14 +18,33 @@ const OUTCOME_META: Record<string, { label: string; icon: typeof Rocket; tone: s
  * blocking reasons and the number of messages that were queued.
  */
 export function LaunchAuditTrail({ campaignId }: { campaignId: string }) {
+  const rootRef = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
   const fetchEvents = useServerFn(getCampaignLaunchEvents);
   const query = useQuery({
     queryKey: ["campaign-launch-events", campaignId],
     queryFn: () => fetchEvents({ data: { campaignId, limit: 25 } }),
+    enabled: visible,
   });
 
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || visible) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
+
   return (
-    <section className="surface-card p-5">
+    <section ref={rootRef} className="surface-card p-5">
       <h2 className="flex items-center gap-2 text-sm font-semibold">
         <History className="size-4 text-primary" /> Launch audit trail
       </h2>

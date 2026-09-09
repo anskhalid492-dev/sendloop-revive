@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,19 +9,20 @@ import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { CampaignHeader, type CampaignTab } from "@/components/campaign/CampaignHeader";
 import { OverviewTab } from "@/components/campaign/OverviewTab";
-import { LeadsTab } from "@/components/campaign/LeadsTab";
-import { SequencesTab } from "@/components/campaign/SequencesTab";
-
-import { ScheduleTab } from "@/components/campaign/ScheduleTab";
-import { AccountsTab } from "@/components/campaign/AccountsTab";
-import { OptionsTab } from "@/components/campaign/OptionsTab";
-import { QueueTab } from "@/components/campaign/QueueTab";
-import { AnalyticsTab } from "@/components/campaign/AnalyticsTab";
-import { SettingsTab } from "@/components/campaign/SettingsTab";
-import { PreviewDialog, TestSendDialog } from "@/components/campaign/PreviewDialog";
 import { useCampaignBuilder } from "@/components/campaign/useCampaignBuilder";
 import { duplicateCampaign } from "@/lib/campaigns.functions";
 import { takePendingTemplate } from "@/lib/templates-model";
+
+const LeadsTab = lazy(() => import("@/components/campaign/LeadsTab").then((module) => ({ default: module.LeadsTab })));
+const SequencesTab = lazy(() => import("@/components/campaign/SequencesTab").then((module) => ({ default: module.SequencesTab })));
+const ScheduleTab = lazy(() => import("@/components/campaign/ScheduleTab").then((module) => ({ default: module.ScheduleTab })));
+const AccountsTab = lazy(() => import("@/components/campaign/AccountsTab").then((module) => ({ default: module.AccountsTab })));
+const OptionsTab = lazy(() => import("@/components/campaign/OptionsTab").then((module) => ({ default: module.OptionsTab })));
+const QueueTab = lazy(() => import("@/components/campaign/QueueTab").then((module) => ({ default: module.QueueTab })));
+const AnalyticsTab = lazy(() => import("@/components/campaign/AnalyticsTab").then((module) => ({ default: module.AnalyticsTab })));
+const SettingsTab = lazy(() => import("@/components/campaign/SettingsTab").then((module) => ({ default: module.SettingsTab })));
+const PreviewDialog = lazy(() => import("@/components/campaign/PreviewDialog").then((module) => ({ default: module.PreviewDialog })));
+const TestSendDialog = lazy(() => import("@/components/campaign/PreviewDialog").then((module) => ({ default: module.TestSendDialog })));
 
 export const Route = createFileRoute("/_authenticated/campaigns/$campaignId")({
   head: () => ({
@@ -47,10 +48,13 @@ export const Route = createFileRoute("/_authenticated/campaigns/$campaignId")({
 function CampaignWorkspace() {
   const { campaignId } = useParams({ from: "/_authenticated/campaigns/$campaignId" });
   const navigate = useNavigate();
-  const builder = useCampaignBuilder(campaignId);
   const [tab, setTab] = useState<CampaignTab>("Overview");
   const [previewStep, setPreviewStep] = useState<number | null>(null);
   const [testStep, setTestStep] = useState<number | null>(null);
+  const builder = useCampaignBuilder(campaignId, {
+    activeTab: tab,
+    needsPreviewData: previewStep !== null || testStep !== null,
+  });
 
   // A template picked in the library is stashed before navigation; drop it into
   // the first email step of this campaign once the builder has hydrated.
@@ -150,38 +154,43 @@ function CampaignWorkspace() {
         />
 
         {tab === "Overview" ? <OverviewTab builder={builder} /> : null}
-        {tab === "Leads" ? <LeadsTab builder={builder} /> : null}
-        {tab === "Sequences" ? (
-          <SequencesTab
-            builder={builder}
-            onPreview={(index) => setPreviewStep(index)}
-            onTest={(index) => setTestStep(index)}
-          />
-        ) : null}
-        
-        {tab === "Schedule" ? <ScheduleTab builder={builder} /> : null}
-        {tab === "Email Accounts" ? <AccountsTab builder={builder} /> : null}
-        {tab === "Options" ? <OptionsTab builder={builder} /> : null}
-        {tab === "Queue" ? <QueueTab builder={builder} /> : null}
-        {tab === "Analytics" ? <AnalyticsTab builder={builder} /> : null}
-        {tab === "Settings" ? <SettingsTab builder={builder} /> : null}
+        <Suspense fallback={<div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>}>
+          {tab === "Leads" ? <LeadsTab builder={builder} /> : null}
+          {tab === "Sequences" ? (
+            <SequencesTab
+              builder={builder}
+              onPreview={(index) => setPreviewStep(index)}
+              onTest={(index) => setTestStep(index)}
+            />
+          ) : null}
+          {tab === "Schedule" ? <ScheduleTab builder={builder} /> : null}
+          {tab === "Email Accounts" ? <AccountsTab builder={builder} /> : null}
+          {tab === "Options" ? <OptionsTab builder={builder} /> : null}
+          {tab === "Queue" ? <QueueTab builder={builder} /> : null}
+          {tab === "Analytics" ? <AnalyticsTab builder={builder} /> : null}
+          {tab === "Settings" ? <SettingsTab builder={builder} /> : null}
+        </Suspense>
       </div>
 
       {previewStep !== null ? (
-        <PreviewDialog
-          builder={builder}
-          stepIndex={previewStep}
-          open
-          onOpenChange={(open) => !open && setPreviewStep(null)}
-        />
+        <Suspense fallback={null}>
+          <PreviewDialog
+            builder={builder}
+            stepIndex={previewStep}
+            open
+            onOpenChange={(open) => !open && setPreviewStep(null)}
+          />
+        </Suspense>
       ) : null}
       {testStep !== null ? (
-        <TestSendDialog
-          builder={builder}
-          stepIndex={testStep}
-          open
-          onOpenChange={(open) => !open && setTestStep(null)}
-        />
+        <Suspense fallback={null}>
+          <TestSendDialog
+            builder={builder}
+            stepIndex={testStep}
+            open
+            onOpenChange={(open) => !open && setTestStep(null)}
+          />
+        </Suspense>
       ) : null}
     </AppShell>
   );
