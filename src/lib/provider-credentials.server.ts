@@ -101,6 +101,48 @@ export async function testProviderCredentials(
           message:
             "Amazon SES credentials stored securely. They are verified on the first send request.",
         };
+      case "nuntly":
+        return await request("https://api.nuntly.com/domains", {
+          Authorization: `Bearer ${credentials["api_key"]}`,
+          Accept: "application/json",
+        });
+      case "elasticemail":
+        // The v4 API has no /account endpoint; listing API keys is the
+        // documented read-only way to confirm a key and its access levels.
+        return await request("https://api.elasticemail.com/v4/security/apikeys", {
+          "X-ElasticEmail-ApiKey": credentials["api_key"] ?? "",
+          Accept: "application/json",
+        });
+      case "maileroo":
+        return await request("https://api.maileroo.com/v1/account", {
+          Authorization: `Bearer ${credentials["api_key"]}`,
+          Accept: "application/json",
+        });
+      case "courier": {
+        // Courier documents no "whoami" endpoint. A profile read authenticates
+        // the key: 404 means the key is valid but the profile does not exist.
+        const res = await fetch(`https://api.courier.com/profiles/munchreach-credential-check`, {
+          headers: { Authorization: `Bearer ${credentials["api_key"]}` },
+          signal: timeout,
+        });
+        if (res.ok || res.status === 404) {
+          return { ok: true, verified: true, message: "Connection verified." };
+        }
+        const body = (await res.text()).slice(0, 300);
+        return {
+          ok: false,
+          verified: false,
+          message: `Provider rejected the credentials [${res.status}]: ${body}`,
+        };
+      }
+      case "uspeedo":
+        return await request("https://api.uspeedo.com/api/v1/email/GetSenderList", {
+          Authorization: `Basic ${Buffer.from(
+            `${credentials["access_key_id"] ?? ""}:${credentials["access_key_secret"] ?? ""}`,
+          ).toString("base64")}`,
+          Accept: "application/json",
+        });
+
       default:
         return { ok: false, verified: false, message: "Unknown provider." };
     }
@@ -354,14 +396,19 @@ export async function sendProviderEmail(
             ...(hasHeaders ? { headers } : {}),
           }),
         });
-      case "ses": {
-        // Provider-specific behaviour lives in the SES adapter (Phase 9B).
+      case "ses":
+      case "nuntly":
+      case "elasticemail":
+      case "maileroo":
+      case "courier":
+      case "uspeedo": {
+        // Provider-specific behaviour lives entirely in the unified adapter.
         const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
-        const provider = getEmailProvider("ses");
-        if (!provider.send) {
+        const adapter = getEmailProvider(provider);
+        if (!adapter.send) {
           return { ok: false, message: "Sending is not available for this provider." };
         }
-        const sent = await provider.send(credentials, {
+        const sent = await adapter.send(credentials, {
           fromName: message.fromName,
           fromEmail: message.fromEmail,
           replyTo: message.replyTo ?? null,
@@ -384,6 +431,7 @@ export async function sendProviderEmail(
           providerResponse: extra.providerResponse ?? undefined,
         };
       }
+
       case "smtp":
         return {
           ok: false,

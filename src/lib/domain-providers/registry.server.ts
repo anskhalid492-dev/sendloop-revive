@@ -5,6 +5,9 @@ import {
   type ProviderOutboundMessage,
 } from "./adapter.server";
 import { brevoDomainAdapter } from "./brevo.server";
+import { elasticEmailDomainAdapter } from "./elasticemail.server";
+import { mailerooDomainAdapter } from "./maileroo.server";
+import { nuntlyDomainAdapter } from "./nuntly.server";
 import { mailgunDomainAdapter } from "./mailgun.server";
 import { resendDomainAdapter } from "./resend.server";
 import { sendgridDomainAdapter } from "./sendgrid.server";
@@ -16,6 +19,9 @@ const baseAdapters: Record<string, DomainProviderAdapter> = {
   brevo: brevoDomainAdapter,
   resend: resendDomainAdapter,
   sendgrid: sendgridDomainAdapter,
+  nuntly: nuntlyDomainAdapter,
+  elasticemail: elasticEmailDomainAdapter,
+  maileroo: mailerooDomainAdapter,
 };
 
 /**

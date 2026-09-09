@@ -15,6 +15,11 @@ export const PROVIDER_IDS = [
   "zeptomail",
   "sendgrid",
   "smtp",
+  "nuntly",
+  "elasticemail",
+  "maileroo",
+  "courier",
+  "uspeedo",
 ] as const;
 
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -91,6 +96,42 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
       { name: "port", label: "Port", placeholder: "587" },
       { name: "username", label: "Username" },
       { name: "password", label: "Password", secret: true },
+    ],
+  },
+  {
+    id: "nuntly",
+    label: "Nuntly",
+    blurb: "API sending with full domain, DNS, receiving and webhook automation.",
+    fields: [{ name: "api_key", label: "API key", placeholder: "apk_…", secret: true }],
+  },
+  {
+    id: "elasticemail",
+    label: "Elastic Email",
+    blurb: "Low-cost volume with domain, inbound-route and webhook APIs.",
+    fields: [{ name: "api_key", label: "API key", secret: true }],
+  },
+  {
+    id: "maileroo",
+    label: "Maileroo",
+    blurb: "Separate sending and account keys; domains, DNS scans and webhooks over API.",
+    fields: [
+      { name: "api_key", label: "Account API key", placeholder: "roo_…", secret: true },
+      { name: "sending_key", label: "Sending key", secret: true },
+    ],
+  },
+  {
+    id: "courier",
+    label: "Courier",
+    blurb: "Delivery orchestration: sending and tracking only, no domain or inbound API.",
+    fields: [{ name: "api_key", label: "API key", secret: true }],
+  },
+  {
+    id: "uspeedo",
+    label: "uSpeedo",
+    blurb: "Global sending API; domains and webhooks are configured in the uSpeedo console.",
+    fields: [
+      { name: "access_key_id", label: "Access key ID" },
+      { name: "access_key_secret", label: "Access key secret", secret: true },
     ],
   },
 ];

@@ -185,15 +185,15 @@ export const PROVIDER_CAPABILITY_MATRIX: Record<string, ProviderCapabilityProfil
     },
   ),
   maileroo: profile(
-    "Domains, DNS requirements, verification and webhooks are API-driven.",
+    "Domains, DNS requirements, verification, inbound routes and webhooks are all API-driven. A custom tracking hostname requires a paid plan at the provider.",
     {
       sending: S,
       domain_management: S,
       domain_verification: S,
       dns_record_retrieval: S,
       tracking: S,
-      custom_tracking: S,
-      inbound: N,
+      custom_tracking: M,
+      inbound: S,
       webhooks: S,
       bounce_events: S,
       complaint_events: S,

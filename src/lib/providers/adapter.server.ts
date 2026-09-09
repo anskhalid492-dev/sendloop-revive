@@ -167,7 +167,7 @@ function makeAdapter(id: string): ProviderAdapter {
 }
 
 const adapters = new Map<string, ProviderAdapter>(
-  ["ses", "resend", "emailit", "mailgun", "postmark", "brevo", "zeptomail", "sendgrid", "smtp"].map(
+  ["ses", "resend", "emailit", "mailgun", "postmark", "brevo", "zeptomail", "sendgrid", "smtp", "nuntly", "elasticemail", "maileroo", "courier", "uspeedo"].map(
     (id) => [id, makeAdapter(id)],
   ),
 );

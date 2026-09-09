@@ -43,7 +43,9 @@ import {
   testProviderHealth,
 } from "@/lib/admin.functions";
 import { EMAIL_SCOPES, SCOPE_LABEL, type EmailScope } from "@/lib/email-provider-scope";
+import { ProviderCapabilityPanel } from "@/components/admin/ProviderCapabilityPanel";
 import { ProviderDiagnosticsDialog } from "@/components/admin/ProviderDiagnosticsDialog";
+
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
 
 const HEALTH_LABEL: Record<string, string> = {
@@ -60,9 +62,19 @@ const HEALTH_STYLES: Record<string, string> = {
   unknown: "bg-muted text-muted-foreground border-border",
 };
 
-const POOL_PROVIDERS: ProviderId[] = ["resend", "ses", "mailgun", "brevo", "sendgrid"].filter((id) =>
-  PROVIDER_DEFINITIONS.some((d) => d.id === id),
-) as ProviderId[];
+const POOL_PROVIDERS: ProviderId[] = [
+  "resend",
+  "ses",
+  "mailgun",
+  "brevo",
+  "sendgrid",
+  "nuntly",
+  "elasticemail",
+  "maileroo",
+  "courier",
+  "uspeedo",
+].filter((id) => PROVIDER_DEFINITIONS.some((d) => d.id === id)) as ProviderId[];
+
 
 /** Region is only meaningful for providers that are region-scoped. */
 const REGION_PROVIDERS = new Set(["ses"]);
@@ -426,7 +438,9 @@ export function ProviderPool() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{definition.blurb}</p>
+              <ProviderCapabilityPanel providerId={provider} />
             </div>
+
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
