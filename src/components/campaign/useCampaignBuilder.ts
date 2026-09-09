@@ -342,7 +342,21 @@ export function useCampaignBuilder(
   const launch = useMutation({
     mutationFn: async () => {
       await save.mutateAsync();
-      return launchFn({ data: { id: campaignId } });
+      // Big audiences are queued across several calls so no single request runs
+      // out of time. Each call resumes where the last one stopped.
+      let queued = 0;
+      let result = await launchFn({ data: { id: campaignId } });
+      queued += result.queued;
+      for (let pass = 0; pass < 60 && !result.done; pass += 1) {
+        toast.loading(`Preparing your campaign… ${queued.toLocaleString()} emails queued`, {
+          id: "campaign-launch-progress",
+        });
+        result = await launchFn({ data: { id: campaignId } });
+        queued += result.queued;
+      }
+      toast.dismiss("campaign-launch-progress");
+      if (!result.done) throw new Error("Still preparing this campaign. Click Launch again to continue.");
+      return { ...result, queued };
     },
     onSuccess: async (result) => {
       toast.success(
