@@ -154,13 +154,22 @@ WITH msg AS (
   SELECT r.id, r.lead_id, r.status::text AS status
   FROM public.campaign_recipients r
   WHERE r.campaign_id = _campaign_id
+), msg_rank_by_recipient AS (
+  SELECT m.recipient_id, max(m.rank) AS rank
+  FROM msg m
+  WHERE m.recipient_id IS NOT NULL
+  GROUP BY m.recipient_id
+), legacy_msg_rank_by_lead AS (
+  SELECT m.lead_id, max(m.rank) AS rank
+  FROM msg m
+  WHERE m.recipient_id IS NULL AND m.lead_id IS NOT NULL
+  GROUP BY m.lead_id
 ), rec_rank AS (
-  SELECT r.id, max(m.rank) AS rank
+  SELECT r.id,
+    greatest(coalesce(mr.rank, 0), coalesce(lr.rank, 0)) AS rank
   FROM rec r
-  LEFT JOIN msg m
-    ON m.recipient_id = r.id
-    OR (m.recipient_id IS NULL AND m.lead_id = r.lead_id)
-  GROUP BY r.id
+  LEFT JOIN msg_rank_by_recipient mr ON mr.recipient_id = r.id
+  LEFT JOIN legacy_msg_rank_by_lead lr ON lr.lead_id = r.lead_id
 ), lead_states AS (
   SELECT CASE coalesce(rank, 0)
     WHEN 0 THEN 'not_contacted' WHEN 1 THEN 'queued' WHEN 2 THEN 'sent'
