@@ -419,5 +419,6 @@ export async function launchCampaignService(
       total: totalRecipients,
       firstSendAt: firstSlot,
       heldForAi,
+      done: true as const,
     };
 }
