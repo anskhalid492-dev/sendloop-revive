@@ -43,7 +43,9 @@ import {
   testProviderHealth,
 } from "@/lib/admin.functions";
 import { EMAIL_SCOPES, SCOPE_LABEL, type EmailScope } from "@/lib/email-provider-scope";
+import { ProviderCapabilityPanel } from "@/components/admin/ProviderCapabilityPanel";
 import { ProviderDiagnosticsDialog } from "@/components/admin/ProviderDiagnosticsDialog";
+
 import { PROVIDER_DEFINITIONS, providerLabel, type ProviderId } from "@/lib/providers/registry";
 
 const HEALTH_LABEL: Record<string, string> = {
