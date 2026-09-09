@@ -94,7 +94,24 @@ export const getCampaign = createServerFn({ method: "GET" })
     };
     if (stepsRes.error) throw fail("campaign steps", stepsRes.error);
     if (variantsRes.error) throw fail("campaign step variants", variantsRes.error);
-    if (summaryRes.error) throw fail("campaign summary", summaryRes.error);
+    let summaryValue: unknown = summaryRes.data;
+    if (summaryRes.error) {
+      // Missing function (PGRST202) or a statement timeout (57014) on a slow
+      // deployed definition both fall back to bounded per-count aggregates.
+      const recoverable = summaryRes.error.code === "PGRST202" || summaryRes.error.code === "57014";
+      if (!recoverable) throw fail("campaign summary", summaryRes.error);
+      const { campaignPageSummaryFallback } = await import("@/lib/campaign-page-summary.server");
+      console.error("[campaign.getCampaign] campaign_page_summary unusable; using bounded fallback", {
+        campaignId: data.id,
+        code: summaryRes.error.code,
+        databaseError: summaryRes.error.message,
+      });
+      summaryValue = await campaignPageSummaryFallback(
+        context.supabase,
+        data.id,
+        runDayStart.toISOString(),
+      );
+    }
 
     phaseStartedAt = Date.now();
     const variants = (variantsRes.data ?? []) as unknown as CampaignStepVariant[];
