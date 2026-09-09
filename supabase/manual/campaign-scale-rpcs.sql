@@ -295,7 +295,11 @@ SELECT jsonb_build_object(
     WHERE status IN ('pending','scheduled','processing','queued')
       OR (status = 'failed' AND sent_at IS NULL AND soft_owed)
   )
-);
+)
+  ) INTO _result;
+
+  RETURN _result;
+END;
 $function$
 ;
 
