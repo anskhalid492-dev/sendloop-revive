@@ -4,14 +4,13 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   campaignColumns,
-  normalizeSendDays,
   STEP_COLUMNS,
   withCampaignDefaults,
   type Campaign,
   type CampaignStep,
   type CampaignStepVariant,
 } from "@/lib/campaign-model";
-import { nextEligibleSendAt, zonedStartOfDay } from "@/lib/campaign-schedule";
+import { nextEligibleSendAt, normalizeSendDays, zonedStartOfDay } from "@/lib/campaign-schedule";
 import { campaignRunStatus } from "@/lib/campaign-run-state";
 
 /**
