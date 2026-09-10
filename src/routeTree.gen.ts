@@ -84,6 +84,7 @@ import { Route as HelpCenterSlugRouteImport } from './routes/help-center.$slug'
 import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
 import { Route as IntegrationsSlugRouteImport } from './routes/integrations.$slug'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as LegalSendingPolicyRouteImport } from './routes/legal.sending-policy'
 import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics'
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
 import { Route as ProductCrmRouteImport } from './routes/product.crm'
@@ -586,6 +587,11 @@ const IntegrationsSlugRoute = IntegrationsSlugRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalSendingPolicyRoute = LegalSendingPolicyRouteImport.update({
+  id: '/legal/sending-policy',
+  path: '/legal/sending-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductAnalyticsRoute = ProductAnalyticsRouteImport.update({
@@ -1353,6 +1359,7 @@ export interface FileRoutesByFullPath {
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/legal/sending-policy': typeof LegalSendingPolicyRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -1547,6 +1554,7 @@ export interface FileRoutesByTo {
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/legal/sending-policy': typeof LegalSendingPolicyRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -1744,6 +1752,7 @@ export interface FileRoutesById {
   '/help-center/$slug': typeof HelpCenterSlugRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/legal/sending-policy': typeof LegalSendingPolicyRoute
   '/product/analytics': typeof ProductAnalyticsRoute
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
@@ -1942,6 +1951,7 @@ export interface FileRouteTypes {
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
+    | '/legal/sending-policy'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -2136,6 +2146,7 @@ export interface FileRouteTypes {
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
+    | '/legal/sending-policy'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -2332,6 +2343,7 @@ export interface FileRouteTypes {
     | '/help-center/$slug'
     | '/integrations/$slug'
     | '/invite/$token'
+    | '/legal/sending-policy'
     | '/product/analytics'
     | '/product/campaigns'
     | '/product/crm'
@@ -2512,6 +2524,7 @@ export interface RootRouteChildren {
   CompareMunchreachVsSmartleadRoute: typeof CompareMunchreachVsSmartleadRoute
   IntegrationsSlugRoute: typeof IntegrationsSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  LegalSendingPolicyRoute: typeof LegalSendingPolicyRoute
   ProductAnalyticsRoute: typeof ProductAnalyticsRoute
   ProductCampaignsRoute: typeof ProductCampaignsRoute
   ProductCrmRoute: typeof ProductCrmRoute
@@ -3083,6 +3096,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/sending-policy': {
+      id: '/legal/sending-policy'
+      path: '/legal/sending-policy'
+      fullPath: '/legal/sending-policy'
+      preLoaderRoute: typeof LegalSendingPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/product/analytics': {
@@ -4373,6 +4393,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareMunchreachVsSmartleadRoute: CompareMunchreachVsSmartleadRoute,
   IntegrationsSlugRoute: IntegrationsSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
+  LegalSendingPolicyRoute: LegalSendingPolicyRoute,
   ProductAnalyticsRoute: ProductAnalyticsRoute,
   ProductCampaignsRoute: ProductCampaignsRoute,
   ProductCrmRoute: ProductCrmRoute,
