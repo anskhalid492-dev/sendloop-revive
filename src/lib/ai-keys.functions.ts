@@ -72,11 +72,13 @@ export const saveWorkspaceAiKeyFn = createServerFn({ method: "POST" })
 
 export const deleteWorkspaceAiKeyFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => workspaceInput.parse(input))
+  .inputValidator((input) =>
+    workspaceInput.extend({ provider: z.enum(["openai", "anthropic"]).optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.workspaceId);
     const { deleteWorkspaceAiKey } = await import("@/lib/ai-keys.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await deleteWorkspaceAiKey(supabaseAdmin, data.workspaceId);
+    await deleteWorkspaceAiKey(supabaseAdmin, data.workspaceId, data.provider ?? null);
     return { ok: true as const };
   });
