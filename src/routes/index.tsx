@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { FaqBlock, MockBars, MockPanel, MockRows } from "@/components/site/MarketingPage";
+import { HeroProductVisual } from "@/components/site/HeroProductVisual";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
