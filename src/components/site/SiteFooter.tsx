@@ -87,6 +87,7 @@ const fallbackColumns = [
     title: "Legal",
     links: [
       { label: "Privacy Policy", href: "/privacy" },
+      { label: "Sending Policy", href: "/legal/sending-policy" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Refund Policy", href: "/refund-policy" },
       { label: "Acceptable Use", href: "/acceptable-use" },
