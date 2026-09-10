@@ -1,192 +1,244 @@
-import { useEffect, useState } from "react";
-import { BadgeCheck, Building2, CheckCircle2, Send, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarCheck, LineChart, Sparkles } from "lucide-react";
 
 /**
- * Hero product visualization: floating slices of the real MunchReach UI that
- * tell the outbound story — verified leads → campaign → AI personalization →
- * reply. Purely presentational, demo data only.
+ * Hero product visualization: two animated slices of the MunchReach UI —
+ * a combined performance card and an AI personalization card.
+ * Purely presentational, demo values only.
  */
 
-const LEADS = [
-  { name: "Bright Smile Dental", email: "hello@brightsmile.com" },
-  { name: "Modern Skin Co.", email: "hello@modernskin.com" },
-  { name: "Northstar Roofing", email: "hello@northstarroofing.com" },
-];
+const OPEN_RATE = 68.4;
+const MEETINGS = 24;
+
+const CHART_POINTS = [18, 26, 22, 34, 30, 44, 41, 56, 52, 66, 62, 74];
+
+const MEETING_EVENTS = [3, 6, 9, 11];
 
 const BODY =
-  "Hi Sarah,\n\nI came across Bright Smile Dental while researching dental practices in Austin.\n\nI noticed you offer cosmetic and general dentistry, and I had a quick idea that could help...";
+  "Hi [First Name],\n\nI came across [Company] while researching the [Industry] space, and noticed how much of your growth still comes from referrals.\n\nWe help teams like yours turn cold outreach into real conversations — want a quick look?";
 
-/** Reveal steps one after another, respecting reduced-motion. */
-function useSequence(count: number, delay = 450) {
-  const [step, setStep] = useState(0);
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
   useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setStep(count);
-      return;
-    }
-    let i = 0;
-    const id = window.setInterval(() => {
-      i += 1;
-      setStep(i);
-      if (i >= count) window.clearInterval(id);
-    }, delay);
-    return () => window.clearInterval(id);
-  }, [count, delay]);
-  return step;
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+  return reduced;
 }
 
-function useTyped(text: string) {
+/** Eased 0 → 1 progress over `duration` ms, restarting on mount. */
+function useProgress(duration: number, reduced: boolean) {
+  const [t, setT] = useState(reduced ? 1 : 0);
+  const raf = useRef<number>(0);
+  useEffect(() => {
+    if (reduced) {
+      setT(1);
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      setT(1 - Math.pow(1 - p, 3));
+      if (p < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [duration, reduced]);
+  return t;
+}
+
+function useTyped(text: string, reduced: boolean) {
   const [n, setN] = useState(0);
   useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (reduced) {
       setN(text.length);
       return;
     }
+    setN(0);
     const id = window.setInterval(() => {
       setN((prev) => {
-        if (prev >= text.length) {
-          window.clearInterval(id);
-          return prev;
-        }
+        if (prev >= text.length) return prev;
         return prev + 2;
       });
-    }, 18);
+    }, 22);
     return () => window.clearInterval(id);
-  }, [text]);
-  return text.slice(0, n);
+  }, [text, reduced]);
+  return { shown: text.slice(0, n), done: n >= text.length };
 }
 
-function Tag({ children }: { children: string }) {
+/** Renders the email body with dynamic fields highlighted as chips. */
+function TypedBody({ text }: { text: string }) {
+  const parts = text.split(/(\[[^\]]*\]?)/g);
   return (
-    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary">{children}</span>
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("[") ? (
+          <span
+            key={i}
+            className="rounded-md bg-primary/10 px-1 py-0.5 font-medium text-primary motion-safe:animate-pulse"
+          >
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
   );
 }
 
 export function HeroProductVisual() {
-  const verified = useSequence(LEADS.length, 420);
-  const typed = useTyped(BODY);
-  const replyIn = useSequence(1, 2600) === 1;
+  const reduced = usePrefersReducedMotion();
+  const t = useProgress(1800, reduced);
+  const { shown, done } = useTyped(BODY, reduced);
+
+  const openRate = (OPEN_RATE * t).toFixed(1);
+  const meetings = Math.round(MEETINGS * t);
+
+  const { path, area, length } = useMemo(() => {
+    const w = 320;
+    const h = 96;
+    const max = Math.max(...CHART_POINTS) * 1.15;
+    const pts = CHART_POINTS.map((v, i) => {
+      const x = (i / (CHART_POINTS.length - 1)) * w;
+      const y = h - (v / max) * h;
+      return [x, y] as const;
+    });
+    const d = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    return {
+      path: d,
+      area: `${d} L${w},${h} L0,${h} Z`,
+      length: 900,
+      points: pts,
+    };
+  }, []);
+
+  const chartPoints = useMemo(() => {
+    const w = 320;
+    const h = 96;
+    const max = Math.max(...CHART_POINTS) * 1.15;
+    return CHART_POINTS.map((v, i) => [
+      (i / (CHART_POINTS.length - 1)) * w,
+      h - (v / max) * h,
+    ]) as [number, number][];
+  }, []);
 
   return (
     <div className="relative w-full select-none" aria-hidden>
-      {/* soft depth behind the stack */}
-      <div className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(60%_50%_at_60%_20%,hsl(var(--primary)/0.14),transparent_70%)]" />
+      <div className="pointer-events-none absolute -inset-8 rounded-[2.5rem] bg-[radial-gradient(60%_55%_at_65%_15%,hsl(var(--primary)/0.16),transparent_70%)]" />
 
-      <div className="relative space-y-4">
-        {/* CARD 1 — Verified leads */}
-        <div className="rounded-2xl border border-border/70 bg-card/95 p-4 shadow-[0_18px_40px_-24px_hsl(var(--primary)/0.45)] backdrop-blur-[2px] sm:p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <BadgeCheck className="size-4 text-primary" />
-              Verified Leads
-            </div>
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[0.68rem] font-medium text-emerald-600">
-              Lead verified
+      {/* CARD 1 — Combined performance */}
+      <div className="relative rounded-3xl border border-border/70 bg-card/95 p-5 shadow-[0_26px_60px_-30px_hsl(var(--primary)/0.55)] backdrop-blur-[2px] sm:p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="grid size-7 place-items-center rounded-xl bg-primary/12 text-primary">
+              <LineChart className="size-4" />
             </span>
+            Performance
           </div>
-          <ul className="mt-3 space-y-2">
-            {LEADS.map((lead, i) => (
-              <li
-                key={lead.email}
-                className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2"
-              >
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Building2 className="size-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.82rem] font-medium">{lead.name}</span>
-                  <span className="block truncate text-[0.72rem] text-muted-foreground">{lead.email}</span>
-                </span>
-                <CheckCircle2
-                  className={`size-4 shrink-0 text-emerald-500 transition-all duration-500 ${
-                    i < verified ? "scale-100 opacity-100" : "scale-75 opacity-0"
-                  }`}
-                />
-              </li>
-            ))}
-          </ul>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[0.68rem] font-medium text-emerald-600">
+            <span className="size-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
+            Live
+          </span>
         </div>
 
-        {/* connector */}
-        <div className="mx-auto h-5 w-px bg-gradient-to-b from-primary/40 to-primary/5" />
-
-        {/* CARD 2 — Campaign */}
-        <div className="ml-0 rounded-2xl border border-border/70 bg-card/95 p-4 shadow-[0_14px_34px_-24px_hsl(var(--primary)/0.4)] sm:ml-8 sm:p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Send className="size-4 text-primary" />
-              Campaign
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[0.68rem] font-medium text-emerald-600">
-              <span className="size-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
-              Active
-            </span>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+            <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">Open Rate</p>
+            <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight text-gradient">
+              {openRate}%
+            </p>
           </div>
-          <p className="mt-2 text-[0.82rem] font-medium">US Dental Outreach</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {["Email 1", "Follow-up 1", "Follow-up 2"].map((step, i) => (
-              <div key={step} className="rounded-lg border border-border/60 bg-background/60 px-2 py-1.5">
-                <span className="block truncate text-[0.68rem] text-muted-foreground">{step}</span>
-                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-primary/10">
-                  <span
-                    className="block h-full rounded-full bg-primary/70 transition-[width] duration-1000"
-                    style={{ width: `${[92, 58, 24][i]}%` }}
-                  />
-                </span>
-              </div>
-            ))}
+          <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+            <p className="flex items-center gap-1.5 text-[0.7rem] uppercase tracking-wide text-muted-foreground">
+              <CalendarCheck className="size-3.5" />
+              Meetings Booked
+            </p>
+            <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight">{meetings}</p>
           </div>
         </div>
 
-        {/* connector */}
-        <div className="mx-auto h-5 w-px bg-gradient-to-b from-primary/40 to-primary/5" />
-
-        {/* CARD 3 — AI personalization */}
-        <div className="relative rounded-2xl border border-border/70 bg-card/95 p-4 shadow-[0_22px_50px_-26px_hsl(var(--primary)/0.5)] sm:p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <span className="grid size-6 place-items-center rounded-lg bg-primary/12 text-primary">
-                <Sparkles className="size-3.5" />
-              </span>
-              AI-Personalized Email
-            </div>
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[0.68rem] font-medium text-primary">
-              AI
-            </span>
-          </div>
-          <p className="mt-3 text-[0.72rem] text-muted-foreground">Subject</p>
-          <p className="text-[0.82rem] font-medium">Quick idea for Bright Smile</p>
-          <p className="mt-3 whitespace-pre-line text-[0.78rem] leading-relaxed text-muted-foreground">
-            {typed}
-            <span className="ml-0.5 inline-block h-3.5 w-px translate-y-0.5 bg-primary motion-safe:animate-pulse" />
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5 text-[0.68rem]">
-            <Tag>[Company]</Tag>
-            <Tag>[Industry]</Tag>
-            <Tag>[Location]</Tag>
+        <div className="mt-4 rounded-2xl border border-border/60 bg-background/40 p-3">
+          <svg viewBox="0 0 320 104" className="h-24 w-full overflow-visible" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="heroArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={area} fill="url(#heroArea)" style={{ opacity: t }} />
+            <path
+              d={path}
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={length}
+              strokeDashoffset={length * (1 - t)}
+            />
+            {MEETING_EVENTS.map((idx, i) => {
+              const [x, y] = chartPoints[idx] ?? [0, 0];
+              const visible = t > (i + 1) / (MEETING_EVENTS.length + 1);
+              return (
+                <g key={idx} style={{ opacity: visible ? 1 : 0, transition: "opacity .5s ease-out" }}>
+                  <circle cx={x} cy={y} r="7" fill="hsl(var(--primary))" opacity="0.16">
+                    <animate
+                      attributeName="r"
+                      values="5;10;5"
+                      dur="2.4s"
+                      begin={`${i * 0.4}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <circle cx={x} cy={y} r="3.5" fill="hsl(var(--primary))" />
+                </g>
+              );
+            })}
+          </svg>
+          <div className="mt-1 flex justify-between text-[0.62rem] text-muted-foreground">
+            <span>Mon</span>
+            <span>Wed</span>
+            <span>Fri</span>
+            <span>Sun</span>
           </div>
         </div>
       </div>
 
-      {/* CARD 4 — New reply */}
-      <div
-        className={`pointer-events-none absolute -bottom-4 right-0 w-[15rem] max-w-[85%] rounded-xl border border-border/70 bg-card p-3 shadow-[0_20px_44px_-22px_hsl(var(--primary)/0.55)] transition-all duration-700 sm:-right-4 ${
-          replyIn ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-        }`}
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-[0.7rem] font-semibold text-emerald-600">
-            SR
-          </span>
-          <span className="min-w-0">
-            <span className="flex items-center gap-1.5 text-[0.72rem] font-semibold">
-              <span className="size-1.5 rounded-full bg-emerald-500" />
-              New reply
+      {/* CARD 2 — AI personalization (overlapping for depth) */}
+      <div className="relative z-10 -mt-4 ml-0 rounded-3xl border border-border/70 bg-card p-5 shadow-[0_30px_70px_-30px_hsl(var(--primary)/0.6)] sm:-mt-6 sm:ml-10 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="grid size-7 place-items-center rounded-xl bg-primary/12 text-primary">
+              <Sparkles className="size-4" />
             </span>
-            <span className="block truncate text-[0.74rem] text-muted-foreground">
-              “Yes, let's discuss this.”
-            </span>
+            AI Personalization
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[0.68rem] font-medium text-primary">
+            <span className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse" />
+            {done ? "Ready" : "Generating"}
           </span>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-border/60 bg-background/60 p-3.5">
+          <p className="text-[0.68rem] uppercase tracking-wide text-muted-foreground">Subject</p>
+          <p className="text-[0.85rem] font-medium">Quick idea for [Company]</p>
+          <p className="mt-3 min-h-[7.5rem] whitespace-pre-line text-[0.8rem] leading-relaxed text-muted-foreground">
+            <TypedBody text={shown} />
+            {!done && (
+              <span className="ml-0.5 inline-block h-3.5 w-px translate-y-0.5 bg-primary motion-safe:animate-pulse" />
+            )}
+          </p>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[0.68rem]">
+          {["[First Name]", "[Company]", "[Industry]", "[AI Personalization]"].map((field) => (
+            <span
+              key={field}
+              className="rounded-md border border-primary/15 bg-primary/10 px-1.5 py-0.5 font-medium text-primary"
+            >
+              {field}
+            </span>
+          ))}
         </div>
       </div>
     </div>
