@@ -130,7 +130,7 @@ function HelpCenter() {
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
             <span>Try:</span>
-            {["warmup", "SPF", "import", "invoice", "stop rules"].map((s) => (
+            {["warmup", "SPF", "CSV import", "Claude", "spam", "API key", "invoice"].map((s) => (
               <button
                 key={s}
                 type="button"
