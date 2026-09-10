@@ -668,7 +668,8 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         return;
       }
 
-      const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
+      const credentials =
+        credsByWorkspace.get(credsKey(settings.workspaceId, settings.config.provider)) ?? null;
       if (!credentials) {
         const reason = "No AI provider key is connected for this workspace.";
         blockedWorkspaces.set(settings.workspaceId, reason);
