@@ -334,7 +334,7 @@ Monitoring. Poll the list on a schedule and alert your team when a mailbox leave
     category: "api",
     updated: UPDATED,
     keywords: ["replies api", "inbox api", "sentiment", "inbound"],
-    related: ["api-webhooks", "unified-inbox", "api-overview"],
+    related: ["api-webhooks", "inbox-overview", "api-overview"],
     content: `Scope: \`replies:read\`.
 
 ## Endpoint
@@ -464,7 +464,7 @@ Persistent \`internal_error\` responses. Include the request id, the endpoint an
     category: "api",
     updated: UPDATED,
     keywords: ["api security", "secret", "leak", "rotation", "least privilege"],
-    related: ["api-keys", "api-authentication", "security-best-practices"],
+    related: ["api-keys", "api-authentication", "security-overview"],
     content: `## Short answer
 One key per integration, the fewest scopes that integration needs, stored in a secret manager, rotated on a schedule.
 

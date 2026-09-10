@@ -266,6 +266,17 @@ export async function buildSitemap(): Promise<{
     });
   }
 
+  // Help Center: every published article is a static, indexable page.
+  const { HELP_ARTICLES } = await import("@/lib/help-center");
+  for (const article of HELP_ARTICLES) {
+    entries.push({
+      path: `/help-center/${article.slug}`,
+      changefreq: "monthly",
+      priority: "0.6",
+      lastmod: article.updated,
+    });
+  }
+
   // Ensure the requested marketing URLs are always present, using the CMS row when available.
   const seen = new Set(entries.map((e) => e.path));
   for (const required of REQUIRED_SITEMAP_PATHS) {

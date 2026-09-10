@@ -80,7 +80,7 @@ Select leads with the checkboxes, then use Bulk actions → Add to campaign.
     category: "campaigns",
     updated: UPDATED,
     keywords: ["write email", "copy", "subject line", "first email", "template"],
-    related: ["variables-and-fallbacks", "create-follow-ups", "email-content-best-practices"],
+    related: ["variables-and-fallbacks", "create-follow-ups", "improve-reply-rate-safely"],
     content: `## Steps
 1. On the **Sequences** tab, open the first email step.
 2. Write a subject line that reads like an internal note, not an advertisement.
@@ -120,7 +120,7 @@ Select leads with the checkboxes, then use Bulk actions → Add to campaign.
     category: "campaigns",
     updated: UPDATED,
     keywords: ["timing", "delay", "wait days", "when will it send", "spacing"],
-    related: ["create-follow-ups", "sending-windows", "why-email-queued"],
+    related: ["create-follow-ups", "sending-window", "how-sending-works"],
     content: `## Short answer
 A step's wait is measured from the moment the previous step was sent to that lead, and the resulting time is then moved forward to the next open slot in the sending window.
 
@@ -182,7 +182,7 @@ A test send goes out through the same sending infrastructure as production and r
     category: "campaigns",
     updated: UPDATED,
     keywords: ["sending days", "business days", "weekdays", "weekend"],
-    related: ["configure-sending-hours", "campaign-timezone", "sending-windows"],
+    related: ["configure-sending-hours", "campaign-timezone", "sending-window"],
     content: `## Steps
 1. Open the campaign's **Schedule** tab.
 2. Under Sending days, toggle the days you want. Business days only sets Monday to Friday in one click.
@@ -217,7 +217,7 @@ A test send goes out through the same sending infrastructure as production and r
     category: "campaigns",
     updated: UPDATED,
     keywords: ["timezone", "time zone", "local time", "region"],
-    related: ["configure-sending-hours", "configure-sending-days", "sending-windows"],
+    related: ["configure-sending-hours", "configure-sending-days", "sending-window"],
     content: `## Steps
 1. Schedule tab → Sending window → Timezone.
 2. Choose the timezone your audience works in.
@@ -236,7 +236,7 @@ A test send goes out through the same sending infrastructure as production and r
     updated: UPDATED,
     popular: true,
     keywords: ["daily limit", "hourly limit", "cap", "volume", "throttle"],
-    related: ["mailbox-limits", "throughput-estimate", "why-email-queued", "sending-windows"],
+    related: ["mailbox-limits", "throughput-estimate", "how-sending-works", "sending-window"],
     content: `Two layers of limits apply to every send.
 
 ## Campaign limits
@@ -390,7 +390,7 @@ Active does not mean "sending right now". Outside the sending window, on a non-s
     category: "campaigns",
     updated: UPDATED,
     keywords: ["queue", "scheduled", "processing", "sent", "failed", "queue tab"],
-    related: ["why-email-queued", "campaign-not-sending", "campaign-statuses"],
+    related: ["how-sending-works", "campaign-not-sending", "campaign-statuses"],
     content: `The Queue tab lists the messages a campaign has created, with counts by state.
 
 ## States
@@ -416,7 +416,7 @@ Every scheduled message carries its own send time, spread across the window by p
     updated: UPDATED,
     popular: true,
     keywords: ["large campaign", "thousands of leads", "preparing", "batches", "slow launch"],
-    related: ["launch-first-campaign", "campaign-queue", "campaign-stuck-preparing", "sending-limits"],
+    related: ["launch-first-campaign", "campaign-queue", "campaign-launch-failed", "sending-limits"],
     content: `## Short answer
 Large audiences are prepared in controlled batches. Preparation can take a few minutes; the campaign becomes Active only when the whole audience is queued.
 
@@ -441,7 +441,7 @@ Queueing tens of thousands of messages in one go is fragile — a single interru
     category: "campaigns",
     updated: UPDATED,
     keywords: ["campaign analytics", "campaign stats", "performance", "metrics"],
-    related: ["reading-analytics", "compare-campaigns", "api-analytics"],
+    related: ["reading-analytics", "campaign-performance-comparison", "api-analytics"],
     content: `## Steps
 1. Open the campaign → **Analytics**.
 2. Read the headline rates: delivery, open, click, reply, bounce.

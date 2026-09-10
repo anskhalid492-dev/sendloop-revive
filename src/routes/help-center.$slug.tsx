@@ -96,9 +96,38 @@ function ArticlePage() {
   const sections = parseArticle(article.content);
   const { previous, next } = articleNeighbours(article.slug);
   const related = relatedArticles(article);
+  const faqs = article.faqs ?? [];
+
+  const jsonLd: Record<string, unknown>[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Help Center", item: "/help-center" },
+        { "@type": "ListItem", position: 2, name: categoryName(article.category) },
+        { "@type": "ListItem", position: 3, name: article.title, item: `/help-center/${article.slug}` },
+      ],
+    },
+  ];
+  if (faqs.length > 0) {
+    jsonLd.push({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: { "@type": "Answer", text: faq.a },
+      })),
+    });
+  }
 
   return (
     <MarketingLayout>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="border-b border-border/60 bg-secondary/30">
         <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
           <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -162,6 +191,20 @@ function ArticlePage() {
               </Link>
             ) : null}
           </div>
+
+          {faqs.length > 0 ? (
+            <section className="mt-12">
+              <h2 className="text-lg font-semibold">Frequently asked questions</h2>
+              <dl className="mt-4 space-y-4">
+                {faqs.map((faq) => (
+                  <div key={faq.q} className="surface-card p-5">
+                    <dt className="text-sm font-semibold">{faq.q}</dt>
+                    <dd className="mt-2 text-sm text-muted-foreground">{faq.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
 
           <section className="mt-12">
             <h2 className="text-lg font-semibold">Related articles</h2>

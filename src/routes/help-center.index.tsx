@@ -32,7 +32,7 @@ export const Route = createFileRoute("/help-center/")({
   head: () =>
     metaFor(
       "MunchReach Help Center — Guides & Answers",
-      "Search help articles on campaigns, email accounts, deliverability, warmup, the unified inbox, CRM, analytics and billing.",
+      "Guides for campaigns, leads, mailboxes, domains and DNS, AI personalization, Claude, warmup, the inbox, analytics, API, billing and troubleshooting.",
       "/help-center",
     ),
   component: HelpCenter,
@@ -102,8 +102,8 @@ function HelpCenter() {
             How can we <span className="text-gradient">help?</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            {HELP_ARTICLES.length} articles on setup, sending, deliverability, replies and billing —
-            written by the people who build and run MunchReach.
+            {HELP_ARTICLES.length} articles across {HELP_CATEGORIES.length} topics — campaigns,
+            leads, mailboxes, domains, AI personalization, deliverability, the API and billing.
           </p>
 
           <div className="relative mt-8">
@@ -130,7 +130,7 @@ function HelpCenter() {
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
             <span>Try:</span>
-            {["warmup", "SPF", "import", "invoice", "stop rules"].map((s) => (
+            {["warmup", "SPF", "CSV import", "Claude", "spam", "API key", "invoice"].map((s) => (
               <button
                 key={s}
                 type="button"
