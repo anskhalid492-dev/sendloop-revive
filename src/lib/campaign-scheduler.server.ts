@@ -156,25 +156,28 @@ export async function runCampaignScheduler(
   let budgetExhausted = false;
   let lastProcessed: string | null = cursor;
 
-  for (const campaign of ordered) {
-    if (!hasBudgetRemaining(startedAtMs, nowFn().getTime(), budgetMs)) {
-      budgetExhausted = true;
-      break;
+  try {
+    for (const campaign of ordered) {
+      if (!hasBudgetRemaining(startedAtMs, nowFn().getTime(), budgetMs)) {
+        budgetExhausted = true;
+        break;
+      }
+      try {
+        recovered += await recover(campaign.id, nowFn());
+        const result = await runOne(campaign.id, nowFn());
+        results.push({ id: campaign.id, sent: result.sent, failed: result.failed, scheduled: result.scheduled });
+      } catch (error) {
+        console.error("campaign scheduler failed", campaign.id, error);
+        results.push({ id: campaign.id, sent: 0, failed: 1, scheduled: 0 });
+      }
+      lastProcessed = campaign.id;
     }
-    try {
-      recovered += await recover(campaign.id, nowFn());
-      const result = await runOne(campaign.id, nowFn());
-      results.push({ id: campaign.id, sent: result.sent, failed: result.failed, scheduled: result.scheduled });
-    } catch (error) {
-      console.error("campaign scheduler failed", campaign.id, error);
-      results.push({ id: campaign.id, sent: 0, failed: 1, scheduled: 0 });
-    }
-    lastProcessed = campaign.id;
+  } finally {
+    // Always release, even when an invocation dies mid-run: a held lease made
+    // every following cron tick skip with `locked` and stalled the queue.
+    await writeSetting(supabase, CURSOR_KEY, { campaignId: budgetExhausted ? lastProcessed : null });
+    await writeSetting(supabase, LEASE_KEY, { token, expiresAt: new Date(startedAtMs - 1).toISOString() });
   }
-
-  await writeSetting(supabase, CURSOR_KEY, { campaignId: budgetExhausted ? lastProcessed : null });
-  // Release the lease so the very next cron tick can continue the queue.
-  await writeSetting(supabase, LEASE_KEY, { token, expiresAt: new Date(startedAtMs - 1).toISOString() });
 
   return {
     ok: true,
