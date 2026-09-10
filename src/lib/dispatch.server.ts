@@ -1533,14 +1533,25 @@ export async function runCampaign(
   const requeued = await requeueRetryableMessages(supabase, options.campaignId, runAt);
   const initialScheduled = await ensureInitialCampaignMessages(supabase, options.campaignId, runAt);
 
-  // This is deliberately the last step before due-message selection. It fixes
-  // stale rows and also includes messages materialised/requeued by this run.
-  // A failed replan stops this campaign instead of dispatching a stale queue.
-  const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
-  await rescheduleCampaignQueue(supabase, options.campaignId, runAt);
-
+  // Sending FIRST. The whole-queue re-plan rewrites `scheduled_at` for every
+  // queued row, so on a large campaign it alone outlives one cron invocation's
+  // budget: running it before dispatch consumed the entire budget and the
+  // dispatch loop stopped at its very first message, sending nothing forever.
+  // Due messages are already legal to send, so they never depend on the replan.
   const result = await dispatchDueMessages(supabase, options);
   result.scheduled += initialScheduled + requeued;
+
+  // Maintenance re-plan: only with budget left over, and never at the cost of
+  // the sending it protects. A failure here is reported, not fatal.
+  const replanAllowed = !options.deadlineAt || Date.now() < options.deadlineAt.getTime();
+  if (replanAllowed) {
+    try {
+      const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
+      await rescheduleCampaignQueue(supabase, options.campaignId, runAt);
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : "Queue re-plan failed");
+    }
+  }
   try {
     const followUps = await scheduleFollowUps(supabase, options.campaignId);
     result.scheduled += followUps.scheduled;
