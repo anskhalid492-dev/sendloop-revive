@@ -14,7 +14,7 @@
  * Pure helpers only: no Supabase, fully unit-testable.
  */
 import { isEligibleMailbox, type AssignableMailbox } from "./mailbox-assignment";
-import { effectiveMailboxHourlyLimit } from "./mailbox-hourly-cap";
+import { campaignHourlyLimit } from "./mailbox-hourly-cap";
 
 export type CapacityMailbox = AssignableMailbox & {
   hourly_limit?: number | null;
