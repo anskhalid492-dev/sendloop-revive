@@ -40,7 +40,9 @@ describe("mailbox capacity", () => {
   });
 
   it("limits a mailbox by hourly limit x window hours", () => {
-    expect(mailboxDayCapacity(mailbox({ daily_limit: 100, hourly_limit: 10 }), 4)).toBe(40);
+    // Campaign planning uses the campaign lane limit (10/hour minus the
+    // reply reservation = 9/hour), so 4 window hours allow 36 sends.
+    expect(mailboxDayCapacity(mailbox({ daily_limit: 100, hourly_limit: 10 }), 4)).toBe(36);
   });
 
   it("sums only eligible mailboxes", () => {

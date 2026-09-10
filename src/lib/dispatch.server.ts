@@ -10,7 +10,7 @@
 import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import {
   MAX_MAILBOX_HOURLY_MESSAGE,
-  effectiveMailboxHourlyLimit,
+  campaignHourlyLimit,
 } from "@/lib/mailbox-hourly-cap";
 import { campaignScheduleState, normalizeSendDays, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
 import { isRetryableFailure } from "@/lib/campaign-run-state";
@@ -1041,7 +1041,7 @@ export async function dispatchDueMessages(
       continue;
     }
     // Hard 70/hour per-mailbox ceiling — independent of daily limits/pacing.
-    const hourlyLimit = effectiveMailboxHourlyLimit(account.hourly_limit);
+    const hourlyLimit = campaignHourlyLimit(account.hourly_limit);
     const sentThisHour = (sentThisHourByAccount.get(account.id) ?? 0) + usedNow;
     if (sentThisHour >= hourlyLimit) {
       result.skipped += 1;

@@ -44,7 +44,7 @@ export async function composeAndSend(input: ComposeInput) {
   // Authoritative capacity check immediately before handing off to the
   // provider: same mailbox daily/hourly limits, no bypass, no stale counts.
   const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
-  await assertMailboxCapacity(account);
+  await assertMailboxCapacity(account, "reply");
 
   // Customer-owned mailbox credentials first, shared provider credentials after.
   const { loadAccountCredentials } = await import("@/lib/account-credentials.server");

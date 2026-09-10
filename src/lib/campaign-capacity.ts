@@ -14,7 +14,7 @@
  * Pure helpers only: no Supabase, fully unit-testable.
  */
 import { isEligibleMailbox, type AssignableMailbox } from "./mailbox-assignment";
-import { effectiveMailboxHourlyLimit } from "./mailbox-hourly-cap";
+import { campaignHourlyLimit } from "./mailbox-hourly-cap";
 
 export type CapacityMailbox = AssignableMailbox & {
   hourly_limit?: number | null;
@@ -44,7 +44,7 @@ export function mailboxDayCapacity(mailbox: CapacityMailbox, windowHours = 0): n
   if (daily <= 0) return 0;
   const hours = Math.max(0, Math.floor(windowHours));
   if (hours <= 0) return daily;
-  return Math.min(daily, effectiveMailboxHourlyLimit(mailbox.hourly_limit) * hours);
+  return Math.min(daily, campaignHourlyLimit(mailbox.hourly_limit) * hours);
 }
 
 /** Total emails every eligible mailbox can send in one sending day. */
