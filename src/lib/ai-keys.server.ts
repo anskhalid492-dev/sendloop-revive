@@ -41,48 +41,85 @@ function normalizeProvider(value: unknown): AiProviderId {
   return value === "anthropic" ? "anthropic" : "openai";
 }
 
-/** Read the stored key for a workspace, decrypted. Returns null when unset. */
+/**
+ * Read a stored key for a workspace, decrypted. Returns null when unset.
+ *
+ * A workspace can connect one key per provider. `preferred` is the provider a
+ * campaign asked for; when it has no key we fall back to whichever provider the
+ * workspace does have connected, so an existing campaign never stops working.
+ */
 export async function workspaceAiCredentials(
   admin: Client,
   workspaceId: string,
+  preferred?: AiProviderId | null,
 ): Promise<WorkspaceAiCredentials | null> {
   const { data } = await admin
     .from("workspace_ai_keys")
-    .select("key_ciphertext, model, provider")
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
-  if (!data?.key_ciphertext) return null;
+    .select("key_ciphertext, model, provider, status, updated_at")
+    .eq("workspace_id", workspaceId);
+  const rows = (data ?? []) as Array<{
+    key_ciphertext: string | null;
+    model: string | null;
+    provider: string | null;
+    status: string | null;
+  }>;
+  if (!rows.length) return null;
+  const wanted = preferred ? rows.find((r) => normalizeProvider(r.provider) === preferred) : null;
+  const row = wanted ?? rows.find((r) => r.status === "verified") ?? rows[0]!;
+  if (!row?.key_ciphertext) return null;
   try {
-    const secret = decryptCredentials<{ api_key: string }>(data.key_ciphertext);
+    const secret = decryptCredentials<{ api_key: string }>(row.key_ciphertext);
     if (!secret?.api_key) return null;
-    const provider = normalizeProvider(data.provider);
-    return { provider, apiKey: secret.api_key, model: resolveAiModel(provider, data.model) };
+    const provider = normalizeProvider(row.provider);
+    return { provider, apiKey: secret.api_key, model: resolveAiModel(provider, row.model) };
   } catch {
     return null;
   }
 }
 
-/** Public-safe view of the connection, for the settings UI. */
+const KEY_COLUMNS = "provider, model, key_last4, status, last_error, verified_at";
+
+function toKeyInfo(row: Record<string, unknown> | null | undefined): WorkspaceAiKeyInfo {
+  const provider = normalizeProvider(row?.["provider"]);
+  return {
+    connected: Boolean(row),
+    provider,
+    providerLabel: aiProvider(provider).label,
+    model: resolveAiModel(provider, row?.["model"] as string | null),
+    last4: (row?.["key_last4"] as string | null) ?? null,
+    status: (row?.["status"] as string | null) ?? "missing",
+    lastError: (row?.["last_error"] as string | null) ?? null,
+    verifiedAt: (row?.["verified_at"] as string | null) ?? null,
+  };
+}
+
+/** Every provider this workspace has connected, public-safe. */
+export async function workspaceAiKeys(
+  admin: Client,
+  workspaceId: string,
+): Promise<WorkspaceAiKeyInfo[]> {
+  const { data } = await admin
+    .from("workspace_ai_keys")
+    .select(KEY_COLUMNS)
+    .eq("workspace_id", workspaceId);
+  return ((data ?? []) as Array<Record<string, unknown>>).map(toKeyInfo);
+}
+
+/** Public-safe view of one connection, for the settings UI. */
 export async function workspaceAiKeyInfo(
   admin: Client,
   workspaceId: string,
+  provider?: AiProviderId | null,
 ): Promise<WorkspaceAiKeyInfo> {
-  const { data } = await admin
+  const rows = await admin
     .from("workspace_ai_keys")
-    .select("provider, model, key_last4, status, last_error, verified_at")
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
-  const provider = normalizeProvider(data?.provider);
-  return {
-    connected: Boolean(data),
-    provider,
-    providerLabel: aiProvider(provider).label,
-    model: resolveAiModel(provider, data?.model),
-    last4: data?.key_last4 ?? null,
-    status: data?.status ?? "missing",
-    lastError: data?.last_error ?? null,
-    verifiedAt: data?.verified_at ?? null,
-  };
+    .select(KEY_COLUMNS)
+    .eq("workspace_id", workspaceId);
+  const list = (rows.data ?? []) as Array<Record<string, unknown>>;
+  const wanted = provider
+    ? list.find((r) => normalizeProvider(r["provider"]) === provider)
+    : undefined;
+  return toKeyInfo(wanted ?? list.find((r) => r["status"] === "verified") ?? list[0] ?? null);
 }
 
 export function invalidKeyMessage(provider: AiProviderId): string {
@@ -173,13 +210,20 @@ export async function saveWorkspaceAiKey(
       created_by: input.userId,
       updated_at: now,
     },
-    { onConflict: "workspace_id" },
+    // One key per provider per workspace: saving Claude never overwrites OpenAI.
+    { onConflict: "workspace_id,provider" },
   );
   if (error) throw new Error(error.message);
-  return workspaceAiKeyInfo(admin, input.workspaceId);
+  return workspaceAiKeyInfo(admin, input.workspaceId, provider);
 }
 
-export async function deleteWorkspaceAiKey(admin: Client, workspaceId: string) {
-  const { error } = await admin.from("workspace_ai_keys").delete().eq("workspace_id", workspaceId);
+export async function deleteWorkspaceAiKey(
+  admin: Client,
+  workspaceId: string,
+  provider?: AiProviderId | null,
+) {
+  let query = admin.from("workspace_ai_keys").delete().eq("workspace_id", workspaceId);
+  if (provider) query = query.eq("provider", provider);
+  const { error } = await query;
   if (error) throw new Error(error.message);
 }
