@@ -43,12 +43,16 @@ describe("70 emails per mailbox per hour ceiling", () => {
       hourly_limit: 500,
       last_sent_at: new Date().toISOString(),
     };
-    // Replies use the full 70/hour ceiling; campaign sending stops earlier
-    // because part of the hour is reserved for human replies.
-    expect(evaluateMailboxCapacity(base, 69, undefined, "reply").available).toBe(true);
-    const blocked = evaluateMailboxCapacity(base, 70, undefined, "reply");
+    // The 70/hour ceiling still applies: campaign sending stops at the
+    // campaign lane limit (ceiling minus the reply reservation), while a human
+    // reply is never blocked by MunchReach pacing.
+    const campaignLimit = campaignHourlyLimit(500);
+    expect(campaignLimit).toBeLessThan(70);
+    expect(evaluateMailboxCapacity(base, campaignLimit - 1).available).toBe(true);
+    const blocked = evaluateMailboxCapacity(base, campaignLimit);
     expect(blocked.available).toBe(false);
     expect(blocked.reason).toBe("hourly");
-    expect(blocked.hourlyLimit).toBe(70);
+    expect(blocked.hourlyLimit).toBe(campaignLimit);
+    expect(evaluateMailboxCapacity(base, 70, undefined, "reply").available).toBe(true);
   });
 });
