@@ -23,6 +23,8 @@ export const configSchema = z.object({
   exampleOutput: z.string().max(2000),
   fallbackMode: z.enum(["fallback_text", "skip", "hold"]),
   fallbackText: z.string().max(600),
+  // Which connected AI provider generates this campaign's lines.
+  provider: z.enum(["openai", "anthropic"]).nullable().optional(),
 });
 
 export const campaignInput = z.object({ campaignId: z.string().uuid() });

@@ -268,6 +268,10 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
     exampleOutput: typeof v["exampleOutput"] === "string" ? v["exampleOutput"] : "",
     fallbackMode,
     fallbackText: typeof v["fallbackText"] === "string" ? v["fallbackText"] : base.fallbackText,
+    provider:
+      v["provider"] === "openai" || v["provider"] === "anthropic"
+        ? (v["provider"] as "openai" | "anthropic")
+        : null,
   };
 }
 
