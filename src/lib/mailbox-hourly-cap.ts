@@ -45,18 +45,29 @@ export function effectiveMailboxHourlyLimit(limit: number | null | undefined): n
 
 export type SendingLane = "campaign" | "reply";
 
-/** Share of a mailbox's hourly limit held back from automated campaigns. */
-export const REPLY_RESERVE_RATIO = (() => {
-  const raw = Number(process.env["MAILBOX_REPLY_RESERVE_RATIO"]);
-  if (Number.isFinite(raw) && raw > 0 && raw < 0.5) return raw;
-  return 0.1;
-})();
+export const DEFAULT_REPLY_RESERVE_RATIO = 0.1;
+
+/**
+ * Share of a mailbox's hourly limit held back from automated campaigns.
+ * Read lazily and guarded: this module is also bundled for the browser, where
+ * `process` may not exist.
+ */
+export function replyReserveRatio(): number {
+  try {
+    if (typeof process === "undefined") return DEFAULT_REPLY_RESERVE_RATIO;
+    const raw = Number(process.env?.["MAILBOX_REPLY_RESERVE_RATIO"]);
+    if (Number.isFinite(raw) && raw > 0 && raw < 0.5) return raw;
+  } catch {
+    /* no env access in this runtime */
+  }
+  return DEFAULT_REPLY_RESERVE_RATIO;
+}
 
 /** Emails per hour held back for human replies on a given mailbox. */
 export function replyReserveForHourlyLimit(limit: number | null | undefined): number {
   const effective = effectiveMailboxHourlyLimit(limit);
   if (effective <= 1) return 0;
-  return Math.min(effective - 1, Math.max(1, Math.round(effective * REPLY_RESERVE_RATIO)));
+  return Math.min(effective - 1, Math.max(1, Math.round(effective * replyReserveRatio())));
 }
 
 /** The hourly limit automated campaign sending may actually use. */
