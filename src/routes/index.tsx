@@ -348,7 +348,7 @@ function Home() {
             className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,hsl(var(--foreground))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--foreground))_1px,transparent_1px)] [background-size:44px_44px]"
           />
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-20 lg:grid-cols-[43fr_57fr] lg:gap-10">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 pt-10 pb-10 sm:px-6 sm:pt-14 sm:pb-14 lg:grid-cols-[43fr_57fr] lg:gap-8 lg:pt-12 lg:pb-12">
             <div className="text-center lg:text-left">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-medium uppercase tracking-wide text-primary sm:text-xs">
                 <Sparkles className="size-4 shrink-0" />
@@ -390,7 +390,7 @@ function Home() {
               </p>
             </div>
 
-            <div className="relative pb-8 lg:pb-0">
+            <div className="relative pb-4 lg:pb-0">
               <HeroProductVisual />
             </div>
           </div>
