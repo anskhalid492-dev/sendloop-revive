@@ -301,6 +301,53 @@ export function AiPersonalizationSidebar({
 
           <Separator />
 
+          {/* AI provider */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">AI provider</h3>
+              <Badge variant="outline" className="text-[11px]">
+                Using {activeProviderLabel}
+              </Badge>
+            </div>
+            {connectedProviders.length ? (
+              <>
+                <Select
+                  value={config.provider ?? "auto"}
+                  onValueChange={(value) =>
+                    patch({ provider: value === "auto" ? null : (value as "openai" | "anthropic") })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      Automatic — use my connected provider
+                    </SelectItem>
+                    {connectedProviders.map((row) => (
+                      <SelectItem key={row.provider} value={row.provider}>
+                        {row.providerLabel} · {row.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  This campaign&apos;s lines are written by the provider you choose here, using your
+                  own key. Changing it only affects lines generated from now on — regenerate if you
+                  want existing lines rewritten.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No AI provider is connected yet. Add your OpenAI or Claude key in Settings →
+                Sending to choose a provider here.
+              </p>
+            )}
+          </section>
+
+          <Separator />
+
+
           {/* Approach */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold">Approach</h3>
