@@ -13,7 +13,7 @@ describe("production campaign scheduler path", () => {
 
     const ensureIndex = dispatcher.indexOf("ensureInitialCampaignMessages(supabase");
     const dispatchIndex = dispatcher.indexOf("dispatchDueMessages(supabase, options)", ensureIndex);
-    const replanIndex = dispatcher.indexOf("rescheduleCampaignQueue(supabase", dispatchIndex);
+    const replanIndex = dispatcher.indexOf("maybeReplanCampaignQueue(supabase", dispatchIndex);
     expect(ensureIndex).toBeGreaterThan(-1);
     // Sending must never sit behind the whole-queue replan: on a large campaign
     // the replan alone exceeds one invocation's budget.

@@ -1521,6 +1521,80 @@ export async function finalizeCampaignIfDrained(
   return true;
 }
 
+/**
+ * Queue PLANNING is separate from queue EXECUTION: a valid queue is sent as-is
+ * and only replanned when a scheduling input materially changed (window, days,
+ * timezone, daily limit, mailbox pool) or when a previous replan was cut short.
+ * The fingerprint of those inputs lives in `platform_settings`, so a scheduler
+ * tick on an unchanged campaign does no queue-wide work at all.
+ */
+export async function maybeReplanCampaignQueue(
+  supabase: AnySupabase,
+  campaignId: string,
+  runAt: Date,
+  deadlineAt?: Date,
+): Promise<{ replanned: boolean; reason: string; updated: number }> {
+  const settingKey = `campaign_replan:${campaignId}`;
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select("timezone, send_days, send_start_hour, send_end_hour, daily_cap, sending_account_ids")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (!campaign) return { replanned: false, reason: "campaign_not_found", updated: 0 };
+
+  const fingerprint = JSON.stringify([
+    campaign.timezone ?? "UTC",
+    Array.isArray(campaign.send_days) ? [...campaign.send_days].sort() : campaign.send_days ?? null,
+    campaign.send_start_hour ?? null,
+    campaign.send_end_hour ?? null,
+    campaign.daily_cap ?? null,
+    Array.isArray(campaign.sending_account_ids) ? [...campaign.sending_account_ids].sort() : [],
+  ]);
+
+  const { data: stateRow } = await supabase
+    .from("platform_settings")
+    .select("value")
+    .eq("key", settingKey)
+    .maybeSingle();
+  const state = (stateRow?.value ?? null) as { fingerprint?: string; pending?: boolean } | null;
+  const changed = state?.fingerprint !== fingerprint;
+  const pending = state?.pending === true;
+  if (!changed && !pending) {
+    console.info("[scheduler] replan skipped", { campaignId, reason: "no_schedule_change" });
+    return { replanned: false, reason: "no_schedule_change", updated: 0 };
+  }
+
+  const startedAt = Date.now();
+  let truncated = false;
+  const updated = await rescheduleCampaignQueueBounded(supabase, campaignId, runAt, {
+    ...(deadlineAt ? { deadlineAt } : {}),
+    onProgress: (info) => {
+      truncated = info.truncated;
+    },
+  });
+  await supabase
+    .from("platform_settings")
+    .upsert({ key: settingKey, value: { fingerprint, pending: truncated } }, { onConflict: "key" });
+  console.info("[scheduler] replan done", {
+    campaignId,
+    reason: changed ? "schedule_changed" : "resume_pending",
+    updated,
+    truncated,
+    durationMs: Date.now() - startedAt,
+  });
+  return { replanned: true, reason: changed ? "schedule_changed" : "resume_pending", updated };
+}
+
+async function rescheduleCampaignQueueBounded(
+  supabase: AnySupabase,
+  campaignId: string,
+  runAt: Date,
+  options: { deadlineAt?: Date; onProgress?: (info: { scanned: number; truncated: boolean }) => void },
+): Promise<number> {
+  const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
+  return rescheduleCampaignQueue(supabase, campaignId, runAt, options);
+}
+
 /** Send what is due, then queue the follow-ups that became due. */
 export async function runCampaign(
   supabase: AnySupabase,
@@ -1541,16 +1615,18 @@ export async function runCampaign(
   const result = await dispatchDueMessages(supabase, options);
   result.scheduled += initialScheduled + requeued;
 
-  // Maintenance re-plan: only with budget left over, and never at the cost of
-  // the sending it protects. A failure here is reported, not fatal.
+  // Maintenance re-plan: only with budget left over, only when the campaign's
+  // schedule inputs actually changed, and never at the cost of the sending it
+  // protects. A failure here is reported, not fatal.
   const replanAllowed = !options.deadlineAt || Date.now() < options.deadlineAt.getTime();
   if (replanAllowed) {
     try {
-      const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
-      await rescheduleCampaignQueue(supabase, options.campaignId, runAt);
+      await maybeReplanCampaignQueue(supabase, options.campaignId, runAt, options.deadlineAt);
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : "Queue re-plan failed");
     }
+  } else {
+    console.info("[scheduler] replan skipped", { campaignId: options.campaignId, reason: "budget_exhausted" });
   }
   try {
     const followUps = await scheduleFollowUps(supabase, options.campaignId);

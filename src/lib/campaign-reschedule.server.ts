@@ -48,11 +48,26 @@ export async function campaignMailboxDailyCapacity(
   }
 }
 
+export type RescheduleOptions = {
+  /** Stop reading/writing once this moment passes; the rest is replanned later. */
+  deadlineAt?: Date;
+  /** Hard ceiling on queued rows examined in one invocation. */
+  maxRows?: number;
+  /** Reports how much of the queue this invocation actually covered. */
+  onProgress?: (info: { scanned: number; truncated: boolean }) => void;
+};
+
+/** Default bound so one invocation can never scan an entire 50k queue. */
+export const RESCHEDULE_MAX_ROWS = 2000;
+
 export async function rescheduleCampaignQueue(
   supabase: AnySupabase,
   campaignId: string,
   now: Date = new Date(),
+  options: RescheduleOptions = {},
 ): Promise<number> {
+  const maxRows = Math.max(1, options.maxRows ?? RESCHEDULE_MAX_ROWS);
+  const outOfBudget = () => Boolean(options.deadlineAt && Date.now() >= options.deadlineAt.getTime());
   const { data: campaign } = await supabase
     .from("campaigns")
     .select("id, timezone, send_days, send_start_hour, send_end_hour, daily_cap, sending_account_ids")
@@ -79,7 +94,8 @@ export async function rescheduleCampaignQueue(
   if (stepError) throw new Error(stepError.message);
 
   const queued: Array<{ id: string; scheduled_at: string | null; step_order: number | null }> = [];
-  const pageSize = 1000;
+  const pageSize = Math.min(1000, maxRows);
+  let truncated = false;
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
       .from("campaign_messages")
@@ -94,7 +110,14 @@ export async function rescheduleCampaignQueue(
     const page = (data ?? []) as typeof queued;
     queued.push(...page);
     if (page.length < pageSize) break;
+    // Bounded work: never scan a whole 50k queue inside one invocation, and
+    // never keep reading once the caller's budget is gone.
+    if (queued.length >= maxRows || outOfBudget()) {
+      truncated = true;
+      break;
+    }
   }
+  options.onProgress?.({ scanned: queued.length, truncated });
 
   const dayStart = zonedStartOfDay(now, window.timezone);
   const nextDayStart = zonedStartOfNextDay(now, window.timezone);
@@ -146,7 +169,12 @@ export async function rescheduleCampaignQueue(
   if (!updates.length) return 0;
 
 
+  let written = 0;
   for (const group of groupRescheduleUpdates(updates)) {
+    // Writing is bounded by the same budget: a partially replanned queue is
+    // still entirely valid (rows keep their previous legal time) and the next
+    // invocation continues the remainder.
+    if (outOfBudget()) return written;
     for (let i = 0; i < group.ids.length; i += 200) {
       const { error } = await supabase
         .from("campaign_messages")
@@ -155,7 +183,8 @@ export async function rescheduleCampaignQueue(
         .in("status", ["pending", "scheduled"])
         .is("sent_at", null);
       if (error) throw new Error(error.message);
+      written += group.ids.slice(i, i + 200).length;
     }
   }
-  return updates.length;
+  return written;
 }
