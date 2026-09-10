@@ -12,10 +12,12 @@ describe("production campaign scheduler path", () => {
     expect(scheduler).toContain("runCampaign(supabase");
 
     const ensureIndex = dispatcher.indexOf("ensureInitialCampaignMessages(supabase");
-    const replanIndex = dispatcher.indexOf("rescheduleCampaignQueue(supabase");
-    const dispatchIndex = dispatcher.indexOf("dispatchDueMessages(supabase, options)", replanIndex);
+    const dispatchIndex = dispatcher.indexOf("dispatchDueMessages(supabase, options)", ensureIndex);
+    const replanIndex = dispatcher.indexOf("rescheduleCampaignQueue(supabase", dispatchIndex);
     expect(ensureIndex).toBeGreaterThan(-1);
-    expect(replanIndex).toBeGreaterThan(ensureIndex);
-    expect(dispatchIndex).toBeGreaterThan(replanIndex);
+    // Sending must never sit behind the whole-queue replan: on a large campaign
+    // the replan alone exceeds one invocation's budget.
+    expect(dispatchIndex).toBeGreaterThan(ensureIndex);
+    expect(replanIndex).toBeGreaterThan(dispatchIndex);
   });
 });
