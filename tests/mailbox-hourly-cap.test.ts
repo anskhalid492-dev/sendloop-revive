@@ -43,8 +43,10 @@ describe("70 emails per mailbox per hour ceiling", () => {
       hourly_limit: 500,
       last_sent_at: new Date().toISOString(),
     };
-    expect(evaluateMailboxCapacity(base, 69).available).toBe(true);
-    const blocked = evaluateMailboxCapacity(base, 70);
+    // Replies use the full 70/hour ceiling; campaign sending stops earlier
+    // because part of the hour is reserved for human replies.
+    expect(evaluateMailboxCapacity(base, 69, undefined, "reply").available).toBe(true);
+    const blocked = evaluateMailboxCapacity(base, 70, undefined, "reply");
     expect(blocked.available).toBe(false);
     expect(blocked.reason).toBe("hourly");
     expect(blocked.hourlyLimit).toBe(70);
