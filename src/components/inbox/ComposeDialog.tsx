@@ -133,7 +133,7 @@ export function ComposeDialog({
       if (isMailboxLimitError(error.message)) {
         const detail = mailboxLimitMessage(error.message);
         setLimitNotice(detail);
-        toast.error("Mailbox limit reached", { description: detail });
+        toast.error("Mailbox unavailable", { description: detail });
         void mailboxesQuery.refetch();
         return;
       }
@@ -184,7 +184,7 @@ export function ComposeDialog({
         {limitNotice ? (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Mailbox limit reached</AlertTitle>
+            <AlertTitle>Mailbox unavailable</AlertTitle>
             <AlertDescription>{limitNotice}</AlertDescription>
           </Alert>
         ) : null}

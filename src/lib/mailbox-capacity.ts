@@ -136,7 +136,7 @@ export function mailboxBlockedCopy(capacity: MailboxCapacity) {
     case "daily":
       return `${address} is temporarily out of sending capacity for the current 12-hour window. Capacity returns automatically — or select another mailbox.`;
     case "hourly":
-      return `${address} has reached its hourly sending limit. Select another mailbox or try again later.`;
+      return `${address} has reached its hourly campaign sending limit. Campaign sending resumes automatically next hour.`;
     case "paused":
       return `${address} is paused. Select another mailbox to continue.`;
     default:

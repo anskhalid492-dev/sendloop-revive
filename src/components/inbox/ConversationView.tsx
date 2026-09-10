@@ -307,7 +307,7 @@ export function ConversationView({
     onError: (error: Error) => {
       // Draft body is intentionally preserved on a mailbox-capacity block.
       if (isMailboxLimitError(error.message)) {
-        toast.error("Mailbox limit reached", {
+        toast.error("Mailbox unavailable", {
           description: mailboxLimitMessage(error.message),
         });
         return;
