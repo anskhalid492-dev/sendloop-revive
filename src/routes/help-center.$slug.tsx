@@ -192,6 +192,20 @@ function ArticlePage() {
             ) : null}
           </div>
 
+          {faqs.length > 0 ? (
+            <section className="mt-12">
+              <h2 className="text-lg font-semibold">Frequently asked questions</h2>
+              <dl className="mt-4 space-y-4">
+                {faqs.map((faq) => (
+                  <div key={faq.q} className="surface-card p-5">
+                    <dt className="text-sm font-semibold">{faq.q}</dt>
+                    <dd className="mt-2 text-sm text-muted-foreground">{faq.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
+
           <section className="mt-12">
             <h2 className="text-lg font-semibold">Related articles</h2>
             <div className="mt-4 grid gap-3">
