@@ -65,10 +65,28 @@ export async function sendReplyThroughMailbox(args: {
   if (!account || account.workspace_id !== conversation.workspace_id) {
     throw new Error("No sending mailbox is linked to this conversation yet.");
   }
-  // Same mailbox eligibility rules as compose and campaign dispatch, checked
-  // immediately before the send so a stale client can never bypass a limit.
+  // Human replies use the reply lane: real safety states (paused/disabled) and
+  // the provider still apply, but MunchReach's own campaign pacing limits never
+  // stop a customer from answering a prospect.
   const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
   await assertMailboxCapacity(account, "reply");
+
+  // Idempotency: a double click or a refresh-and-resend must not deliver the
+  // same reply twice. An identical outbound message in the last two minutes is
+  // treated as the same send.
+  const { data: recent } = await supabase
+    .from("conversation_messages")
+    .select("id, subject, body, occurred_at")
+    .eq("conversation_id", conversation.id)
+    .eq("direction", "outbound")
+    .gte("occurred_at", new Date(Date.now() - 120_000).toISOString())
+    .order("occurred_at", { ascending: false })
+    .limit(5);
+  const duplicate = ((recent ?? []) as { id: string; subject: string | null; body: string | null }[]).find(
+    (m) => (m.subject ?? "") === args.subject && (m.body ?? "") === args.body,
+  );
+  if (duplicate) return { ok: true, messageId: duplicate.id, duplicate: true };
+
 
 
   // Server-side variable resolution. Templates picked in the composer are
