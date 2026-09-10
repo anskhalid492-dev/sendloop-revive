@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 
 describe("production campaign scheduler path", () => {
-  test("cron reaches runCampaign and replans immediately before dispatch selection", () => {
+  test("cron reaches runCampaign and dispatches before the whole-queue replan", () => {
     const cron = readFileSync("src/routes/api/public/cron/run-campaigns.ts", "utf8");
     const scheduler = readFileSync("src/lib/campaign-scheduler.server.ts", "utf8");
     const dispatcher = readFileSync("src/lib/dispatch.server.ts", "utf8");
