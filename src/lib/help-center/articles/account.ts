@@ -62,7 +62,7 @@ Renaming a workspace does not affect campaigns in flight, connected mailboxes or
 - Removing a member revokes access immediately; their campaigns and data stay in the workspace.
 
 ## Common problems
-- **Invite never arrived** — check spam, confirm the address, then resend from Settings → Team.
+- **Invite never arrived** — check spam, confirm the address, then send the invite again from Settings → Team.
 - **"Already a member"** — they are in the workspace under a different address.`,
   },
   {
