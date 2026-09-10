@@ -158,7 +158,7 @@ function scoreArticle(article: HelpArticle, terms: string[]): number {
     }
     score += hit;
   }
-  if (article.popular) score += 1;
+  if (score > 0 && article.popular) score += 1;
   return score;
 }
 
