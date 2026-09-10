@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LineChart, Sparkles } from "lucide-react";
+import { Calendar, Eye, LineChart, Mail, Reply, Sparkles } from "lucide-react";
 
 /**
  * Hero product visualization: two compact animated cards —
@@ -148,21 +148,33 @@ function PerformanceCard({ reduced }: { reduced: boolean }) {
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <div className="rounded-2xl border border-border/60 bg-background/60 px-3 py-2">
-          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground">Emails Sent</p>
+          <p className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-muted-foreground">
+            <Mail className="size-2.5 text-primary" />
+            Emails Sent
+          </p>
           <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight sm:text-xl">{sent}</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-background/60 px-3 py-2">
-          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground">Open Rate</p>
+          <p className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-muted-foreground">
+            <Eye className="size-2.5 text-primary" />
+            Open Rate
+          </p>
           <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-gradient sm:text-xl">
             {openRate}%
           </p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-background/60 px-3 py-2">
-          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground">Replies</p>
+          <p className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-muted-foreground">
+            <Reply className="size-2.5 text-primary" />
+            Replies
+          </p>
           <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight sm:text-xl">{replies}</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-background/60 px-3 py-2">
-          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground">Meetings Booked</p>
+          <p className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-muted-foreground">
+            <Calendar className="size-2.5 text-primary" />
+            Meetings Booked
+          </p>
           <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight sm:text-xl">{meetings}</p>
         </div>
       </div>
