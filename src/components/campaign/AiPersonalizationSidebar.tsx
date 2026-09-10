@@ -51,6 +51,7 @@ import {
   runAiPersonalizationNow,
   saveAiSettings,
 } from "@/lib/ai-personalization.functions";
+import { listWorkspaceAiKeys } from "@/lib/ai-keys.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: string }) {
@@ -82,6 +83,7 @@ export function AiPersonalizationSidebar({
   const retryFn = useServerFn(retryFailedAiPersonalizations);
   const statsFn = useServerFn(getAiPersonalizationStats);
   const previewFn = useServerFn(previewAiPersonalization);
+  const fetchProviders = useServerFn(listWorkspaceAiKeys);
 
   const [enabled, setEnabled] = useState(false);
   const [config, setConfig] = useState<AiPersonalizationConfig>(defaultAiConfig());
@@ -115,6 +117,23 @@ export function AiPersonalizationSidebar({
     [builder.steps],
   );
   const sampleLeadId = builder.leads[0]?.lead_id ?? null;
+
+  // Providers this workspace has actually connected — never a fake selector.
+  const workspaceId = builder.campaign?.workspace_id ?? null;
+  const providersQuery = useQuery({
+    queryKey: ["workspace-ai-keys", workspaceId],
+    queryFn: () => fetchProviders({ data: { workspaceId: workspaceId! } }),
+    enabled: open && Boolean(workspaceId),
+  });
+  const connectedProviders = (providersQuery.data ?? []).filter((row) => row.connected);
+  const activeProvider =
+    connectedProviders.find((row) => row.provider === config.provider) ??
+    connectedProviders.find((row) => row.status === "verified") ??
+    connectedProviders[0] ??
+    null;
+  const activeProviderLabel = activeProvider
+    ? `${activeProvider.providerLabel} · ${activeProvider.model}`
+    : "no provider connected";
 
   const patch = (values: Partial<AiPersonalizationConfig>) =>
     setConfig((prev) => ({ ...prev, ...values }));
