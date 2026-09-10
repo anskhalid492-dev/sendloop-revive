@@ -178,8 +178,18 @@ export function SiteFooter() {
       const key = item.group_label || "More";
       groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
     }
-    // Compliance is a platform rule page and must always appear under Legal.
-    const legal = groups.get("Legal") ?? [];
+    // Compliance and Sending Policy are platform rule pages and must always
+    // appear under Legal, in the documented order, even if the CMS list omits them.
+    let legal = groups.get("Legal") ?? [];
+    if (!legal.some((l) => l.href === "/legal/sending-policy")) {
+      const privacyIndex = legal.findIndex((l) => l.href === "/privacy");
+      const entry = { label: "Sending Policy", href: "/legal/sending-policy" };
+      legal =
+        privacyIndex === -1
+          ? [entry, ...legal]
+          : [...legal.slice(0, privacyIndex + 1), entry, ...legal.slice(privacyIndex + 1)];
+      groups.set("Legal", legal);
+    }
     if (!legal.some((l) => l.href === "/compliance")) {
       groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);
     }

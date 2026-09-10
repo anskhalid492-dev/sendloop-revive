@@ -38,6 +38,7 @@ type PolicySection = {
   body?: string[];
   list?: string[];
   afterList?: string[];
+  list2?: string[];
 };
 
 const sections: PolicySection[] = [
@@ -115,6 +116,12 @@ const sections: PolicySection[] = [
       "Future campaign messages must not be sent to that recipient where applicable",
     ],
     afterList: ["Users must not attempt to circumvent an unsubscribe request by:"],
+    list2: [
+      "Uploading the same recipient again",
+      "Using another campaign to contact the recipient",
+      "Using another sending mailbox to bypass suppression",
+      "Altering the recipient's email address to avoid suppression",
+    ],
   },
   {
     id: "sender-identity",
@@ -397,6 +404,13 @@ function SendingPolicy() {
                     {p}
                   </p>
                 ))}
+                {s.list2 ? (
+                  <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+                    {s.list2.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
               </section>
             ))}
 
