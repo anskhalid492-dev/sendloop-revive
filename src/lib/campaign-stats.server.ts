@@ -49,6 +49,13 @@ const EVENT_SIGNALS: Record<string, SignalKey> = {
   rejected: "failed_at",
 };
 
+type ReplyRow = {
+  campaign_id: string | null;
+  lead_id: string | null;
+  from_email: string | null;
+  sentiment: string | null;
+};
+
 export type CampaignStatsScope = {
   workspaceId: string;
   /** Restrict to specific campaigns; omit for the whole workspace. */
@@ -199,23 +206,20 @@ async function readCampaignStats(
       if (scope.to) q.lt("occurred_at", scope.to.toISOString());
       return q;
     }).catch(() => [] as Array<{ message_id: string | null; event_type: string; occurred_at: string }>),
-    fetchAllRows<{ campaign_id: string | null; lead_id: string | null; from_email: string | null }>(
-      () => {
-        // Positive replies must respect the same window as every other metric.
-        const q = client
-          .from("campaign_replies")
-          .select("campaign_id, lead_id, from_email")
-          .eq("workspace_id", scope.workspaceId)
-          .eq("sentiment", "positive")
-          .in("campaign_id", campaignIds)
-          .order("id", { ascending: true });
-        if (scope.from) q.gte("received_at", scope.from.toISOString());
-        if (scope.to) q.lt("received_at", scope.to.toISOString());
-        return q;
-      },
-    ).catch(
-      () => [] as Array<{ campaign_id: string | null; lead_id: string | null; from_email: string | null }>,
-    ),
+    fetchAllRows<ReplyRow>(() => {
+      // Every stored reply, not just the positive ones: a reply counts as a
+      // reply whatever its intent, and the breakdown is derived from the same
+      // rows so the inbox, CRM and analytics can never disagree.
+      const q = client
+        .from("campaign_replies")
+        .select("campaign_id, lead_id, from_email, sentiment")
+        .eq("workspace_id", scope.workspaceId)
+        .in("campaign_id", campaignIds)
+        .order("id", { ascending: true });
+      if (scope.from) q.gte("received_at", scope.from.toISOString());
+      if (scope.to) q.lt("received_at", scope.to.toISOString());
+      return q;
+    }).catch(() => [] as ReplyRow[]),
   ]);
 
   const signals: MessageEventSignals = new Map();
@@ -238,12 +242,38 @@ async function readCampaignStats(
 
   const leadsByCampaign = recipientCounts;
 
-  const positiveByCampaign = new Map<string, Set<string>>();
+  // Message units are keyed by recipient_id when present, so map each contact
+  // onto the same key before counting stored replies — otherwise one reply
+  // could be counted twice (once from the send row, once from the reply row).
+  const unitKeyByLead = new Map<string, string>();
+  for (const m of messages) {
+    const lead = m.lead_id ? String(m.lead_id) : null;
+    if (lead && !unitKeyByLead.has(lead)) {
+      unitKeyByLead.set(lead, String(m.recipient_id ?? m.lead_id ?? m.id));
+    }
+  }
+
+  type ReplyBuckets = {
+    all: Set<string>;
+    positive: Set<string>;
+    negative: Set<string>;
+    ooo: Set<string>;
+  };
+  const repliesByCampaign = new Map<string, ReplyBuckets>();
   for (const reply of replies) {
     if (!reply.campaign_id) continue;
-    const set = positiveByCampaign.get(reply.campaign_id) ?? new Set<string>();
-    set.add(reply.lead_id ?? String(reply.from_email ?? "").toLowerCase());
-    positiveByCampaign.set(reply.campaign_id, set);
+    const buckets =
+      repliesByCampaign.get(reply.campaign_id) ??
+      ({ all: new Set(), positive: new Set(), negative: new Set(), ooo: new Set() } as ReplyBuckets);
+    const leadId = reply.lead_id ? String(reply.lead_id) : null;
+    const identity = leadId ?? String(reply.from_email ?? "").toLowerCase();
+    if (!identity) continue;
+    buckets.all.add((leadId && unitKeyByLead.get(leadId)) || identity);
+    const sentiment = String(reply.sentiment ?? "neutral").toLowerCase();
+    if (sentiment === "positive") buckets.positive.add(identity);
+    else if (sentiment === "negative") buckets.negative.add(identity);
+    else if (sentiment === "out_of_office") buckets.ooo.add(identity);
+    repliesByCampaign.set(reply.campaign_id, buckets);
   }
 
   const byCampaign = new Map<string, CampaignStats>();
@@ -257,7 +287,10 @@ async function readCampaignStats(
         leads: leadsByCampaign.get(campaign.id) ?? 0,
         messages: messagesByCampaign.get(campaign.id) ?? [],
         events: signals,
-        positiveReplied: positiveByCampaign.get(campaign.id)?.size ?? 0,
+        positiveReplied: repliesByCampaign.get(campaign.id)?.positive.size ?? 0,
+        negativeReplied: repliesByCampaign.get(campaign.id)?.negative.size ?? 0,
+        outOfOfficeReplied: repliesByCampaign.get(campaign.id)?.ooo.size ?? 0,
+        replyLeadKeys: repliesByCampaign.get(campaign.id)?.all ?? [],
         from: scope.from ?? null,
         to: scope.to ?? null,
       }),

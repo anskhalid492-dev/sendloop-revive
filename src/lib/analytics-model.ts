@@ -37,6 +37,10 @@ export type AnalyticsCampaignRow = {
   clicks: number;
   replies: number;
   positiveReplies: number;
+  /** Clear "no" responses. Still a reply, never a positive one. */
+  negativeReplies?: number;
+  /** Automatic away messages. Counted as replies, excluded from interest. */
+  outOfOfficeReplies?: number;
   bounced: number;
   unsubscribed: number;
   complained: number;
