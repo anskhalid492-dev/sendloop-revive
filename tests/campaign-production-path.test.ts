@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 
 describe("production campaign scheduler path", () => {
-  test("cron reaches runCampaign and replans immediately before dispatch selection", () => {
+  test("cron reaches runCampaign and dispatches before the whole-queue replan", () => {
     const cron = readFileSync("src/routes/api/public/cron/run-campaigns.ts", "utf8");
     const scheduler = readFileSync("src/lib/campaign-scheduler.server.ts", "utf8");
     const dispatcher = readFileSync("src/lib/dispatch.server.ts", "utf8");
@@ -12,10 +12,12 @@ describe("production campaign scheduler path", () => {
     expect(scheduler).toContain("runCampaign(supabase");
 
     const ensureIndex = dispatcher.indexOf("ensureInitialCampaignMessages(supabase");
-    const replanIndex = dispatcher.indexOf("rescheduleCampaignQueue(supabase");
-    const dispatchIndex = dispatcher.indexOf("dispatchDueMessages(supabase, options)", replanIndex);
+    const dispatchIndex = dispatcher.indexOf("dispatchDueMessages(supabase, options)", ensureIndex);
+    const replanIndex = dispatcher.indexOf("rescheduleCampaignQueue(supabase", dispatchIndex);
     expect(ensureIndex).toBeGreaterThan(-1);
-    expect(replanIndex).toBeGreaterThan(ensureIndex);
-    expect(dispatchIndex).toBeGreaterThan(replanIndex);
+    // Sending must never sit behind the whole-queue replan: on a large campaign
+    // the replan alone exceeds one invocation's budget.
+    expect(dispatchIndex).toBeGreaterThan(ensureIndex);
+    expect(replanIndex).toBeGreaterThan(dispatchIndex);
   });
 });
