@@ -164,6 +164,8 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
         clicks: s.clicked,
         replies: s.replied,
         positiveReplies: s.positiveReplied,
+        negativeReplies: s.negativeReplied,
+        outOfOfficeReplies: s.outOfOfficeReplied,
         bounced: s.bounced,
         unsubscribed: s.unsubscribed,
         complained: s.complained,

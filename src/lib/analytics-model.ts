@@ -8,6 +8,10 @@ export type AnalyticsSummary = {
   replies: number;
   /** Replies marked positive, including CRM statuses like "Interested". */
   positiveReplies: number;
+  /** Clear "no" responses. Still a reply, never a positive one. */
+  negativeReplies?: number;
+  /** Automatic away messages. Counted as replies, excluded from interest. */
+  outOfOfficeReplies?: number;
   bounced: number;
   unsubscribed: number;
   complained: number;

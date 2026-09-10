@@ -59,6 +59,8 @@ export function CampaignDetailDialog({
               ["Unique clicks", `${formatCount(row.clicks)} · ${formatPct(clickRate(row))}`],
               ["Replies", `${formatCount(row.replies)} · ${formatPct(replyRate(row))}`],
               ["Positive replies", formatCount(row.positiveReplies)],
+              ["Not interested", formatCount(row.negativeReplies ?? 0)],
+              ["Away / auto-replies", formatCount(row.outOfOfficeReplies ?? 0)],
               ["Bounced", `${formatCount(row.bounced)} · ${formatPct(bounceRate(row))}`],
               [
                 "Unsubscribed",
