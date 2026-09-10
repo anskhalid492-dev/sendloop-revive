@@ -13,6 +13,7 @@ import {
   type MailboxCapacity,
   type MailboxCapacityRow,
 } from "@/lib/mailbox-capacity";
+import type { SendingLane } from "@/lib/mailbox-hourly-cap";
 
 export async function hourlySentByAccount(accountIds: string[]): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
@@ -36,18 +37,22 @@ export async function hourlySentByAccount(accountIds: string[]): Promise<Record<
 
 export async function loadMailboxCapacities(
   rows: MailboxCapacityRow[],
+  lane: SendingLane = "campaign",
 ): Promise<MailboxCapacity[]> {
   const hourly = await hourlySentByAccount(rows.map((row) => row.id));
-  return rows.map((row) => evaluateMailboxCapacity(row, hourly[row.id] ?? 0));
+  return rows.map((row) => evaluateMailboxCapacity(row, hourly[row.id] ?? 0, undefined, lane));
 }
 
 /**
  * Throws a recognisable capacity error when the mailbox cannot send right now.
  * Called immediately before handing the email to the provider.
  */
-export async function assertMailboxCapacity(row: MailboxCapacityRow): Promise<MailboxCapacity> {
+export async function assertMailboxCapacity(
+  row: MailboxCapacityRow,
+  lane: SendingLane = "campaign",
+): Promise<MailboxCapacity> {
   const hourly = await hourlySentByAccount([row.id]);
-  const capacity = evaluateMailboxCapacity(row, hourly[row.id] ?? 0);
+  const capacity = evaluateMailboxCapacity(row, hourly[row.id] ?? 0, undefined, lane);
   if (!capacity.available) {
     throw new Error(`${MAILBOX_LIMIT_CODE}: ${mailboxBlockedCopy(capacity)}`);
   }

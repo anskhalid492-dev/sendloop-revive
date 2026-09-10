@@ -44,7 +44,7 @@ export function mailboxDayCapacity(mailbox: CapacityMailbox, windowHours = 0): n
   if (daily <= 0) return 0;
   const hours = Math.max(0, Math.floor(windowHours));
   if (hours <= 0) return daily;
-  return Math.min(daily, effectiveMailboxHourlyLimit(mailbox.hourly_limit) * hours);
+  return Math.min(daily, campaignHourlyLimit(mailbox.hourly_limit) * hours);
 }
 
 /** Total emails every eligible mailbox can send in one sending day. */

@@ -8,7 +8,9 @@
  * limit system and never mutates any counter.
  */
 
-import { effectiveMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
+import { laneHourlyLimit, type SendingLane } from "@/lib/mailbox-hourly-cap";
+
+export type { SendingLane } from "@/lib/mailbox-hourly-cap";
 import {
   mailboxCapacityReturnsAt,
   mailboxSentToday,
@@ -71,21 +73,28 @@ export function evaluateMailboxCapacity(
   row: MailboxCapacityRow,
   sentThisHour = 0,
   dayStart: Date = mailboxWindowStart(),
+  lane: SendingLane = "campaign",
 ): MailboxCapacity {
   // Date-aware: a stored counter from a previous day no longer consumes today's
   // allowance, and it can never exceed the mailbox's own daily limit.
   const sentToday = mailboxSentToday(row, dayStart);
   const dailyLimit = Number(row.daily_limit ?? 0);
   // Hard platform ceiling: never above 70/hour per mailbox, whatever is stored.
-  const hourlyLimit = effectiveMailboxHourlyLimit(row.hourly_limit);
+  // Campaign sending is additionally held below the reply reservation so an
+  // automated campaign can never consume a mailbox's whole hourly capacity.
+  const hourlyLimit = laneHourlyLimit(row.hourly_limit, lane);
   const dailyRemaining = Math.max(0, dailyLimit - sentToday);
   const hourlyRemaining = Math.max(0, hourlyLimit - sentThisHour);
 
   let reason: MailboxBlockReason = null;
   if (row.paused) reason = "paused";
   else if (row.customer_enabled === false || row.status === "disabled") reason = "disabled";
-  else if (dailyRemaining <= 0) reason = "daily";
-  else if (hourlyRemaining <= 0) reason = "hourly";
+  // MunchReach's own daily/hourly pacing limits govern automated campaign
+  // sending only. A human reply from the Unified Inbox is never blocked by
+  // them — only real safety states (paused/disabled) and the provider itself
+  // can stop it.
+  else if (lane === "campaign" && dailyRemaining <= 0) reason = "daily";
+  else if (lane === "campaign" && hourlyRemaining <= 0) reason = "hourly";
 
   const next = new Date(dayStart.getTime() + 12 * 3_600_000);
 

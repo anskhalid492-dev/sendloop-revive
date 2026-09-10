@@ -591,7 +591,7 @@ export const listComposeMailboxes = createServerFn({ method: "GET" })
       .order("from_email");
     if (error) throw new Error(error.message);
     const { loadMailboxCapacities } = await import("@/lib/mailbox-capacity.server");
-    const capacities = await loadMailboxCapacities((accounts ?? []) as never);
+    const capacities = await loadMailboxCapacities((accounts ?? []) as never, "reply");
     return { accounts: capacities };
   });
 

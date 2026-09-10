@@ -1041,7 +1041,7 @@ export async function dispatchDueMessages(
       continue;
     }
     // Hard 70/hour per-mailbox ceiling — independent of daily limits/pacing.
-    const hourlyLimit = effectiveMailboxHourlyLimit(account.hourly_limit);
+    const hourlyLimit = campaignHourlyLimit(account.hourly_limit);
     const sentThisHour = (sentThisHourByAccount.get(account.id) ?? 0) + usedNow;
     if (sentThisHour >= hourlyLimit) {
       result.skipped += 1;

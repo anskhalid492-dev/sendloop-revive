@@ -68,7 +68,7 @@ export async function sendReplyThroughMailbox(args: {
   // Same mailbox eligibility rules as compose and campaign dispatch, checked
   // immediately before the send so a stale client can never bypass a limit.
   const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
-  await assertMailboxCapacity(account);
+  await assertMailboxCapacity(account, "reply");
 
 
   // Server-side variable resolution. Templates picked in the composer are
