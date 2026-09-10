@@ -342,52 +342,59 @@ function Home() {
             className="pointer-events-none absolute left-1/2 top-24 size-[34rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]"
           />
 
-          <div className="relative mx-auto max-w-5xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-28 sm:pb-20">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-medium tracking-wide text-primary sm:text-sm">
-              <Sparkles className="size-4 shrink-0" />
-              The outbound platform built for real conversations
-            </span>
-            <h2 className="mx-auto mt-7 max-w-4xl text-[2.15rem] font-extrabold leading-[1.08] tracking-tight text-balance sm:mt-8 sm:text-[3.75rem] sm:leading-[1.05] lg:text-[4.5rem]">
-              Your Next Customer{" "}
-              <span className="text-gradient">Could Be One Email Away.</span>
-            </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:mt-7 sm:text-lg">
-              Find the right prospects, personalize every message, automate follow-ups, and manage
-              replies, all from one simple outbound platform.
-            </p>
-            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button
-                size="lg"
-                className="w-full rounded-xl px-8 shadow-lg shadow-primary/20 sm:w-auto"
-                asChild
-              >
-                <Link to="/signup">
-                  Start Sending Free
-                  <Send className="size-4" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full rounded-xl bg-card px-8 sm:w-auto"
-                asChild
-              >
-                <a href="#how-it-works">
-                  See How It Works
-                  <PlayCircle className="size-4" />
-                </a>
-              </Button>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,hsl(var(--foreground))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--foreground))_1px,transparent_1px)] [background-size:44px_44px]"
+          />
+
+          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-20 lg:grid-cols-[43fr_57fr] lg:gap-10">
+            <div className="text-center lg:text-left">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-medium uppercase tracking-wide text-primary sm:text-xs">
+                <Sparkles className="size-4 shrink-0" />
+                The outbound platform built for real conversations
+              </span>
+              <h2 className="mt-6 text-[2.1rem] font-extrabold leading-[1.08] tracking-tight text-balance sm:text-[3rem] sm:leading-[1.05] lg:text-[3.4rem]">
+                Your Next Customer{" "}
+                <span className="text-gradient">Could Be One Email Away.</span>
+              </h2>
+              <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground lg:mx-0 sm:mt-6 sm:text-lg">
+                Find the right prospects, personalize every message, automate follow-ups, and manage
+                replies — all from one simple outbound platform.
+              </p>
+              <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-start">
+                <Button
+                  size="lg"
+                  className="w-full rounded-xl px-8 shadow-lg shadow-primary/20 sm:w-auto"
+                  asChild
+                >
+                  <Link to="/signup">
+                    Start Sending Free
+                    <Send className="size-4" />
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full rounded-xl bg-card px-8 sm:w-auto"
+                  asChild
+                >
+                  <a href="#how-it-works">
+                    See How It Works
+                    <PlayCircle className="size-4" />
+                  </a>
+                </Button>
+              </div>
+              <p className="mt-6 text-sm text-muted-foreground">
+                14-day free trial · No credit card required · Cancel anytime
+              </p>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              14-day free trial · No credit card required · Cancel anytime
-            </p>
+
+            <div className="relative pb-8 lg:pb-0">
+              <HeroProductVisual />
+            </div>
           </div>
+        </section>
 
-
-
-
-
-</section>
 
         {/* ------------------------------- Workflow: prospect → meeting */}
         <WorkflowSection />
