@@ -1,9 +1,11 @@
 /**
- * AI provider connection for a workspace (OpenAI or Anthropic's Claude).
+ * AI provider connections for a workspace (OpenAI and/or Anthropic's Claude).
  *
- * MunchReach does not supply AI credits: the customer connects their own key,
- * is billed by the provider directly, and can disconnect at any time. The key
- * is stored encrypted server-side and never returned to the browser.
+ * MunchReach does not supply AI credits: the customer connects their own keys,
+ * is billed by the provider directly, and can disconnect any of them at any
+ * time. Keys are stored encrypted server-side and never returned to the browser.
+ * A workspace can keep one key per provider, so campaigns can choose which one
+ * generates their personalization.
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,14 +27,14 @@ import {
 } from "@/components/ui/select";
 import {
   deleteWorkspaceAiKeyFn,
-  getWorkspaceAiKey,
+  listWorkspaceAiKeys,
   saveWorkspaceAiKeyFn,
 } from "@/lib/ai-keys.functions";
 import { AI_PROVIDERS, aiProvider, resolveAiModel, type AiProviderId } from "@/lib/ai-providers";
 
 export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefined }) {
   const queryClient = useQueryClient();
-  const fetchKey = useServerFn(getWorkspaceAiKey);
+  const fetchKeys = useServerFn(listWorkspaceAiKeys);
   const saveKey = useServerFn(saveWorkspaceAiKeyFn);
   const removeKey = useServerFn(deleteWorkspaceAiKeyFn);
 
@@ -47,25 +49,28 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const keyLooksValid = meta.keyPattern.test(trimmedKey);
   const keyError = trimmedKey.length === 0 || keyLooksValid ? null : meta.keyHint;
 
-  const keyQuery = useQuery({
-    queryKey: ["workspace-ai-key", workspaceId],
-    queryFn: () => fetchKey({ data: { workspaceId: workspaceId! } }),
+  const keysQuery = useQuery({
+    queryKey: ["workspace-ai-keys", workspaceId],
+    queryFn: () => fetchKeys({ data: { workspaceId: workspaceId! } }),
     enabled: Boolean(workspaceId),
   });
 
-  const info = keyQuery.data;
+  const connections = (keysQuery.data ?? []).filter((row) => row.connected);
+  const current = connections.find((row) => row.provider === providerId) ?? null;
 
   useEffect(() => {
-    if (!info?.connected) return;
-    const stored = (info.provider as AiProviderId) ?? "openai";
-    setProviderId(stored);
-    setModel(resolveAiModel(stored, info.model));
-  }, [info?.connected, info?.provider, info?.model]);
+    if (!current) return;
+    setModel(resolveAiModel(providerId, current.model));
+  }, [current, providerId]);
 
   const chooseProvider = (next: AiProviderId) => {
     setProviderId(next);
     setModel(aiProvider(next).defaultModel);
     setApiKey("");
+  };
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["workspace-ai-keys", workspaceId] });
   };
 
   const save = useMutation({
@@ -76,21 +81,20 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
     onSuccess: async () => {
       setApiKey("");
       toast.success(`${meta.label} connected`);
-      await queryClient.invalidateQueries({ queryKey: ["workspace-ai-key", workspaceId] });
+      await refresh();
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const disconnect = useMutation({
-    mutationFn: () => removeKey({ data: { workspaceId: workspaceId! } }),
+    mutationFn: (provider: AiProviderId) =>
+      removeKey({ data: { workspaceId: workspaceId!, provider } }),
     onSuccess: async () => {
       toast.success("AI key removed");
-      await queryClient.invalidateQueries({ queryKey: ["workspace-ai-key", workspaceId] });
+      await refresh();
     },
     onError: (error: Error) => toast.error(error.message),
   });
-
-  const connectedLabel = aiProvider(info?.provider).label;
 
   return (
     <Card>
@@ -98,46 +102,52 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-primary" />
-            Your AI connection
+            Your AI connections
           </CardTitle>
           <CardDescription>
             Personalization runs on your own OpenAI or Claude account, so you control the model and
-            pay the provider directly. Your key is encrypted and never shown again after saving.
+            pay the provider directly. Connect both if you like — each campaign picks which one to
+            use. Keys are encrypted and never shown again after saving.
           </CardDescription>
         </div>
-        {info?.connected ? (
+        {connections.length ? (
           <Badge
             variant="outline"
-            className={
-              info.status === "verified"
-                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
-                : "border-destructive/20 bg-destructive/10 text-destructive"
-            }
+            className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
           >
-            {info.status === "verified" ? "Connected" : "Needs attention"}
+            {connections.length} connected
           </Badge>
         ) : (
           <Badge variant="outline">Not connected</Badge>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {info?.connected ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 p-4 text-sm">
+        {connections.map((row) => (
+          <div
+            key={row.provider}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 p-4 text-sm"
+          >
             <div className="space-y-1">
               <p className="flex items-center gap-2 font-medium">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                {connectedLabel} connected — key ending •••• {info.last4 ?? "----"}
+                <CheckCircle2
+                  className={
+                    row.status === "verified"
+                      ? "h-4 w-4 text-emerald-600"
+                      : "h-4 w-4 text-destructive"
+                  }
+                />
+                {row.providerLabel} connected — key ending •••• {row.last4 ?? "----"}
               </p>
               <p className="text-muted-foreground">
-                Model: {info.model}
-                {info.lastError ? ` — ${info.lastError}` : ""}
+                Model: {row.model}
+                {row.lastError ? ` — ${row.lastError}` : ""}
               </p>
             </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => disconnect.mutate()}
+              onClick={() => disconnect.mutate(row.provider)}
               disabled={disconnect.isPending}
             >
               {disconnect.isPending ? (
@@ -148,7 +158,7 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
               Disconnect
             </Button>
           </div>
-        ) : null}
+        ))}
 
         <div className="space-y-2">
           <Label>Provider</Label>
@@ -166,13 +176,14 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            One provider is active per workspace. Switching replaces the stored key.
+            You can connect one key per provider. Saving a key again only replaces that provider&apos;s
+            key.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-[1fr_260px]">
           <div className="space-y-2">
-            <Label htmlFor="ai-key">{info?.connected ? "Replace API key" : meta.keyLabel}</Label>
+            <Label htmlFor="ai-key">{current ? "Replace API key" : meta.keyLabel}</Label>
             <Input
               id="ai-key"
               type="password"
@@ -208,7 +219,7 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
             disabled={!workspaceId || !keyLooksValid || save.isPending}
           >
             {save.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {info?.connected ? "Update key" : "Connect key"}
+            {current ? `Update ${meta.label} key` : `Connect ${meta.label} key`}
           </Button>
           <Button type="button" variant="ghost" size="sm" asChild>
             <a href={meta.keysUrl} target="_blank" rel="noreferrer">
