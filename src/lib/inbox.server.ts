@@ -13,6 +13,7 @@ import {
   classifyInbound,
   normalizeSubject,
   previewOf,
+  replySentimentFor,
   stripAngle,
   type ConversationStatus,
 } from "@/lib/inbox-model";
@@ -30,6 +31,8 @@ export type InboundEmail = {
   inReplyTo?: string | null;
   references?: string[];
   receivedAt?: string | null;
+  /** Raw headers when the inbound path supplies them (auto-reply detection). */
+  headers?: Record<string, string> | null;
   attachments?: { name: string; url?: string | undefined; size?: number | undefined }[];
 };
 
@@ -252,12 +255,21 @@ async function findCampaignMessage(
   return null;
 }
 
-type ConversationRef = { id: string; status: string; message_count: number };
+type ConversationRef = {
+  id: string;
+  status: string;
+  message_count: number;
+  /** Carried so a threaded reply can inherit the thread's attribution. */
+  lead_id?: string | null;
+  campaign_id?: string | null;
+};
+
+const CONVERSATION_REF_COLUMNS = "id, status, message_count, archived, lead_id, campaign_id";
 
 async function loadConversation(db: Db, id: string): Promise<ConversationRef | null> {
   const { data } = await db
     .from("conversations")
-    .select("id, status, message_count, archived")
+    .select(CONVERSATION_REF_COLUMNS)
     .eq("id", id)
     .maybeSingle();
   return (data as ConversationRef | null) ?? null;
@@ -578,20 +590,42 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       },
       { onConflict: "workspace_id,thread_key", ignoreDuplicates: false },
     )
-    .select("id, status, message_count, archived")
+    .select(CONVERSATION_REF_COLUMNS)
     .single();
   const conversation = upserted;
   if (convError || !conversation) {
     return { status: "unmatched", reason: convError?.message ?? "Conversation not created" };
   }
 
+  // Attribution, once the thread is known. A reply that threaded onto an
+  // existing conversation inherits that thread's campaign and contact when the
+  // headers alone did not identify the original send — otherwise a genuine
+  // reply would never reach campaign analytics. Nothing is invented: without a
+  // thread campaign the reply simply stays unattributed.
+  const attributedCampaignId = campaignId ?? conversation.campaign_id ?? null;
+  if (!leadId && conversation.lead_id) leadId = conversation.lead_id;
+
+  let attributedMessage = campaignMessage;
+  if (!attributedMessage && attributedCampaignId && leadId) {
+    const { data: lastSend } = await db
+      .from("campaign_messages")
+      .select("id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject")
+      .eq("workspace_id", workspaceId)
+      .eq("campaign_id", attributedCampaignId)
+      .eq("lead_id", leadId)
+      .not("sent_at", "is", null)
+      .order("sent_at", { ascending: false })
+      .limit(1);
+    attributedMessage = (lastSend?.[0] as typeof campaignMessage) ?? null;
+  }
+
   // A reply must always sit under the exact email this prospect received.
-  if (campaignMessage?.id) {
+  if (attributedMessage?.id) {
     try {
       await ensureSentEmailMirrored(db, {
         conversationId: conversation.id,
         workspaceId,
-        campaignMessageId: campaignMessage.id,
+        campaignMessageId: attributedMessage.id,
       });
     } catch {
       /* recovery is best-effort: the reply itself must always be stored */
@@ -616,7 +650,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       message_id: messageId,
       in_reply_to: stripAngle(email.inReplyTo),
       reference_ids: (email.references ?? []).map((r) => stripAngle(r)).filter(Boolean) as string[],
-      campaign_message_id: campaignMessage?.id ?? null,
+      campaign_message_id: attributedMessage?.id ?? null,
       sending_account_id: sendingAccountId,
       attachments: email.attachments ?? [],
       occurred_at: receivedIso,
@@ -630,14 +664,14 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     return { status: "unmatched", reason: insertError.message };
   }
 
-  const detected: ConversationStatus | null = classifyInbound(subject, body);
+  const detected: ConversationStatus | null = classifyInbound(subject, body, email.headers ?? null);
   const nextStatus =
     conversation.status === "lead" && detected ? detected : (conversation.status as string);
 
   const visibilityError = await markConversationInbound(db, {
     conversationId: conversation.id,
     leadId,
-    campaignId,
+    campaignId: attributedCampaignId,
     sendingAccountId,
     receivedIso,
     status: nextStatus,
@@ -659,8 +693,8 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     workspaceId,
     conversationId: conversation.id,
     leadId,
-    campaignId,
-    campaignMessage,
+    campaignId: attributedCampaignId,
+    campaignMessage: attributedMessage,
     prospect,
     subject,
     detected,
@@ -675,7 +709,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     messageId: inserted.id,
     workspaceId,
     leadId,
-    campaignId,
+    campaignId: attributedCampaignId,
     sendingAccountId,
   };
 }
@@ -792,55 +826,95 @@ async function applyReplyAutomation(args: {
 
   // Mirror into the existing campaign reply log so the queue tab keeps working,
   // and into normalized engagement so analytics sees replies the same way it
-  // sees delivered/opened/clicked events.
-  if (campaignMessage?.id && leadId && campaignId) {
-    try {
-      const { recordCampaignReplyEngagement } = await import("@/lib/engagement.server");
-      await recordCampaignReplyEngagement({
-        workspaceId,
-        campaignId,
-        leadId,
-        sendingAccountId: campaignMessage.sending_account_id ?? null,
-        campaignMessageId: campaignMessage.id,
-        recipientEmail: args.prospect,
-        externalId: `reply:${args.dedupeKey}`,
-        detail: args.subject || null,
-        occurredAt: args.receivedIso,
-      });
-    } catch {
-      /* analytics mirroring must never break inbox storage */
+  // sees delivered/opened/clicked events. The reply log no longer requires a
+  // matched send: a campaign + contact is enough to attribute the reply.
+  if (leadId && campaignId) {
+    if (campaignMessage?.id) {
+      try {
+        const { recordCampaignReplyEngagement } = await import("@/lib/engagement.server");
+        await recordCampaignReplyEngagement({
+          workspaceId,
+          campaignId,
+          leadId,
+          sendingAccountId: campaignMessage.sending_account_id ?? null,
+          campaignMessageId: campaignMessage.id,
+          recipientEmail: args.prospect,
+          externalId: `reply:${args.dedupeKey}`,
+          detail: args.subject || null,
+          occurredAt: args.receivedIso,
+        });
+      } catch {
+        /* analytics mirroring must never break inbox storage */
+      }
     }
 
     void enqueueWebhookEvent(db, workspaceId, "reply.received", `reply.received:${args.dedupeKey}`, {
       campaign_id: campaignId,
       lead_id: leadId,
-      campaign_message_id: campaignMessage.id,
+      campaign_message_id: campaignMessage?.id ?? null,
       from_email: args.prospect,
       subject: args.subject || null,
       received_at: args.receivedIso,
       sentiment: args.detected ?? null,
     });
 
-    await db.from("campaign_replies").insert({
-      workspace_id: workspaceId,
-      campaign_id: campaignId,
-      message_id: campaignMessage.id,
-      lead_id: leadId,
-      sending_account_id: campaignMessage.sending_account_id ?? null,
-      from_email: args.prospect,
-      to_email: null,
-      subject: args.subject || null,
-      body: args.replyBody,
-      sentiment:
-        args.detected === "interested"
-          ? "positive"
-          : args.detected === "not_interested"
-            ? "negative"
-            : args.detected === "ooo"
-              ? "out_of_office"
-              : "neutral",
-      received_at: args.receivedIso,
-    });
+    // One stored reply per inbound email: a webhook retry or a second sync
+    // pass of the same message must never inflate the reply count.
+    const { data: alreadyLogged } = await db
+      .from("campaign_replies")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("campaign_id", campaignId)
+      .eq("lead_id", leadId)
+      .eq("received_at", args.receivedIso)
+      .limit(1);
+
+    if (!alreadyLogged?.length) {
+      await db.from("campaign_replies").insert({
+        workspace_id: workspaceId,
+        campaign_id: campaignId,
+        message_id: campaignMessage?.id ?? null,
+        lead_id: leadId,
+        sending_account_id: campaignMessage?.sending_account_id ?? null,
+        from_email: args.prospect,
+        to_email: null,
+        subject: args.subject || null,
+        body: args.replyBody,
+        sentiment: replySentimentFor(args.detected),
+        received_at: args.receivedIso,
+      });
+    }
+  }
+
+  // An explicit opt-out suppresses the contact for every future campaign.
+  if (args.detected === "unsubscribed") {
+    try {
+      const { data: suppressed } = await db
+        .from("email_suppressions")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("email", args.prospect)
+        .limit(1);
+      if (!suppressed?.length) {
+        await db.from("email_suppressions").insert({
+          workspace_id: workspaceId,
+          email: args.prospect,
+          reason: "unsubscribe",
+          source: "inbound_reply",
+          detail: args.subject || null,
+        });
+      }
+      if (campaignId && leadId) {
+        await db
+          .from("campaign_messages")
+          .update({ status: "cancelled" })
+          .eq("workspace_id", workspaceId)
+          .eq("lead_id", leadId)
+          .in("status", ["pending", "scheduled"]);
+      }
+    } catch {
+      /* suppression is best-effort; the reply itself must always be stored */
+    }
   }
 
   // One notification per workspace member, deduplicated by the source email.

@@ -272,6 +272,16 @@ export async function processEventPayload(
         inReplyTo: parsed.inReplyTo ?? null,
         references,
         receivedAt: parsed.receivedAt ?? null,
+        // Raw headers when the provider supplied them: `Auto-Submitted` and
+        // friends prove an away message without guessing from the wording.
+        headers:
+          inboundSource["headers"] && typeof inboundSource["headers"] === "object"
+            ? (Object.fromEntries(
+                Object.entries(inboundSource["headers"] as Record<string, unknown>).map(
+                  ([k, v]) => [k, String(v ?? "")],
+                ),
+              ) as Record<string, string>)
+            : null,
         attachments: parsed.attachments ?? [],
       });
 

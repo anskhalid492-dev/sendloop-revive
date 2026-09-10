@@ -50,6 +50,10 @@ export type CampaignStats = {
   clicked: number;
   replied: number;
   positiveReplied: number;
+  /** Replies classified as a clear no. */
+  negativeReplied: number;
+  /** Automatic away / out-of-office replies (a reply, never a positive one). */
+  outOfOfficeReplied: number;
   bounced: number;
   unsubscribed: number;
   complained: number;
@@ -80,6 +84,8 @@ export function toCampaignStats(row: Record<string, unknown>): CampaignStats {
     clicked: n(row["clicked"]),
     replied: n(row["replied"]),
     positiveReplied: n(row["positive_replied"]),
+    negativeReplied: n(row["negative_replied"]),
+    outOfOfficeReplied: n(row["out_of_office_replied"]),
     bounced: n(row["bounced"]),
     unsubscribed: n(row["unsubscribed"]),
     complained: n(row["complained"]),
@@ -110,6 +116,8 @@ export const EMPTY_CAMPAIGN_STATS = (
   clicked: 0,
   replied: 0,
   positiveReplied: 0,
+  negativeReplied: 0,
+  outOfOfficeReplied: 0,
   bounced: 0,
   unsubscribed: 0,
   complained: 0,
@@ -213,6 +221,14 @@ export type ComputeInput = {
   /** Extra signals coming from the real per-message event feed. */
   events?: MessageEventSignals;
   positiveReplied?: number;
+  negativeReplied?: number;
+  outOfOfficeReplied?: number;
+  /**
+   * Contacts with a stored inbound reply for this campaign, keyed the same way
+   * message units are. Counted as replies even when the matching send row was
+   * never flagged, so the inbox and analytics can never disagree.
+   */
+  replyLeadKeys?: Iterable<string>;
   /** Optional reporting window applied to signal timestamps. */
   from?: Date | null;
   to?: Date | null;
@@ -308,9 +324,11 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   );
   stats.leads = input.leads;
   stats.positiveReplied = input.positiveReplied ?? 0;
+  stats.negativeReplied = input.negativeReplied ?? 0;
+  stats.outOfOfficeReplied = input.outOfOfficeReplied ?? 0;
 
   const contacted = new Set<string>();
-  const repliedLeads = new Set<string>();
+  const repliedLeads = new Set<string>(input.replyLeadKeys ?? []);
   const steps = new Map<number, CampaignStepStats>();
   const stepOf = (step: number) => {
     let row = steps.get(step);
