@@ -50,7 +50,7 @@ The lead data you import is personal data about real people. You decide what to 
 Deleting a lead removes the record. It does not undo an email already sent, and it should not remove them from suppression.`,
   },
   {
-    slug: "account-security",
+    slug: "securing-your-account",
     title: "Securing your account",
     description: "Practical steps that prevent most account compromises.",
     category: "security",
