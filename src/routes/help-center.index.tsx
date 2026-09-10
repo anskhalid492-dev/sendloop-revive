@@ -102,8 +102,8 @@ function HelpCenter() {
             How can we <span className="text-gradient">help?</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            {HELP_ARTICLES.length} articles on setup, sending, deliverability, replies and billing —
-            written by the people who build and run MunchReach.
+            {HELP_ARTICLES.length} articles across {HELP_CATEGORIES.length} topics — campaigns,
+            leads, mailboxes, domains, AI personalization, deliverability, the API and billing.
           </p>
 
           <div className="relative mt-8">
