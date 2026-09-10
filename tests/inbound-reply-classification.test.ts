@@ -102,3 +102,24 @@ describe("campaign reply metrics", () => {
     expect(stats.positiveReplied).toBe(1);
   });
 });
+
+describe("quoted campaign footer", () => {
+  const quoted = [
+    "Yes, let's talk. How about Tuesday?",
+    "",
+    "On Tue, Sep 9, 2026 at 10:00 AM Sam <sam@munchreach.com> wrote:",
+    "> Hi there, quick question about your packaging needs.",
+    "> Unsubscribe: https://munchreach.com/api/public/unsubscribe?t=abc",
+  ].join("\n");
+
+  it("a positive reply quoting our unsubscribe footer stays interested", () => {
+    expect(classifyInbound("Re: Packaging", quoted)).toBe("interested");
+  });
+
+  it("a real opt-out is still detected", () => {
+    expect(classifyInbound("Re: Packaging", "Please unsubscribe me from this list.")).toBe(
+      "unsubscribed",
+    );
+    expect(classifyInbound("Re: Packaging", "Unsubscribe")).toBe("unsubscribed");
+  });
+});

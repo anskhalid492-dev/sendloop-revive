@@ -182,7 +182,11 @@ const BOUNCE_PATTERNS = [
   /no longer with (the|our) (company|organi[sz]ation)/i,
 ];
 const UNSUB_PATTERNS = [
-  /unsubscribe/i,
+  // Deliberately NOT a bare /unsubscribe/i: our own campaign footer contains
+  // that word, and quoted replies would otherwise look like opt-outs.
+  /^\s*unsubscribe\s*[.!]?\s*$/im,
+  /(please |kindly )?unsubscribe (me|us)\b/i,
+  /\b(i|we) (want|wish|would like) to unsubscribe\b/i,
   /remove me (from|off)/i,
   /(please )?remove (me|my (email|address|details))\b/i,
   /take me off/i,
@@ -244,12 +248,41 @@ export function isAutoReplyHeaders(headers?: Record<string, string> | null): boo
  * Order matters: a bounce is not a reply, an away message is never positive
  * interest, and an opt-out outranks any friendly wording around it.
  */
+const QUOTE_START_PATTERNS = [
+  /^\s*>/m,
+  /^\s*on .{0,200}\bwrote:\s*$/im,
+  /^\s*-{2,}\s*original message\s*-{2,}\s*$/im,
+  /^\s*_{5,}\s*$/m,
+  /^\s*from:\s.+$/im,
+  /^\s*sent from my /im,
+];
+
+/**
+ * Keep only what the human actually typed: everything from the first quoted
+ * block onwards is our own campaign email (footer and unsubscribe link
+ * included) and must never drive classification.
+ */
+export function stripQuotedReply(body: string): string {
+  let cut = body.length;
+  for (const pattern of QUOTE_START_PATTERNS) {
+    const match = pattern.exec(body);
+    if (match && match.index < cut) cut = match.index;
+  }
+  const own = body.slice(0, cut);
+  return own
+    .split("\n")
+    .filter((line) => !/unsubscribe/i.test(line) || !/https?:\/\//i.test(line))
+    .join("\n")
+    .trim();
+}
+
 export function classifyInbound(
   subject: string,
   body: string,
   headers?: Record<string, string> | null,
 ): ConversationStatus | null {
-  const text = `${subject}\n${body}`.slice(0, 4000);
+  const own = stripQuotedReply(body);
+  const text = `${subject}\n${own || body}`.slice(0, 4000);
   if (BOUNCE_PATTERNS.some((p) => p.test(text))) return "bounced";
   if (UNSUB_PATTERNS.some((p) => p.test(text))) return "unsubscribed";
   if (isAutoReplyHeaders(headers)) return "ooo";
