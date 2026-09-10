@@ -594,11 +594,23 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       ),
     );
 
-    // Every workspace pays OpenAI with its own key, so load them per workspace.
+    /**
+     * Every workspace pays its AI provider with its own key, and each campaign
+     * can point at a different connected provider — so keys are loaded once per
+     * workspace + selected provider pair.
+     */
     const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
     const credsByWorkspace = new Map<string, WorkspaceAiCredentials | null>();
-    for (const workspaceId of new Set(campaignRows.map((c) => c.workspace_id))) {
-      credsByWorkspace.set(workspaceId, await workspaceAiCredentials(admin, workspaceId));
+    const credsKey = (workspaceId: string, provider: string | null) =>
+      `${workspaceId}::${provider ?? "default"}`;
+    for (const campaign of campaignRows) {
+      const provider = normalizeAiConfig(campaign.ai_config).provider;
+      const key = credsKey(campaign.workspace_id, provider);
+      if (credsByWorkspace.has(key)) continue;
+      credsByWorkspace.set(
+        key,
+        await workspaceAiCredentials(admin, campaign.workspace_id, provider),
+      );
     }
     /**
      * Workspaces that cannot generate right now (no key, plan allowance spent,
@@ -656,7 +668,8 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
         return;
       }
 
-      const credentials = credsByWorkspace.get(settings.workspaceId) ?? null;
+      const credentials =
+        credsByWorkspace.get(credsKey(settings.workspaceId, settings.config.provider)) ?? null;
       if (!credentials) {
         const reason = "No AI provider key is connected for this workspace.";
         blockedWorkspaces.set(settings.workspaceId, reason);

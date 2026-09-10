@@ -53,6 +53,12 @@ export type AiPersonalizationConfig = {
   exampleOutput: string;
   fallbackMode: FallbackMode;
   fallbackText: string;
+  /**
+   * Which connected AI provider generates this campaign's lines. `null` means
+   * "use whichever provider the workspace has connected" — the behaviour every
+   * campaign had before the selector existed.
+   */
+  provider: "openai" | "anthropic" | null;
 };
 
 
@@ -218,6 +224,7 @@ export function defaultAiConfig(): AiPersonalizationConfig {
     exampleOutput: "",
     fallbackMode: "fallback_text",
     fallbackText: "I came across your team and wanted to reach out.",
+    provider: null,
   };
 }
 
@@ -261,6 +268,10 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
     exampleOutput: typeof v["exampleOutput"] === "string" ? v["exampleOutput"] : "",
     fallbackMode,
     fallbackText: typeof v["fallbackText"] === "string" ? v["fallbackText"] : base.fallbackText,
+    provider:
+      v["provider"] === "openai" || v["provider"] === "anthropic"
+        ? (v["provider"] as "openai" | "anthropic")
+        : null,
   };
 }
 

@@ -51,6 +51,7 @@ import {
   runAiPersonalizationNow,
   saveAiSettings,
 } from "@/lib/ai-personalization.functions";
+import { listWorkspaceAiKeys } from "@/lib/ai-keys.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: string }) {
@@ -82,6 +83,7 @@ export function AiPersonalizationSidebar({
   const retryFn = useServerFn(retryFailedAiPersonalizations);
   const statsFn = useServerFn(getAiPersonalizationStats);
   const previewFn = useServerFn(previewAiPersonalization);
+  const fetchProviders = useServerFn(listWorkspaceAiKeys);
 
   const [enabled, setEnabled] = useState(false);
   const [config, setConfig] = useState<AiPersonalizationConfig>(defaultAiConfig());
@@ -115,6 +117,23 @@ export function AiPersonalizationSidebar({
     [builder.steps],
   );
   const sampleLeadId = builder.leads[0]?.lead_id ?? null;
+
+  // Providers this workspace has actually connected — never a fake selector.
+  const workspaceId = builder.campaign?.workspace_id ?? null;
+  const providersQuery = useQuery({
+    queryKey: ["workspace-ai-keys", workspaceId],
+    queryFn: () => fetchProviders({ data: { workspaceId: workspaceId! } }),
+    enabled: open && Boolean(workspaceId),
+  });
+  const connectedProviders = (providersQuery.data ?? []).filter((row) => row.connected);
+  const activeProvider =
+    connectedProviders.find((row) => row.provider === config.provider) ??
+    connectedProviders.find((row) => row.status === "verified") ??
+    connectedProviders[0] ??
+    null;
+  const activeProviderLabel = activeProvider
+    ? `${activeProvider.providerLabel} · ${activeProvider.model}`
+    : "no provider connected";
 
   const patch = (values: Partial<AiPersonalizationConfig>) =>
     setConfig((prev) => ({ ...prev, ...values }));
@@ -300,6 +319,53 @@ export function AiPersonalizationSidebar({
           </section>
 
           <Separator />
+
+          {/* AI provider */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">AI provider</h3>
+              <Badge variant="outline" className="text-[11px]">
+                Using {activeProviderLabel}
+              </Badge>
+            </div>
+            {connectedProviders.length ? (
+              <>
+                <Select
+                  value={config.provider ?? "auto"}
+                  onValueChange={(value) =>
+                    patch({ provider: value === "auto" ? null : (value as "openai" | "anthropic") })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      Automatic — use my connected provider
+                    </SelectItem>
+                    {connectedProviders.map((row) => (
+                      <SelectItem key={row.provider} value={row.provider}>
+                        {row.providerLabel} · {row.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  This campaign&apos;s lines are written by the provider you choose here, using your
+                  own key. Changing it only affects lines generated from now on — regenerate if you
+                  want existing lines rewritten.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No AI provider is connected yet. Add your OpenAI or Claude key in Settings →
+                Sending to choose a provider here.
+              </p>
+            )}
+          </section>
+
+          <Separator />
+
 
           {/* Approach */}
           <section className="space-y-4">

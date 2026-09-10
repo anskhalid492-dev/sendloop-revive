@@ -20,12 +20,25 @@ async function assertMember(supabase: unknown, workspaceId: string) {
 
 export const getWorkspaceAiKey = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => workspaceInput.parse(input))
+  .inputValidator((input) =>
+    workspaceInput.extend({ provider: z.enum(["openai", "anthropic"]).optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.workspaceId);
     const { workspaceAiKeyInfo } = await import("@/lib/ai-keys.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return workspaceAiKeyInfo(supabaseAdmin, data.workspaceId);
+    return workspaceAiKeyInfo(supabaseAdmin, data.workspaceId, data.provider ?? null);
+  });
+
+/** Every AI provider this workspace has connected (never the key itself). */
+export const listWorkspaceAiKeys = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => workspaceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertMember(context.supabase, data.workspaceId);
+    const { workspaceAiKeys } = await import("@/lib/ai-keys.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return workspaceAiKeys(supabaseAdmin, data.workspaceId);
   });
 
 export const saveWorkspaceAiKeyFn = createServerFn({ method: "POST" })
@@ -59,11 +72,13 @@ export const saveWorkspaceAiKeyFn = createServerFn({ method: "POST" })
 
 export const deleteWorkspaceAiKeyFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => workspaceInput.parse(input))
+  .inputValidator((input) =>
+    workspaceInput.extend({ provider: z.enum(["openai", "anthropic"]).optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.workspaceId);
     const { deleteWorkspaceAiKey } = await import("@/lib/ai-keys.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await deleteWorkspaceAiKey(supabaseAdmin, data.workspaceId);
+    await deleteWorkspaceAiKey(supabaseAdmin, data.workspaceId, data.provider ?? null);
     return { ok: true as const };
   });
