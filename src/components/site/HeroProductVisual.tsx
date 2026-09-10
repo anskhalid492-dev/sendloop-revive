@@ -124,10 +124,10 @@ export function HeroProductVisual() {
 
   return (
     <div className="relative w-full select-none" aria-hidden>
-      <div className="pointer-events-none absolute -inset-8 rounded-[2.5rem] bg-[radial-gradient(60%_55%_at_65%_15%,hsl(var(--primary)/0.16),transparent_70%)]" />
+      <div className="pointer-events-none absolute -inset-8 rounded-[2.5rem] bg-[radial-gradient(60%_55%_at_65%_15%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent_70%)]" />
 
       {/* CARD 1 — Combined performance */}
-      <div className="relative rounded-3xl border border-border/70 bg-card/95 p-5 shadow-[0_26px_60px_-30px_hsl(var(--primary)/0.55)] backdrop-blur-[2px] sm:p-6">
+      <div className="relative rounded-3xl border border-border/70 bg-card/95 p-5 shadow-[0_26px_60px_-30px_color-mix(in_oklab,var(--primary)_45%,transparent)] backdrop-blur-[2px] sm:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <span className="grid size-7 place-items-center rounded-xl bg-primary/12 text-primary">
@@ -161,15 +161,15 @@ export function HeroProductVisual() {
           <svg viewBox="0 0 320 104" className="h-24 w-full overflow-visible" preserveAspectRatio="none">
             <defs>
               <linearGradient id="heroArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path d={area} fill="url(#heroArea)" style={{ opacity: t }} />
             <path
               d={path}
               fill="none"
-              stroke="hsl(var(--primary))"
+              stroke="var(--primary)"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -181,7 +181,7 @@ export function HeroProductVisual() {
               const visible = t > (i + 1) / (MEETING_EVENTS.length + 1);
               return (
                 <g key={idx} style={{ opacity: visible ? 1 : 0, transition: "opacity .5s ease-out" }}>
-                  <circle cx={x} cy={y} r="7" fill="hsl(var(--primary))" opacity="0.16">
+                  <circle cx={x} cy={y} r="7" fill="var(--primary)" opacity="0.16">
                     <animate
                       attributeName="r"
                       values="5;10;5"
@@ -190,7 +190,7 @@ export function HeroProductVisual() {
                       repeatCount="indefinite"
                     />
                   </circle>
-                  <circle cx={x} cy={y} r="3.5" fill="hsl(var(--primary))" />
+                  <circle cx={x} cy={y} r="3.5" fill="var(--primary)" />
                 </g>
               );
             })}
@@ -205,7 +205,7 @@ export function HeroProductVisual() {
       </div>
 
       {/* CARD 2 — AI personalization (overlapping for depth) */}
-      <div className="relative z-10 -mt-4 ml-0 rounded-3xl border border-border/70 bg-card p-5 shadow-[0_30px_70px_-30px_hsl(var(--primary)/0.6)] sm:-mt-6 sm:ml-10 sm:p-6">
+      <div className="relative z-10 -mt-4 ml-0 rounded-3xl border border-border/70 bg-card p-5 shadow-[0_30px_70px_-30px_color-mix(in_oklab,var(--primary)_50%,transparent)] sm:-mt-6 sm:ml-10 sm:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <span className="grid size-7 place-items-center rounded-xl bg-primary/12 text-primary">
