@@ -84,7 +84,12 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
 
     const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const credentials = await workspaceAiCredentials(supabaseAdmin, campaign.workspace_id);
+    // Use the provider this campaign selected, exactly like the bulk runner.
+    const credentials = await workspaceAiCredentials(
+      supabaseAdmin,
+      campaign.workspace_id,
+      config.provider,
+    );
     if (!credentials) {
       return {
         ok: false as const,
