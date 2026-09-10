@@ -72,7 +72,7 @@ Renaming a workspace does not affect campaigns in flight, connected mailboxes or
     category: "account",
     updated: UPDATED,
     keywords: ["roles", "permissions", "access", "read only", "viewer", "admin"],
-    related: ["invite-teammates", "workspace-settings", "workspace-isolation"],
+    related: ["invite-teammates", "workspace-settings", "workspace-access-control"],
     content: `Access is granted per workspace, and every role carries a fixed set of permissions.
 
 ## Read versus edit
@@ -92,7 +92,7 @@ Permissions are enforced on the server, not just hidden in the interface. A read
     updated: UPDATED,
     popular: true,
     keywords: ["ownership", "transfer", "owner", "handover"],
-    related: ["team-roles-and-visibility", "billing-plans", "workspace-settings"],
+    related: ["team-roles-and-visibility", "plans-and-invoices", "workspace-settings"],
     content: `Ownership can be moved to another member of the same workspace.
 
 ## Steps
@@ -110,7 +110,7 @@ The transfer takes effect immediately once confirmed, and billing responsibility
     category: "account",
     updated: UPDATED,
     keywords: ["password", "reset", "forgot", "sign in", "google login"],
-    related: ["account-security", "security-best-practices", "account-session-problems"],
+    related: ["account-security", "security-overview", "cannot-sign-in"],
     content: `## Change your password
 1. Settings → Security.
 2. Enter your current password and the new one.
@@ -132,7 +132,7 @@ Use a unique password and a password manager. Reused passwords are the most comm
     category: "account",
     updated: UPDATED,
     keywords: ["security", "sessions", "sign out", "protect account"],
-    related: ["password-management", "security-best-practices", "api-key-security"],
+    related: ["password-management", "security-overview", "api-key-security"],
     content: `## What to do
 1. Use a unique, strong password, stored in a password manager.
 2. Remove teammates the moment they leave the project.
@@ -150,7 +150,7 @@ Every workspace is isolated. A member of one workspace cannot read another works
     category: "account",
     updated: UPDATED,
     keywords: ["notifications", "alerts", "email notifications", "bell"],
-    related: ["inbox-notifications", "account-settings", "mailbox-health"],
+    related: ["inbox-overview", "account-settings", "mailbox-health"],
     content: `## Steps
 1. Settings → Notifications.
 2. Choose which events you want to hear about — new replies, mailbox problems, campaign state changes and sending alerts.
@@ -166,7 +166,7 @@ Notifications also appear in the bell in the top bar regardless of email prefere
     category: "account",
     updated: UPDATED,
     keywords: ["disconnect", "revoke integration", "connections", "manage integrations"],
-    related: ["connect-integrations", "integration-security", "account-security"],
+    related: ["connect-integrations", "security-overview", "account-security"],
     content: `## Steps
 1. Settings → Integrations.
 2. Each connection shows its status and recent activity.

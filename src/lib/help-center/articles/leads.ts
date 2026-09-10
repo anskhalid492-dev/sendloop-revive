@@ -57,7 +57,7 @@ export const LEAD_ARTICLES: HelpArticle[] = [
     updated: UPDATED,
     popular: true,
     keywords: ["csv", "file format", "encoding", "utf-8", "delimiter", "example csv"],
-    related: ["import-leads", "csv-column-mapping", "why-import-skipped-rows", "csv-import-failed"],
+    related: ["import-leads", "csv-column-mapping", "why-import-skipped-rows", "leads-not-importing"],
     content: `## File requirements
 - Comma-separated \`.csv\`, UTF-8 encoded
 - One header row
@@ -177,7 +177,7 @@ Every variable you use should have a fallback. Data completeness is never 100%, 
     updated: UPDATED,
     popular: true,
     keywords: ["skipped", "rows missing", "not imported", "duplicates", "invalid"],
-    related: ["csv-import-guide", "duplicate-leads", "leads-missing-after-import"],
+    related: ["csv-import-guide", "duplicate-leads", "leads-not-importing"],
     content: `Rows are skipped for three reasons only.
 
 ## Invalid email
@@ -348,7 +348,7 @@ The eligible count on the readiness bar is computed against the database and per
     updated: UPDATED,
     popular: true,
     keywords: ["suppression", "bounced", "unsubscribed", "complained", "do not contact", "blocked"],
-    related: ["how-suppression-works", "bounce-complaint-protection", "lead-statuses"],
+    related: ["suppression-lists", "bounce-complaint-protection", "lead-statuses"],
     content: `## What suppression is
 A workspace-wide record that an address must not be emailed again. It is created by a hard bounce, a spam complaint or an unsubscribe.
 
@@ -391,7 +391,7 @@ The same lead in two lists is still one lead. Adding both lists to one campaign 
     category: "leads",
     updated: UPDATED,
     keywords: ["crm", "pipeline", "stages", "deals", "contact drawer"],
-    related: ["unified-inbox", "lead-statuses", "conversation-statuses"],
+    related: ["inbox-overview", "lead-statuses", "conversation-statuses"],
     content: `The CRM board shows contacts as cards grouped by pipeline stage.
 
 ## Moving contacts
