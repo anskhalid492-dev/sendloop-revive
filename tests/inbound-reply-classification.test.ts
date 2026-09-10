@@ -112,11 +112,11 @@ describe("quoted campaign footer", () => {
     "> Unsubscribe: https://munchreach.com/api/public/unsubscribe?t=abc",
   ].join("\n");
 
-  test("a positive reply quoting our unsubscribe footer stays interested", () => {
+  it("a positive reply quoting our unsubscribe footer stays interested", () => {
     expect(classifyInbound("Re: Packaging", quoted)).toBe("interested");
   });
 
-  test("a real opt-out is still detected", () => {
+  it("a real opt-out is still detected", () => {
     expect(classifyInbound("Re: Packaging", "Please unsubscribe me from this list.")).toBe(
       "unsubscribed",
     );
