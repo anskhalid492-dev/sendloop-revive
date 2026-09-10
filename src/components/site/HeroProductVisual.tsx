@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LineChart, Sparkles } from "lucide-react";
+import { Calendar, Eye, LineChart, Mail, Reply, Sparkles } from "lucide-react";
 
 /**
  * Hero product visualization: two compact animated cards —
