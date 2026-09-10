@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   MAX_MAILBOX_EMAILS_PER_HOUR,
   MAX_MAILBOX_HOURLY_MESSAGE,
+  campaignHourlyLimit,
   clampMailboxHourlyLimit,
   effectiveMailboxHourlyLimit,
   exceedsMailboxHourlyCap,
