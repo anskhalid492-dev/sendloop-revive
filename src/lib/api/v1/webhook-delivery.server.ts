@@ -15,6 +15,7 @@ import {
   signaturePayload,
   type WebhookEvent,
 } from "./webhooks";
+import { safeFetch } from "@/lib/ssrf-guard.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;

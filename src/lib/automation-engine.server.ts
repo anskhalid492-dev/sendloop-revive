@@ -15,6 +15,7 @@
  *    suppression, unsubscribe and bounce state.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { assertPublicUrl, safeFetch } from "@/lib/ssrf-guard.server";
 import type { ConditionConfig, OperatorId, WaitConfig } from "@/lib/automation-model";
 
 type Db = typeof supabaseAdmin;

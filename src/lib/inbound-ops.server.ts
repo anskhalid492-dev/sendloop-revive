@@ -6,6 +6,7 @@
  * schema change, and no provider credential is ever returned to the browser.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { safeFetch } from "@/lib/ssrf-guard.server";
 
 export type InboundOpsSettings = {
   maxRetries: number;
