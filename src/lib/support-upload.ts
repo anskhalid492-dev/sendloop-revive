@@ -1,5 +1,5 @@
-/** Browser-side upload helper for support attachments (private bucket). */
-import { supabase } from "@/integrations/supabase/client";
+/** Browser-side upload helper for support attachments (private R2 bucket). */
+import { uploadFileToR2 } from "@/lib/file-storage";
 
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
@@ -9,16 +9,9 @@ export async function uploadSupportAttachment(file: File): Promise<UploadedAttac
   if (file.size > MAX_ATTACHMENT_BYTES) {
     throw new Error("Attachments must be 10 MB or smaller");
   }
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) throw new Error("You need to be signed in to attach a file");
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
-  const path = `${userData.user.id}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from("support-attachments").upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type || "application/octet-stream",
+  const uploaded = await uploadFileToR2(file, {
+    category: "support",
+    maxBytes: MAX_ATTACHMENT_BYTES,
   });
-  if (error) throw new Error(error.message);
-  return { path, name: file.name.slice(0, 200), size: file.size };
+  return { path: uploaded.key, name: file.name.slice(0, 200), size: file.size };
 }

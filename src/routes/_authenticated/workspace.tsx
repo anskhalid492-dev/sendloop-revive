@@ -29,6 +29,9 @@ import {
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useStorageImage } from "@/hooks/useStorageImage";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadFileToR2 } from "@/lib/file-storage";
+import { deleteStoredFile } from "@/lib/files.functions";
+import { legacyKeyToR2 } from "@/lib/files-model";
 import { createWorkspace } from "@/lib/workspaces.functions";
 import {
   deleteWorkspace,
@@ -796,16 +799,17 @@ function WorkspaceLogoField({
     }
     setUploading(true);
     try {
-      const ext = file.type === "image/svg+xml" ? "svg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const path = `${workspaceId}/logo-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("workspace-logos")
-        .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
-      if (error) throw new Error(error.message);
+      const uploaded = await uploadFileToR2(file, {
+        category: "workspace-logos",
+        workspaceId,
+        maxBytes: 3 * 1024 * 1024,
+      });
       const previous = value;
-      onChange(path);
+      onChange(uploaded.key);
       if (previous && !previous.startsWith("http")) {
-        await supabase.storage.from("workspace-logos").remove([previous]);
+        await deleteStoredFile({ data: { key: legacyKeyToR2("workspace-logos", previous) } }).catch(
+          () => undefined,
+        );
       }
       toast.success("Logo uploaded — save changes to apply it");
     } catch (e) {

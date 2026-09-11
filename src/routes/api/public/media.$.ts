@@ -1,10 +1,10 @@
 /**
  * Public passthrough for blog media.
  *
- * The storage bucket is private and has no public read rule, so the browser
- * never talks to it directly. This route signs a short-lived URL server-side
- * with trusted credentials and streams the bytes back, which keeps image URLs
- * stable and cacheable while the bucket stays fully closed.
+ * Media lives in the private Cloudflare R2 bucket, so the browser never talks
+ * to storage directly. This route reads the object with trusted credentials and
+ * streams the bytes back, keeping image URLs stable and cacheable while the
+ * bucket stays fully closed.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
@@ -16,14 +16,11 @@ export const Route = createFileRoute("/api/public/media/$")({
         const path = String((params as Record<string, string>)["_splat"] ?? "").replace(/^\/+/, "");
         if (!path || path.includes("..")) return new Response("Not found", { status: 404 });
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { legacyKeyToR2 } = await import("@/lib/files-model");
+        const { getR2Object } = await import("@/lib/r2.server");
 
-        const { data, error } = await supabaseAdmin.storage
-          .from("blog-media")
-          .createSignedUrl(path, 3600);
-        if (error || !data?.signedUrl) return new Response("Not found", { status: 404 });
-
-        const file = await fetch(data.signedUrl);
+        const key = legacyKeyToR2("blog-media", path);
+        const file = await getR2Object(key);
         if (!file.ok || !file.body) return new Response("Not found", { status: 404 });
 
         return new Response(file.body, {
@@ -36,4 +33,3 @@ export const Route = createFileRoute("/api/public/media/$")({
     },
   },
 });
-

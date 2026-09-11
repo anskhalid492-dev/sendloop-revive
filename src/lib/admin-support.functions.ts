@@ -359,9 +359,8 @@ export const getAdminAttachmentUrl = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ path: z.string().trim().min(3).max(400) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { data: signed, error } = await context.supabase.storage
-      .from("support-attachments")
-      .createSignedUrl(data.path, 300);
-    if (error) throw new Error(error.message);
-    return { url: signed?.signedUrl ?? null };
+    const { legacyKeyToR2 } = await import("@/lib/files-model");
+    const { presignR2Url } = await import("@/lib/r2.server");
+    const key = legacyKeyToR2("support-attachments", data.path);
+    return { url: await presignR2Url({ key, method: "GET", expiresInSeconds: 300 }) };
   });

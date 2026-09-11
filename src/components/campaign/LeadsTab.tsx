@@ -53,6 +53,7 @@ import {
   addLeadsToCampaign,
   updateCampaignRecipients,
 } from "@/lib/campaigns.functions";
+import { saveAndDownloadExport } from "@/lib/file-storage";
 import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -173,7 +174,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   });
 
   /** Exports the current page — the browser never holds the whole audience. */
-  const exportCsv = () => {
+  const exportCsv = async () => {
     const header = "email,first_name,last_name,company,job_title,location,status,current_step\n";
     const body = rows
       .map((r) =>
@@ -192,12 +193,12 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           .join(","),
       )
       .join("\n");
-    const url = URL.createObjectURL(new Blob([header + body], { type: "text/csv" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `campaign-leads-page-${page}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await saveAndDownloadExport({
+      content: header + body,
+      fileName: `campaign-leads-page-${page}.csv`,
+      category: "campaigns",
+      campaignId: campaignId ?? null,
+    });
   };
 
   const allChecked = rows.length > 0 && rows.every((r) => selected.includes(r.id));

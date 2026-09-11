@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { legacyKeyToR2, ownerFromKey } from "@/lib/files-model";
 import { SUPPORT_CATEGORIES, SUPPORT_PRIORITIES } from "@/lib/support-model";
 import { isRateableStatus, type SupportTicketRating } from "@/lib/support-rating";
 
@@ -308,14 +309,14 @@ export const reopenSupportTicket = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Short-lived signed link for an attachment the caller is allowed to read. */
+/** Short-lived presigned R2 link for an attachment the caller may read. */
 export const getSupportAttachmentUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ path: z.string().trim().min(3).max(400) }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: signed, error } = await context.supabase.storage
-      .from("support-attachments")
-      .createSignedUrl(data.path, 300);
-    if (error) throw new Error(error.message);
-    return { url: signed?.signedUrl ?? null };
+    const key = legacyKeyToR2("support-attachments", data.path);
+    const owner = ownerFromKey(key);
+    if (!owner || owner.userId !== context.userId) throw new Error("Forbidden");
+    const { presignR2Url } = await import("@/lib/r2.server");
+    return { url: await presignR2Url({ key, method: "GET", expiresInSeconds: 300 }) };
   });

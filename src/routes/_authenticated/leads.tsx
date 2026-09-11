@@ -40,6 +40,7 @@ import {
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { LEAD_STATUSES, leadLocation, leadName, type LeadFilters } from "@/lib/lead-model";
 import { listCampaigns } from "@/lib/campaigns.functions";
+import { saveAndDownloadExport } from "@/lib/file-storage";
 import {
   EMPTY_SELECTION,
   selectionCount,
@@ -228,7 +229,7 @@ function LeadsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
     const source =
       selection.mode === "ids" && selection.ids.length
         ? rows.filter((r) => selection.ids.includes(r.id))
@@ -267,15 +268,11 @@ function LeadsPage() {
         .map((v) => csvEscape(String(v)))
         .join(","),
     );
-    const blob = new Blob([[header.join(","), ...body].join("\n")], {
-      type: "text/csv;charset=utf-8",
+    await saveAndDownloadExport({
+      content: [header.join(","), ...body].join("\n"),
+      fileName: `munchreach-leads-${new Date().toISOString().slice(0, 10)}.csv`,
+      category: "leads",
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `munchreach-leads-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const onSort = (column: string) => {
@@ -432,7 +429,7 @@ function LeadsPage() {
                     >
                       Set status
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={exportCsv}>Export selected</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => void exportCsv()}>Export selected</DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onSelect={() => bulk.mutate({ action: "delete" })}

@@ -1,9 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { supabase } from "@/integrations/supabase/client";
+import { getFileUrlByKey } from "@/lib/file-storage";
+import { legacyKeyToR2 } from "@/lib/files-model";
 
 /**
- * Exchanges a private-bucket storage path for a short-lived signed URL.
+ * Exchanges a stored object key for a short-lived Cloudflare R2 link.
+ *
+ * The `bucket` argument is kept for call-site clarity and maps legacy keys
+ * (written before files moved to R2) onto their R2 prefix.
  *
  * Absolute URLs (already-public assets, Google avatars, the media proxy) are
  * returned untouched. Session-only blob/data URLs are rejected so a preview can
@@ -15,13 +19,15 @@ export function useStorageImage(bucket: string, path: string | null | undefined)
   const isEphemeral = value.startsWith("blob:") || value.startsWith("data:");
 
   const query = useQuery({
-    queryKey: ["storage-image", bucket, value],
+    queryKey: ["r2-image", bucket, value],
     enabled: Boolean(value) && !isAbsolute && !isEphemeral,
-    staleTime: 45 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.storage.from(bucket).createSignedUrl(value, 60 * 60);
-      if (error) return null;
-      return data?.signedUrl ?? null;
+      try {
+        return await getFileUrlByKey(legacyKeyToR2(bucket, value));
+      } catch {
+        return null;
+      }
     },
   });
 
