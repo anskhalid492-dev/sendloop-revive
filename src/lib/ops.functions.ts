@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { checkUrlSyntax } from "@/lib/ssrf-guard.server";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -114,7 +115,16 @@ export const saveInboundOps = createServerFn({ method: "POST" })
         backoffFactor: z.number().min(1).max(5),
         retryEnabled: z.boolean(),
         notifyEmail: z.string().email().max(320).nullable(),
-        notifyWebhookUrl: z.string().url().max(500).nullable(),
+        notifyWebhookUrl: z
+          .string()
+          .url()
+          .max(500)
+          .nullable()
+          .superRefine((value, ctx) => {
+            if (!value) return;
+            const check = checkUrlSyntax(value);
+            if (!check.ok) ctx.addIssue({ code: z.ZodIssueCode.custom, message: check.reason });
+          }),
         notifyOnSignatureFailure: z.boolean(),
         notifyOnRetryThreshold: z.boolean(),
         retryAlertThreshold: z.number().int().min(1).max(20),
