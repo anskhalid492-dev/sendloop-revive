@@ -123,3 +123,25 @@ describe("quoted campaign footer", () => {
     expect(classifyInbound("Re: Packaging", "Unsubscribe")).toBe("unsubscribed");
   });
 });
+
+describe("unsubscribe phrasings", () => {
+  it.each([
+    "Please unsubscribe.",
+    "Unsubscribe please",
+    "unsubscribe from your list",
+    "Please unsubscribe this address from this mailing",
+    "I would like to unsubscribe",
+  ])("treats %s as an opt-out", (body) => {
+    expect(classifyInbound("Re: intro", body)).toBe("unsubscribed");
+  });
+
+  it("still ignores our own quoted footer", () => {
+    const body = [
+      "Yes, sounds great — let's talk Tuesday.",
+      "",
+      "On Tue, Sep 9, 2026 at 10:00 AM Sam <sam@munchreach.com> wrote:",
+      "> Unsubscribe: https://munchreach.com/api/public/unsubscribe?t=abc",
+    ].join("\n");
+    expect(classifyInbound("Re: Packaging", body)).toBe("interested");
+  });
+});
