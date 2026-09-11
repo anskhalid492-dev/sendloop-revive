@@ -5,7 +5,8 @@
  */
 
 const NEW_URL = "https://rihgzkofoxcjljlbvbya.supabase.co";
-const OLD_URL = "https://<OLD_PROJECT_ID>.supabase.co";
+// Historical script: pass the retired project's URL/key via env when re-running.
+const OLD_URL = process.env["OLD_SUPABASE_URL"]!;
 const NEW_KEY = process.env["SB_SERVICE_ROLE_KEY"]!;
 const OLD_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"]!;
 
