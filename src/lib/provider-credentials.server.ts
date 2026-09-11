@@ -3,29 +3,22 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 /**
  * Credential encryption key material.
  *
- * During the key rotation, PROVIDER_CREDENTIALS_KEY_NEW is the active key and
- * PROVIDER_CREDENTIALS_KEY stays present only so any ciphertext written before
- * the rotation can still be read. Once the old secret is removed, the fallback
- * simply disappears and nothing else changes.
+ * PROVIDER_CREDENTIALS_KEY holds the active key. The 2026-09 rotation is
+ * complete: every stored ciphertext was re-encrypted with this value, so no
+ * legacy fallback key is needed.
  */
 function derive(raw: string): Buffer {
   return createHash("sha256").update(raw).digest();
 }
 
 function activeKey(): Buffer {
-  const raw =
-    process.env["PROVIDER_CREDENTIALS_KEY_NEW"] || process.env["PROVIDER_CREDENTIALS_KEY"];
+  const raw = process.env["PROVIDER_CREDENTIALS_KEY"];
   if (!raw) throw new Error("PROVIDER_CREDENTIALS_KEY is not set");
   return derive(raw);
 }
 
 function candidateKeys(): Buffer[] {
-  const raws = [
-    process.env["PROVIDER_CREDENTIALS_KEY_NEW"],
-    process.env["PROVIDER_CREDENTIALS_KEY"],
-  ].filter((v): v is string => !!v);
-  if (raws.length === 0) throw new Error("PROVIDER_CREDENTIALS_KEY is not set");
-  return raws.map(derive);
+  return [activeKey()];
 }
 
 export function encryptCredentials(value: unknown): string {
