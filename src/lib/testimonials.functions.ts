@@ -219,18 +219,12 @@ export const uploadReviewImage = createServerFn({ method: "POST" })
     if (bytes.byteLength > 2_000_000) throw new Error("Images must be 2 MB or smaller.");
 
     const ext = data.fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-    const path = `${data.kind}/${crypto.randomUUID()}.${ext}`;
+    const path = `media/reviews/${data.kind}/${crypto.randomUUID()}.${ext}`;
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.storage
-      .from("review-media")
-      .upload(path, bytes, { contentType: data.contentType, upsert: false });
-    if (error) throw new Error(error.message);
+    const { putR2Object } = await import("@/lib/r2.server");
+    await putR2Object(path, bytes, data.contentType);
 
-    // Ten years: the page is public and these assets are not sensitive.
-    const { data: signed, error: signError } = await supabaseAdmin.storage
-      .from("review-media")
-      .createSignedUrl(path, 60 * 60 * 24 * 3650);
-    if (signError || !signed) throw new Error(signError?.message ?? "Could not create image URL");
-    return { url: signed.signedUrl };
+    // The review page is public, so the image is served through the stable
+    // media passthrough rather than an expiring link.
+    return { url: `/api/public/${path.replace(/^media\//, "media/")}` };
   });

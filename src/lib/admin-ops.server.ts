@@ -678,16 +678,17 @@ export async function runHealthChecks(): Promise<{ checkedAt: string; checks: He
 
   /* Storage */
   const storageProbe = await timed(async () => {
-    const { data, error } = await supabaseAdmin.storage.listBuckets();
-    if (error) throw new Error(error.message);
-    return data.length;
+    const { r2Configured, headR2Object } = await import("@/lib/r2.server");
+    if (!r2Configured()) throw new Error("File storage credentials missing");
+    await headR2Object("healthcheck/probe");
+    return 1;
   });
   push({
     id: "storage",
     label: "Storage",
     group: "Core",
-    state: storageProbe.error ? "down" : (storageProbe.value ?? 0) === 0 ? "not_configured" : "healthy",
-    detail: storageProbe.error ? "Storage API unreachable" : `${storageProbe.value} buckets`,
+    state: storageProbe.error ? "down" : "healthy",
+    detail: storageProbe.error ? "File storage unreachable" : "Cloudflare R2 responding",
     responseMs: storageProbe.ms,
     lastSuccessAt: storageProbe.error ? null : new Date().toISOString(),
     lastError: storageProbe.error,

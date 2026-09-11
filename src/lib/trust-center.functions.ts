@@ -140,16 +140,18 @@ export const submitPublicSupportRequest = createServerFn({ method: "POST" })
       const bytes = Buffer.from(data.attachment.data, "base64");
       if (bytes.byteLength > 5 * 1024 * 1024) throw new Error("Attachment must be under 5 MB");
       const safeName = data.attachment.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
-      const path = `public-form/${ticket.id}/${Date.now()}-${safeName}`;
-      const upload = await supabaseAdmin.storage
-        .from("support-attachments")
-        .upload(path, bytes, {
-          contentType: data.attachment.type || "application/octet-stream",
-          upsert: false,
-        });
-      if (!upload.error) {
+      const path = `support/${ticket.id}/${Date.now()}-${safeName}`;
+      try {
+        const { putR2Object } = await import("@/lib/r2.server");
+        await putR2Object(
+          path,
+          new Uint8Array(bytes),
+          data.attachment.type || "application/octet-stream",
+        );
         attachmentPath = path;
         attachmentSize = bytes.byteLength;
+      } catch {
+        // An attachment failure must not lose the customer's message.
       }
     }
 
