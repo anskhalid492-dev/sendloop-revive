@@ -13,7 +13,7 @@ passthrough.
 | `src/lib/files-model.ts` | Categories, key builder, limits, legacy key mapping |
 | `src/lib/files.functions.ts` | Authenticated presign / confirm / download / delete / list endpoints |
 | `src/lib/file-storage.ts` | Browser helpers: direct upload, signed download, CSV export |
-| `src/lib/storage-migration.functions.ts` | One-time admin copy from the old buckets |
+
 | `supabase/manual/r2-files-table.sql` | `files` metadata table for production |
 
 ## Key structure
@@ -44,9 +44,9 @@ media/{user_id}/{uuid}-name.ext
 
 ## Migration
 
-Run `migrateStorageToR2` as an admin (optionally `dryRun: true` first),
-repeatedly until every bucket reports `done: true`. It copies objects, records
-metadata, skips anything already in R2, and never deletes source objects.
+Completed 2026-09: all legacy bucket objects were copied into R2 under `legacy/`
+prefixes and the one-time copy helper was removed. Existing `files` rows with
+`legacy/` keys continue to resolve through the normal signed-download path.
 
 ## Safe to delete after verification
 
