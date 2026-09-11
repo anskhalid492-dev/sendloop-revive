@@ -1020,49 +1020,42 @@ export async function runProductionChecks(options: {
     });
   }
 
-  /* ================= STORAGE ================= */
+  /* ================= STORAGE (Cloudflare R2) ================= */
   {
     const add = makeCollector("Storage", checks);
-    const buckets = await timed(async () => {
-      const { data, error } = await supabaseAdmin.storage.listBuckets();
-      if (error) throw new Error(error.message);
-      return data.map((b) => ({ id: b.id, public: b.public }));
-    });
-    const list = buckets.value ?? [];
-    const need = ["avatars", "workspace-logos", "support-attachments"];
-    for (const name of need) {
-      const bucket = list.find((b) => b.id === name || b.id.replace(/_/g, "-") === name);
-      add({
-        id: `storage.${name}`,
-        label: `${name} bucket`,
-        status: bucket ? "pass" : "not_configured",
-        detail: bucket ? `Bucket present (${bucket.public ? "public" : "private"})` : "Bucket missing",
-        action: bucket ? null : `Create the ${name} bucket before enabling that upload.`,
-        critical: false,
-        durationMs: null,
-        live: true,
-      });
-    }
+    const { r2Configured } = await import("@/lib/r2.server");
+    const configured = r2Configured();
 
-    if (options.deep && list.length) {
-      const target = list.find((b) => need.includes(b.id)) ?? list[0]!;
+    add({
+      id: "storage.r2.credentials",
+      label: "File storage credentials",
+      status: configured ? "pass" : "fail",
+      detail: configured
+        ? "Account, bucket and access keys are present"
+        : "R2 account id, access key or secret is missing",
+      action: configured ? null : "Add the R2 credentials before enabling uploads.",
+      critical: true,
+      durationMs: null,
+      live: true,
+    });
+
+    if (options.deep && configured) {
       const roundtrip = await timed(async () => {
-        const path = `prodcheck/${crypto.randomUUID()}.txt`;
-        const up = await supabaseAdmin.storage.from(target.id).upload(path, new Blob(["ok"]), {
-          contentType: "text/plain",
-        });
-        if (up.error) throw new Error(up.error.message);
-        const down = await supabaseAdmin.storage.from(target.id).download(path);
-        await supabaseAdmin.storage.from(target.id).remove([path]);
-        if (down.error) throw new Error(down.error.message);
-        return target.id;
+        const { putR2Object, getR2Object, deleteR2Object } = await import("@/lib/r2.server");
+        const key = `tmp/prodcheck/${crypto.randomUUID()}.tmp`;
+        await putR2Object(key, new TextEncoder().encode("ok"), "text/plain");
+        const down = await getR2Object(key);
+        const body = down.ok ? await down.text() : "";
+        await deleteR2Object(key);
+        if (!down.ok || body !== "ok") throw new Error("Object read back did not match");
+        return key;
       });
       add({
         id: "storage.roundtrip",
         label: "Upload / download permissions (live round-trip)",
         status: roundtrip.error ? "fail" : "pass",
-        detail: roundtrip.error ?? `Uploaded, downloaded and deleted a test object in ${roundtrip.value}`,
-        action: roundtrip.error ? "Check storage policies and the service credentials." : null,
+        detail: roundtrip.error ?? "Uploaded, downloaded and deleted a test object in R2",
+        action: roundtrip.error ? "Check the R2 bucket name and access keys." : null,
         critical: true,
         durationMs: roundtrip.ms,
         live: true,
