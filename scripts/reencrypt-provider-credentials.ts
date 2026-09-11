@@ -38,16 +38,16 @@ function encryptWith(k: Buffer, value: unknown): string {
   return Buffer.concat([iv, c.getAuthTag(), ct]).toString("base64");
 }
 
-type Target = { table: string; idColumn: string; column: string };
+type Target = { table: string; keys: string[]; column: string };
 
 const TARGETS: Target[] = [
-  { table: "sending_account_secrets", idColumn: "sending_account_id", column: "credentials_ciphertext" },
-  { table: "email_provider_secrets", idColumn: "provider_id", column: "credentials_ciphertext" },
-  { table: "integration_secrets", idColumn: "connection_id", column: "credentials_ciphertext" },
-  { table: "workspace_ai_keys", idColumn: "id", column: "key_ciphertext" },
-  { table: "billing_provider_secrets", idColumn: "id", column: "ciphertext" },
-  { table: "marketing_provider_secrets", idColumn: "provider_id", column: "credentials_ciphertext" },
-  { table: "webhook_endpoints", idColumn: "id", column: "secret_ciphertext" },
+  { table: "sending_account_secrets", keys: ["sending_account_id"], column: "credentials_ciphertext" },
+  { table: "email_provider_secrets", keys: ["provider_id"], column: "credentials_ciphertext" },
+  { table: "integration_secrets", keys: ["connection_id"], column: "credentials_ciphertext" },
+  { table: "workspace_ai_keys", keys: ["workspace_id", "provider"], column: "key_ciphertext" },
+  { table: "billing_provider_secrets", keys: ["provider", "environment"], column: "ciphertext" },
+  { table: "marketing_provider_secrets", keys: ["provider_id"], column: "credentials_ciphertext" },
+  { table: "webhook_endpoints", keys: ["id"], column: "secret_ciphertext" },
 ];
 
 const apply = process.argv.includes("--apply");
@@ -65,7 +65,7 @@ let alreadyNew = 0;
 const failures: string[] = [];
 
 for (const t of TARGETS) {
-  const { data, error } = await db.from(t.table).select(`${t.idColumn}, ${t.column}`);
+  const { data, error } = await db.from(t.table).select(`${t.keys.join(", ")}, ${t.column}`);
   if (error) {
     if (/does not exist|schema cache/i.test(error.message)) {
       console.log(`- ${t.table}: not present, skipped`);
@@ -78,7 +78,9 @@ for (const t of TARGETS) {
   console.log(`- ${t.table}: ${rows.length} row(s)`);
 
   for (const row of rows) {
-    const id = row[t.idColumn] as string;
+    const id = t.keys.map((k) => String(row[k])).join("/");
+    const match = <Q extends { eq: (c: string, v: unknown) => Q }>(q: Q): Q =>
+      t.keys.reduce((acc, k) => acc.eq(k, row[k]), q);
     const stored = row[t.column];
     if (typeof stored !== "string" || stored.length === 0) continue;
     total += 1;
@@ -108,21 +110,18 @@ for (const t of TARGETS) {
       continue;
     }
 
-    const { error: upErr } = await db
-      .from(t.table)
-      .update({ [t.column]: next })
-      .eq(t.idColumn, id);
+    const { error: upErr } = await match(
+      db.from(t.table).update({ [t.column]: next }) as never,
+    );
     if (upErr) {
       failures.push(`${t.table}/${id}: write failed — ${upErr.message}`);
       continue;
     }
 
     // Verify from the database, not from memory.
-    const { data: check, error: checkErr } = await db
-      .from(t.table)
-      .select(t.column)
-      .eq(t.idColumn, id)
-      .maybeSingle();
+    const { data: check, error: checkErr } = await match(
+      db.from(t.table).select(t.column) as never,
+    ).maybeSingle();
     if (checkErr || !check) {
       failures.push(`${t.table}/${id}: verification read failed — ${checkErr?.message ?? "no row"}`);
       continue;
