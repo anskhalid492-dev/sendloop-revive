@@ -246,7 +246,7 @@ function SignUpPage() {
             id="password"
             type="password"
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
