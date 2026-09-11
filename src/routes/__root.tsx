@@ -41,6 +41,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    void import("@/instrument-browser").then(({ initBrowserSentry, captureBrowserError }) => {
+      initBrowserSentry();
+      captureBrowserError(error, { boundary: "tanstack_root_error_component" });
+    });
   }, [error]);
 
   return (
@@ -270,6 +274,12 @@ function RootComponent() {
   if (siteContent) setSiteContent(siteContent);
   if (platformConfig) setPlatformConfig(platformConfig);
   const router = useRouter();
+
+  useEffect(() => {
+    // Browser error monitoring. Loaded after hydration so the SDK never runs
+    // during SSR and never blocks the first paint.
+    void import("@/instrument-browser").then(({ initBrowserSentry }) => initBrowserSentry());
+  }, []);
 
   useEffect(() => {
     // Password recovery links land on the site root with the recovery token in

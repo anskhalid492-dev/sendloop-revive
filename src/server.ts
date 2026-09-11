@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { SentryCloudflare, captureServerError, serverSentryOptions } from "./lib/sentry.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -44,7 +45,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
-export default {
+const handlerObject = {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
@@ -52,6 +53,7 @@ export default {
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
+      captureServerError(error, { source: "server_entry_fetch", url: request.url });
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -59,3 +61,18 @@ export default {
     }
   },
 };
+
+// Sentry wraps the edge fetch handler so unhandled server errors are reported
+// with request context. Falls back to the bare handler if wrapping ever fails,
+// so monitoring can never take the site down.
+let exported: typeof handlerObject = handlerObject;
+try {
+  exported = (SentryCloudflare as any).withSentry(
+    () => serverSentryOptions(),
+    handlerObject as any,
+  ) as typeof handlerObject;
+} catch (error) {
+  console.error("Sentry wrapping skipped", error);
+}
+
+export default exported;
