@@ -45,13 +45,8 @@ export function useMediaUpload(folder = "library") {
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const path = buildStoragePath(folder, file.name);
-      const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type || "image/png",
-      });
-      if (error) throw new Error(error.message);
+      const uploaded = await uploadFileToR2(file, { category: "media" });
+      const path = uploaded.key;
       const result = await register({
         data: {
           storagePath: path,
