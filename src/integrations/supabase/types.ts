@@ -9051,20 +9051,6 @@ export type Database = {
         Args: { _bucket: string; _limit: number; _window_seconds: number }
         Returns: Json
       }
-      admin_unsubscribe_stats: {
-        Args: { _days?: number }
-        Returns: {
-          campaign_id: string
-          campaign_name: string
-          email_link: number
-          last_unsubscribed_at: string
-          list_unsubscribe: number
-          one_click: number
-          total: number
-          workspace_id: string
-          workspace_name: string
-        }[]
-      }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
         Returns: {
@@ -9086,11 +9072,8 @@ export type Database = {
           campaign_id: string
           campaign_name: string
           clicks: number
-          complained: number
           delivered: number
-          failed: number
           opens: number
-          positive_replies: number
           replies: number
           sent: number
           status: string
@@ -9255,15 +9238,6 @@ export type Database = {
           sent: number
           status: string
           unsubscribed: number
-        }[]
-      }
-      campaign_stats_reconcile: {
-        Args: { _campaign_id: string; _workspace_id: string }
-        Returns: {
-          actual: number
-          check_name: string
-          expected: number
-          ok: boolean
         }[]
       }
       claim_ai_personalization_jobs: {
