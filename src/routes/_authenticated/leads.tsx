@@ -229,7 +229,7 @@ function LeadsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
     const source =
       selection.mode === "ids" && selection.ids.length
         ? rows.filter((r) => selection.ids.includes(r.id))
@@ -429,7 +429,7 @@ function LeadsPage() {
                     >
                       Set status
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={exportCsv}>Export selected</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => void exportCsv()}>Export selected</DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onSelect={() => bulk.mutate({ action: "delete" })}
