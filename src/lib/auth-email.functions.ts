@@ -54,6 +54,8 @@ async function sendAuthLink(
 export const requestPasswordResetEmail = createServerFn({ method: "POST" })
   .inputValidator((raw) => input.parse(raw))
   .handler(async ({ data }) => {
+    const { assertAuthEmailRateLimit } = await import("@/lib/auth-rate-limit.server");
+    await assertAuthEmailRateLimit("recovery", data.email);
     await sendAuthLink("recovery", data.email, data.redirectTo);
     return { ok: true };
   });
@@ -61,6 +63,8 @@ export const requestPasswordResetEmail = createServerFn({ method: "POST" })
 export const requestMagicLinkEmail = createServerFn({ method: "POST" })
   .inputValidator((raw) => input.parse(raw))
   .handler(async ({ data }) => {
+    const { assertAuthEmailRateLimit } = await import("@/lib/auth-rate-limit.server");
+    await assertAuthEmailRateLimit("magiclink", data.email);
     await sendAuthLink("magiclink", data.email, data.redirectTo);
     return { ok: true };
   });
