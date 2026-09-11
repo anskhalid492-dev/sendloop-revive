@@ -11,7 +11,7 @@
  * are all deliberately disabled.
  */
 export const SENTRY_DSN_DEFAULT =
-  "https://916d1197779db99e1bd915d6ea11dad70e04512070311804928.ingest.us.sentry.io/4512070321831936";
+  "https://916d1197779db99e1bd915d6ea11dad7@o4512070311804928.ingest.us.sentry.io/4512070321831936";
 
 export const SENTRY_ORG = "munchreach-llc";
 export const SENTRY_PROJECT = "javascript-tanstackstart-react";
