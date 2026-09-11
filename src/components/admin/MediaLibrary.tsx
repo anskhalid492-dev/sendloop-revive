@@ -21,8 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { buildStoragePath, formatBytes, mediaPublicUrl, MEDIA_BUCKET, type MediaItem } from "@/lib/blog-media";
+import { uploadFileToR2 } from "@/lib/file-storage";
+import { formatBytes, mediaPublicUrl, type MediaItem } from "@/lib/blog-media";
 import {
   deleteBlogMedia,
   listBlogMedia,
