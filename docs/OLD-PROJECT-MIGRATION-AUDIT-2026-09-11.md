@@ -123,3 +123,17 @@ in the live project).
    SQL editor (additive only).
 2. Tell me when it's done — I'll copy the last 19 admin rows and re-verify.
 3. Only after that: keep the old project paused (not deleted) for a rollback window.
+
+## Script v1 failure (2026-09-11)
+
+v1 failed at `admin_rate_limit_hit()` because pg_dump-style output put functions before the
+tables they reference. Verified against the live project afterwards: **nothing from v1 persisted**
+(all 6 columns absent, all 12 tables absent) — the SQL editor ran it in one transaction and
+rolled the whole thing back.
+
+Replacement: `supabase/manual/prod-drift-2026-09-11-v2.sql`
+Order: columns → tables → PK/unique → foreign keys → indexes → functions → triggers → grants →
+RLS → policies, wrapped in BEGIN/COMMIT. Fully idempotent (IF NOT EXISTS, DO-blocks that swallow
+duplicate objects, DROP ... IF EXISTS before each trigger/policy). Duplicate policy definitions
+from v1 were de-duplicated. All 166 statements were syntax-validated individually against a
+rolled-back transaction; no ordering or syntax errors remain.
