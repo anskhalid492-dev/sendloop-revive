@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { legacyKeyToR2, ownerFromKey } from "@/lib/files-model";
 import { SUPPORT_CATEGORIES, SUPPORT_PRIORITIES } from "@/lib/support-model";
 import { isRateableStatus, type SupportTicketRating } from "@/lib/support-rating";
 
