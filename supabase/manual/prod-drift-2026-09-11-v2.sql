@@ -162,6 +162,8 @@ CREATE TABLE IF NOT EXISTS public.webhook_endpoints (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+ALTER TABLE ONLY public.campaign_unsubscribes REPLICA IDENTITY FULL;
+
 -- 3) Primary keys and unique constraints
 DO $mig$ BEGIN
   ALTER TABLE ONLY public.admin_permission_grants
@@ -520,37 +522,7 @@ DROP POLICY IF EXISTS webhook_endpoints_manage_admins ON public.webhook_endpoint
 CREATE POLICY webhook_endpoints_manage_admins ON public.webhook_endpoints TO authenticated USING (public.has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::public.workspace_role, 'admin'::public.workspace_role])) WITH CHECK (public.has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::public.workspace_role, 'admin'::public.workspace_role]));
 DROP POLICY IF EXISTS webhook_endpoints_select_admins ON public.webhook_endpoints;
 CREATE POLICY webhook_endpoints_select_admins ON public.webhook_endpoints FOR SELECT TO authenticated USING (public.has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::public.workspace_role, 'admin'::public.workspace_role]));
-DROP POLICY IF EXISTS "Admins read permission grants" ON public.admin_permission_grants;
-CREATE POLICY "Admins read permission grants" ON public.admin_permission_grants AS PERMISSIVE FOR SELECT TO authenticated USING ((has_role(auth.uid(), 'admin'::app_role) OR (user_id = auth.uid())));
-DROP POLICY IF EXISTS "Admins read security events" ON public.admin_security_events;
-CREATE POLICY "Admins read security events" ON public.admin_security_events AS PERMISSIVE FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
-DROP POLICY IF EXISTS "Admins read sessions" ON public.admin_sessions;
-CREATE POLICY "Admins read sessions" ON public.admin_sessions AS PERMISSIVE FOR SELECT TO authenticated USING ((has_role(auth.uid(), 'admin'::app_role) OR (user_id = auth.uid())));
-DROP POLICY IF EXISTS api_idempotency_select_members ON public.api_idempotency_keys;
-CREATE POLICY api_idempotency_select_members ON public.api_idempotency_keys AS PERMISSIVE FOR SELECT TO authenticated USING (is_workspace_member(workspace_id, auth.uid()));
-DROP POLICY IF EXISTS api_jobs_select_members ON public.api_jobs;
-CREATE POLICY api_jobs_select_members ON public.api_jobs AS PERMISSIVE FOR SELECT TO authenticated USING (is_workspace_member(workspace_id, auth.uid()));
-DROP POLICY IF EXISTS api_keys_manage_admins ON public.api_keys;
-CREATE POLICY api_keys_manage_admins ON public.api_keys AS PERMISSIVE FOR ALL TO authenticated USING (has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::workspace_role, 'admin'::workspace_role])) WITH CHECK (has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::workspace_role, 'admin'::workspace_role]));
-DROP POLICY IF EXISTS api_keys_select_admins ON public.api_keys;
-CREATE POLICY api_keys_select_admins ON public.api_keys AS PERMISSIVE FOR SELECT TO authenticated USING (has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::workspace_role, 'admin'::workspace_role]));
-DROP POLICY IF EXISTS api_rate_counters_select_members ON public.api_rate_counters;
-CREATE POLICY api_rate_counters_select_members ON public.api_rate_counters AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM api_keys k
-  WHERE ((k.id = api_rate_counters.api_key_id) AND is_workspace_member(k.workspace_id, auth.uid())))));
-DROP POLICY IF EXISTS "Members read workspace unsubscribes" ON public.campaign_unsubscribes;
-CREATE POLICY "Members read workspace unsubscribes" ON public.campaign_unsubscribes AS PERMISSIVE FOR SELECT TO authenticated USING ((is_workspace_member(workspace_id, auth.uid()) OR has_role(auth.uid(), 'admin'::app_role)));
-DROP POLICY IF EXISTS "Workspace members read domain tracking" ON public.sending_domain_tracking;
-CREATE POLICY "Workspace members read domain tracking" ON public.sending_domain_tracking AS PERMISSIVE FOR SELECT TO authenticated USING (is_workspace_member(workspace_id, auth.uid()));
-DROP POLICY IF EXISTS webhook_deliveries_select_members ON public.webhook_deliveries;
-CREATE POLICY webhook_deliveries_select_members ON public.webhook_deliveries AS PERMISSIVE FOR SELECT TO authenticated USING (is_workspace_member(workspace_id, auth.uid()));
-DROP POLICY IF EXISTS webhook_endpoints_manage_admins ON public.webhook_endpoints;
-CREATE POLICY webhook_endpoints_manage_admins ON public.webhook_endpoints AS PERMISSIVE FOR ALL TO authenticated USING (has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::workspace_role, 'admin'::workspace_role])) WITH CHECK (has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::workspace_role, 'admin'::workspace_role]));
-DROP POLICY IF EXISTS webhook_endpoints_select_admins ON public.webhook_endpoints;
-CREATE POLICY webhook_endpoints_select_admins ON public.webhook_endpoints AS PERMISSIVE FOR SELECT TO authenticated USING (has_workspace_role(workspace_id, auth.uid(), ARRAY['owner'::workspace_role, 'admin'::workspace_role]));
 
--- 11) Other
-ALTER TABLE ONLY public.campaign_unsubscribes REPLICA IDENTITY FULL;
 
 COMMIT;
 
