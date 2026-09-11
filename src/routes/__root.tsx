@@ -41,7 +41,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-    void import("@/instrument.client").then(({ initBrowserSentry, captureBrowserError }) => {
+    void import("@/instrument-browser").then(({ initBrowserSentry, captureBrowserError }) => {
       initBrowserSentry();
       captureBrowserError(error, { boundary: "tanstack_root_error_component" });
     });
@@ -278,7 +278,7 @@ function RootComponent() {
   useEffect(() => {
     // Browser error monitoring. Loaded after hydration so the SDK never runs
     // during SSR and never blocks the first paint.
-    void import("@/instrument.client").then(({ initBrowserSentry }) => initBrowserSentry());
+    void import("@/instrument-browser").then(({ initBrowserSentry }) => initBrowserSentry());
   }, []);
 
   useEffect(() => {
