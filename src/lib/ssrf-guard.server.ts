@@ -238,7 +238,7 @@ export async function safeFetch(
   let body = init.body;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    const response = await fetch(target, { ...init, body, redirect: "manual" });
+    const response = await fetch(target, { ...init, body: body ?? null, redirect: "manual" });
     if (response.status < 300 || response.status > 399) return response;
 
     const location = response.headers.get("location");
