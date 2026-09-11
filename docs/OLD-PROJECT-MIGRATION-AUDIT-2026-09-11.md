@@ -90,3 +90,36 @@ from here (service-role REST cannot execute DDL).
 Repointing this workspace's built-in Cloud binding from OLD to the live project is **not
 possible from my side**. Per your instruction: stopping here. Do not delete or disable the old
 project — pausing it would also remove this workspace's backend tooling fallback.
+
+## Step 4 — data copy EXECUTED (2026-09-11)
+
+Every old-only row was copied into the live project via service-role REST, in
+foreign-key dependency order. Nothing in the old project was modified.
+
+Copied successfully (100% of old-only rows):
+leads 33, campaigns 12, campaign_recipients 49, campaign_messages 28, campaign_steps 5,
+campaign_launch_events 1, campaign_test_sends 2, lead_lists 10, lead_activities 13,
+lead_retention_runs 21, conversations 12, conversation_events 23, conversation_messages 16,
+email_events 657, inbound_routes 33, inbound_event_actions 1662, outbound_messages 50,
+warmup_recipients 3305, warmup_health 247, warmup_jobs 34 (6 re-linked to live pool
+recipients by email), warmup_events 124 (39 re-linked to live jobs by idempotency key),
+sending_account_checks 41, provider_routing_events 179, provider_health_events 184,
+usage_audit_log 43, billing_audit_log 22, workspace_activity 21, site_nav_items 73.
+
+Not copied because an equivalent record already exists in the live project under a
+different id (blocked by a unique business key, verified individually — not data loss):
+warmup_recipients 183 (same email), site_pages 11 (same path), crm_stages 6 (same
+workspace+key), billing_plan_prices 6 (same plan/provider/interval), warmup_jobs 15
+(same idempotency key), warmup_daily_stats 2 (same account+day), plans 1 (same slug),
+workspace_members 1 (same workspace+user).
+
+Still pending — needs the schema script first:
+admin_security_events 13, admin_sessions 5, admin_rate_limits 1 (tables do not exist yet
+in the live project).
+
+## Next action for you
+
+1. Open `supabase/manual/prod-drift-2026-09-11.sql` and run it once in the live project's
+   SQL editor (additive only).
+2. Tell me when it's done — I'll copy the last 19 admin rows and re-verify.
+3. Only after that: keep the old project paused (not deleted) for a rollback window.
