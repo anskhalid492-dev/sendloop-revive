@@ -122,9 +122,9 @@ export const migrateStorageToR2 = createServerFn({ method: "POST" })
           await supabaseAdmin.from("files").upsert(
             {
               user_id: isUuid ? maybeOwner : context.userId,
-              type: segments[0],
+              type: segments[0] ?? "media",
               r2_key: key,
-              file_name: segments[segments.length - 1],
+              file_name: segments[segments.length - 1] ?? "file",
               size: bytes.byteLength,
               mime_type: object.mime,
               status: "ready",
