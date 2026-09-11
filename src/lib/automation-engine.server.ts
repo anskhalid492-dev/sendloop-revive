@@ -163,24 +163,55 @@ async function loadSteps(db: Db, automationId: string): Promise<StepDef[]> {
 
 /* ------------------------------------------------------------- worker */
 
-export async function runAutomationCycle(limit = 50): Promise<{
+/** Claim batch size: small enough that the RPC and the per-run work stay well
+ * inside the database statement and gateway timeouts. */
+const CLAIM_BATCH_CAP = 25;
+
+export async function runAutomationCycle(limit = 25): Promise<{
   claimed: number;
   completed: number;
   waiting: number;
   failed: number;
+  claimError?: string;
 }> {
   const db = supabaseAdmin;
   const worker = `worker-${crypto.randomUUID().slice(0, 8)}`;
-  const { data, error } = await db.rpc("claim_automation_runs", { _worker: worker, _limit: limit });
-  if (error) throw new Error(error.message);
+  const batch = Math.min(Math.max(limit, 1), CLAIM_BATCH_CAP);
 
-  const runs = (data ?? []) as RunRow[];
+  // A 504/timeout from the PostgREST layer is transient: retry with backoff
+  // instead of aborting the whole cycle, and never throw — a thrown error turns
+  // the cron invocation into a 500 and loses the runs we could still process.
+  let runs: RunRow[] = [];
+  let claimError: string | null = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data, error } = await db.rpc("claim_automation_runs", { _worker: worker, _limit: batch });
+    if (!error) {
+      runs = (data ?? []) as RunRow[];
+      claimError = null;
+      break;
+    }
+    claimError = error.message;
+    if (!isRetryable(error.message) && !/gateway timeout|504|statement timeout/i.test(error.message)) break;
+    await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+  }
+  if (claimError) {
+    console.error("automation cycle: claim failed", claimError);
+    return { claimed: 0, completed: 0, waiting: 0, failed: 0, claimError };
+  }
+
   let completed = 0;
   let waiting = 0;
   let failed = 0;
 
   for (const run of runs) {
-    const outcome = await executeRun(run);
+    // One bad run must never abort the rest of the batch.
+    let outcome: Outcome;
+    try {
+      outcome = await executeRun(run);
+    } catch (error) {
+      console.error("automation run crashed", run.id, error);
+      outcome = "failed";
+    }
     if (outcome === "waiting") waiting += 1;
     else if (outcome === "failed") failed += 1;
     else completed += 1;

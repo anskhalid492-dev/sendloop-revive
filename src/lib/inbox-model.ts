@@ -182,11 +182,13 @@ const BOUNCE_PATTERNS = [
   /no longer with (the|our) (company|organi[sz]ation)/i,
 ];
 const UNSUB_PATTERNS = [
-  // Deliberately NOT a bare /unsubscribe/i: our own campaign footer contains
-  // that word, and quoted replies would otherwise look like opt-outs.
+  // Deliberately NOT a bare /unsubscribe/i on the raw body: our own campaign
+  // footer contains that word. Quoted text and footer links are removed by
+  // stripQuotedReply() first, so a human writing "unsubscribe" in any normal
+  // phrasing must still count as an opt-out.
   /^\s*unsubscribe\s*[.!]?\s*$/im,
-  /(please |kindly )?unsubscribe (me|us)\b/i,
-  /\b(i|we) (want|wish|would like) to unsubscribe\b/i,
+  /\bunsubscribe\b(?!\s*(link|button|page|url|below|here|at\b|https?))/i,
+  /\bunsub(scribed)?\b\s*(me|us|please)/i,
   /remove me (from|off)/i,
   /(please )?remove (me|my (email|address|details))\b/i,
   /take me off/i,
