@@ -645,7 +645,9 @@ export const deleteBlogMedia = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (row?.storage_path) {
-      await (context.supabase as any).storage.from("blog-media").remove([row.storage_path]);
+      const { legacyKeyToR2 } = await import("@/lib/files-model");
+      const { deleteR2Object } = await import("@/lib/r2.server");
+      await deleteR2Object(legacyKeyToR2("blog-media", row.storage_path as string)).catch(() => undefined);
     }
     const { error } = await (context.supabase as any).from("blog_media").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
