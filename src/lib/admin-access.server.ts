@@ -8,7 +8,7 @@
  *
  * Every privileged call also passes through the admin security core:
  *  - the admin session registry (revoked sessions stop working immediately),
- *  - MFA/AAL2 enforcement once a second factor is enrolled,
+ *  - mandatory two-factor (TOTP/AAL2) enforcement for admin roles,
  *  - optional granular permission and recent-re-authentication checks.
  */
 import type { AdminContext, AdminPermission } from "./admin-security.server";
@@ -63,17 +63,30 @@ export async function enforceAdminSessionPolicy(
 
   const level = security.authLevel(context.claims);
   if (level !== "aal2") {
-    // Strict for dangerous operations; for everything else MFA is enforced as
-    // soon as the account has a verified factor (enrollment stays possible).
+    // Two-factor is mandatory for admins. During the enrollment window an
+    // admin without a factor may still make ordinary admin calls; sensitive
+    // actions and enrolled-but-AAL1 sessions are always refused.
     const enrolled = await security.hasVerifiedMfaFactor(context.userId);
-    if (options.sensitive || enrolled) {
+    const inGrace = !enrolled && !options.sensitive && security.adminMfaGraceActive();
+    if (inGrace) {
+      await security.recordSecurityEvent({
+        userId: context.userId,
+        eventType: "admin_mfa_grace_used",
+        result: "success",
+        detail: `${options.action ?? "admin request"} — 2FA not yet enrolled`,
+      });
+    } else {
       await security.recordSecurityEvent({
         userId: context.userId,
         eventType: "admin_mfa_required",
         result: "denied",
         detail: options.action ?? "admin request",
       });
-      throw new Error("Additional verification required: complete two-factor authentication.");
+      throw new Error(
+        enrolled
+          ? "Additional verification required: complete two-factor authentication."
+          : "Two-factor authentication is required for admin access. Set up an authenticator app to continue.",
+      );
     }
   }
 
