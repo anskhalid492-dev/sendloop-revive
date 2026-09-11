@@ -40,6 +40,9 @@ import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { uploadFileToR2 } from "@/lib/file-storage";
+import { deleteStoredFile } from "@/lib/files.functions";
+import { legacyKeyToR2 } from "@/lib/files-model";
 import { getProfileSettings, requestEmailChange, updateProfile } from "@/lib/profile.functions";
 import { getSecurityOverview } from "@/lib/settings.functions";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
@@ -318,7 +321,7 @@ function ProfileSection() {
     try {
       await setAvatarPath(profile.data.id, null);
       if (!path.startsWith("http")) {
-        void supabase.storage.from("avatars").remove([path]);
+        void deleteStoredFile({ data: { key: legacyKeyToR2("avatars", path) } }).catch(() => undefined);
       }
       toast.success("Profile picture removed");
       refreshAvatarQueries();
