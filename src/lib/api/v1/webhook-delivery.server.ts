@@ -15,6 +15,7 @@ import {
   signaturePayload,
   type WebhookEvent,
 } from "./webhooks";
+import { safeFetch } from "@/lib/ssrf-guard.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -141,7 +142,8 @@ async function deliverOne(admin: Admin, row: DeliveryRow): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    const response = await fetch(endpoint.url, {
+    // Re-validated at send time (DNS rebinding) and on every redirect hop.
+    const response = await safeFetch(endpoint.url, {
       method: "POST",
       headers: {
         "content-type": "application/json",

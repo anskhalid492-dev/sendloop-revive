@@ -6,6 +6,7 @@
  * schema change, and no provider credential is ever returned to the browser.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { safeFetch } from "@/lib/ssrf-guard.server";
 
 export type InboundOpsSettings = {
   maxRetries: number;
@@ -105,7 +106,7 @@ export async function notifyAdmins(
   if (settings.notifyWebhookUrl) {
     const started = Date.now();
     try {
-      const res = await fetch(settings.notifyWebhookUrl, {
+      const res = await safeFetch(settings.notifyWebhookUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),

@@ -12,6 +12,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { decryptCredentials, encryptCredentials } from "@/lib/provider-credentials.server";
 import { INTEGRATIONS_BY_SLUG } from "@/lib/integrations-catalog";
+import { safeFetch } from "@/lib/ssrf-guard.server";
 
 export type Credentials = Record<string, string>;
 
@@ -215,7 +216,7 @@ async function deliverToWebhook(
     slug === "slack"
       ? JSON.stringify({ text: slackText(payload) })
       : JSON.stringify(payload);
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body,
