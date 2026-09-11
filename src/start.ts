@@ -3,10 +3,22 @@ import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/r
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
+// Reports server-side errors to Sentry (error monitoring only). Imported
+// lazily so the edge SDK never loads in the browser bundle.
+async function reportServerError(error: unknown, context: Record<string, unknown>) {
+  try {
+    const { captureServerError } = await import("./lib/sentry.server");
+    captureServerError(error, context);
+  } catch {
+    // Monitoring must never affect the response.
+  }
+}
+
 const errorMiddleware = createMiddleware().server(async ({ next, ...context }) => {
   try {
     return await next();
   } catch (error) {
+    await reportServerError(error, { handlerType: (context as any).handlerType });
     if (
       context.handlerType === "serverFn" ||
       (error != null && typeof error === "object" && "statusCode" in error)
