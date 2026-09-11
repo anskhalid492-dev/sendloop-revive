@@ -288,23 +288,16 @@ function ProfileSection() {
     if (!pendingFile || !profile.data) return;
     setUploading(true);
     try {
-      const ext =
-        pendingFile.type === "image/png" ? "png" : pendingFile.type === "image/webp" ? "webp" : "jpg";
-      // Files live under a folder named after the user id; storage policies only
-      // allow a customer to read or write inside their own folder. The random
-      // suffix keeps every upload on a unique, cache-safe path.
-      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const path = `${profile.data.id}/avatar-${unique}.${ext}`;
-      const { error } = await supabase.storage
-        .from("avatars")
-        .upload(path, pendingFile, { upsert: true, contentType: pendingFile.type });
-      if (error) throw new Error(error.message);
+      // The picture goes straight from the browser to the private file store
+      // under a folder named after the user id, so nobody else can read it.
+      const uploaded = await uploadFileToR2(pendingFile, { category: "avatars", maxBytes: 5 * 1024 * 1024 });
+      const path = uploaded.key;
 
       const previousPath = profile.data.avatar_url;
       await setAvatarPath(profile.data.id, path);
       if (previousPath && !previousPath.startsWith("http") && previousPath !== path) {
         // Best effort cleanup; a leftover old file must never fail the upload.
-        void supabase.storage.from("avatars").remove([previousPath]);
+        void deleteStoredFile({ data: { key: legacyKeyToR2("avatars", previousPath) } }).catch(() => undefined);
       }
 
       setPendingFile(null);
