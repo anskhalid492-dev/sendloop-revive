@@ -853,7 +853,7 @@ async function runAction(
 
     case "webhook.send": {
       const url = str("url");
-      if (!/^https:\/\//i.test(url)) throw new Error("Webhook URL must be https");
+      await assertPublicUrl(url);
       const { data: automation } = await db
         .from("automations")
         .select("webhook_secret, name")
@@ -869,7 +869,7 @@ async function runAction(
         sentAt: new Date().toISOString(),
       });
       const signature = secret ? await hmacHex(secret, body) : "";
-      const response = await fetch(url, {
+      const response = await safeFetch(url, {
         method: "POST",
         headers: {
           "content-type": "application/json",

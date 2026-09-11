@@ -141,7 +141,8 @@ async function deliverOne(admin: Admin, row: DeliveryRow): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    const response = await fetch(endpoint.url, {
+    // Re-validated at send time (DNS rebinding) and on every redirect hop.
+    const response = await safeFetch(endpoint.url, {
       method: "POST",
       headers: {
         "content-type": "application/json",

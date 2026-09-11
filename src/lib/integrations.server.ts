@@ -215,7 +215,7 @@ async function deliverToWebhook(
     slug === "slack"
       ? JSON.stringify({ text: slackText(payload) })
       : JSON.stringify(payload);
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body,

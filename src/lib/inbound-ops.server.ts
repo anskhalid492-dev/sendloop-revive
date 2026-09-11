@@ -105,7 +105,7 @@ export async function notifyAdmins(
   if (settings.notifyWebhookUrl) {
     const started = Date.now();
     try {
-      const res = await fetch(settings.notifyWebhookUrl, {
+      const res = await safeFetch(settings.notifyWebhookUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),

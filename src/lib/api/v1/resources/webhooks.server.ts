@@ -7,6 +7,8 @@
  */
 import { z } from "zod";
 
+import { checkUrlSyntax } from "@/lib/ssrf-guard.server";
+
 import { ApiError } from "../errors";
 import { decodeCursor, paginate, parseLimit } from "../pagination";
 import { serializeDelivery, serializeWebhook } from "../serializers";
@@ -24,32 +26,11 @@ const urlSchema = z
   .string()
   .url()
   .max(2000)
-  .refine((value) => value.startsWith("https://"), {
-    message: "Webhook URLs must use https.",
-  })
-  .refine(
-    (value) => {
-      // Block loopback/private hosts so a webhook cannot be pointed at internal
-      // infrastructure (SSRF).
-      try {
-        const host = new URL(value).hostname.toLowerCase();
-        return !(
-          host === "localhost" ||
-          host === "0.0.0.0" ||
-          host.endsWith(".localhost") ||
-          host.endsWith(".internal") ||
-          /^127\./.test(host) ||
-          /^10\./.test(host) ||
-          /^192\.168\./.test(host) ||
-          /^169\.254\./.test(host) ||
-          /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-        );
-      } catch {
-        return false;
-      }
-    },
-    { message: "Webhook URLs must point at a public host." },
-  );
+  .superRefine((value, ctx) => {
+    // SSRF: https only, and never a private/loopback/link-local/metadata host.
+    const check = checkUrlSyntax(value);
+    if (!check.ok) ctx.addIssue({ code: z.ZodIssueCode.custom, message: check.reason });
+  });
 
 const createSchema = z
   .object({
