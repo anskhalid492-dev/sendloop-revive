@@ -94,3 +94,46 @@ export async function downloadStoredFile(key: string, fileName?: string): Promis
   anchor.click();
   anchor.remove();
 }
+
+/**
+ * Saves a generated CSV/TXT export to R2 and hands the browser a short-lived
+ * download link. Falls back to a plain in-browser download if the file store
+ * is unreachable, so exporting never fails outright.
+ */
+export async function saveAndDownloadExport(options: {
+  content: string;
+  fileName: string;
+  mimeType?: string;
+  category?: FileCategory;
+  campaignId?: string | null;
+  workspaceId?: string | null;
+}): Promise<void> {
+  const mimeType = options.mimeType ?? "text/csv;charset=utf-8";
+  try {
+    const { saveGeneratedFile } = await import("@/lib/files.functions");
+    const saved = await saveGeneratedFile({
+      data: {
+        category: options.category ?? "exports",
+        fileName: options.fileName,
+        mimeType: mimeType.split(";")[0] as string,
+        content: options.content,
+        campaignId: options.campaignId ?? null,
+        workspaceId: options.workspaceId ?? null,
+      },
+    });
+    const anchor = document.createElement("a");
+    anchor.href = saved.url;
+    anchor.download = options.fileName;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  } catch {
+    const url = URL.createObjectURL(new Blob([options.content], { type: mimeType }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = options.fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+}

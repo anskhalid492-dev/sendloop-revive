@@ -192,12 +192,12 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           .join(","),
       )
       .join("\n");
-    const url = URL.createObjectURL(new Blob([header + body], { type: "text/csv" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `campaign-leads-page-${page}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await saveAndDownloadExport({
+      content: header + body,
+      fileName: `campaign-leads-page-${page}.csv`,
+      category: "campaigns",
+      campaignId: campaignId ?? null,
+    });
   };
 
   const allChecked = rows.length > 0 && rows.every((r) => selected.includes(r.id));

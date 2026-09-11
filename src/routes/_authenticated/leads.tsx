@@ -267,15 +267,11 @@ function LeadsPage() {
         .map((v) => csvEscape(String(v)))
         .join(","),
     );
-    const blob = new Blob([[header.join(","), ...body].join("\n")], {
-      type: "text/csv;charset=utf-8",
+    await saveAndDownloadExport({
+      content: [header.join(","), ...body].join("\n"),
+      fileName: `munchreach-leads-${new Date().toISOString().slice(0, 10)}.csv`,
+      category: "leads",
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `munchreach-leads-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const onSort = (column: string) => {
