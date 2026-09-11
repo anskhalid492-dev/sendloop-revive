@@ -29,7 +29,10 @@ const PRESIGN_LIMIT_PER_MINUTE = 60;
 type AuthContext = { supabase: any; userId: string };
 
 async function assertPresignRateLimit(context: AuthContext, action: string) {
-  const { data, error } = await context.supabase.rpc("admin_rate_limit_hit", {
+  // Counted with the service-role client: the counter routine is backend-only,
+  // so a caller can never reset or bypass their own budget.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any).rpc("admin_rate_limit_hit", {
     _bucket: `r2:${action}:${context.userId}`,
     _limit: PRESIGN_LIMIT_PER_MINUTE,
     _window_seconds: 60,
