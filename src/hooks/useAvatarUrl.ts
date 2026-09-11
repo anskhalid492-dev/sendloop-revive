@@ -1,27 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { supabase } from "@/integrations/supabase/client";
+import { getFileUrlByKey } from "@/lib/file-storage";
+import { legacyKeyToR2 } from "@/lib/files-model";
 
 /**
- * Avatars live in a private bucket where each customer can only read their own
- * folder, so a stored path is exchanged for a short-lived signed URL.
+ * Avatars live in the private R2 bucket where each customer can only read their
+ * own folder, so a stored key is exchanged for a short-lived signed URL.
  * Absolute URLs (e.g. Google profile pictures) are used as-is.
  */
 export function useAvatarUrl(avatarPath: string | null | undefined) {
+  const value = (avatarPath ?? "").trim();
+
   const query = useQuery({
-    queryKey: ["avatar-url", avatarPath],
-    enabled: Boolean(avatarPath) && !avatarPath!.startsWith("http"),
-    staleTime: 45 * 60 * 1000,
+    queryKey: ["avatar-url", value],
+    enabled: Boolean(value) && !value.startsWith("http"),
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.storage
-        .from("avatars")
-        .createSignedUrl(avatarPath!, 60 * 60);
-      if (error) return null;
-      return data?.signedUrl ?? null;
+      try {
+        return await getFileUrlByKey(legacyKeyToR2("avatars", value));
+      } catch {
+        return null;
+      }
     },
   });
 
-  if (!avatarPath) return null;
-  if (avatarPath.startsWith("http")) return avatarPath;
+  if (!value) return null;
+  if (value.startsWith("http")) return value;
   return query.data ?? null;
 }

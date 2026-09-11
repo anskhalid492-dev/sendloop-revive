@@ -3488,6 +3488,51 @@ export type Database = {
           },
         ]
       }
+      files: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          file_name: string | null
+          id: string
+          mime_type: string
+          r2_key: string
+          size: number
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          file_name?: string | null
+          id?: string
+          mime_type?: string
+          r2_key: string
+          size?: number
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          file_name?: string | null
+          id?: string
+          mime_type?: string
+          r2_key?: string
+          size?: number
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       guide_articles: {
         Row: {
           body: string
