@@ -41,13 +41,19 @@ async function run(request: Request) {
   if (secrets.length === 0) return json({ error: "Runner is not configured" }, 503);
   if (!secrets.some((secret) => secretMatches(provided, secret))) return json({ error: "Unauthorized" }, 401);
 
-  const limitParam = Number(url.searchParams.get("limit") ?? "50");
-  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 50;
+  const limitParam = Number(url.searchParams.get("limit") ?? "25");
+  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 25) : 25;
 
   const { runAutomationCycle } = await import("@/lib/automation-engine.server");
-  const result = await runAutomationCycle(limit);
-
-  return json({ ok: true, ...result }, 200);
+  try {
+    const result = await runAutomationCycle(limit);
+    // A transient claim failure is reported, not raised: the next cycle retries
+    // and the scheduler must not treat it as a hard endpoint failure.
+    return json({ ok: !result.claimError, ...result }, 200);
+  } catch (error) {
+    console.error("automation cron cycle failed", error);
+    return json({ ok: false, error: (error as Error).message }, 200);
+  }
 }
 
 export const Route = createFileRoute("/api/public/cron/run-automations")({
