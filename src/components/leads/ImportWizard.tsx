@@ -31,6 +31,7 @@ import {
   importLeads,
 } from "@/lib/leads.functions";
 import type { LeadList } from "@/lib/leads.functions";
+import { uploadFileToR2 } from "@/lib/file-storage";
 
 const IGNORE = "__ignore__";
 const SPLIT_NAME = "__split_name__";
@@ -203,6 +204,9 @@ export function ImportWizard({
 
   const handleFile = (file: File) => {
     setFileName(file.name);
+    // Keep the original CSV in the file store for audit/re-import. Archiving is
+    // best effort and must never block the import itself.
+    void uploadFileToR2(file, { category: "imports" }).catch(() => undefined);
     Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
