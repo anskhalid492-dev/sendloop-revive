@@ -8,8 +8,8 @@
 # secret from .env.production.example already pushed with `wrangler secret put NAME`.
 #
 # PHASE 6: the app must point at the NEW Supabase project
-# (rihgzkofoxcjljlbvbya). The OLD project (ciaxsdojimcupxzpbpev) stays untouched
-# as the rollback target — set EXPECTED_SUPABASE_PROJECT=ciaxsdojimcupxzpbpev to
+# (rihgzkofoxcjljlbvbya). The OLD project (<OLD_PROJECT_ID>) stays untouched
+# as the rollback target — set EXPECTED_SUPABASE_PROJECT=<OLD_PROJECT_ID> to
 # redeploy the rollback build.
 set -euo pipefail
 

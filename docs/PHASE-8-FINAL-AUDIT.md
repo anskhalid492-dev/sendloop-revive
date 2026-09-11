@@ -2,7 +2,7 @@
 
 Date: 2026-08-22 (UTC)
 NEW Supabase (production): `rihgzkofoxcjljlbvbya`
-OLD Supabase (rollback copy, untouched): `ciaxsdojimcupxzpbpev`
+OLD Supabase (rollback copy, untouched): `<OLD_PROJECT_ID>`
 Host: https://munchreach.com (Lovable). Cloudflare/DNS/hosting unchanged.
 Mode: read-only. No data modified, no policy weakened, no schedules changed.
 
@@ -156,7 +156,7 @@ No 5xx observed across the 113 page requests and all API probes (only intentiona
 
 ## 13. OLD SUPABASE — PASS (preserved)
 
-`ciaxsdojimcupxzpbpev` is intact and untouched: no schema change, no data change, no key rotation, cron count 0. Its most recent application rows predate the cutover (`campaign_messages` 2026-08-21 17:04, `conversation_messages` 2026-08-21 17:19, `email_events` 2026-08-22 12:41 — all pre-cutover), while all post-cutover traffic lands exclusively on the NEW project. Confirms it is receiving **no** new production traffic and remains a valid rollback target.
+`<OLD_PROJECT_ID>` is intact and untouched: no schema change, no data change, no key rotation, cron count 0. Its most recent application rows predate the cutover (`campaign_messages` 2026-08-21 17:04, `conversation_messages` 2026-08-21 17:19, `email_events` 2026-08-22 12:41 — all pre-cutover), while all post-cutover traffic lands exclusively on the NEW project. Confirms it is receiving **no** new production traffic and remains a valid rollback target.
 
 Rollback: remove the three `PINNED_*` constants in `src/integrations/supabase/config.ts` and restore `SUPABASE_SERVICE_ROLE_KEY` precedence.
 

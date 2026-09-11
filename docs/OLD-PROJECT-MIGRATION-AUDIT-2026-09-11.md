@@ -1,6 +1,6 @@
 # Old → New backend audit (2026-09-11)
 
-OLD: `ciaxsdojimcupxzpbpev` (Lovable-managed, untouched — read-only access used)
+OLD: `<OLD_PROJECT_ID>` (Lovable-managed, untouched — read-only access used)
 NEW / live: `rihgzkofoxcjljlbvbya` (what munchreach.com uses)
 
 Access used: direct SQL (read-only) on OLD; service-role REST + Auth Admin API on NEW.

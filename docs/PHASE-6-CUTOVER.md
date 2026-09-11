@@ -19,8 +19,8 @@ No writes were made to either database during this check.
 
 | Item | Value |
 | --- | --- |
-| Old project ref | `ciaxsdojimcupxzpbpev` |
-| Old URL | `https://ciaxsdojimcupxzpbpev.supabase.co` |
+| Old project ref | `<OLD_PROJECT_ID>` |
+| Old URL | `https://<OLD_PROJECT_ID>.supabase.co` |
 | Old publishable key | managed env `VITE_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_PUBLISHABLE_KEY` |
 | Old service-role key | secret `SUPABASE_SERVICE_ROLE_KEY` |
 | Encryption key | `PROVIDER_CREDENTIALS_KEY` — **unchanged, never rotated** |

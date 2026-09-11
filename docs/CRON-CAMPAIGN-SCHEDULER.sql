@@ -1,7 +1,7 @@
 -- MunchReach — register the production campaign scheduler cron job.
 --
 -- Run this ONCE in the SQL editor of the PRODUCTION project used by the app:
---   rihgzkofoxcjljlbvbya   (NOT ciaxsdojimcupxzpbpev)
+--   rihgzkofoxcjljlbvbya   (NOT <OLD_PROJECT_ID>)
 --
 -- It does NOT create a second scheduler or a second sending path: it only
 -- invokes the existing public.run_campaign_scheduler(), which POSTs to

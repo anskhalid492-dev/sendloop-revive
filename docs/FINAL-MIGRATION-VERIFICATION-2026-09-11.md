@@ -1,6 +1,6 @@
 # Final migration verification — 2026-09-11
 
-Old project: ciaxsdojimcupxzpbpev (untouched, read-only)
+Old project: <OLD_PROJECT_ID> (untouched, read-only)
 Live project: rihgzkofoxcjljlbvbya (munchreach.com)
 
 ## 1. Remaining admin rows copied
