@@ -173,7 +173,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   });
 
   /** Exports the current page — the browser never holds the whole audience. */
-  const exportCsv = () => {
+  const exportCsv = async () => {
     const header = "email,first_name,last_name,company,job_title,location,status,current_step\n";
     const body = rows
       .map((r) =>
