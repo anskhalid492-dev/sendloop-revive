@@ -1,27 +1,59 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
-function key(): Buffer {
-  const raw = process.env["PROVIDER_CREDENTIALS_KEY"];
-  if (!raw) throw new Error("PROVIDER_CREDENTIALS_KEY is not set");
+/**
+ * Credential encryption key material.
+ *
+ * During the key rotation, PROVIDER_CREDENTIALS_KEY_NEW is the active key and
+ * PROVIDER_CREDENTIALS_KEY stays present only so any ciphertext written before
+ * the rotation can still be read. Once the old secret is removed, the fallback
+ * simply disappears and nothing else changes.
+ */
+function derive(raw: string): Buffer {
   return createHash("sha256").update(raw).digest();
+}
+
+function activeKey(): Buffer {
+  const raw =
+    process.env["PROVIDER_CREDENTIALS_KEY_NEW"] || process.env["PROVIDER_CREDENTIALS_KEY"];
+  if (!raw) throw new Error("PROVIDER_CREDENTIALS_KEY is not set");
+  return derive(raw);
+}
+
+function candidateKeys(): Buffer[] {
+  const raws = [
+    process.env["PROVIDER_CREDENTIALS_KEY_NEW"],
+    process.env["PROVIDER_CREDENTIALS_KEY"],
+  ].filter((v): v is string => !!v);
+  if (raws.length === 0) throw new Error("PROVIDER_CREDENTIALS_KEY is not set");
+  return raws.map(derive);
 }
 
 export function encryptCredentials(value: unknown): string {
   const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key(), iv);
+  const cipher = createCipheriv("aes-256-gcm", activeKey(), iv);
   const ct = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
   return Buffer.concat([iv, cipher.getAuthTag(), ct]).toString("base64");
 }
 
 export function decryptCredentials<T = Record<string, string>>(stored: string): T {
   const buf = Buffer.from(stored, "base64");
-  const decipher = createDecipheriv("aes-256-gcm", key(), buf.subarray(0, 12));
-  decipher.setAuthTag(buf.subarray(12, 28));
-  const plain = Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]).toString(
-    "utf8",
-  );
-  return JSON.parse(plain) as T;
+  let lastError: unknown;
+  for (const k of candidateKeys()) {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", k, buf.subarray(0, 12));
+      decipher.setAuthTag(buf.subarray(12, 28));
+      const plain = Buffer.concat([
+        decipher.update(buf.subarray(28)),
+        decipher.final(),
+      ]).toString("utf8");
+      return JSON.parse(plain) as T;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Could not decrypt credentials");
 }
+
 
 export type ProviderTestResult = {
   ok: boolean;
