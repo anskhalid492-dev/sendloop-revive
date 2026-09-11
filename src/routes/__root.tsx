@@ -276,6 +276,12 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    // Browser error monitoring. Loaded after hydration so the SDK never runs
+    // during SSR and never blocks the first paint.
+    void import("@/instrument.client").then(({ initBrowserSentry }) => initBrowserSentry());
+  }, []);
+
+  useEffect(() => {
     // Password recovery links land on the site root with the recovery token in
     // the URL hash. Send those visitors to the reset screen instead of leaving
     // them signed in on the marketing page without changing their password.
