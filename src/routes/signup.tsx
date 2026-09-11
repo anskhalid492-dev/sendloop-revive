@@ -16,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { absoluteUrl } from "@/lib/seo";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  passwordStrength,
+  validatePassword,
+} from "@/lib/password-policy";
 
 export const Route = createFileRoute("/signup")({
   /** `?redirect=/billing?plan=starter` preserves the plan a visitor picked. */
@@ -47,7 +53,7 @@ const schema = z
   .object({
     fullName: z.string().trim().min(1, "Enter your name").max(100),
     email: z.string().trim().email("Enter a valid work email").max(255),
-    password: z.string().min(8, "Use at least 8 characters").max(72),
+    password: z.string().min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`).max(PASSWORD_MAX_LENGTH),
     confirm: z.string(),
   })
   .refine((value) => value.password === value.confirm, {
@@ -55,14 +61,7 @@ const schema = z
     path: ["confirm"],
   });
 
-function strength(pw: string) {
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score++;
-  return score;
-}
+const strength = passwordStrength;
 
 function safeRedirect(target: string | undefined): string | null {
   if (!target) return null;
@@ -113,6 +112,17 @@ function SignUpPage() {
       return;
     }
     setLoading(true);
+    // Policy + breach check before the account is created.
+    const policyError = await validatePassword(parsed.data.password, {
+      email: parsed.data.email,
+      fullName: parsed.data.fullName,
+    });
+    if (policyError) {
+      setLoading(false);
+      setFormError(policyError);
+      toast.error(policyError);
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
