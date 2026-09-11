@@ -1,6 +1,6 @@
 # MunchReach — Phase 4: Data migration plan (PREPARATION ONLY)
 
-Source (production, unchanged): `ciaxsdojimcupxzpbpev`
+Source (production, unchanged): `<OLD_PROJECT_ID>`
 Target (schema applied, verified in Phase 3, zero drift): `rihgzkofoxcjljlbvbya`
 
 **No data was copied. No production row, secret, env var, cron job or webhook was

@@ -2,7 +2,7 @@
 
 Scope: put the already-built MunchReach app live on `https://munchreach.com`.
 **No Supabase cutover, no cron jobs, no production webhooks in this phase.**
-The app stays on the CURRENT Supabase project `ciaxsdojimcupxzpbpev`.
+The app stays on the CURRENT Supabase project `<OLD_PROJECT_ID>`.
 
 ---
 
@@ -30,7 +30,7 @@ Fill every key in `.env.production.example`. No values live in the repo.
 
 - Build-time (baked into the client, must be exported **before** `bun run build`):
   `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
-  `VITE_SUPABASE_PROJECT_ID` (= `ciaxsdojimcupxzpbpev` in this phase),
+  `VITE_SUPABASE_PROJECT_ID` (= `<OLD_PROJECT_ID>` in this phase),
   `VITE_APP_URL=https://munchreach.com`.
 - Worker secrets (`wrangler secret put NAME --config dist/server/wrangler.json`):
   everything else in the template — Supabase URL/keys + `SB_SERVICE_ROLE_KEY`,
@@ -108,7 +108,7 @@ returned, which means DNS has not moved yet.
 - [ ] Cloudflare zone active for `munchreach.com`
 - [ ] All secrets pushed (`wrangler secret list` matches the template)
 - [ ] `PROVIDER_CREDENTIALS_KEY` identical to current production
-- [ ] `VITE_SUPABASE_PROJECT_ID = ciaxsdojimcupxzpbpev`
+- [ ] `VITE_SUPABASE_PROJECT_ID = <OLD_PROJECT_ID>`
 - [ ] `bun run build` succeeds; `dist/client` + `dist/server` present
 - [ ] Worker deployed as `munchreach`
 - [ ] Custom domains `munchreach.com` + `www.munchreach.com` attached

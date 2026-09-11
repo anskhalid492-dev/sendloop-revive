@@ -1,6 +1,6 @@
 # MunchReach — Phase 4B: infrastructure migration (PARTIAL — BLOCKED)
 
-Production (unchanged): `ciaxsdojimcupxzpbpev`
+Production (unchanged): `<OLD_PROJECT_ID>`
 Target: `rihgzkofoxcjljlbvbya`
 
 Phase 4A data migration is verified. This document records what Phase 4B could
@@ -83,7 +83,7 @@ they migrated with the rows and stay valid. Only their `url` fields need rewriti
 (§4).
 
 **Do not** copy `SUPABASE_DB_URL` from production, and do not leave any variable
-pointing at `ciaxsdojimcupxzpbpev` after cutover.
+pointing at `<OLD_PROJECT_ID>` after cutover.
 
 ## 3. Realtime
 

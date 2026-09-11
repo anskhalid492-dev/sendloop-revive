@@ -1,6 +1,6 @@
 # MunchReach — Phase 4A: production data migration (EXECUTED)
 
-Source (production, unchanged): `ciaxsdojimcupxzpbpev`
+Source (production, unchanged): `<OLD_PROJECT_ID>`
 Target (loaded): `rihgzkofoxcjljlbvbya`
 
 Method: `pg_dump --data-only` (COPY format, explicit column lists, original UUIDs)
@@ -89,7 +89,7 @@ identical paths and their metadata rows inserted.
 - 11 `pg_cron` jobs: NOT created.
 - Webhooks / runner URLs: NOT re-pointed.
 - Application environment variables: unchanged; the live app still runs against
-  `ciaxsdojimcupxzpbpev`.
+  `<OLD_PROJECT_ID>`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Phase 6 — Controlled backend cutover (munchreach.com)
 
-OLD (rollback, untouched): `ciaxsdojimcupxzpbpev`
+OLD (rollback, untouched): `<OLD_PROJECT_ID>`
 NEW (target): `rihgzkofoxcjljlbvbya` — `https://rihgzkofoxcjljlbvbya.supabase.co`
 Publishable key (NEW): `sb_publishable_gTF0GOqvRfQ7f_ED446AVg_DV0rNQ8o`
 
@@ -25,7 +25,7 @@ which is the correct, safe state.
 ```bash
 NEW_SUPABASE_URL=https://rihgzkofoxcjljlbvbya.supabase.co \
 NEW_SERVICE_ROLE_KEY=... \
-OLD_SUPABASE_URL=https://ciaxsdojimcupxzpbpev.supabase.co \
+OLD_SUPABASE_URL=https://<OLD_PROJECT_ID>.supabase.co \
 OLD_SERVICE_ROLE_KEY=... \
 PROVIDER_CREDENTIALS_KEY=<byte-identical production value> \
 bun scripts/phase6-verify.ts
@@ -87,9 +87,9 @@ repoint provider webhooks, then disable the old jobs.
 Re-deploy with the OLD values:
 
 ```bash
-EXPECTED_SUPABASE_PROJECT=ciaxsdojimcupxzpbpev \
-VITE_SUPABASE_URL=https://ciaxsdojimcupxzpbpev.supabase.co \
-VITE_SUPABASE_PROJECT_ID=ciaxsdojimcupxzpbpev \
+EXPECTED_SUPABASE_PROJECT=<OLD_PROJECT_ID> \
+VITE_SUPABASE_URL=https://<OLD_PROJECT_ID>.supabase.co \
+VITE_SUPABASE_PROJECT_ID=<OLD_PROJECT_ID> \
 VITE_SUPABASE_PUBLISHABLE_KEY=<old publishable key> \
 ./scripts/deploy-production.sh
 ```

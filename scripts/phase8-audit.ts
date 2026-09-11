@@ -5,7 +5,7 @@
  */
 
 const NEW_URL = "https://rihgzkofoxcjljlbvbya.supabase.co";
-const OLD_URL = "https://ciaxsdojimcupxzpbpev.supabase.co";
+const OLD_URL = "https://<OLD_PROJECT_ID>.supabase.co";
 const NEW_KEY = process.env["SB_SERVICE_ROLE_KEY"]!;
 const OLD_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"]!;
 

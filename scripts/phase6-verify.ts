@@ -157,7 +157,7 @@ async function main() {
   const cron = await rest(NEW_URL, NEW_KEY, "rpc/admin_list_cron_jobs");
   if (cron.ok) {
     const jobs = cron.body as Array<{ jobname?: string; command?: string }>;
-    const stale = jobs.filter((j) => (j.command ?? "").includes("ciaxsdojimcupxzpbpev"));
+    const stale = jobs.filter((j) => (j.command ?? "").includes("<OLD_PROJECT_ID>"));
     record("cron", stale.length === 0, `${jobs.length} jobs; ${stale.length} still referencing the OLD project`);
   } else {
     record("cron", false, "could not read cron jobs from the new project (expected until Phase 7 creates them)");
