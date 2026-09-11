@@ -29,6 +29,9 @@ import {
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useStorageImage } from "@/hooks/useStorageImage";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadFileToR2 } from "@/lib/file-storage";
+import { deleteStoredFile } from "@/lib/files.functions";
+import { legacyKeyToR2 } from "@/lib/files-model";
 import { createWorkspace } from "@/lib/workspaces.functions";
 import {
   deleteWorkspace,
