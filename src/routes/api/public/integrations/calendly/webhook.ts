@@ -60,11 +60,8 @@ export const Route = createFileRoute("/api/public/integrations/calendly/webhook"
         const signature = request.headers.get("calendly-webhook-signature");
         if (!signature) return json({ error: "Missing signature" }, 401);
 
-        // The signature identifies the connection: try each Calendly connection
-        // whose organization matches, then fall back to all of them. Only the
-        // holder of the right signing key can ever verify.
-        const orgUri = body.payload?.scheduled_event?.uri ? null : null;
-        void orgUri;
+        // The signature identifies the connection: only the holder of the
+        // matching per-connection signing key can ever verify.
         const { data: connections } = await supabaseAdmin
           .from("integration_connections")
           .select("id, workspace_id, status")

@@ -194,6 +194,8 @@ import { Route as ApiPublicV1MeRouteImport } from './routes/api/public/v1/me'
 import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api/public/v1/openapi[.]json'
 import { Route as ApiPublicV1RepliesRouteImport } from './routes/api/public/v1/replies'
 import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/webhooks'
+import { Route as ApiPublicIntegrationsCalendlyCallbackRouteImport } from './routes/api/public/integrations/calendly/callback'
+import { Route as ApiPublicIntegrationsCalendlyWebhookRouteImport } from './routes/api/public/integrations/calendly/webhook'
 import { Route as ApiPublicV1CampaignsCampaignIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId'
 import { Route as ApiPublicV1ContactsContactIdRouteImport } from './routes/api/public/v1/contacts.$contactId'
 import { Route as ApiPublicV1ContactsBulkRouteImport } from './routes/api/public/v1/contacts.bulk'
@@ -1221,6 +1223,18 @@ const ApiPublicV1WebhooksRoute = ApiPublicV1WebhooksRouteImport.update({
   path: '/api/public/v1/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsCalendlyCallbackRoute =
+  ApiPublicIntegrationsCalendlyCallbackRouteImport.update({
+    id: '/api/public/integrations/calendly/callback',
+    path: '/api/public/integrations/calendly/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsCalendlyWebhookRoute =
+  ApiPublicIntegrationsCalendlyWebhookRouteImport.update({
+    id: '/api/public/integrations/calendly/webhook',
+    path: '/api/public/integrations/calendly/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1CampaignsCampaignIdRoute =
   ApiPublicV1CampaignsCampaignIdRouteImport.update({
     id: '/$campaignId',
@@ -1472,6 +1486,8 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
+  '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
+  '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1666,6 +1682,8 @@ export interface FileRoutesByTo {
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingIndexRoute
+  '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
+  '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1865,6 +1883,8 @@ export interface FileRoutesById {
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/_authenticated/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
+  '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
+  '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -2064,6 +2084,8 @@ export interface FileRouteTypes {
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/mranuskhalid/marketing/'
+    | '/api/public/integrations/calendly/callback'
+    | '/api/public/integrations/calendly/webhook'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2258,6 +2280,8 @@ export interface FileRouteTypes {
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/mranuskhalid/marketing'
+    | '/api/public/integrations/calendly/callback'
+    | '/api/public/integrations/calendly/webhook'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2456,6 +2480,8 @@ export interface FileRouteTypes {
     | '/api/public/v1/replies'
     | '/api/public/v1/webhooks'
     | '/_authenticated/mranuskhalid/marketing/'
+    | '/api/public/integrations/calendly/callback'
+    | '/api/public/integrations/calendly/webhook'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2569,6 +2595,8 @@ export interface RootRouteChildren {
   ApiPublicV1OpenapiDotjsonRoute: typeof ApiPublicV1OpenapiDotjsonRoute
   ApiPublicV1RepliesRoute: typeof ApiPublicV1RepliesRoute
   ApiPublicV1WebhooksRoute: typeof ApiPublicV1WebhooksRouteWithChildren
+  ApiPublicIntegrationsCalendlyCallbackRoute: typeof ApiPublicIntegrationsCalendlyCallbackRoute
+  ApiPublicIntegrationsCalendlyWebhookRoute: typeof ApiPublicIntegrationsCalendlyWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3868,6 +3896,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1WebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/calendly/callback': {
+      id: '/api/public/integrations/calendly/callback'
+      path: '/api/public/integrations/calendly/callback'
+      fullPath: '/api/public/integrations/calendly/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsCalendlyCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/calendly/webhook': {
+      id: '/api/public/integrations/calendly/webhook'
+      path: '/api/public/integrations/calendly/webhook'
+      fullPath: '/api/public/integrations/calendly/webhook'
+      preLoaderRoute: typeof ApiPublicIntegrationsCalendlyWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/campaigns/$campaignId': {
       id: '/api/public/v1/campaigns/$campaignId'
       path: '/$campaignId'
@@ -4440,6 +4482,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1OpenapiDotjsonRoute: ApiPublicV1OpenapiDotjsonRoute,
   ApiPublicV1RepliesRoute: ApiPublicV1RepliesRoute,
   ApiPublicV1WebhooksRoute: ApiPublicV1WebhooksRouteWithChildren,
+  ApiPublicIntegrationsCalendlyCallbackRoute:
+    ApiPublicIntegrationsCalendlyCallbackRoute,
+  ApiPublicIntegrationsCalendlyWebhookRoute:
+    ApiPublicIntegrationsCalendlyWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
