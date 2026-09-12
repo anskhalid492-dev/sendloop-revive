@@ -262,6 +262,20 @@ const QUOTE_START_PATTERNS = [
 ];
 
 /**
+ * Drop lines that are clearly footer boilerplate: unsubscribe links, and
+ * footer phrasing like "If you no longer wish to receive these emails".
+ * Applied to both the human-typed part and the fallback raw body.
+ */
+function dropFooterLines(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !/unsubscribe/i.test(line) || !/https?:\/\//i.test(line))
+    .filter((line) => !/no longer wish to receive/i.test(line))
+    .join("\n")
+    .trim();
+}
+
+/**
  * Keep only what the human actually typed: everything from the first quoted
  * block onwards is our own campaign email (footer and unsubscribe link
  * included) and must never drive classification.
@@ -272,12 +286,7 @@ export function stripQuotedReply(body: string): string {
     const match = pattern.exec(body);
     if (match && match.index < cut) cut = match.index;
   }
-  const own = body.slice(0, cut);
-  return own
-    .split("\n")
-    .filter((line) => !/unsubscribe/i.test(line) || !/https?:\/\//i.test(line))
-    .join("\n")
-    .trim();
+  return dropFooterLines(body.slice(0, cut));
 }
 
 export function classifyInbound(
@@ -286,7 +295,9 @@ export function classifyInbound(
   headers?: Record<string, string> | null,
 ): ConversationStatus | null {
   const own = stripQuotedReply(body);
-  const text = `${subject}\n${own || body}`.slice(0, 4000);
+  // When the whole body is quoted, fall back to the footer-filtered raw body
+  // — never the unfiltered one, which still carries our unsubscribe wording.
+  const text = `${subject}\n${own || dropFooterLines(body)}`.slice(0, 4000);
   if (BOUNCE_PATTERNS.some((p) => p.test(text))) return "bounced";
   if (UNSUB_PATTERNS.some((p) => p.test(text))) return "unsubscribed";
   if (isAutoReplyHeaders(headers)) return "ooo";
