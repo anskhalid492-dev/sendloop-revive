@@ -714,15 +714,17 @@ export function IntegrationsTab() {
                 <Button variant="ghost" onClick={() => setOpenSlug(null)}>
                   Close
                 </Button>
-                <Button
-                  disabled={connectMutation.isPending}
-                  onClick={() => connectMutation.mutate(openMeta.slug)}
-                >
-                  {connectMutation.isPending ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                  ) : null}
-                  {openItem.connected ? "Save & verify" : "Connect"}
-                </Button>
+                {openMeta.authType === "oauth" ? null : (
+                  <Button
+                    disabled={connectMutation.isPending}
+                    onClick={() => connectMutation.mutate(openMeta.slug)}
+                  >
+                    {connectMutation.isPending ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : null}
+                    {openItem.connected ? "Save & verify" : "Connect"}
+                  </Button>
+                )}
               </DialogFooter>
             </>
           ) : null}
