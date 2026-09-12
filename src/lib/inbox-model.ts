@@ -190,7 +190,7 @@ const UNSUB_PATTERNS = [
   /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsubscribe\s+(me|us|this|from|please)\b/i,
   /\bplease\s+unsubscribe\b/i,
   /\b(want|wish|would\s+like|'?d\s+like|need)\s+to\s+(be\s+)?unsubscribed?\b/i,
-  /\bunsub(scribed)?\b\s*(me|us|please)/i,
+  /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsub(scribed)?\b\s*(me|us|please)/i,
   /remove me (from|off)/i,
   /(please )?remove (me|my (email|address|details))\b/i,
   /take me off/i,
