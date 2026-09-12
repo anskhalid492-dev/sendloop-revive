@@ -353,6 +353,49 @@ async function insertEnrollment(
   return !error;
 }
 
+/**
+ * Bulk paid-access lookup for a candidate set: workspaces they own, then live
+ * subscriptions and active plan grants on those workspaces. Three queries
+ * instead of one round trip per user, so a scan stays cheap as the base grows.
+ */
+async function paidOwnerIds(client: Db, userIds: string[]): Promise<Set<string>> {
+  const paid = new Set<string>();
+  if (userIds.length === 0) return paid;
+
+  const { data: workspaces } = await client
+    .from("workspaces")
+    .select("id, owner_id, status")
+    .in("owner_id", userIds);
+  const owned = (workspaces ?? []) as { id: string; owner_id: string; status: string | null }[];
+  const ownerOf = new Map(owned.map((w) => [w.id, w.owner_id]));
+  const workspaceIds = owned.map((w) => w.id);
+  if (workspaceIds.length === 0) return paid;
+
+  const [{ data: subs }, { data: grants }] = await Promise.all([
+    client
+      .from("billing_subscriptions")
+      .select("workspace_id, status")
+      .in("workspace_id", workspaceIds)
+      .in("status", ["active", "past_due"]),
+    client
+      .from("plan_grants")
+      .select("workspace_id, expires_at")
+      .in("workspace_id", workspaceIds)
+      .eq("status", "active"),
+  ]);
+
+  for (const row of (subs ?? []) as { workspace_id: string }[]) {
+    const owner = ownerOf.get(row.workspace_id);
+    if (owner) paid.add(owner);
+  }
+  for (const row of (grants ?? []) as { workspace_id: string; expires_at: string | null }[]) {
+    if (row.expires_at && Date.parse(row.expires_at) <= Date.now()) continue;
+    const owner = ownerOf.get(row.workspace_id);
+    if (owner) paid.add(owner);
+  }
+  return paid;
+}
+
 /** Free/trial users who never upgraded. Baseline is their sign-up date. */
 async function enrollFreeTrial(client: Db, config: LifecycleConfig): Promise<number> {
   if (!config.free_trial.enabled) return 0;
@@ -366,10 +409,15 @@ async function enrollFreeTrial(client: Db, config: LifecycleConfig): Promise<num
     .order("created_at", { ascending: false })
     .limit(2000);
 
+  const rows = ((data ?? []) as { id: string; email: string | null; created_at: string }[]).filter(
+    (row) => !existing.has(row.id) && Boolean(row.email),
+  );
+  const paid = await paidOwnerIds(client, rows.map((r) => r.id));
+
   let created = 0;
-  for (const row of (data ?? []) as { id: string; email: string | null; created_at: string }[]) {
+  for (const row of rows) {
     if (created >= config.batch_limit) break;
-    if (existing.has(row.id)) continue;
+    if (paid.has(row.id)) continue;
     const account = await loadAccount(client, row.id);
     if (!account.email || account.hasPaidAccess) continue;
     if (isBanned(account.authUser) || account.workspaceSuspended) continue;
@@ -396,13 +444,18 @@ async function enrollInactive(client: Db, config: LifecycleConfig): Promise<numb
   const threshold = Date.now() - config.inactive.inactive_days * DAY_MS;
   const users = await listAuthUsers(client);
 
-  let created = 0;
-  for (const user of users) {
-    if (created >= config.batch_limit) break;
-    if (existing.has(user.id) || isBanned(user)) continue;
-    // Cheap pre-filter on the sign-in stamp before the heavier activity read.
+  // Cheap pre-filters first: not enrolled, not banned, no recent sign-in.
+  const candidates = users.filter((user) => {
+    if (existing.has(user.id) || isBanned(user)) return false;
     const signedIn = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : null;
-    if (signedIn !== null && signedIn > threshold) continue;
+    return signedIn === null || signedIn <= threshold;
+  });
+  const paid = await paidOwnerIds(client, candidates.map((u) => u.id));
+
+  let created = 0;
+  for (const user of candidates) {
+    if (created >= config.batch_limit) break;
+    if (!paid.has(user.id)) continue;
 
     const account = await loadAccount(client, user.id);
     if (!account.email || !account.hasPaidAccess || account.workspaceSuspended) continue;
