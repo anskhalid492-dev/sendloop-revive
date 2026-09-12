@@ -65,6 +65,26 @@ const CALENDLY_RESULTS: Record<string, { ok: boolean; text: string }> = {
   forbidden: { ok: false, text: "Only workspace owners and admins can connect Calendly." },
 };
 
+/** Messages for the `?slack=` result the Slack OAuth callback redirects back with. */
+const SLACK_RESULTS: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "Slack connected — alerts will be posted to the channel you chose." },
+  declined: { ok: false, text: "Slack connection cancelled." },
+  state_invalid: { ok: false, text: "That Slack link was not valid. Please try again." },
+  state_used: { ok: false, text: "That Slack link was already used. Please try again." },
+  no_code: { ok: false, text: "Slack did not return an authorization. Please try again." },
+  no_channel: {
+    ok: false,
+    text: "Slack did not confirm a channel to post in. Try again and pick a channel.",
+  },
+  exchange_failed: {
+    ok: false,
+    text: "That Slack authorization expired or was refused. Please try again.",
+  },
+  verify_failed: { ok: false, text: "Slack could not confirm the connection. Nothing was saved." },
+  store_failed: { ok: false, text: "The Slack connection could not be saved. Please try again." },
+  forbidden: { ok: false, text: "Only workspace owners and admins can connect Slack." },
+};
+
 function StatusBadge({ item }: { item: IntegrationConnectionView }) {
   if (!item.isEnabled) return <Badge variant="outline">Unavailable</Badge>;
   if (!item.connected) return <Badge variant="outline">Not connected</Badge>;
