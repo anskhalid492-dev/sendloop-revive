@@ -163,6 +163,57 @@ export function IntegrationsTab() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /* ----------------------------------------------------- Calendly (OAuth) */
+
+  const fetchCalendly = useServerFn(getCalendlyStatus);
+  const startCalendly = useServerFn(startCalendlyOAuth);
+  const dropCalendly = useServerFn(disconnectCalendly);
+  const resultHandled = useRef(false);
+
+  const calendly = useQuery({
+    queryKey: ["calendly-status", workspaceId],
+    queryFn: () => fetchCalendly({ data: { workspaceId } }),
+    enabled: Boolean(workspaceId),
+  });
+
+  const calendlyStart = useMutation({
+    mutationFn: () => startCalendly({ data: { workspaceId } }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.url) {
+        toast.error(result.message ?? "Could not start the Calendly connection.");
+        return;
+      }
+      window.location.href = result.url;
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const calendlyDisconnect = useMutation({
+    mutationFn: () => dropCalendly({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (resultHandled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("calendly");
+    if (!code) return;
+    resultHandled.current = true;
+    const result = CALENDLY_RESULTS[code] ?? { ok: false, text: "Calendly connection failed." };
+    if (result.ok) toast.success(result.text);
+    else toast.error(result.text);
+    params.delete("calendly");
+    const next = `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
+    void queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
+  }, [queryClient, workspaceId]);
+
   const items = useMemo(() => {
     const all = list.data ?? [];
     return category === "all" ? all : all.filter((i) => i.category === category);
