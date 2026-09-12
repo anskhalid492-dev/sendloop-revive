@@ -188,10 +188,72 @@ export async function calendlyMe(
   return { ok: res.ok, status: res.status, user: res.body?.resource ?? null };
 }
 
+export type CalendlySubscription = {
+  uri: string;
+  callback_url: string;
+  events: string[];
+  state?: string;
+  scope?: string;
+};
+
+/**
+ * Existing MunchReach subscriptions for this Calendly user. Calendly answers
+ * 409 Conflict when the same callback URL is registered twice, so every
+ * (re)connect must look here first instead of blindly creating one.
+ */
+export async function listWebhookSubscriptions(
+  accessToken: string,
+  args: { organization: string; user: string },
+): Promise<{ ok: boolean; status: number; subscriptions: CalendlySubscription[]; detail: string }> {
+  const params = new URLSearchParams({
+    organization: args.organization,
+    user: args.user,
+    scope: "user",
+    count: "100",
+  });
+  const res = await api<{ collection?: CalendlySubscription[] }>(
+    accessToken,
+    `/webhook_subscriptions?${params.toString()}`,
+  );
+  return {
+    ok: res.ok,
+    status: res.status,
+    subscriptions: res.body?.collection ?? [],
+    detail: res.ok ? "" : apiDetail(res.status, res.body),
+  };
+}
+
+/** Internal-only detail: real Calendly status + message, never a token. */
+function apiDetail(status: number, body: unknown): string {
+  const b = body as { title?: string; message?: string; details?: unknown } | null;
+  const parts = [`status=${status}`];
+  if (b?.title) parts.push(`title=${b.title}`);
+  if (b?.message) parts.push(`message=${b.message}`);
+  if (b?.details) parts.push(`details=${JSON.stringify(b.details).slice(0, 300)}`);
+  return parts.join(" ");
+}
+
+/** Plain-language reason a customer can act on. */
+export function webhookErrorForCustomer(status: number, body: unknown): string {
+  const message = ((body as { message?: string } | null)?.message ?? "").toLowerCase();
+  if (status === 401)
+    return "Calendly no longer accepts this connection. Use Reconnect to sign in again.";
+  if (status === 403) {
+    if (message.includes("plan") || message.includes("permission") || message.includes("webhook"))
+      return "Your Calendly plan does not include webhook access, which MunchReach needs to see bookings. Calendly Standard or higher is required.";
+    return "Calendly refused permission to watch your bookings. Reconnect and approve access, or check your Calendly plan includes webhooks.";
+  }
+  if (status === 409)
+    return "Calendly already had a booking notification for MunchReach. It has been reused.";
+  if (status === 429) return "Calendly is rate limiting MunchReach right now. Try again in a minute.";
+  if (status >= 500) return "Calendly is temporarily unavailable. Try Reconnect in a few minutes.";
+  return "Calendly would not switch on booking notifications. Try Reconnect.";
+}
+
 export async function createWebhookSubscription(
   accessToken: string,
   args: { url: string; organization: string; user: string; signingKey: string },
-): Promise<{ ok: boolean; uri: string | null; message: string }> {
+): Promise<{ ok: boolean; uri: string | null; status: number; message: string; detail: string }> {
   const res = await api<{ resource?: { uri?: string } }>(accessToken, "/webhook_subscriptions", {
     method: "POST",
     body: JSON.stringify({
@@ -204,9 +266,21 @@ export async function createWebhookSubscription(
     }),
   });
   if (res.ok && res.body?.resource?.uri) {
-    return { ok: true, uri: res.body.resource.uri, message: "Webhook registered." };
+    return {
+      ok: true,
+      uri: res.body.resource.uri,
+      status: res.status,
+      message: "Booking notifications are on.",
+      detail: "",
+    };
   }
-  return { ok: false, uri: null, message: `Calendly refused the webhook subscription (${res.status}).` };
+  return {
+    ok: false,
+    uri: null,
+    status: res.status,
+    message: webhookErrorForCustomer(res.status, res.body),
+    detail: apiDetail(res.status, res.body),
+  };
 }
 
 export async function deleteWebhookSubscription(accessToken: string, uri: string): Promise<void> {
@@ -216,6 +290,93 @@ export async function deleteWebhookSubscription(accessToken: string, uri: string
     headers: { Authorization: `Bearer ${accessToken}` },
     signal: AbortSignal.timeout(10_000),
   }).catch(() => undefined);
+}
+
+export type EnsureWebhookResult = {
+  ok: boolean;
+  uri: string | null;
+  signingKey: string | null;
+  reused: boolean;
+  message: string;
+  detail: string;
+};
+
+/**
+ * Idempotent webhook setup. Reuses the subscription MunchReach already owns
+ * (same callback URL, active, both booking events, and we still hold its
+ * signing key), removes stale duplicates, and only then creates a new one.
+ * This is what removes the 409 Conflict on reconnect.
+ */
+export async function ensureWebhookSubscription(
+  accessToken: string,
+  args: {
+    url: string;
+    organization: string;
+    user: string;
+    existingUri?: string | null;
+    existingSigningKey?: string | null;
+  },
+): Promise<EnsureWebhookResult> {
+  const listed = await listWebhookSubscriptions(accessToken, {
+    organization: args.organization,
+    user: args.user,
+  });
+  if (!listed.ok) {
+    return {
+      ok: false,
+      uri: null,
+      signingKey: null,
+      reused: false,
+      message: webhookErrorForCustomer(listed.status, null),
+      detail: `list ${listed.detail}`,
+    };
+  }
+
+  const ours = listed.subscriptions.filter((s) => s.callback_url === args.url);
+  const covers = (s: CalendlySubscription) =>
+    CALENDLY_WEBHOOK_EVENTS.every((e) => (s.events ?? []).includes(e));
+  const healthy = ours.find(
+    (s) =>
+      s.uri === args.existingUri &&
+      Boolean(args.existingSigningKey) &&
+      covers(s) &&
+      (s.state ?? "active") === "active",
+  );
+
+  if (healthy) {
+    // Drop any accidental duplicates so Calendly never fires twice.
+    for (const dup of ours) {
+      if (dup.uri !== healthy.uri) await deleteWebhookSubscription(accessToken, dup.uri);
+    }
+    return {
+      ok: true,
+      uri: healthy.uri,
+      signingKey: args.existingSigningKey ?? null,
+      reused: true,
+      message: "Booking notifications are on.",
+      detail: "",
+    };
+  }
+
+  // Anything else (missing signing key, wrong events, inactive) is replaced —
+  // a subscription we cannot verify signatures for is worse than none.
+  for (const stale of ours) await deleteWebhookSubscription(accessToken, stale.uri);
+
+  const signingKey = args.existingSigningKey || newWebhookSigningKey();
+  const created = await createWebhookSubscription(accessToken, {
+    url: args.url,
+    organization: args.organization,
+    user: args.user,
+    signingKey,
+  });
+  return {
+    ok: created.ok,
+    uri: created.uri,
+    signingKey: created.ok ? signingKey : null,
+    reused: false,
+    message: created.message,
+    detail: created.detail,
+  };
 }
 
 export async function getScheduledEvent(
