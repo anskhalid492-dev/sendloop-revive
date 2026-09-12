@@ -176,7 +176,12 @@ export function SiteFooter() {
     const groups = new Map<string, { label: string; href: string }[]>();
     for (const item of items) {
       const key = item.group_label || "More";
-      groups.set(key, [...(groups.get(key) ?? []), { label: item.label, href: item.href }]);
+      const links = groups.get(key) ?? [];
+      // Admin-managed navigation can contain duplicate rows. Render each
+      // destination once so repeated records never create repeated footer links.
+      if (!links.some((link) => link.href === item.href)) {
+        groups.set(key, [...links, { label: item.label, href: item.href }]);
+      }
     }
     // Compliance and Sending Policy are platform rule pages and must always
     // appear under Legal, in the documented order, even if the CMS list omits them.
