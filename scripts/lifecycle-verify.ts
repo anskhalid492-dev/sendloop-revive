@@ -108,11 +108,11 @@ async function main() {
 
   // Pause the shared send queue for the duration of the test so no test row can
   // leave the building. Real system emails stay queued and go out afterwards.
-  const { getTransactionalSettings, updateTransactionalSettings } = await import(
+  const { getTransactionalSettings, saveTransactionalSettings } = await import(
     "../src/lib/transactional-email.server"
   );
   const mailSettings = await getTransactionalSettings(db);
-  await updateTransactionalSettings(db, { paused: true });
+  await saveTransactionalSettings(db, { paused: true });
 
   try {
     await saveLifecycleConfig({ enabled: true, batch_limit: 500 }, db);
@@ -288,7 +288,7 @@ async function main() {
     check("system email templates intact", (count ?? 0) >= 0, `${count} stored templates`);
   } finally {
     await cleanup(created);
-    await updateTransactionalSettings(db, { paused: mailSettings.paused });
+    await saveTransactionalSettings(db, { paused: mailSettings.paused });
     await saveLifecycleConfig(original as unknown as Record<string, unknown>, db);
     const restored = await getLifecycleConfig(db);
     check("lifecycle settings restored", restored.enabled === original.enabled);
