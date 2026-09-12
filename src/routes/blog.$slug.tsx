@@ -85,6 +85,22 @@ export const Route = createFileRoute("/blog/$slug")({
             : []),
           { name: post.title, path },
         ]),
+        ...(faqs.length
+          ? [
+              {
+                type: "application/ld+json",
+                children: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "FAQPage",
+                  mainEntity: faqs.map((faq) => ({
+                    "@type": "Question",
+                    name: faq.question,
+                    acceptedAnswer: { "@type": "Answer", text: faq.answer },
+                  })),
+                }),
+              },
+            ]
+          : []),
       ],
     };
   },
