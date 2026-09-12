@@ -35,6 +35,7 @@ import { isRequiredSystemEmail } from "@/lib/transactional/policy";
 import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
 import { SesSystemEmailPanel } from "@/components/admin/SesSystemEmailPanel";
+import { LifecyclePanel } from "@/components/admin/LifecyclePanel";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/system-emails")({
   head: () => ({
@@ -405,6 +406,7 @@ function SystemEmailsPage() {
           <TabsTrigger value="variables">Variables</TabsTrigger>
           <TabsTrigger value="ses">Amazon SES</TabsTrigger>
           <TabsTrigger value="birthday">Birthday gifts</TabsTrigger>
+          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ses" className="space-y-4">
@@ -718,6 +720,10 @@ function SystemEmailsPage() {
 
         <TabsContent value="birthday">
           <BirthdayGiftLog />
+        </TabsContent>
+
+        <TabsContent value="lifecycle">
+          <LifecyclePanel />
         </TabsContent>
       </Tabs>
 
