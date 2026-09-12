@@ -9,7 +9,7 @@
  * The matching secret key lives only in the backend secret store as
  * TURNSTILE_SECRET_KEY and is never referenced from client code.
  */
-const DEFAULT_SITE_KEY = "0x4AAAAAAAEw0319Ij_wKLBGY";
+const DEFAULT_SITE_KEY = "0x4AAAAAAEw0319Ij_wKLBGY";
 
 function fromViteEnv(name: string): string | undefined {
   const value = (import.meta.env as Record<string, string | undefined>)[name];
