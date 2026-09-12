@@ -4329,6 +4329,133 @@ export type Database = {
           },
         ]
       }
+      lifecycle_actions: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          coupon_code: string | null
+          coupon_expires_at: string | null
+          coupon_percent: number | null
+          created_at: string
+          email_id: string | null
+          enrollment_id: string
+          error: string | null
+          event_key: string | null
+          id: string
+          kind: string
+          status: string
+          step_key: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          coupon_code?: string | null
+          coupon_expires_at?: string | null
+          coupon_percent?: number | null
+          created_at?: string
+          email_id?: string | null
+          enrollment_id: string
+          error?: string | null
+          event_key?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          step_key: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          coupon_code?: string | null
+          coupon_expires_at?: string | null
+          coupon_percent?: number | null
+          created_at?: string
+          email_id?: string | null
+          enrollment_id?: string
+          error?: string | null
+          event_key?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          step_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifecycle_actions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "lifecycle_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lifecycle_enrollments: {
+        Row: {
+          baseline_at: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          email: string | null
+          entered_at: string
+          id: string
+          last_step_at: string | null
+          next_action_at: string | null
+          reactivated_at: string | null
+          state: string
+          terminated_at: string | null
+          track: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          baseline_at?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          email?: string | null
+          entered_at?: string
+          id?: string
+          last_step_at?: string | null
+          next_action_at?: string | null
+          reactivated_at?: string | null
+          state?: string
+          terminated_at?: string | null
+          track: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          baseline_at?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          email?: string | null
+          entered_at?: string
+          id?: string
+          last_step_at?: string | null
+          next_action_at?: string | null
+          reactivated_at?: string | null
+          state?: string
+          terminated_at?: string | null
+          track?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifecycle_enrollments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_automation_enrollments: {
         Row: {
           automation_id: string

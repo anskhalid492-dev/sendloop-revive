@@ -68,7 +68,16 @@ async function run(request: Request) {
     } catch (birthdayError) {
       console.error("birthday gift cycle failed", birthdayError);
     }
-    return json({ ...summary, birthday }, 200);
+    // Customer lifecycle emails ride on the same cycle. Every step is claimed
+    // through a unique ledger row, so repeated invocations cannot duplicate.
+    let lifecycle: unknown = null;
+    try {
+      const { runLifecycleCycle } = await import("@/lib/lifecycle.server");
+      lifecycle = await runLifecycleCycle();
+    } catch (lifecycleError) {
+      console.error("lifecycle cycle failed", lifecycleError);
+    }
+    return json({ ...summary, birthday, lifecycle }, 200);
   } catch (error) {
     console.error("transactional runner failed", error);
     return json({ ok: false, error: error instanceof Error ? error.message : "Run failed" }, 500);

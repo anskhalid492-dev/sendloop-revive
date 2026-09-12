@@ -111,6 +111,14 @@ const EVENT_PURPOSES: Record<string, SystemEmailPurpose> = {
   "workspace.created": "onboarding",
   // Security events
   "user.login_alert": "security",
+  // Customer lifecycle: upgrade offers are billing, account closure is accounts
+  "lifecycle.free_offer_5": "billing",
+  "lifecycle.free_offer_10": "billing",
+  "lifecycle.inactive_reengage_1": "notifications",
+  "lifecycle.inactive_reengage_2": "notifications",
+  "lifecycle.inactive_reengage_3": "accounts",
+  "lifecycle.inactive_final_warning": "accounts",
+  "lifecycle.account_terminated": "accounts",
   // Announcements are marketing-style product news
   "system.announcement": "marketing",
 };
@@ -129,6 +137,7 @@ const CATEGORY_PURPOSES: Record<string, SystemEmailPurpose> = {
   Security: "security",
   System: "system",
   Transactional: "notifications",
+  Lifecycle: "notifications",
 };
 
 /** Resolves the purpose for a system email event. */
