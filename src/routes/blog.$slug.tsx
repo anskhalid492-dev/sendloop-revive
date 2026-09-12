@@ -2,7 +2,14 @@ import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-route
 import { ArrowRight, ChevronRight, Clock, Linkedin, Link2, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
-import { ArticleBody, HtmlArticleBody, TableOfContents, parseArticle, parseHtmlToc } from "@/components/blog/ArticleBody";
+import {
+  ArticleBody,
+  HtmlArticleBody,
+  TableOfContents,
+  parseArticle,
+  parseHtmlFaq,
+  parseHtmlToc,
+} from "@/components/blog/ArticleBody";
 import { CoverImage, PostCard } from "@/components/blog/BlogCards";
 import { MarketingLayout, Section } from "@/components/site/MarketingPage";
 import { Badge } from "@/components/ui/badge";
