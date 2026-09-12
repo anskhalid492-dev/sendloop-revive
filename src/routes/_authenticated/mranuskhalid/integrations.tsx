@@ -74,6 +74,7 @@ function AdminIntegrationsPage() {
                 <tr>
                   <th className="px-4 py-2 font-medium">Integration</th>
                   <th className="px-4 py-2 font-medium">Category</th>
+                  <th className="px-4 py-2 font-medium">Setup</th>
                   <th className="px-4 py-2 font-medium">Connections</th>
                   <th className="px-4 py-2 font-medium">24h events</th>
                   <th className="px-4 py-2 font-medium">Paid only</th>
@@ -89,6 +90,15 @@ function AdminIntegrationsPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {categoryLabel(row.category)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {row.oauthConfigured === null ? (
+                        <span className="text-xs text-muted-foreground">Customer credentials</span>
+                      ) : row.oauthConfigured ? (
+                        <Badge variant="secondary">Sign-in app configured</Badge>
+                      ) : (
+                        <Badge variant="destructive">Sign-in app missing</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {row.connections}

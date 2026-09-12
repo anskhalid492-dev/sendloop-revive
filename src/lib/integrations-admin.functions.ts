@@ -29,6 +29,8 @@ export type AdminIntegration = {
   errored: number;
   events24h: number;
   failures24h: number;
+  /** OAuth integrations only: are the server-side app credentials present? */
+  oauthConfigured: boolean | null;
 };
 
 export type AdminIntegrationEvent = {
@@ -47,6 +49,13 @@ export const adminListIntegrations = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<AdminIntegration[]> => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { INTEGRATIONS_BY_SLUG } = await import("@/lib/integrations-catalog");
+    // Presence only — no credential value is ever read into the response.
+    const oauthReady: Record<string, boolean> = {
+      calendly: Boolean(process.env["CALENDLY_CLIENT_ID"] && process.env["CALENDLY_CLIENT_SECRET"]),
+      slack: Boolean(process.env["SLACK_CLIENT_ID"] && process.env["SLACK_CLIENT_SECRET"]),
+    };
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const [{ data: catalog }, { data: connections }, { data: events }] = await Promise.all([
@@ -71,6 +80,8 @@ export const adminListIntegrations = createServerFn({ method: "GET" })
         errored: conns.filter((c) => c.slug === slug && c.status === "error").length,
         events24h: evts.filter((e) => e.slug === slug).length,
         failures24h: evts.filter((e) => e.slug === slug && e.status === "failed").length,
+        oauthConfigured:
+          INTEGRATIONS_BY_SLUG[slug]?.authType === "oauth" ? (oauthReady[slug] ?? false) : null,
       };
     });
   });

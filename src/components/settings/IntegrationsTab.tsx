@@ -46,6 +46,12 @@ import {
   startCalendlyOAuth,
   verifyCalendlyConnection,
 } from "@/lib/calendly.functions";
+import {
+  disconnectSlack,
+  getSlackStatus,
+  startSlackOAuth,
+  verifySlackConnection,
+} from "@/lib/slack.functions";
 import { cn } from "@/lib/utils";
 
 /** Messages for the `?calendly=` result the OAuth callback redirects back with. */
@@ -63,6 +69,26 @@ const CALENDLY_RESULTS: Record<string, { ok: boolean; text: string }> = {
   verify_failed: { ok: false, text: "Calendly could not confirm the account. Nothing was saved." },
   store_failed: { ok: false, text: "The Calendly connection could not be saved. Please try again." },
   forbidden: { ok: false, text: "Only workspace owners and admins can connect Calendly." },
+};
+
+/** Messages for the `?slack=` result the Slack OAuth callback redirects back with. */
+const SLACK_RESULTS: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "Slack connected — alerts will be posted to the channel you chose." },
+  declined: { ok: false, text: "Slack connection cancelled." },
+  state_invalid: { ok: false, text: "That Slack link was not valid. Please try again." },
+  state_used: { ok: false, text: "That Slack link was already used. Please try again." },
+  no_code: { ok: false, text: "Slack did not return an authorization. Please try again." },
+  no_channel: {
+    ok: false,
+    text: "Slack did not confirm a channel to post in. Try again and pick a channel.",
+  },
+  exchange_failed: {
+    ok: false,
+    text: "That Slack authorization expired or was refused. Please try again.",
+  },
+  verify_failed: { ok: false, text: "Slack could not confirm the connection. Nothing was saved." },
+  store_failed: { ok: false, text: "The Slack connection could not be saved. Please try again." },
+  forbidden: { ok: false, text: "Only workspace owners and admins can connect Slack." },
 };
 
 function StatusBadge({ item }: { item: IntegrationConnectionView }) {
@@ -227,6 +253,70 @@ export function IntegrationsTab() {
     void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
   }, [queryClient, workspaceId]);
 
+  /* -------------------------------------------------------- Slack (OAuth) */
+
+  const fetchSlack = useServerFn(getSlackStatus);
+  const startSlackFn = useServerFn(startSlackOAuth);
+  const dropSlack = useServerFn(disconnectSlack);
+  const verifySlack = useServerFn(verifySlackConnection);
+  const slackResultHandled = useRef(false);
+
+  const slack = useQuery({
+    queryKey: ["slack-status", workspaceId],
+    queryFn: () => fetchSlack({ data: { workspaceId } }),
+    enabled: Boolean(workspaceId),
+  });
+
+  const slackStart = useMutation({
+    mutationFn: () => startSlackFn({ data: { workspaceId } }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.url) {
+        toast.error(result.message ?? "Could not start the Slack connection.");
+        return;
+      }
+      window.location.href = result.url;
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const slackDisconnect = useMutation({
+    mutationFn: () => dropSlack({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["slack-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const slackVerify = useMutation({
+    mutationFn: () => verifySlack({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["slack-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (slackResultHandled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("slack");
+    if (!code) return;
+    slackResultHandled.current = true;
+    const result = SLACK_RESULTS[code] ?? { ok: false, text: "Slack connection failed." };
+    if (result.ok) toast.success(result.text);
+    else toast.error(result.text);
+    params.delete("slack");
+    const next = `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
+    void queryClient.invalidateQueries({ queryKey: ["slack-status", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
+  }, [queryClient, workspaceId]);
+
+
   const items = useMemo(() => {
     const all = list.data ?? [];
     return category === "all" ? all : all.filter((i) => i.category === category);
@@ -279,6 +369,32 @@ export function IntegrationsTab() {
             const locked = !item.planAllowed;
             const isOauth = meta?.authType === "oauth";
             const cal = item.slug === "calendly" ? (calendly.data ?? null) : null;
+            const slk = item.slug === "slack" ? (slack.data ?? null) : null;
+            // One shared OAuth card, one descriptor per provider.
+            const oauth =
+              item.slug === "calendly"
+                ? {
+                    connected: Boolean(cal?.connected),
+                    configured: cal?.configured !== false,
+                    loading: calendly.isLoading,
+                    start: calendlyStart,
+                    remove: calendlyDisconnect,
+                    verify: calendlyVerify,
+                    verifyLabel: "Check booking notifications",
+                    unavailable: "Calendly sign-in is not available on this environment yet.",
+                  }
+                : item.slug === "slack"
+                  ? {
+                      connected: Boolean(slk?.connected),
+                      configured: slk?.configured !== false,
+                      loading: slack.isLoading,
+                      start: slackStart,
+                      remove: slackDisconnect,
+                      verify: slackVerify,
+                      verifyLabel: "Check Slack connection",
+                      unavailable: "Slack sign-in is not available on this environment yet.",
+                    }
+                  : null;
             return (
               <div key={item.slug} className="rounded-xl border border-border/70 bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -318,6 +434,21 @@ export function IntegrationsTab() {
                         : "Booking notifications are not active yet — use Check booking notifications, or Reconnect."}
                     </p>
                   </div>
+                ) : slk && slk.connected ? (
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      Slack workspace:{" "}
+                      <span className="font-medium text-foreground">
+                        {slk.teamName ?? "Connected"}
+                      </span>
+                      {slk.channel ? ` · ${slk.channel}` : ""}
+                    </p>
+                    <p>
+                      {slk.status === "error"
+                        ? "Slack needs attention — use Reconnect."
+                        : "Alerts are being posted to this channel."}
+                    </p>
+                  </div>
                 ) : item.connected && item.accountLabel ? (
                   <p className="mt-3 text-xs text-muted-foreground">
                     Account: <span className="font-medium text-foreground">{item.accountLabel}</span>
@@ -325,9 +456,9 @@ export function IntegrationsTab() {
                   </p>
                 ) : null}
 
-                {isOauth && cal && !cal.configured ? (
+                {isOauth && oauth && !oauth.configured ? (
                   <p className="mt-3 rounded-lg bg-muted/60 p-2 text-xs text-muted-foreground">
-                    Calendly sign-in is not available on this environment yet.
+                    {oauth.unavailable}
                   </p>
                 ) : null}
 
@@ -349,51 +480,75 @@ export function IntegrationsTab() {
                     <Button size="sm" variant="outline" disabled className="gap-1.5">
                       <Lock className="size-3.5" /> Paid plan
                     </Button>
-                  ) : isOauth ? (
+                  ) : isOauth && oauth ? (
                     <>
                       <Button
                         size="sm"
-                        variant={cal?.connected ? "outline" : "default"}
+                        variant={oauth.connected ? "outline" : "default"}
                         disabled={
                           !item.isEnabled ||
-                          calendlyStart.isPending ||
-                          calendly.isLoading ||
-                          cal?.configured === false
+                          oauth.start.isPending ||
+                          oauth.loading ||
+                          !oauth.configured
                         }
-                        onClick={() => calendlyStart.mutate()}
+                        onClick={() => oauth.start.mutate()}
                       >
-                        {calendlyStart.isPending ? (
+                        {oauth.start.isPending ? (
                           <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                         ) : (
                           <Link2 className="mr-1.5 size-3.5" />
                         )}
-                        {cal?.connected ? "Reconnect" : `Connect ${item.name}`}
+                        {oauth.connected ? "Reconnect" : `Connect ${item.name}`}
                       </Button>
-                      {cal?.connected ? (
+                      {oauth.connected ? (
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={calendlyVerify.isPending}
-                          onClick={() => calendlyVerify.mutate()}
+                          disabled={oauth.verify.isPending}
+                          onClick={() => oauth.verify.mutate()}
                         >
-                          {calendlyVerify.isPending ? (
+                          {oauth.verify.isPending ? (
                             <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                           ) : null}
-                          Check booking notifications
+                          {oauth.verifyLabel}
                         </Button>
                       ) : null}
-                      {cal?.connected ? (
+                      {oauth.connected && (meta?.events.length ?? 0) > 0 ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setOpenSlug(item.slug);
+                              setValues({});
+                            }}
+                          >
+                            Manage events
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={testMutation.isPending}
+                            onClick={() => testMutation.mutate(item.slug)}
+                          >
+                            <RefreshCw className="mr-1.5 size-3.5" /> Send test
+                          </Button>
+                        </>
+                      ) : null}
+                      {oauth.connected ? (
                         <Button
                           size="sm"
                           variant="ghost"
                           className="text-destructive"
-                          disabled={calendlyDisconnect.isPending}
-                          onClick={() => calendlyDisconnect.mutate()}
+                          disabled={oauth.remove.isPending}
+                          onClick={() => oauth.remove.mutate()}
                         >
                           <Trash2 className="mr-1.5 size-3.5" /> Disconnect
                         </Button>
                       ) : null}
                     </>
+
+
                   ) : item.connected ? (
                     <>
                       <Button
@@ -582,15 +737,17 @@ export function IntegrationsTab() {
                 <Button variant="ghost" onClick={() => setOpenSlug(null)}>
                   Close
                 </Button>
-                <Button
-                  disabled={connectMutation.isPending}
-                  onClick={() => connectMutation.mutate(openMeta.slug)}
-                >
-                  {connectMutation.isPending ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                  ) : null}
-                  {openItem.connected ? "Save & verify" : "Connect"}
-                </Button>
+                {openMeta.authType === "oauth" ? null : (
+                  <Button
+                    disabled={connectMutation.isPending}
+                    onClick={() => connectMutation.mutate(openMeta.slug)}
+                  >
+                    {connectMutation.isPending ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : null}
+                    {openItem.connected ? "Save & verify" : "Connect"}
+                  </Button>
+                )}
               </DialogFooter>
             </>
           ) : null}
