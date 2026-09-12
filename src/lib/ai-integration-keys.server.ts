@@ -83,7 +83,7 @@ export async function integrationAiKeys(
       const provider = SLUG_TO_PROVIDER[row.slug]!;
       // Free-text models typed on the Integrations tab are normalized back to a
       // real model id for this provider, so we never call an invented model.
-      const model = resolveAiModel(provider, (row.config?.["model"] as string | null) ?? null);
+      const model = interpretModelName(provider, (row.config?.["model"] as string | null) ?? null);
       out.push({ provider, model, apiKey, last4: apiKey.slice(-4) });
     }
     return out;
