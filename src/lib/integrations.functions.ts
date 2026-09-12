@@ -108,7 +108,7 @@ export const listIntegrations = createServerFn({ method: "POST" })
             ? `/api/public/integrations/${slug}?token=${inboundToken}`
             : null,
         successCount: slugEvents.filter((e) => e.status === "success").length,
-        failureCount: slugEvents.filter((e) => e.status !== "success").length,
+        failureCount: slugEvents.filter((e) => e.status === "failed").length,
       });
     }
     return out;
