@@ -127,6 +127,41 @@ function providerSource(input: Record<string, unknown>): Record<string, unknown>
   return nested ?? eventData ?? input;
 }
 
+const ATTACHMENT_EXTENSIONS: Record<string, string> = {
+  "application/pdf": ".pdf",
+  "application/zip": ".zip",
+  "image/gif": ".gif",
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "text/csv": ".csv",
+  "text/plain": ".txt",
+};
+
+function normalizeAttachments(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((entry, index) => {
+    const attachment = objectOf(entry) ?? {};
+    const rawName = attachment["name"] ?? attachment["filename"] ?? attachment["Name"] ?? attachment["Filename"];
+    const contentType = String(
+      attachment["content_type"] ?? attachment["contentType"] ?? attachment["Content-Type"] ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    const suppliedName = typeof rawName === "string" ? rawName.trim() : "";
+    const fallback = `attachment-${index + 1}${ATTACHMENT_EXTENSIONS[contentType] ?? ""}`;
+    const rawUrl = attachment["url"] ?? attachment["download_url"] ?? attachment["downloadUrl"];
+    const rawSize = attachment["size"] ?? attachment["content_length"] ?? attachment["contentLength"];
+    const normalized: Record<string, unknown> = {
+      name: (suppliedName || fallback).slice(0, 300),
+    };
+
+    if (typeof rawUrl === "string") normalized["url"] = rawUrl;
+    if (typeof rawSize === "number" && Number.isFinite(rawSize) && rawSize >= 0) normalized["size"] = rawSize;
+    return normalized;
+  });
+}
+
 function nestedHeaderSources(source: Record<string, unknown>): unknown[] {
   const message = objectOf(source["message"]);
   const envelope = objectOf(source["envelope"]);
@@ -299,7 +334,7 @@ export function normalizeInbound(input: Record<string, unknown>): Record<string,
     references:
       source["references"] ?? source["References"] ?? headerOf(headers, "references") ?? headerFromAny(source, "references") ?? undefined,
     receivedAt: source["receivedAt"] ?? source["created_at"] ?? source["timestamp"] ?? null,
-    attachments: Array.isArray(source["attachments"]) ? source["attachments"] : [],
+    attachments: normalizeAttachments(source["attachments"]),
   };
 }
 
