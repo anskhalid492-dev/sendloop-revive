@@ -57,6 +57,7 @@ import {
   PermissionsTab,
   TeamTab,
 } from "@/routes/_authenticated/workspace";
+import { validatePassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -457,8 +458,9 @@ function SecuritySection() {
 
   const passwordChange = useMutation({
     mutationFn: async () => {
-      if (password.length < 8) throw new Error("Use at least 8 characters");
       if (password !== confirm) throw new Error("Passwords do not match");
+      const policyError = await validatePassword(password, { email });
+      if (policyError) throw new Error(policyError);
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw new Error(error.message);
     },

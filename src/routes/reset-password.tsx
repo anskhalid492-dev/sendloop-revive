@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NOINDEX_META } from "@/lib/seo";
+import { validatePassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -52,15 +53,17 @@ function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("Use at least 8 characters");
-      return;
-    }
     if (password !== confirm) {
       toast.error("Passwords don't match");
       return;
     }
     setLoading(true);
+    const policyError = await validatePassword(password);
+    if (policyError) {
+      setLoading(false);
+      toast.error(policyError);
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {

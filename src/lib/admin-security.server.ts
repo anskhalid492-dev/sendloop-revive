@@ -220,10 +220,29 @@ export async function hasVerifiedMfaFactor(userId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Two-factor is MANDATORY for platform admin/support roles (TOTP authenticator).
+ * Admins who already existed when the rule shipped get a short setup window in
+ * which ordinary (non-sensitive) admin calls still work while they enroll;
+ * sensitive actions never get grace. After the window, admin access requires a
+ * verified factor and an AAL2 session outright.
+ */
+export const ADMIN_MFA_GRACE_UNTIL = Date.parse("2026-09-18T23:59:59Z");
+
+export function adminMfaGraceActive(now = Date.now()): boolean {
+  return now < ADMIN_MFA_GRACE_UNTIL;
+}
+
 export async function adminMfaState(context: AdminContext) {
   const enrolled = await hasVerifiedMfaFactor(context.userId);
   const satisfied = authLevel(context.claims) === "aal2";
-  return { enrolled, satisfied, required: true };
+  return {
+    enrolled,
+    satisfied,
+    required: true,
+    graceActive: adminMfaGraceActive(),
+    graceEndsAt: new Date(ADMIN_MFA_GRACE_UNTIL).toISOString(),
+  };
 }
 
 /* ------------------------------------------------------------------ */
