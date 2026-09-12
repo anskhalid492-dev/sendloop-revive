@@ -3,7 +3,13 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Clock, CalendarDays, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
-import { ArticleBody, TableOfContents, parseArticle } from "@/components/blog/ArticleBody";
+import {
+  HelpArticleBody,
+  HelpTableOfContents,
+  QuickAnswer,
+  TldrBox,
+  parseHelpArticle,
+} from "@/components/help/HelpArticleBody";
 import { Button } from "@/components/ui/button";
 import {
   articleNeighbours,
@@ -26,8 +32,8 @@ export const Route = createFileRoute("/help-center/$slug")({
     }
     const { article } = loaderData;
     return metaFor(
-      `${article.title} — MunchReach Help`,
-      article.description.slice(0, 150),
+      article.seoTitle ?? `${article.title} — MunchReach Help`,
+      article.metaDescription ?? article.description.slice(0, 150),
       `/help-center/${params.slug}`,
     );
   },
@@ -93,12 +99,22 @@ function Helpful({ slug }: { slug: string }) {
 
 function ArticlePage() {
   const { article } = Route.useLoaderData();
-  const sections = parseArticle(article.content);
+  const sections = parseHelpArticle(article.content);
   const { previous, next } = articleNeighbours(article.slug);
   const related = relatedArticles(article);
   const faqs = article.faqs ?? [];
 
   const jsonLd: Record<string, unknown>[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      headline: article.title,
+      description: article.metaDescription ?? article.description,
+      dateModified: article.updated,
+      inLanguage: "en",
+      mainEntityOfPage: `https://munchreach.com/help-center/${article.slug}`,
+      publisher: { "@type": "Organization", name: "MunchReach" },
+    },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
@@ -156,7 +172,11 @@ function ArticlePage() {
 
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_260px]">
         <article className="max-w-[68ch]">
-          <ArticleBody sections={sections} />
+          {article.tldr?.length ? <TldrBox points={article.tldr} /> : null}
+          {article.quickAnswer ? <QuickAnswer text={article.quickAnswer} /> : null}
+          <div className={article.tldr?.length || article.quickAnswer ? "mt-8" : ""}>
+            <HelpArticleBody sections={sections} />
+          </div>
           <Helpful slug={article.slug} />
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
@@ -230,7 +250,10 @@ function ArticlePage() {
         </article>
 
         <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-          <TableOfContents sections={sections} />
+          <HelpTableOfContents
+            sections={sections}
+            extra={article.quickAnswer ? [{ id: "quick-answer", text: "Quick answer" }] : []}
+          />
           <div className="surface-card p-5">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               Keep reading
