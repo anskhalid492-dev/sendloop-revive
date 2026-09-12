@@ -101,8 +101,18 @@ export const Route = createFileRoute("/api/public/integrations/calendly/callback
             unknown
           >;
 
-        const signingKey = newWebhookSigningKey();
         const accountLabel = me.user.email ?? me.user.name ?? "Calendly account";
+        const nextConfig: Record<string, unknown> = {
+          ...existingConfig,
+          events: [],
+          auth: "oauth",
+          calendly_name: me.user.name ?? null,
+          calendly_email: me.user.email ?? null,
+          calendly_scheduling_url: me.user.scheduling_url ?? null,
+          owner_uri: me.user.uri,
+          organization_uri: me.user.current_organization,
+          connected_at: new Date().toISOString(),
+        };
 
         const { data: upserted, error } = await supabaseAdmin
           .from("integration_connections")
@@ -112,17 +122,7 @@ export const Route = createFileRoute("/api/public/integrations/calendly/callback
               slug: CALENDLY_SLUG,
               status: "connected",
               account_label: accountLabel,
-              config: {
-                ...existingConfig,
-                events: [],
-                auth: "oauth",
-                calendly_name: me.user.name ?? null,
-                calendly_email: me.user.email ?? null,
-                calendly_scheduling_url: me.user.scheduling_url ?? null,
-                owner_uri: me.user.uri,
-                organization_uri: me.user.current_organization,
-                connected_at: new Date().toISOString(),
-              } as never,
+              config: nextConfig as never,
               error_message: null,
               last_synced_at: new Date().toISOString(),
               created_by: state.userId,
@@ -134,52 +134,29 @@ export const Route = createFileRoute("/api/public/integrations/calendly/callback
         if (error || !upserted) return back(origin, { calendly: "store_failed" });
         const connectionId = String((upserted as { id: string }).id);
 
+        // Keep the signing key of an existing subscription so a reconnect can
+        // reuse it instead of asking Calendly for a duplicate (409 Conflict).
+        const previous = await readCalendlyCredentials(connectionId);
         await saveCalendlyCredentials(connectionId, {
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
           expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
           owner_uri: me.user.uri,
           organization_uri: me.user.current_organization,
-          webhook_signing_key: signingKey,
+          ...(previous?.webhook_signing_key
+            ? { webhook_signing_key: previous.webhook_signing_key }
+            : {}),
         });
 
-        const hook = await createWebhookSubscription(tokens.access_token, {
-          url: `${origin}/api/public/integrations/calendly/webhook`,
-          organization: me.user.current_organization,
-          user: me.user.uri,
-          signingKey,
-        });
-
-        await supabaseAdmin
-          .from("integration_connections")
-          .update({
-            config: {
-              ...existingConfig,
-              events: [],
-              auth: "oauth",
-              calendly_name: me.user.name ?? null,
-              calendly_email: me.user.email ?? null,
-              calendly_scheduling_url: me.user.scheduling_url ?? null,
-              owner_uri: me.user.uri,
-              organization_uri: me.user.current_organization,
-              connected_at: new Date().toISOString(),
-              webhook_uri: hook.uri,
-            } as never,
-            error_message: hook.ok
-              ? null
-              : "Connected, but Calendly would not register the booking webhook. Reconnect to retry.",
-            status: hook.ok ? "connected" : "error",
-          })
-          .eq("id", connectionId);
-
-        await supabaseAdmin.from("integration_sync_logs").insert({
-          workspace_id: state.workspaceId,
-          connection_id: connectionId,
-          slug: CALENDLY_SLUG,
-          action: "connect",
-          status: hook.ok ? "success" : "failed",
-          error: hook.ok ? null : hook.message,
-          finished_at: new Date().toISOString(),
+        const { setupCalendlyWebhook } = await import("@/lib/calendly-setup.server");
+        const hook = await setupCalendlyWebhook({
+          workspaceId: state.workspaceId,
+          connectionId,
+          accessToken: tokens.access_token,
+          organizationUri: me.user.current_organization,
+          ownerUri: me.user.uri,
+          origin,
+          config: nextConfig,
         });
 
         return back(origin, { calendly: hook.ok ? "connected" : "webhook_failed" });
