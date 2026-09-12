@@ -70,7 +70,7 @@ export function DocsHero() {
   return (
     <section className="border-b border-docs-rule bg-docs-paper">
       <div className="mx-auto max-w-6xl px-4 pt-10 pb-12 sm:px-6 sm:pt-16 sm:pb-20">
-        <div className="rounded-md bg-docs-ink px-5 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-16">
+        <div className="rounded-md bg-docs-ink px-5 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
             <div className="lg:col-span-7">
               <dl className="space-y-1 border-b border-white/12 pb-5 font-docmono text-[0.72rem] text-white/50">
@@ -118,7 +118,7 @@ export function DocsHero() {
                 ))}
               </div>
               <div className="mt-6">
-                <div className="h-1.5 w-full overflow-hidden bg-white/10">
+                <div className="h-[3px] w-full overflow-hidden bg-white/10">
                   <div className="docs-fill h-full w-[79%] bg-docs-signal" />
                 </div>
                 <p className="mt-3 font-docmono text-[0.72rem] text-white/45">
@@ -174,7 +174,6 @@ export function DocsSteps({
     <ol className="border-l border-docs-rule">
       {steps.map((step, i) => (
         <li key={step.title} className="relative pb-8 pl-6 last:pb-0 sm:pl-8">
-          <span className="absolute top-1 -left-px h-6 w-px bg-docs-ink" aria-hidden />
           <span className="font-docmono text-[0.72rem] text-docs-signal">
             {String(i + 1).padStart(2, "0")}
           </span>
@@ -222,7 +221,7 @@ export function DocsMailboxPanel({
   rows: { address: string; provider: string; detail: string; status: "Healthy" | "Warming" }[];
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-docs-rule bg-white">
+    <div className="max-w-3xl overflow-hidden rounded-md border border-docs-rule bg-white">
       <div className="border-b border-docs-rule bg-docs-paper px-4 py-2.5 font-docmono text-[0.72rem] text-docs-slate">
         workspace.munchreach.app/mailboxes
       </div>
@@ -232,7 +231,7 @@ export function DocsMailboxPanel({
             key={row.address}
             className="grid grid-cols-1 gap-1 border-b border-docs-rule px-4 py-3.5 last:border-b-0 sm:grid-cols-12 sm:items-center sm:gap-4"
           >
-            <span className="font-docmono text-[0.85rem] text-docs-ink sm:col-span-5">
+            <span className="font-docmono text-[0.85rem] text-docs-ink sm:col-span-6">
               {row.address}
             </span>
             <span className="font-docmono text-[0.75rem] text-docs-slate sm:col-span-3">
