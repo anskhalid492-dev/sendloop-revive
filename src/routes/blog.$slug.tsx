@@ -39,6 +39,8 @@ export const Route = createFileRoute("/blog/$slug")({
     const url = absoluteUrl(path);
     const canonical = post.canonical_url ? absoluteUrl(post.canonical_url) : url;
     const image = post.og_image_url || post.cover_image_url;
+    const faqs =
+      (post as { content_format?: string }).content_format === "html" ? parseHtmlFaq(post.content) : [];
     return {
       meta: [
         { title },
