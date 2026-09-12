@@ -411,11 +411,22 @@ export const OUTBOUND_EVENTS: {
   },
   {
     name: "lead.created",
-    when: "Declared by CRM and webhook integrations in the integration catalogue.",
-    status: "declared",
+    when: "A lead is added to the workspace — CRM, CSV import, public API or an inbound integration.",
+    status: "live",
     payload: `{
   "event": "lead.created",
-  "lead": { "email": "ada@example.com" }
+  "lead": {
+    "id": "9f2c1d4e-0000-0000-0000-000000000000",
+    "object": "contact",
+    "email": "ada@example.com",
+    "first_name": "Ada",
+    "last_name": "Lovelace",
+    "company": "Example Inc",
+    "job_title": "Head of Sales",
+    "status": "new",
+    "lead_source": "import",
+    "created_at": "2026-09-12T19:30:00.000Z"
+  }
 }`,
   },
   {

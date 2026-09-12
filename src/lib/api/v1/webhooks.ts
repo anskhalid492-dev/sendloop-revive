@@ -20,6 +20,7 @@ export const WEBHOOK_EVENTS = [
   "contact.created",
   "contact.updated",
   "contact.replied",
+  "lead.created",
 ] as const;
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
@@ -39,6 +40,7 @@ export const WEBHOOK_EVENT_DESCRIPTIONS: Record<WebhookEvent, string> = {
   "contact.created": "A contact was created.",
   "contact.updated": "A contact was updated.",
   "contact.replied": "A contact replied for the first time.",
+  "lead.created": "A lead was added to the workspace (CRM, import, API or integration).",
 };
 
 export function isWebhookEvent(value: string): value is WebhookEvent {

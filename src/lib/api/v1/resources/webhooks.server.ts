@@ -153,6 +153,105 @@ export async function deleteWebhook(ctx: ApiContext) {
   return { data: { id, object: "webhook_endpoint", deleted: true } };
 }
 
+// ---------------------------------------------------------------------------
+// REST Hook subscriptions (`/v1/webhook-subscriptions`)
+//
+// The same `webhook_endpoints` records as `/v1/webhooks`, exposed in the shape
+// subscription-style callers (Zapier REST Hooks) expect: one target URL, one
+// event, and an idempotent subscribe that never produces two identical
+// endpoints for the same URL.
+// ---------------------------------------------------------------------------
+
+const subscribeSchema = z
+  .object({
+    url: urlSchema,
+    event: eventSchema.optional(),
+    events: z.array(eventSchema).min(1).max(WEBHOOK_EVENTS.length + 1).optional(),
+    description: z.string().max(500).nullish(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.event && !(value.events && value.events.length)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Provide `event` or `events`." });
+    }
+  });
+
+function subscriptionId(ctx: ApiContext) {
+  return pathId(ctx.params["subscriptionId"] ?? ctx.params["webhookId"], "subscription id");
+}
+
+function serializeSubscription(row: Record<string, unknown>) {
+  const base = serializeWebhook(row as never);
+  return { ...base, object: "webhook_subscription" as const };
+}
+
+export async function createWebhookSubscription(ctx: ApiContext) {
+  const input = parseWith(subscribeSchema, ctx.body);
+  const events = input.events ?? [input.event!];
+
+  // Idempotent subscribe: an active endpoint with the same URL and the same
+  // event set is reused, so a repeated Zapier subscribe cannot double-deliver.
+  const { data: existing } = await ctx.admin
+    .from("webhook_endpoints")
+    .select(FIELDS)
+    .eq("workspace_id", ctx.auth.workspaceId)
+    .eq("url", input.url)
+    .eq("status", "active");
+
+  const match = (existing ?? []).find((row: { events: string[] | null }) => {
+    const current = [...(row.events ?? [])].sort();
+    return current.length === events.length && current.every((e, i) => e === [...events].sort()[i]);
+  });
+  if (match) return { data: { ...serializeSubscription(match), reused: true } };
+
+  const secret = generateWebhookSecret();
+  const { encryptCredentials } = await import("@/lib/provider-credentials.server");
+  const { data, error } = await ctx.admin
+    .from("webhook_endpoints")
+    .insert({
+      workspace_id: ctx.auth.workspaceId,
+      url: input.url,
+      description: input.description ?? "REST Hook subscription",
+      events,
+      secret_hash: await sha256Hex(secret),
+      secret_ciphertext: encryptCredentials({ secret }),
+      created_by: ctx.auth.createdBy,
+    })
+    .select(FIELDS)
+    .single();
+  if (error) {
+    throw new ApiError("invalid_request", "The subscription could not be created.", {
+      details: { reason: error.message },
+    });
+  }
+  return { data: { ...serializeSubscription(data), secret } };
+}
+
+export async function getWebhookSubscription(ctx: ApiContext) {
+  return { data: serializeSubscription(await loadWebhook(ctx, subscriptionId(ctx))) };
+}
+
+export async function deleteWebhookSubscription(ctx: ApiContext) {
+  const id = subscriptionId(ctx);
+  await loadWebhook(ctx, id);
+  const { error } = await ctx.admin
+    .from("webhook_endpoints")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", ctx.auth.workspaceId);
+  if (error) throw new ApiError("conflict", "The subscription could not be deleted.");
+
+  // Anything still queued for the removed endpoint must never be attempted.
+  await ctx.admin
+    .from("webhook_deliveries")
+    .update({ status: "cancelled", failure_reason: "Subscription removed" })
+    .eq("workspace_id", ctx.auth.workspaceId)
+    .eq("endpoint_id", id)
+    .eq("status", "pending");
+
+  return { data: { id, object: "webhook_subscription", deleted: true } };
+}
+
 export async function listDeliveries(ctx: ApiContext) {
   const id = pathId(ctx.params["webhookId"], "webhook id");
   await loadWebhook(ctx, id);

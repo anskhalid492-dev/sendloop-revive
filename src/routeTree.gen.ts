@@ -193,6 +193,7 @@ import { Route as ApiPublicV1MailboxesRouteImport } from './routes/api/public/v1
 import { Route as ApiPublicV1MeRouteImport } from './routes/api/public/v1/me'
 import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api/public/v1/openapi[.]json'
 import { Route as ApiPublicV1RepliesRouteImport } from './routes/api/public/v1/replies'
+import { Route as ApiPublicV1WebhookSubscriptionsRouteImport } from './routes/api/public/v1/webhook-subscriptions'
 import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/webhooks'
 import { Route as ApiPublicIntegrationsCalendlyCallbackRouteImport } from './routes/api/public/integrations/calendly/callback'
 import { Route as ApiPublicIntegrationsCalendlyWebhookRouteImport } from './routes/api/public/integrations/calendly/webhook'
@@ -202,6 +203,7 @@ import { Route as ApiPublicV1ContactsContactIdRouteImport } from './routes/api/p
 import { Route as ApiPublicV1ContactsBulkRouteImport } from './routes/api/public/v1/contacts.bulk'
 import { Route as ApiPublicV1ContactsExportRouteImport } from './routes/api/public/v1/contacts.export'
 import { Route as ApiPublicV1MailboxesMailboxIdRouteImport } from './routes/api/public/v1/mailboxes.$mailboxId'
+import { Route as ApiPublicV1WebhookSubscriptionsSubscriptionIdRouteImport } from './routes/api/public/v1/webhook-subscriptions.$subscriptionId'
 import { Route as ApiPublicV1WebhooksWebhookIdRouteImport } from './routes/api/public/v1/webhooks.$webhookId'
 import { Route as ApiPublicV1CampaignsCampaignIdSequenceRouteImport } from './routes/api/public/v1/campaigns.$campaignId.sequence'
 import { Route as ApiPublicV1CampaignsCampaignIdStatsRouteImport } from './routes/api/public/v1/campaigns.$campaignId.stats'
@@ -1219,6 +1221,12 @@ const ApiPublicV1RepliesRoute = ApiPublicV1RepliesRouteImport.update({
   path: '/api/public/v1/replies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1WebhookSubscriptionsRoute =
+  ApiPublicV1WebhookSubscriptionsRouteImport.update({
+    id: '/api/public/v1/webhook-subscriptions',
+    path: '/api/public/v1/webhook-subscriptions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1WebhooksRoute = ApiPublicV1WebhooksRouteImport.update({
   id: '/api/public/v1/webhooks',
   path: '/api/public/v1/webhooks',
@@ -1270,6 +1278,12 @@ const ApiPublicV1MailboxesMailboxIdRoute =
     id: '/$mailboxId',
     path: '/$mailboxId',
     getParentRoute: () => ApiPublicV1MailboxesRoute,
+  } as any)
+const ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute =
+  ApiPublicV1WebhookSubscriptionsSubscriptionIdRouteImport.update({
+    id: '/$subscriptionId',
+    path: '/$subscriptionId',
+    getParentRoute: () => ApiPublicV1WebhookSubscriptionsRoute,
   } as any)
 const ApiPublicV1WebhooksWebhookIdRoute =
   ApiPublicV1WebhooksWebhookIdRouteImport.update({
@@ -1491,6 +1505,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
+  '/api/public/v1/webhook-subscriptions': typeof ApiPublicV1WebhookSubscriptionsRouteWithChildren
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
@@ -1501,6 +1516,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
   '/api/public/v1/contacts/export': typeof ApiPublicV1ContactsExportRoute
   '/api/public/v1/mailboxes/$mailboxId': typeof ApiPublicV1MailboxesMailboxIdRoute
+  '/api/public/v1/webhook-subscriptions/$subscriptionId': typeof ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute
   '/api/public/v1/webhooks/$webhookId': typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
@@ -1688,6 +1704,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
+  '/api/public/v1/webhook-subscriptions': typeof ApiPublicV1WebhookSubscriptionsRouteWithChildren
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
@@ -1698,6 +1715,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
   '/api/public/v1/contacts/export': typeof ApiPublicV1ContactsExportRoute
   '/api/public/v1/mailboxes/$mailboxId': typeof ApiPublicV1MailboxesMailboxIdRoute
+  '/api/public/v1/webhook-subscriptions/$subscriptionId': typeof ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute
   '/api/public/v1/webhooks/$webhookId': typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
@@ -1890,6 +1908,7 @@ export interface FileRoutesById {
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
   '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/replies': typeof ApiPublicV1RepliesRoute
+  '/api/public/v1/webhook-subscriptions': typeof ApiPublicV1WebhookSubscriptionsRouteWithChildren
   '/api/public/v1/webhooks': typeof ApiPublicV1WebhooksRouteWithChildren
   '/_authenticated/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
@@ -1900,6 +1919,7 @@ export interface FileRoutesById {
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
   '/api/public/v1/contacts/export': typeof ApiPublicV1ContactsExportRoute
   '/api/public/v1/mailboxes/$mailboxId': typeof ApiPublicV1MailboxesMailboxIdRoute
+  '/api/public/v1/webhook-subscriptions/$subscriptionId': typeof ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute
   '/api/public/v1/webhooks/$webhookId': typeof ApiPublicV1WebhooksWebhookIdRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/sequence': typeof ApiPublicV1CampaignsCampaignIdSequenceRouteWithChildren
   '/api/public/v1/campaigns/$campaignId/stats': typeof ApiPublicV1CampaignsCampaignIdStatsRoute
@@ -2092,6 +2112,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/me'
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
+    | '/api/public/v1/webhook-subscriptions'
     | '/api/public/v1/webhooks'
     | '/mranuskhalid/marketing/'
     | '/api/public/integrations/calendly/callback'
@@ -2102,6 +2123,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/contacts/bulk'
     | '/api/public/v1/contacts/export'
     | '/api/public/v1/mailboxes/$mailboxId'
+    | '/api/public/v1/webhook-subscriptions/$subscriptionId'
     | '/api/public/v1/webhooks/$webhookId'
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
@@ -2289,6 +2311,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/me'
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
+    | '/api/public/v1/webhook-subscriptions'
     | '/api/public/v1/webhooks'
     | '/mranuskhalid/marketing'
     | '/api/public/integrations/calendly/callback'
@@ -2299,6 +2322,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/contacts/bulk'
     | '/api/public/v1/contacts/export'
     | '/api/public/v1/mailboxes/$mailboxId'
+    | '/api/public/v1/webhook-subscriptions/$subscriptionId'
     | '/api/public/v1/webhooks/$webhookId'
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
@@ -2490,6 +2514,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/me'
     | '/api/public/v1/openapi.json'
     | '/api/public/v1/replies'
+    | '/api/public/v1/webhook-subscriptions'
     | '/api/public/v1/webhooks'
     | '/_authenticated/mranuskhalid/marketing/'
     | '/api/public/integrations/calendly/callback'
@@ -2500,6 +2525,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/contacts/bulk'
     | '/api/public/v1/contacts/export'
     | '/api/public/v1/mailboxes/$mailboxId'
+    | '/api/public/v1/webhook-subscriptions/$subscriptionId'
     | '/api/public/v1/webhooks/$webhookId'
     | '/api/public/v1/campaigns/$campaignId/sequence'
     | '/api/public/v1/campaigns/$campaignId/stats'
@@ -2607,6 +2633,7 @@ export interface RootRouteChildren {
   ApiPublicV1MeRoute: typeof ApiPublicV1MeRoute
   ApiPublicV1OpenapiDotjsonRoute: typeof ApiPublicV1OpenapiDotjsonRoute
   ApiPublicV1RepliesRoute: typeof ApiPublicV1RepliesRoute
+  ApiPublicV1WebhookSubscriptionsRoute: typeof ApiPublicV1WebhookSubscriptionsRouteWithChildren
   ApiPublicV1WebhooksRoute: typeof ApiPublicV1WebhooksRouteWithChildren
   ApiPublicIntegrationsCalendlyCallbackRoute: typeof ApiPublicIntegrationsCalendlyCallbackRoute
   ApiPublicIntegrationsCalendlyWebhookRoute: typeof ApiPublicIntegrationsCalendlyWebhookRoute
@@ -3903,6 +3930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1RepliesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/webhook-subscriptions': {
+      id: '/api/public/v1/webhook-subscriptions'
+      path: '/api/public/v1/webhook-subscriptions'
+      fullPath: '/api/public/v1/webhook-subscriptions'
+      preLoaderRoute: typeof ApiPublicV1WebhookSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/webhooks': {
       id: '/api/public/v1/webhooks'
       path: '/api/public/v1/webhooks'
@@ -3965,6 +3999,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/v1/mailboxes/$mailboxId'
       preLoaderRoute: typeof ApiPublicV1MailboxesMailboxIdRouteImport
       parentRoute: typeof ApiPublicV1MailboxesRoute
+    }
+    '/api/public/v1/webhook-subscriptions/$subscriptionId': {
+      id: '/api/public/v1/webhook-subscriptions/$subscriptionId'
+      path: '/$subscriptionId'
+      fullPath: '/api/public/v1/webhook-subscriptions/$subscriptionId'
+      preLoaderRoute: typeof ApiPublicV1WebhookSubscriptionsSubscriptionIdRouteImport
+      parentRoute: typeof ApiPublicV1WebhookSubscriptionsRoute
     }
     '/api/public/v1/webhooks/$webhookId': {
       id: '/api/public/v1/webhooks/$webhookId'
@@ -4374,6 +4415,21 @@ const ApiPublicV1MailboxesRouteChildren: ApiPublicV1MailboxesRouteChildren = {
 const ApiPublicV1MailboxesRouteWithChildren =
   ApiPublicV1MailboxesRoute._addFileChildren(ApiPublicV1MailboxesRouteChildren)
 
+interface ApiPublicV1WebhookSubscriptionsRouteChildren {
+  ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute: typeof ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute
+}
+
+const ApiPublicV1WebhookSubscriptionsRouteChildren: ApiPublicV1WebhookSubscriptionsRouteChildren =
+  {
+    ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute:
+      ApiPublicV1WebhookSubscriptionsSubscriptionIdRoute,
+  }
+
+const ApiPublicV1WebhookSubscriptionsRouteWithChildren =
+  ApiPublicV1WebhookSubscriptionsRoute._addFileChildren(
+    ApiPublicV1WebhookSubscriptionsRouteChildren,
+  )
+
 interface ApiPublicV1WebhooksWebhookIdRouteChildren {
   ApiPublicV1WebhooksWebhookIdDeliveriesRoute: typeof ApiPublicV1WebhooksWebhookIdDeliveriesRoute
 }
@@ -4502,6 +4558,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1MeRoute: ApiPublicV1MeRoute,
   ApiPublicV1OpenapiDotjsonRoute: ApiPublicV1OpenapiDotjsonRoute,
   ApiPublicV1RepliesRoute: ApiPublicV1RepliesRoute,
+  ApiPublicV1WebhookSubscriptionsRoute:
+    ApiPublicV1WebhookSubscriptionsRouteWithChildren,
   ApiPublicV1WebhooksRoute: ApiPublicV1WebhooksRouteWithChildren,
   ApiPublicIntegrationsCalendlyCallbackRoute:
     ApiPublicIntegrationsCalendlyCallbackRoute,

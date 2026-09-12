@@ -67,20 +67,39 @@ export const Route = createFileRoute("/api/public/integrations/$slug")({
         if (seen) return json({ ok: true, deduplicated: true });
 
         const lead = parsed.data;
-        const { error } = await supabaseAdmin.from("leads").upsert(
-          {
-            workspace_id: connection.workspace_id,
-            email: lead.email.toLowerCase(),
-            first_name: lead.first_name ?? null,
-            last_name: lead.last_name ?? null,
-            company: lead.company ?? null,
-            job_title: lead.job_title ?? null,
-            phone: lead.phone ?? null,
-            website: lead.website ?? null,
-            lead_source: connection.slug,
-          },
-          { onConflict: "workspace_id,email" },
-        );
+        const { data: priorLead } = await supabaseAdmin
+          .from("leads")
+          .select("id")
+          .eq("workspace_id", connection.workspace_id)
+          .eq("email", lead.email.toLowerCase())
+          .maybeSingle();
+
+        const { data: stored, error } = await supabaseAdmin
+          .from("leads")
+          .upsert(
+            {
+              workspace_id: connection.workspace_id,
+              email: lead.email.toLowerCase(),
+              first_name: lead.first_name ?? null,
+              last_name: lead.last_name ?? null,
+              company: lead.company ?? null,
+              job_title: lead.job_title ?? null,
+              phone: lead.phone ?? null,
+              website: lead.website ?? null,
+              lead_source: connection.slug,
+            },
+            { onConflict: "workspace_id,email" },
+          )
+          .select("id")
+          .maybeSingle();
+
+        if (!error && !priorLead && stored?.id) {
+          const { emitLeadCreated } = await import("@/lib/lead-events.server");
+          await emitLeadCreated({
+            workspaceId: connection.workspace_id,
+            leadIds: [stored.id],
+          });
+        }
 
         await supabaseAdmin.from("integration_events").insert({
           workspace_id: connection.workspace_id,
