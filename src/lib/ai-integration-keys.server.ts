@@ -11,7 +11,7 @@
  *  - plan entitlement (`integrations.requires_paid_plan`)
  *  - a real, decryptable credential (a database row alone is not enough)
  */
-import { aiProvider, resolveAiModel, type AiProviderId } from "@/lib/ai-providers";
+import { aiProvider, type AiProviderId } from "@/lib/ai-providers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
