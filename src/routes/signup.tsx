@@ -9,6 +9,9 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { TURNSTILE_ACTIONS } from "@/lib/turnstile-config";
+import { signUpWithTurnstile } from "@/lib/auth-turnstile.functions";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 
 import { captureReferralCode } from "@/hooks/useReferralClaim";
@@ -82,6 +85,8 @@ function SignUpPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [widgetKey, setWidgetKey] = useState(0);
 
   useEffect(() => {
     // Referral links land here as /signup?ref=CODE; keep the code until the
@@ -123,21 +128,41 @@ function SignUpPage() {
       toast.error(policyError);
       return;
     }
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: parsed.data.fullName },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setFormError(error.message);
-      toast.error(error.message);
+    // Turnstile is verified server-side before the account is created.
+    let result: Awaited<ReturnType<typeof signUpWithTurnstile>>;
+    try {
+      result = await signUpWithTurnstile({
+        data: {
+          fullName: parsed.data.fullName,
+          email: parsed.data.email,
+          password: parsed.data.password,
+          emailRedirectTo: window.location.origin,
+          ...(turnstileToken ? { turnstileToken } : {}),
+        },
+      });
+    } catch (error) {
+      setLoading(false);
+      setTurnstileToken(null);
+      setWidgetKey((value) => value + 1);
+      const message =
+        error instanceof Error ? error.message : "Sign-up failed. Please try again.";
+      setFormError(message);
+      toast.error(message);
       return;
     }
-    if (data.session) {
+    if (!result.ok) {
+      setLoading(false);
+      setTurnstileToken(null);
+      setWidgetKey((value) => value + 1);
+      setFormError(result.error);
+      toast.error(result.error);
+      return;
+    }
+    if (result.session) {
+      await supabase.auth.setSession(result.session);
+    }
+    setLoading(false);
+    if (result.session) {
       // First signup: no workspace yet, so land straight in onboarding unless a
       // destination (e.g. billing with a chosen plan) was carried in.
       navigate({ to: redirectTo ?? "/onboarding", replace: true });
@@ -285,6 +310,13 @@ function SignUpPage() {
             <p className="text-xs text-destructive">Passwords do not match</p>
           ) : null}
         </div>
+
+        <TurnstileWidget
+          key={widgetKey}
+          action={TURNSTILE_ACTIONS.signup}
+          onToken={setTurnstileToken}
+          className="empty:hidden"
+        />
 
         <AnimatePresence>
           {formError ? (

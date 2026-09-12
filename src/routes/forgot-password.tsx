@@ -4,6 +4,8 @@ import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { requestPasswordResetEmail } from "@/lib/auth-email.functions";
+import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { TURNSTILE_ACTIONS } from "@/lib/turnstile-config";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,9 @@ function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  /** Bumping the key mounts a fresh widget so a used token is never resent. */
+  const [widgetKey, setWidgetKey] = useState(0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,10 +47,13 @@ function ForgotPasswordPage() {
         data: {
           email: email.trim(),
           redirectTo: `${window.location.origin}/reset-password`,
+          ...(turnstileToken ? { turnstileToken } : {}),
         },
       });
       setSent(true);
     } catch (error) {
+      setTurnstileToken(null);
+      setWidgetKey((value) => value + 1);
       toast.error(error instanceof Error ? error.message : "Could not send the reset email.");
     } finally {
       setLoading(false);
@@ -90,6 +98,12 @@ function ForgotPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          <TurnstileWidget
+            key={widgetKey}
+            action={TURNSTILE_ACTIONS.passwordReset}
+            onToken={setTurnstileToken}
+            className="empty:hidden"
+          />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Sending…" : "Send reset link"}
           </Button>
