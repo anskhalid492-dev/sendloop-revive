@@ -247,6 +247,70 @@ export function IntegrationsTab() {
     void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
   }, [queryClient, workspaceId]);
 
+  /* -------------------------------------------------------- Slack (OAuth) */
+
+  const fetchSlack = useServerFn(getSlackStatus);
+  const startSlackFn = useServerFn(startSlackOAuth);
+  const dropSlack = useServerFn(disconnectSlack);
+  const verifySlack = useServerFn(verifySlackConnection);
+  const slackResultHandled = useRef(false);
+
+  const slack = useQuery({
+    queryKey: ["slack-status", workspaceId],
+    queryFn: () => fetchSlack({ data: { workspaceId } }),
+    enabled: Boolean(workspaceId),
+  });
+
+  const slackStart = useMutation({
+    mutationFn: () => startSlackFn({ data: { workspaceId } }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.url) {
+        toast.error(result.message ?? "Could not start the Slack connection.");
+        return;
+      }
+      window.location.href = result.url;
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const slackDisconnect = useMutation({
+    mutationFn: () => dropSlack({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["slack-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const slackVerify = useMutation({
+    mutationFn: () => verifySlack({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["slack-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (slackResultHandled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("slack");
+    if (!code) return;
+    slackResultHandled.current = true;
+    const result = SLACK_RESULTS[code] ?? { ok: false, text: "Slack connection failed." };
+    if (result.ok) toast.success(result.text);
+    else toast.error(result.text);
+    params.delete("slack");
+    const next = `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
+    void queryClient.invalidateQueries({ queryKey: ["slack-status", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
+  }, [queryClient, workspaceId]);
+
+
   const items = useMemo(() => {
     const all = list.data ?? [];
     return category === "all" ? all : all.filter((i) => i.category === category);
