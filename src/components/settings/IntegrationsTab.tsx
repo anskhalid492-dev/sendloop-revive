@@ -480,51 +480,52 @@ export function IntegrationsTab() {
                     <Button size="sm" variant="outline" disabled className="gap-1.5">
                       <Lock className="size-3.5" /> Paid plan
                     </Button>
-                  ) : isOauth ? (
+                  ) : isOauth && oauth ? (
                     <>
                       <Button
                         size="sm"
-                        variant={cal?.connected ? "outline" : "default"}
+                        variant={oauth.connected ? "outline" : "default"}
                         disabled={
                           !item.isEnabled ||
-                          calendlyStart.isPending ||
-                          calendly.isLoading ||
-                          cal?.configured === false
+                          oauth.start.isPending ||
+                          oauth.loading ||
+                          !oauth.configured
                         }
-                        onClick={() => calendlyStart.mutate()}
+                        onClick={() => oauth.start.mutate()}
                       >
-                        {calendlyStart.isPending ? (
+                        {oauth.start.isPending ? (
                           <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                         ) : (
                           <Link2 className="mr-1.5 size-3.5" />
                         )}
-                        {cal?.connected ? "Reconnect" : `Connect ${item.name}`}
+                        {oauth.connected ? "Reconnect" : `Connect ${item.name}`}
                       </Button>
-                      {cal?.connected ? (
+                      {oauth.connected ? (
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={calendlyVerify.isPending}
-                          onClick={() => calendlyVerify.mutate()}
+                          disabled={oauth.verify.isPending}
+                          onClick={() => oauth.verify.mutate()}
                         >
-                          {calendlyVerify.isPending ? (
+                          {oauth.verify.isPending ? (
                             <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                           ) : null}
-                          Check booking notifications
+                          {oauth.verifyLabel}
                         </Button>
                       ) : null}
-                      {cal?.connected ? (
+                      {oauth.connected ? (
                         <Button
                           size="sm"
                           variant="ghost"
                           className="text-destructive"
-                          disabled={calendlyDisconnect.isPending}
-                          onClick={() => calendlyDisconnect.mutate()}
+                          disabled={oauth.remove.isPending}
+                          onClick={() => oauth.remove.mutate()}
                         >
                           <Trash2 className="mr-1.5 size-3.5" /> Disconnect
                         </Button>
                       ) : null}
                     </>
+
                   ) : item.connected ? (
                     <>
                       <Button
