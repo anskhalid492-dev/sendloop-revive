@@ -1,19 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, Rocket, Mail, Users, BarChart3, Shield, Terminal } from "lucide-react";
-
+import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
 import {
-  MarketingLayout,
-  PageHero,
-  Section,
-  CtaBlock,
-  DocSection,
-  StepList,
-  MockPanel,
-  MockRows,
-  PainPoints,
-  FaqBlock,
-  metaFor,
-} from "@/components/site/MarketingPage";
+  DocsPageFrame,
+  DocsHero,
+  DocsSection,
+  DocsSteps,
+  DocsGroups,
+  DocsMailboxPanel,
+  DocsArticleThread,
+  DocsFaq,
+  DocsCta,
+} from "@/components/docs/DocsPrimitives";
 
 const faqs = [
   {
@@ -52,24 +49,6 @@ export const Route = createFileRoute("/docs")({
     ),
   component: Docs,
 });
-
-const painPoints = [
-  {
-    icon: Terminal,
-    title: "Scattered setup instructions",
-    text: "DNS records, mailbox limits and sequence rules end up spread across forum posts and support tickets instead of one source of truth.",
-  },
-  {
-    icon: Shield,
-    title: "Unclear security posture",
-    text: "Teams need concrete answers on data isolation and encryption before they'll connect a production mailbox, not just marketing language.",
-  },
-  {
-    icon: Users,
-    title: "Onboarding new teammates is slow",
-    text: "Without a documented workflow, every new hire relearns the same lessons about warmup, suppression and reply triage the hard way.",
-  },
-];
 
 const groups = [
   {
@@ -128,8 +107,6 @@ const groups = [
   },
 ];
 
-const iconFor = [Rocket, Mail, Users, BookOpen, BarChart3, Shield];
-
 const quickstart = [
   { title: "Create a workspace", text: "Sign up, name your workspace, and invite teammates with the right roles." },
   { title: "Connect a mailbox", text: "Link SMTP/IMAP or a provider like SES or Postmark, then let warmup run for a few days." },
@@ -137,74 +114,65 @@ const quickstart = [
   { title: "Launch a sequence", text: "Build a 3–4 step campaign with variables, set a sending window, and start small." },
 ];
 
+const articles = [
+  "Why are my emails landing in spam?",
+  "How mailbox rotation distributes volume",
+  "Setting up a custom tracking domain",
+  "Understanding reply detection and stop rules",
+  "Migrating from another cold email tool",
+  "Giving a client read-only reporting access",
+];
+
+const mailboxes = [
+  { address: "sales@acme.com", provider: "SES", detail: "warmup active", status: "Healthy" as const },
+  { address: "hello@acme.com", provider: "SMTP", detail: "42/day limit", status: "Healthy" as const },
+  { address: "outreach@acmegrowth.io", provider: "Postmark", detail: "ramping", status: "Warming" as const },
+];
+
 function Docs() {
   return (
     <MarketingLayout>
-      <PageHero
-        eyebrow="Documentation"
-        title="Everything you need to"
-        highlight="set up and scale"
-        description="Practical guides for every part of MunchReach, from your first mailbox connection to multi-workspace agency reporting."
-        primaryCta="Start for Free"
-      />
+      <DocsPageFrame>
+        <DocsHero />
 
+        <DocsSection
+          title="Quickstart"
+          description="From zero to your first sent sequence in four steps."
+        >
+          <DocsSteps steps={quickstart} />
+        </DocsSection>
 
-      <Section title="Quickstart" description="From zero to your first sent sequence in four steps.">
-        <StepList steps={quickstart} />
-      </Section>
+        <DocsSection id="browse" title="Browse the docs">
+          <DocsGroups groups={groups} />
+        </DocsSection>
 
-      <Section title="Browse the docs" muted>
-        <DocSection
-          groups={groups.map((g, i) => ({ ...g, title: g.title }))}
+        <DocsSection title="What a connected mailbox looks like">
+          <DocsMailboxPanel rows={mailboxes} />
+        </DocsSection>
+
+        <DocsSection title="Popular articles">
+          <DocsArticleThread articles={articles} />
+          <p className="mt-8 text-sm text-docs-slate">
+            Building an integration? See the{" "}
+            <Link
+              to="/api-docs"
+              className="text-docs-signal underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-docs-signal focus-visible:outline-none"
+            >
+              API reference
+            </Link>
+            .
+          </p>
+        </DocsSection>
+
+        <DocsSection title="Frequently asked questions">
+          <DocsFaq faqs={faqs} />
+        </DocsSection>
+
+        <DocsCta
+          title="Start sending in ten minutes"
+          description="Follow the getting started guide and launch your first sequence today."
         />
-      </Section>
-
-      <Section title="What a connected mailbox looks like">
-        <div className="mx-auto max-w-2xl">
-          <MockPanel title="workspace.munchreach.app/mailboxes">
-            <MockRows
-              rows={[
-                { left: "sales@acme.com", muted: "SES · warmup active", badge: "Healthy" },
-                { left: "hello@acme.com", muted: "SMTP · 42/day limit", badge: "Healthy" },
-                { left: "outreach@acmegrowth.io", muted: "Postmark · ramping", badge: "Warming" },
-              ]}
-            />
-          </MockPanel>
-        </div>
-      </Section>
-
-      <Section title="Popular articles" muted>
-        <div className="grid gap-3 md:grid-cols-2">
-          {[
-            "Why are my emails landing in spam?",
-            "How mailbox rotation distributes volume",
-            "Setting up a custom tracking domain",
-            "Understanding reply detection and stop rules",
-            "Migrating from another cold email tool",
-            "Giving a client read-only reporting access",
-          ].map((a) => (
-            <div key={a} className="rounded-lg border border-border bg-card px-4 py-3 text-sm">
-              {a}
-            </div>
-          ))}
-        </div>
-        <p className="mt-6 text-sm text-muted-foreground">
-          Building an integration? See the{" "}
-          <Link to="/api-docs" className="text-primary underline-offset-4 hover:underline">
-            API reference
-          </Link>
-          .
-        </p>
-      </Section>
-
-      <Section>
-        <FaqBlock faqs={faqs}  />
-      </Section>
-
-      <CtaBlock
-        title="Start sending in ten minutes"
-        description="Follow the getting started guide and launch your first sequence today."
-      />
+      </DocsPageFrame>
     </MarketingLayout>
   );
 }
