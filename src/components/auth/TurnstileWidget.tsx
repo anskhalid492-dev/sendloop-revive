@@ -3,9 +3,9 @@
  *
  * - The Turnstile script is injected after mount and loaded async/defer, so it
  *   never blocks first paint or hydration of the auth forms.
- * - `appearance: "interaction-only"` keeps the widget invisible for legitimate
- *   visitors and only paints a challenge when Cloudflare wants interaction, so
- *   the existing form layout is untouched in the common case.
+ * - `appearance: "always"` keeps the widget visible so visitors (and we) can
+ *   see the check running; managed mode still resolves without interaction for
+ *   legitimate traffic.
  * - The token is handed to the parent form, which sends it to the server; the
  *   server is what actually decides whether the request proceeds.
  */
@@ -75,7 +75,7 @@ export function TurnstileWidget({ action, onToken, className }: TurnstileWidgetP
         widgetId = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           action,
-          appearance: "interaction-only",
+          appearance: "always",
           size: "flexible",
           callback: (token: string) => callbackRef.current(token),
           "expired-callback": () => callbackRef.current(null),
@@ -101,5 +101,5 @@ export function TurnstileWidget({ action, onToken, className }: TurnstileWidgetP
     };
   }, [action]);
 
-  return <div ref={containerRef} className={className} aria-hidden="true" />;
+  return <div ref={containerRef} className={className} />;
 }
