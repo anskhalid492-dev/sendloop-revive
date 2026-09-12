@@ -862,6 +862,18 @@ export async function runLifecycleCycle(
   };
 
   try {
+    // Verification guardrail: any run started by a test/verification script
+    // MUST be scoped to explicitly named accounts. Without a non-empty
+    // onlyUserIds list the cycle refuses to run, so no test path can ever
+    // reach the live customer base or create real payment-provider objects.
+    if (process.env["LIFECYCLE_VERIFY_MODE"] === "1" && !options.onlyUserIds?.length) {
+      return {
+        ...result,
+        ok: false,
+        skipped: "Verification mode requires an explicit test-account scope",
+      };
+    }
+
     const client = await db();
     const config = await getLifecycleConfig(client);
     if (!config.enabled) return { ...result, ok: false, skipped: "Lifecycle emails disabled" };
