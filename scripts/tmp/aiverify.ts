@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { workspaceAiKeys, workspaceAiCredentials } from "../src/lib/ai-keys.server";
+import { workspaceAiKeys, workspaceAiCredentials } from "../../src/lib/ai-keys.server";
 
 const url = "https://rihgzkofoxcjljlbvbya.supabase.co";
 const admin = createClient(url, process.env["SUPABASE_SERVICE_ROLE_KEY"]!, {
