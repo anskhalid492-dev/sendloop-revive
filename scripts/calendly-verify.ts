@@ -128,7 +128,7 @@ if (runWebhookTest) {
     });
     const t = Math.floor(Date.now() / 1000);
     const sig = createHmac("sha256", sign ? key : "wrong-key").update(`${t}.${body}`).digest("hex");
-    const res = await fetch(`${origin}/api/public/integrations/calendly/webhook`, {
+    const res = await fetch(`${postOrigin}/api/public/integrations/calendly/webhook`, {
       method: "POST",
       headers: { "content-type": "application/json", "calendly-webhook-signature": `t=${t},v1=${sig}` },
       body,
