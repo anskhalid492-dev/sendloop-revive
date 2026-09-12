@@ -44,6 +44,7 @@ import {
   disconnectCalendly,
   getCalendlyStatus,
   startCalendlyOAuth,
+  verifyCalendlyConnection,
 } from "@/lib/calendly.functions";
 import { cn } from "@/lib/utils";
 
@@ -168,6 +169,7 @@ export function IntegrationsTab() {
   const fetchCalendly = useServerFn(getCalendlyStatus);
   const startCalendly = useServerFn(startCalendlyOAuth);
   const dropCalendly = useServerFn(disconnectCalendly);
+  const verifyCalendly = useServerFn(verifyCalendlyConnection);
   const resultHandled = useRef(false);
 
   const calendly = useQuery({
@@ -192,6 +194,17 @@ export function IntegrationsTab() {
     mutationFn: () => dropCalendly({ data: { workspaceId } }),
     onSuccess: async (result) => {
       toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const calendlyVerify = useMutation({
+    mutationFn: () => verifyCalendly({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
       await queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
       await invalidate();
     },
