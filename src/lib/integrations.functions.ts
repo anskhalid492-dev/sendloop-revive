@@ -138,6 +138,11 @@ export const connectIntegration = createServerFn({ method: "POST" })
 
     const meta = INTEGRATIONS_BY_SLUG[data.slug];
     if (!meta) throw new Error("Unknown integration.");
+    if (meta.authType === "oauth") {
+      // OAuth integrations are only ever connected through their own consent
+      // flow — never by posting credentials from the browser.
+      return { ok: false, message: `Connect ${meta.name} using the Connect ${meta.name} button.` };
+    }
 
     const { data: catalogRow } = await supabaseAdmin
       .from("integrations")
