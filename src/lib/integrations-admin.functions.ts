@@ -70,7 +70,7 @@ export const adminListIntegrations = createServerFn({ method: "GET" })
         connections: conns.filter((c) => c.slug === slug).length,
         errored: conns.filter((c) => c.slug === slug && c.status === "error").length,
         events24h: evts.filter((e) => e.slug === slug).length,
-        failures24h: evts.filter((e) => e.slug === slug && e.status !== "success").length,
+        failures24h: evts.filter((e) => e.slug === slug && e.status === "failed").length,
       };
     });
   });

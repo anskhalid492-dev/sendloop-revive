@@ -58,7 +58,7 @@ export const listIntegrations = createServerFn({ method: "POST" })
       supabaseAdmin.from("integration_connections").select("*").eq("workspace_id", data.workspaceId),
       supabaseAdmin
         .from("integration_events")
-        .select("slug, status")
+        .select("slug, status, direction")
         .eq("workspace_id", data.workspaceId),
     ]);
 
@@ -80,9 +80,12 @@ export const listIntegrations = createServerFn({ method: "POST" })
         const value = secretField ? creds?.[secretField.key] : undefined;
         secretHint = value ? maskSecret(value) : null;
       }
-      const slugEvents = ((events ?? []) as Array<{ slug: string; status: string }>).filter(
-        (e) => e.slug === slug,
-      );
+      // Only real message/event deliveries belong in the delivered/failed counter.
+      // Sign-in bookkeeping rows (direction "oauth") are not deliveries and must
+      // never be shown to the customer as failures.
+      const slugEvents = (
+        (events ?? []) as Array<{ slug: string; status: string; direction: string | null }>
+      ).filter((e) => e.slug === slug && (e.direction === "inbound" || e.direction === "outbound"));
       const inboundToken = config["inbound_token"];
       out.push({
         slug,
@@ -105,7 +108,7 @@ export const listIntegrations = createServerFn({ method: "POST" })
             ? `/api/public/integrations/${slug}?token=${inboundToken}`
             : null,
         successCount: slugEvents.filter((e) => e.status === "success").length,
-        failureCount: slugEvents.filter((e) => e.status !== "success").length,
+        failureCount: slugEvents.filter((e) => e.status === "failed").length,
       });
     }
     return out;
