@@ -196,33 +196,12 @@
 }
 
 
-/* Docs page identity: "Ink & Signal" — paper, ink, hairline rules, one accent. */
-:root {
-  --docs-ink: oklch(0.213 0.031 259);
-  --docs-slate: oklch(0.469 0.032 258);
-  --docs-paper: oklch(0.991 0.002 250);
-  --docs-rule: oklch(0.897 0.011 253);
-  --docs-signal: oklch(0.652 0.128 234);
-  --docs-delivered: oklch(0.601 0.113 161);
-  --docs-warming: oklch(0.653 0.121 78);
-}
-
 @theme inline {
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --font-sans: var(--font-sans);
-  --color-docs-ink: var(--docs-ink);
-  --color-docs-slate: var(--docs-slate);
-  --color-docs-paper: var(--docs-paper);
-  --color-docs-rule: var(--docs-rule);
-  --color-docs-signal: var(--docs-signal);
-  --color-docs-delivered: var(--docs-delivered);
-  --color-docs-warming: var(--docs-warming);
-  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
-  --font-doc: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-docmono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 @keyframes docs-ledger-fill {
