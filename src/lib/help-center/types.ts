@@ -24,8 +24,19 @@ export type HelpArticle = {
   description: string;
   /** Category slug. Must exist in HELP_CATEGORIES. */
   category: string;
-  /** ISO date, YYYY-MM-DD. */
+  /** ISO date, YYYY-MM-DD. Rendered as the "Last updated" date. */
   updated: string;
+  /** Search-result title, under 60 characters. Falls back to the title. */
+  seoTitle?: string;
+  /** Meta description, under 155 characters. Falls back to the description. */
+  metaDescription?: string;
+  /**
+   * Three to five self-contained bullets at the top of the article. Answer
+   * engines quote these directly, so each one must stand alone.
+   */
+  tldr?: string[];
+  /** A single direct answer to the title's question, snippet-length. */
+  quickAnswer?: string;
   popular?: boolean;
   gettingStarted?: boolean;
   /** Extra search terms that do not appear verbatim in the body. */
