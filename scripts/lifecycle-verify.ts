@@ -54,8 +54,15 @@ async function giveActiveSubscription(workspaceId: string) {
     plan_id: plan?.id ?? null,
     status: "active",
     provider: "manual",
+    environment: "live",
+    external_subscription_id: `lifecycle-test-${workspaceId}`,
   });
   if (error) throw new Error(`subscription: ${error.message}`);
+}
+
+/** Makes a test workspace look untouched: creation itself logs activity. */
+async function makeStale(workspaceId: string) {
+  await db.from("workspace_activity").delete().eq("workspace_id", workspaceId);
 }
 
 async function enrollment(userId: string, track: string) {
@@ -121,7 +128,7 @@ async function main() {
     const free = await makeUser("free", 5);
     created.push(free.userId);
 
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     let e = await enrollment(free.userId, "free_trial");
     check("free user enters lifecycle", Boolean(e), String(e?.["state"] ?? "none"));
     check("5% email sent on first due step", e?.["state"] === "email_1_sent");
@@ -135,7 +142,7 @@ async function main() {
     );
 
     // Duplicate scheduler execution must not duplicate the email.
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     mail = await queued(free.userId);
     check(
       "repeat cycle does not duplicate the 5% email",
@@ -144,7 +151,7 @@ async function main() {
 
     // Second offer becomes due.
     await backdate(e!["id"] as string, 12);
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     e = await enrollment(free.userId, "free_trial");
     mail = await queued(free.userId);
     const offer10 = mail.find((m) => m.event_key === "lifecycle.free_offer_10");
@@ -154,11 +161,11 @@ async function main() {
     // Conversion cancels a still-open sequence.
     const converting = await makeUser("convert", 5);
     created.push(converting.userId);
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     const convertEnrollment = await enrollment(converting.userId, "free_trial");
     await giveActiveSubscription(converting.workspaceId);
     await backdate(convertEnrollment!["id"] as string, 12);
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     const afterConvert = await enrollment(converting.userId, "free_trial");
     check(
       "conversion cancels remaining offers",
@@ -175,8 +182,9 @@ async function main() {
     const inactive = await makeUser("inactive", 120);
     created.push(inactive.userId);
     await giveActiveSubscription(inactive.workspaceId);
+    await makeStale(inactive.workspaceId);
 
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     let ie = await enrollment(inactive.userId, "inactive");
     check("inactive customer enters lifecycle", Boolean(ie), String(ie?.["state"] ?? "none"));
 
@@ -188,7 +196,7 @@ async function main() {
     ] as const;
     for (const [eventKey, state, days] of expected) {
       await backdate(ie!["id"] as string, days);
-      await runLifecycleCycle();
+      await runLifecycleCycle({ onlyUserIds: created });
       ie = await enrollment(inactive.userId, "inactive");
       const box = await queued(inactive.userId);
       check(`${eventKey} sent in order`, ie?.["state"] === state && box.some((m) => m.event_key === eventKey));
@@ -205,7 +213,7 @@ async function main() {
 
     // Termination.
     await backdate(ie!["id"] as string, 25);
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     ie = await enrollment(inactive.userId, "inactive");
     check("account terminated", ie?.["state"] === "terminated");
     const { data: banned } = await db.auth.admin.getUserById(inactive.userId);
@@ -220,7 +228,7 @@ async function main() {
     );
     check("termination email sent once, after termination", termMail.length === 1);
 
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     const termMailAgain = (await queued(inactive.userId)).filter(
       (m) => m.event_key === "lifecycle.account_terminated",
     );
@@ -230,7 +238,8 @@ async function main() {
     const returning = await makeUser("return", 120);
     created.push(returning.userId);
     await giveActiveSubscription(returning.workspaceId);
-    await runLifecycleCycle();
+    await makeStale(returning.workspaceId);
+    await runLifecycleCycle({ onlyUserIds: created });
     const re = await enrollment(returning.userId, "inactive");
     check("second inactive customer enrolled", Boolean(re));
     await db.from("workspace_activity").insert({
@@ -239,7 +248,7 @@ async function main() {
       type: "lifecycle_test_activity",
     });
     await backdate(re!["id"] as string, 20);
-    await runLifecycleCycle();
+    await runLifecycleCycle({ onlyUserIds: created });
     const afterReturn = await enrollment(returning.userId, "inactive");
     check(
       "returning customer removed from sequence, not terminated",
@@ -253,30 +262,40 @@ async function main() {
     const failing = await makeUser("failterm", 120);
     created.push(failing.userId);
     await giveActiveSubscription(failing.workspaceId);
-    await runLifecycleCycle();
+    await makeStale(failing.workspaceId);
+    await runLifecycleCycle({ onlyUserIds: created });
     const fe = await enrollment(failing.userId, "inactive");
     await db
       .from("lifecycle_enrollments")
       .update({ state: "final_warning_sent", user_id: "00000000-0000-0000-0000-000000000000" })
       .eq("id", fe!["id"]);
     await backdate(fe!["id"] as string, 25);
-    await runLifecycleCycle();
-    const { data: failAction } = await db
-      .from("lifecycle_actions")
-      .select("status, kind, error")
-      .eq("enrollment_id", fe!["id"])
-      .eq("kind", "termination")
+    await runLifecycleCycle({
+      onlyUserIds: [...created, "00000000-0000-0000-0000-000000000000"],
+    });
+    const { data: closedEnrollment } = await db
+      .from("lifecycle_enrollments")
+      .select("state, cancel_reason")
+      .eq("id", fe!["id"])
       .maybeSingle();
     const { data: falseMail } = await db
       .from("transactional_emails")
       .select("id")
       .eq("event_key", "lifecycle.account_terminated")
       .eq("user_id", "00000000-0000-0000-0000-000000000000");
+    const { data: failAction } = await db
+      .from("lifecycle_actions")
+      .select("id")
+      .eq("enrollment_id", fe!["id"])
+      .eq("kind", "termination");
+    // An account that cannot be resolved is dropped from the sequence instead
+    // of being terminated or emailed.
     check(
-      "failed termination is recorded as failed",
-      failAction?.status === "failed",
-      String(failAction?.error ?? ""),
+      "unresolvable account is dropped, never terminated",
+      closedEnrollment?.state === "cancelled" && closedEnrollment?.cancel_reason === "account_deleted",
+      `${closedEnrollment?.state ?? "?"}/${closedEnrollment?.cancel_reason ?? "?"}`,
     );
+    check("no termination recorded for it", (failAction ?? []).length === 0);
     check("failed termination sends no termination email", (falseMail ?? []).length === 0);
     await db.from("lifecycle_actions").delete().eq("enrollment_id", fe!["id"]);
     await db.from("lifecycle_enrollments").delete().eq("id", fe!["id"]);

@@ -125,13 +125,19 @@ export type AccountContext = {
   planName: string;
   subscriptionStatus: string | null;
   hasPaidAccess: boolean;
+  /** App-side signup date; the fallback when an account has no activity yet. */
+  signedUpAt: string | null;
   authUser: AuthUser | null;
 };
 
 /** Everything the eligibility checks need, read fresh on every use. */
 export async function loadAccount(client: Db, userId: string): Promise<AccountContext> {
   const [{ data: profile }, { data: workspaces }, authUser] = await Promise.all([
-    client.from("profiles").select("email, full_name, first_name").eq("id", userId).maybeSingle(),
+    client
+      .from("profiles")
+      .select("email, full_name, first_name, created_at")
+      .eq("id", userId)
+      .maybeSingle(),
     client
       .from("workspaces")
       .select("id, name, status")
@@ -181,6 +187,9 @@ export async function loadAccount(client: Db, userId: string): Promise<AccountCo
   return {
     userId,
     email: ((profile as { email?: string } | null)?.email ?? authUser?.email ?? null) as string | null,
+    signedUpAt: ((profile as { created_at?: string } | null)?.created_at ??
+      authUser?.created_at ??
+      null) as string | null,
     firstName,
     workspaceIds,
     workspaceId: primary?.id ?? null,
@@ -397,7 +406,11 @@ async function paidOwnerIds(client: Db, userIds: string[]): Promise<Set<string>>
 }
 
 /** Free/trial users who never upgraded. Baseline is their sign-up date. */
-async function enrollFreeTrial(client: Db, config: LifecycleConfig): Promise<number> {
+async function enrollFreeTrial(
+  client: Db,
+  config: LifecycleConfig,
+  onlyUserIds?: string[],
+): Promise<number> {
   if (!config.free_trial.enabled) return 0;
   const existing = await openEnrollmentUserIds(client, "free_trial");
   const cutoff = new Date(Date.now() - config.free_trial.email_1_day * DAY_MS).toISOString();
@@ -410,7 +423,10 @@ async function enrollFreeTrial(client: Db, config: LifecycleConfig): Promise<num
     .limit(2000);
 
   const rows = ((data ?? []) as { id: string; email: string | null; created_at: string }[]).filter(
-    (row) => !existing.has(row.id) && Boolean(row.email),
+    (row) =>
+      !existing.has(row.id) &&
+      Boolean(row.email) &&
+      (!onlyUserIds || onlyUserIds.includes(row.id)),
   );
   const paid = await paidOwnerIds(client, rows.map((r) => r.id));
 
@@ -438,7 +454,11 @@ async function enrollFreeTrial(client: Db, config: LifecycleConfig): Promise<num
 }
 
 /** Paying customers with no activity for the configured window. */
-async function enrollInactive(client: Db, config: LifecycleConfig): Promise<number> {
+async function enrollInactive(
+  client: Db,
+  config: LifecycleConfig,
+  onlyUserIds?: string[],
+): Promise<number> {
   if (!config.inactive.enabled) return 0;
   const existing = await openEnrollmentUserIds(client, "inactive");
   const threshold = Date.now() - config.inactive.inactive_days * DAY_MS;
@@ -446,6 +466,7 @@ async function enrollInactive(client: Db, config: LifecycleConfig): Promise<numb
 
   // Cheap pre-filters first: not enrolled, not banned, no recent sign-in.
   const candidates = users.filter((user) => {
+    if (onlyUserIds && !onlyUserIds.includes(user.id)) return false;
     if (existing.has(user.id) || isBanned(user)) return false;
     const signedIn = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : null;
     return signedIn === null || signedIn <= threshold;
@@ -460,7 +481,8 @@ async function enrollInactive(client: Db, config: LifecycleConfig): Promise<numb
     const account = await loadAccount(client, user.id);
     if (!account.email || !account.hasPaidAccess || account.workspaceSuspended) continue;
     const activity = await lastActivityAt(client, account);
-    const activityTime = activity ? Date.parse(activity) : Date.parse(user.created_at ?? "");
+    const fallback = account.signedUpAt ?? user.created_at ?? "";
+    const activityTime = activity ? Date.parse(activity) : Date.parse(fallback);
     if (Number.isFinite(activityTime) && activityTime > threshold) continue;
 
     // Offsets count from entry into the sequence, per the lifecycle spec.
@@ -819,7 +841,12 @@ async function processEnrollment(
 
 /** One bounded lifecycle cycle. Never throws. */
 export async function runLifecycleCycle(
-  options: { enrollOnly?: boolean; limit?: number } = {},
+  options: {
+    enrollOnly?: boolean;
+    limit?: number;
+    /** Verification guard: restrict the whole cycle to these accounts. */
+    onlyUserIds?: string[];
+  } = {},
 ): Promise<LifecycleCycleResult> {
   const result: LifecycleCycleResult = {
     ok: true,
@@ -839,11 +866,11 @@ export async function runLifecycleCycle(
     const config = await getLifecycleConfig(client);
     if (!config.enabled) return { ...result, ok: false, skipped: "Lifecycle emails disabled" };
 
-    result.enrolledFreeTrial = await enrollFreeTrial(client, config);
-    result.enrolledInactive = await enrollInactive(client, config);
+    result.enrolledFreeTrial = await enrollFreeTrial(client, config, options.onlyUserIds);
+    result.enrolledInactive = await enrollInactive(client, config, options.onlyUserIds);
     if (options.enrollOnly) return result;
 
-    const { data } = await client
+    let dueQuery = client
       .from("lifecycle_enrollments")
       .select("id, user_id, workspace_id, email, track, state, entered_at, baseline_at, next_action_at")
       .in("state", ["eligible", "email_1_sent", "email_2_sent", "email_3_sent", "final_warning_sent"])
@@ -851,6 +878,8 @@ export async function runLifecycleCycle(
       .lte("next_action_at", new Date().toISOString())
       .order("next_action_at", { ascending: true })
       .limit(Math.min(options.limit ?? config.batch_limit, 500));
+    if (options.onlyUserIds) dueQuery = dueQuery.in("user_id", options.onlyUserIds);
+    const { data } = await dueQuery;
 
     const due = (data ?? []) as Enrollment[];
     result.due = due.length;
