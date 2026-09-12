@@ -46,6 +46,12 @@ import {
   startCalendlyOAuth,
   verifyCalendlyConnection,
 } from "@/lib/calendly.functions";
+import {
+  disconnectSlack,
+  getSlackStatus,
+  startSlackOAuth,
+  verifySlackConnection,
+} from "@/lib/slack.functions";
 import { cn } from "@/lib/utils";
 
 /** Messages for the `?calendly=` result the OAuth callback redirects back with. */
