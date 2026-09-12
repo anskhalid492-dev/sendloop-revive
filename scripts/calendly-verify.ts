@@ -197,7 +197,7 @@ if (process.argv.includes("--attribution-test")) {
     await fire("invitee.created");
     const { data: booked } = await supabaseAdmin
       .from("leads")
-      .select("status, stage")
+      .select("status")
       .eq("id", leadId)
       .single();
     console.log("after booking:", JSON.stringify(booked));
