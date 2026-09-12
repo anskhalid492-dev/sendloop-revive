@@ -396,6 +396,14 @@ export const createLead = createServerFn({ method: "POST" })
       .select(sel("id"))
       .single();
     if (error) throw new Error(error.message);
+
+    const { emitLeadCreated } = await import("@/lib/lead-events.server");
+    await emitLeadCreated({
+      workspaceId: data.workspaceId,
+      leadIds: [(created as unknown as { id: string }).id],
+      inline: true,
+    });
+
     return created as unknown as { id: string };
   });
 
@@ -831,11 +839,22 @@ export const importLeads = createServerFn({ method: "POST" })
     if (toInsert.length) await checkUsageLimit(data.workspaceId, "leads", toInsert.length);
 
     let inserted = 0;
+    const insertedIds: string[] = [];
     for (let i = 0; i < toInsert.length; i += 500) {
       const chunk = toInsert.slice(i, i + 500);
-      const { error } = await context.supabase.from("leads").insert(chunk as never);
+      const { data: rows, error } = await context.supabase
+        .from("leads")
+        .insert(chunk as never)
+        .select(sel("id"))
+        .returns<Array<{ id: string }>>();
       if (error) throw new Error(error.message);
+      for (const row of rows ?? []) insertedIds.push(row.id);
       inserted += chunk.length;
+    }
+
+    if (insertedIds.length) {
+      const { emitLeadCreated } = await import("@/lib/lead-events.server");
+      await emitLeadCreated({ workspaceId: data.workspaceId, leadIds: insertedIds });
     }
 
     return {

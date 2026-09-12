@@ -436,6 +436,13 @@ export const upsertCrmContact = createServerFn({ method: "POST" })
       /* automations never block contact creation */
     }
 
+    const { emitLeadCreated } = await import("@/lib/lead-events.server");
+    await emitLeadCreated({
+      workspaceId: data.workspaceId,
+      leadIds: [created.id as string],
+      inline: true,
+    });
+
     return { id: created.id as string, created: true };
   });
 

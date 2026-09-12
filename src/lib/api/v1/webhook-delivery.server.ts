@@ -166,7 +166,7 @@ async function deliverOne(admin: Admin, row: DeliveryRow): Promise<boolean> {
   const succeeded = failure === null;
   const exhausted = !succeeded && attempts >= (row.max_attempts || MAX_ATTEMPTS);
 
-  await admin
+  const { error: recordError } = await admin
     .from("webhook_deliveries")
     .update({
       attempts,
@@ -174,11 +174,20 @@ async function deliverOne(admin: Admin, row: DeliveryRow): Promise<boolean> {
       response_status: responseStatus,
       failure_reason: failure,
       last_attempt_at: new Date().toISOString(),
-      next_attempt_at: succeeded
-        ? null
-        : new Date(Date.now() + nextAttemptDelaySeconds(attempts) * 1000).toISOString(),
+      // `next_attempt_at` is NOT NULL in the database, so a finished delivery
+      // keeps the current timestamp rather than clearing it; only rows still in
+      // `pending` are ever picked up again, so this schedules nothing.
+      next_attempt_at:
+        succeeded || exhausted
+          ? new Date().toISOString()
+          : new Date(Date.now() + nextAttemptDelaySeconds(attempts) * 1000).toISOString(),
     })
     .eq("id", row.id);
+  // A silent failure here would leave the row "pending" forever and redeliver
+  // an already-accepted event, so it must be visible in the logs.
+  if (recordError) {
+    console.warn("[webhooks] could not record delivery result", recordError.message);
+  }
 
   const failures = succeeded ? 0 : (endpoint.consecutive_failures ?? 0) + 1;
   await admin
@@ -196,15 +205,21 @@ async function deliverOne(admin: Admin, row: DeliveryRow): Promise<boolean> {
   return succeeded;
 }
 
-/** Drains due deliveries. Called by the cron route; bounded per invocation. */
-export async function runWebhookDeliveries(admin: Admin, budget = 50) {
-  const { data: due } = await admin
+/**
+ * Drains due deliveries. Called by the cron route; bounded per invocation.
+ * `workspaceId` narrows the drain to a single workspace, which verification
+ * runs use so they can never touch another workspace's queue.
+ */
+export async function runWebhookDeliveries(admin: Admin, budget = 50, workspaceId?: string) {
+  let query = admin
     .from("webhook_deliveries")
     .select("id, endpoint_id, event_type, event_id, payload, attempts, max_attempts")
     .eq("status", "pending")
     .lte("next_attempt_at", new Date().toISOString())
     .order("next_attempt_at", { ascending: true })
     .limit(budget);
+  if (workspaceId) query = query.eq("workspace_id", workspaceId);
+  const { data: due } = await query;
 
   const rows = (due ?? []) as DeliveryRow[];
   let delivered = 0;

@@ -100,17 +100,34 @@ export async function listContacts(ctx: ApiContext) {
 
 export async function createContact(ctx: ApiContext) {
   const input = parseWith(contactSchema, ctx.body);
+  const row = toRow(input);
+
+  // Upsert hides whether this was a create or an update, so ask first: only a
+  // genuinely new contact may fire `lead.created`.
+  const { data: existing } = await ctx.admin
+    .from("leads")
+    .select("id")
+    .eq("workspace_id", ctx.auth.workspaceId)
+    .eq("email", row["email"] as string)
+    .maybeSingle();
+
   const { data, error } = await ctx.admin
     .from("leads")
-    .upsert(
-      { ...toRow(input), workspace_id: ctx.auth.workspaceId },
-      { onConflict: "workspace_id,email" },
-    )
+    .upsert({ ...row, workspace_id: ctx.auth.workspaceId }, { onConflict: "workspace_id,email" })
     .select(FIELDS)
     .single();
   if (error) throw new ApiError("invalid_request", "The contact could not be saved.", {
     details: { reason: error.message },
   });
+
+  if (!existing) {
+    const { emitLeadCreated } = await import("@/lib/lead-events.server");
+    await emitLeadCreated({
+      workspaceId: ctx.auth.workspaceId,
+      leadIds: [data.id as string],
+      inline: true,
+    });
+  }
   return { data: serializeContact(data) };
 }
 
@@ -199,13 +216,37 @@ export async function bulkContacts(ctx: ApiContext) {
 
   if (input.action === "upsert") {
     const rows = input.contacts.map((c) => ({ ...toRow(c), workspace_id: workspaceId }));
+
+    // Which of these emails already exist? Only the rest are new leads.
+    const emails = rows
+      .map((r) => (r as Record<string, unknown>)["email"] as string | undefined)
+      .filter((email): email is string => Boolean(email));
+    const existingEmails = new Set<string>();
+    for (let i = 0; i < emails.length; i += 500) {
+      const { data: found } = await ctx.admin
+        .from("leads")
+        .select("email")
+        .eq("workspace_id", workspaceId)
+        .in("email", emails.slice(i, i + 500));
+      for (const row of (found ?? []) as Array<{ email: string }>) existingEmails.add(row.email);
+    }
+
     const { data, error } = await ctx.admin
       .from("leads")
       .upsert(rows, { onConflict: "workspace_id,email" })
-      .select("id");
+      .select("id, email");
     if (error) throw new ApiError("invalid_request", "The contacts could not be saved.", {
       details: { reason: error.message },
     });
+
+    const newIds = ((data ?? []) as Array<{ id: string; email: string }>)
+      .filter((row) => !existingEmails.has(row.email))
+      .map((row) => row.id);
+    if (newIds.length) {
+      const { emitLeadCreated } = await import("@/lib/lead-events.server");
+      await emitLeadCreated({ workspaceId, leadIds: newIds });
+    }
+
     return { data: { action: input.action, processed: data?.length ?? 0 } };
   }
 
