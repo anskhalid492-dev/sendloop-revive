@@ -151,3 +151,80 @@ if (runWebhookTest) {
 }
 
 console.log("DONE");
+
+/**
+ * Optional attribution check. Creates ONE explicitly-named throwaway contact,
+ * sends a signed booking + cancellation for it, asserts the CRM/meeting state,
+ * then deletes it. No existing contact is ever read or modified.
+ */
+if (process.argv.includes("--attribution-test")) {
+  const creds = await readCalendlyCredentials(row.id);
+  const key = creds!.webhook_signing_key!;
+  const email = `calendly-attribution-throwaway-${Date.now()}@munchreach-test.invalid`;
+  const { data: lead } = await supabaseAdmin
+    .from("leads")
+    .insert({
+      workspace_id: row.workspace_id,
+      email,
+      first_name: "Calendly",
+      last_name: "Throwaway",
+      status: "contacted",
+    })
+    .select("id, status")
+    .single();
+  const leadId = (lead as { id: string }).id;
+  try {
+    const fire = async (event: string) => {
+      const body = JSON.stringify({
+        event,
+        created_at: new Date().toISOString(),
+        payload: {
+          email,
+          name: "Calendly Throwaway",
+          uri: `https://api.calendly.com/scheduled_events/attr-${event}-${Date.now()}`,
+          scheduled_event: { name: "Throwaway demo", start_time: new Date().toISOString() },
+        },
+      });
+      const t = Math.floor(Date.now() / 1000);
+      const sig = createHmac("sha256", key).update(`${t}.${body}`).digest("hex");
+      const res = await fetch(`${postOrigin}/api/public/integrations/calendly/webhook`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "calendly-webhook-signature": `t=${t},v1=${sig}` },
+        body,
+      });
+      console.log(`attr ${event} -> ${res.status} ${(await res.text()).slice(0, 160)}`);
+    };
+    await fire("invitee.created");
+    const { data: booked } = await supabaseAdmin
+      .from("leads")
+      .select("status, stage")
+      .eq("id", leadId)
+      .single();
+    console.log("after booking:", JSON.stringify(booked));
+    if ((booked as { status: string }).status !== "meeting_booked")
+      throw new Error("Booking did not mark the contact as meeting booked.");
+    await fire("invitee.canceled");
+    const { data: after2 } = await supabaseAdmin
+      .from("leads")
+      .select("status")
+      .eq("id", leadId)
+      .single();
+    const { data: acts } = await supabaseAdmin
+      .from("lead_activities")
+      .select("type, detail")
+      .eq("lead_id", leadId);
+    console.log("after cancel:", JSON.stringify(after2), "activities:", JSON.stringify(acts));
+    if ((after2 as { status: string }).status === "meeting_booked")
+      throw new Error("Cancellation did not reverse the meeting state.");
+  } finally {
+    await supabaseAdmin.from("lead_activities").delete().eq("lead_id", leadId);
+    await supabaseAdmin.from("leads").delete().eq("id", leadId);
+    await supabaseAdmin
+      .from("integration_events")
+      .delete()
+      .eq("connection_id", row.id)
+      .like("idempotency_key", "calendly:%attr-%");
+    console.log("attribution test data removed");
+  }
+  console.log("ATTRIBUTION OK");
+}
