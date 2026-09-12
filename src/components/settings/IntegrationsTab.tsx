@@ -264,6 +264,8 @@ export function IntegrationsTab() {
             const meta = INTEGRATIONS_BY_SLUG[item.slug];
             const Icon = meta?.icon ?? Plug;
             const locked = !item.planAllowed;
+            const isOauth = meta?.authType === "oauth";
+            const cal = item.slug === "calendly" ? (calendly.data ?? null) : null;
             return (
               <div key={item.slug} className="rounded-xl border border-border/70 bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
