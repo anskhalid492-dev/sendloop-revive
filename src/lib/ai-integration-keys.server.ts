@@ -121,4 +121,3 @@ export function interpretModelName(
   );
   return family?.value ?? meta.defaultModel;
 }
-}
