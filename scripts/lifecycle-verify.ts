@@ -40,7 +40,7 @@ async function makeUser(tag: string, createdDaysAgo: number) {
   await db.from("profiles").upsert({ id: userId, email, full_name: "Lifecycle Test", created_at: createdAt });
   const { data: ws, error: wsError } = await db
     .from("workspaces")
-    .insert({ name: `LC ${tag}`, owner_id: userId, status: "active" })
+    .insert({ name: `LC ${tag}`, slug: `${PREFIX}-${tag}`, owner_id: userId, status: "active" })
     .select("id")
     .single();
   if (wsError) throw new Error(`workspace: ${wsError.message}`);
