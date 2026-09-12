@@ -95,3 +95,24 @@ export async function integrationAiKeys(
 export function integrationProviderLabel(provider: AiProviderId): string {
   return aiProvider(provider).label;
 }
+
+/**
+ * The Integrations tab takes a free-text model name, so "claude sonnet 5" has to
+ * become a real model id. Exact ids win; otherwise we match on the family name
+ * and fall back to the provider default.
+ */
+export function interpretModelName(
+  provider: AiProviderId,
+  raw: string | null | undefined,
+): string {
+  const meta = aiProvider(provider);
+  const wanted = (raw ?? "").trim().toLowerCase();
+  if (!wanted) return meta.defaultModel;
+  const exact = meta.models.find((m) => m.value.toLowerCase() === wanted);
+  if (exact) return exact.value;
+  const words = wanted.replace(/[^a-z0-9]+/g, " ").split(" ").filter(Boolean);
+  const family = meta.models.find((m) =>
+    words.some((w) => w.length > 3 && m.value.toLowerCase().includes(w)),
+  );
+  return family?.value ?? meta.defaultModel;
+}
