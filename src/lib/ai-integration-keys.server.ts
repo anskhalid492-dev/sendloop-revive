@@ -110,9 +110,15 @@ export function interpretModelName(
   if (!wanted) return meta.defaultModel;
   const exact = meta.models.find((m) => m.value.toLowerCase() === wanted);
   if (exact) return exact.value;
-  const words = wanted.replace(/[^a-z0-9]+/g, " ").split(" ").filter(Boolean);
+  const words = wanted.replace(/[^a-z0-9]+/g, " ").split(" ").filter((w) => w.length > 3);
+  // Words every model shares ("claude", "gpt") identify the vendor, not the model,
+  // so they must not decide which family we pick.
+  const distinctive = words.filter(
+    (w) => !meta.models.every((m) => m.value.toLowerCase().includes(w)),
+  );
   const family = meta.models.find((m) =>
-    words.some((w) => w.length > 3 && m.value.toLowerCase().includes(w)),
+    distinctive.some((w) => m.value.toLowerCase().includes(w)),
   );
   return family?.value ?? meta.defaultModel;
+}
 }
