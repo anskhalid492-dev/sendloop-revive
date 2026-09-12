@@ -64,7 +64,11 @@ export async function workspaceAiCredentials(
     status: string | null;
   }>;
   const direct: WorkspaceAiCredentials[] = [];
-  for (const row of rows) {
+  // Verified keys first, so "Automatic" resolves to a working connection.
+  const ordered = [...rows].sort(
+    (a, b) => Number(b.status === "verified") - Number(a.status === "verified"),
+  );
+  for (const row of ordered) {
     if (!row.key_ciphertext) continue;
     try {
       const secret = decryptCredentials<{ api_key: string }>(row.key_ciphertext);
@@ -116,7 +120,24 @@ export async function workspaceAiKeys(
     .from("workspace_ai_keys")
     .select(KEY_COLUMNS)
     .eq("workspace_id", workspaceId);
-  return ((data ?? []) as Array<Record<string, unknown>>).map(toKeyInfo);
+  const direct = ((data ?? []) as Array<Record<string, unknown>>).map(toKeyInfo);
+
+  // Providers connected on the Integrations tab appear here too, so the campaign
+  // selector lists every AI provider the workspace can actually use.
+  const { integrationAiKeys } = await import("@/lib/ai-integration-keys.server");
+  const bridged = (await integrationAiKeys(admin, workspaceId))
+    .filter((k) => !direct.some((d) => d.connected && d.provider === k.provider))
+    .map((k) => ({
+      connected: true,
+      provider: k.provider,
+      providerLabel: aiProvider(k.provider).label,
+      model: k.model,
+      last4: k.last4,
+      status: "verified",
+      lastError: null,
+      verifiedAt: null,
+    }));
+  return [...direct, ...bridged];
 }
 
 /** Public-safe view of one connection, for the settings UI. */
