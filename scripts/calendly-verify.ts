@@ -26,6 +26,8 @@ function arg(name: string): string | undefined {
 const connectionId = arg("connection");
 const expectedEmail = arg("email");
 const origin = arg("origin") ?? "http://localhost:8080";
+/** Where the signature test POSTs; Calendly itself rejects localhost callbacks. */
+const postOrigin = arg("post-origin") ?? "http://localhost:8080";
 const runWebhookTest = process.argv.includes("--webhook-test");
 
 if (!connectionId || !expectedEmail) {
