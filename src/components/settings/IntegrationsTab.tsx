@@ -369,6 +369,32 @@ export function IntegrationsTab() {
             const locked = !item.planAllowed;
             const isOauth = meta?.authType === "oauth";
             const cal = item.slug === "calendly" ? (calendly.data ?? null) : null;
+            const slk = item.slug === "slack" ? (slack.data ?? null) : null;
+            // One shared OAuth card, one descriptor per provider.
+            const oauth =
+              item.slug === "calendly"
+                ? {
+                    connected: Boolean(cal?.connected),
+                    configured: cal?.configured !== false,
+                    loading: calendly.isLoading,
+                    start: calendlyStart,
+                    remove: calendlyDisconnect,
+                    verify: calendlyVerify,
+                    verifyLabel: "Check booking notifications",
+                    unavailable: "Calendly sign-in is not available on this environment yet.",
+                  }
+                : item.slug === "slack"
+                  ? {
+                      connected: Boolean(slk?.connected),
+                      configured: slk?.configured !== false,
+                      loading: slack.isLoading,
+                      start: slackStart,
+                      remove: slackDisconnect,
+                      verify: slackVerify,
+                      verifyLabel: "Check Slack connection",
+                      unavailable: "Slack sign-in is not available on this environment yet.",
+                    }
+                  : null;
             return (
               <div key={item.slug} className="rounded-xl border border-border/70 bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
