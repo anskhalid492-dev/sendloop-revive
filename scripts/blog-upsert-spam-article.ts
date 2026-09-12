@@ -19,6 +19,7 @@ const headers = {
 };
 
 const IMG_DNS = "/api/public/media/blog/2026-09/domain-authentication-statuses.jpg";
+const IMG_COVER = "/api/public/media/blog/2026-09/why-emails-land-in-spam-cover.jpg";
 const IMG_MAILBOXES = "/api/public/media/blog/2026-09/mailbox-health-sending-limits.jpg";
 
 const content = `
@@ -244,7 +245,7 @@ const post = {
   author_id: "6032c025-cdab-4f0a-8084-2abc936ffcd6", // Sara Lindqvist, Deliverability Lead
   published_at: "2026-09-12T09:00:00+00:00",
   updated_at: new Date().toISOString(),
-  cover_image_url: IMG_DNS,
+  cover_image_url: IMG_COVER,
   og_image_url: null,
 };
 
