@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/accordion";
 
 const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-docs-signal focus-visible:ring-offset-2 focus-visible:ring-offset-docs-paper";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -43,23 +44,21 @@ function useCountUp(target: number) {
 }
 
 export function DocsPageFrame({ children }: { children: ReactNode }) {
-  return (
-    <div className="bg-docs-paper font-doc text-docs-slate">{children}</div>
-  );
+  return <div className="bg-background text-foreground">{children}</div>;
 }
 
 const ledger = [
-  { label: "queued", value: 1248 },
-  { label: "delivered", value: 991 },
-  { label: "replied", value: 74 },
+  { label: "Queued", value: 1248 },
+  { label: "Delivered", value: 991 },
+  { label: "Replied", value: 74 },
 ];
 
 function LedgerRow({ label, value }: { label: string; value: number }) {
   const shown = useCountUp(value);
   return (
-    <div className="flex items-baseline justify-between border-b border-white/10 py-2.5">
-      <span className="font-docmono text-[0.72rem] text-white/55">{label}</span>
-      <span className="font-docmono text-sm tabular-nums text-white/90">
+    <div className="flex items-baseline justify-between border-b border-border py-2.5 last:border-b-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold tabular-nums text-foreground">
         {shown.toLocaleString()}
       </span>
     </div>
@@ -68,60 +67,60 @@ function LedgerRow({ label, value }: { label: string; value: number }) {
 
 export function DocsHero() {
   return (
-    <section className="border-b border-docs-rule bg-docs-paper">
-      <div className="mx-auto max-w-6xl px-4 pt-10 pb-12 sm:px-6 sm:pt-16 sm:pb-20">
-        <div className="rounded-md bg-docs-ink px-5 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
-          <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
-            <div className="lg:col-span-7">
-              <dl className="space-y-1 border-b border-white/12 pb-5 font-docmono text-[0.72rem] text-white/50">
-                <div className="flex gap-2">
-                  <dt className="w-16 shrink-0">From:</dt>
-                  <dd className="text-white/75">docs@munchreach.com</dd>
-                </div>
-                <div className="flex gap-2">
-                  <dt className="w-16 shrink-0">Subject:</dt>
-                  <dd className="text-white/75">Documentation</dd>
-                </div>
-              </dl>
-
-              <h1 className="mt-7 font-display text-[2.1rem] leading-[1.05] font-semibold tracking-[-0.03em] text-white sm:text-5xl lg:text-[3.4rem]">
-                Everything you need to
-                <span className="block text-docs-signal">set up and scale</span>
-              </h1>
-
-              <p className="mt-6 max-w-xl text-[0.98rem] leading-relaxed text-white/65">
-                Practical guides for every part of MunchReach, from your first mailbox
-                connection to multi-workspace agency reporting.
-              </p>
-
-              <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
-                <Link
-                  to="/auth"
-                  className={`inline-flex items-center rounded-full bg-docs-signal px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-docs-ink ${focusRing} focus-visible:ring-offset-docs-ink`}
-                >
-                  Start for Free
-                </Link>
-                <a
-                  href="#browse"
-                  className={`font-docmono text-sm text-white/70 underline-offset-4 hover:text-white hover:underline ${focusRing} focus-visible:ring-offset-docs-ink`}
-                >
-                  Browse the docs →
-                </a>
+    <section className="hero-glow relative overflow-hidden border-b border-border/60">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-14">
+          <div className="lg:col-span-7">
+            <dl className="max-w-md space-y-1.5 border-b border-border pb-5 text-sm">
+              <div className="flex gap-3">
+                <dt className="w-20 shrink-0 text-muted-foreground">From</dt>
+                <dd className="font-medium text-foreground">docs@munchreach.com</dd>
               </div>
-            </div>
+              <div className="flex gap-3">
+                <dt className="w-20 shrink-0 text-muted-foreground">Subject</dt>
+                <dd className="font-medium text-foreground">Documentation</dd>
+              </div>
+            </dl>
 
-            <div className="lg:col-span-5 lg:border-l lg:border-white/12 lg:pl-14">
-              <p className="font-docmono text-[0.72rem] text-white/45">ledger</p>
-              <div className="mt-4 border-t border-white/10">
+            <h1 className="mt-7 text-3xl leading-[1.1] font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+              Everything you need to
+              <span className="block text-primary">set up and scale</span>
+            </h1>
+
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
+              Practical guides for every part of MunchReach, from your first mailbox
+              connection to multi-workspace agency reporting.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Button asChild size="lg">
+                <Link to="/auth">Start for Free</Link>
+              </Button>
+              <a
+                href="#browse"
+                className={`inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline ${focusRing}`}
+              >
+                Browse the docs
+                <span aria-hidden>→</span>
+              </a>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground">
+                Sending ledger
+              </p>
+              <div className="mt-4 border-t border-border">
                 {ledger.map((row) => (
                   <LedgerRow key={row.label} {...row} />
                 ))}
               </div>
               <div className="mt-6">
-                <div className="h-[3px] w-full overflow-hidden bg-white/10">
-                  <div className="docs-fill h-full w-[79%] bg-docs-signal" />
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="docs-fill h-full w-[79%] rounded-full bg-primary" />
                 </div>
-                <p className="mt-3 font-docmono text-[0.72rem] text-white/45">
+                <p className="mt-3 text-xs text-muted-foreground">
                   79% delivered this cycle
                 </p>
               </div>
@@ -137,23 +136,28 @@ export function DocsSection({
   id,
   title,
   description,
+  muted,
   children,
 }: {
   id?: string;
   title?: string;
   description?: string;
+  muted?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="border-b border-docs-rule">
+    <section
+      id={id}
+      className={`border-b border-border/60 ${muted ? "bg-secondary/40" : ""}`}
+    >
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         {title ? (
           <div className="max-w-2xl">
-            <h2 className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-docs-ink sm:text-[2rem]">
+            <h2 className="text-2xl leading-tight font-bold tracking-tight text-foreground sm:text-3xl">
               {title}
             </h2>
             {description ? (
-              <p className="mt-3 text-[0.95rem] leading-relaxed text-docs-slate">
+              <p className="mt-3 text-base leading-relaxed text-muted-foreground">
                 {description}
               </p>
             ) : null}
@@ -171,16 +175,16 @@ export function DocsSteps({
   steps: { title: string; text: string }[];
 }) {
   return (
-    <ol className="border-l border-docs-rule">
+    <ol className="border-l border-border">
       {steps.map((step, i) => (
-        <li key={step.title} className="relative pb-8 pl-6 last:pb-0 sm:pl-8">
-          <span className="font-docmono text-[0.72rem] text-docs-signal">
-            {String(i + 1).padStart(2, "0")}
+        <li key={step.title} className="pb-8 pl-6 last:pb-0 sm:pl-8">
+          <span className="text-xs font-semibold text-primary">
+            Step {i + 1}
           </span>
-          <h3 className="mt-1.5 font-display text-lg font-semibold tracking-[-0.01em] text-docs-ink">
+          <h3 className="mt-1.5 text-lg font-semibold tracking-tight text-foreground">
             {step.title}
           </h3>
-          <p className="mt-1.5 max-w-xl text-[0.93rem] leading-relaxed text-docs-slate">
+          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
             {step.text}
           </p>
         </li>
@@ -198,12 +202,12 @@ export function DocsGroups({
     <div className="grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
       {groups.map((group) => (
         <div key={group.title}>
-          <h3 className="font-docmono text-[0.78rem] text-docs-ink">{group.title}</h3>
-          <ul className="mt-3 border-t border-docs-rule">
+          <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>
+          <ul className="mt-3 border-t border-border">
             {group.items.map((item) => (
               <li
                 key={item}
-                className="border-b border-docs-rule py-2.5 text-[0.9rem] leading-snug text-docs-slate"
+                className="border-b border-border py-2.5 text-sm leading-snug text-muted-foreground"
               >
                 {item}
               </li>
@@ -218,34 +222,43 @@ export function DocsGroups({
 export function DocsMailboxPanel({
   rows,
 }: {
-  rows: { address: string; provider: string; detail: string; status: "Healthy" | "Warming" }[];
+  rows: {
+    address: string;
+    provider: string;
+    detail: string;
+    status: "Healthy" | "Warming";
+  }[];
 }) {
   return (
-    <div className="max-w-3xl overflow-hidden rounded-md border border-docs-rule bg-white">
-      <div className="border-b border-docs-rule bg-docs-paper px-4 py-2.5 font-docmono text-[0.72rem] text-docs-slate">
+    <div className="max-w-3xl overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]">
+      <div className="border-b border-border bg-secondary/60 px-4 py-2.5 text-xs text-muted-foreground">
         workspace.munchreach.app/mailboxes
       </div>
       <ul>
         {rows.map((row) => (
           <li
             key={row.address}
-            className="grid grid-cols-1 gap-1 border-b border-docs-rule px-4 py-3.5 last:border-b-0 sm:grid-cols-12 sm:items-center sm:gap-4"
+            className="grid grid-cols-1 gap-1 border-b border-border px-4 py-3.5 last:border-b-0 sm:grid-cols-12 sm:items-center sm:gap-4"
           >
-            <span className="font-docmono text-[0.85rem] text-docs-ink sm:col-span-6">
+            <span className="text-sm font-medium text-foreground sm:col-span-6">
               {row.address}
             </span>
-            <span className="font-docmono text-[0.75rem] text-docs-slate sm:col-span-3">
+            <span className="text-xs text-muted-foreground sm:col-span-3">
               {row.provider}
             </span>
-            <span className="font-docmono text-[0.75rem] text-docs-slate sm:col-span-2">
+            <span className="text-xs text-muted-foreground sm:col-span-1">
               {row.detail}
             </span>
-            <span
-              className={`font-docmono text-[0.75rem] sm:col-span-2 sm:text-right ${
-                row.status === "Healthy" ? "text-docs-delivered" : "text-docs-warming"
-              }`}
-            >
-              {row.status}
+            <span className="sm:col-span-2 sm:text-right">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  row.status === "Healthy"
+                    ? "bg-tint-mint text-tint-mint-foreground"
+                    : "bg-tint-amber text-tint-amber-foreground"
+                }`}
+              >
+                {row.status}
+              </span>
             </span>
           </li>
         ))}
@@ -256,20 +269,20 @@ export function DocsMailboxPanel({
 
 export function DocsArticleThread({ articles }: { articles: string[] }) {
   return (
-    <ol className="border-t border-docs-rule">
+    <ol className="border-t border-border">
       {articles.map((article, i) => (
-        <li key={article} className="border-b border-docs-rule">
+        <li key={article} className="border-b border-border">
           <Link
             to="/help-center"
-            className={`group flex items-baseline gap-4 py-4 transition-colors hover:bg-white sm:gap-6 ${focusRing}`}
+            className={`group flex items-baseline gap-4 rounded-md px-1 py-4 transition-colors hover:bg-secondary/50 sm:gap-6 ${focusRing}`}
           >
-            <span className="font-docmono text-[0.72rem] text-docs-signal">
+            <span className="text-xs font-semibold tabular-nums text-primary">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <span className="flex-1 text-[0.97rem] text-docs-ink">{article}</span>
+            <span className="flex-1 text-base text-foreground">{article}</span>
             <span
               aria-hidden
-              className="font-docmono text-sm text-docs-slate opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              className="text-sm text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
             >
               →
             </span>
@@ -282,15 +295,15 @@ export function DocsArticleThread({ articles }: { articles: string[] }) {
 
 export function DocsFaq({ faqs }: { faqs: { q: string; a: string }[] }) {
   return (
-    <Accordion type="single" collapsible className="border-t border-docs-rule">
+    <Accordion type="single" collapsible className="border-t border-border">
       {faqs.map((faq) => (
-        <AccordionItem key={faq.q} value={faq.q} className="border-b border-docs-rule">
+        <AccordionItem key={faq.q} value={faq.q} className="border-b border-border">
           <AccordionTrigger
-            className={`py-4 text-left font-display text-[1.02rem] font-medium tracking-[-0.01em] text-docs-ink hover:no-underline ${focusRing}`}
+            className={`py-4 text-left text-base font-medium tracking-tight text-foreground hover:no-underline ${focusRing}`}
           >
             {faq.q}
           </AccordionTrigger>
-          <AccordionContent className="max-w-2xl pb-5 text-[0.93rem] leading-relaxed text-docs-slate">
+          <AccordionContent className="max-w-2xl pb-5 text-sm leading-relaxed text-muted-foreground">
             {faq.a}
           </AccordionContent>
         </AccordionItem>
@@ -307,20 +320,19 @@ export function DocsCta({
   description: string;
 }) {
   return (
-    <section className="bg-docs-ink">
+    <section className="bg-secondary/40">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-16 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-xl">
-          <h2 className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-white sm:text-[2rem]">
+          <h2 className="text-2xl leading-tight font-bold tracking-tight text-foreground sm:text-3xl">
             {title}
           </h2>
-          <p className="mt-3 text-[0.95rem] leading-relaxed text-white/65">{description}</p>
+          <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         </div>
-        <Link
-          to="/auth"
-          className={`inline-flex w-fit items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-docs-ink transition-colors hover:bg-docs-signal hover:text-white ${focusRing} focus-visible:ring-offset-docs-ink`}
-        >
-          Start for Free
-        </Link>
+        <Button asChild size="lg" className="w-fit">
+          <Link to="/auth">Start for Free</Link>
+        </Button>
       </div>
     </section>
   );
