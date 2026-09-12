@@ -336,6 +336,38 @@ export function IntegrationsTab() {
                     <Button size="sm" variant="outline" disabled className="gap-1.5">
                       <Lock className="size-3.5" /> Paid plan
                     </Button>
+                  ) : isOauth ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant={cal?.connected ? "outline" : "default"}
+                        disabled={
+                          !item.isEnabled ||
+                          calendlyStart.isPending ||
+                          calendly.isLoading ||
+                          cal?.configured === false
+                        }
+                        onClick={() => calendlyStart.mutate()}
+                      >
+                        {calendlyStart.isPending ? (
+                          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                        ) : (
+                          <Link2 className="mr-1.5 size-3.5" />
+                        )}
+                        {cal?.connected ? "Reconnect" : `Connect ${item.name}`}
+                      </Button>
+                      {cal?.connected ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          disabled={calendlyDisconnect.isPending}
+                          onClick={() => calendlyDisconnect.mutate()}
+                        >
+                          <Trash2 className="mr-1.5 size-3.5" /> Disconnect
+                        </Button>
+                      ) : null}
+                    </>
                   ) : item.connected ? (
                     <>
                       <Button
