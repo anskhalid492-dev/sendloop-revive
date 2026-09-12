@@ -40,8 +40,8 @@ export const GUIDE_ARTICLES: HelpArticle[] = [
       "inbox placement",
     ],
     related: [
-      "mailbox-rotation-explained",
-      "custom-tracking-domain-setup",
+      "sending-limits",
+      "tracking-domains",
       "spf-dkim-dmarc",
       "reduce-bounce-rate",
     ],
@@ -105,7 +105,7 @@ What to do:
 
 - Leave **warmup** running on every new mailbox and check its health band in **Warmup**.
 - Keep each mailbox's **Daily limit** modest — the default of 50 exists for a reason.
-- Scale by adding mailboxes, not by raising one mailbox's limit. See [how mailbox rotation distributes volume](/help-center/mailbox-rotation-explained).
+- Scale by adding mailboxes, not by raising one mailbox's limit. See [how sending limits work](/help-center/sending-limits).
 - Use a dedicated outreach domain or subdomain, never your main corporate domain.
 
 ### Does a pause in sending hurt reputation?
@@ -151,7 +151,7 @@ Barely, and far less than people believe. Modern filters score behaviour and rep
 
 ### Does open and click tracking hurt placement?
 
-Slightly. Tracking adds an image pixel and rewrites links through a redirect, and a redirect on an unrecognised host looks worse than a link to your own domain. Two mitigations: run tracking on your own [custom tracking domain](/help-center/custom-tracking-domain-setup), and consider sending the first email untracked, treating replies as the real signal.
+Slightly. Tracking adds an image pixel and rewrites links through a redirect, and a redirect on an unrecognised host looks worse than a link to your own domain. Two mitigations: run tracking on your own [custom tracking domain](/help-center/tracking-domains), and consider sending the first email untracked, treating replies as the real signal.
 
 ## Am I on a blacklist?
 
