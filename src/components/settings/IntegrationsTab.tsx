@@ -434,6 +434,21 @@ export function IntegrationsTab() {
                         : "Booking notifications are not active yet — use Check booking notifications, or Reconnect."}
                     </p>
                   </div>
+                ) : slk && slk.connected ? (
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      Slack workspace:{" "}
+                      <span className="font-medium text-foreground">
+                        {slk.teamName ?? "Connected"}
+                      </span>
+                      {slk.channel ? ` · ${slk.channel}` : ""}
+                    </p>
+                    <p>
+                      {slk.status === "error"
+                        ? "Slack needs attention — use Reconnect."
+                        : "Alerts are being posted to this channel."}
+                    </p>
+                  </div>
                 ) : item.connected && item.accountLabel ? (
                   <p className="mt-3 text-xs text-muted-foreground">
                     Account: <span className="font-medium text-foreground">{item.accountLabel}</span>
@@ -441,9 +456,9 @@ export function IntegrationsTab() {
                   </p>
                 ) : null}
 
-                {isOauth && cal && !cal.configured ? (
+                {isOauth && oauth && !oauth.configured ? (
                   <p className="mt-3 rounded-lg bg-muted/60 p-2 text-xs text-muted-foreground">
-                    Calendly sign-in is not available on this environment yet.
+                    {oauth.unavailable}
                   </p>
                 ) : null}
 
