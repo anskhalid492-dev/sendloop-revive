@@ -82,6 +82,33 @@ export function parseHtmlToc(html: string): ArticleSection[] {
   return sections;
 }
 
+/**
+ * Question/answer pairs from an HTML body's `<section class="faq">` block, used
+ * to publish FAQPage structured data for answer engines.
+ */
+export function parseHtmlFaq(html: string): Array<{ question: string; answer: string }> {
+  const block = /<section\b[^>]*class="[^"]*\bfaq\b[^"]*"[^>]*>([\s\S]*?)<\/section>/i.exec(html);
+  if (!block?.[1]) return [];
+  const pairs: Array<{ question: string; answer: string }> = [];
+  const re = /<h3\b[^>]*>([\s\S]*?)<\/h3>\s*<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(block[1]))) {
+    const question = stripTags(match[1] ?? "");
+    const answer = stripTags(match[2] ?? "");
+    if (question && answer) pairs.push({ question, answer });
+  }
+  return pairs;
+}
+
+function stripTags(value: string): string {
+  return value
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function wrapTables(html: string): string {
   if (!html.includes("<table")) return html;
   return html

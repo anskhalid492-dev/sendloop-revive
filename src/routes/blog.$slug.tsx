@@ -2,7 +2,14 @@ import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-route
 import { ArrowRight, ChevronRight, Clock, Linkedin, Link2, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
-import { ArticleBody, HtmlArticleBody, TableOfContents, parseArticle, parseHtmlToc } from "@/components/blog/ArticleBody";
+import {
+  ArticleBody,
+  HtmlArticleBody,
+  TableOfContents,
+  parseArticle,
+  parseHtmlFaq,
+  parseHtmlToc,
+} from "@/components/blog/ArticleBody";
 import { CoverImage, PostCard } from "@/components/blog/BlogCards";
 import { MarketingLayout, Section } from "@/components/site/MarketingPage";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +39,8 @@ export const Route = createFileRoute("/blog/$slug")({
     const url = absoluteUrl(path);
     const canonical = post.canonical_url ? absoluteUrl(post.canonical_url) : url;
     const image = post.og_image_url || post.cover_image_url;
+    const faqs =
+      (post as { content_format?: string }).content_format === "html" ? parseHtmlFaq(post.content) : [];
     return {
       meta: [
         { title },
@@ -78,6 +87,22 @@ export const Route = createFileRoute("/blog/$slug")({
             : []),
           { name: post.title, path },
         ]),
+        ...(faqs.length
+          ? [
+              {
+                type: "application/ld+json",
+                children: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "FAQPage",
+                  mainEntity: faqs.map((faq) => ({
+                    "@type": "Question",
+                    name: faq.question,
+                    acceptedAnswer: { "@type": "Answer", text: faq.answer },
+                  })),
+                }),
+              },
+            ]
+          : []),
       ],
     };
   },

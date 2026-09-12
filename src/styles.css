@@ -492,3 +492,18 @@
   aspect-ratio: 16 / 9;
   border-radius: 0.75rem;
 }
+.cms-content figure img {
+  border: 1px solid var(--border);
+}
+.cms-content .callout {
+  border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+  border-radius: 0.9rem;
+  padding: 1.15rem 1.35rem;
+}
+.cms-content .callout > * + * {
+  margin-top: 0.6rem;
+}
+.cms-content .callout strong {
+  color: var(--foreground);
+}
