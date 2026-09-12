@@ -145,3 +145,27 @@ describe("unsubscribe phrasings", () => {
     expect(classifyInbound("Re: Packaging", body)).toBe("interested");
   });
 });
+
+describe("mentions of the word unsubscribe that are not opt-outs", () => {
+  it("a prospect asking NOT to be unsubscribed stays interested", () => {
+    expect(classifyInbound("Re: intro", "Please don't unsubscribe me, I'm interested")).toBe(
+      "interested",
+    );
+    expect(classifyInbound("Re: intro", "Do not unsubscribe us, we'd like to hear more")).toBe(
+      "interested",
+    );
+  });
+
+  it("footer phrasing without a link never counts as an opt-out", () => {
+    const body = "If you no longer wish to receive these emails, unsubscribe.";
+    expect(classifyInbound("Re: intro", body)).toBeNull();
+  });
+
+  it("a fully quoted body falls back to the footer-filtered text, not the raw footer", () => {
+    const body = [
+      "> Thanks!",
+      "> If you no longer wish to receive these emails, unsubscribe.",
+    ].join("\n");
+    expect(classifyInbound("Re: intro", body)).toBeNull();
+  });
+});
