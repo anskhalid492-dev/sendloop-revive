@@ -63,18 +63,32 @@ export async function workspaceAiCredentials(
     provider: string | null;
     status: string | null;
   }>;
-  if (!rows.length) return null;
-  const wanted = preferred ? rows.find((r) => normalizeProvider(r.provider) === preferred) : null;
-  const row = wanted ?? rows.find((r) => r.status === "verified") ?? rows[0]!;
-  if (!row?.key_ciphertext) return null;
-  try {
-    const secret = decryptCredentials<{ api_key: string }>(row.key_ciphertext);
-    if (!secret?.api_key) return null;
-    const provider = normalizeProvider(row.provider);
-    return { provider, apiKey: secret.api_key, model: resolveAiModel(provider, row.model) };
-  } catch {
-    return null;
+  const direct: WorkspaceAiCredentials[] = [];
+  for (const row of rows) {
+    if (!row.key_ciphertext) continue;
+    try {
+      const secret = decryptCredentials<{ api_key: string }>(row.key_ciphertext);
+      if (!secret?.api_key) continue;
+      const provider = normalizeProvider(row.provider);
+      direct.push({
+        provider,
+        apiKey: secret.api_key,
+        model: resolveAiModel(provider, row.model),
+      });
+    } catch {
+      continue;
+    }
   }
+
+  // Keys connected on the Integrations tab count too, but never override a key
+  // saved directly for the same provider.
+  const { integrationAiKeys } = await import("@/lib/ai-integration-keys.server");
+  const bridged = (await integrationAiKeys(admin, workspaceId)).filter(
+    (k) => !direct.some((d) => d.provider === k.provider),
+  );
+  const all = [...direct, ...bridged.map(({ provider, apiKey, model }) => ({ provider, apiKey, model }))];
+  if (!all.length) return null;
+  return (preferred ? all.find((c) => c.provider === preferred) : null) ?? all[0]!;
 }
 
 const KEY_COLUMNS = "provider, model, key_last4, status, last_error, verified_at";
