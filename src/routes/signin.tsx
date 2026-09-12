@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicAuthSettings } from "@/lib/auth-settings.functions";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { TURNSTILE_ACTIONS } from "@/lib/turnstile-config";
+import { signInWithTurnstile } from "@/lib/auth-turnstile.functions";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +70,8 @@ function SignInPage() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [widgetKey, setWidgetKey] = useState(0);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(REMEMBER_KEY);
@@ -90,25 +95,50 @@ function SignInPage() {
     e.preventDefault();
     setFormError(null);
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setLoading(false);
-    if (error) {
+    // The bot check and the credential check both happen server-side.
+    let result: Awaited<ReturnType<typeof signInWithTurnstile>>;
+    try {
+      result = await signInWithTurnstile({
+        data: {
+          email: email.trim(),
+          password,
+          ...(turnstileToken ? { turnstileToken } : {}),
+        },
+      });
+    } catch (error) {
+      setLoading(false);
+      setTurnstileToken(null);
+      setWidgetKey((value) => value + 1);
       const message =
-        error.message === "Invalid login credentials"
-          ? "That email and password combination doesn't match an account."
-          : error.message === "Email not confirmed"
-            ? "Please confirm your email address, then log in again."
-            : error.message;
+        error instanceof Error ? error.message : "Sign-in failed. Please try again.";
       setFormError(message);
       toast.error(message);
       return;
     }
+    if (!result.ok) {
+      setLoading(false);
+      setTurnstileToken(null);
+      setWidgetKey((value) => value + 1);
+      const message =
+        result.error === "Invalid login credentials"
+          ? "That email and password combination doesn't match an account."
+          : result.error === "Email not confirmed"
+            ? "Please confirm your email address, then log in again."
+            : result.error;
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
+    const { error: sessionError } = await supabase.auth.setSession(result.session);
+    setLoading(false);
+    if (sessionError) {
+      setFormError(sessionError.message);
+      toast.error(sessionError.message);
+      return;
+    }
     if (remember) window.localStorage.setItem(REMEMBER_KEY, email.trim());
     else window.localStorage.removeItem(REMEMBER_KEY);
-    if (data.session) navigate({ to: destination, replace: true });
+    navigate({ to: destination, replace: true });
   }
 
   const googleQuery = useQuery({
@@ -210,6 +240,13 @@ function SignInPage() {
           />
           Keep me signed in
         </label>
+
+        <TurnstileWidget
+          key={widgetKey}
+          action={TURNSTILE_ACTIONS.signin}
+          onToken={setTurnstileToken}
+          className="empty:hidden"
+        />
 
         <AnimatePresence>
           {formError ? (

@@ -15,6 +15,7 @@ import { emitTransactionalEvent } from "@/lib/transactional-events.server";
 const input = z.object({
   email: z.string().trim().toLowerCase().email(),
   redirectTo: z.string().trim().url().max(500),
+  turnstileToken: z.string().trim().max(2048).optional(),
 });
 
 async function sendAuthLink(
@@ -54,6 +55,10 @@ async function sendAuthLink(
 export const requestPasswordResetEmail = createServerFn({ method: "POST" })
   .inputValidator((raw) => input.parse(raw))
   .handler(async ({ data }) => {
+    // Bot check first, then the volume cap: Turnstile and the rate limiter are
+    // two independent layers on the same endpoint.
+    const { assertTurnstile } = await import("@/lib/turnstile.server");
+    await assertTurnstile(data.turnstileToken, "password-reset");
     const { assertAuthEmailRateLimit } = await import("@/lib/auth-rate-limit.server");
     await assertAuthEmailRateLimit("recovery", data.email);
     await sendAuthLink("recovery", data.email, data.redirectTo);
@@ -63,6 +68,8 @@ export const requestPasswordResetEmail = createServerFn({ method: "POST" })
 export const requestMagicLinkEmail = createServerFn({ method: "POST" })
   .inputValidator((raw) => input.parse(raw))
   .handler(async ({ data }) => {
+    const { assertTurnstile } = await import("@/lib/turnstile.server");
+    await assertTurnstile(data.turnstileToken, "password-reset");
     const { assertAuthEmailRateLimit } = await import("@/lib/auth-rate-limit.server");
     await assertAuthEmailRateLimit("magiclink", data.email);
     await sendAuthLink("magiclink", data.email, data.redirectTo);
