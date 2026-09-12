@@ -513,6 +513,28 @@ export function IntegrationsTab() {
                           {oauth.verifyLabel}
                         </Button>
                       ) : null}
+                      {oauth.connected && (meta?.events.length ?? 0) > 0 ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setOpenSlug(item.slug);
+                              setValues({});
+                            }}
+                          >
+                            Manage events
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={testMutation.isPending}
+                            onClick={() => testMutation.mutate(item.slug)}
+                          >
+                            <RefreshCw className="mr-1.5 size-3.5" /> Send test
+                          </Button>
+                        </>
+                      ) : null}
                       {oauth.connected ? (
                         <Button
                           size="sm"
@@ -525,6 +547,7 @@ export function IntegrationsTab() {
                         </Button>
                       ) : null}
                     </>
+
 
                   ) : item.connected ? (
                     <>
