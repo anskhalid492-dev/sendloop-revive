@@ -290,10 +290,31 @@ export function IntegrationsTab() {
                   <StatusBadge item={item} />
                 </div>
 
-                {item.connected && item.accountLabel ? (
+                {cal && cal.connected ? (
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      Calendly account:{" "}
+                      <span className="font-medium text-foreground">
+                        {cal.accountName ?? cal.accountEmail ?? "Connected"}
+                      </span>
+                      {cal.accountName && cal.accountEmail ? ` · ${cal.accountEmail}` : ""}
+                    </p>
+                    <p>
+                      {cal.webhookActive
+                        ? "Bookings and cancellations are being received."
+                        : "Booking notifications are not active — use Reconnect."}
+                    </p>
+                  </div>
+                ) : item.connected && item.accountLabel ? (
                   <p className="mt-3 text-xs text-muted-foreground">
                     Account: <span className="font-medium text-foreground">{item.accountLabel}</span>
                     {item.secretHint ? ` · key ${item.secretHint}` : ""}
+                  </p>
+                ) : null}
+
+                {isOauth && cal && !cal.configured ? (
+                  <p className="mt-3 rounded-lg bg-muted/60 p-2 text-xs text-muted-foreground">
+                    Calendly sign-in is not available on this environment yet.
                   </p>
                 ) : null}
 
