@@ -13,6 +13,12 @@ import {
   saveLifecycleConfig,
 } from "../src/lib/lifecycle.server";
 
+// Hard guardrail: marks this process as a verification run. Any lifecycle
+// cycle started without an explicit list of throwaway test accounts refuses
+// to run, so this script can never touch real accounts or create real
+// payment-provider objects.
+process.env["LIFECYCLE_VERIFY_MODE"] = "1";
+
 const url = process.env["SUPABASE_URL"]!;
 const key = process.env["SUPABASE_SERVICE_ROLE_KEY"]!;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
