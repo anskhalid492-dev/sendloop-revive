@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -40,7 +40,29 @@ import {
   updateIntegrationEvents,
   type IntegrationConnectionView,
 } from "@/lib/integrations.functions";
+import {
+  disconnectCalendly,
+  getCalendlyStatus,
+  startCalendlyOAuth,
+} from "@/lib/calendly.functions";
 import { cn } from "@/lib/utils";
+
+/** Messages for the `?calendly=` result the OAuth callback redirects back with. */
+const CALENDLY_RESULTS: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "Calendly connected — booked meetings will now be tracked." },
+  webhook_failed: {
+    ok: false,
+    text: "Calendly connected, but booking notifications could not be switched on. Try Reconnect.",
+  },
+  declined: { ok: false, text: "Calendly connection cancelled." },
+  state_invalid: { ok: false, text: "That Calendly link was not valid. Please try again." },
+  state_used: { ok: false, text: "That Calendly link was already used. Please try again." },
+  no_code: { ok: false, text: "Calendly did not return an authorization. Please try again." },
+  exchange_failed: { ok: false, text: "Calendly refused the authorization. Please try again." },
+  verify_failed: { ok: false, text: "Calendly could not confirm the account. Nothing was saved." },
+  store_failed: { ok: false, text: "The Calendly connection could not be saved. Please try again." },
+  forbidden: { ok: false, text: "Only workspace owners and admins can connect Calendly." },
+};
 
 function StatusBadge({ item }: { item: IntegrationConnectionView }) {
   if (!item.isEnabled) return <Badge variant="outline">Unavailable</Badge>;
