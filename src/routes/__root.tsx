@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { initStaleChunkReload } from "@/lib/stale-chunk-reload";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,11 @@ import {
 } from "@/lib/platform-config-store";
 import { CookieConsentBanner } from "@/components/platform/CookieConsentBanner";
 import { NotFoundPage } from "@/components/site/NotFoundPage";
+
+// Initialise stale-chunk recovery as early as possible in the browser bundle.
+// It is a no-op during SSR.
+initStaleChunkReload();
+
 
 
 
