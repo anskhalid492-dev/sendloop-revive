@@ -142,7 +142,7 @@ function Docs() {
           <DocsSteps steps={quickstart} />
         </DocsSection>
 
-        <DocsSection id="browse" title="Browse the docs">
+        <DocsSection id="browse" title="Browse the docs" muted>
           <DocsGroups groups={groups} />
         </DocsSection>
 
@@ -150,13 +150,13 @@ function Docs() {
           <DocsMailboxPanel rows={mailboxes} />
         </DocsSection>
 
-        <DocsSection title="Popular articles">
+        <DocsSection title="Popular articles" muted>
           <DocsArticleThread articles={articles} />
           <p className="mt-8 text-sm text-docs-slate">
             Building an integration? See the{" "}
             <Link
               to="/api-docs"
-              className="text-docs-signal underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-docs-signal focus-visible:outline-none"
+              className="text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               API reference
             </Link>
