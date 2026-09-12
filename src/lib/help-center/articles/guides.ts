@@ -56,7 +56,7 @@ export const GUIDE_ARTICLES: HelpArticle[] = [
       "Your emails are landing in spam because receiving servers do not yet trust the combination of your domain, your mailbox and your sending pattern. In practice that is almost always one of five things: SPF, DKIM or DMARC is failing; the domain or mailbox is too new for the volume being sent; bounce or spam-complaint rates are elevated; recipients are ignoring or deleting your mail; or the copy is templated, link-heavy and image-heavy. Fix them in that order — authentication first, list quality second, volume and copy third — and placement recovers over days, not minutes.",
     content: `Spam placement is not a mystery and it is rarely one big mistake. It is a trust score, and every cause below moves it in a predictable direction.
 
-Delivery and placement are also not the same thing. A message can be accepted by the receiving server, counted as delivered in your [analytics](/help-center/metric-definitions), and still be filed in spam.
+Delivery and placement are also not the same thing. A message can be accepted by the receiving server, counted as delivered in your [analytics](/help-center/metric-definitions), and still be filed in spam. Nothing in any sending tool reports placement directly, because receiving providers never tell the sender which folder a message landed in. That is why diagnosis works backwards: you check the signals filters use, in the order they carry weight.
 
 ## What causes emails to land in spam?
 
@@ -75,6 +75,17 @@ No single signal decides placement. A well-authenticated domain with a 12% bounc
 
 Authentication and list quality, in that order. Most "the tool has a deliverability problem" reports turn out to be a partially failing DKIM record or a purchased list that was never verified.
 
+### How do I narrow it down quickly?
+
+Answer four questions before changing anything:
+
+1. Does every DNS record show **Verified**, checked today rather than remembered from setup?
+2. What is the campaign's bounce rate over the last seven days?
+3. How old is the domain, and has warmup finished on the mailbox?
+4. Did placement fall on a specific date, or has it always been poor?
+
+A sudden drop points to a change — DNS, a new import, a volume jump. Consistently poor placement from day one points to authentication or a domain that is too new.
+
 ## How do I check whether SPF, DKIM and DMARC are passing?
 
 Open **Email Accounts** → your domain row → **DNS records**, then click **Check DNS**. Every record shows **Pending**, **Verified** or **Failed**, and the domain only reaches **Ready to send** when authentication passes.
@@ -86,6 +97,22 @@ You can confirm independently from a terminal:
 - \`dig TXT yourdomain.com\` — your single SPF record
 - \`dig TXT selector._domainkey.yourdomain.com\` — DKIM
 - \`dig TXT _dmarc.yourdomain.com\` — DMARC
+
+### What does each DNS status actually mean?
+
+- **Pending** — the record has not been found yet. Either it was never added, or DNS has not propagated. Propagation is usually minutes and occasionally up to 48 hours, so re-run **Check DNS** after an hour before assuming something is wrong.
+- **Verified** — the record was found and its value matches what MunchReach expects. This is the only status that counts. Verified today does not mean verified next month: DNS edits elsewhere in your account can silently break it.
+- **Failed** — the record exists but its value is wrong, incomplete, or duplicated. A failure is more urgent than a pending record, because it usually means a typo you will not spot by re-reading the dashboard.
+
+**Ready to send** is a summary of all three, not a fourth record. If it does not appear, one row above it is not verified.
+
+### How do I interpret a failure on each specific record?
+
+- **SPF failed** — most often two SPF records on the same domain, or a lookup limit exceeded because too many services are chained in. A domain is allowed exactly one \`v=spf1\` TXT record; merge the include mechanisms into it.
+- **DKIM failed** — nearly always a truncated or wrapped key value, or a host that appended your domain a second time. Compare the first and last 10 characters of the published value against the value shown in MunchReach.
+- **DKIM pending while SPF is verified** — the DKIM record was added at the wrong host name. It must sit at the exact selector shown, not at the root.
+- **DMARC failed** — usually a malformed policy string. Start with \`v=DMARC1; p=none; rua=mailto:you@yourdomain.com\`, confirm it verifies, then tighten to \`p=quarantine\` once reports look clean.
+- **Everything verified but mail still filed as spam** — authentication is no longer your problem. Move on to list quality and volume; do not keep editing DNS.
 
 ### What breaks authentication most often?
 
@@ -112,6 +139,10 @@ What to do:
 
 A short pause does not hurt. Erratic sending does: 400 emails on Monday, nothing for a week, then 600 on Tuesday reads as a burst pattern. Consistency is the signal.
 
+### How do I tell a warmup problem from a reputation problem?
+
+Warmup problems affect new mailboxes and improve week by week as volume stays flat. Reputation problems affect established mailboxes and follow an event you can date — a bad import, a spike, a broken DNS record. If an older mailbox on the same domain also degraded at the same time, treat it as a domain-level reputation issue and reduce volume across every mailbox on that domain, not just the loudest one.
+
 ## Are bounces and spam complaints dragging my placement down?
 
 Yes, faster than anything else on this list. Bounces tell the receiver you are mailing addresses you never verified, and complaints tell it recipients do not want your mail.
@@ -133,6 +164,10 @@ MunchReach has a hard safety net on top of those targets. Once a campaign or mai
 
 More detail: [reducing your bounce rate](/help-center/reduce-bounce-rate).
 
+### What if bounces are concentrated on one provider or domain?
+
+Group the bounces before reacting. Many bounces at a single recipient domain usually means that company's gateway is blocking you specifically — exclude it and move on. Bounces spread evenly across providers point at the list itself. Bounces that all began on one date point at the import made that day, so remove that batch rather than pruning the whole list.
+
 ## Does my email copy trigger spam filters?
 
 Copy alone rarely sends a well-authenticated email to spam, but it decides borderline cases — and cold first-touch emails are usually borderline. Filters and recipients react to the same things.
@@ -153,6 +188,10 @@ Barely, and far less than people believe. Modern filters score behaviour and rep
 
 Slightly. Tracking adds an image pixel and rewrites links through a redirect, and a redirect on an unrecognised host looks worse than a link to your own domain. Two mitigations: run tracking on your own [custom tracking domain](/help-center/tracking-domains), and consider sending the first email untracked, treating replies as the real signal.
 
+### How do I test whether the copy is the cause?
+
+Isolate one variable. Send the same audience segment two versions from the same warm mailbox on the same day — one as written, one stripped to plain text with no links — and compare reply rate over the following week. If both perform identically, the copy was never the problem and the cause sits upstream in authentication, reputation or list quality.
+
 ## Am I on a blacklist?
 
 Possibly, and it is worth ruling out — but blacklisting is a symptom, not the root cause. Domains and sending IPs get listed after sustained bounces, complaints or spam-trap hits, so the fix is always the underlying behaviour.
@@ -163,6 +202,15 @@ Check your domain and sending IP against a public list checker such as MXToolbox
 2. Clean the list and repair authentication.
 3. Follow the list's own delisting request process.
 4. Resume at very low volume, and expect weeks rather than days.
+
+## Why do my emails land in spam at one provider only?
+
+Because each provider scores you separately. Placement at Google, Microsoft and smaller business hosts can differ sharply from the same mailbox on the same day.
+
+- **Google only** — usually engagement. Replies are low, deletions are high, or tracking is heavy. Also check the Promotions tab before assuming spam.
+- **Microsoft only** — Outlook and Microsoft 365 weight domain age and volume consistency harder than most. Reduce per-mailbox volume, extend warmup, and be patient; recovery here is slower.
+- **Small business hosts only** — often a strict third-party gateway with its own list. Look for a bounce message naming the filtering service and follow its delisting process.
+- **Every provider** — authentication or list quality. Go back to the DNS dialog and the bounce rate.
 
 ## How do I fix spam placement, step by step?
 
@@ -179,9 +227,15 @@ Work in this order. Skipping ahead wastes the effort you spend later.
 
 ![Placeholder for the MunchReach Analytics page showing bounce rate, reply rate and unsubscribe rate for a campaign](placeholder: Analytics page for a single campaign, showing bounce rate, reply rate and unsubscribe trend)
 
+Change one thing at a time and give each change a week. Deliverability moves slowly enough that stacking five simultaneous fixes leaves you unable to tell which one helped.
+
 ### How long does recovery take?
 
 Usually one to three weeks of clean, modest, consistent sending. Reputation is earned back at the same slow rate it was built, and there is no reset button — which is also why a burned domain is often cheaper to replace than to rehabilitate.
+
+### Which numbers should I watch during recovery?
+
+Reply rate first, bounce rate second, unsubscribe trend third. A recovering domain shows replies returning before any other metric moves. Ignore open rate while you diagnose — privacy proxies inflate it and image blocking suppresses it, so it can rise while placement gets worse.
 
 ## When should I contact support?
 
