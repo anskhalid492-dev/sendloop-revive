@@ -196,6 +196,7 @@ import { Route as ApiPublicV1RepliesRouteImport } from './routes/api/public/v1/r
 import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/webhooks'
 import { Route as ApiPublicIntegrationsCalendlyCallbackRouteImport } from './routes/api/public/integrations/calendly/callback'
 import { Route as ApiPublicIntegrationsCalendlyWebhookRouteImport } from './routes/api/public/integrations/calendly/webhook'
+import { Route as ApiPublicIntegrationsSlackCallbackRouteImport } from './routes/api/public/integrations/slack/callback'
 import { Route as ApiPublicV1CampaignsCampaignIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId'
 import { Route as ApiPublicV1ContactsContactIdRouteImport } from './routes/api/public/v1/contacts.$contactId'
 import { Route as ApiPublicV1ContactsBulkRouteImport } from './routes/api/public/v1/contacts.bulk'
@@ -1235,6 +1236,12 @@ const ApiPublicIntegrationsCalendlyWebhookRoute =
     path: '/api/public/integrations/calendly/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsSlackCallbackRoute =
+  ApiPublicIntegrationsSlackCallbackRouteImport.update({
+    id: '/api/public/integrations/slack/callback',
+    path: '/api/public/integrations/slack/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1CampaignsCampaignIdRoute =
   ApiPublicV1CampaignsCampaignIdRouteImport.update({
     id: '/$campaignId',
@@ -1488,6 +1495,7 @@ export interface FileRoutesByFullPath {
   '/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
   '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
+  '/api/public/integrations/slack/callback': typeof ApiPublicIntegrationsSlackCallbackRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1684,6 +1692,7 @@ export interface FileRoutesByTo {
   '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
   '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
+  '/api/public/integrations/slack/callback': typeof ApiPublicIntegrationsSlackCallbackRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -1885,6 +1894,7 @@ export interface FileRoutesById {
   '/_authenticated/mranuskhalid/marketing/': typeof AuthenticatedMranuskhalidMarketingIndexRoute
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
   '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
+  '/api/public/integrations/slack/callback': typeof ApiPublicIntegrationsSlackCallbackRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
   '/api/public/v1/contacts/bulk': typeof ApiPublicV1ContactsBulkRoute
@@ -2086,6 +2096,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/marketing/'
     | '/api/public/integrations/calendly/callback'
     | '/api/public/integrations/calendly/webhook'
+    | '/api/public/integrations/slack/callback'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2282,6 +2293,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/marketing'
     | '/api/public/integrations/calendly/callback'
     | '/api/public/integrations/calendly/webhook'
+    | '/api/public/integrations/slack/callback'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2482,6 +2494,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mranuskhalid/marketing/'
     | '/api/public/integrations/calendly/callback'
     | '/api/public/integrations/calendly/webhook'
+    | '/api/public/integrations/slack/callback'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
     | '/api/public/v1/contacts/bulk'
@@ -2597,6 +2610,7 @@ export interface RootRouteChildren {
   ApiPublicV1WebhooksRoute: typeof ApiPublicV1WebhooksRouteWithChildren
   ApiPublicIntegrationsCalendlyCallbackRoute: typeof ApiPublicIntegrationsCalendlyCallbackRoute
   ApiPublicIntegrationsCalendlyWebhookRoute: typeof ApiPublicIntegrationsCalendlyWebhookRoute
+  ApiPublicIntegrationsSlackCallbackRoute: typeof ApiPublicIntegrationsSlackCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3910,6 +3924,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsCalendlyWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/slack/callback': {
+      id: '/api/public/integrations/slack/callback'
+      path: '/api/public/integrations/slack/callback'
+      fullPath: '/api/public/integrations/slack/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsSlackCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/campaigns/$campaignId': {
       id: '/api/public/v1/campaigns/$campaignId'
       path: '/$campaignId'
@@ -4486,6 +4507,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsCalendlyCallbackRoute,
   ApiPublicIntegrationsCalendlyWebhookRoute:
     ApiPublicIntegrationsCalendlyWebhookRoute,
+  ApiPublicIntegrationsSlackCallbackRoute:
+    ApiPublicIntegrationsSlackCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
