@@ -240,13 +240,13 @@ export function DocsMailboxPanel({
             key={row.address}
             className="grid grid-cols-1 gap-1 border-b border-border px-4 py-3.5 last:border-b-0 sm:grid-cols-12 sm:items-center sm:gap-4"
           >
-            <span className="text-sm font-medium text-foreground sm:col-span-6">
+            <span className="text-sm font-medium text-foreground sm:col-span-5">
               {row.address}
             </span>
             <span className="text-xs text-muted-foreground sm:col-span-3">
               {row.provider}
             </span>
-            <span className="text-xs text-muted-foreground sm:col-span-1">
+            <span className="text-xs text-muted-foreground sm:col-span-3">
               {row.detail}
             </span>
             <span className="sm:col-span-2 sm:text-right">
