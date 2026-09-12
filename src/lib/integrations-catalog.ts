@@ -186,25 +186,9 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: MessageSquare,
     tagline: "Get positive replies and campaign alerts in a Slack channel.",
     description:
-      "Send MunchReach events to any Slack channel using an incoming webhook. Your team sees interested replies within seconds instead of at the end of the day.",
-    authType: "webhook",
-    fields: [
-      {
-        key: "webhook_url",
-        label: "Slack incoming webhook URL",
-        placeholder: "https://hooks.slack.com/services/...",
-        help: "Slack → Apps → Incoming Webhooks → Add to workspace.",
-        secret: true,
-        required: true,
-      },
-      {
-        key: "channel_label",
-        label: "Channel name (for your reference)",
-        placeholder: "#sales-replies",
-        secret: false,
-        required: false,
-      },
-    ],
+      "Sign in with Slack and choose the channel MunchReach should post to. Your team sees interested replies within seconds instead of at the end of the day. No API tokens to copy — Slack grants access and MunchReach stores it encrypted.",
+    authType: "oauth",
+    fields: [],
     events: ["reply.received", "reply.positive", "meeting.booked", "campaign.completed", "email.bounced"],
     features: [
       "Instant alerts for interested replies",
@@ -212,15 +196,16 @@ export const INTEGRATIONS: IntegrationMeta[] = [
       "Bounce and deliverability warnings",
     ],
     steps: [
-      { title: "Create a webhook", text: "Add an incoming webhook to the channel you want alerts in." },
-      { title: "Paste the URL", text: "Connect it in Settings → Integrations → Slack." },
-      { title: "Send a test", text: "MunchReach posts a live test message to confirm delivery." },
+      { title: "Press Connect Slack", text: "You are taken to Slack to approve MunchReach." },
+      { title: "Pick a channel", text: "Slack asks which channel alerts should be posted in." },
+      { title: "Verified live", text: "MunchReach confirms the connection with Slack before showing Connected." },
     ],
     faqs: [
-      { q: "Which channel receives alerts?", a: "Whichever channel the incoming webhook was created for." },
+      { q: "Which channel receives alerts?", a: "The channel you choose in Slack while approving MunchReach." },
+      { q: "Do I need a Slack token?", a: "No. Slack grants access during sign-in and MunchReach keeps it encrypted server-side." },
       { q: "Can I choose which events post?", a: "Yes — pick the events per connection in the integration settings." },
     ],
-    docsUrl: "https://api.slack.com/messaging/webhooks",
+    docsUrl: "https://api.slack.com/authentication/oauth-v2",
   },
   {
     slug: "zapier",
