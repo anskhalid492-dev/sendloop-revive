@@ -41,8 +41,8 @@ export type IntegrationMeta = {
   icon: LucideIcon;
   tagline: string;
   description: string;
-  /** How the customer connects: API key/token, or an incoming webhook URL. */
-  authType: "api_key" | "webhook";
+  /** How the customer connects: API key/token, incoming webhook URL, or OAuth. */
+  authType: "api_key" | "webhook" | "oauth";
   fields: IntegrationField[];
   /** MunchReach events this integration can receive. */
   events: string[];
@@ -379,30 +379,26 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: CalendarClock,
     tagline: "Track booked meetings from your outreach automatically.",
     description:
-      "Connect a Calendly personal access token so MunchReach can attribute booked meetings back to the campaign and sequence step that produced them.",
-    authType: "api_key",
-    fields: [
-      {
-        key: "access_token",
-        label: "Calendly personal access token",
-        placeholder: "eyJraWQiOi...",
-        help: "Calendly → Integrations → API & Webhooks → Personal access tokens.",
-        secret: true,
-        required: true,
-      },
+      "Sign in with Calendly once and MunchReach attributes every booking back to the campaign and sequence step that produced it. No API token to copy — the connection is authorised by Calendly itself and can be revoked at any time.",
+    authType: "oauth",
+    fields: [],
+    events: [],
+    features: [
+      "Meeting attribution per campaign and sequence step",
+      "Bookings and cancellations picked up in near real time",
+      "Meetings visible on the CRM contact and in campaign analytics",
     ],
-    events: ["meeting.booked"],
-    features: ["Meeting attribution per campaign", "Booked-meeting alerts", "Meetings visible on the CRM contact"],
     steps: [
-      { title: "Generate a token", text: "Create a personal access token in Calendly." },
-      { title: "Connect", text: "MunchReach verifies it against the Calendly users endpoint." },
-      { title: "Track meetings", text: "Bookings appear on the campaign analytics and the contact timeline." },
+      { title: "Connect Calendly", text: "You are sent to Calendly to approve the connection." },
+      { title: "MunchReach verifies it", text: "The connection is only saved once Calendly confirms your account." },
+      { title: "Track meetings", text: "Bookings appear on campaign analytics and the contact timeline." },
     ],
     faqs: [
-      { q: "Do I need Calendly Pro?", a: "Personal access tokens are available on Calendly's paid plans." },
-      { q: "How are meetings attributed?", a: "By matching the invitee email to a lead in your workspace." },
+      { q: "Do I need to paste an API token?", a: "No. You approve MunchReach inside Calendly and can disconnect whenever you like." },
+      { q: "How are meetings attributed?", a: "The invitee email is matched to a contact, then to the last sequence step sent to them." },
+      { q: "What happens if I cancel a meeting?", a: "Cancellations and reschedules are picked up too and logged on the contact." },
     ],
-    docsUrl: "https://developer.calendly.com/getting-started",
+    docsUrl: "https://developer.calendly.com/api-docs",
   },
   {
     slug: "google-sheets",

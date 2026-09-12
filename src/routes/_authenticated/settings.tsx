@@ -136,6 +136,15 @@ function Page() {
   const canManage = roleRank(myRole) >= 2;
   const isOwner = myRole === "owner";
 
+  // `?tab=` lets other pages and OAuth redirects land on a specific section.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (requested && SECTIONS.some((s) => s.id === requested)) {
+      setSection(requested as SectionId);
+    }
+  }, []);
+
   return (
     <AppShell title="Settings" description="Your account, workspace and sending preferences">
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -40,7 +40,29 @@ import {
   updateIntegrationEvents,
   type IntegrationConnectionView,
 } from "@/lib/integrations.functions";
+import {
+  disconnectCalendly,
+  getCalendlyStatus,
+  startCalendlyOAuth,
+} from "@/lib/calendly.functions";
 import { cn } from "@/lib/utils";
+
+/** Messages for the `?calendly=` result the OAuth callback redirects back with. */
+const CALENDLY_RESULTS: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "Calendly connected — booked meetings will now be tracked." },
+  webhook_failed: {
+    ok: false,
+    text: "Calendly connected, but booking notifications could not be switched on. Try Reconnect.",
+  },
+  declined: { ok: false, text: "Calendly connection cancelled." },
+  state_invalid: { ok: false, text: "That Calendly link was not valid. Please try again." },
+  state_used: { ok: false, text: "That Calendly link was already used. Please try again." },
+  no_code: { ok: false, text: "Calendly did not return an authorization. Please try again." },
+  exchange_failed: { ok: false, text: "Calendly refused the authorization. Please try again." },
+  verify_failed: { ok: false, text: "Calendly could not confirm the account. Nothing was saved." },
+  store_failed: { ok: false, text: "The Calendly connection could not be saved. Please try again." },
+  forbidden: { ok: false, text: "Only workspace owners and admins can connect Calendly." },
+};
 
 function StatusBadge({ item }: { item: IntegrationConnectionView }) {
   if (!item.isEnabled) return <Badge variant="outline">Unavailable</Badge>;
@@ -141,6 +163,57 @@ export function IntegrationsTab() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /* ----------------------------------------------------- Calendly (OAuth) */
+
+  const fetchCalendly = useServerFn(getCalendlyStatus);
+  const startCalendly = useServerFn(startCalendlyOAuth);
+  const dropCalendly = useServerFn(disconnectCalendly);
+  const resultHandled = useRef(false);
+
+  const calendly = useQuery({
+    queryKey: ["calendly-status", workspaceId],
+    queryFn: () => fetchCalendly({ data: { workspaceId } }),
+    enabled: Boolean(workspaceId),
+  });
+
+  const calendlyStart = useMutation({
+    mutationFn: () => startCalendly({ data: { workspaceId } }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.url) {
+        toast.error(result.message ?? "Could not start the Calendly connection.");
+        return;
+      }
+      window.location.href = result.url;
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const calendlyDisconnect = useMutation({
+    mutationFn: () => dropCalendly({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (resultHandled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("calendly");
+    if (!code) return;
+    resultHandled.current = true;
+    const result = CALENDLY_RESULTS[code] ?? { ok: false, text: "Calendly connection failed." };
+    if (result.ok) toast.success(result.text);
+    else toast.error(result.text);
+    params.delete("calendly");
+    const next = `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
+    void queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
+  }, [queryClient, workspaceId]);
+
   const items = useMemo(() => {
     const all = list.data ?? [];
     return category === "all" ? all : all.filter((i) => i.category === category);
@@ -191,6 +264,8 @@ export function IntegrationsTab() {
             const meta = INTEGRATIONS_BY_SLUG[item.slug];
             const Icon = meta?.icon ?? Plug;
             const locked = !item.planAllowed;
+            const isOauth = meta?.authType === "oauth";
+            const cal = item.slug === "calendly" ? (calendly.data ?? null) : null;
             return (
               <div key={item.slug} className="rounded-xl border border-border/70 bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -215,10 +290,31 @@ export function IntegrationsTab() {
                   <StatusBadge item={item} />
                 </div>
 
-                {item.connected && item.accountLabel ? (
+                {cal && cal.connected ? (
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      Calendly account:{" "}
+                      <span className="font-medium text-foreground">
+                        {cal.accountName ?? cal.accountEmail ?? "Connected"}
+                      </span>
+                      {cal.accountName && cal.accountEmail ? ` · ${cal.accountEmail}` : ""}
+                    </p>
+                    <p>
+                      {cal.webhookActive
+                        ? "Bookings and cancellations are being received."
+                        : "Booking notifications are not active — use Reconnect."}
+                    </p>
+                  </div>
+                ) : item.connected && item.accountLabel ? (
                   <p className="mt-3 text-xs text-muted-foreground">
                     Account: <span className="font-medium text-foreground">{item.accountLabel}</span>
                     {item.secretHint ? ` · key ${item.secretHint}` : ""}
+                  </p>
+                ) : null}
+
+                {isOauth && cal && !cal.configured ? (
+                  <p className="mt-3 rounded-lg bg-muted/60 p-2 text-xs text-muted-foreground">
+                    Calendly sign-in is not available on this environment yet.
                   </p>
                 ) : null}
 
@@ -240,6 +336,38 @@ export function IntegrationsTab() {
                     <Button size="sm" variant="outline" disabled className="gap-1.5">
                       <Lock className="size-3.5" /> Paid plan
                     </Button>
+                  ) : isOauth ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant={cal?.connected ? "outline" : "default"}
+                        disabled={
+                          !item.isEnabled ||
+                          calendlyStart.isPending ||
+                          calendly.isLoading ||
+                          cal?.configured === false
+                        }
+                        onClick={() => calendlyStart.mutate()}
+                      >
+                        {calendlyStart.isPending ? (
+                          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                        ) : (
+                          <Link2 className="mr-1.5 size-3.5" />
+                        )}
+                        {cal?.connected ? "Reconnect" : `Connect ${item.name}`}
+                      </Button>
+                      {cal?.connected ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          disabled={calendlyDisconnect.isPending}
+                          onClick={() => calendlyDisconnect.mutate()}
+                        >
+                          <Trash2 className="mr-1.5 size-3.5" /> Disconnect
+                        </Button>
+                      ) : null}
+                    </>
                   ) : item.connected ? (
                     <>
                       <Button
