@@ -58,7 +58,7 @@ export const listIntegrations = createServerFn({ method: "POST" })
       supabaseAdmin.from("integration_connections").select("*").eq("workspace_id", data.workspaceId),
       supabaseAdmin
         .from("integration_events")
-        .select("slug, status")
+        .select("slug, status, direction")
         .eq("workspace_id", data.workspaceId),
     ]);
 
