@@ -94,15 +94,13 @@ export async function assertTurnstile(
 
   const codes = payload["error-codes"] ?? [];
 
-  // A rejected/absent SECRET is our own misconfiguration, not a bot: locking
-  // every visitor out of sign-in would be worse than the missing check, so the
-  // request continues and the problem is reported for fixing.
-  if (!payload.success && codes.some((code) => code.endsWith("-input-secret"))) {
-    reportTurnstileMisconfiguration(codes);
-    return;
-  }
-
   if (!payload.success) {
+    // A rejected/absent SECRET is our own misconfiguration rather than a bot:
+    // still reject the request (failing open would defeat the protection), but
+    // report it so it can be fixed immediately.
+    if (codes.some((code) => code.endsWith("-input-secret"))) {
+      reportTurnstileMisconfiguration(codes);
+    }
     throw new TurnstileError(GENERIC_FAILURE, codes);
   }
   if (payload.action && payload.action !== action) {
