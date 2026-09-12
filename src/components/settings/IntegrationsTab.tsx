@@ -315,7 +315,7 @@ export function IntegrationsTab() {
                     <p>
                       {cal.webhookActive
                         ? "Bookings and cancellations are being received."
-                        : "Booking notifications are not active — use Reconnect."}
+                        : "Booking notifications are not active yet — use Check booking notifications, or Reconnect."}
                     </p>
                   </div>
                 ) : item.connected && item.accountLabel ? (
