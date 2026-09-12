@@ -5,7 +5,7 @@ import {
   WEBHOOK_EVENT_DESCRIPTIONS,
   type WebhookEvent,
 } from "@/lib/api/v1/webhooks";
-import { API_WEBHOOK_EVENTS } from "@/lib/api-reference";
+import { OUTBOUND_EVENTS } from "@/lib/api-reference";
 
 describe("lead.created webhook contract", () => {
   it("is a first-class webhook event with a description", () => {
@@ -21,7 +21,7 @@ describe("lead.created webhook contract", () => {
   });
 
   it("documents lead.created as live with the full lead payload", () => {
-    const entry = API_WEBHOOK_EVENTS.find((event) => event.name === "lead.created");
+    const entry = OUTBOUND_EVENTS.find((event) => event.name === "lead.created");
     expect(entry).toBeDefined();
     expect(entry?.status).toBe("live");
     const payload = JSON.stringify(entry?.payload ?? {});
