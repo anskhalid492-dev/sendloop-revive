@@ -48,6 +48,67 @@ export const getCalendlyStatus = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * Re-checks the stored connection against Calendly and repairs the booking
+ * subscription: refreshes the token, confirms the account, reuses the existing
+ * webhook when there is one and creates it only when missing. The connection is
+ * marked Connected only when Calendly confirms a live, verifiable subscription.
+ */
+export const verifyCalendlyConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { workspaceId: string }) => workspaceInput.parse(input))
+  .handler(async ({ data, context }): Promise<{ ok: boolean; message: string }> => {
+    const { requireWorkspaceRole } = await import("@/lib/integrations.server");
+    const { loadCalendlyConnection, accessTokenForConnection, calendlyMe } = await import(
+      "@/lib/calendly.server"
+    );
+    const { setupCalendlyWebhook } = await import("@/lib/calendly-setup.server");
+    const { getRequestUrl } = await import("@tanstack/react-start/server");
+    await requireWorkspaceRole(data.workspaceId, context.userId, true);
+
+    const conn = await loadCalendlyConnection(data.workspaceId);
+    if (!conn) return { ok: false, message: "Calendly is not connected yet." };
+
+    const { token, creds } = await accessTokenForConnection(conn.id);
+    if (!token) {
+      return {
+        ok: false,
+        message: "Calendly no longer accepts this connection. Use Reconnect to sign in again.",
+      };
+    }
+
+    const me = await calendlyMe(token);
+    if (!me.ok || !me.user) {
+      return { ok: false, message: "Calendly could not confirm the account. Use Reconnect." };
+    }
+
+    const config = (conn.config ?? {}) as Record<string, unknown>;
+    const result = await setupCalendlyWebhook({
+      workspaceId: data.workspaceId,
+      connectionId: conn.id,
+      accessToken: token,
+      organizationUri: me.user.current_organization || creds?.organization_uri || "",
+      ownerUri: me.user.uri,
+      origin: new URL(getRequestUrl()).origin,
+      config: {
+        ...config,
+        calendly_name: me.user.name ?? config["calendly_name"] ?? null,
+        calendly_email: me.user.email ?? config["calendly_email"] ?? null,
+        owner_uri: me.user.uri,
+        organization_uri: me.user.current_organization,
+      },
+    });
+
+    return {
+      ok: result.ok,
+      message: result.ok
+        ? result.reused
+          ? "Booking notifications were already active — nothing was duplicated."
+          : "Booking notifications are on."
+        : result.message,
+    };
+  });
+
 /** Returns the Calendly consent URL; the browser then leaves for Calendly. */
 export const startCalendlyOAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

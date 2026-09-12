@@ -44,6 +44,7 @@ import {
   disconnectCalendly,
   getCalendlyStatus,
   startCalendlyOAuth,
+  verifyCalendlyConnection,
 } from "@/lib/calendly.functions";
 import { cn } from "@/lib/utils";
 
@@ -168,6 +169,7 @@ export function IntegrationsTab() {
   const fetchCalendly = useServerFn(getCalendlyStatus);
   const startCalendly = useServerFn(startCalendlyOAuth);
   const dropCalendly = useServerFn(disconnectCalendly);
+  const verifyCalendly = useServerFn(verifyCalendlyConnection);
   const resultHandled = useRef(false);
 
   const calendly = useQuery({
@@ -192,6 +194,17 @@ export function IntegrationsTab() {
     mutationFn: () => dropCalendly({ data: { workspaceId } }),
     onSuccess: async (result) => {
       toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const calendlyVerify = useMutation({
+    mutationFn: () => verifyCalendly({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
       await queryClient.invalidateQueries({ queryKey: ["calendly-status", workspaceId] });
       await invalidate();
     },
@@ -302,7 +315,7 @@ export function IntegrationsTab() {
                     <p>
                       {cal.webhookActive
                         ? "Bookings and cancellations are being received."
-                        : "Booking notifications are not active — use Reconnect."}
+                        : "Booking notifications are not active yet — use Check booking notifications, or Reconnect."}
                     </p>
                   </div>
                 ) : item.connected && item.accountLabel ? (
@@ -356,6 +369,19 @@ export function IntegrationsTab() {
                         )}
                         {cal?.connected ? "Reconnect" : `Connect ${item.name}`}
                       </Button>
+                      {cal?.connected ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={calendlyVerify.isPending}
+                          onClick={() => calendlyVerify.mutate()}
+                        >
+                          {calendlyVerify.isPending ? (
+                            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                          ) : null}
+                          Check booking notifications
+                        </Button>
+                      ) : null}
                       {cal?.connected ? (
                         <Button
                           size="sm"
