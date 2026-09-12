@@ -27,6 +27,7 @@ import { BILLING_ARTICLES } from "./articles/billing";
 import { API_ARTICLES } from "./articles/api";
 import { TROUBLESHOOTING_ARTICLES } from "./articles/troubleshooting";
 import { SECURITY_ARTICLES } from "./articles/security";
+import { GUIDE_ARTICLES } from "./articles/guides";
 
 export type { HelpArticle, HelpCategory, HelpFaq };
 export { HELP_CATEGORIES };
@@ -51,6 +52,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
   ...API_ARTICLES,
   ...TROUBLESHOOTING_ARTICLES,
   ...SECURITY_ARTICLES,
+  ...GUIDE_ARTICLES,
 ];
 
 const BY_SLUG = new Map(HELP_ARTICLES.map((a) => [a.slug, a]));
