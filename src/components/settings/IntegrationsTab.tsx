@@ -372,6 +372,19 @@ export function IntegrationsTab() {
                       {cal?.connected ? (
                         <Button
                           size="sm"
+                          variant="outline"
+                          disabled={calendlyVerify.isPending}
+                          onClick={() => calendlyVerify.mutate()}
+                        >
+                          {calendlyVerify.isPending ? (
+                            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                          ) : null}
+                          Check booking notifications
+                        </Button>
+                      ) : null}
+                      {cal?.connected ? (
+                        <Button
+                          size="sm"
                           variant="ghost"
                           className="text-destructive"
                           disabled={calendlyDisconnect.isPending}
