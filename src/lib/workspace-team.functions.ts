@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { absoluteUrl } from "@/lib/seo";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -103,7 +104,9 @@ export const inviteTeammate = createServerFn({ method: "POST" })
       inviterName: String(profile?.full_name ?? profile?.email ?? "A teammate"),
       role: data.role,
       message: data.message ?? null,
-      acceptUrl: `${data.origin.replace(/\/$/, "")}/invite/${invitation.token}`,
+      // Always the production site: a preview/localhost origin would send the
+      // recipient a link they cannot open.
+      acceptUrl: absoluteUrl(`/invite/${invitation.token}`),
     });
 
     return { id: invitation.id, emailSent: result.sent, emailError: result.error ?? null };
@@ -142,7 +145,9 @@ export const resendInvitation = createServerFn({ method: "POST" })
       inviterName: "A teammate",
       role: String(row?.role ?? "member"),
       message: (row?.message as string | null) ?? null,
-      acceptUrl: `${data.origin.replace(/\/$/, "")}/invite/${invitation.token}`,
+      // Always the production site: a preview/localhost origin would send the
+      // recipient a link they cannot open.
+      acceptUrl: absoluteUrl(`/invite/${invitation.token}`),
     });
     return { emailSent: result.sent, emailError: result.error ?? null };
   });
