@@ -74,11 +74,12 @@ const out = {
   otherId,
   emails: { owner, invitee, other },
   pendingToken: await invitation(invitee),
-  secondToken: await invitation(invitee),
-  expiredToken: await invitation(invitee, {
+  // One pending invitation per email is allowed, so the expired/revoked cases
+  // use their own throwaway addresses.
+  expiredToken: await invitation(`invverify-expired-${TS}@example.com`, {
     expires_at: new Date(Date.now() - 86_400_000).toISOString(),
   }),
-  revokedToken: await invitation(invitee, { status: "revoked" }),
+  revokedToken: await invitation(`invverify-revoked-${TS}@example.com`, { status: "revoked" }),
   invalidToken: hex(),
 };
 
