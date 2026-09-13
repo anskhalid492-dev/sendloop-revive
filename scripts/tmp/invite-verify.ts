@@ -62,6 +62,7 @@ async function serverFn(name: string, payload: unknown, bearer?: string) {
     method: "POST",
     headers: {
       "content-type": "application/json",
+      origin: "http://localhost:8080",
       ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
     },
     body: JSON.stringify(payload),
