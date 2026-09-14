@@ -55,7 +55,7 @@ import {
 } from "@/lib/campaigns.functions";
 import { saveAndDownloadExport } from "@/lib/file-storage";
 import { getCampaignLeads, getCampaignMailboxSummary } from "@/lib/campaign-leads.functions";
-import { MAILBOX_TYPE_LABELS, MAILBOX_TYPE_ORDER, type MailboxType } from "@/lib/mailbox-type";
+import { MAILBOX_TYPE_LABELS, MAILBOX_TYPE_ORDER, emailProviderOf } from "@/lib/mailbox-type";
 import { MailboxTypeBadge, MailboxTypeIcon } from "./MailboxTypeBadge";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -152,7 +152,6 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     retry: 1,
     placeholderData: (prev) => prev,
   });
-  const accountTypes = mailboxQuery.data?.accountTypes ?? {};
   const mailboxCounts = mailboxQuery.data?.counts ?? null;
 
   const rows = leadsQuery.data?.rows ?? [];
@@ -328,7 +327,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             <span
               key={type}
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
-              title={`Leads sending through ${MAILBOX_TYPE_LABELS[type]} mailboxes`}
+              title={`Leads with a ${MAILBOX_TYPE_LABELS[type]} email address`}
             >
               <MailboxTypeIcon type={type} />
               <span className="text-muted-foreground">{MAILBOX_TYPE_LABELS[type]}</span>
@@ -395,7 +394,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               <TableHead>Step</TableHead>
               <TableHead>Last activity</TableHead>
               <TableHead>Sending account</TableHead>
-              <TableHead>Mailbox type</TableHead>
+              <TableHead>Email provider</TableHead>
               <TableHead>Added</TableHead>
             </TableRow>
           </TableHeader>
@@ -481,13 +480,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                     {accounts.find((a) => a.id === row.sending_account_id)?.from_email ?? "Auto"}
                   </TableCell>
                   <TableCell>
-                    <MailboxTypeBadge
-                      type={
-                        (row.sending_account_id
-                          ? accountTypes[row.sending_account_id]
-                          : undefined) ?? ("other" as MailboxType)
-                      }
-                    />
+                    <MailboxTypeBadge type={emailProviderOf(row.lead?.email)} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {new Date(row.created_at).toLocaleDateString()}
