@@ -357,6 +357,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               setLocation("");
               setStep(ANY);
               setAccountId(ANY);
+              setMailboxType(ANY);
             }}
           >
             <Filter className="mr-1.5 size-3.5" /> Reset
