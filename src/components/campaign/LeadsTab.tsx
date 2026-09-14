@@ -55,7 +55,7 @@ import {
 } from "@/lib/campaigns.functions";
 import { saveAndDownloadExport } from "@/lib/file-storage";
 import { getCampaignLeads, getCampaignMailboxSummary } from "@/lib/campaign-leads.functions";
-import { MAILBOX_TYPE_LABELS, MAILBOX_TYPE_ORDER, type MailboxType } from "@/lib/mailbox-type";
+import { MAILBOX_TYPE_LABELS, MAILBOX_TYPE_ORDER, emailProviderOf } from "@/lib/mailbox-type";
 import { MailboxTypeBadge, MailboxTypeIcon } from "./MailboxTypeBadge";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
