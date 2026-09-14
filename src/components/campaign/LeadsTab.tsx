@@ -96,6 +96,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const [location, setLocation] = useState("");
   const [step, setStep] = useState(ANY);
   const [accountId, setAccountId] = useState(ANY);
+  const [mailboxType, setMailboxType] = useState(ANY);
   const [page, setPage] = useState(1);
 
   // Debounce the free-text filters so typing doesn't fire a request per keypress.
