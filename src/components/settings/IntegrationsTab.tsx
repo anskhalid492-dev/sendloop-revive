@@ -28,7 +28,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { BrandGlyph, brandIcon } from "@/components/site/BrandGlyph";
+import { CopyButton } from "@/components/site/CopyButton";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import {
+  GOOGLE_SHEETS_APPS_SCRIPT,
+  GOOGLE_SHEETS_SETUP_STEPS,
+} from "@/lib/google-sheets-script";
 import { INTEGRATIONS_BY_SLUG, INTEGRATION_CATEGORIES, categoryLabel } from "@/lib/integrations-catalog";
 import {
   connectIntegration,
@@ -773,6 +778,36 @@ export function IntegrationsTab() {
               </DialogHeader>
 
               <div className="space-y-4">
+                {openMeta.slug === "google-sheets" ? (
+                  <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                    <p className="text-sm font-medium">Set up in about 5 minutes</p>
+                    <ol className="space-y-2">
+                      {GOOGLE_SHEETS_SETUP_STEPS.map((step, i) => (
+                        <li key={step.title} className="flex gap-2.5 text-xs">
+                          <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                            {i + 1}
+                          </span>
+                          <span>
+                            <span className="font-medium text-foreground">{step.title}.</span>{" "}
+                            <span className="text-muted-foreground">{step.text}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium">Your Apps Script code</p>
+                      <CopyButton value={GOOGLE_SHEETS_APPS_SCRIPT} label="Copy code" />
+                    </div>
+                    <pre className="max-h-56 overflow-auto rounded-md bg-muted p-3 text-[11px] leading-relaxed">
+                      <code>{GOOGLE_SHEETS_APPS_SCRIPT}</code>
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      The script creates a “MunchReach” tab with column headers automatically the
+                      first time an event arrives. No Google sign-in or API keys needed.
+                    </p>
+                  </div>
+                ) : null}
+
                 {openMeta.fields.map((field) => (
                   <div key={field.key} className="space-y-1.5">
                     <Label htmlFor={`f-${field.key}`}>
