@@ -303,7 +303,9 @@ export function ProviderPool() {
                         variant="link"
                         size="sm"
                         className="h-auto p-0 text-xs"
-                        onClick={() => setDiagnosticsFor({ id: p.id, name: p.name })}
+                        onClick={() =>
+                          setDiagnosticsFor({ id: p.id, name: p.name, slug: p.provider })
+                        }
                       >
                         Why?
                       </Button>
@@ -403,6 +405,7 @@ export function ProviderPool() {
       <ProviderDiagnosticsDialog
         providerId={diagnosticsFor?.id ?? null}
         providerName={diagnosticsFor?.name ?? ""}
+        providerSlug={diagnosticsFor?.slug}
         open={Boolean(diagnosticsFor)}
         onOpenChange={(next) => {
           if (!next) setDiagnosticsFor(null);
