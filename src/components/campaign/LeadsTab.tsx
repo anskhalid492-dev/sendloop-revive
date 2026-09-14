@@ -54,7 +54,9 @@ import {
   updateCampaignRecipients,
 } from "@/lib/campaigns.functions";
 import { saveAndDownloadExport } from "@/lib/file-storage";
-import { getCampaignLeads } from "@/lib/campaign-leads.functions";
+import { getCampaignLeads, getCampaignMailboxSummary } from "@/lib/campaign-leads.functions";
+import { MAILBOX_TYPE_LABELS, MAILBOX_TYPE_ORDER, type MailboxType } from "@/lib/mailbox-type";
+import { MailboxTypeBadge, MailboxTypeIcon } from "./MailboxTypeBadge";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const ANY = "__any__";
@@ -81,6 +83,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const addFn = useServerFn(addLeadsToCampaign);
   const updateFn = useServerFn(updateCampaignRecipients);
   const fetchLeads = useServerFn(getCampaignLeads);
+  const fetchMailboxSummary = useServerFn(getCampaignMailboxSummary);
   const queryClient = useQueryClient();
 
   const [selected, setSelected] = useState<string[]>([]);
@@ -129,6 +132,28 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     retry: 1,
     placeholderData: (prev) => prev,
   });
+
+  const mailboxFilters = {
+    campaignId,
+    ...(debounced.search ? { search: debounced.search } : {}),
+    ...(debounced.company ? { company: debounced.company } : {}),
+    ...(debounced.jobTitle ? { jobTitle: debounced.jobTitle } : {}),
+    ...(debounced.location ? { location: debounced.location } : {}),
+    ...(status !== ANY ? { status: status as "pending" } : {}),
+    ...(step !== ANY ? { step: Number(step) } : {}),
+    ...(accountId !== ANY ? { accountId } : {}),
+  };
+
+  // Aggregate-only: counts come from head queries, never from loading leads.
+  const mailboxQuery = useQuery({
+    queryKey: ["campaign-mailbox-summary", mailboxFilters],
+    queryFn: () => fetchMailboxSummary({ data: mailboxFilters }),
+    staleTime: 60_000,
+    retry: 1,
+    placeholderData: (prev) => prev,
+  });
+  const accountTypes = mailboxQuery.data?.accountTypes ?? {};
+  const mailboxCounts = mailboxQuery.data?.counts ?? null;
 
   const rows = leadsQuery.data?.rows ?? [];
   const total = leadsQuery.data?.total ?? 0;
@@ -298,6 +323,21 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex flex-wrap items-end gap-2">
+          {MAILBOX_TYPE_ORDER.map((type) => (
+            <span
+              key={type}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
+              title={`Leads sending through ${MAILBOX_TYPE_LABELS[type]} mailboxes`}
+            >
+              <MailboxTypeIcon type={type} />
+              <span className="text-muted-foreground">{MAILBOX_TYPE_LABELS[type]}</span>
+              <span className="font-medium tabular-nums">
+                {mailboxCounts ? mailboxCounts[type].toLocaleString() : "—"}
+              </span>
+            </span>
+          ))}
+        </div>
         <div className="flex items-end gap-2">
           <Button
             variant="ghost"
@@ -355,20 +395,21 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               <TableHead>Step</TableHead>
               <TableHead>Last activity</TableHead>
               <TableHead>Sending account</TableHead>
+              <TableHead>Mailbox type</TableHead>
               <TableHead>Added</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leadsQuery.isPending ? (
               <TableRow>
-                <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={12} className="py-10 text-center text-sm text-muted-foreground">
                   <Loader2 className="mx-auto mb-2 size-4 animate-spin" />
                   Loading campaign leads...
                 </TableCell>
               </TableRow>
             ) : leadsError ? (
               <TableRow>
-                <TableCell colSpan={11} className="py-10 text-center text-sm">
+                <TableCell colSpan={12} className="py-10 text-center text-sm">
                   <p className="text-muted-foreground">Couldn't load campaign leads.</p>
                   <Button
                     className="mt-3"
@@ -382,7 +423,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={12} className="py-10 text-center text-sm text-muted-foreground">
                   {total === 0
                     ? "No leads in this campaign yet. Add them from a lead list."
                     : filtersActive
@@ -438,6 +479,15 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {accounts.find((a) => a.id === row.sending_account_id)?.from_email ?? "Auto"}
+                  </TableCell>
+                  <TableCell>
+                    <MailboxTypeBadge
+                      type={
+                        (row.sending_account_id
+                          ? accountTypes[row.sending_account_id]
+                          : undefined) ?? ("other" as MailboxType)
+                      }
+                    />
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {new Date(row.created_at).toLocaleDateString()}
