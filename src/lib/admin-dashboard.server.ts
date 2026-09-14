@@ -64,15 +64,25 @@ function monthKey(iso: string) {
   return iso.slice(0, 7);
 }
 
+/**
+ * A single unavailable count must never take down the whole dashboard: large
+ * tables can hit statement timeouts, so we log and degrade that metric to
+ * "unknown" (null) instead of rejecting the aggregate build.
+ */
 async function count(table: string, apply?: (q: any) => any): Promise<number | null> {
-  let query = supabaseAdmin.from(table as never).select("id", { count: "exact", head: true });
-  if (apply) query = apply(query);
-  const { count: value, error } = await query;
-  if (error) {
-    console.error(`[AdminDashboard] Count query failed for ${table}: ${error.message}`);
-    throw new Error(`Database query failed for ${table}: ${error.message}`);
+  try {
+    let query = supabaseAdmin.from(table as never).select("id", { count: "exact", head: true });
+    if (apply) query = apply(query);
+    const { count: value, error } = await query;
+    if (error) {
+      console.error(`[AdminDashboard] Count query failed for ${table}: ${error.message}`);
+      return null;
+    }
+    return value ?? 0;
+  } catch (error) {
+    console.error(`[AdminDashboard] Count query threw for ${table}: ${String(error)}`);
+    return null;
   }
-  return value ?? 0;
 }
 
 export async function buildAdminDashboard(): Promise<AdminDashboard> {
