@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowDown,
@@ -59,6 +59,7 @@ import {
   type StepType,
 } from "@/lib/campaign-model";
 
+import { insertAtSelection, variableSnippet } from "@/lib/campaign-editor";
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
 import { AiPersonalizationSidebar } from "./AiPersonalizationSidebar";
 
@@ -187,9 +188,52 @@ export function SequencesTab({
       return next;
     });
 
+  // Variable insertion targets the field the customer was last editing and the
+  // exact caret/selection it had. The selection is captured on every
+  // click/keystroke because opening the Variables menu takes focus away from
+  // the field, which otherwise loses the caret.
+  type EditorField = "subject" | "body";
+  const subjectRef = useRef<HTMLInputElement | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const selectionRef = useRef<{ field: EditorField; start: number; end: number }>({
+    field: "body",
+    start: 0,
+    end: 0,
+  });
+
+  const rememberSelection = useCallback((field: EditorField) => {
+    const el = field === "subject" ? subjectRef.current : bodyRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? start;
+    selectionRef.current = { field, start, end };
+  }, []);
+
+  const selectionHandlers = (field: EditorField) => ({
+    onFocus: () => rememberSelection(field),
+    onClick: () => rememberSelection(field),
+    onKeyUp: () => rememberSelection(field),
+    onSelect: () => rememberSelection(field),
+    onMouseUp: () => rememberSelection(field),
+  });
+
   const insertToken = (token: string) => {
     if (!step) return;
-    patchStep({ body: `${step.body}{{${token}}}` });
+    const snippet = variableSnippet(token);
+    const { field } = selectionRef.current;
+    const el = field === "subject" ? subjectRef.current : bodyRef.current;
+    const current = field === "subject" ? editingSubject : editingBody;
+    const { value: next, caret } = insertAtSelection(current, selectionRef.current, snippet);
+    selectionRef.current = { field, start: caret, end: caret };
+    if (field === "subject") setSubject(next);
+    else setBody(next);
+    // Restore focus and the caret after the controlled value rerenders so the
+    // customer can keep typing exactly where the variable landed.
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(caret, caret);
+    });
   };
 
   const activeVariant = step?.variants[variantIndex];
@@ -542,20 +586,30 @@ export function SequencesTab({
                   <Label htmlFor="step-subject">Subject</Label>
                   <Input
                     id="step-subject"
+                    ref={subjectRef}
                     value={editingSubject}
                     placeholder="Quick question about {{company | your team}}"
-                    onChange={(e) => setSubject(e.target.value)}
+                    onChange={(e) => {
+                      setSubject(e.target.value);
+                      rememberSelection("subject");
+                    }}
+                    {...selectionHandlers("subject")}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="step-body">Body</Label>
                   <Textarea
                     id="step-body"
+                    ref={bodyRef}
                     rows={14}
                     className="font-mono text-sm"
                     value={editingBody}
                     placeholder={"Hi {{first_name | there}},\n\n"}
-                    onChange={(e) => setBody(e.target.value)}
+                    onChange={(e) => {
+                      setBody(e.target.value);
+                      rememberSelection("body");
+                    }}
+                    {...selectionHandlers("body")}
                   />
                   <div className="space-y-2 text-xs text-muted-foreground">
                     <span>{spintaxVariationCount(editingBody)} spintax variation(s)</span>
