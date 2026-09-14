@@ -1,6 +1,6 @@
 import { Mail } from "lucide-react";
 
-import { BrandGlyph } from "@/components/site/BrandGlyph";
+import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { MAILBOX_TYPE_LABELS, type MailboxType } from "@/lib/mailbox-type";
 
 /** Microsoft's four-square mark, used for Outlook / Microsoft 365 mailboxes. */
