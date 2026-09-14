@@ -84,6 +84,7 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
         status: z.enum(RECIPIENT_STATUSES).optional(),
         step: z.number().int().min(0).max(20).optional(),
         accountId: z.string().uuid().optional(),
+        mailboxType: z.enum(["google", "outlook", "other"]).optional(),
       })
       .parse(input),
   )
