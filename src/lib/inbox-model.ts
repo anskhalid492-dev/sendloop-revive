@@ -188,7 +188,8 @@ const UNSUB_PATTERNS = [
   // quoted text and footer lines are removed by stripQuotedReply() first.
   /^\s*unsubscribe\s*[.!]?\s*$/im,
   /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsubscribe\s+(me|us|this|from|please)\b/i,
-  /\bplease\s+unsubscribe\b/i,
+  /\b(please|kindly|pls|plz)\s+unsubscribe\b/i,
+  /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsubscribe\b\s*(immediately|asap|now|right\s+away|at\s+once|please|thanks?|thank\s+you)/i,
   /\b(want|wish|would\s+like|'?d\s+like|need)\s+to\s+(be\s+)?unsubscribed?\b/i,
   /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsub(scribed)?\b\s*(me|us|please)/i,
   /remove me (from|off)/i,
@@ -267,10 +268,18 @@ const QUOTE_START_PATTERNS = [
  * Applied to both the human-typed part and the fallback raw body.
  */
 function dropFooterLines(text: string): string {
+  // A line asking us directly to stop is never footer boilerplate, even when it
+  // reuses footer wording ("I no longer wish to receive these — remove me").
+  const explicitOptOut =
+    /(remove (me|us|my)|take (me|us) off|stop (emailing|contacting|messaging|sending)|opt[- ]?(me )?out|unsubscribe (me|us|this))/i;
   return text
     .split("\n")
-    .filter((line) => !/unsubscribe/i.test(line) || !/https?:\/\//i.test(line))
-    .filter((line) => !/no longer wish to receive/i.test(line))
+    .filter(
+      (line) =>
+        explicitOptOut.test(line) ||
+        ((!/unsubscribe/i.test(line) || !/https?:\/\//i.test(line)) &&
+          !/no longer wish to receive/i.test(line)),
+    )
     .join("\n")
     .trim();
 }
