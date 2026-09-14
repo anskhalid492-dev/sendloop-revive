@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mailboxTypeOf, type MailboxType } from "@/lib/mailbox-type";
+import {
+  GOOGLE_EMAIL_DOMAINS,
+  OUTLOOK_EMAIL_DOMAINS,
+  type MailboxType,
+} from "@/lib/mailbox-type";
 
 export type CampaignLeadFields = {
   id: string;
