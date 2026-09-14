@@ -104,7 +104,11 @@ export function ProviderPool() {
     queryFn: () => fetchHealth(),
     refetchInterval: 60_000,
   });
-  const [diagnosticsFor, setDiagnosticsFor] = useState<{ id: string; name: string } | null>(null);
+  const [diagnosticsFor, setDiagnosticsFor] = useState<{
+    id: string;
+    name: string;
+    slug?: string;
+  } | null>(null);
   const { data: events = [] } = useQuery({
     queryKey: ["admin", "provider-routing-events"],
     queryFn: () => fetchEvents(),
