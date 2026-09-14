@@ -480,13 +480,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
                     {accounts.find((a) => a.id === row.sending_account_id)?.from_email ?? "Auto"}
                   </TableCell>
                   <TableCell>
-                    <MailboxTypeBadge
-                      type={
-                        (row.sending_account_id
-                          ? accountTypes[row.sending_account_id]
-                          : undefined) ?? ("other" as MailboxType)
-                      }
-                    />
+                    <MailboxTypeBadge type={emailProviderOf(row.lead?.email)} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {new Date(row.created_at).toLocaleDateString()}
