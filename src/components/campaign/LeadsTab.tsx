@@ -96,6 +96,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
   const [location, setLocation] = useState("");
   const [step, setStep] = useState(ANY);
   const [accountId, setAccountId] = useState(ANY);
+  const [mailboxType, setMailboxType] = useState(ANY);
   const [page, setPage] = useState(1);
 
   // Debounce the free-text filters so typing doesn't fire a request per keypress.
@@ -116,13 +117,14 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     ...(status !== ANY ? { status: status as "pending" } : {}),
     ...(step !== ANY ? { step: Number(step) } : {}),
     ...(accountId !== ANY ? { accountId } : {}),
+    ...(mailboxType !== ANY ? { mailboxType: mailboxType as "google" } : {}),
   };
 
   // Filters change the population, so go back to the first page.
   useEffect(() => {
     setPage(1);
     setSelected([]);
-  }, [debounced, status, step, accountId]);
+  }, [debounced, status, step, accountId, mailboxType]);
 
   const leadsQuery = useQuery({
     queryKey: ["campaign-leads-page", filters],
@@ -163,7 +165,8 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     Boolean(debounced.search || debounced.company || debounced.jobTitle || debounced.location) ||
     status !== ANY ||
     step !== ANY ||
-    accountId !== ANY;
+    accountId !== ANY ||
+    mailboxType !== ANY;
 
   const refetchLeads = async () => {
     await queryClient.invalidateQueries({ queryKey: ["campaign-leads-page"] });
@@ -322,20 +325,25 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-wrap items-end gap-2">
-          {MAILBOX_TYPE_ORDER.map((type) => (
-            <span
-              key={type}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
-              title={`Leads with a ${MAILBOX_TYPE_LABELS[type]} email address`}
-            >
-              <MailboxTypeIcon type={type} />
-              <span className="text-muted-foreground">{MAILBOX_TYPE_LABELS[type]}</span>
-              <span className="font-medium tabular-nums">
-                {mailboxCounts ? mailboxCounts[type].toLocaleString() : "—"}
-              </span>
-            </span>
-          ))}
+        <div>
+          <Label className="text-xs">Mailboxes Types</Label>
+          <Select value={mailboxType} onValueChange={setMailboxType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Any type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>Any type</SelectItem>
+              {MAILBOX_TYPE_ORDER.map((type) => (
+                <SelectItem key={type} value={type}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <MailboxTypeIcon type={type} />
+                    {MAILBOX_TYPE_LABELS[type]}
+                    {mailboxCounts ? ` (${mailboxCounts[type].toLocaleString()})` : ""}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-end gap-2">
           <Button
@@ -349,6 +357,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               setLocation("");
               setStep(ANY);
               setAccountId(ANY);
+              setMailboxType(ANY);
             }}
           >
             <Filter className="mr-1.5 size-3.5" /> Reset

@@ -1,6 +1,6 @@
 import { Mail } from "lucide-react";
 
-import { BrandGlyph } from "@/components/site/BrandGlyph";
+import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { MAILBOX_TYPE_LABELS, type MailboxType } from "@/lib/mailbox-type";
 
 /** Microsoft's four-square mark, used for Outlook / Microsoft 365 mailboxes. */
@@ -16,7 +16,7 @@ function MicrosoftMark({ className }: { className?: string }) {
 }
 
 export function MailboxTypeIcon({ type }: { type: MailboxType }) {
-  if (type === "google") return <BrandGlyph brand="google" className="size-3.5 shrink-0" />;
+  if (type === "google") return <GoogleIcon className="size-3.5 shrink-0" />;
   if (type === "outlook") return <MicrosoftMark className="size-3.5 shrink-0" />;
   return <Mail className="size-3.5 shrink-0 text-muted-foreground" />;
 }

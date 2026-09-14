@@ -52,6 +52,22 @@ const RECIPIENT_STATUSES = [
 const LEAD_EMBED =
   "leads!inner(id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields)";
 
+/**
+ * PostgREST filter string restricting the embedded lead to one email provider.
+ * "other" is expressed as "none of the known domains" so the three buckets
+ * always partition the population exactly like the summary counts do.
+ */
+function mailboxTypeFilter(type: MailboxType): string {
+  const inList = (domains: readonly string[]) =>
+    domains.map((domain) => `email.ilike.%@${domain}`).join(",");
+  if (type === "google") return inList(GOOGLE_EMAIL_DOMAINS);
+  if (type === "outlook") return inList(OUTLOOK_EMAIL_DOMAINS);
+  const excluded = [...GOOGLE_EMAIL_DOMAINS, ...OUTLOOK_EMAIL_DOMAINS]
+    .map((domain) => `email.not.ilike.%@${domain}`)
+    .join(",");
+  return `and(${excluded})`;
+}
+
 /** A bounded lead-page read kept separate from campaign mutations and launch code. */
 export const getCampaignLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -68,6 +84,7 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
         status: z.enum(RECIPIENT_STATUSES).optional(),
         step: z.number().int().min(0).max(20).optional(),
         accountId: z.string().uuid().optional(),
+        mailboxType: z.enum(["google", "outlook", "other"]).optional(),
       })
       .parse(input),
   )
@@ -98,6 +115,9 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
           `email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term},company.ilike.${term}`,
           { referencedTable: "leads" },
         );
+      }
+      if (data.mailboxType) {
+        query = query.or(mailboxTypeFilter(data.mailboxType), { referencedTable: "leads" });
       }
       return query as unknown as T;
     };
