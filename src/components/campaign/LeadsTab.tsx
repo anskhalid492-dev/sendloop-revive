@@ -152,7 +152,6 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     retry: 1,
     placeholderData: (prev) => prev,
   });
-  const accountTypes = mailboxQuery.data?.accountTypes ?? {};
   const mailboxCounts = mailboxQuery.data?.counts ?? null;
 
   const rows = leadsQuery.data?.rows ?? [];
