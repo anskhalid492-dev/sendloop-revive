@@ -55,6 +55,7 @@ export const adminListIntegrations = createServerFn({ method: "GET" })
     const oauthReady: Record<string, boolean> = {
       calendly: Boolean(process.env["CALENDLY_CLIENT_ID"] && process.env["CALENDLY_CLIENT_SECRET"]),
       slack: Boolean(process.env["SLACK_CLIENT_ID"] && process.env["SLACK_CLIENT_SECRET"]),
+      hubspot: Boolean(process.env["HUBSPOT_CLIENT_ID"] && process.env["HUBSPOT_CLIENT_SECRET"]),
     };
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

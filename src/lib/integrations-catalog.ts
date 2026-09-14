@@ -287,18 +287,9 @@ export const INTEGRATIONS: IntegrationMeta[] = [
     icon: Users,
     tagline: "Sync replies, contacts and deals with your HubSpot pipeline.",
     description:
-      "Connect a HubSpot private app token and MunchReach keeps your CRM in step: interested prospects become contacts, and every reply is written to the contact timeline.",
-    authType: "api_key",
-    fields: [
-      {
-        key: "access_token",
-        label: "HubSpot private app token",
-        placeholder: "pat-na1-...",
-        help: "HubSpot → Settings → Integrations → Private Apps. Scopes: crm.objects.contacts.read/write.",
-        secret: true,
-        required: true,
-      },
-    ],
+      "Connect your HubSpot account to sync contacts, replies and CRM activity with MunchReach. Interested prospects become HubSpot contacts, and replies are kept in step with your pipeline.",
+    authType: "oauth",
+    fields: [],
     events: ["reply.positive", "lead.created", "meeting.booked"],
     features: [
       "Create or update HubSpot contacts from MunchReach leads",
@@ -306,15 +297,19 @@ export const INTEGRATIONS: IntegrationMeta[] = [
       "Keep pipeline owners in sync",
     ],
     steps: [
-      { title: "Create a private app", text: "Grant the contacts read and write scopes." },
-      { title: "Paste the token", text: "MunchReach verifies it against the HubSpot CRM API." },
+      { title: "Press Connect HubSpot", text: "You are taken to HubSpot to sign in." },
+      { title: "Choose your account", text: "Approve read and write access to contacts." },
       { title: "Choose events", text: "Pick which MunchReach events push to HubSpot." },
     ],
     faqs: [
       { q: "Will it create duplicates?", a: "No — contacts are matched on email address and updated in place." },
       { q: "Does it need a paid MunchReach plan?", a: "CRM sync is part of the paid plans." },
+      {
+        q: "Do I need an API token?",
+        a: "No. You sign in to HubSpot and approve access — MunchReach never asks for a token.",
+      },
     ],
-    docsUrl: "https://developers.hubspot.com/docs/api/private-apps",
+    docsUrl: "https://developers.hubspot.com/docs/api/oauth-quickstart-guide",
   },
   {
     slug: "gohighlevel",

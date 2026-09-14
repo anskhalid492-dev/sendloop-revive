@@ -237,26 +237,41 @@ async function deliverToCrm(
   slug: string,
   credentials: Credentials,
   payload: Record<string, unknown>,
+  connectionId?: string,
 ): Promise<{ ok: boolean; message: string }> {
   const lead = (payload["lead"] ?? {}) as Record<string, string | undefined>;
   const email = lead["email"];
   if (!email) return { ok: false, message: "Event has no lead email to sync." };
 
   if (slug === "hubspot") {
+    const body = JSON.stringify({
+      properties: {
+        email,
+        firstname: lead["first_name"] ?? "",
+        lastname: lead["last_name"] ?? "",
+        company: lead["company"] ?? "",
+      },
+    });
+    // OAuth connections go through the shared client, which refreshes the
+    // short-lived access token and retries once. Legacy private-app tokens are
+    // returned unchanged by that same client, so both keep working.
+    if (connectionId) {
+      const { hubspotApiFetch, hubspotErrorForCustomer } = await import("@/lib/hubspot.server");
+      const res = await hubspotApiFetch(connectionId, "/crm/v3/objects/contacts", {
+        method: "POST",
+        body,
+      });
+      if (res.ok) return { ok: true, message: "Contact created in HubSpot." };
+      if (res.status === 409) return { ok: true, message: "Contact already exists in HubSpot." };
+      return { ok: false, message: hubspotErrorForCustomer(res.error) };
+    }
     const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${credentials["access_token"] ?? ""}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        properties: {
-          email,
-          firstname: lead["first_name"] ?? "",
-          lastname: lead["last_name"] ?? "",
-          company: lead["company"] ?? "",
-        },
-      }),
+      body,
       signal: AbortSignal.timeout(10_000),
     });
     if (res.ok) return { ok: true, message: "Contact created in HubSpot." };
@@ -304,7 +319,7 @@ export async function deliverEvent(
     const webhookUrl = credentials["webhook_url"];
     result = webhookUrl
       ? await deliverToWebhook(connection.slug, webhookUrl, { event: eventType, ...payload })
-      : await deliverToCrm(connection.slug, credentials, payload);
+      : await deliverToCrm(connection.slug, credentials, payload, connection.id);
   } catch (error) {
     result = { ok: false, message: (error as Error).message };
   }

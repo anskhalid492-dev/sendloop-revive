@@ -52,6 +52,12 @@ import {
   startSlackOAuth,
   verifySlackConnection,
 } from "@/lib/slack.functions";
+import {
+  disconnectHubSpot,
+  getHubSpotStatus,
+  startHubSpotOAuth,
+  verifyHubSpotConnection,
+} from "@/lib/hubspot.functions";
 import { cn } from "@/lib/utils";
 
 /** Messages for the `?calendly=` result the OAuth callback redirects back with. */
@@ -89,6 +95,25 @@ const SLACK_RESULTS: Record<string, { ok: boolean; text: string }> = {
   verify_failed: { ok: false, text: "Slack could not confirm the connection. Nothing was saved." },
   store_failed: { ok: false, text: "The Slack connection could not be saved. Please try again." },
   forbidden: { ok: false, text: "Only workspace owners and admins can connect Slack." },
+};
+
+/** Messages for the `?hubspot=` result the HubSpot OAuth callback redirects back with. */
+const HUBSPOT_RESULTS: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "HubSpot connected — contacts and replies will now sync." },
+  declined: { ok: false, text: "HubSpot connection cancelled." },
+  state_invalid: { ok: false, text: "That HubSpot link was not valid. Please try again." },
+  state_used: { ok: false, text: "That HubSpot link was already used. Please try again." },
+  no_code: { ok: false, text: "HubSpot did not return an authorization. Please try again." },
+  exchange_failed: {
+    ok: false,
+    text: "That HubSpot authorization expired or was refused. Please try again.",
+  },
+  verify_failed: {
+    ok: false,
+    text: "HubSpot authorization completed, but we couldn't verify the connection. Please try connecting again.",
+  },
+  store_failed: { ok: false, text: "The HubSpot connection could not be saved. Please try again." },
+  forbidden: { ok: false, text: "Only workspace owners and admins can connect HubSpot." },
 };
 
 function StatusBadge({ item }: { item: IntegrationConnectionView }) {
@@ -316,6 +341,69 @@ export function IntegrationsTab() {
     void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
   }, [queryClient, workspaceId]);
 
+  /* ------------------------------------------------------ HubSpot (OAuth) */
+
+  const fetchHubSpot = useServerFn(getHubSpotStatus);
+  const startHubSpotFn = useServerFn(startHubSpotOAuth);
+  const dropHubSpot = useServerFn(disconnectHubSpot);
+  const verifyHubSpot = useServerFn(verifyHubSpotConnection);
+  const hubspotResultHandled = useRef(false);
+
+  const hubspot = useQuery({
+    queryKey: ["hubspot-status", workspaceId],
+    queryFn: () => fetchHubSpot({ data: { workspaceId } }),
+    enabled: Boolean(workspaceId),
+  });
+
+  const hubspotStart = useMutation({
+    mutationFn: () => startHubSpotFn({ data: { workspaceId } }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.url) {
+        toast.error(result.message ?? "Could not start the HubSpot connection.");
+        return;
+      }
+      window.location.href = result.url;
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const hubspotDisconnect = useMutation({
+    mutationFn: () => dropHubSpot({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["hubspot-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const hubspotVerify = useMutation({
+    mutationFn: () => verifyHubSpot({ data: { workspaceId } }),
+    onSuccess: async (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+      await queryClient.invalidateQueries({ queryKey: ["hubspot-status", workspaceId] });
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (hubspotResultHandled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("hubspot");
+    if (!code) return;
+    hubspotResultHandled.current = true;
+    const result = HUBSPOT_RESULTS[code] ?? { ok: false, text: "HubSpot connection failed." };
+    if (result.ok) toast.success(result.text);
+    else toast.error(result.text);
+    params.delete("hubspot");
+    const next = `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
+    void queryClient.invalidateQueries({ queryKey: ["hubspot-status", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["integrations", workspaceId] });
+  }, [queryClient, workspaceId]);
+
 
   const items = useMemo(() => {
     const all = list.data ?? [];
@@ -370,6 +458,7 @@ export function IntegrationsTab() {
             const isOauth = meta?.authType === "oauth";
             const cal = item.slug === "calendly" ? (calendly.data ?? null) : null;
             const slk = item.slug === "slack" ? (slack.data ?? null) : null;
+            const hub = item.slug === "hubspot" ? (hubspot.data ?? null) : null;
             // One shared OAuth card, one descriptor per provider.
             const oauth =
               item.slug === "calendly"
@@ -394,7 +483,18 @@ export function IntegrationsTab() {
                       verifyLabel: "Check Slack connection",
                       unavailable: "Slack sign-in is not available on this environment yet.",
                     }
-                  : null;
+                  : item.slug === "hubspot"
+                    ? {
+                        connected: Boolean(hub?.connected),
+                        configured: hub?.configured !== false,
+                        loading: hubspot.isLoading,
+                        start: hubspotStart,
+                        remove: hubspotDisconnect,
+                        verify: hubspotVerify,
+                        verifyLabel: "Check HubSpot connection",
+                        unavailable: "HubSpot sign-in is not available on this environment yet.",
+                      }
+                    : null;
             return (
               <div key={item.slug} className="rounded-xl border border-border/70 bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -447,6 +547,23 @@ export function IntegrationsTab() {
                       {slk.status === "error"
                         ? "Slack needs attention — use Reconnect."
                         : "Alerts are being posted to this channel."}
+                    </p>
+                  </div>
+                ) : hub && hub.connected ? (
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      HubSpot account:{" "}
+                      <span className="font-medium text-foreground">
+                        {hub.accountName ?? "Connected"}
+                      </span>
+                      {hub.portalId ? ` · portal ${hub.portalId}` : ""}
+                    </p>
+                    <p>
+                      {hub.status === "error"
+                        ? "HubSpot needs attention — use Reconnect."
+                        : hub.authMethod === "legacy_token"
+                          ? "Connected with an older token — use Reconnect with HubSpot to move to secure sign-in."
+                          : "Contacts and replies are syncing to this portal."}
                     </p>
                   </div>
                 ) : item.connected && item.accountLabel ? (
