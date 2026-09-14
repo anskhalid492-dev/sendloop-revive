@@ -268,10 +268,18 @@ const QUOTE_START_PATTERNS = [
  * Applied to both the human-typed part and the fallback raw body.
  */
 function dropFooterLines(text: string): string {
+  // A line asking us directly to stop is never footer boilerplate, even when it
+  // reuses footer wording ("I no longer wish to receive these — remove me").
+  const explicitOptOut =
+    /(remove (me|us|my)|take (me|us) off|stop (emailing|contacting|messaging|sending)|opt[- ]?(me )?out|unsubscribe (me|us|this))/i;
   return text
     .split("\n")
-    .filter((line) => !/unsubscribe/i.test(line) || !/https?:\/\//i.test(line))
-    .filter((line) => !/no longer wish to receive/i.test(line))
+    .filter(
+      (line) =>
+        explicitOptOut.test(line) ||
+        ((!/unsubscribe/i.test(line) || !/https?:\/\//i.test(line)) &&
+          !/no longer wish to receive/i.test(line)),
+    )
     .join("\n")
     .trim();
 }
