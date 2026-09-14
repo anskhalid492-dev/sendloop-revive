@@ -46,7 +46,8 @@ async function primaryWorkspace(client: Client, userId: string): Promise<string>
   return data.workspace_id as string;
 }
 
-const VENDOR_PATTERN = /\b(resend|mailgun|sendgrid|brevo|postmark|zeptomail|amazon ses|\bses\b|supabase)\b/gi;
+const VENDOR_PATTERN =
+  /\b(resend|mailgun|sendgrid|brevo|postmark|zeptomail|maileroo|nuntly|elasticemail|elastic email|courier|uspeedo|emailit|amazon ses|\bses\b|supabase)\b/gi;
 
 /** Replaces infrastructure vendor names with the MunchReach brand. */
 function scrubVendorText(text: string) {

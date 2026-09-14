@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getProviderDiagnostics, testProviderHealth } from "@/lib/admin.functions";
+import { getMailerooInfrastructure } from "@/lib/maileroo-admin.functions";
 
 const HEALTH_STYLES: Record<string, string> = {
   healthy: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
@@ -50,11 +51,13 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 export function ProviderDiagnosticsDialog({
   providerId,
   providerName,
+  providerSlug,
   open,
   onOpenChange,
 }: {
   providerId: string | null;
   providerName: string;
+  providerSlug?: string | undefined;
   open: boolean;
   onOpenChange: (next: boolean) => void;
 }) {
@@ -78,6 +81,14 @@ export function ProviderDiagnosticsDialog({
   });
 
   const d = query.data;
+
+  const fetchMaileroo = useServerFn(getMailerooInfrastructure);
+  const mailerooQuery = useQuery({
+    queryKey: ["admin", "maileroo-infrastructure"],
+    queryFn: () => fetchMaileroo(),
+    enabled: open && providerSlug === "maileroo",
+  });
+  const m = mailerooQuery.data;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

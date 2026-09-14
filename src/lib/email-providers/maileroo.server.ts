@@ -46,10 +46,14 @@ function str(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value : null;
 }
 
-/** The sending API accepts the per-domain sending key; fall back to the account key. */
-function sendingHeaders(creds: Record<string, string>) {
+/**
+ * The email API only accepts a per-domain sending key. MunchReach provisions
+ * that key itself through the account API — the account key is never used as a
+ * sending credential, because Maileroo rejects it.
+ */
+function sendingHeaders(sendingKey: string) {
   return {
-    "X-Api-Key": creds["sending_key"] ?? creds["api_key"] ?? "",
+    "X-Api-Key": sendingKey,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
@@ -83,9 +87,23 @@ async function sendMaileroo(
   creds: Record<string, string>,
   message: Parameters<NonNullable<EmailProvider["send"]>>[1],
 ): Promise<UnifiedSendResult> {
+  const { resolveMailerooSendingKey } = await import(
+    "@/lib/email-providers/maileroo-sending-keys.server"
+  );
+  const domain = (message.fromEmail.split("@")[1] ?? "").toLowerCase();
+  const resolved = await resolveMailerooSendingKey(creds, domain);
+  if (!resolved.key) {
+    return {
+      ok: false,
+      statusCode: 0,
+      // Internal detail only — the customer-facing layer scrubs provider names.
+      message: `Sending is not configured for this domain: ${resolved.detail}`,
+      rawMetadata: null,
+    };
+  }
   const res = await fetch(`${MAILEROO_EMAIL_API}/emails`, {
     method: "POST",
-    headers: sendingHeaders(creds),
+    headers: sendingHeaders(resolved.key),
     signal: AbortSignal.timeout(20_000),
     body: JSON.stringify({
       from: { address: message.fromEmail, display_name: message.fromName },

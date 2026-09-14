@@ -110,6 +110,9 @@ export function platformKeyFor(provider: string): string | null {
     brevo: process.env["BREVO_API_KEY"],
     zeptomail: process.env["ZEPTOMAIL_API_KEY"],
     emailit: process.env["EMAILIT_API_KEY"],
+    // Maileroo: the ACCOUNT API key only. Per-domain sending keys are
+    // provisioned server-side from it and are never configured by hand.
+    maileroo: process.env["MAILEROO_API_KEY"],
   };
   return map[provider] || null;
 }
@@ -418,7 +421,7 @@ export function customerSafeMessage(raw: string | null | undefined, fallback = C
   if (!text) return fallback;
   if (/not verified|domain/i.test(text) && /verif/i.test(text)) return DOMAIN_NOT_VERIFIED_MESSAGE;
   const leaks =
-    /(resend|sendgrid|mailgun|postmark|zeptomail|zoho|brevo|emailit|amazon ses|\bses\b|smtp|supabase|lovable|api[_ -]?key|https?:\/\/|\[\d{3}\]|provider)/i;
+    /(resend|sendgrid|mailgun|postmark|zeptomail|zoho|brevo|emailit|maileroo|nuntly|elastic ?email|courier|uspeedo|amazon ses|\bses\b|smtp|supabase|lovable|api[_ -]?key|sending[_ -]?key|https?:\/\/|\[\d{3}\]|provider)/i;
   if (leaks.test(text)) return fallback;
   return text;
 }

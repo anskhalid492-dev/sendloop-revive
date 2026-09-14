@@ -113,10 +113,10 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
   {
     id: "maileroo",
     label: "Maileroo",
-    blurb: "Separate sending and account keys; domains, DNS scans and webhooks over API.",
+    blurb:
+      "Account API key only — per-domain sending keys are provisioned automatically when a domain is verified.",
     fields: [
       { name: "api_key", label: "Account API key", placeholder: "roo_…", secret: true },
-      { name: "sending_key", label: "Sending key", secret: true },
     ],
   },
   {
