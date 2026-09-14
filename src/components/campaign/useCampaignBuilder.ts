@@ -210,6 +210,17 @@ export function useCampaignBuilder(
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
 
+  // Navigating to another campaign drops the previous editor state immediately,
+  // so a pending autosave can never write it onto the campaign now in the URL.
+  useEffect(() => {
+    if (hydratedFor.current === null || hydratedFor.current.startsWith(`${campaignId}:`)) return;
+    hydratedFor.current = null;
+    dirtyRef.current = false;
+    setDirty(false);
+    setSteps([]);
+    setSettingsState(null);
+  }, [campaignId]);
+
   useEffect(() => {
     const data = campaignQuery.data;
     if (!data) return;
