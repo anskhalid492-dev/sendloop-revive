@@ -28,7 +28,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { BrandGlyph, brandIcon } from "@/components/site/BrandGlyph";
+import { CopyButton } from "@/components/site/CopyButton";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import {
+  GOOGLE_SHEETS_APPS_SCRIPT,
+  GOOGLE_SHEETS_SETUP_STEPS,
+} from "@/lib/google-sheets-script";
 import { INTEGRATIONS_BY_SLUG, INTEGRATION_CATEGORIES, categoryLabel } from "@/lib/integrations-catalog";
 import {
   connectIntegration,
