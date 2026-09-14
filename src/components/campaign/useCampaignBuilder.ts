@@ -204,11 +204,18 @@ export function useCampaignBuilder(
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const hydratedFor = useRef<string | null>(null);
 
+  // The editor is the source of truth while there are unsaved edits: a server
+  // snapshot arriving mid-typing (refetch, realtime, autosave round-trip) must
+  // never overwrite what the customer just wrote.
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+
   useEffect(() => {
     const data = campaignQuery.data;
     if (!data) return;
     const signature = `${campaignId}:${data.campaign.created_at}`;
     if (hydratedFor.current === signature) return;
+    if (hydratedFor.current !== null && dirtyRef.current) return;
     hydratedFor.current = signature;
     const c = data.campaign;
     setSteps(data.steps.map(toDraft));
