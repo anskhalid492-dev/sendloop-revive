@@ -117,13 +117,14 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     ...(status !== ANY ? { status: status as "pending" } : {}),
     ...(step !== ANY ? { step: Number(step) } : {}),
     ...(accountId !== ANY ? { accountId } : {}),
+    ...(mailboxType !== ANY ? { mailboxType: mailboxType as "google" } : {}),
   };
 
   // Filters change the population, so go back to the first page.
   useEffect(() => {
     setPage(1);
     setSelected([]);
-  }, [debounced, status, step, accountId]);
+  }, [debounced, status, step, accountId, mailboxType]);
 
   const leadsQuery = useQuery({
     queryKey: ["campaign-leads-page", filters],
