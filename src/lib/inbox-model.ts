@@ -188,7 +188,8 @@ const UNSUB_PATTERNS = [
   // quoted text and footer lines are removed by stripQuotedReply() first.
   /^\s*unsubscribe\s*[.!]?\s*$/im,
   /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsubscribe\s+(me|us|this|from|please)\b/i,
-  /\bplease\s+unsubscribe\b/i,
+  /\b(please|kindly|pls|plz)\s+unsubscribe\b/i,
+  /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsubscribe\b\s*(immediately|asap|now|right\s+away|at\s+once|please|thanks?|thank\s+you)/i,
   /\b(want|wish|would\s+like|'?d\s+like|need)\s+to\s+(be\s+)?unsubscribed?\b/i,
   /(?<!don'?t\s)(?<!do\snot\s)(?<!not\s)(?<!never\s)\bunsub(scribed)?\b\s*(me|us|please)/i,
   /remove me (from|off)/i,
