@@ -165,7 +165,8 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
     Boolean(debounced.search || debounced.company || debounced.jobTitle || debounced.location) ||
     status !== ANY ||
     step !== ANY ||
-    accountId !== ANY;
+    accountId !== ANY ||
+    mailboxType !== ANY;
 
   const refetchLeads = async () => {
     await queryClient.invalidateQueries({ queryKey: ["campaign-leads-page"] });
