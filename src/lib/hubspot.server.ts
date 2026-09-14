@@ -18,8 +18,9 @@ export const HUBSPOT_SLUG = "hubspot";
 const AUTH_URL = "https://app.hubspot.com/oauth/authorize";
 const API_BASE = "https://api.hubapi.com";
 
-/** Exactly the scopes the existing contact sync needs. */
+/** Exactly the scopes the existing contact sync needs (plus HubSpot's required `oauth`). */
 export const HUBSPOT_SCOPES = [
+  "oauth",
   "crm.objects.contacts.read",
   "crm.objects.contacts.write",
 ] as const;

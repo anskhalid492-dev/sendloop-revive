@@ -66,9 +66,9 @@ describe("hubspot authorize url", () => {
     const url = new URL(hubspotAuthorizeUrl("https://munchreach.com", "state123"));
     expect(url.origin + url.pathname).toBe("https://app.hubspot.com/oauth/authorize");
     expect(url.searchParams.get("scope")).toBe(
-      "crm.objects.contacts.read crm.objects.contacts.write",
+      "oauth crm.objects.contacts.read crm.objects.contacts.write",
     );
-    expect([...HUBSPOT_SCOPES]).toHaveLength(2);
+    expect([...HUBSPOT_SCOPES]).toHaveLength(3);
     expect(url.searchParams.get("state")).toBe("state123");
     expect(url.searchParams.get("redirect_uri")).toBe(
       "https://munchreach.com/api/public/integrations/hubspot/callback",
