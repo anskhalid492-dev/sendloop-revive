@@ -116,6 +116,9 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
           { referencedTable: "leads" },
         );
       }
+      if (data.mailboxType) {
+        query = query.or(mailboxTypeFilter(data.mailboxType), { referencedTable: "leads" });
+      }
       return query as unknown as T;
     };
 
