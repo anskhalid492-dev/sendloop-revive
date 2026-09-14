@@ -168,17 +168,16 @@ export const PROVIDER_GUIDES: Record<ProviderId, ProviderGuide> = {
   maileroo: {
     id: "maileroo",
     label: "Maileroo",
-    tagline: "Separate sending and account keys; domains and webhooks over API.",
+    tagline: "One account API key; domains, sending keys and webhooks over API.",
     steps: [
-      "Create an account API key (Settings → API keys) with domain, webhook and account scopes.",
-      "Create a sending key on the domain you send from.",
-      "Paste both below — we verify the account key immediately.",
+      "Create an account API key (Settings → API keys) with domain, sending-key, webhook and account scopes.",
+      "Paste it below — we verify it immediately.",
+      "Per-domain sending keys are created automatically for every managed domain; never enter them by hand.",
     ],
     docsUrl: "https://maileroo.com/docs",
     liveTest: true,
     fieldHints: {
       api_key: "Account API key, starts with roo_",
-      sending_key: "Per-domain sending key",
     },
   },
   courier: {
