@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { mailboxTypeOf, type MailboxType } from "@/lib/mailbox-type";
 
 export type CampaignLeadFields = {
   id: string;
@@ -162,4 +163,114 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
       page: data.page,
       pageSize: data.pageSize,
     };
+  });
+export type CampaignMailboxSummary = {
+  /** Mailbox type per sending account id, from the stored mailbox record. */
+  accountTypes: Record<string, MailboxType>;
+  /** Lead counts by mailbox type for the currently filtered population. */
+  counts: Record<MailboxType, number>;
+};
+
+/**
+ * Aggregate-only read: counts recipients per mailbox type with bounded
+ * head-count queries (one per mailbox type), so no campaign rows are loaded.
+ */
+export const getCampaignMailboxSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        campaignId: z.string().uuid(),
+        search: z.string().trim().max(120).optional(),
+        company: z.string().trim().max(120).optional(),
+        jobTitle: z.string().trim().max(120).optional(),
+        location: z.string().trim().max(120).optional(),
+        status: z.enum(RECIPIENT_STATUSES).optional(),
+        step: z.number().int().min(0).max(20).optional(),
+        accountId: z.string().uuid().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: campaign, error: campaignError } = await context.supabase
+      .from("campaigns")
+      .select("id, workspace_id")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (campaignError) throw new Error(campaignError.message);
+    if (!campaign) throw new Error("Campaign not found");
+
+    const { data: accountRows, error: accountsError } = await context.supabase
+      .from("sending_accounts")
+      .select("id, provider, connection_method")
+      .eq("workspace_id", campaign.workspace_id);
+    if (accountsError) throw new Error(accountsError.message);
+
+    const accountTypes: Record<string, MailboxType> = {};
+    const idsByType: Record<MailboxType, string[]> = { google: [], outlook: [], other: [] };
+    for (const account of accountRows ?? []) {
+      const type = mailboxTypeOf(account);
+      accountTypes[account.id] = type;
+      idsByType[type].push(account.id);
+    }
+
+    const textFilter = Boolean(data.search || data.company || data.jobTitle || data.location);
+    const like = (value: string) => `%${value.replace(/[%,()]/g, " ").trim()}%`;
+    const baseQuery = () => {
+      let query = context.supabase
+        .from("campaign_recipients")
+        .select(textFilter ? `id, ${LEAD_EMBED}` : "id", { count: "exact", head: true })
+        .eq("campaign_id", data.campaignId) as never as {
+        eq: (column: string, value: unknown) => typeof query;
+        ilike: (column: string, value: string) => typeof query;
+        in: (column: string, values: string[]) => typeof query;
+        is: (column: string, value: null) => typeof query;
+        or: (filter: string, options?: { referencedTable: string }) => typeof query;
+      };
+      if (data.status) query = query.eq("status", data.status);
+      if (data.step !== undefined) query = query.eq("current_step", data.step);
+      if (data.accountId) query = query.eq("sending_account_id", data.accountId);
+      if (data.company) query = query.ilike("leads.company", like(data.company));
+      if (data.jobTitle) query = query.ilike("leads.job_title", like(data.jobTitle));
+      if (data.location) {
+        const term = like(data.location);
+        query = query.or(`country.ilike.${term},city.ilike.${term},state.ilike.${term}`, {
+          referencedTable: "leads",
+        });
+      }
+      if (data.search) {
+        const term = like(data.search);
+        query = query.or(
+          `email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term},company.ilike.${term}`,
+          { referencedTable: "leads" },
+        );
+      }
+      return query;
+    };
+
+    const countFor = async (type: MailboxType) => {
+      const ids = idsByType[type];
+      if (data.accountId && accountTypes[data.accountId] !== type) return 0;
+      let query = baseQuery();
+      if (type === "other") {
+        // Unassigned mailboxes send through whatever is available: counted as Other.
+        query = ids.length
+          ? query.or(`sending_account_id.in.(${ids.join(",")}),sending_account_id.is.null`)
+          : query.is("sending_account_id", null);
+      } else {
+        if (!ids.length) return 0;
+        query = query.in("sending_account_id", ids);
+      }
+      const result = (await (query as unknown as Promise<{ count: number | null; error: { message: string } | null }>));
+      if (result.error) throw new Error(result.error.message);
+      return result.count ?? 0;
+    };
+
+    const [google, outlook, other] = await Promise.all([
+      countFor("google"),
+      countFor("outlook"),
+      countFor("other"),
+    ]);
+
+    return { accountTypes, counts: { google, outlook, other } } satisfies CampaignMailboxSummary;
   });
