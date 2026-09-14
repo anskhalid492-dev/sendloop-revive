@@ -52,6 +52,22 @@ const RECIPIENT_STATUSES = [
 const LEAD_EMBED =
   "leads!inner(id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields)";
 
+/**
+ * PostgREST filter string restricting the embedded lead to one email provider.
+ * "other" is expressed as "none of the known domains" so the three buckets
+ * always partition the population exactly like the summary counts do.
+ */
+function mailboxTypeFilter(type: MailboxType): string {
+  const inList = (domains: readonly string[]) =>
+    domains.map((domain) => `email.ilike.%@${domain}`).join(",");
+  if (type === "google") return inList(GOOGLE_EMAIL_DOMAINS);
+  if (type === "outlook") return inList(OUTLOOK_EMAIL_DOMAINS);
+  const excluded = [...GOOGLE_EMAIL_DOMAINS, ...OUTLOOK_EMAIL_DOMAINS]
+    .map((domain) => `email.not.ilike.%@${domain}`)
+    .join(",");
+  return `and(${excluded})`;
+}
+
 /** A bounded lead-page read kept separate from campaign mutations and launch code. */
 export const getCampaignLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
