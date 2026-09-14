@@ -324,7 +324,9 @@ export function useCampaignBuilder(
     onSuccess: async () => {
       setDirty(false);
       setSavedAt(new Date());
-      hydratedFor.current = null;
+      // Do NOT re-hydrate from the server here: the local editor content is
+      // what was just saved, and re-reading it would clobber any keystrokes
+      // typed while the save was in flight.
       await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
     },
