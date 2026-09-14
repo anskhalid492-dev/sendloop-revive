@@ -394,7 +394,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               <TableHead>Step</TableHead>
               <TableHead>Last activity</TableHead>
               <TableHead>Sending account</TableHead>
-              <TableHead>Mailbox type</TableHead>
+              <TableHead>Email provider</TableHead>
               <TableHead>Added</TableHead>
             </TableRow>
           </TableHeader>
