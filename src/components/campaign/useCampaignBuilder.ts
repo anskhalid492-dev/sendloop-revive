@@ -210,13 +210,30 @@ export function useCampaignBuilder(
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
 
+  // Navigating to another campaign drops the previous editor state immediately,
+  // so a pending autosave can never write it onto the campaign now in the URL.
+  useEffect(() => {
+    if (hydratedFor.current === null || hydratedFor.current.startsWith(`${campaignId}:`)) return;
+    hydratedFor.current = null;
+    dirtyRef.current = false;
+    setDirty(false);
+    setSteps([]);
+    setSettingsState(null);
+  }, [campaignId]);
+
   useEffect(() => {
     const data = campaignQuery.data;
     if (!data) return;
+    // Only trust a snapshot that belongs to the campaign in the URL.
+    if (data.campaign.id !== campaignId) return;
     const signature = `${campaignId}:${data.campaign.created_at}`;
     if (hydratedFor.current === signature) return;
-    if (hydratedFor.current !== null && dirtyRef.current) return;
+    // Unsaved edits win over a mid-typing refetch, but only for the campaign
+    // they were made in — switching campaigns must always load fresh content.
+    const sameCampaign = hydratedFor.current?.startsWith(`${campaignId}:`) ?? false;
+    if (sameCampaign && dirtyRef.current) return;
     hydratedFor.current = signature;
+    dirtyRef.current = false;
     const c = data.campaign;
     setSteps(data.steps.map(toDraft));
     setSettingsState({
