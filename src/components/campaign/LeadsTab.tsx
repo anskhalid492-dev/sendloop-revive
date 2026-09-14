@@ -327,7 +327,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             <span
               key={type}
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
-              title={`Leads sending through ${MAILBOX_TYPE_LABELS[type]} mailboxes`}
+              title={`Leads with a ${MAILBOX_TYPE_LABELS[type]} email address`}
             >
               <MailboxTypeIcon type={type} />
               <span className="text-muted-foreground">{MAILBOX_TYPE_LABELS[type]}</span>
