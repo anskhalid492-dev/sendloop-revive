@@ -59,6 +59,7 @@ import {
   type StepType,
 } from "@/lib/campaign-model";
 
+import { insertAtSelection, variableSnippet } from "@/lib/campaign-editor";
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
 import { AiPersonalizationSidebar } from "./AiPersonalizationSidebar";
 
@@ -218,14 +219,11 @@ export function SequencesTab({
 
   const insertToken = (token: string) => {
     if (!step) return;
-    const snippet = `{{${token}}}`;
+    const snippet = variableSnippet(token);
     const { field } = selectionRef.current;
     const el = field === "subject" ? subjectRef.current : bodyRef.current;
     const current = field === "subject" ? editingSubject : editingBody;
-    const start = Math.min(selectionRef.current.start, current.length);
-    const end = Math.min(Math.max(selectionRef.current.end, start), current.length);
-    const next = `${current.slice(0, start)}${snippet}${current.slice(end)}`;
-    const caret = start + snippet.length;
+    const { value: next, caret } = insertAtSelection(current, selectionRef.current, snippet);
     selectionRef.current = { field, start: caret, end: caret };
     if (field === "subject") setSubject(next);
     else setBody(next);
