@@ -322,20 +322,25 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-wrap items-end gap-2">
-          {MAILBOX_TYPE_ORDER.map((type) => (
-            <span
-              key={type}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
-              title={`Leads with a ${MAILBOX_TYPE_LABELS[type]} email address`}
-            >
-              <MailboxTypeIcon type={type} />
-              <span className="text-muted-foreground">{MAILBOX_TYPE_LABELS[type]}</span>
-              <span className="font-medium tabular-nums">
-                {mailboxCounts ? mailboxCounts[type].toLocaleString() : "—"}
-              </span>
-            </span>
-          ))}
+        <div>
+          <Label className="text-xs">Mailboxes Types</Label>
+          <Select value={mailboxType} onValueChange={setMailboxType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Any type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>Any type</SelectItem>
+              {MAILBOX_TYPE_ORDER.map((type) => (
+                <SelectItem key={type} value={type}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <MailboxTypeIcon type={type} />
+                    {MAILBOX_TYPE_LABELS[type]}
+                    {mailboxCounts ? ` (${mailboxCounts[type].toLocaleString()})` : ""}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-end gap-2">
           <Button
