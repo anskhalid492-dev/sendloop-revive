@@ -79,8 +79,13 @@ export async function buildCustomerReadiness(
   const row = await loadDomain(client, id);
   const providerId = await providerFor(row);
 
+  const credentials = await credentialsFor(row, providerId);
   const { evaluateDomainReadiness } = await import("@/lib/domain-readiness.server");
-  const report = await evaluateDomainReadiness({ provider: providerId, domain: row.domain });
+  const report = await evaluateDomainReadiness({
+    provider: providerId,
+    domain: row.domain,
+    credentials,
+  });
 
   const checks = new Map((row.record_checks ?? []).map((c) => [c.id, c.status ?? "pending"]));
   const dnsMxState = mxPillarState(report.mx.state);
@@ -163,7 +168,12 @@ export async function turnOnReceiving(
   const row = await loadDomain(client, id);
   if (row.disabled_at) return { ok: false, detail: "This domain is disabled." };
   const providerId = await providerFor(row);
+  const credentials = await credentialsFor(row, providerId);
   const { enableDomainInbound } = await import("@/lib/domain-readiness.server");
-  const result = await enableDomainInbound({ provider: providerId, domain: row.domain });
+  const result = await enableDomainInbound({
+    provider: providerId,
+    domain: row.domain,
+    credentials,
+  });
   return { ok: result.enabled, detail: scrub(result.detail) };
 }
