@@ -139,7 +139,7 @@ export function mapMailerooRecords(domain: string, found: MailerooDomain | null)
 
 export function mapMailerooState(found: MailerooDomain | null): ProviderDomainState["state"] {
   if (!found) return "unknown";
-  const status = (found.status ?? "").toLowerCase();
+  const status = providerText(found.status).toLowerCase();
   if (status.includes("verified") || status.includes("active")) return "verified";
   if (status.includes("fail")) return "failed";
   const dns = found.dns_records ?? {};
@@ -181,7 +181,7 @@ export const mailerooDomainAdapter: DomainProviderAdapter = {
         providerDomainId: existing.id ? String(existing.id) : null,
         records: mapMailerooRecords(domain, existing),
         state: mapMailerooState(existing),
-        detail: `Domain already registered with status "${existing.status ?? "unknown"}".`,
+        detail: `Domain already registered with status "${providerText(existing.status) || "unknown"}".`,
       };
     }
     const res = await providerFetch(`${API}/domains`, {
@@ -225,7 +225,7 @@ export const mailerooDomainAdapter: DomainProviderAdapter = {
     if (!found) return { state: "unknown", detail: "Domain is not registered with the provider." };
     return {
       state: mapMailerooState(found),
-      detail: `Provider status "${found.status ?? "unknown"}".`,
+      detail: `Provider status "${providerText(found.status) || "unknown"}".`,
     };
   },
 
