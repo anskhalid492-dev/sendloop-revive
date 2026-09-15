@@ -144,7 +144,7 @@ function MessageRow({
             </span>
           ) : (
             <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {message.body}
+              {replyPreview(message.body)}
             </span>
           )}
         </span>
@@ -188,9 +188,39 @@ function MessageRow({
             </dl>
           ) : null}
 
-          <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
-            {message.body}
-          </div>
+          {parts.reply ? (
+            <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
+              {parts.reply}
+            </div>
+          ) : null}
+
+          {parts.signature ? (
+            <p className="mt-2 max-w-[76ch] text-xs italic text-muted-foreground">
+              {parts.signature}
+            </p>
+          ) : null}
+
+          {parts.quoted ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowQuoted((v) => !v)}
+                className="rounded border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted"
+                aria-expanded={showQuoted}
+              >
+                {showQuoted ? "Hide quoted text" : "Show quoted text"}
+              </button>
+              {showQuoted ? (
+                <div className="mt-2 max-w-[76ch] whitespace-pre-wrap break-words border-l-2 border-border pl-3 text-[13px] leading-6 text-muted-foreground">
+                  {parts.quoted}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!parts.reply && !parts.signature && !parts.quoted ? (
+            <p className="mt-3 text-sm text-muted-foreground">No message content.</p>
+          ) : null}
 
           {message.attachments?.length ? (
             <ul className="mt-3 flex flex-wrap gap-2">
