@@ -15,7 +15,8 @@ let cached: WaitUntil | null | undefined;
 async function resolveWaitUntil(): Promise<WaitUntil | null> {
   if (cached !== undefined) return cached;
   try {
-    const mod = (await import(/* @vite-ignore */ "cloudflare:workers")) as {
+    const specifier = "cloudflare:workers";
+    const mod = (await import(/* @vite-ignore */ specifier)) as {
       waitUntil?: WaitUntil;
     };
     cached = typeof mod.waitUntil === "function" ? mod.waitUntil.bind(mod) : null;
