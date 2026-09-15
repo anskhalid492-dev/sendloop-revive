@@ -136,11 +136,12 @@ export function providerDisplay(input: ProviderDisplayInput): ProviderDisplay {
   }
 
   if (!input.managedAvailable) {
+    const reason = (input.unavailableReason ?? "").trim();
     return {
       provider: "none",
-      label: "Provider unavailable",
+      label: reason ? `Unavailable — ${reason}` : "Provider unavailable",
       available: false,
-      detail: "No system email provider is currently able to deliver.",
+      detail: reason || "No system email provider is currently able to deliver.",
     };
   }
 
