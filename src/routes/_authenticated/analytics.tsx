@@ -494,7 +494,7 @@ function AnalyticsPage() {
 
         <ConversionFunnel
           data={{
-            leads: leadTotal,
+            leads: audience.data ?? null,
             sent: current?.sent ?? 0,
             delivered: current?.delivered ?? 0,
             opens: current?.opens ?? 0,
