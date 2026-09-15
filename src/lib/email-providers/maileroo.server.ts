@@ -17,6 +17,11 @@ import {
   findMailerooDomain,
   mailerooHeaders,
 } from "@/lib/domain-providers/maileroo.server";
+import {
+  isMailerooInboundPayload,
+  mailerooFlattenInboundPayload,
+  mailerooInboundEvent,
+} from "./maileroo-inbound";
 import type { EmailProvider } from "./provider";
 import {
   capabilities,
@@ -302,6 +307,15 @@ export const mailerooEmailProvider: EmailProvider = {
 
   identifyWebhookRequest(request) {
     const p = asRecord(request.payload);
+    // Inbound messages use a different envelope from delivery events.
+    if (isMailerooInboundPayload(p)) {
+      return {
+        provider: ID,
+        matched: true,
+        confidence: "exact",
+        detail: "Payload carries this provider's inbound-message envelope.",
+      };
+    }
     const type = String(p["event_type"] ?? "").toLowerCase();
     if (Object.hasOwn(EVENT_MAP, type) && (p["message_reference_id"] ?? p["domain_id"])) {
       return {
@@ -319,6 +333,40 @@ export const mailerooEmailProvider: EmailProvider = {
     };
   },
 
+  /**
+   * Inbound deliveries authenticate through the payload's one-time validation
+   * URL (this provider publishes no signature header). Delivery/tracking events
+   * carry no authenticity mechanism at all, so they keep the shared endpoint
+   * secret as their only proof.
+   */
+  async verifyWebhookSignature(request, secret) {
+    const payload = asRecord(request.payload);
+    if (isMailerooInboundPayload(payload)) {
+      const { verifyMailerooInbound } = await import("./maileroo-inbound.server");
+      return verifyMailerooInbound(payload);
+    }
+    const supplied = request.query?.["token"] ?? request.headers["x-munchreach-secret"] ?? "";
+    if (secret && supplied && supplied === secret) {
+      return {
+        valid: true,
+        detail: "Endpoint secret matches.",
+        verification: { status: "valid", method: "token", reason: "token_match" },
+      };
+    }
+    return {
+      valid: false,
+      detail: "This provider publishes no signature scheme for event webhooks.",
+      verification: { status: "unverified", method: "none", reason: "no_signature_scheme" },
+    };
+  },
+
+  // Inbound messages are reshaped into the shared flat payload; event webhooks
+  // are already flat.
+  normalizeWebhookPayload(payload) {
+    return mailerooFlattenInboundPayload(payload) ?? payload;
+  },
+
+  parseInboundEvent: mailerooInboundEvent,
   parseDeliveryEvent: mailerooEvent,
   parseTrackingEvent: mailerooEvent,
 };
