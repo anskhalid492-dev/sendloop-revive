@@ -35,7 +35,22 @@ export type DomainRow = {
   stage: string;
   disabled_at?: string | null;
   provider_locked_until?: string | null;
+  verified_at?: string | null;
+  dns_status?: string | null;
 };
+
+/**
+ * A domain that already completed verification on a provider stays on that
+ * provider for good: the customer's published DNS records belong to it, and
+ * moving it would force a pointless re-verification. Everything else (pending
+ * DNS, failed, brand new) follows whichever provider is active right now.
+ */
+export function domainIsPinnedToProvider(
+  row: Pick<DomainRow, "provider" | "stage" | "verified_at" | "dns_status">,
+): boolean {
+  if (!row.provider) return false;
+  return Boolean(row.verified_at) || row.dns_status === "verified" || row.stage === "ready";
+}
 
 export type VerificationOutcome = {
   stage: DomainStage;
@@ -56,7 +71,14 @@ export type VerificationOutcome = {
  */
 export async function resolveDomainProvider(
   admin: Admin,
-  pinned?: { provider?: string | null; providerId?: string | null; key?: string; exclude?: string[] },
+  pinned?: {
+    provider?: string | null;
+    providerId?: string | null;
+    key?: string;
+    exclude?: string[];
+    /** Set only for domains already verified on a provider — never moves them. */
+    preferredProvider?: string | null;
+  },
 ): Promise<ResolvedProvider | null> {
   const { selectProvider } = await import("@/lib/provider-pool.server");
   const selected = await selectProvider(admin, {
@@ -64,6 +86,7 @@ export async function resolveDomainProvider(
     currentProviderId: pinned?.providerId ?? null,
     requireDomainApi: true,
     exclude: pinned?.exclude ?? [],
+    preferredProvider: pinned?.preferredProvider ?? null,
   });
   if (!selected) return null;
   return {
@@ -115,12 +138,17 @@ export async function ensureProviderDomain(
     row.provider_locked_until != null && new Date(row.provider_locked_until).getTime() > Date.now();
   const tried: string[] = [];
   let lastDetail = "No sending infrastructure is available.";
+  // Verified domains stay where they are; unverified ones must follow the
+  // currently active sending infrastructure, so their previous assignment is
+  // NOT used as a sticky hint.
+  const pinnedToProvider = domainIsPinnedToProvider(row) || locked;
 
   // At most three attempts: routed provider, then failover candidates.
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const provider = await resolveDomainProvider(admin, {
       provider: row.provider,
-      providerId: row.provider_id,
+      providerId: pinnedToProvider ? row.provider_id : null,
+      preferredProvider: pinnedToProvider ? row.provider : null,
       key: row.domain,
       exclude: tried,
     });
@@ -213,6 +241,28 @@ export async function ensureProviderDomain(
   }
 
   return null;
+}
+
+/**
+ * Whether the DNS records stored on an unverified domain still belong to the
+ * sending infrastructure that is active today. When they do not, the records
+ * shown to the customer are stale and must be regenerated against the active
+ * provider — otherwise a domain provisioned before an infrastructure switch
+ * would ask the customer to publish records the platform no longer uses.
+ */
+export async function domainProviderIsStale(admin: Admin, row: DomainRow): Promise<boolean> {
+  if (row.disabled_at) return false;
+  if (domainIsPinnedToProvider(row)) return false;
+  if (
+    row.provider_locked_until != null &&
+    new Date(row.provider_locked_until).getTime() > Date.now()
+  ) {
+    return false;
+  }
+  if (!row.provider) return false;
+  const active = await resolveDomainProvider(admin, { key: row.domain });
+  if (!active) return false;
+  return active.provider !== row.provider;
 }
 
 
