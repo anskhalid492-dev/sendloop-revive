@@ -193,3 +193,31 @@ describe("sender identities under Maileroo", () => {
     expect(reason).toMatch(/not a verified sending domain/i);
   });
 });
+
+describe("provider availability after switching Resend off", () => {
+  test("automatic selection uses Maileroo when it is the only enabled provider", () => {
+    const choice = selectSystemEmailProvider({
+      sesEnabled: false,
+      sesCredentialsAvailable: false,
+      managedAvailable: false,
+      mailerooAvailable: true,
+      activeProvider: "auto",
+    });
+    expect(choice.provider).toBe("maileroo");
+  });
+
+  test("the unavailable label reports the real reason", () => {
+    const display = providerDisplay({
+      sesEnabled: false,
+      sesConnected: false,
+      managedAvailable: false,
+      managedProvider: null,
+      activeProvider: "auto",
+      mailerooAvailable: false,
+      unavailableReason: "No provider is enabled for system email.",
+    });
+    expect(display.available).toBe(false);
+    expect(display.label).toContain("No provider is enabled for system email.");
+    expect(display.detail).toContain("No provider is enabled");
+  });
+});
