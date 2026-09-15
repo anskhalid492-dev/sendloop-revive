@@ -701,6 +701,12 @@ async function deliver(
       },
       message,
     );
+    if (!sesResult.ok) {
+      console.error(
+        `[system-email] Amazon SES send failed for ${row.to_email} [${sesResult.statusCode ?? "no status"}]:`,
+        sesResult.providerResponse || sesResult.message,
+      );
+    }
     if (sesResult.ok || choice.fallback === null) {
       return {
         ok: sesResult.ok,
@@ -717,6 +723,13 @@ async function deliver(
 
   const adapter = getAdapter(managed.provider);
   const result = await adapter.sendEmail(managed.credentials, message);
+
+  if (!result.ok) {
+    console.error(
+      `[system-email] ${managed.provider} send failed for ${row.to_email} [${result.statusCode ?? "no status"}]:`,
+      result.providerResponse || result.message,
+    );
+  }
 
   await recordProviderIncident(admin, managed.providerId, result.ok ? null : result.providerResponse ?? result.message);
 
