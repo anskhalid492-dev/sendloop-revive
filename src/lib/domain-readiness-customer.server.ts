@@ -27,27 +27,48 @@ function scrub(text: string): string {
 
 const PROVIDER_LABEL = "Managed sending infrastructure";
 
-async function loadDomain(client: Client, id: string) {
+type DomainRow = {
+  id: string;
+  domain: string;
+  provider: string | null;
+  provider_id: string | null;
+  record_checks: Array<{ id: string; status?: string }> | null;
+  disabled_at: string | null;
+};
+
+async function loadDomain(client: Client, id: string): Promise<DomainRow> {
   const { data, error } = await client
     .from("sending_domains")
-    .select("id, domain, provider, record_checks, disabled_at")
+    .select("id, domain, provider, provider_id, record_checks, disabled_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Domain not found");
-  return data as {
-    id: string;
-    domain: string;
-    provider: string | null;
-    record_checks: Array<{ id: string; status?: string }> | null;
-    disabled_at: string | null;
-  };
+  return data as DomainRow;
 }
 
 async function providerFor(row: { provider: string | null }): Promise<string> {
   if (row.provider) return row.provider;
   const { resolvePlatformProviderId } = await import("@/lib/ops.server");
   return resolvePlatformProviderId();
+}
+
+/**
+ * Loads the stored infrastructure credential for the domain's provider through
+ * the SAME resolution the DNS-records path uses. Without it every provider read
+ * came back 401 and was reported to the customer as "not registered".
+ */
+async function credentialsFor(
+  row: Pick<DomainRow, "provider" | "provider_id">,
+  providerId: string,
+): Promise<Record<string, string>> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { credentialsForProviderRef } = await import("@/lib/provider-pool.server");
+  const resolved = await credentialsForProviderRef(supabaseAdmin, {
+    providerId: row.provider_id,
+    provider: row.provider ?? providerId,
+  });
+  return resolved?.credentials ?? {};
 }
 
 /** Builds the provider-neutral readiness payload the customer UI renders. */
