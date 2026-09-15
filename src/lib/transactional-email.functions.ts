@@ -50,15 +50,17 @@ async function senderContext(admin: unknown) {
   const overrides = await getSenderIdentityOverrides(admin as any);
   const senders = resolveSenderIdentities(overrides);
 
-  // The managed provider is whatever the provider pool actually resolves right
-  // now (Resend today, another provider if the pool changes) — never assumed.
+  // The managed provider is whatever the provider pool actually resolves for
+  // SYSTEM email right now — never pinned to one vendor. Pinning "resend" here
+  // made the whole card read "Provider unavailable" the moment Resend was
+  // disabled, even with another provider enabled for system email.
   let managedProvider: string | null = null;
   try {
-    const managed = await resolveManagedProvider(admin as any, {
-      provider: "resend",
-      provider_id: null,
-      from_email: senders[0]?.email ?? "",
-    });
+    const managed = await resolveManagedProvider(
+      admin as any,
+      { provider: "", provider_id: null, from_email: senders[0]?.email ?? "" },
+      { scope: "system" },
+    );
     managedProvider = managed?.provider ?? null;
   } catch {
     managedProvider = null;

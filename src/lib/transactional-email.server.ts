@@ -614,9 +614,12 @@ async function deliver(
     Object.values(SYSTEM_SENDERS).find((s) => s.email === fromEmail);
   // System email uses the ADMIN/SYSTEM provider permissions only; customer
   // provider toggles never influence this path.
+  // Unpinned: the pool decides which provider is enabled for system email.
+  // Pinning "resend" here silently broke every system email once Resend was
+  // disabled in favour of another provider.
   const managed = await resolveManagedProvider(
     admin,
-    { provider: "resend", provider_id: null, from_email: fromEmail },
+    { provider: "", provider_id: null, from_email: fromEmail },
     { scope: "system" },
   );
 
