@@ -17,7 +17,7 @@
  *
  * Pure and client-safe: no provider calls, no environment, no Supabase.
  */
-import { classifyEvent, externalIdOf, normalizeInbound } from "@/lib/inbound-parse";
+import { classifyEvent, extractEmail, externalIdOf, normalizeInbound } from "@/lib/inbound-parse";
 import type { InboundEmailAttachment, InboundEmailEvent } from "./types";
 
 const ID = "maileroo";
