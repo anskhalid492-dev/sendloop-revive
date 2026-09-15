@@ -76,6 +76,8 @@ export type ProviderDisplayInput = {
   activeProvider?: SystemProviderSelection | null;
   /** Maileroo configured server-side and allowed for system email. */
   mailerooAvailable?: boolean;
+  /** Exact failing condition, surfaced instead of a generic label. */
+  unavailableReason?: string | null;
 };
 
 /** Display name for a managed provider id. Never hard-codes one provider. */
