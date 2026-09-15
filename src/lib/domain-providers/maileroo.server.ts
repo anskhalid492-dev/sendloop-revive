@@ -42,8 +42,30 @@ export type MailerooDomain = {
   interaction_tracking?: boolean;
   custom_hostname_tracking?: boolean;
   return_path?: string;
-  dns_records?: Record<string, MailerooDnsEntry | null>;
+  /**
+   * Provider JSON: single object for SPF/DKIM/DMARC/tracking, but an ARRAY for
+   * `mx_record` (Maileroo publishes two inbound hosts, mx1 + mx2).
+   */
+  dns_records?: Record<string, MailerooDnsEntry | MailerooDnsEntry[] | null>;
 };
+
+/** Normalises a `dns_records` value, which may be one entry or a list. */
+export function mailerooEntryList(
+  value: MailerooDnsEntry | MailerooDnsEntry[] | null | undefined,
+): MailerooDnsEntry[] {
+  if (!value) return [];
+  return (Array.isArray(value) ? value : [value]).filter(
+    (entry): entry is MailerooDnsEntry => Boolean(entry) && typeof entry === "object",
+  );
+}
+
+/** True when every published entry for this record key is live in DNS. */
+export function mailerooEntriesCreated(
+  value: MailerooDnsEntry | MailerooDnsEntry[] | null | undefined,
+): boolean {
+  const entries = mailerooEntryList(value);
+  return entries.length > 0 && entries.every((entry) => entry.created === true);
+}
 
 export function mailerooHeaders(creds: ProviderCredentials) {
   return {
