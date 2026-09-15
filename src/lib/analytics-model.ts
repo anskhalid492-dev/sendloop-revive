@@ -31,6 +31,8 @@ export type AnalyticsCampaignRow = {
   openTracking?: boolean;
   name: string;
   status: string;
+  /** Audience size for the campaign, when known. */
+  leads?: number;
   sent: number;
   delivered: number;
   opens: number;

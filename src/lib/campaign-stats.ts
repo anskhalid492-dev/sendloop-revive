@@ -147,6 +147,7 @@ export type CampaignMessageRow = {
   recipient_id?: string | null;
   lead_id?: string | null;
   step_order?: number | string | null;
+  variant_id?: string | null;
   status?: string | null;
   delivery_status?: string | null;
   scheduled_at?: string | null;
@@ -184,6 +185,10 @@ export type Unit = {
   status: string;
   /** Mailbox that sent (or is due to send) this unit. */
   accountId: string | null;
+  /** A/B variant used for this unit, when the step has variants. */
+  variantId: string | null;
+  /** Campaign this unit belongs to, when known. */
+  campaignId: string | null;
 
   deliveryStatus: string;
   sentAt: string | null;
@@ -257,6 +262,8 @@ export function collapseMessageUnits(
       step,
       status,
       accountId: m.sending_account_id ? String(m.sending_account_id) : null,
+      variantId: m.variant_id ? String(m.variant_id) : null,
+      campaignId: m.campaign_id ? String(m.campaign_id) : null,
       deliveryStatus: String(m.delivery_status ?? ""),
       sentAt: null,
       signals: {
@@ -294,7 +301,10 @@ export function collapseMessageUnits(
     if (m.sent_at) {
       unit.status = "sent";
       if (m.sending_account_id) unit.accountId = String(m.sending_account_id);
+      if (m.variant_id) unit.variantId = String(m.variant_id);
     }
+    if (!unit.variantId && m.variant_id) unit.variantId = String(m.variant_id);
+    if (!unit.campaignId && m.campaign_id) unit.campaignId = String(m.campaign_id);
     units.set(key, unit);
   }
   return units;

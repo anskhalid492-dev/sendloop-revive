@@ -15,13 +15,24 @@ import {
 } from "recharts";
 
 import { AppShell } from "@/components/app/AppShell";
+import { ActivityFeed } from "@/components/analytics/ActivityFeed";
 import { CampaignDetailDialog } from "@/components/analytics/CampaignDetailDialog";
 import { ConversionFunnel, type FunnelStepKey } from "@/components/analytics/ConversionFunnel";
+import { DeliverabilityPanel } from "@/components/analytics/DeliverabilityPanel";
 import { EngagementOverview } from "@/components/analytics/EngagementOverview";
 import { FunnelDrilldownDialog } from "@/components/analytics/FunnelDrilldownDialog";
+import { ReplyIntelligence } from "@/components/analytics/ReplyIntelligence";
+import { SequencePerformance } from "@/components/analytics/SequencePerformance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAnalyticsRealtime } from "@/hooks/useAnalyticsRealtime";
@@ -29,9 +40,12 @@ import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import {
   getAnalyticsByAccount,
   getAnalyticsByCampaign,
+  getAnalyticsAudience,
+  getAnalyticsFilterOptions,
   getAnalyticsOverview,
   getAnalyticsTimeseries,
 } from "@/lib/analytics.functions";
+import type { AnalyticsFilters } from "@/lib/analytics-filters";
 import {
   bounceRate,
   rate,
@@ -104,6 +118,8 @@ function AnalyticsPage() {
   const [visible, setVisible] = useState<string[]>(["sent", "opens", "replies"]);
   const [campaignDetail, setCampaignDetail] = useState<AnalyticsCampaignRow | null>(null);
   const [funnelStep, setFunnelStep] = useState<FunnelStepKey | null>(null);
+  const [campaignFilter, setCampaignFilter] = useState<string>("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
 
   const { from, to, bucket } = useMemo(() => {
     if (rangeId === "custom") {
@@ -118,43 +134,114 @@ function AnalyticsPage() {
     return { from: f, to: t, bucket: days === 1 ? ("hour" as const) : ("day" as const) };
   }, [rangeId, customFrom, customTo]);
 
+  const campaignId = campaignFilter === "all" ? null : campaignFilter;
+  const accountId = accountFilter === "all" ? null : accountFilter;
+
   const range = {
     workspaceId: workspaceId ?? "",
     from: from.toISOString(),
     to: to.toISOString(),
+    campaignId,
+    accountId,
+  };
+  const filters: AnalyticsFilters = {
+    workspaceId,
+    from: range.from,
+    to: range.to,
+    campaignId,
+    accountId,
   };
   const keyBase = [workspaceId, range.from, range.to] as const;
+  const keyFilters = [campaignId, accountId] as const;
   const enabled = !!workspaceId;
 
   const fetchOverview = useServerFn(getAnalyticsOverview);
   const fetchSeries = useServerFn(getAnalyticsTimeseries);
   const fetchCampaigns = useServerFn(getAnalyticsByCampaign);
   const fetchAccounts = useServerFn(getAnalyticsByAccount);
+  const fetchFilterOptions = useServerFn(getAnalyticsFilterOptions);
+  const fetchAudience = useServerFn(getAnalyticsAudience);
+
+  const audience = useQuery({
+    queryKey: [...analyticsKeys.root, "audience", workspaceId, campaignId] as const,
+    queryFn: () => fetchAudience({ data: { workspaceId: workspaceId ?? "", campaignId } }),
+    enabled,
+    staleTime: 60_000,
+  });
+
+  const filterOptions = useQuery({
+    queryKey: analyticsKeys.filterOptions(workspaceId),
+    queryFn: () => fetchFilterOptions({ data: { workspaceId: workspaceId ?? "" } }),
+    enabled,
+    staleTime: 60_000,
+  });
 
   const overview = useQuery({
-    queryKey: analyticsKeys.overview(...keyBase),
+    queryKey: analyticsKeys.overview(...keyBase, ...keyFilters),
     queryFn: () => fetchOverview({ data: range }),
     enabled,
     ...liveQueryOptions(),
   });
   const series = useQuery({
-    queryKey: analyticsKeys.series(...keyBase, bucket),
+    queryKey: analyticsKeys.series(...keyBase, bucket, ...keyFilters),
     queryFn: () => fetchSeries({ data: { ...range, bucket } }),
     enabled,
     ...liveQueryOptions(),
   });
   const campaigns = useQuery({
-    queryKey: analyticsKeys.campaigns(...keyBase),
+    queryKey: analyticsKeys.campaigns(...keyBase, ...keyFilters),
     queryFn: () => fetchCampaigns({ data: range }),
     enabled,
     ...liveQueryOptions(),
   });
   const accounts = useQuery({
-    queryKey: analyticsKeys.accounts(...keyBase),
+    queryKey: analyticsKeys.accounts(...keyBase, ...keyFilters),
     queryFn: () => fetchAccounts({ data: range }),
     enabled,
     ...liveQueryOptions(),
   });
+
+  /** Download the current campaign breakdown as CSV, filters included. */
+  function exportReport() {
+    const rows = campaigns.data ?? [];
+    const header = [
+      "Campaign",
+      "Status",
+      "Sent",
+      "Delivered",
+      "Opens",
+      "Clicks",
+      "Replies",
+      "Positive replies",
+      "Bounced",
+      "Unsubscribed",
+      "Failed",
+    ];
+    const body = rows.map((r) => [
+      r.name,
+      r.status,
+      r.sent,
+      r.delivered,
+      r.opens,
+      r.clicks,
+      r.replies,
+      r.positiveReplies,
+      r.bounced,
+      r.unsubscribed,
+      r.failed,
+    ]);
+    const csv = [header, ...body]
+      .map((line) =>
+        line.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `munchreach-analytics-${range.from.slice(0, 10)}-to-${range.to.slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const current = overview.data?.current;
   const previous = overview.data?.previous;
@@ -202,6 +289,12 @@ function AnalyticsPage() {
           value: formatCount(current.failed),
           delta: deltaCount(current.failed, previous?.failed ?? 0),
           sub: `${formatCount(current.complained)} complaints`,
+        },
+        {
+          label: "Meetings booked",
+          value: formatCount(overview.data?.meetings ?? 0),
+          delta: null,
+          sub: `${formatPct(rate(overview.data?.meetings ?? 0, current.replies))} of replies`,
         },
       ]
     : [];
@@ -253,6 +346,60 @@ function AnalyticsPage() {
           <Badge variant="secondary" className="ml-auto">
             Live
           </Badge>
+        </div>
+
+        {/* campaign / mailbox filters + export */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={campaignFilter} onValueChange={setCampaignFilter}>
+            <SelectTrigger className="h-9 w-[15rem]">
+              <SelectValue placeholder="All campaigns" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All campaigns</SelectItem>
+              {(filterOptions.data?.campaigns ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="h-9 w-[15rem]">
+              <SelectValue placeholder="All mailboxes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All mailboxes</SelectItem>
+              {(filterOptions.data?.accounts ?? []).map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.fromEmail}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {campaignFilter !== "all" || accountFilter !== "all" ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setCampaignFilter("all");
+                setAccountFilter("all");
+              }}
+            >
+              Reset filters
+            </Button>
+          ) : null}
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto"
+            onClick={exportReport}
+            disabled={(campaigns.data ?? []).length === 0}
+          >
+            Export report
+          </Button>
         </div>
 
         <EngagementOverview workspaceId={workspaceId} />
@@ -350,12 +497,19 @@ function AnalyticsPage() {
           </div>
         </div>
 
+        <SequencePerformance filters={filters} />
+
+        <ReplyIntelligence filters={filters} />
+
         <ConversionFunnel
           data={{
+            leads: audience.data ?? null,
             sent: current?.sent ?? 0,
             delivered: current?.delivered ?? 0,
             opens: current?.opens ?? 0,
             replies: current?.replies ?? 0,
+            positiveReplies: current?.positiveReplies ?? 0,
+            meetings: overview.data?.meetings ?? 0,
           }}
           onStepClick={workspaceId ? (step) => setFunnelStep(step) : undefined}
         />
@@ -458,6 +612,11 @@ function AnalyticsPage() {
             )}
           </div>
         </div>
+
+        <DeliverabilityPanel filters={filters} />
+
+        <ActivityFeed filters={filters} />
+
 
         {!overview.isLoading && !hasActivity ? (
           <p className="text-center text-xs text-muted-foreground">

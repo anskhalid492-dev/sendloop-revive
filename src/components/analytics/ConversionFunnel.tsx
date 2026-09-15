@@ -8,19 +8,30 @@ export type FunnelInput = {
   delivered: number;
   opens: number;
   replies: number;
+  /** Audience size at the top of the funnel, when known. */
+  leads?: number | null;
+  /** Replies classified as positive. */
+  positiveReplies?: number | null;
+  /** Meetings booked in the same range. */
+  meetings?: number | null;
 };
 
 const STEP_STYLES = [
   "bg-primary/80",
+  "bg-primary/70",
   "bg-sky-500/80",
   "bg-violet-500/80",
   "bg-emerald-500/80",
+  "bg-emerald-600/80",
+  "bg-amber-500/80",
 ] as const;
 
+const DRILLDOWN_KEYS = new Set<FunnelStepKey>(["sent", "delivered", "opens", "replies"]);
+
 /**
- * Sent → Delivered → Opened → Replied, using the same deduplicated engagement
- * counts as the KPI cards. Each bar is sized against the top of the funnel and
- * annotated with its step-to-step conversion.
+ * Leads → Sent → Delivered → Opened → Replied → Positive → Meeting, using the
+ * same deduplicated engagement counts as the KPI cards. Each bar is sized
+ * against the top of the funnel and annotated with its step-to-step conversion.
  */
 export function ConversionFunnel({
   data,
@@ -33,13 +44,36 @@ export function ConversionFunnel({
   title?: string;
   onStepClick?: ((step: FunnelStepKey) => void) | undefined;
 }) {
-  const steps = [
-    { key: "sent" as const, label: "Sent", value: data.sent, prev: null as number | null },
-    { key: "delivered" as const, label: "Delivered", value: data.delivered, prev: data.sent },
-    { key: "opens" as const, label: "Opened", value: data.opens, prev: data.delivered },
-    { key: "replies" as const, label: "Replied", value: data.replies, prev: data.opens },
-  ];
-  const top = Math.max(data.sent, 1);
+  const steps: Array<{ key: string; label: string; value: number; prev: number | null }> = [];
+  if (typeof data.leads === "number") {
+    steps.push({ key: "leads", label: "Leads", value: data.leads, prev: null });
+  }
+  steps.push({
+    key: "sent",
+    label: "Sent",
+    value: data.sent,
+    prev: typeof data.leads === "number" ? data.leads : null,
+  });
+  steps.push({ key: "delivered", label: "Delivered", value: data.delivered, prev: data.sent });
+  steps.push({ key: "opens", label: "Opened", value: data.opens, prev: data.delivered });
+  steps.push({ key: "replies", label: "Replied", value: data.replies, prev: data.delivered });
+  if (typeof data.positiveReplies === "number") {
+    steps.push({
+      key: "positive",
+      label: "Positive",
+      value: data.positiveReplies,
+      prev: data.replies,
+    });
+  }
+  if (typeof data.meetings === "number") {
+    steps.push({
+      key: "meeting",
+      label: "Meeting booked",
+      value: data.meetings,
+      prev: typeof data.positiveReplies === "number" ? data.positiveReplies : data.replies,
+    });
+  }
+  const top = Math.max(data.leads ?? data.sent, data.sent, 1);
   const empty = data.sent === 0 && data.delivered === 0;
 
   return (
@@ -56,21 +90,26 @@ export function ConversionFunnel({
         </p>
       ) : (
         <div className="mt-4 space-y-3">
-          {steps.map((step, index) => (
+          {steps.map((step, index) => {
+            const drilldown =
+              onStepClick && DRILLDOWN_KEYS.has(step.key as FunnelStepKey)
+                ? () => onStepClick(step.key as FunnelStepKey)
+                : undefined;
+            return (
             <div
               key={step.label}
-              role={onStepClick ? "button" : undefined}
-              tabIndex={onStepClick ? 0 : undefined}
-              onClick={onStepClick ? () => onStepClick(step.key) : undefined}
+              role={drilldown ? "button" : undefined}
+              tabIndex={drilldown ? 0 : undefined}
+              onClick={drilldown}
               onKeyDown={
-                onStepClick
+                drilldown
                   ? (e) => {
-                      if (e.key === "Enter" || e.key === " ") onStepClick(step.key);
+                      if (e.key === "Enter" || e.key === " ") drilldown();
                     }
                   : undefined
               }
               className={cn(
-                onStepClick &&
+                drilldown &&
                   "-mx-2 cursor-pointer rounded-lg px-2 py-1 transition-colors hover:bg-muted/60",
               )}
             >
@@ -81,18 +120,22 @@ export function ConversionFunnel({
                   <span className="ml-2 text-xs">
                     {step.prev === null
                       ? "100%"
-                      : `${formatPct(rate(step.value, step.prev))} of ${steps[index - 1]!.label.toLowerCase()}`}
+                      : `${formatPct(rate(step.value, step.prev))} conversion`}
                   </span>
                 </span>
               </div>
               <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn("h-full rounded-full transition-all", STEP_STYLES[index])}
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    STEP_STYLES[Math.min(index, STEP_STYLES.length - 1)],
+                  )}
                   style={{ width: `${Math.min(100, (step.value / top) * 100)}%` }}
                 />
               </div>
             </div>
-          ))}
+            );
+          })}
           <p className="pt-1 text-xs text-muted-foreground">
             Overall sent → replied: {formatPct(rate(data.replies, data.sent))}
           </p>
