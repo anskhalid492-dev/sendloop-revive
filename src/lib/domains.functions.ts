@@ -211,7 +211,13 @@ export const getDomainDnsRecords = createServerFn({ method: "GET" })
     // a domain whose identity creation failed stuck forever, because the retry
     // below would never run again. Only provider-issued records count.
     const providerIssued = records.filter((record) => record["kind"] !== "dmarc");
-    const needsProvisioning = providerIssued.length === 0 || !row.provider_domain_id;
+    const needsProvisioning =
+      providerIssued.length === 0 ||
+      !row.provider_domain_id ||
+      // An unverified domain provisioned on infrastructure that is no longer
+      // active must be re-provisioned so the customer sees the active
+      // provider's real records instead of the old provider's.
+      (await domainProviderIsStale(supabaseAdmin, row));
     if (needsProvisioning && !row.disabled_at) {
       const ensured = await ensureProviderDomain(supabaseAdmin, row);
       const fresh = (ensured?.records ?? []) as unknown as Array<Record<string, unknown>>;
