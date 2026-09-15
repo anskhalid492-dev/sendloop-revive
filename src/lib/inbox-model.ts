@@ -5,6 +5,8 @@
  * agree on statuses, folders and how an email thread is identified.
  */
 
+import { decodeHtmlEntities } from "@/lib/email-body";
+
 export const CONVERSATION_STATUSES = [
   { value: "lead", label: "Lead" },
   { value: "interested", label: "Interested" },
@@ -151,7 +153,7 @@ export function stripAngle(id: string | null | undefined): string | null {
 }
 
 export function previewOf(body: string | null | undefined, max = 180): string {
-  return (body ?? "")
+  return decodeHtmlEntities(body ?? "")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim()

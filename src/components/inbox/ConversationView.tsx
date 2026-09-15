@@ -58,6 +58,7 @@ import {
 import { renderEmailForLead, senderExtras } from "@/lib/campaign-model";
 import { listTemplates } from "@/lib/templates.functions";
 import { ProspectPanel } from "@/components/inbox/ProspectPanel";
+import { replyPreview, splitReplyBody } from "@/lib/email-body";
 import { cn } from "@/lib/utils";
 
 function snoozeOptions() {
@@ -105,7 +106,9 @@ function MessageRow({
 }) {
   const [open, setOpen] = useState(defaultExpanded);
   const [showDetails, setShowDetails] = useState(false);
+  const [showQuoted, setShowQuoted] = useState(false);
   const outbound = message.direction !== "inbound";
+  const parts = useMemo(() => splitReplyBody(message.body), [message.body]);
 
   return (
     <article className="border-b border-border/60 py-4 last:border-b-0">
@@ -141,7 +144,7 @@ function MessageRow({
             </span>
           ) : (
             <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {message.body}
+              {replyPreview(message.body)}
             </span>
           )}
         </span>
@@ -185,9 +188,39 @@ function MessageRow({
             </dl>
           ) : null}
 
-          <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
-            {message.body}
-          </div>
+          {parts.reply ? (
+            <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
+              {parts.reply}
+            </div>
+          ) : null}
+
+          {parts.signature ? (
+            <p className="mt-2 max-w-[76ch] text-xs italic text-muted-foreground">
+              {parts.signature}
+            </p>
+          ) : null}
+
+          {parts.quoted ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowQuoted((v) => !v)}
+                className="rounded border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted"
+                aria-expanded={showQuoted}
+              >
+                {showQuoted ? "Hide quoted text" : "Show quoted text"}
+              </button>
+              {showQuoted ? (
+                <div className="mt-2 max-w-[76ch] whitespace-pre-wrap break-words border-l-2 border-border pl-3 text-[13px] leading-6 text-muted-foreground">
+                  {parts.quoted}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!parts.reply && !parts.signature && !parts.quoted ? (
+            <p className="mt-3 text-sm text-muted-foreground">No message content.</p>
+          ) : null}
 
           {message.attachments?.length ? (
             <ul className="mt-3 flex flex-wrap gap-2">
