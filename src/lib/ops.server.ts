@@ -163,7 +163,11 @@ export async function getInboundReadiness(baseUrl: string | null) {
 
   const providerId = await resolvePlatformProviderId();
   const provider = getEmailProvider(providerId);
-  const report = await evaluateDomainReadiness({ provider: providerId, domain });
+  const report = await evaluateDomainReadiness({
+    provider: providerId,
+    domain,
+    credentials: await platformCredentials(providerId),
+  });
   const rootDomain = report.domain;
   const receiving = report.inbound.enabled
     ? ("enabled" as const)
@@ -416,7 +420,11 @@ export async function enableInboundReceiving() {
   const domain = await resolveReplyDomain();
   if (!domain) throw new Error("Configure a reply-to inbox first.");
   const providerId = await resolvePlatformProviderId();
-  const result = await enableDomainInbound({ provider: providerId, domain });
+  const result = await enableDomainInbound({
+    provider: providerId,
+    domain,
+    credentials: await platformCredentials(providerId),
+  });
   if (!result.ok) throw new Error(result.detail);
   return { ok: true };
 }
@@ -520,7 +528,11 @@ export async function checkMxRecords() {
   // come from the provider adapter. Root-domain receiving is the default; a
   // provider that needs a subdomain expresses that in its own record host.
   const providerId = await resolvePlatformProviderId();
-  const report = await evaluateDomainReadiness({ provider: providerId, domain });
+  const report = await evaluateDomainReadiness({
+    provider: providerId,
+    domain,
+    credentials: await platformCredentials(providerId),
+  });
   const rootDomain = report.domain;
   // Only the root-domain receiving MX counts here — a provider's sending /
   // feedback MX (e.g. send.<domain>) must never be mistaken for it.
