@@ -61,18 +61,40 @@ export type ProviderTestResult = {
  */
 export async function testProviderCredentials(
   provider: string,
-  credentials: Record<string, string>,
+  rawCredentials: Record<string, string>,
 ): Promise<ProviderTestResult> {
   const timeout = AbortSignal.timeout(10_000);
+  // Keys pasted from a dashboard routinely carry a trailing newline or spaces,
+  // which every provider rejects as an unknown credential.
+  const credentials = trimCredentials(rawCredentials);
+
+  /** Pulls the provider's own explanation out of its error body. */
+  const explain = (body: string): string => {
+    try {
+      const json = JSON.parse(body) as Record<string, unknown>;
+      const message =
+        json["message"] ?? json["error"] ?? json["detail"] ?? json["Message"];
+      if (typeof message === "string" && message.trim() !== "") return message;
+      if (message && typeof message === "object") return JSON.stringify(message).slice(0, 300);
+    } catch {
+      /* not JSON — fall through to the raw body */
+    }
+    return body.trim() === "" ? "no response body" : body;
+  };
 
   const request = async (url: string, headers: Record<string, string>) => {
     const res = await fetch(url, { headers, signal: timeout });
+    const body = (await res.text()).slice(0, 500);
     if (res.ok) return { ok: true, verified: true, message: "Connection verified." };
-    const body = (await res.text()).slice(0, 300);
+    const detail = explain(body);
+    console.error(
+      `[provider-credentials] ${provider} credential check failed`,
+      JSON.stringify({ provider, url, status: res.status, detail }),
+    );
     return {
       ok: false,
       verified: false,
-      message: `Provider rejected the credentials [${res.status}]: ${body}`,
+      message: `Provider rejected the credentials [${res.status}]: ${detail}`,
     };
   };
 
