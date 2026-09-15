@@ -35,7 +35,8 @@ export type MailerooDnsEntry = {
 export type MailerooDomain = {
   id?: number | string;
   domain_name?: string;
-  status?: string;
+  /** Provider JSON: string on some endpoints, number/object on others. */
+  status?: unknown;
   sandbox?: boolean;
   free?: boolean;
   interaction_tracking?: boolean;
@@ -91,13 +92,34 @@ const RECORD_KINDS: { key: string; kind: ProviderDnsRecord["kind"]; type: Provid
   },
 ];
 
+/**
+ * Provider JSON is untyped at runtime: Maileroo returns `status` as a string on
+ * some endpoints and as a number/object on others, and DNS entries occasionally
+ * carry non-string values. Everything read out of the payload therefore goes
+ * through here — a raw `.toLowerCase()` on a number throws and, before this,
+ * that crash was reported upstream as "provider unavailable" and pushed the
+ * domain onto whatever other infrastructure could be found.
+ */
+export function providerText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value && typeof value === "object") {
+    const nested = value as Record<string, unknown>;
+    for (const key of ["value", "status", "name", "label", "state"]) {
+      const inner = nested[key];
+      if (typeof inner === "string" || typeof inner === "number") return String(inner).trim();
+    }
+  }
+  return "";
+}
+
 export function mapMailerooRecords(domain: string, found: MailerooDomain | null): ProviderDnsRecord[] {
   const dns = found?.dns_records ?? {};
   const out: ProviderDnsRecord[] = [];
   for (const spec of RECORD_KINDS) {
     const entry = dns[spec.key];
-    const value = (entry?.record ?? "").trim();
-    const host = (entry?.host ?? "").trim();
+    const value = providerText(entry?.record);
+    const host = providerText(entry?.host);
     if (!value || !host) continue;
     out.push(
       record({
@@ -118,7 +140,7 @@ export function mapMailerooRecords(domain: string, found: MailerooDomain | null)
 
 export function mapMailerooState(found: MailerooDomain | null): ProviderDomainState["state"] {
   if (!found) return "unknown";
-  const status = (found.status ?? "").toLowerCase();
+  const status = providerText(found.status).toLowerCase();
   if (status.includes("verified") || status.includes("active")) return "verified";
   if (status.includes("fail")) return "failed";
   const dns = found.dns_records ?? {};
@@ -140,7 +162,7 @@ export async function findMailerooDomain(
   const payload = data<MailerooDomain[] | { domains?: MailerooDomain[] }>(list.json);
   const items = Array.isArray(payload) ? payload : (payload?.domains ?? []);
   const match = items.find(
-    (d) => (d.domain_name ?? "").toLowerCase() === domain.toLowerCase(),
+    (d) => providerText(d.domain_name).toLowerCase() === domain.toLowerCase(),
   );
   if (!match?.id) return match ?? null;
   const detail = await providerFetch(`${API}/domains/${match.id}`, {
@@ -160,7 +182,7 @@ export const mailerooDomainAdapter: DomainProviderAdapter = {
         providerDomainId: existing.id ? String(existing.id) : null,
         records: mapMailerooRecords(domain, existing),
         state: mapMailerooState(existing),
-        detail: `Domain already registered with status "${existing.status ?? "unknown"}".`,
+        detail: `Domain already registered with status "${providerText(existing.status) || "unknown"}".`,
       };
     }
     const res = await providerFetch(`${API}/domains`, {
@@ -204,7 +226,7 @@ export const mailerooDomainAdapter: DomainProviderAdapter = {
     if (!found) return { state: "unknown", detail: "Domain is not registered with the provider." };
     return {
       state: mapMailerooState(found),
-      detail: `Provider status "${found.status ?? "unknown"}".`,
+      detail: `Provider status "${providerText(found.status) || "unknown"}".`,
     };
   },
 
