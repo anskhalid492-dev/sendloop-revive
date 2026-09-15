@@ -262,6 +262,8 @@ export function collapseMessageUnits(
       step,
       status,
       accountId: m.sending_account_id ? String(m.sending_account_id) : null,
+      variantId: m.variant_id ? String(m.variant_id) : null,
+      campaignId: m.campaign_id ? String(m.campaign_id) : null,
       deliveryStatus: String(m.delivery_status ?? ""),
       sentAt: null,
       signals: {
