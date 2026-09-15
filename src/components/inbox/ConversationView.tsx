@@ -58,6 +58,7 @@ import {
 import { renderEmailForLead, senderExtras } from "@/lib/campaign-model";
 import { listTemplates } from "@/lib/templates.functions";
 import { ProspectPanel } from "@/components/inbox/ProspectPanel";
+import { replyPreview, splitReplyBody } from "@/lib/email-body";
 import { cn } from "@/lib/utils";
 
 function snoozeOptions() {
@@ -105,7 +106,9 @@ function MessageRow({
 }) {
   const [open, setOpen] = useState(defaultExpanded);
   const [showDetails, setShowDetails] = useState(false);
+  const [showQuoted, setShowQuoted] = useState(false);
   const outbound = message.direction !== "inbound";
+  const parts = useMemo(() => splitReplyBody(message.body), [message.body]);
 
   return (
     <article className="border-b border-border/60 py-4 last:border-b-0">
