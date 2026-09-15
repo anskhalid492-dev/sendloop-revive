@@ -53,6 +53,9 @@ export async function saveInboundOpsSettings(
   return next;
 }
 
+/** Grace period before an event recorded but never processed is retried. */
+export const STALLED_GRACE_MS = 60_000;
+
 /** Backoff delay in minutes for the nth attempt. */
 export function backoffMinutes(settings: InboundOpsSettings, attempt: number) {
   const factor = Math.max(1, settings.backoffFactor);
@@ -215,7 +218,10 @@ export async function runInboundRetrySweep(limit = 25) {
   const { data: rows, error } = await supabaseAdmin
     .from("email_events")
     .select("id, attempts, status, last_retry_at, created_at, failure_code, from_email, subject, workspace_id, conversation_id, lead_id, routing_token")
-    .in("status", ["failed", "retrying"])
+    // `pending` rows are events that were recorded but whose processing never
+    // finished — the runtime cancelled it, so no error was ever written. They
+    // are picked up after a short grace period instead of sitting unfiled.
+    .in("status", ["failed", "retrying", "pending"])
     .order("created_at", { ascending: true })
     .limit(200);
   if (error) throw new Error(error.message);
@@ -234,7 +240,10 @@ export async function runInboundRetrySweep(limit = 25) {
       continue;
     }
     const last = new Date(row.last_retry_at ?? row.created_at).getTime();
-    const wait = backoffMinutes(settings, attempts + 1) * 60_000;
+    // A stalled (never-processed) event is not a failure needing backoff: it is
+    // simply unfinished work, so it is picked up after a one-minute grace.
+    const wait =
+      row.status === "pending" ? STALLED_GRACE_MS : backoffMinutes(settings, attempts + 1) * 60_000;
     if (now - last < wait) {
       skipped += 1;
       continue;
