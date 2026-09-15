@@ -90,21 +90,26 @@ export function ConversionFunnel({
         </p>
       ) : (
         <div className="mt-4 space-y-3">
-          {steps.map((step, index) => (
+          {steps.map((step, index) => {
+            const drilldown =
+              onStepClick && DRILLDOWN_KEYS.has(step.key as FunnelStepKey)
+                ? () => onStepClick(step.key as FunnelStepKey)
+                : undefined;
+            return (
             <div
               key={step.label}
-              role={onStepClick ? "button" : undefined}
-              tabIndex={onStepClick ? 0 : undefined}
-              onClick={onStepClick ? () => onStepClick(step.key) : undefined}
+              role={drilldown ? "button" : undefined}
+              tabIndex={drilldown ? 0 : undefined}
+              onClick={drilldown}
               onKeyDown={
-                onStepClick
+                drilldown
                   ? (e) => {
-                      if (e.key === "Enter" || e.key === " ") onStepClick(step.key);
+                      if (e.key === "Enter" || e.key === " ") drilldown();
                     }
                   : undefined
               }
               className={cn(
-                onStepClick &&
+                drilldown &&
                   "-mx-2 cursor-pointer rounded-lg px-2 py-1 transition-colors hover:bg-muted/60",
               )}
             >
