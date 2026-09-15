@@ -53,7 +53,8 @@ export type WarmupPlacement =
   | "spam"
   | "received_unknown"
   | "not_received"
-  | "not_delivered";
+  | "not_delivered"
+  | "unobservable";
 
 export const PLACEMENT_LABEL: Record<WarmupPlacement, string> = {
   pending: "Awaiting arrival",
@@ -62,6 +63,7 @@ export const PLACEMENT_LABEL: Record<WarmupPlacement, string> = {
   received_unknown: "Received",
   not_received: "Not confirmed",
   not_delivered: "Not delivered",
+  unobservable: "Sent, not measurable",
 };
 
 export type WarmupDayStat = {
