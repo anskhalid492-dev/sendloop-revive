@@ -902,14 +902,19 @@ export const registerInboundWebhook = createServerFn({ method: "POST" })
     await assertAdmin(context, { sensitive: true, action: "change inbound webhook configuration" });
     const secret = process.env["INBOUND_EMAIL_SECRET"];
     if (!secret) throw new Error("INBOUND_EMAIL_SECRET is not configured.");
-    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { resolvePlatformProviderId, platformCredentials } = await import("@/lib/ops.server");
     const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
-    const provider = getEmailProvider(await resolvePlatformProviderId());
+    const providerId = await resolvePlatformProviderId();
+    const provider = getEmailProvider(providerId);
     if (!provider.registerWebhook) {
       throw new Error("This email provider does not support webhook registration.");
     }
     const endpoint = `${data.baseUrl.replace(/\/+$/, "")}/api/public/inbound/email?token=${encodeURIComponent(secret)}`;
-    const result = await provider.registerWebhook({}, endpoint, ["email.received"]);
+    const result = await provider.registerWebhook(
+      await platformCredentials(providerId),
+      endpoint,
+      ["email.received"],
+    );
     if (!result.ok) throw new Error(result.detail);
     return { id: result.id ?? "" };
   });
