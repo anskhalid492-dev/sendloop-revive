@@ -91,13 +91,34 @@ const RECORD_KINDS: { key: string; kind: ProviderDnsRecord["kind"]; type: Provid
   },
 ];
 
+/**
+ * Provider JSON is untyped at runtime: Maileroo returns `status` as a string on
+ * some endpoints and as a number/object on others, and DNS entries occasionally
+ * carry non-string values. Everything read out of the payload therefore goes
+ * through here — a raw `.toLowerCase()` on a number throws and, before this,
+ * that crash was reported upstream as "provider unavailable" and pushed the
+ * domain onto whatever other infrastructure could be found.
+ */
+export function providerText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value && typeof value === "object") {
+    const nested = value as Record<string, unknown>;
+    for (const key of ["value", "status", "name", "label", "state"]) {
+      const inner = nested[key];
+      if (typeof inner === "string" || typeof inner === "number") return String(inner).trim();
+    }
+  }
+  return "";
+}
+
 export function mapMailerooRecords(domain: string, found: MailerooDomain | null): ProviderDnsRecord[] {
   const dns = found?.dns_records ?? {};
   const out: ProviderDnsRecord[] = [];
   for (const spec of RECORD_KINDS) {
     const entry = dns[spec.key];
-    const value = (entry?.record ?? "").trim();
-    const host = (entry?.host ?? "").trim();
+    const value = providerText(entry?.record);
+    const host = providerText(entry?.host);
     if (!value || !host) continue;
     out.push(
       record({
