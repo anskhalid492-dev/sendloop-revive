@@ -125,6 +125,7 @@ async function senderContext(admin: unknown) {
     mailerooDomainStates: mailerooStates,
     mailerooVerifiedDomains: mailerooVerified,
     activeProvider: settings.system_provider ?? "auto",
+    unavailableReason,
     region,
   };
 }
