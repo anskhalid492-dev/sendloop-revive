@@ -57,6 +57,17 @@ export async function resolvePlatformProviderId(): Promise<string> {
   return data?.provider ?? "resend";
 }
 
+/**
+ * The stored infrastructure credential for a platform provider, resolved with
+ * the same decryption the domain-provisioning path uses. Provider reads without
+ * it come back 401 and get misreported as "domain not registered".
+ */
+async function platformCredentials(providerId: string): Promise<Record<string, string>> {
+  const { credentialsForProviderRef } = await import("@/lib/provider-pool.server");
+  const resolved = await credentialsForProviderRef(supabaseAdmin, { provider: providerId });
+  return resolved?.credentials ?? {};
+}
+
 function domainOf(address: string | null | undefined): string | null {
   return address?.includes("@") ? address.split("@")[1]!.trim().toLowerCase() : null;
 }
