@@ -924,13 +924,14 @@ export const deleteInboundWebhook = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().trim().min(3).max(100) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context, { sensitive: true, action: "delete inbound webhook" });
-    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { resolvePlatformProviderId, platformCredentials } = await import("@/lib/ops.server");
     const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
-    const provider = getEmailProvider(await resolvePlatformProviderId());
+    const providerId = await resolvePlatformProviderId();
+    const provider = getEmailProvider(providerId);
     if (!provider.deleteWebhook) {
       throw new Error("This email provider does not support webhook management.");
     }
-    const result = await provider.deleteWebhook({}, data.id);
+    const result = await provider.deleteWebhook(await platformCredentials(providerId), data.id);
     if (!result.ok) throw new Error(result.detail);
     return { ok: true };
   });
