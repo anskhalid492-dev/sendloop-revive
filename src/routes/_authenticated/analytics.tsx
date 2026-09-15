@@ -40,6 +40,7 @@ import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import {
   getAnalyticsByAccount,
   getAnalyticsByCampaign,
+  getAnalyticsAudience,
   getAnalyticsFilterOptions,
   getAnalyticsOverview,
   getAnalyticsTimeseries,
@@ -159,6 +160,14 @@ function AnalyticsPage() {
   const fetchCampaigns = useServerFn(getAnalyticsByCampaign);
   const fetchAccounts = useServerFn(getAnalyticsByAccount);
   const fetchFilterOptions = useServerFn(getAnalyticsFilterOptions);
+  const fetchAudience = useServerFn(getAnalyticsAudience);
+
+  const audience = useQuery({
+    queryKey: [...analyticsKeys.root, "audience", workspaceId, campaignId] as const,
+    queryFn: () => fetchAudience({ data: { workspaceId: workspaceId ?? "", campaignId } }),
+    enabled,
+    staleTime: 60_000,
+  });
 
   const filterOptions = useQuery({
     queryKey: analyticsKeys.filterOptions(workspaceId),
