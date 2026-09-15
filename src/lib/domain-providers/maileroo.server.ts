@@ -139,23 +139,25 @@ export function mapMailerooRecords(domain: string, found: MailerooDomain | null)
   const dns = found?.dns_records ?? {};
   const out: ProviderDnsRecord[] = [];
   for (const spec of RECORD_KINDS) {
-    const entry = dns[spec.key];
-    const value = providerText(entry?.record);
-    const host = providerText(entry?.host);
-    if (!value || !host) continue;
-    out.push(
-      record({
-        domain,
-        kind: spec.kind,
-        type: spec.type,
-        host: spec.kind === "mx" ? "@" : relativeHost(host, domain),
-        value,
-        ttl: 3600,
-        ...(typeof entry?.priority === "number" ? { priority: entry.priority } : {}),
-        required: spec.kind !== "mx" && spec.kind !== "tracking",
-        purpose: spec.purpose,
-      }),
-    );
+    // MX arrives as a list of hosts; every other key as a single entry.
+    for (const entry of mailerooEntryList(dns[spec.key])) {
+      const value = providerText(entry.record);
+      const host = providerText(entry.host);
+      if (!value || !host) continue;
+      out.push(
+        record({
+          domain,
+          kind: spec.kind,
+          type: spec.type,
+          host: spec.kind === "mx" ? "@" : relativeHost(host, domain),
+          value,
+          ttl: 3600,
+          ...(typeof entry.priority === "number" ? { priority: entry.priority } : {}),
+          required: spec.kind !== "mx" && spec.kind !== "tracking",
+          purpose: spec.purpose,
+        }),
+      );
+    }
   }
   return out;
 }
