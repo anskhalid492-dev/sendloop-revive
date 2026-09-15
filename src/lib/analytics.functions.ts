@@ -801,3 +801,39 @@ export const getAnalyticsActivity = createServerFn({ method: "POST" })
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
       .slice(0, data.limit);
   });
+
+/* ------------------------------------------------------------------------ */
+/* Funnel audience                                                           */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * Top of the conversion funnel: the eligible audience for the selected
+ * campaign, or the workspace lead count when no campaign is selected. Both
+ * reads are cheap counts, never a full row scan.
+ */
+export const getAnalyticsAudience = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        campaignId: z.string().uuid().nullish(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<number | null> => {
+    const client = context.supabase as Client;
+    if (data.campaignId) {
+      const { data: count, error } = await client.rpc("campaign_eligible_lead_count", {
+        _campaign_id: data.campaignId,
+      });
+      if (error) return null;
+      return typeof count === "number" ? count : null;
+    }
+    const { count, error } = await client
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", data.workspaceId);
+    if (error) return null;
+    return count ?? null;
+  });
