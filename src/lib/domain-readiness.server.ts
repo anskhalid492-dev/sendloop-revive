@@ -72,11 +72,17 @@ function dedupeMx<T extends { host: string; priority: number | null }>(records: 
   });
 }
 
-async function safe<T>(run: () => Promise<T>, fallback: T): Promise<T> {
+/**
+ * Runs a provider read and reports HOW it ended. A thrown lookup error is a
+ * failure to check, never evidence about the customer's domain.
+ */
+async function attempt<T>(
+  run: () => Promise<T>,
+): Promise<{ ok: true; value: T } | { ok: false; detail: string }> {
   try {
-    return await run();
-  } catch {
-    return fallback;
+    return { ok: true, value: await run() };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : "Unknown failure" };
   }
 }
 
@@ -95,26 +101,58 @@ export async function evaluateDomainReadiness(options: {
   const creds = options.credentials ?? {};
   const mode = provider.inboundSetupMode;
 
-  const status: UnifiedDomainStatus = provider.getDomainStatus
-    ? await safe(() => provider.getDomainStatus!(creds, domain), {
+  let checkFailed = false;
+  let checkDetail = "";
+
+  let status: UnifiedDomainStatus = {
+    state: "unknown",
+    detail: "This provider has no domain API.",
+    readyToSend: false,
+  };
+  if (provider.getDomainStatus) {
+    const read = await attempt(() => provider.getDomainStatus!(creds, domain));
+    if (read.ok) {
+      status = read.value;
+    } else {
+      checkFailed = true;
+      checkDetail = read.detail;
+      status = {
         state: "unknown",
-        detail: "The provider did not return a domain status.",
+        detail: `The domain status could not be checked just now: ${read.detail}`,
         readyToSend: false,
-      })
-    : { state: "unknown", detail: "This provider has no domain API.", readyToSend: false };
+      };
+    }
+  }
 
-  const inbound: UnifiedInboundStatus =
-    provider.getInboundStatus && mode !== "unsupported"
-      ? await safe(() => provider.getInboundStatus!(creds, domain), {
-          enabled: false,
-          records: [],
-          detail: "The provider did not return a receiving status.",
-        })
-      : { enabled: false, records: [], detail: "This provider does not offer inbound receiving." };
+  let inbound: UnifiedInboundStatus = {
+    enabled: false,
+    records: [],
+    detail: "This provider does not offer inbound receiving.",
+  };
+  if (provider.getInboundStatus && mode !== "unsupported") {
+    const read = await attempt(() => provider.getInboundStatus!(creds, domain));
+    if (read.ok) {
+      inbound = read.value;
+    } else {
+      checkFailed = true;
+      checkDetail = checkDetail || read.detail;
+      inbound = {
+        enabled: false,
+        records: [],
+        detail: `The receiving status could not be checked just now: ${read.detail}`,
+      };
+    }
+  }
 
-  const dnsRecords: ProviderDnsRecord[] = provider.getDnsRequirements
-    ? await safe(() => provider.getDnsRequirements!(creds, domain), [])
-    : [];
+  let dnsRecords: ProviderDnsRecord[] = [];
+  if (provider.getDnsRequirements) {
+    const read = await attempt(() => provider.getDnsRequirements!(creds, domain));
+    if (read.ok) dnsRecords = read.value;
+    else {
+      checkFailed = true;
+      checkDetail = checkDetail || read.detail;
+    }
+  }
 
   // Provider-derived MX requirement only: sending records and inbound records
   // both come from the provider, never from environment variables.
@@ -145,7 +183,13 @@ export async function evaluateDomainReadiness(options: {
     inboundSetupMode: mode,
     inboundEnabled: inbound.enabled,
     mx,
+    checkFailed,
   });
+  if (checkFailed) {
+    console.error(
+      `[domain-readiness] status check failed for ${domain} on ${provider.id}: ${checkDetail}`,
+    );
+  }
 
   return {
     domain,
@@ -168,7 +212,9 @@ export async function evaluateDomainReadiness(options: {
     records: dedupeDnsRequirements([...dnsRecords, ...inbound.records]),
     mx,
     requiresCustomerAction: mode === "customer_action" && !inbound.enabled,
-    canAutoEnableInbound: mode === "api" && !inbound.enabled,
+    // Never invite the customer to switch receiving on off the back of a check
+    // we could not complete.
+    canAutoEnableInbound: mode === "api" && !inbound.enabled && !checkFailed,
     checkedAt: new Date().toISOString(),
   };
 }
@@ -202,6 +248,19 @@ export async function enableDomainInbound(options: {
         "Your email provider requires receiving to be enabled before MunchReach can receive replies.",
     };
   }
-  const status = await provider.enableInbound(options.credentials ?? {}, options.domain);
+  const attempted = await attempt(() =>
+    provider.enableInbound!(options.credentials ?? {}, options.domain),
+  );
+  if (!attempted.ok) {
+    console.error(
+      `[domain-readiness] enable receiving failed for ${options.domain} on ${provider.id}: ${attempted.detail}`,
+    );
+    return {
+      ok: false,
+      enabled: false,
+      detail: `We could not switch receiving on just now. Please try again in a moment. (${attempted.detail})`,
+    };
+  }
+  const status = attempted.value;
   return { ok: status.enabled, enabled: status.enabled, detail: status.detail };
 }

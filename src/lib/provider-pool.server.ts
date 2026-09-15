@@ -148,6 +148,44 @@ export async function credentialsFor(
   return envKey ? { credentials: { api_key: envKey }, source: "platform_env" } : null;
 }
 
+/**
+ * The single credential resolution used by every read-only provider check
+ * (domain status, receiving status, readiness). It reuses `credentialsFor`, the
+ * same decryption the domain-provisioning path uses, so no caller ever talks to
+ * a provider API with an empty credential.
+ */
+export async function credentialsForProviderRef(
+  admin: Admin,
+  ref: { provider?: string | null; providerId?: string | null },
+): Promise<{ provider: string; providerId: string; credentials: ProviderCredentials } | null> {
+  let row: { id: string; provider: string } | null = null;
+
+  if (ref.providerId) {
+    const { data } = await admin
+      .from("email_providers")
+      .select("id, provider")
+      .eq("id", ref.providerId)
+      .maybeSingle();
+    row = (data as { id: string; provider: string } | null) ?? null;
+  }
+  if (!row && ref.provider) {
+    const { data } = await admin
+      .from("email_providers")
+      .select("id, provider, is_enabled, priority")
+      .eq("provider", ref.provider)
+      .order("is_enabled", { ascending: false })
+      .order("priority", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    row = (data as { id: string; provider: string } | null) ?? null;
+  }
+  if (!row) return null;
+
+  const resolved = await credentialsFor(admin, row);
+  if (!resolved) return null;
+  return { provider: row.provider, providerId: row.id, credentials: resolved.credentials };
+}
+
 export async function logRoutingEvent(
   admin: Admin,
   input: {

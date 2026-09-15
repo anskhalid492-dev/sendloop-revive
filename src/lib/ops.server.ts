@@ -57,6 +57,17 @@ export async function resolvePlatformProviderId(): Promise<string> {
   return data?.provider ?? "resend";
 }
 
+/**
+ * The stored infrastructure credential for a platform provider, resolved with
+ * the same decryption the domain-provisioning path uses. Provider reads without
+ * it come back 401 and get misreported as "domain not registered".
+ */
+async function platformCredentials(providerId: string): Promise<Record<string, string>> {
+  const { credentialsForProviderRef } = await import("@/lib/provider-pool.server");
+  const resolved = await credentialsForProviderRef(supabaseAdmin, { provider: providerId });
+  return resolved?.credentials ?? {};
+}
+
 function domainOf(address: string | null | undefined): string | null {
   return address?.includes("@") ? address.split("@")[1]!.trim().toLowerCase() : null;
 }
@@ -152,7 +163,11 @@ export async function getInboundReadiness(baseUrl: string | null) {
 
   const providerId = await resolvePlatformProviderId();
   const provider = getEmailProvider(providerId);
-  const report = await evaluateDomainReadiness({ provider: providerId, domain });
+  const report = await evaluateDomainReadiness({
+    provider: providerId,
+    domain,
+    credentials: await platformCredentials(providerId),
+  });
   const rootDomain = report.domain;
   const receiving = report.inbound.enabled
     ? ("enabled" as const)
@@ -405,7 +420,11 @@ export async function enableInboundReceiving() {
   const domain = await resolveReplyDomain();
   if (!domain) throw new Error("Configure a reply-to inbox first.");
   const providerId = await resolvePlatformProviderId();
-  const result = await enableDomainInbound({ provider: providerId, domain });
+  const result = await enableDomainInbound({
+    provider: providerId,
+    domain,
+    credentials: await platformCredentials(providerId),
+  });
   if (!result.ok) throw new Error(result.detail);
   return { ok: true };
 }
@@ -509,7 +528,11 @@ export async function checkMxRecords() {
   // come from the provider adapter. Root-domain receiving is the default; a
   // provider that needs a subdomain expresses that in its own record host.
   const providerId = await resolvePlatformProviderId();
-  const report = await evaluateDomainReadiness({ provider: providerId, domain });
+  const report = await evaluateDomainReadiness({
+    provider: providerId,
+    domain,
+    credentials: await platformCredentials(providerId),
+  });
   const rootDomain = report.domain;
   // Only the root-domain receiving MX counts here — a provider's sending /
   // feedback MX (e.g. send.<domain>) must never be mistaken for it.
