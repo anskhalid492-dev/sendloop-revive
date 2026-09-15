@@ -338,18 +338,9 @@ export const getAnalyticsByAccount = createServerFn({ method: "POST" })
   .inputValidator((input) => rangeInput.parse(input))
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    const from = new Date(data.from);
-    const to = new Date(data.to);
-    const [{ fetchCampaignStats }, { collapseMessageUnits, computeAccountTotals }] =
-      await Promise.all([
-        import("@/lib/campaign-stats.server"),
-        import("@/lib/campaign-stats"),
-      ]);
-    const bundle = await fetchCampaignStats(client, { workspaceId: data.workspaceId, from, to });
-    const totals = computeAccountTotals(
-      collapseMessageUnits(bundle.messages, bundle.signals).values(),
-      { from, to },
-    );
+    const { computeAccountTotals } = await import("@/lib/campaign-stats");
+    const { units, from, to } = await loadUnits(client, data);
+    const totals = computeAccountTotals(units, { from, to });
 
     const emails = new Map<string, string>();
     if (totals.length) {
