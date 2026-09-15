@@ -215,7 +215,10 @@ export async function runInboundRetrySweep(limit = 25) {
   const { data: rows, error } = await supabaseAdmin
     .from("email_events")
     .select("id, attempts, status, last_retry_at, created_at, failure_code, from_email, subject, workspace_id, conversation_id, lead_id, routing_token")
-    .in("status", ["failed", "retrying"])
+    // `pending` rows are events that were recorded but whose processing never
+    // finished — the runtime cancelled it, so no error was ever written. They
+    // are picked up after a short grace period instead of sitting unfiled.
+    .in("status", ["failed", "retrying", "pending"])
     .order("created_at", { ascending: true })
     .limit(200);
   if (error) throw new Error(error.message);
