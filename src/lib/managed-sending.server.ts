@@ -120,42 +120,45 @@ export function platformKeyFor(provider: string): string | null {
 /**
  * Server-side provider selection at send time.
  *
- * Customers never choose a provider. The MunchReach Provider Manager routes the
- * send deterministically across the global pool (enabled, healthy, credentialed,
- * within capacity, by priority), and only falls back to the mailbox's recorded
- * provider when the pool yields nothing at all.
+ * Customers never choose a provider, and the provider value recorded on the
+ * mailbox row is a historical fact only. Resolution is fully dynamic: the
+ * sender domain's provider is kept ONLY while that provider is still active,
+ * otherwise the send follows whichever infrastructure is currently active. When
+ * nothing valid is active the send is refused with a logged reason — never a
+ * silent fallback to a stored (possibly dead) provider key.
  */
 export async function resolveManagedProvider(
   admin: Admin,
-  account: { provider: string; provider_id: string | null; from_email?: string },
+  account: { provider: string; provider_id: string | null; from_email?: string; id?: string },
   options: { scope?: EmailScope } = {},
 ): Promise<ManagedCredentials | null> {
-  const { selectProvider } = await import("@/lib/provider-pool.server");
-
-  const key = (account.from_email ?? "").split("@")[1] ?? account.provider_id ?? "munchreach";
+  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
   const scope: EmailScope = options.scope ?? "customer";
-  const selected = await selectProvider(admin, {
-    key,
-    currentProviderId: account.provider_id,
-    requireDomainApi: false,
-    scope,
-    // The sender's domain is provisioned on this provider; routing it anywhere
-    // else makes the other provider reject it as an unverified domain.
-    preferredProvider: account.provider || null,
-  });
 
-  if (selected) {
-    return {
-      provider: selected.provider,
-      providerId: selected.providerId,
-      credentials: selected.credentials,
-      source: selected.providerId ? "provider_secret" : "platform_env",
-    };
+  const resolved = await resolveMailboxSendingProvider(
+    admin,
+    {
+      id: account.id ?? account.provider_id ?? account.from_email ?? "managed",
+      from_email: account.from_email ?? "",
+      provider: account.provider ?? null,
+      provider_id: account.provider_id ?? null,
+    },
+    { scope },
+  );
+
+  if (!resolved) {
+    console.warn(
+      `[managed-send] refused: no active sending infrastructure for scope "${scope}" (sender ${account.from_email ?? "unknown"}; recorded provider "${account.provider || "none"}" is not a credential source).`,
+    );
+    return null;
   }
 
-  const { isProviderAllowedForScope } = await import("@/lib/provider-pool.server");
-  if (!(await isProviderAllowedForScope(admin, account.provider, scope))) return null;
-  return loadManagedProviderCredentials(admin, account);
+  return {
+    provider: resolved.provider,
+    providerId: resolved.providerId,
+    credentials: resolved.credentials,
+    source: resolved.source,
+  };
 }
 
 

@@ -139,12 +139,22 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
     if (!account) throw new Error("Mailbox not found");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-    const credentials = await loadAccountCredentials(supabaseAdmin, {
+    // The test must reflect the infrastructure that would actually carry a send
+    // right now — never the provider recorded on the mailbox row.
+    const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
+    const resolved = await resolveMailboxSendingProvider(supabaseAdmin, {
       id: account.id as string,
-      provider_id: (account.provider_id as string | null) ?? null,
+      from_email: account.from_email as string,
       provider: (account.provider as string | null) ?? null,
+      provider_id: (account.provider_id as string | null) ?? null,
     });
+    if (!resolved) {
+      console.warn(
+        `[mailbox-test] refused: no active sending infrastructure for ${account.from_email} (recorded provider "${account.provider ?? "none"}").`,
+      );
+    }
+    const credentials = resolved?.credentials ?? null;
+    const activeProvider = resolved?.provider ?? (account.provider as string);
     if (!credentials) {
       await client
         .from("sending_accounts")
@@ -176,16 +186,13 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       customerSafeMessage,
     } = await import("@/lib/managed-sending.server");
     const startedAt = Date.now();
-    const test = await testProviderCredentials(
-      account.provider as string,
-      credentials,
-    );
+    const test = await testProviderCredentials(activeProvider, credentials);
 
     // A mailbox is only active once its sender domain is verified with the
     // managed provider — never on provider credentials alone.
     const domain = senderDomain(account.from_email as string);
     const verification = test.ok
-      ? await checkSenderDomainVerification(account.provider as string, credentials, domain, {
+      ? await checkSenderDomainVerification(activeProvider, credentials, domain, {
           fresh: true,
         })
       : { status: "unknown" as const, detail: "Provider credentials check failed." };
@@ -201,7 +208,7 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
       mailboxId: account.id as string,
       senderAddress: account.from_email as string,
       senderDomain: domain,
-      provider: account.provider as string,
+      provider: activeProvider,
       credentialSource: "managed",
       verificationStatus: verification.status,
       verificationDetail: verification.detail,
@@ -337,7 +344,7 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
+    const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
     const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
 
@@ -345,15 +352,23 @@ export const bulkTestMailboxes = createServerFn({ method: "POST" })
     // Sequential on purpose: providers rate-limit credential checks.
     for (const account of (accounts ?? []) as Array<Record<string, unknown>>) {
       const id = account["id"] as string;
-      const method = account["provider"] as string;
       const startedAt = Date.now();
-      const credentials = await loadAccountCredentials(supabaseAdmin, {
+      // Dynamic resolution: a mailbox must never report healthy against the
+      // provider recorded on its row when that infrastructure is switched off.
+      const resolved = await resolveMailboxSendingProvider(supabaseAdmin, {
         id,
+        from_email: account["from_email"] as string,
+        provider: (account["provider"] as string | null) ?? null,
         provider_id: (account["provider_id"] as string | null) ?? null,
-        provider: method,
       });
-      const test = credentials
-        ? await testProviderCredentials(method, credentials)
+      const method = resolved?.provider ?? (account["provider"] as string);
+      if (!resolved) {
+        console.warn(
+          `[mailbox-test] refused: no active sending infrastructure for ${account["from_email"]} (recorded provider "${account["provider"] ?? "none"}").`,
+        );
+      }
+      const test = resolved
+        ? await testProviderCredentials(method, resolved.credentials)
         : { ok: false, verified: false, message: "Sending infrastructure is not configured yet. Please contact support." };
 
       await client
