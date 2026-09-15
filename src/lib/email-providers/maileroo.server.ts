@@ -47,6 +47,14 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+function safeJson(body: string): unknown {
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
 function str(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value : null;
 }
@@ -200,17 +208,33 @@ export const mailerooEmailProvider: EmailProvider = {
       headers: mailerooHeaders(creds),
       signal: AbortSignal.timeout(15_000),
     });
-    const payload = res.ok ? asRecord((await res.json().catch(() => null)) as unknown) : {};
+    const body = await res.text().catch(() => "");
+    const payload = res.ok ? asRecord(safeJson(body)) : {};
     const list = payload["data"];
     const routes = Array.isArray(list) ? list : (asRecord(list)["routes"] as unknown[] | undefined) ?? [];
-    const { mapMailerooRecords } = await import("@/lib/domain-providers/maileroo.server");
+    const { mapMailerooRecords, mailerooEntriesCreated } = await import(
+      "@/lib/domain-providers/maileroo.server"
+    );
+    const mxLive = mailerooEntriesCreated(found.dns_records?.["mx_record"]);
+    const records = mapMailerooRecords(domain, found).filter((r) => r.kind === "mx");
+    if (!res.ok) {
+      // A credential without the inbound scope must be reported as such, not
+      // silently reported as "no routes configured".
+      return {
+        enabled: false,
+        setupMode: "api",
+        records,
+        detail:
+          res.status === 401 || res.status === 403
+            ? `The infrastructure credential is not authorised to manage inbound routes [${res.status}]: ${body.slice(0, 200)}`
+            : `Could not read inbound routes [${res.status}]: ${body.slice(0, 200)}`,
+      };
+    }
     return {
-      enabled: routes.length > 0 && found.dns_records?.["mx_record"]?.created === true,
+      enabled: routes.length > 0 && mxLive,
       setupMode: "api",
-      records: mapMailerooRecords(domain, found).filter((r) => r.kind === "mx"),
-      detail: `${routes.length} inbound route(s) configured; MX ${
-        found.dns_records?.["mx_record"]?.created === true ? "verified" : "pending"
-      }.`,
+      records,
+      detail: `${routes.length} inbound route(s) configured; MX ${mxLive ? "verified" : "pending"}.`,
     };
   },
 
@@ -227,7 +251,14 @@ export const mailerooEmailProvider: EmailProvider = {
         forward_list: ["https://munchreach.com/api/public/inbound/email"],
       }),
     });
-    if (!res.ok) throw new Error(`The provider rejected the inbound route [${res.status}].`);
+    if (!res.ok) {
+      const body = (await res.text().catch(() => "")).slice(0, 300);
+      throw new Error(
+        res.status === 401 || res.status === 403
+          ? `The infrastructure credential is not authorised to manage inbound routes [${res.status}]: ${body}`
+          : `The provider rejected the inbound route [${res.status}]: ${body}`,
+      );
+    }
     return this.getInboundStatus!(creds, domain);
   },
 

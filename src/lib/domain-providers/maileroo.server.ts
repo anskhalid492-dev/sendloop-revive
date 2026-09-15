@@ -42,8 +42,30 @@ export type MailerooDomain = {
   interaction_tracking?: boolean;
   custom_hostname_tracking?: boolean;
   return_path?: string;
-  dns_records?: Record<string, MailerooDnsEntry | null>;
+  /**
+   * Provider JSON: single object for SPF/DKIM/DMARC/tracking, but an ARRAY for
+   * `mx_record` (Maileroo publishes two inbound hosts, mx1 + mx2).
+   */
+  dns_records?: Record<string, MailerooDnsEntry | MailerooDnsEntry[] | null>;
 };
+
+/** Normalises a `dns_records` value, which may be one entry or a list. */
+export function mailerooEntryList(
+  value: MailerooDnsEntry | MailerooDnsEntry[] | null | undefined,
+): MailerooDnsEntry[] {
+  if (!value) return [];
+  return (Array.isArray(value) ? value : [value]).filter(
+    (entry): entry is MailerooDnsEntry => Boolean(entry) && typeof entry === "object",
+  );
+}
+
+/** True when every published entry for this record key is live in DNS. */
+export function mailerooEntriesCreated(
+  value: MailerooDnsEntry | MailerooDnsEntry[] | null | undefined,
+): boolean {
+  const entries = mailerooEntryList(value);
+  return entries.length > 0 && entries.every((entry) => entry.created === true);
+}
 
 export function mailerooHeaders(creds: ProviderCredentials) {
   return {
@@ -117,23 +139,25 @@ export function mapMailerooRecords(domain: string, found: MailerooDomain | null)
   const dns = found?.dns_records ?? {};
   const out: ProviderDnsRecord[] = [];
   for (const spec of RECORD_KINDS) {
-    const entry = dns[spec.key];
-    const value = providerText(entry?.record);
-    const host = providerText(entry?.host);
-    if (!value || !host) continue;
-    out.push(
-      record({
-        domain,
-        kind: spec.kind,
-        type: spec.type,
-        host: spec.kind === "mx" ? "@" : relativeHost(host, domain),
-        value,
-        ttl: 3600,
-        ...(typeof entry?.priority === "number" ? { priority: entry.priority } : {}),
-        required: spec.kind !== "mx" && spec.kind !== "tracking",
-        purpose: spec.purpose,
-      }),
-    );
+    // MX arrives as a list of hosts; every other key as a single entry.
+    for (const entry of mailerooEntryList(dns[spec.key])) {
+      const value = providerText(entry.record);
+      const host = providerText(entry.host);
+      if (!value || !host) continue;
+      out.push(
+        record({
+          domain,
+          kind: spec.kind,
+          type: spec.type,
+          host: spec.kind === "mx" ? "@" : relativeHost(host, domain),
+          value,
+          ttl: 3600,
+          ...(typeof entry.priority === "number" ? { priority: entry.priority } : {}),
+          required: spec.kind !== "mx" && spec.kind !== "tracking",
+          purpose: spec.purpose,
+        }),
+      );
+    }
   }
   return out;
 }
@@ -144,8 +168,8 @@ export function mapMailerooState(found: MailerooDomain | null): ProviderDomainSt
   if (status.includes("verified") || status.includes("active")) return "verified";
   if (status.includes("fail")) return "failed";
   const dns = found.dns_records ?? {};
-  const spf = dns["spf_record"]?.created === true;
-  const dkim = dns["dkim_record"]?.created === true;
+  const spf = mailerooEntriesCreated(dns["spf_record"]);
+  const dkim = mailerooEntriesCreated(dns["dkim_record"]);
   if (spf && dkim) return "verified";
   return "pending";
 }
