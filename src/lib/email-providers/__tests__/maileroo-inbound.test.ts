@@ -80,3 +80,19 @@ describe("maileroo inbound translator", () => {
     expect(mailerooInboundEvent({ envelope_sender: "a@b.c", recipients: [], body: {} })).toBeNull();
   });
 });
+
+describe("maileroo inbound wiring", () => {
+  it("claims an inbound payload at the shared endpoint", async () => {
+    const { mailerooEmailProvider } = await import("../maileroo.server");
+    const claim = mailerooEmailProvider.identifyWebhookRequest!({
+      headers: {},
+      rawBody: JSON.stringify(payload),
+      payload,
+    } as never);
+    expect(claim.matched).toBe(true);
+    expect(mailerooEmailProvider.normalizeWebhookPayload!(payload as never)!["type"]).toBe(
+      "email.received",
+    );
+    expect(mailerooEmailProvider.parseInboundEvent!(payload)!.subject).toBe("Re: Quick question");
+  });
+});
