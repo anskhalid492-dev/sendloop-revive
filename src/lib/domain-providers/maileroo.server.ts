@@ -168,8 +168,8 @@ export function mapMailerooState(found: MailerooDomain | null): ProviderDomainSt
   if (status.includes("verified") || status.includes("active")) return "verified";
   if (status.includes("fail")) return "failed";
   const dns = found.dns_records ?? {};
-  const spf = dns["spf_record"]?.created === true;
-  const dkim = dns["dkim_record"]?.created === true;
+  const spf = mailerooEntriesCreated(dns["spf_record"]);
+  const dkim = mailerooEntriesCreated(dns["dkim_record"]);
   if (spf && dkim) return "verified";
   return "pending";
 }
