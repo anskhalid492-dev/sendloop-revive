@@ -649,13 +649,40 @@ function SystemEmailsPage() {
                 MunchReach system sender addresses and their provider verification state. Credentials and keys are
                 never shown here. When Amazon SES is enabled, only verified identities can be selected on a template.
               </CardDescription>
-              {provider ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Active provider:</span>
-                  <Badge variant={provider.available ? "default" : "secondary"}>{provider.label}</Badge>
-                  <span className="text-xs text-muted-foreground">{provider.detail}</span>
-                </div>
-              ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Active provider:</span>
+                <Select
+                  value={activeProvider}
+                  onValueChange={(value) =>
+                    activeProviderMutation.mutate(value as "auto" | "resend" | "ses" | "maileroo")
+                  }
+                  disabled={activeProviderMutation.isPending}
+                >
+                  <SelectTrigger className="h-8 w-[200px]">
+                    <SelectValue placeholder="Automatic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeProviderOptions.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        disabled={!option.available}
+                      >
+                        {option.label}
+                        {option.available ? "" : " (not connected)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {provider ? (
+                  <>
+                    <Badge variant={provider.available ? "default" : "secondary"}>
+                      {provider.label}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{provider.detail}</span>
+                  </>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
