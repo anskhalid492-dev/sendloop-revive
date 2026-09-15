@@ -211,7 +211,13 @@ export const mailerooEmailProvider: EmailProvider = {
     const body = await res.text().catch(() => "");
     const payload = res.ok ? asRecord(safeJson(body)) : {};
     const list = payload["data"];
-    const routes = Array.isArray(list) ? list : (asRecord(list)["routes"] as unknown[] | undefined) ?? [];
+    // Maileroo returns { data: { items: [...] } }; older/other shapes used
+    // a bare array or { routes: [...] }.
+    const routes = Array.isArray(list)
+      ? list
+      : ((asRecord(list)["items"] as unknown[] | undefined) ??
+        (asRecord(list)["routes"] as unknown[] | undefined) ??
+        []);
     const { mapMailerooRecords, mailerooEntriesCreated } = await import(
       "@/lib/domain-providers/maileroo.server"
     );
@@ -241,6 +247,9 @@ export const mailerooEmailProvider: EmailProvider = {
   async enableInbound(creds, domain) {
     const found = await findMailerooDomain(creds, domain);
     if (!found?.id) throw new Error("This domain is not set up on the sending infrastructure.");
+    // Idempotent: a catch-all route pointing at our endpoint already exists.
+    const existing = await this.getInboundStatus!(creds, domain);
+    if (/^[1-9]\d* inbound route/.test(existing.detail ?? "")) return existing;
     const res = await fetch(`${MAILEROO_ACCOUNT_API}/domains/${found.id}/inbound-routes`, {
       method: "POST",
       headers: mailerooHeaders(creds),
@@ -248,6 +257,8 @@ export const mailerooEmailProvider: EmailProvider = {
       body: JSON.stringify({
         description: "MunchReach replies",
         expression_type: "catch_all",
+        // Maileroo requires an explicit route priority.
+        priority: 10,
         forward_list: ["https://munchreach.com/api/public/inbound/email"],
       }),
     });
