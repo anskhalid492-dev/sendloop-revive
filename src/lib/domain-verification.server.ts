@@ -71,6 +71,7 @@ export async function resolveDomainProvider(
     currentProviderId: pinned?.providerId ?? null,
     requireDomainApi: true,
     exclude: pinned?.exclude ?? [],
+    preferredProvider: pinned?.preferredProvider ?? null,
   });
   if (!selected) return null;
   return {
