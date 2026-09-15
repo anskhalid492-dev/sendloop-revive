@@ -178,11 +178,25 @@ export async function testProviderCredentials(
           "X-ElasticEmail-ApiKey": credentials["api_key"] ?? "",
           Accept: "application/json",
         });
-      case "maileroo":
-        return await request("https://api.maileroo.com/v1/account", {
-          Authorization: `Bearer ${credentials["api_key"]}`,
+      case "maileroo": {
+        // Account/domain management lives on api.maileroo.com/v1 (Bearer
+        // account key). The sending host smtp.maileroo.com/api/v2 takes a
+        // different, per-domain key and must never be probed here. There is no
+        // /v1/account endpoint, so the domain list is the read-only check.
+        const key = credentials["api_key"] ?? "";
+        if (!key.startsWith("roo_")) {
+          return {
+            ok: false,
+            verified: false,
+            message:
+              "This looks like a per-domain sending key, not an Account API key. Account keys start with \"roo_\" and are created under API Keys in the sending infrastructure account; MunchReach creates per-domain sending keys itself.",
+          };
+        }
+        return await request("https://api.maileroo.com/v1/domains?per_page=1", {
+          Authorization: `Bearer ${key}`,
           Accept: "application/json",
         });
+      }
       case "courier": {
         // Courier documents no "whoami" endpoint. A profile read authenticates
         // the key: 404 means the key is valid but the profile does not exist.
