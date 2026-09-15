@@ -56,7 +56,14 @@ export type VerificationOutcome = {
  */
 export async function resolveDomainProvider(
   admin: Admin,
-  pinned?: { provider?: string | null; providerId?: string | null; key?: string; exclude?: string[] },
+  pinned?: {
+    provider?: string | null;
+    providerId?: string | null;
+    key?: string;
+    exclude?: string[];
+    /** Set only for domains already verified on a provider — never moves them. */
+    preferredProvider?: string | null;
+  },
 ): Promise<ResolvedProvider | null> {
   const { selectProvider } = await import("@/lib/provider-pool.server");
   const selected = await selectProvider(admin, {
