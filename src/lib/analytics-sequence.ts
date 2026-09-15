@@ -112,3 +112,11 @@ export function computeSequenceStats(
 
   return Array.from(steps.values()).sort((a, b) => a.step - b.step);
 }
+
+/** Totals for an arbitrary set of units (used by filtered breakdowns). */
+export function computeUnitTotals(units: Iterable<Unit>, opts: Window): SequenceTotals {
+  const inRange = makeInRange(opts);
+  const totals = emptySequenceTotals();
+  for (const unit of units) accumulate(totals, unit, inRange);
+  return totals;
+}
