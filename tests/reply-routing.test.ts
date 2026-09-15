@@ -23,8 +23,12 @@ describe("clean Reply-To routing", () => {
     for (const source of [dispatch, compose, reply, testSend]) {
       expect(source).not.toContain("replyTo = await mintRequiredReplyAddress");
       expect(source).not.toContain("Routed reply address:");
-      expect(source).toContain("Message-ID");
+      // Providers stamp Message-ID themselves and refuse a supplied one.
+      expect(source).not.toContain('"Message-ID": messageIdHeader');
     }
+    // Threading still rides on the RFC reply headers.
+    expect(reply).toContain('"In-Reply-To"');
+    expect(providers).toContain("isReservedOutboundHeader");
     expect(dispatch).toContain("mintCleanReplyAddress(account.from_email");
     expect(reply).toContain("mintCleanReplyAddress(account.from_email");
     expect(compose).toContain("replyRoute.visibleAddress");
