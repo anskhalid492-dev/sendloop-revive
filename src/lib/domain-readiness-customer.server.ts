@@ -119,7 +119,9 @@ export async function buildCustomerReadiness(
   // Real webhook status from the selected provider (never the stale
   // platform-wide health cache). No endpoints or signing secrets are exposed.
   const { getProviderWebhookReadiness } = await import("@/lib/email-providers/webhook-status.server");
-  const webhook = await getProviderWebhookReadiness(providerId).catch(() => ({
+  // The stored infrastructure credential must be passed: a credential-less read
+  // returns 401 and would be misreported as "no webhook registered".
+  const webhook = await getProviderWebhookReadiness(providerId, credentials).catch(() => ({
     state: "pending" as const,
     detail: "Reply delivery status could not be checked just now.",
   }));

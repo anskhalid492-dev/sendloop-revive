@@ -864,7 +864,7 @@ export const getInboundWebhooks = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const secretConfigured = Boolean(process.env["INBOUND_EMAIL_SECRET"]);
-    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { resolvePlatformProviderId, platformCredentials } = await import("@/lib/ops.server");
     const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
     const providerId = await resolvePlatformProviderId();
     const provider = getEmailProvider(providerId);
@@ -872,9 +872,12 @@ export const getInboundWebhooks = createServerFn({ method: "GET" })
       return { provider: providerId, available: false, secretConfigured, domains: [], webhooks: [] };
     }
 
+    // Provider reads without the stored infrastructure credential come back 401
+    // and get misreported as "nothing configured".
+    const creds = await platformCredentials(providerId);
     const [domains, webhooks] = await Promise.all([
-      provider.listDomains ? provider.listDomains({}).catch(() => []) : Promise.resolve([]),
-      provider.listWebhooks ? provider.listWebhooks({}).catch(() => []) : Promise.resolve([]),
+      provider.listDomains ? provider.listDomains(creds).catch(() => []) : Promise.resolve([]),
+      provider.listWebhooks ? provider.listWebhooks(creds).catch(() => []) : Promise.resolve([]),
     ]);
 
     return {
@@ -899,14 +902,19 @@ export const registerInboundWebhook = createServerFn({ method: "POST" })
     await assertAdmin(context, { sensitive: true, action: "change inbound webhook configuration" });
     const secret = process.env["INBOUND_EMAIL_SECRET"];
     if (!secret) throw new Error("INBOUND_EMAIL_SECRET is not configured.");
-    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { resolvePlatformProviderId, platformCredentials } = await import("@/lib/ops.server");
     const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
-    const provider = getEmailProvider(await resolvePlatformProviderId());
+    const providerId = await resolvePlatformProviderId();
+    const provider = getEmailProvider(providerId);
     if (!provider.registerWebhook) {
       throw new Error("This email provider does not support webhook registration.");
     }
     const endpoint = `${data.baseUrl.replace(/\/+$/, "")}/api/public/inbound/email?token=${encodeURIComponent(secret)}`;
-    const result = await provider.registerWebhook({}, endpoint, ["email.received"]);
+    const result = await provider.registerWebhook(
+      await platformCredentials(providerId),
+      endpoint,
+      ["email.received"],
+    );
     if (!result.ok) throw new Error(result.detail);
     return { id: result.id ?? "" };
   });
@@ -916,13 +924,14 @@ export const deleteInboundWebhook = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().trim().min(3).max(100) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context, { sensitive: true, action: "delete inbound webhook" });
-    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { resolvePlatformProviderId, platformCredentials } = await import("@/lib/ops.server");
     const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
-    const provider = getEmailProvider(await resolvePlatformProviderId());
+    const providerId = await resolvePlatformProviderId();
+    const provider = getEmailProvider(providerId);
     if (!provider.deleteWebhook) {
       throw new Error("This email provider does not support webhook management.");
     }
-    const result = await provider.deleteWebhook({}, data.id);
+    const result = await provider.deleteWebhook(await platformCredentials(providerId), data.id);
     if (!result.ok) throw new Error(result.detail);
     return { ok: true };
   });

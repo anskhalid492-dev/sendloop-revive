@@ -33,6 +33,18 @@ import {
 
 const ID = "maileroo";
 
+/** The only event names Maileroo accepts on a webhook subscription. */
+const MAILEROO_WEBHOOK_EVENTS = [
+  "accepted",
+  "delivered",
+  "rejected",
+  "deferred",
+  "failed",
+  "opened",
+  "clicked",
+  "complained",
+] as const satisfies readonly string[];
+
 const EVENT_MAP: Record<string, NormalizedEmailEventType> = {
   accepted: "ACCEPTED",
   delivered: "DELIVERED",
@@ -318,7 +330,8 @@ export const mailerooEmailProvider: EmailProvider = {
       ? (payload as Record<string, unknown>[])
       : ((asRecord(payload)["webhooks"] as Record<string, unknown>[] | undefined) ?? []);
     return items.map((h) => ({
-      id: String(h["id"] ?? ""),
+      // Maileroo returns the identifier as `_id`; older shapes used `id`.
+      id: String(h["_id"] ?? h["id"] ?? ""),
       endpoint: String(h["callback_url"] ?? ""),
       status: "enabled",
       events: Array.isArray(h["event_types"]) ? (h["event_types"] as string[]) : [],
@@ -326,6 +339,12 @@ export const mailerooEmailProvider: EmailProvider = {
   },
 
   async registerWebhook(creds, endpoint, events) {
+    // Maileroo webhooks carry delivery events only; inbound replies arrive via
+    // inbound routes. Callers asking for provider-neutral names such as
+    // "email.received" must not fail the registration — unknown names are
+    // dropped and the full delivery-event set is used instead.
+    const allowed = new Set<string>(MAILEROO_WEBHOOK_EVENTS);
+    const requested = events.filter((e) => allowed.has(e.trim().toLowerCase()));
     const res = await fetch(`${MAILEROO_ACCOUNT_API}/webhooks`, {
       method: "POST",
       headers: mailerooHeaders(creds),
@@ -333,9 +352,7 @@ export const mailerooEmailProvider: EmailProvider = {
       body: JSON.stringify({
         callback_url: endpoint,
         domains: [],
-        event_types: events.length
-          ? events
-          : ["accepted", "delivered", "rejected", "deferred", "failed", "opened", "clicked", "complained"],
+        event_types: requested.length ? requested : [...MAILEROO_WEBHOOK_EVENTS],
       }),
     });
     const body = await res.text();
