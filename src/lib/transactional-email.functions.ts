@@ -589,6 +589,7 @@ export const updateTransactionalSettings = createServerFn({ method: "POST" })
       retry_delay_seconds?: number;
       batch_size?: number;
       ses_enabled?: boolean;
+      system_provider?: "auto" | "resend" | "ses" | "maileroo";
     }) =>
       z
         .object({
@@ -603,6 +604,7 @@ export const updateTransactionalSettings = createServerFn({ method: "POST" })
           retry_delay_seconds: z.number().int().min(30).max(86_400).optional(),
           batch_size: z.number().int().min(1).max(100).optional(),
           ses_enabled: z.boolean().optional(),
+          system_provider: z.enum(["auto", "resend", "ses", "maileroo"]).optional(),
         })
         .parse(data),
   )
