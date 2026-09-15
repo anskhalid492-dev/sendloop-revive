@@ -23,7 +23,41 @@ const rangeInput = z.object({
   workspaceId: z.string().uuid(),
   from: z.string(),
   to: z.string(),
+  /** Optional campaign filter shared by every section of the page. */
+  campaignId: z.string().uuid().nullish(),
+  /** Optional mailbox (sending account) filter. */
+  accountId: z.string().uuid().nullish(),
 });
+
+type RangeInput = z.infer<typeof rangeInput>;
+
+/** Campaign scope for the shared stats reader. */
+function campaignScope(data: RangeInput) {
+  return data.campaignId ? { campaignIds: [data.campaignId] } : {};
+}
+
+/**
+ * The de-duplicated message units for the selected range and filters. Every
+ * section derives its numbers from these, so the page is internally
+ * consistent whatever combination of filters is applied.
+ */
+async function loadUnits(client: Client, data: RangeInput) {
+  const from = new Date(data.from);
+  const to = new Date(data.to);
+  const [{ fetchCampaignStats }, { collapseMessageUnits }] = await Promise.all([
+    import("@/lib/campaign-stats.server"),
+    import("@/lib/campaign-stats"),
+  ]);
+  const bundle = await fetchCampaignStats(client, {
+    workspaceId: data.workspaceId,
+    ...campaignScope(data),
+    from,
+    to,
+  });
+  const all = Array.from(collapseMessageUnits(bundle.messages, bundle.signals).values());
+  const units = data.accountId ? all.filter((u) => u.accountId === data.accountId) : all;
+  return { bundle, units, from, to };
+}
 
 const ZERO: AnalyticsSummary = {
   sent: 0,
