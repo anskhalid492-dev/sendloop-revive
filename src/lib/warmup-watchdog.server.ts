@@ -106,14 +106,32 @@ export async function checkStalledWarmupAccounts(
   }
 
   const rows = (accounts ?? []) as Array<Record<string, any>>;
+  const ids = rows.map((account) => account["id"] as string);
+
+  // One batched read instead of a count query per mailbox: the previous loop
+  // issued up to 500 sequential round trips inside a per-minute request, which
+  // could outlast the request budget and hang the whole cycle.
+  const withSends = new Set<string>();
+  const { chunk } = await import("@/lib/supabase-batch");
+  for (const idChunk of chunk(ids)) {
+    const { data, error: sendsError } = await admin
+      .from("warmup_jobs")
+      .select("sending_account_id")
+      .in("sending_account_id", idChunk)
+      .in("status", ["sent", "delivered"])
+      .limit(5000);
+    if (sendsError) {
+      console.error("warmup watchdog: send lookup failed", sendsError.message);
+      return { checked: rows.length, stalled: [] };
+    }
+    for (const row of (data ?? []) as Array<{ sending_account_id: string }>) {
+      withSends.add(row.sending_account_id);
+    }
+  }
+
   const stalled: StalledWarmupAccount[] = [];
   for (const account of rows) {
-    const { count } = await admin
-      .from("warmup_jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("sending_account_id", account["id"])
-      .in("status", ["sent", "delivered"]);
-    if ((count ?? 0) > 0) continue;
+    if (withSends.has(account["id"] as string)) continue;
     const startedAt = (account["warmup_started_at"] as string | null) ?? null;
     stalled.push({
       accountId: account["id"] as string,
