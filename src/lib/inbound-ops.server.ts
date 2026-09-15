@@ -53,6 +53,9 @@ export async function saveInboundOpsSettings(
   return next;
 }
 
+/** Grace period before an event recorded but never processed is retried. */
+export const STALLED_GRACE_MS = 60_000;
+
 /** Backoff delay in minutes for the nth attempt. */
 export function backoffMinutes(settings: InboundOpsSettings, attempt: number) {
   const factor = Math.max(1, settings.backoffFactor);
