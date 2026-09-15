@@ -121,10 +121,23 @@ export async function buildCustomerReadiness(
   const { getProviderWebhookReadiness } = await import("@/lib/email-providers/webhook-status.server");
   // The stored infrastructure credential must be passed: a credential-less read
   // returns 401 and would be misreported as "no webhook registered".
-  const webhook = await getProviderWebhookReadiness(providerId, credentials).catch(() => ({
+  let webhook = await getProviderWebhookReadiness(providerId, credentials).catch(() => ({
     state: "pending" as const,
     detail: "Reply delivery status could not be checked just now.",
   }));
+
+  // Automatic registration happens when a domain reaches "ready". When it failed
+  // there, the recorded provider reason is what the customer sees, so a
+  // half-configured domain is never presented as fine.
+  if (webhook.state !== "ok") {
+    const { getWebhookProvisionState } = await import(
+      "@/lib/email-providers/webhook-provision.server"
+    );
+    const provisioned = await getWebhookProvisionState(providerId).catch(() => null);
+    if (provisioned?.state === "failed" && provisioned.detail) {
+      webhook = { state: "failed", detail: provisioned.detail };
+    }
+  }
 
   return {
     domain: report.domain,
