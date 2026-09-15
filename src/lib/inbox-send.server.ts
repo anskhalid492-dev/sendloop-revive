@@ -141,7 +141,7 @@ export async function sendReplyThroughMailbox(args: {
     ...((lastInbound?.reference_ids ?? []) as string[]),
     ...(parentId ? [parentId] : []),
   ].slice(-20);
-  const { createOutboundRfcMessageId, mergeEmailHeaders, messageIdHeader } = await import(
+  const { createOutboundRfcMessageId, mergeEmailHeaders } = await import(
     "@/lib/outbound-threading.server"
   );
   const outboundMessageId = createOutboundRfcMessageId(account.from_email);
@@ -169,7 +169,6 @@ export async function sendReplyThroughMailbox(args: {
     // Real RFC threading headers keep the prospect's mail client (and our own
     // ingestion) on the same conversation.
     headers: mergeEmailHeaders(
-      { "Message-ID": messageIdHeader(outboundMessageId) },
       parentId
         ? {
             "In-Reply-To": `<${parentId}>`,

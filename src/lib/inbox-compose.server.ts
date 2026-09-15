@@ -94,7 +94,7 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
   }
   const replyTo = replyRoute.visibleAddress;
-  const { createOutboundRfcMessageId, messageIdHeader } = await import("@/lib/outbound-threading.server");
+  const { createOutboundRfcMessageId } = await import("@/lib/outbound-threading.server");
   const outboundMessageId = createOutboundRfcMessageId(account.from_email);
   const send = await adapter.sendEmail(credentials ?? {}, {
     fromName: account.from_name,
@@ -106,7 +106,6 @@ export async function composeAndSend(input: ComposeInput) {
     subject: input.subject,
     text: input.body,
     attachments: input.attachments,
-    headers: { "Message-ID": messageIdHeader(outboundMessageId) },
   });
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
 

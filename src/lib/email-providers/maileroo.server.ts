@@ -22,6 +22,7 @@ import {
   mailerooFlattenInboundPayload,
   mailerooInboundEvent,
 } from "./maileroo-inbound";
+import { stripReservedHeaders } from "@/lib/outbound-headers";
 import type { EmailProvider } from "./provider";
 import {
   capabilities,
@@ -127,8 +128,10 @@ async function sendMaileroo(
       subject: message.subject,
       plain: message.text,
       ...(message.html ? { html: message.html } : {}),
-      ...(message.headers && Object.keys(message.headers).length
-        ? { headers: message.headers }
+      // Maileroo rejects system-reserved headers (Message-ID etc.); threading
+      // is carried by In-Reply-To / References, which pass through untouched.
+      ...(Object.keys(stripReservedHeaders(message.headers)).length
+        ? { headers: stripReservedHeaders(message.headers) }
         : {}),
       tracking: true,
     }),

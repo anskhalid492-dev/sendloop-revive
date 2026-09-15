@@ -1130,7 +1130,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
       const { mintCleanReplyAddress } = await import("@/lib/inbound-routing.server");
-      const { createOutboundRfcMessageId, messageIdHeader } = await import(
+      const { createOutboundRfcMessageId } = await import(
         "@/lib/outbound-threading.server"
       );
       const replyTo = await mintCleanReplyAddress(account.from_email, {
@@ -1162,7 +1162,6 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           text: rendered.text,
           html: rendered.html,
           headers: {
-            "Message-ID": messageIdHeader(outboundMessageId),
             "X-MunchReach-Test-Request-ID": requestId,
             ...(rendered.url
               ? {

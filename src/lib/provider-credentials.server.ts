@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
+import { isReservedOutboundHeader } from "@/lib/outbound-headers";
+
 /**
  * Credential encryption key material.
  *
@@ -289,6 +291,9 @@ function sanitizeHeaders(headers: Record<string, string> | undefined): Record<st
     if (!name || !value) continue;
     if (!/^[A-Za-z0-9-]+$/.test(name)) continue;
     if (/[\r\n]/.test(value)) continue;
+    // Providers generate Message-ID (and the other envelope headers) themselves
+    // and refuse a supplied one; threading rides on In-Reply-To / References.
+    if (isReservedOutboundHeader(name)) continue;
     clean[name] = value;
   }
   return clean;

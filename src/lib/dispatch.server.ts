@@ -666,8 +666,6 @@ export async function dispatchDueMessages(
     (await import("./inbound-routing.server")).mintCleanReplyAddress;
   const createOutboundRfcMessageId = dependencies.createOutboundRfcMessageId ??
     (await import("./outbound-threading.server")).createOutboundRfcMessageId;
-  const messageIdHeader = dependencies.messageIdHeader ??
-    (await import("./outbound-threading.server")).messageIdHeader;
   const suppressedSet = dependencies.suppressedSet ?? (await import("./suppression.server")).suppressedSet;
   const supabaseAdmin = dependencies.supabaseAdmin ??
     (await import("@/integrations/supabase/client.server")).supabaseAdmin;
@@ -1216,7 +1214,6 @@ export async function dispatchDueMessages(
         text: message.body,
         ...(html ? { html } : {}),
         headers: {
-          "Message-ID": messageIdHeader(outboundMessageId),
           ...(carriesUnsubscribeLink
             ? {
                 "List-Unsubscribe": `<${withUnsubscribeSource(unsubUrl, "list_unsubscribe")}>`,
