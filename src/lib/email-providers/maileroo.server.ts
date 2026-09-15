@@ -342,7 +342,7 @@ export const mailerooEmailProvider: EmailProvider = {
     // inbound routes. Callers asking for provider-neutral names such as
     // "email.received" must not fail the registration — unknown names are
     // dropped and the full delivery-event set is used instead.
-    const allowed = new Set(MAILEROO_WEBHOOK_EVENTS);
+    const allowed = new Set<string>(MAILEROO_WEBHOOK_EVENTS);
     const requested = events.filter((e) => allowed.has(e.trim().toLowerCase()));
     const res = await fetch(`${MAILEROO_ACCOUNT_API}/webhooks`, {
       method: "POST",
