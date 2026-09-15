@@ -212,7 +212,9 @@ export async function evaluateDomainReadiness(options: {
     records: dedupeDnsRequirements([...dnsRecords, ...inbound.records]),
     mx,
     requiresCustomerAction: mode === "customer_action" && !inbound.enabled,
-    canAutoEnableInbound: mode === "api" && !inbound.enabled,
+    // Never invite the customer to switch receiving on off the back of a check
+    // we could not complete.
+    canAutoEnableInbound: mode === "api" && !inbound.enabled && !checkFailed,
     checkedAt: new Date().toISOString(),
   };
 }
