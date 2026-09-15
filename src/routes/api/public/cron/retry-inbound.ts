@@ -51,10 +51,28 @@ async function run(request: Request) {
   const retry = await runInboundRetrySweep();
   const reconciliation = await reconcileInboundEvents();
 
+  // Warmup safety net: if the dedicated warmup schedule stops firing, warmup
+  // silently stops dispatching while mailboxes still show as active. This tick
+  // catches that up, and flags mailboxes stuck warming with zero sends.
+  let warmup: unknown = null;
+  let warmupStalls: unknown = null;
+  try {
+    const { ensureWarmupTick, checkStalledWarmupAccounts } = await import(
+      "@/lib/warmup-watchdog.server"
+    );
+    warmup = await ensureWarmupTick(supabaseAdmin);
+    warmupStalls = await checkStalledWarmupAccounts(supabaseAdmin);
+  } catch (error) {
+    console.error("warmup watchdog failed", error);
+    warmup = { ran: false, reason: error instanceof Error ? error.message : "failed" };
+  }
+
   return json(
     {
       ok: true,
       retry,
+      warmup,
+      warmupStalls,
       reconciliation: {
         scanned: reconciliation.scanned,
         linked: reconciliation.linked,
