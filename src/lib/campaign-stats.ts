@@ -301,7 +301,10 @@ export function collapseMessageUnits(
     if (m.sent_at) {
       unit.status = "sent";
       if (m.sending_account_id) unit.accountId = String(m.sending_account_id);
+      if (m.variant_id) unit.variantId = String(m.variant_id);
     }
+    if (!unit.variantId && m.variant_id) unit.variantId = String(m.variant_id);
+    if (!unit.campaignId && m.campaign_id) unit.campaignId = String(m.campaign_id);
     units.set(key, unit);
   }
   return units;
