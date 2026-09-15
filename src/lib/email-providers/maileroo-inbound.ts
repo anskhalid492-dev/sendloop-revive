@@ -117,7 +117,15 @@ export function mailerooFlattenInboundPayload(payload: unknown): Record<string, 
   const headers = p["headers"];
   const body = record(p["body"]) as MailerooBody;
 
-  const from = str(p["envelope_sender"]) ?? mailerooHeader(headers, "from");
+  // The envelope sender is the authoritative address. The From header is only
+  // used when it names the very same address, so the inbox can show a display
+  // name without ever trusting a header over the envelope.
+  const envelopeSender = str(p["envelope_sender"]);
+  const fromHeader = mailerooHeader(headers, "from");
+  const from =
+    envelopeSender && fromHeader && extractEmail(fromHeader) === extractEmail(envelopeSender)
+      ? fromHeader
+      : (envelopeSender ?? fromHeader);
   // Envelope recipients carry the plus-routing token; the To header may be rewritten.
   const recipients = [...list(p["recipients"]), ...list(mailerooHeader(headers, "to"))];
   if (!from || recipients.length === 0) return null;
