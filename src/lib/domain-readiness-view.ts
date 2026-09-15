@@ -65,6 +65,7 @@ export const READINESS_STATE_LABEL: Record<DomainReadinessState, string> = {
   PROVIDER_PENDING: "Verifying domain",
   RECEIVING_DISABLED: "Receiving not enabled",
   READY: "Domain ready",
+  CHECK_FAILED: "Status check unavailable",
   ERROR: "Needs attention",
 };
 
