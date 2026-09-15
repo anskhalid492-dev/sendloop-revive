@@ -79,18 +79,32 @@ export const Route = createFileRoute("/api/public/inbound/email")({
         try {
           const { handleWebhookDelivery } = await import("@/lib/email-events.server");
           const { enrichInboundPayload } = await import("@/lib/email-providers/inbound-content.server");
+          const { keepAlive, settleWithin } = await import("@/lib/background.server");
           const enrichedPayload = await enrichInboundPayload(
             ingest.provider,
             ingest.payload,
             ingest.inbound ?? null,
           );
-          const result = await handleWebhookDelivery(enrichedPayload, ingest.provider.id, {
+          const work = handleWebhookDelivery(enrichedPayload, ingest.provider.id, {
             signatureStatus: ingest.verification.status,
             signatureDetail: `${ingest.verification.method}: ${ingest.verification.reason}`,
             ...(ingest.inbound ? { normalizedInbound: ingest.inbound } : {}),
           });
-          // Unmatched mail is acknowledged so the sender does not retry forever.
-          return json(result, 200);
+          // Filing a reply touches several tables and can outlast a provider's
+          // webhook timeout. Handing the promise to the platform keeps it
+          // running after we answer, so a sender that hangs up can never kill
+          // processing half-way and leave the event unfiled.
+          const detached = await keepAlive(work);
+          if (!detached) {
+            // Unmatched mail is acknowledged so the sender does not retry forever.
+            return json(await work, 200);
+          }
+          work.catch(() => {
+            // processEventPayload records its own failure; nothing to add here.
+          });
+          const settled = await settleWithin(work, 5_000, null);
+          if (settled) return json(settled, 200);
+          return json({ status: "accepted" }, 200);
         } catch {
           // A logging/infrastructure failure returns 500 so the provider retries;
           // processing is idempotent, so the retry cannot duplicate anything.
