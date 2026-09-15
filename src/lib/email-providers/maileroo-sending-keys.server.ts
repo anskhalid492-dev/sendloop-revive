@@ -72,7 +72,18 @@ export async function resolveMailerooSendingKey(
     return { key: cached.key, detail: "Using the cached managed sending key." };
   }
 
-  const found = await findMailerooDomain(creds, target);
+  // A failed lookup is not the same as an unregistered domain; say which happened.
+  let found: Awaited<ReturnType<typeof findMailerooDomain>>;
+  try {
+    found = await findMailerooDomain(creds, target);
+  } catch (error) {
+    return {
+      key: null,
+      detail: `The infrastructure lookup for ${target} could not be completed: ${
+        error instanceof Error ? error.message : "unknown failure"
+      }`,
+    };
+  }
   if (!found?.id) {
     return { key: null, detail: `Domain ${target} is not registered on the infrastructure.` };
   }
