@@ -7,6 +7,13 @@ import { Eye, History, Loader2, Mail, Pencil, RotateCcw, Save, Search, Send, Und
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,7 +37,11 @@ import {
   setTransactionalTemplateEnabled,
   updateTransactionalSettings,
 } from "@/lib/transactional-email.functions";
-import { listSystemSenderIdentities, updateSystemSenderIdentity } from "@/lib/transactional-email.functions";
+import {
+  listSystemSenderIdentities,
+  setSystemEmailActiveProvider,
+  updateSystemSenderIdentity,
+} from "@/lib/transactional-email.functions";
 import { isRequiredSystemEmail } from "@/lib/transactional/policy";
 import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
@@ -180,12 +191,26 @@ function SystemEmailsPage() {
   const senders = sendersQuery.data?.identities ?? [];
   const provider = sendersQuery.data?.provider ?? null;
   const providerOptions = sendersQuery.data?.providerOptions ?? [];
+  const activeProvider = sendersQuery.data?.activeProvider ?? "auto";
+  const activeProviderOptions = sendersQuery.data?.activeProviderOptions ?? [];
+  const setActiveProviderFn = useServerFn(setSystemEmailActiveProvider);
+  const activeProviderMutation = useMutation({
+    mutationFn: (value: "auto" | "resend" | "ses" | "maileroo") =>
+      setActiveProviderFn({ data: { provider: value } }),
+    onSuccess: () => {
+      toast.success("Active provider updated");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "system-senders"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "system-emails"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Could not switch provider"),
+  });
   const [senderEdit, setSenderEdit] = useState<{
     purpose: string;
     email: string;
     name: string;
     replyTo: string;
-    provider: "auto" | "managed" | "ses";
+    provider: "auto" | "managed" | "ses" | "maileroo";
     active: boolean;
   } | null>(null);
   const saveSender = useServerFn(updateSystemSenderIdentity);
@@ -624,13 +649,40 @@ function SystemEmailsPage() {
                 MunchReach system sender addresses and their provider verification state. Credentials and keys are
                 never shown here. When Amazon SES is enabled, only verified identities can be selected on a template.
               </CardDescription>
-              {provider ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Active provider:</span>
-                  <Badge variant={provider.available ? "default" : "secondary"}>{provider.label}</Badge>
-                  <span className="text-xs text-muted-foreground">{provider.detail}</span>
-                </div>
-              ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Active provider:</span>
+                <Select
+                  value={activeProvider}
+                  onValueChange={(value) =>
+                    activeProviderMutation.mutate(value as "auto" | "resend" | "ses" | "maileroo")
+                  }
+                  disabled={activeProviderMutation.isPending}
+                >
+                  <SelectTrigger className="h-8 w-[200px]">
+                    <SelectValue placeholder="Automatic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeProviderOptions.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        disabled={!option.available}
+                      >
+                        {option.label}
+                        {option.available ? "" : " (not connected)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {provider ? (
+                  <>
+                    <Badge variant={provider.available ? "default" : "secondary"}>
+                      {provider.label}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{provider.detail}</span>
+                  </>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">

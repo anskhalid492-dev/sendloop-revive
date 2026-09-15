@@ -88,6 +88,17 @@ async function senderContext(admin: unknown) {
 
   const verifiedDomains = domains.filter((d) => states[d] === "verified");
 
+  // Maileroo verifies at the DOMAIN level: every MunchReach identity on a
+  // verified domain is usable as a From address with no per-address setup.
+  const { resolveSystemMaileroo, mailerooVerifiedDomains } = await import(
+    "@/lib/system-email-maileroo.server"
+  );
+  const maileroo = await resolveSystemMaileroo(admin, senders[0]?.email ?? "");
+  const mailerooStates = maileroo
+    ? await mailerooVerifiedDomains(maileroo.credentials, domains)
+    : {};
+  const mailerooVerified = domains.filter((d) => mailerooStates[d] === "verified");
+
   return {
     settings,
     overrides,
@@ -99,6 +110,10 @@ async function senderContext(admin: unknown) {
     domainStates: states,
     sesEnabled: settings.ses_enabled === true,
     sesConnected: Boolean(credentials),
+    mailerooAvailable: maileroo !== null,
+    mailerooDomainStates: mailerooStates,
+    mailerooVerifiedDomains: mailerooVerified,
+    activeProvider: settings.system_provider ?? "auto",
     region,
   };
 }
@@ -118,7 +133,11 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
       sesConnected: ctx.sesConnected,
       managedAvailable: ctx.managedAvailable,
       managedProvider: ctx.managedProvider,
+      activeProvider: ctx.activeProvider,
+      mailerooAvailable: ctx.mailerooAvailable,
     });
+
+    const mailerooActive = provider.provider === "maileroo";
 
     return {
       provider,
@@ -127,30 +146,62 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
       sesConnected: ctx.sesConnected,
       managedAvailable: ctx.managedAvailable,
       managedProvider: ctx.managedProvider,
-      providerOptions: (["auto", "managed", "ses"] as const).map((option) => ({
+      mailerooAvailable: ctx.mailerooAvailable,
+      /** Stored Active provider pin for the whole system-email pipeline. */
+      activeProvider: ctx.activeProvider,
+      /** Selectable values for the Active provider control. */
+      activeProviderOptions: (["auto", "resend", "ses", "maileroo"] as const).map((option) => ({
+        value: option,
+        label:
+          option === "auto"
+            ? "Automatic"
+            : option === "resend"
+              ? managedProviderLabel(ctx.managedProvider || "resend")
+              : option === "ses"
+                ? "Amazon SES"
+                : "Maileroo",
+        available:
+          option === "auto"
+            ? true
+            : option === "resend"
+              ? ctx.managedAvailable
+              : option === "ses"
+                ? ctx.sesConnected
+                : ctx.mailerooAvailable,
+      })),
+      providerOptions: (["auto", "managed", "ses", "maileroo"] as const).map((option) => ({
         value: option,
         label:
           option === "auto"
             ? `Automatic (${provider.label})`
             : option === "managed"
               ? managedProviderLabel(ctx.managedProvider)
-              : "Amazon SES",
+              : option === "ses"
+                ? "Amazon SES"
+                : "Maileroo",
         available: providerOptionAvailable(option, {
           managedAvailable: ctx.managedAvailable,
           sesEnabled: ctx.sesEnabled,
           sesConnected: ctx.sesConnected,
+          mailerooAvailable: ctx.mailerooAvailable,
         }),
       })),
       identities: ctx.senders.map((s) => {
         const domain = (s.email.split("@")[1] ?? "").toLowerCase();
-        const state = ctx.sesConnected ? ctx.domainStates[domain] ?? "unknown" : "not_connected";
-        const verified = state === "verified";
+        const usesMaileroo = s.provider === "maileroo" || (s.provider === "auto" && mailerooActive);
+        const mailerooState = ctx.mailerooDomainStates[domain] ?? "unknown";
+        const sesState = ctx.sesConnected ? ctx.domainStates[domain] ?? "unknown" : "not_connected";
+        // Maileroo verifies whole domains, so a verified domain makes every
+        // MunchReach identity on it usable without per-address verification.
+        const verified = usesMaileroo ? mailerooState === "verified" : sesState === "verified";
         const effectiveProvider =
           s.provider === "ses"
             ? "Amazon SES"
-            : s.provider === "managed"
-              ? managedProviderLabel(ctx.managedProvider)
-              : provider.label;
+            : s.provider === "maileroo"
+              ? "Maileroo"
+              : s.provider === "managed"
+                ? managedProviderLabel(ctx.managedProvider)
+                : provider.label;
         return {
           email: s.email,
           name: s.name,
@@ -162,14 +213,60 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
           providerPreference: s.provider,
           provider: effectiveProvider,
           customized: s.customized,
-          region: ctx.region,
-          verification: verified ? "Verified" : ctx.sesConnected ? state : "Not connected",
+          region: usesMaileroo ? "Domain-level (Maileroo)" : ctx.region,
+          verification: usesMaileroo
+            ? verified
+              ? "Verified (domain)"
+              : ctx.mailerooAvailable
+                ? mailerooState
+                : "Not connected"
+            : verified
+              ? "Verified"
+              : ctx.sesConnected
+                ? sesState
+                : "Not connected",
           /** Selectable as a From address for a transactional email. */
-          selectable: s.active && (ctx.sesEnabled ? verified : true),
+          selectable: s.active && (usesMaileroo ? verified : ctx.sesEnabled ? verified : true),
           active: s.active,
         };
       }),
     };
+  });
+
+/** Pins the Active provider for every system email category. */
+export const setSystemEmailActiveProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ provider: z.enum(["auto", "resend", "ses", "maileroo"]) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { saveTransactionalSettings } = await import("@/lib/transactional-email.server");
+
+    if (data.provider === "maileroo") {
+      const { resolveSystemMaileroo } = await import("@/lib/system-email-maileroo.server");
+      const { SYSTEM_SENDERS } = await import("@/lib/system-email-senders");
+      const maileroo = await resolveSystemMaileroo(
+        supabaseAdmin,
+        SYSTEM_SENDERS["notifications"].email,
+      );
+      if (!maileroo) {
+        throw new Error(
+          "Maileroo is not configured for system email. Add the account API key under Admin → Email providers first.",
+        );
+      }
+    }
+
+    // SES keeps its own explicit enable switch in sync with the pin so the
+    // Amazon SES tab and the Active provider control can never disagree.
+    const patch: { system_provider: "auto" | "resend" | "ses" | "maileroo"; ses_enabled?: boolean } =
+      { system_provider: data.provider };
+    if (data.provider === "ses") patch.ses_enabled = true;
+    if (data.provider === "maileroo" || data.provider === "resend") patch.ses_enabled = false;
+
+    const settings = await saveTransactionalSettings(supabaseAdmin, patch);
+    return { ok: true, provider: settings.system_provider ?? "auto" };
   });
 
 /** Updates one system sender identity after validating it against the backend. */
@@ -191,7 +288,7 @@ export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
         email: z.string().trim().toLowerCase().email(),
         name: z.string().trim().min(1).max(120),
         replyTo: z.string().trim().toLowerCase().email(),
-        provider: z.enum(["auto", "managed", "ses"]),
+        provider: z.enum(["auto", "managed", "ses", "maileroo"]),
         active: z.boolean(),
       })
       .parse(data),
@@ -213,6 +310,7 @@ export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
         managedAvailable: ctx.managedAvailable,
         sesEnabled: ctx.sesEnabled,
         sesConnected: ctx.sesConnected,
+        mailerooAvailable: ctx.mailerooAvailable,
       },
       {
         allowedDomains: Array.from(
@@ -220,6 +318,8 @@ export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
             ctx.senders.map((s) => (s.email.split("@")[1] ?? "").toLowerCase()).filter(Boolean),
           ),
         ),
+        activeProvider: ctx.activeProvider,
+        mailerooVerifiedDomains: ctx.mailerooVerifiedDomains,
         verifiedDomains: ctx.verifiedDomains,
       },
     );
@@ -489,6 +589,7 @@ export const updateTransactionalSettings = createServerFn({ method: "POST" })
       retry_delay_seconds?: number;
       batch_size?: number;
       ses_enabled?: boolean;
+      system_provider?: "auto" | "resend" | "ses" | "maileroo";
     }) =>
       z
         .object({
@@ -503,6 +604,7 @@ export const updateTransactionalSettings = createServerFn({ method: "POST" })
           retry_delay_seconds: z.number().int().min(30).max(86_400).optional(),
           batch_size: z.number().int().min(1).max(100).optional(),
           ses_enabled: z.boolean().optional(),
+          system_provider: z.enum(["auto", "resend", "ses", "maileroo"]).optional(),
         })
         .parse(data),
   )

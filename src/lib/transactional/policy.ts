@@ -11,7 +11,10 @@
  * Campaign sending, sequences and warmup are unrelated to this module.
  */
 
-import { selectSystemEmailProvider } from "@/lib/system-email-provider";
+import {
+  selectSystemEmailProvider,
+  type SystemProviderSelection,
+} from "@/lib/system-email-provider";
 
 /**
  * Emails whose delivery is load-bearing for account access or security.
@@ -69,6 +72,10 @@ export type ProviderDisplayInput = {
   managedAvailable: boolean;
   /** The managed provider actually resolved for system email (e.g. "resend"). */
   managedProvider?: string | null;
+  /** Admin-pinned Active provider ("auto" | "resend" | "ses" | "maileroo"). */
+  activeProvider?: SystemProviderSelection | null;
+  /** Maileroo configured server-side and allowed for system email. */
+  mailerooAvailable?: boolean;
 };
 
 /** Display name for a managed provider id. Never hard-codes one provider. */
@@ -83,6 +90,7 @@ export function managedProviderLabel(provider: string | null | undefined): strin
     zeptomail: "ZeptoMail",
     brevo: "Brevo",
     emailit: "Emailit",
+    maileroo: "Maileroo",
     smtp: "SMTP",
   };
   if (!key) return "MunchReach managed sending";
@@ -91,7 +99,7 @@ export function managedProviderLabel(provider: string | null | undefined): strin
 
 export type ProviderDisplay = {
   /** Provider that will carry the next send. */
-  provider: "ses" | "managed" | "none";
+  provider: "ses" | "managed" | "maileroo" | "none";
   label: string;
   available: boolean;
   detail: string;
@@ -103,7 +111,18 @@ export function providerDisplay(input: ProviderDisplayInput): ProviderDisplay {
     sesEnabled: input.sesEnabled,
     sesCredentialsAvailable: input.sesConnected,
     managedAvailable: input.managedAvailable,
+    activeProvider: input.activeProvider ?? "auto",
+    mailerooAvailable: input.mailerooAvailable ?? false,
   });
+
+  if (choice.provider === "maileroo") {
+    return {
+      provider: "maileroo",
+      label: "Maileroo",
+      available: true,
+      detail: choice.reason,
+    };
+  }
 
   if (choice.provider === "ses") {
     return {
