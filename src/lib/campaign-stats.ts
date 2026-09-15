@@ -147,6 +147,7 @@ export type CampaignMessageRow = {
   recipient_id?: string | null;
   lead_id?: string | null;
   step_order?: number | string | null;
+  variant_id?: string | null;
   status?: string | null;
   delivery_status?: string | null;
   scheduled_at?: string | null;
