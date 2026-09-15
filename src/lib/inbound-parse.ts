@@ -235,16 +235,19 @@ export type EventKind =
 
 /** Classifies the webhook event so delivery signals are not treated as replies. */
 export function classifyEvent(input: Record<string, unknown>): EventKind {
-  const source =
-    input["data"] && typeof input["data"] === "object"
-      ? (input["data"] as Record<string, unknown>)
-      : input;
+  const source = providerSource(input);
+  // `event_type` is how several providers label delivery/tracking webhooks.
+  // Missing it made every one of their events look like an inbound message.
   const raw = String(
     input["type"] ??
       input["event"] ??
+      input["event_type"] ??
+      input["eventType"] ??
       input["RecordType"] ??
       source["type"] ??
       source["event"] ??
+      source["event_type"] ??
+      source["eventType"] ??
       source["RecordType"] ??
       "",
   ).toLowerCase();
@@ -259,6 +262,8 @@ export function classifyEvent(input: Record<string, unknown>): EventKind {
   if (raw.includes("deliver")) return "delivered";
   if (raw.includes("click")) return "clicked";
   if (raw.includes("open")) return "opened";
+  // An accepted/queued handoff is the provider's own "sent" confirmation.
+  if (raw.includes("accept") || raw.includes("queue")) return "sent";
   return "unknown";
 }
 
@@ -348,6 +353,9 @@ export function normalizeDelivery(input: Record<string, unknown>) {
     firstAddress(source["email"]) ||
     firstAddress(source["To"]);
   const providerMessageId = firstProviderMessageId(
+    // Some providers keep the send id on the envelope, not in the event body.
+    input["message_reference_id"],
+    source["message_reference_id"],
     source["email_id"],
     source["emailId"],
     source["id"],
