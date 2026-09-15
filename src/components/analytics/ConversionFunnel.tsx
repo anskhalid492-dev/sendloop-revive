@@ -120,18 +120,22 @@ export function ConversionFunnel({
                   <span className="ml-2 text-xs">
                     {step.prev === null
                       ? "100%"
-                      : `${formatPct(rate(step.value, step.prev))} of ${steps[index - 1]!.label.toLowerCase()}`}
+                      : `${formatPct(rate(step.value, step.prev))} conversion`}
                   </span>
                 </span>
               </div>
               <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn("h-full rounded-full transition-all", STEP_STYLES[index])}
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    STEP_STYLES[Math.min(index, STEP_STYLES.length - 1)],
+                  )}
                   style={{ width: `${Math.min(100, (step.value / top) * 100)}%` }}
                 />
               </div>
             </div>
-          ))}
+            );
+          })}
           <p className="pt-1 text-xs text-muted-foreground">
             Overall sent → replied: {formatPct(rate(data.replies, data.sent))}
           </p>
