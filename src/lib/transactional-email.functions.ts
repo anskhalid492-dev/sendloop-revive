@@ -101,6 +101,15 @@ async function senderContext(admin: unknown) {
     : {};
   const mailerooVerified = domains.filter((d) => mailerooStates[d] === "verified");
 
+  // When nothing can deliver, say exactly why instead of "Provider unavailable".
+  let unavailableReason: string | null = null;
+  if (managedProvider === null && maileroo === null) {
+    const { diagnoseSystemProvider } = await import("@/lib/transactional/provider-diagnosis.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    unavailableReason = await diagnoseSystemProvider(admin as any);
+    console.error("[system-email] no provider available:", unavailableReason);
+  }
+
   return {
     settings,
     overrides,
