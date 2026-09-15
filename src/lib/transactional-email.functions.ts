@@ -288,7 +288,7 @@ export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
         email: z.string().trim().toLowerCase().email(),
         name: z.string().trim().min(1).max(120),
         replyTo: z.string().trim().toLowerCase().email(),
-        provider: z.enum(["auto", "managed", "ses"]),
+        provider: z.enum(["auto", "managed", "ses", "maileroo"]),
         active: z.boolean(),
       })
       .parse(data),
@@ -310,6 +310,7 @@ export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
         managedAvailable: ctx.managedAvailable,
         sesEnabled: ctx.sesEnabled,
         sesConnected: ctx.sesConnected,
+        mailerooAvailable: ctx.mailerooAvailable,
       },
       {
         allowedDomains: Array.from(
@@ -317,6 +318,8 @@ export const updateSystemSenderIdentity = createServerFn({ method: "POST" })
             ctx.senders.map((s) => (s.email.split("@")[1] ?? "").toLowerCase()).filter(Boolean),
           ),
         ),
+        activeProvider: ctx.activeProvider,
+        mailerooVerifiedDomains: ctx.mailerooVerifiedDomains,
         verifiedDomains: ctx.verifiedDomains,
       },
     );
