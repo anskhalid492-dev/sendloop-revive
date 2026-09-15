@@ -22,6 +22,7 @@ import {
   mailerooFlattenInboundPayload,
   mailerooInboundEvent,
 } from "./maileroo-inbound";
+import { stripReservedHeaders } from "@/lib/outbound-headers";
 import type { EmailProvider } from "./provider";
 import {
   capabilities,
