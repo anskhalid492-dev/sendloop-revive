@@ -138,12 +138,17 @@ export async function ensureProviderDomain(
     row.provider_locked_until != null && new Date(row.provider_locked_until).getTime() > Date.now();
   const tried: string[] = [];
   let lastDetail = "No sending infrastructure is available.";
+  // Verified domains stay where they are; unverified ones must follow the
+  // currently active sending infrastructure, so their previous assignment is
+  // NOT used as a sticky hint.
+  const pinnedToProvider = domainIsPinnedToProvider(row) || locked;
 
   // At most three attempts: routed provider, then failover candidates.
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const provider = await resolveDomainProvider(admin, {
       provider: row.provider,
-      providerId: row.provider_id,
+      providerId: pinnedToProvider ? row.provider_id : null,
+      preferredProvider: pinnedToProvider ? row.provider : null,
       key: row.domain,
       exclude: tried,
     });
