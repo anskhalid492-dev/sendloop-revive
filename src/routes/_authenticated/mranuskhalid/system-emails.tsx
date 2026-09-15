@@ -30,7 +30,11 @@ import {
   setTransactionalTemplateEnabled,
   updateTransactionalSettings,
 } from "@/lib/transactional-email.functions";
-import { listSystemSenderIdentities, updateSystemSenderIdentity } from "@/lib/transactional-email.functions";
+import {
+  listSystemSenderIdentities,
+  setSystemEmailActiveProvider,
+  updateSystemSenderIdentity,
+} from "@/lib/transactional-email.functions";
 import { isRequiredSystemEmail } from "@/lib/transactional/policy";
 import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
@@ -180,12 +184,26 @@ function SystemEmailsPage() {
   const senders = sendersQuery.data?.identities ?? [];
   const provider = sendersQuery.data?.provider ?? null;
   const providerOptions = sendersQuery.data?.providerOptions ?? [];
+  const activeProvider = sendersQuery.data?.activeProvider ?? "auto";
+  const activeProviderOptions = sendersQuery.data?.activeProviderOptions ?? [];
+  const setActiveProviderFn = useServerFn(setSystemEmailActiveProvider);
+  const activeProviderMutation = useMutation({
+    mutationFn: (value: "auto" | "resend" | "ses" | "maileroo") =>
+      setActiveProviderFn({ data: { provider: value } }),
+    onSuccess: () => {
+      toast.success("Active provider updated");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "system-senders"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "system-emails"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Could not switch provider"),
+  });
   const [senderEdit, setSenderEdit] = useState<{
     purpose: string;
     email: string;
     name: string;
     replyTo: string;
-    provider: "auto" | "managed" | "ses";
+    provider: "auto" | "managed" | "ses" | "maileroo";
     active: boolean;
   } | null>(null);
   const saveSender = useServerFn(updateSystemSenderIdentity);
