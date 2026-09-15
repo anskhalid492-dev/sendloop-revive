@@ -8,19 +8,30 @@ export type FunnelInput = {
   delivered: number;
   opens: number;
   replies: number;
+  /** Audience size at the top of the funnel, when known. */
+  leads?: number | null;
+  /** Replies classified as positive. */
+  positiveReplies?: number | null;
+  /** Meetings booked in the same range. */
+  meetings?: number | null;
 };
 
 const STEP_STYLES = [
   "bg-primary/80",
+  "bg-primary/70",
   "bg-sky-500/80",
   "bg-violet-500/80",
   "bg-emerald-500/80",
+  "bg-emerald-600/80",
+  "bg-amber-500/80",
 ] as const;
 
+const DRILLDOWN_KEYS = new Set<FunnelStepKey>(["sent", "delivered", "opens", "replies"]);
+
 /**
- * Sent → Delivered → Opened → Replied, using the same deduplicated engagement
- * counts as the KPI cards. Each bar is sized against the top of the funnel and
- * annotated with its step-to-step conversion.
+ * Leads → Sent → Delivered → Opened → Replied → Positive → Meeting, using the
+ * same deduplicated engagement counts as the KPI cards. Each bar is sized
+ * against the top of the funnel and annotated with its step-to-step conversion.
  */
 export function ConversionFunnel({
   data,
@@ -33,13 +44,36 @@ export function ConversionFunnel({
   title?: string;
   onStepClick?: ((step: FunnelStepKey) => void) | undefined;
 }) {
-  const steps = [
-    { key: "sent" as const, label: "Sent", value: data.sent, prev: null as number | null },
-    { key: "delivered" as const, label: "Delivered", value: data.delivered, prev: data.sent },
-    { key: "opens" as const, label: "Opened", value: data.opens, prev: data.delivered },
-    { key: "replies" as const, label: "Replied", value: data.replies, prev: data.opens },
-  ];
-  const top = Math.max(data.sent, 1);
+  const steps: Array<{ key: string; label: string; value: number; prev: number | null }> = [];
+  if (typeof data.leads === "number") {
+    steps.push({ key: "leads", label: "Leads", value: data.leads, prev: null });
+  }
+  steps.push({
+    key: "sent",
+    label: "Sent",
+    value: data.sent,
+    prev: typeof data.leads === "number" ? data.leads : null,
+  });
+  steps.push({ key: "delivered", label: "Delivered", value: data.delivered, prev: data.sent });
+  steps.push({ key: "opens", label: "Opened", value: data.opens, prev: data.delivered });
+  steps.push({ key: "replies", label: "Replied", value: data.replies, prev: data.delivered });
+  if (typeof data.positiveReplies === "number") {
+    steps.push({
+      key: "positive",
+      label: "Positive",
+      value: data.positiveReplies,
+      prev: data.replies,
+    });
+  }
+  if (typeof data.meetings === "number") {
+    steps.push({
+      key: "meeting",
+      label: "Meeting booked",
+      value: data.meetings,
+      prev: typeof data.positiveReplies === "number" ? data.positiveReplies : data.replies,
+    });
+  }
+  const top = Math.max(data.leads ?? data.sent, data.sent, 1);
   const empty = data.sent === 0 && data.delivered === 0;
 
   return (
