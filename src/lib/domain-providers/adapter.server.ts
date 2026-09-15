@@ -88,6 +88,25 @@ export async function providerFetch(
   return { ok: res.ok, status: res.status, body, json };
 }
 
+/**
+ * Raised when a provider lookup could NOT be completed (missing/invalid
+ * credential, 5xx, timeout). It must never be collapsed into "the provider has
+ * no record of this domain" — that reports a check failure as a fact about the
+ * customer's domain.
+ */
+export class ProviderLookupError extends Error {
+  readonly status: number;
+  constructor(message: string, status = 0) {
+    super(message);
+    this.name = "ProviderLookupError";
+    this.status = status;
+  }
+}
+
+export function isProviderLookupError(error: unknown): error is ProviderLookupError {
+  return error instanceof Error && error.name === "ProviderLookupError";
+}
+
 export function failure(status: number, body: string): ProviderDomainState {
   return { state: "failed", detail: `Provider responded [${status}]: ${body.slice(0, 400)}` };
 }
