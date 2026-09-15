@@ -152,6 +152,7 @@ export const DOMAIN_READINESS_STATES = [
   "PROVIDER_PENDING",
   "RECEIVING_DISABLED",
   "READY",
+  "CHECK_FAILED",
   "ERROR",
 ] as const;
 
@@ -165,6 +166,8 @@ export const READINESS_TO_STAGE: Record<DomainReadinessState, DomainStage> = {
   PROVIDER_PENDING: "provider_verification",
   RECEIVING_DISABLED: "provider_verification",
   READY: "ready",
+  // A failed check says nothing about the domain, so its stage must not change.
+  CHECK_FAILED: "provider_verification",
   ERROR: "provider_error",
 };
 
@@ -181,6 +184,8 @@ export const READINESS_MESSAGE: Record<DomainReadinessState, string> = {
   RECEIVING_DISABLED:
     "Your email provider requires receiving to be enabled before MunchReach can receive replies.",
   READY: "This domain is ready to send and receive email.",
+  CHECK_FAILED:
+    "We could not check this domain's status just now. Nothing is wrong with your setup — please try again in a moment.",
   ERROR: "This domain could not be verified yet. We will keep checking automatically.",
 };
 
@@ -193,10 +198,16 @@ export type ReadinessInput = {
   /** Whether the provider reports receiving as switched on. */
   inboundEnabled: boolean;
   mx: MxComparison;
+  /**
+   * True when the status check itself could not be completed. It is NOT a fact
+   * about the domain and must never be reported as "not configured".
+   */
+  checkFailed?: boolean;
 };
 
 /** Provider-neutral readiness decision. Pure and fully testable. */
 export function computeDomainReadiness(input: ReadinessInput): DomainReadinessState {
+  if (input.checkFailed) return "CHECK_FAILED";
   if (input.providerState === "failed") return "ERROR";
   if (!input.domainKnown) return "NOT_CONFIGURED";
   if (input.providerState !== "verified" || !input.readyToSend) return "PROVIDER_PENDING";
