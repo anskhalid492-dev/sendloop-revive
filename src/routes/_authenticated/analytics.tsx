@@ -613,6 +613,11 @@ function AnalyticsPage() {
           </div>
         </div>
 
+        <DeliverabilityPanel filters={filters} />
+
+        <ActivityFeed filters={filters} />
+
+
         {!overview.isLoading && !hasActivity ? (
           <p className="text-center text-xs text-muted-foreground">
             Metrics appear as soon as your campaigns start sending and delivery is reported
