@@ -17,14 +17,29 @@ export const ANALYTICS_ROOT = "analytics" as const;
 /** Canonical query keys. Never build an analytics key inline. */
 export const analyticsKeys = {
   root: [ANALYTICS_ROOT] as const,
-  overview: (workspaceId: string | null, from: string, to: string) =>
-    [ANALYTICS_ROOT, "overview", workspaceId, from, to] as const,
-  series: (workspaceId: string | null, from: string, to: string, bucket: string) =>
-    [ANALYTICS_ROOT, "series", workspaceId, from, to, bucket] as const,
-  campaigns: (workspaceId: string | null, from: string, to: string) =>
-    [ANALYTICS_ROOT, "campaigns", workspaceId, from, to] as const,
-  accounts: (workspaceId: string | null, from: string, to: string) =>
-    [ANALYTICS_ROOT, "accounts", workspaceId, from, to] as const,
+  overview: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "overview", workspaceId, from, to, ...filters] as const,
+  series: (
+    workspaceId: string | null,
+    from: string,
+    to: string,
+    bucket: string,
+    ...filters: unknown[]
+  ) => [ANALYTICS_ROOT, "series", workspaceId, from, to, bucket, ...filters] as const,
+  campaigns: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "campaigns", workspaceId, from, to, ...filters] as const,
+  accounts: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "accounts", workspaceId, from, to, ...filters] as const,
+  sequence: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "sequence", workspaceId, from, to, ...filters] as const,
+  replies: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "replies", workspaceId, from, to, ...filters] as const,
+  deliverability: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "deliverability", workspaceId, from, to, ...filters] as const,
+  activity: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "activity", workspaceId, from, to, ...filters] as const,
+  filterOptions: (workspaceId: string | null) =>
+    [ANALYTICS_ROOT, "filter-options", workspaceId] as const,
   commandCenter: (workspaceId: string | null, days: number) =>
     [ANALYTICS_ROOT, "command-center", workspaceId, days] as const,
   campaignStats: (campaignId: string) => [ANALYTICS_ROOT, "campaign", campaignId] as const,
