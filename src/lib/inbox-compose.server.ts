@@ -46,16 +46,23 @@ export async function composeAndSend(input: ComposeInput) {
   const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
   await assertMailboxCapacity(account, "reply");
 
-  // Customer-owned mailbox credentials first, shared provider credentials after.
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(supabaseAdmin, {
+  // Provider + credentials are resolved dynamically against the currently
+  // active infrastructure. The mailbox's stored provider is never a credential
+  // source, and there is no environment-key shortcut for a disabled provider.
+  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
+  const resolved = await resolveMailboxSendingProvider(supabaseAdmin, {
     id: account.id as string,
+    from_email: account.from_email as string,
+    provider: (account.provider as string | null) ?? null,
     provider_id: (account.provider_id as string | null) ?? null,
   });
-  const envFallback = account.provider === "resend" && Boolean(process.env["RESEND_API_KEY"]);
-  if (!credentials && !envFallback) {
+  if (!resolved) {
+    console.warn(
+      `[inbox-compose] refused: no active sending infrastructure for ${account.from_email} (recorded provider "${account.provider ?? "none"}").`,
+    );
     throw new Error("Sending is temporarily unavailable for this mailbox.");
   }
+  const credentials = resolved.credentials;
 
   // Resolve the lead so the conversation is attached to the CRM record.
   let leadId = input.leadId;
@@ -75,7 +82,7 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error(`This address is on your suppression list (${blocked}) and cannot be emailed.`);
   }
 
-  const adapter = getAdapter(account.provider);
+  const adapter = getAdapter(resolved.provider);
   const { mintReplyRoute } = await import("@/lib/inbound-routing.server");
   const replyRoute = await mintReplyRoute(account.from_email, {
     workspaceId: input.workspaceId,

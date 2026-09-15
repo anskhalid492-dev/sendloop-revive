@@ -981,12 +981,22 @@ export async function adminTestAccountConnection(actorId: string, accountId: str
     .maybeSingle();
   if (!account) throw new Error("Mailbox not found");
 
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(supabaseAdmin, {
+  // Dynamic resolution against currently active infrastructure — the provider
+  // stored on the mailbox row is a historical value, not a credential source.
+  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
+  const resolved = await resolveMailboxSendingProvider(supabaseAdmin, {
     id: account.id as string,
-    provider_id: (account.provider_id as string | null) ?? null,
+    from_email: account.from_email as string,
     provider: (account.provider as string | null) ?? null,
+    provider_id: (account.provider_id as string | null) ?? null,
   });
+  if (!resolved) {
+    console.warn(
+      `[admin-outreach] refused: no active sending infrastructure for ${account.from_email} (recorded provider "${account.provider ?? "none"}").`,
+    );
+  }
+  const credentials = resolved?.credentials ?? null;
+  const activeProvider = resolved?.provider ?? (account.provider as string);
   const startedAt = Date.now();
 
   if (!credentials) {
@@ -1016,10 +1026,10 @@ export async function adminTestAccountConnection(actorId: string, accountId: str
   const { checkSenderDomainVerification, senderDomain, DOMAIN_NOT_VERIFIED_MESSAGE } = await import(
     "@/lib/managed-sending.server"
   );
-  const test = await testProviderCredentials(account.provider as string, credentials);
+  const test = await testProviderCredentials(activeProvider, credentials);
   const domain = senderDomain(account.from_email as string);
   const verification = test.ok
-    ? await checkSenderDomainVerification(account.provider as string, credentials, domain, {
+    ? await checkSenderDomainVerification(activeProvider, credentials, domain, {
         fresh: true,
       })
     : { status: "unknown" as const, detail: "Provider credentials check failed." };
@@ -1049,7 +1059,7 @@ export async function adminTestAccountConnection(actorId: string, accountId: str
     actor_id: actorId,
     kind: "test",
     ok,
-    provider: account.provider,
+    provider: activeProvider,
     message,
     duration_ms: Date.now() - startedAt,
     detail: { domain, domainVerification: verification.status, adminInitiated: true },
