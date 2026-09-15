@@ -200,11 +200,13 @@ async function logEvent(
   });
   // Unique violation on external_id == provider redelivery; analytics must not double count.
   if (error && error.code === "23505") return false;
-  // Check-constraint drift on the event type must never abort a dispatch cycle:
-  // the operational work (sending, placement bookkeeping) already succeeded.
+  // Check-constraint drift on the event type must never abort a dispatch cycle,
+  // and must not suppress the bookkeeping that follows: only a *duplicate* means
+  // the counters were already applied. A rejected type is still a first sighting,
+  // so report it as fresh and let stats/health update.
   if (error && error.code === "23514") {
-    console.warn(`warmup event type "${row.type}" rejected by the database constraint — skipped`);
-    return false;
+    console.warn(`warmup event type "${row.type}" rejected by the database constraint — counted anyway`);
+    return true;
   }
   if (error) throw new Error(error.message);
   return true;
