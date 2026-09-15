@@ -354,11 +354,16 @@ export async function selectProvider(
     // capacity must stay off — never silently substituted by a platform key.
     if (preferred && pool.some((row) => row.provider === preferred)) return null;
     // Last resort: a platform key so the very first deployment can verify a
-    // domain before the pool is configured. The provisioned provider wins;
-    // otherwise any domain-capable provider with a platform key is used.
+    // domain before the pool is configured. It is ONLY for infrastructure the
+    // admin has never configured: a provider that has a pool row is governed by
+    // its Providers settings, so a disabled, unhealthy or out-of-capacity row
+    // must never be resurrected through an environment key. Ignoring this is
+    // how a transient failure on the active provider used to hand domains to
+    // switched-off infrastructure.
     const { platformKeyFor } = await import("@/lib/managed-sending.server");
     const order = preferred ? [preferred] : DOMAIN_CAPABLE_PROVIDERS;
     for (const provider of order) {
+      if (pool.some((row) => row.provider === provider)) continue;
       const envKey = platformKeyFor(provider);
       if (envKey) {
         return {
@@ -370,6 +375,17 @@ export async function selectProvider(
         };
       }
     }
+    console.error(
+      `[provider-pool] no active provider available: ${JSON.stringify({
+        reason: "no_enabled_provider",
+        scope,
+        key: options.key,
+        preferred,
+        poolSize: pool.length,
+        excluded: [...exclude],
+        requireDomainApi: options.requireDomainApi === true,
+      })}`,
+    );
     return null;
   }
 
