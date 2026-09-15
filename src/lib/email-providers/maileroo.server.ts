@@ -211,7 +211,13 @@ export const mailerooEmailProvider: EmailProvider = {
     const body = await res.text().catch(() => "");
     const payload = res.ok ? asRecord(safeJson(body)) : {};
     const list = payload["data"];
-    const routes = Array.isArray(list) ? list : (asRecord(list)["routes"] as unknown[] | undefined) ?? [];
+    // Maileroo returns { data: { items: [...] } }; older/other shapes used
+    // a bare array or { routes: [...] }.
+    const routes = Array.isArray(list)
+      ? list
+      : ((asRecord(list)["items"] as unknown[] | undefined) ??
+        (asRecord(list)["routes"] as unknown[] | undefined) ??
+        []);
     const { mapMailerooRecords, mailerooEntriesCreated } = await import(
       "@/lib/domain-providers/maileroo.server"
     );
