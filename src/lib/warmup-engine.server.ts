@@ -1053,6 +1053,30 @@ export async function applyWarmupInbound(input: {
 }
 
 /**
+ * Arrival is confirmed by a round trip: the receiving mailbox hands the message
+ * back through our own inbound feed. That is only possible when the recipient's
+ * domain routes its receiving to us. Mail to any other mailbox (a peer on an
+ * outside domain, a free-provider seed address) is very likely delivered, we
+ * simply cannot observe it — so it must never be scored as a miss.
+ */
+async function observableRecipientDomains(admin: Admin): Promise<Set<string>> {
+  const { data } = await admin
+    .from("sending_domains")
+    .select("domain, mx_status")
+    .eq("mx_status", "verified");
+  return new Set(
+    ((data ?? []) as Array<{ domain: string | null }>)
+      .map((row) => (row.domain ?? "").trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function recipientDomain(email: string | null | undefined): string {
+  const at = (email ?? "").trim().toLowerCase().lastIndexOf("@");
+  return at === -1 ? "" : (email ?? "").trim().toLowerCase().slice(at + 1);
+}
+
+/**
  * Marks sent warmup mail that never showed up on the receiving side. Runs on
  * every cycle so the dashboard never reports a delivery that did not happen.
  */
@@ -1060,14 +1084,27 @@ async function sweepPlacement(admin: Admin): Promise<number> {
   const cutoff = new Date(Date.now() - PLACEMENT_WINDOW_MS).toISOString();
   const { data: stale } = await admin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id")
+    .select("id, workspace_id, sending_account_id, to_email")
     .eq("placement", "pending")
     .in("status", ["sent", "delivered"])
     .not("processed_at", "is", null)
     .lt("processed_at", cutoff)
     .limit(200);
 
-  for (const job of (stale ?? []) as Array<Record<string, string>>) {
+  if (!stale?.length) return 0;
+  const observable = await observableRecipientDomains(admin);
+
+  for (const job of stale as Array<Record<string, string>>) {
+    const measurable = observable.has(recipientDomain(job["to_email"]));
+    if (!measurable) {
+      // Delivered as far as the provider is concerned; no inbound feed exists on
+      // the receiving side, so there is nothing to confirm and nothing to score.
+      await admin
+        .from("warmup_jobs")
+        .update({ placement: "unobservable", placement_checked_at: new Date().toISOString() })
+        .eq("id", job["id"]!);
+      continue;
+    }
     await admin
       .from("warmup_jobs")
       .update({ placement: "not_received", placement_checked_at: new Date().toISOString() })
@@ -1088,7 +1125,7 @@ async function sweepPlacement(admin: Admin): Promise<number> {
       );
     }
   }
-  return (stale ?? []).length;
+  return stale.length;
 }
 
 /* ------------------------------------------------------------ health score */
