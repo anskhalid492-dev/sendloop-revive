@@ -243,6 +243,28 @@ export async function ensureProviderDomain(
   return null;
 }
 
+/**
+ * Whether the DNS records stored on an unverified domain still belong to the
+ * sending infrastructure that is active today. When they do not, the records
+ * shown to the customer are stale and must be regenerated against the active
+ * provider — otherwise a domain provisioned before an infrastructure switch
+ * would ask the customer to publish records the platform no longer uses.
+ */
+export async function domainProviderIsStale(admin: Admin, row: DomainRow): Promise<boolean> {
+  if (row.disabled_at) return false;
+  if (domainIsPinnedToProvider(row)) return false;
+  if (
+    row.provider_locked_until != null &&
+    new Date(row.provider_locked_until).getTime() > Date.now()
+  ) {
+    return false;
+  }
+  if (!row.provider) return false;
+  const active = await resolveDomainProvider(admin, { key: row.domain });
+  if (!active) return false;
+  return active.provider !== row.provider;
+}
+
 
 /**
  * The complete automatic verification pass. Never marks a domain verified
