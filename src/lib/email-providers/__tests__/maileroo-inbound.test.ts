@@ -47,7 +47,7 @@ describe("maileroo inbound translator", () => {
     const flat = mailerooFlattenInboundPayload(payload)!;
     const data = flat["data"] as Record<string, unknown>;
     expect(flat["type"]).toBe("email.received");
-    expect(data["from"]).toBe("lead@example.com");
+    expect(data["from"]).toBe("Lead Person <lead@example.com>");
     expect(data["to"]).toEqual([
       "sarah+ml_abc123@meetsmartoutreach.agency",
       "sarah+ml_abc123@meetsmartoutreach.agency",
