@@ -33,6 +33,18 @@ import {
 
 const ID = "maileroo";
 
+/** The only event names Maileroo accepts on a webhook subscription. */
+const MAILEROO_WEBHOOK_EVENTS = [
+  "accepted",
+  "delivered",
+  "rejected",
+  "deferred",
+  "failed",
+  "opened",
+  "clicked",
+  "complained",
+] as const satisfies readonly string[];
+
 const EVENT_MAP: Record<string, NormalizedEmailEventType> = {
   accepted: "ACCEPTED",
   delivered: "DELIVERED",
