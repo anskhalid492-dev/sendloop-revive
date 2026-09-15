@@ -165,7 +165,13 @@ export function mapMailerooRecords(domain: string, found: MailerooDomain | null)
 
 export function mapMailerooState(found: MailerooDomain | null): ProviderDomainState["state"] {
   if (!found) return "unknown";
+  // Maileroo reports verification as a BOOLEAN on the list endpoint
+  // (`status: true`) and as a string on others. Both must be understood, or a
+  // verified domain reads as pending forever.
+  if (typeof found.status === "boolean") return found.status ? "verified" : "pending";
   const status = providerText(found.status).toLowerCase();
+  if (status === "true" || status === "1") return "verified";
+  if (status === "false" || status === "0") return "pending";
   if (status.includes("verified") || status.includes("active")) return "verified";
   if (status.includes("fail")) return "failed";
   const dns = found.dns_records ?? {};
@@ -175,15 +181,37 @@ export function mapMailerooState(found: MailerooDomain | null): ProviderDomainSt
   return "pending";
 }
 
+/**
+ * Looks the domain up at the provider.
+ *
+ * Returns `null` ONLY when the provider answered successfully and has no such
+ * domain. A failed call (missing/invalid credential, 5xx, timeout) throws
+ * `ProviderLookupError`, so callers can say "we could not check" instead of
+ * falsely claiming the domain is not registered.
+ */
 export async function findMailerooDomain(
   creds: ProviderCredentials,
   domain: string,
 ): Promise<MailerooDomain | null> {
-  const list = await providerFetch(
-    `${API}/domains?search=${encodeURIComponent(domain)}&per_page=100`,
-    { headers: mailerooHeaders(creds) },
-  );
-  if (!list.ok) return null;
+  if (!providerText(creds["api_key"])) {
+    throw new ProviderLookupError("No infrastructure credential was available for this check.");
+  }
+  let list: Awaited<ReturnType<typeof providerFetch>>;
+  try {
+    list = await providerFetch(`${API}/domains?search=${encodeURIComponent(domain)}&per_page=100`, {
+      headers: mailerooHeaders(creds),
+    });
+  } catch (error) {
+    throw new ProviderLookupError(
+      `The infrastructure could not be reached: ${error instanceof Error ? error.message : "network error"}`,
+    );
+  }
+  if (!list.ok) {
+    throw new ProviderLookupError(
+      `Domain lookup failed [${list.status}]: ${list.body.slice(0, 200)}`,
+      list.status,
+    );
+  }
   const payload = data<MailerooDomain[] | { domains?: MailerooDomain[] }>(list.json);
   const items = Array.isArray(payload) ? payload : (payload?.domains ?? []);
   const match = items.find(
@@ -192,8 +220,8 @@ export async function findMailerooDomain(
   if (!match?.id) return match ?? null;
   const detail = await providerFetch(`${API}/domains/${match.id}`, {
     headers: mailerooHeaders(creds),
-  });
-  return detail.ok ? (data<MailerooDomain>(detail.json) ?? match) : match;
+  }).catch(() => null);
+  return detail?.ok ? (data<MailerooDomain>(detail.json) ?? match) : match;
 }
 
 export const mailerooDomainAdapter: DomainProviderAdapter = {
