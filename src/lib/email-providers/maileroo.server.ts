@@ -251,7 +251,14 @@ export const mailerooEmailProvider: EmailProvider = {
         forward_list: ["https://munchreach.com/api/public/inbound/email"],
       }),
     });
-    if (!res.ok) throw new Error(`The provider rejected the inbound route [${res.status}].`);
+    if (!res.ok) {
+      const body = (await res.text().catch(() => "")).slice(0, 300);
+      throw new Error(
+        res.status === 401 || res.status === 403
+          ? `The infrastructure credential is not authorised to manage inbound routes [${res.status}]: ${body}`
+          : `The provider rejected the inbound route [${res.status}]: ${body}`,
+      );
+    }
     return this.getInboundStatus!(creds, domain);
   },
 
