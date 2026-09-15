@@ -1,0 +1,2 @@
+ALTER TABLE public.warmup_events DROP CONSTRAINT IF EXISTS warmup_events_type_check;
+ALTER TABLE public.warmup_events ADD CONSTRAINT warmup_events_type_check CHECK (type = ANY (ARRAY['scheduled'::text, 'sent'::text, 'delivered'::text, 'bounced'::text, 'complained'::text, 'failed'::text, 'deferred'::text, 'replied'::text, 'opened'::text, 'clicked'::text, 'not_received'::text]));
