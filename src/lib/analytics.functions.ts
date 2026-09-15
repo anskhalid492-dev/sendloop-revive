@@ -318,6 +318,7 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
           return {
             ...row,
             ...totals,
+            complained: 0,
             positiveReplies: count("positive"),
             negativeReplies: count("negative"),
             outOfOfficeReplies: count("out_of_office"),
