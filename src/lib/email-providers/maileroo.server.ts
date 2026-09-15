@@ -47,6 +47,14 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+function safeJson(body: string): unknown {
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
 function str(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value : null;
 }
