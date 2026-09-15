@@ -234,19 +234,9 @@ export const getAnalyticsTimeseries = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    const from = new Date(data.from);
-    const to = new Date(data.to);
-    const [{ fetchCampaignStats }, { collapseMessageUnits, computeTimeseries }] = await Promise.all([
-      import("@/lib/campaign-stats.server"),
-      import("@/lib/campaign-stats"),
-    ]);
-    const bundle = await fetchCampaignStats(client, {
-      workspaceId: data.workspaceId,
-      from,
-      to,
-    });
-    const units = collapseMessageUnits(bundle.messages, bundle.signals);
-    return computeTimeseries(units.values(), {
+    const { computeTimeseries } = await import("@/lib/campaign-stats");
+    const { units, from, to } = await loadUnits(client, data);
+    return computeTimeseries(units, {
       bucket: data.bucket,
       from,
       to,
