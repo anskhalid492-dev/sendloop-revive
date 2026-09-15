@@ -1,0 +1,3 @@
+-- lovable-cron-fallback-reviewed: 1440 runs/day; safety-net sweep for replies stuck unfiled — explicitly requested by the user; the work is a lightweight check of the small pending-replies queue, and no event-driven alternative exists for this fallback
+SELECT cron.unschedule('sendloop-inbound-retry') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'sendloop-inbound-retry');
+SELECT cron.schedule('sendloop-inbound-retry', '* * * * *', $$SELECT public.run_inbound_retry();$$);
