@@ -88,6 +88,17 @@ async function senderContext(admin: unknown) {
 
   const verifiedDomains = domains.filter((d) => states[d] === "verified");
 
+  // Maileroo verifies at the DOMAIN level: every MunchReach identity on a
+  // verified domain is usable as a From address with no per-address setup.
+  const { resolveSystemMaileroo, mailerooVerifiedDomains } = await import(
+    "@/lib/system-email-maileroo.server"
+  );
+  const maileroo = await resolveSystemMaileroo(admin, senders[0]?.email ?? "");
+  const mailerooStates = maileroo
+    ? await mailerooVerifiedDomains(maileroo.credentials, domains)
+    : {};
+  const mailerooVerified = domains.filter((d) => mailerooStates[d] === "verified");
+
   return {
     settings,
     overrides,
@@ -99,6 +110,10 @@ async function senderContext(admin: unknown) {
     domainStates: states,
     sesEnabled: settings.ses_enabled === true,
     sesConnected: Boolean(credentials),
+    mailerooAvailable: maileroo !== null,
+    mailerooDomainStates: mailerooStates,
+    mailerooVerifiedDomains: mailerooVerified,
+    activeProvider: settings.system_provider ?? "auto",
     region,
   };
 }
