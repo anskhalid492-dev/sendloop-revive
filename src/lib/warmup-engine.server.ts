@@ -308,19 +308,27 @@ function slots(settings: SettingsRow, count: number): Date[] {
 /** Human-readable state of a mailbox for the dashboard and the runner log. */
 export async function warmupBlockReason(
   admin: Admin,
-  account: Pick<AccountRow, "id" | "workspace_id" | "provider_id" | "status" | "paused" | "customer_enabled"> & {
+  account: Pick<
+    AccountRow,
+    "id" | "workspace_id" | "from_email" | "provider_id" | "status" | "paused" | "customer_enabled"
+  > & {
     provider_id?: string | null;
   },
 ): Promise<string | null> {
   if (account.paused) return "Mailbox is paused.";
   if (!account.customer_enabled) return "Mailbox sending is switched off.";
   if (account.status === "disabled") return "Mailbox is disabled.";
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(admin, {
+  // Availability is decided by the infrastructure that is active right now, not
+  // by the provider recorded on the mailbox when it was connected.
+  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
+  const resolved = await resolveMailboxSendingProvider(admin, {
     id: account.id,
+    from_email: account.from_email,
     provider_id: account.provider_id ?? null,
   });
-  if (!credentials) return "No sending credentials stored — reconnect this mailbox to start warmup.";
+  if (!resolved) {
+    return "No active sending infrastructure is available for this mailbox right now.";
+  }
   return null;
 }
 
