@@ -237,7 +237,7 @@ export function ConversationList({
                         <p className="mt-1 truncate text-xs font-medium">{item.subject}</p>
                         <p className="truncate text-xs text-muted-foreground">
                           {item.last_direction === "outbound" ? "You: " : ""}
-                          {item.last_preview ?? "No preview"}
+                          {replyPreview(item.last_preview) || "No preview"}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           <Badge
