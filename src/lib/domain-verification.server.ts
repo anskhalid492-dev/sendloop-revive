@@ -441,6 +441,31 @@ export async function runDomainVerification(
     `stage=${stage} dns=${String(dnsVerified)} provider=${providerState.state} :: ${providerState.detail}`,
   );
 
+  // A domain that just reached "ready" must have its reply-delivery webhook in
+  // place: delivery, bounce, open, click and inbound reply events. This runs on
+  // every path that can produce a ready domain (customer setup, re-verification,
+  // the recheck runner and admin-side creation) because they all land here. It is
+  // idempotent, retries internally, and records a real reason on failure so the
+  // Webhooks card reports "Not ready" instead of leaving the domain half-set-up.
+  if (stage === "ready") {
+    try {
+      const { ensureInboundWebhook } = await import("@/lib/email-providers/webhook-provision.server");
+      const webhook = await ensureInboundWebhook({
+        providerId: provider.provider,
+        credentials: provider.credentials,
+        domain: row.domain,
+      });
+      await logDomainEvent(
+        admin,
+        row,
+        provider.provider,
+        `webhook=${webhook.state} :: ${webhook.detail}`,
+      );
+    } catch {
+      // Webhook provisioning never blocks or reverses a verification result.
+    }
+  }
+
   return {
     stage,
     dnsVerified,
