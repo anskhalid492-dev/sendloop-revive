@@ -55,24 +55,64 @@ export type ProviderTestResult = {
 };
 
 /**
+ * Removes whitespace and newlines pasted along with a credential, and drops
+ * masked placeholders so a redacted display value can never be stored as if it
+ * were the real key.
+ */
+export function trimCredentials(
+  credentials: Record<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(credentials)) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed === "" || /^[•*]{3,}/.test(trimmed)) continue;
+    out[key] = trimmed;
+  }
+  return out;
+}
+
+/**
  * Verifies provider credentials with a read-only API call.
  * SMTP and SES cannot be verified over plain HTTP from the server runtime, so
  * they stay "untested" until the sending engine performs the first real send.
  */
 export async function testProviderCredentials(
   provider: string,
-  credentials: Record<string, string>,
+  rawCredentials: Record<string, string>,
 ): Promise<ProviderTestResult> {
   const timeout = AbortSignal.timeout(10_000);
+  // Keys pasted from a dashboard routinely carry a trailing newline or spaces,
+  // which every provider rejects as an unknown credential.
+  const credentials = trimCredentials(rawCredentials);
+
+  /** Pulls the provider's own explanation out of its error body. */
+  const explain = (body: string): string => {
+    try {
+      const json = JSON.parse(body) as Record<string, unknown>;
+      const message =
+        json["message"] ?? json["error"] ?? json["detail"] ?? json["Message"];
+      if (typeof message === "string" && message.trim() !== "") return message;
+      if (message && typeof message === "object") return JSON.stringify(message).slice(0, 300);
+    } catch {
+      /* not JSON — fall through to the raw body */
+    }
+    return body.trim() === "" ? "no response body" : body;
+  };
 
   const request = async (url: string, headers: Record<string, string>) => {
     const res = await fetch(url, { headers, signal: timeout });
+    const body = (await res.text()).slice(0, 500);
     if (res.ok) return { ok: true, verified: true, message: "Connection verified." };
-    const body = (await res.text()).slice(0, 300);
+    const detail = explain(body);
+    console.error(
+      `[provider-credentials] ${provider} credential check failed`,
+      JSON.stringify({ provider, url, status: res.status, detail }),
+    );
     return {
       ok: false,
       verified: false,
-      message: `Provider rejected the credentials [${res.status}]: ${body}`,
+      message: `Provider rejected the credentials [${res.status}]: ${detail}`,
     };
   };
 
@@ -138,11 +178,25 @@ export async function testProviderCredentials(
           "X-ElasticEmail-ApiKey": credentials["api_key"] ?? "",
           Accept: "application/json",
         });
-      case "maileroo":
-        return await request("https://api.maileroo.com/v1/account", {
-          Authorization: `Bearer ${credentials["api_key"]}`,
+      case "maileroo": {
+        // Account/domain management lives on api.maileroo.com/v1 (Bearer
+        // account key). The sending host smtp.maileroo.com/api/v2 takes a
+        // different, per-domain key and must never be probed here. There is no
+        // /v1/account endpoint, so the domain list is the read-only check.
+        const key = credentials["api_key"] ?? "";
+        if (!key.startsWith("roo_")) {
+          return {
+            ok: false,
+            verified: false,
+            message:
+              "This looks like a per-domain sending key, not an Account API key. Account keys start with \"roo_\" and are created under API Keys in the sending infrastructure account; MunchReach creates per-domain sending keys itself.",
+          };
+        }
+        return await request("https://api.maileroo.com/v1/domains?per_page=1", {
+          Authorization: `Bearer ${key}`,
           Accept: "application/json",
         });
+      }
       case "courier": {
         // Courier documents no "whoami" endpoint. A profile read authenticates
         // the key: 404 means the key is valid but the profile does not exist.

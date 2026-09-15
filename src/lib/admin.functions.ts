@@ -239,16 +239,21 @@ export const saveProvider = createServerFn({ method: "POST" })
 
 
     if (data.credentials && Object.keys(data.credentials).length > 0) {
-      const { encryptCredentials, testProviderCredentials } = await import(
+      const { encryptCredentials, testProviderCredentials, trimCredentials } = await import(
         "./provider-credentials.server"
       );
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-      const result = await testProviderCredentials(data.provider, data.credentials);
+      // Store exactly what is tested: whitespace-trimmed, masked placeholders dropped.
+      const credentials = trimCredentials(data.credentials);
+      if (Object.keys(credentials).length === 0) {
+        throw new Error("No credential value was provided.");
+      }
+      const result = await testProviderCredentials(data.provider, credentials);
       const { error: secretError } = await supabaseAdmin.from("email_provider_secrets").upsert(
         {
           provider_id: providerId,
-          credentials_ciphertext: encryptCredentials(data.credentials),
+          credentials_ciphertext: encryptCredentials(credentials),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "provider_id" },
