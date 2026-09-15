@@ -330,7 +330,8 @@ export const mailerooEmailProvider: EmailProvider = {
       ? (payload as Record<string, unknown>[])
       : ((asRecord(payload)["webhooks"] as Record<string, unknown>[] | undefined) ?? []);
     return items.map((h) => ({
-      id: String(h["id"] ?? ""),
+      // Maileroo returns the identifier as `_id`; older shapes used `id`.
+      id: String(h["_id"] ?? h["id"] ?? ""),
       endpoint: String(h["callback_url"] ?? ""),
       status: "enabled",
       events: Array.isArray(h["event_types"]) ? (h["event_types"] as string[]) : [],
