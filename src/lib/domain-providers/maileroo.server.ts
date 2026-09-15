@@ -35,7 +35,8 @@ export type MailerooDnsEntry = {
 export type MailerooDomain = {
   id?: number | string;
   domain_name?: string;
-  status?: string;
+  /** Provider JSON: string on some endpoints, number/object on others. */
+  status?: unknown;
   sandbox?: boolean;
   free?: boolean;
   interaction_tracking?: boolean;
@@ -161,7 +162,7 @@ export async function findMailerooDomain(
   const payload = data<MailerooDomain[] | { domains?: MailerooDomain[] }>(list.json);
   const items = Array.isArray(payload) ? payload : (payload?.domains ?? []);
   const match = items.find(
-    (d) => (d.domain_name ?? "").toLowerCase() === domain.toLowerCase(),
+    (d) => providerText(d.domain_name).toLowerCase() === domain.toLowerCase(),
   );
   if (!match?.id) return match ?? null;
   const detail = await providerFetch(`${API}/domains/${match.id}`, {
