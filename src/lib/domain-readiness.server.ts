@@ -248,6 +248,19 @@ export async function enableDomainInbound(options: {
         "Your email provider requires receiving to be enabled before MunchReach can receive replies.",
     };
   }
-  const status = await provider.enableInbound(options.credentials ?? {}, options.domain);
+  const attempted = await attempt(() =>
+    provider.enableInbound!(options.credentials ?? {}, options.domain),
+  );
+  if (!attempted.ok) {
+    console.error(
+      `[domain-readiness] enable receiving failed for ${options.domain} on ${provider.id}: ${attempted.detail}`,
+    );
+    return {
+      ok: false,
+      enabled: false,
+      detail: `We could not switch receiving on just now. Please try again in a moment. (${attempted.detail})`,
+    };
+  }
+  const status = attempted.value;
   return { ok: status.enabled, enabled: status.enabled, detail: status.detail };
 }
