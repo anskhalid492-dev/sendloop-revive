@@ -528,3 +528,276 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
 
     return { step: data.step, total: rows.length, rows };
   });
+
+/* ------------------------------------------------------------------------ */
+/* Filters                                                                   */
+/* ------------------------------------------------------------------------ */
+
+export type AnalyticsFilterOptions = {
+  campaigns: Array<{ id: string; name: string; status: string }>;
+  accounts: Array<{ id: string; fromEmail: string }>;
+};
+
+/** Campaign and mailbox choices for the Analytics filter bar. */
+export const getAnalyticsFilterOptions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ workspaceId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<AnalyticsFilterOptions> => {
+    const client = context.supabase as Client;
+    const [campaigns, accounts] = await Promise.all([
+      client
+        .from("campaigns")
+        .select("id, name, status")
+        .eq("workspace_id", data.workspaceId)
+        .order("created_at", { ascending: false })
+        .limit(300),
+      client
+        .from("sending_accounts")
+        .select("id, from_email")
+        .eq("workspace_id", data.workspaceId)
+        .order("from_email", { ascending: true })
+        .limit(300),
+    ]);
+    return {
+      campaigns: ((campaigns.data ?? []) as Array<Record<string, unknown>>).map((c) => ({
+        id: String(c["id"]),
+        name: String(c["name"] ?? "") || "Untitled campaign",
+        status: String(c["status"] ?? "draft"),
+      })),
+      accounts: ((accounts.data ?? []) as Array<Record<string, unknown>>).map((a) => ({
+        id: String(a["id"]),
+        fromEmail: String(a["from_email"] ?? ""),
+      })),
+    };
+  });
+
+/* ------------------------------------------------------------------------ */
+/* Sequence performance                                                      */
+/* ------------------------------------------------------------------------ */
+
+/** Per-step and per-variant performance for the range. */
+export const getAnalyticsSequence = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => rangeInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const { computeSequenceStats } = await import("@/lib/analytics-sequence");
+    const { units, from, to } = await loadUnits(client, data);
+
+    const variantIds = Array.from(
+      new Set(units.map((u) => u.variantId).filter((v): v is string => !!v)),
+    );
+    const variantLabels = new Map<string, string>();
+    if (variantIds.length) {
+      const { data: rows } = await client
+        .from("campaign_step_variants")
+        .select("id, label")
+        .in("id", variantIds.slice(0, 500));
+      for (const row of (rows ?? []) as Array<Record<string, unknown>>) {
+        variantLabels.set(String(row["id"]), String(row["label"] ?? "") || "Variant");
+      }
+    }
+
+    const steps = computeSequenceStats(units, { from, to, variantLabels });
+
+    // Step names come from the sequence definition when a single campaign is
+    // in scope; across campaigns the step number is the only shared label.
+    const names = new Map<number, string>();
+    if (data.campaignId) {
+      const { data: defs } = await client
+        .from("campaign_steps")
+        .select("step_order, name, subject")
+        .eq("campaign_id", data.campaignId);
+      for (const row of (defs ?? []) as Array<Record<string, unknown>>) {
+        const label = String(row["name"] ?? "") || String(row["subject"] ?? "");
+        if (label) names.set(Number(row["step_order"] ?? 0), label);
+      }
+    }
+
+    return steps.map((step) => ({ ...step, name: names.get(step.step) ?? null }));
+  });
+
+/* ------------------------------------------------------------------------ */
+/* Reply intelligence                                                        */
+/* ------------------------------------------------------------------------ */
+
+export type ReplyIntelligence = {
+  total: number;
+  byCategory: Record<ReplyCategory, number>;
+  recent: Array<{
+    id: string;
+    email: string;
+    subject: string | null;
+    category: ReplyCategory;
+    receivedAt: string;
+  }>;
+};
+
+/** Reply volume split by intent, plus the most recent replies. */
+export const getReplyIntelligence = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => rangeInput.parse(input))
+  .handler(async ({ data, context }): Promise<ReplyIntelligence> => {
+    const client = context.supabase as Client;
+    const rows = await fetchReplyRows(client, data, new Date(data.from), new Date(data.to));
+    const byCategory: Record<ReplyCategory, number> = {
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      out_of_office: 0,
+      unsubscribe: 0,
+    };
+    // One reply per contact, so a long back-and-forth cannot inflate the split.
+    const seen = new Set<string>();
+    const deduped: Array<Record<string, unknown>> = [];
+    for (const row of rows) {
+      const key = String(row["lead_id"] ?? row["from_email"] ?? row["id"]);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(row);
+      byCategory[replyCategory(row["sentiment"])] += 1;
+    }
+
+    return {
+      total: deduped.length,
+      byCategory,
+      recent: deduped.slice(0, 25).map((row) => ({
+        id: String(row["id"]),
+        email: String(row["from_email"] ?? ""),
+        subject: (row["subject"] as string | null) ?? null,
+        category: replyCategory(row["sentiment"]),
+        receivedAt: String(row["received_at"]),
+      })),
+    };
+  });
+
+/* ------------------------------------------------------------------------ */
+/* Deliverability                                                            */
+/* ------------------------------------------------------------------------ */
+
+export type Deliverability = {
+  sent: number;
+  delivered: number;
+  bounced: number;
+  failed: number;
+  unsubscribed: number;
+  reasons: Array<{ reason: string; count: number }>;
+};
+
+/** Delivery health for the range with the most common failure reasons. */
+export const getDeliverability = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => rangeInput.parse(input))
+  .handler(async ({ data, context }): Promise<Deliverability> => {
+    const client = context.supabase as Client;
+    const { computeUnitTotals } = await import("@/lib/analytics-sequence");
+    const { units, from, to } = await loadUnits(client, data);
+    const totals = computeUnitTotals(units, { from, to });
+
+    let q = client
+      .from("campaign_messages")
+      .select("last_error, delivery_detail")
+      .eq("workspace_id", data.workspaceId)
+      .gte("updated_at", from.toISOString())
+      .lt("updated_at", to.toISOString())
+      .not("last_error", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(500);
+    if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+    if (data.accountId) q = q.eq("sending_account_id", data.accountId);
+    const { data: errorRows } = await q;
+
+    const counts = new Map<string, number>();
+    for (const row of (errorRows ?? []) as Array<Record<string, unknown>>) {
+      const raw = String(row["last_error"] ?? row["delivery_detail"] ?? "").trim();
+      if (!raw) continue;
+      const reason = raw.slice(0, 140);
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    }
+
+    return {
+      sent: totals.sent,
+      delivered: totals.delivered,
+      bounced: totals.bounced,
+      failed: totals.failed,
+      unsubscribed: totals.unsubscribed,
+      reasons: Array.from(counts.entries())
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6),
+    };
+  });
+
+/* ------------------------------------------------------------------------ */
+/* Activity feed                                                             */
+/* ------------------------------------------------------------------------ */
+
+export type ActivityEvent = {
+  id: string;
+  type: string;
+  email: string;
+  campaignId: string | null;
+  campaignName: string | null;
+  occurredAt: string;
+  detail: string | null;
+};
+
+/** The newest engagement and reply events, newest first. */
+export const getAnalyticsActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => rangeInput.extend({ limit: z.number().int().min(1).max(100).default(40) }).parse(input))
+  .handler(async ({ data, context }): Promise<ActivityEvent[]> => {
+    const client = context.supabase as Client;
+    const from = new Date(data.from).toISOString();
+    const to = new Date(data.to).toISOString();
+
+    let eventsQuery = client
+      .from("email_engagement_events")
+      .select("id, campaign_id, event_type, recipient_email, detail, occurred_at")
+      .eq("workspace_id", data.workspaceId)
+      .gte("occurred_at", from)
+      .lt("occurred_at", to)
+      .order("occurred_at", { ascending: false })
+      .limit(data.limit);
+    if (data.campaignId) eventsQuery = eventsQuery.eq("campaign_id", data.campaignId);
+    if (data.accountId) eventsQuery = eventsQuery.eq("sending_account_id", data.accountId);
+
+    const [events, campaigns] = await Promise.all([
+      eventsQuery,
+      client.from("campaigns").select("id, name").eq("workspace_id", data.workspaceId),
+    ]);
+
+    const names = new Map<string, string>();
+    for (const c of (campaigns.data ?? []) as Array<Record<string, unknown>>) {
+      names.set(String(c["id"]), String(c["name"] ?? "") || "Untitled campaign");
+    }
+
+    const rows: ActivityEvent[] = ((events.data ?? []) as Array<Record<string, unknown>>).map(
+      (e) => ({
+        id: String(e["id"]),
+        type: String(e["event_type"] ?? "event"),
+        email: String(e["recipient_email"] ?? ""),
+        campaignId: (e["campaign_id"] as string | null) ?? null,
+        campaignName: names.get(String(e["campaign_id"])) ?? null,
+        occurredAt: String(e["occurred_at"]),
+        detail: (e["detail"] as string | null) ?? null,
+      }),
+    );
+
+    const replies = await fetchReplyRows(client, data, new Date(data.from), new Date(data.to));
+    for (const r of replies.slice(0, data.limit)) {
+      rows.push({
+        id: `reply-${String(r["id"])}`,
+        type: `reply_${replyCategory(r["sentiment"])}`,
+        email: String(r["from_email"] ?? ""),
+        campaignId: (r["campaign_id"] as string | null) ?? null,
+        campaignName: names.get(String(r["campaign_id"])) ?? null,
+        occurredAt: String(r["received_at"]),
+        detail: (r["subject"] as string | null) ?? null,
+      });
+    }
+
+    return rows
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+      .slice(0, data.limit);
+  });
