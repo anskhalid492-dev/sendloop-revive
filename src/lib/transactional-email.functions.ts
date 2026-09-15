@@ -50,15 +50,17 @@ async function senderContext(admin: unknown) {
   const overrides = await getSenderIdentityOverrides(admin as any);
   const senders = resolveSenderIdentities(overrides);
 
-  // The managed provider is whatever the provider pool actually resolves right
-  // now (Resend today, another provider if the pool changes) — never assumed.
+  // The managed provider is whatever the provider pool actually resolves for
+  // SYSTEM email right now — never pinned to one vendor. Pinning "resend" here
+  // made the whole card read "Provider unavailable" the moment Resend was
+  // disabled, even with another provider enabled for system email.
   let managedProvider: string | null = null;
   try {
-    const managed = await resolveManagedProvider(admin as any, {
-      provider: "resend",
-      provider_id: null,
-      from_email: senders[0]?.email ?? "",
-    });
+    const managed = await resolveManagedProvider(
+      admin as any,
+      { provider: "", provider_id: null, from_email: senders[0]?.email ?? "" },
+      { scope: "system" },
+    );
     managedProvider = managed?.provider ?? null;
   } catch {
     managedProvider = null;
@@ -99,6 +101,15 @@ async function senderContext(admin: unknown) {
     : {};
   const mailerooVerified = domains.filter((d) => mailerooStates[d] === "verified");
 
+  // When nothing can deliver, say exactly why instead of "Provider unavailable".
+  let unavailableReason: string | null = null;
+  if (managedProvider === null && maileroo === null) {
+    const { diagnoseSystemProvider } = await import("@/lib/transactional/provider-diagnosis.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    unavailableReason = await diagnoseSystemProvider(admin as any);
+    console.error("[system-email] no provider available:", unavailableReason);
+  }
+
   return {
     settings,
     overrides,
@@ -114,6 +125,7 @@ async function senderContext(admin: unknown) {
     mailerooDomainStates: mailerooStates,
     mailerooVerifiedDomains: mailerooVerified,
     activeProvider: settings.system_provider ?? "auto",
+    unavailableReason,
     region,
   };
 }
@@ -135,6 +147,7 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
       managedProvider: ctx.managedProvider,
       activeProvider: ctx.activeProvider,
       mailerooAvailable: ctx.mailerooAvailable,
+      unavailableReason: ctx.unavailableReason,
     });
 
     const mailerooActive = provider.provider === "maileroo";

@@ -141,7 +141,7 @@ export const setProviderScopeEnabled = createServerFn({ method: "POST" })
 
     const { data: current, error: readError } = await context.supabase
       .from("email_providers")
-      .select("id, name, is_enabled, customer_enabled, system_enabled")
+      .select("id, name, provider, is_enabled, customer_enabled, system_enabled")
       .eq("id", data.id)
       .maybeSingle();
     if (readError) {
@@ -163,6 +163,27 @@ export const setProviderScopeEnabled = createServerFn({ method: "POST" })
     if (error) {
       if (isMissingScopeColumns(error.message)) throw new Error(SCOPE_COLUMNS_MISSING_MESSAGE);
       throw new Error(error.message);
+    }
+
+    // Keep System Emails in step with the provider switches: a pinned Active
+    // provider that an admin has just switched off for system email must not
+    // keep the card pinned to a provider that can no longer deliver.
+    if (data.scope === "system" && !data.enabled) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { getTransactionalSettings, saveTransactionalSettings } = await import(
+          "@/lib/transactional-email.server"
+        );
+        const settings = await getTransactionalSettings(supabaseAdmin);
+        const pinned = settings.system_provider ?? "auto";
+        const providerKey = (current as { provider?: string }).provider ?? "";
+        const pinnedKey = pinned === "resend" ? "resend" : pinned;
+        if (pinnedKey !== "auto" && pinnedKey === providerKey) {
+          await saveTransactionalSettings(supabaseAdmin, { system_provider: "auto" });
+        }
+      } catch (error) {
+        console.error("[providers] could not sync the system email active provider:", error);
+      }
     }
 
     return { ok: true, id: data.id, ...next };

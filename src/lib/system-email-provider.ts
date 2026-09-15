@@ -116,11 +116,22 @@ export function selectSystemEmailProvider(
     };
   }
 
-  if (input.sesEnabled && !input.sesCredentialsAvailable) {
+  if (input.sesEnabled && !input.sesCredentialsAvailable && input.managedAvailable) {
     return {
       provider: "managed",
       fallback: null,
       reason: "Amazon SES is enabled but not connected; using the existing provider.",
+    };
+  }
+
+  // No managed provider resolved, but Maileroo is connected: use it rather than
+  // reporting "unavailable" (this is the state right after Resend is disabled
+  // and Maileroo enabled, without an explicit pin).
+  if (!input.managedAvailable && input.mailerooAvailable) {
+    return {
+      provider: "maileroo",
+      fallback: null,
+      reason: "Maileroo is the only provider enabled for system email.",
     };
   }
 
