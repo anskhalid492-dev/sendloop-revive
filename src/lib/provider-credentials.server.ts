@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
+import { isReservedOutboundHeader } from "@/lib/outbound-headers";
+
 /**
  * Credential encryption key material.
  *
