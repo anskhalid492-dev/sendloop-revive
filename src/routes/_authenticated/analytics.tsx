@@ -488,12 +488,19 @@ function AnalyticsPage() {
           </div>
         </div>
 
+        <SequencePerformance filters={filters} />
+
+        <ReplyIntelligence filters={filters} />
+
         <ConversionFunnel
           data={{
+            leads: leadTotal,
             sent: current?.sent ?? 0,
             delivered: current?.delivered ?? 0,
             opens: current?.opens ?? 0,
             replies: current?.replies ?? 0,
+            positiveReplies: current?.positiveReplies ?? 0,
+            meetings: overview.data?.meetings ?? 0,
           }}
           onStepClick={workspaceId ? (step) => setFunnelStep(step) : undefined}
         />
