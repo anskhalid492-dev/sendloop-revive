@@ -201,7 +201,9 @@ export const getDomainDnsRecords = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<DomainSetupView> => {
     const row = await loadOwnedDomain(context.supabase as Client, data.id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { ensureProviderDomain } = await import("@/lib/domain-verification.server");
+    const { ensureProviderDomain, domainProviderIsStale } = await import(
+      "@/lib/domain-verification.server"
+    );
 
     let records = (row.provider_records ?? []) as Array<Record<string, unknown>>;
     // The locally recommended DMARC record is always appended, even when the
