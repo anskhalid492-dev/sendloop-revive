@@ -185,6 +185,10 @@ export type Unit = {
   status: string;
   /** Mailbox that sent (or is due to send) this unit. */
   accountId: string | null;
+  /** A/B variant used for this unit, when the step has variants. */
+  variantId: string | null;
+  /** Campaign this unit belongs to, when known. */
+  campaignId: string | null;
 
   deliveryStatus: string;
   sentAt: string | null;
