@@ -35,7 +35,22 @@ export type DomainRow = {
   stage: string;
   disabled_at?: string | null;
   provider_locked_until?: string | null;
+  verified_at?: string | null;
+  dns_status?: string | null;
 };
+
+/**
+ * A domain that already completed verification on a provider stays on that
+ * provider for good: the customer's published DNS records belong to it, and
+ * moving it would force a pointless re-verification. Everything else (pending
+ * DNS, failed, brand new) follows whichever provider is active right now.
+ */
+export function domainIsPinnedToProvider(
+  row: Pick<DomainRow, "provider" | "stage" | "verified_at" | "dns_status">,
+): boolean {
+  if (!row.provider) return false;
+  return Boolean(row.verified_at) || row.dns_status === "verified" || row.stage === "ready";
+}
 
 export type VerificationOutcome = {
   stage: DomainStage;
