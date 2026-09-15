@@ -326,6 +326,12 @@ export const mailerooEmailProvider: EmailProvider = {
   },
 
   async registerWebhook(creds, endpoint, events) {
+    // Maileroo webhooks carry delivery events only; inbound replies arrive via
+    // inbound routes. Callers asking for provider-neutral names such as
+    // "email.received" must not fail the registration — unknown names are
+    // dropped and the full delivery-event set is used instead.
+    const allowed = new Set(MAILEROO_WEBHOOK_EVENTS);
+    const requested = events.filter((e) => allowed.has(e.trim().toLowerCase()));
     const res = await fetch(`${MAILEROO_ACCOUNT_API}/webhooks`, {
       method: "POST",
       headers: mailerooHeaders(creds),
@@ -333,9 +339,7 @@ export const mailerooEmailProvider: EmailProvider = {
       body: JSON.stringify({
         callback_url: endpoint,
         domains: [],
-        event_types: events.length
-          ? events
-          : ["accepted", "delivered", "rejected", "deferred", "failed", "opened", "clicked", "complained"],
+        event_types: requested.length ? requested : [...MAILEROO_WEBHOOK_EVENTS],
       }),
     });
     const body = await res.text();
