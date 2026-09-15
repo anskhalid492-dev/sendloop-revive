@@ -88,6 +88,58 @@ function toSummary(row: Record<string, unknown> | undefined): AnalyticsSummary {
   };
 }
 
+/** Reply rows for the range, honouring the campaign and mailbox filters. */
+async function fetchReplyRows(client: Client, data: RangeInput, from: Date, to: Date) {
+  let q = client
+    .from("campaign_replies")
+    .select("id, campaign_id, sending_account_id, lead_id, from_email, subject, sentiment, received_at")
+    .eq("workspace_id", data.workspaceId)
+    .gte("received_at", from.toISOString())
+    .lt("received_at", to.toISOString())
+    .order("received_at", { ascending: false })
+    .limit(2000);
+  if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+  if (data.accountId) q = q.eq("sending_account_id", data.accountId);
+  const { data: rows, error } = await q;
+  if (error) return [] as Array<Record<string, unknown>>;
+  return (rows ?? []) as Array<Record<string, unknown>>;
+}
+
+export type ReplyCategory = "positive" | "neutral" | "negative" | "out_of_office" | "unsubscribe";
+
+/** Map a stored sentiment onto the five reply-intelligence buckets. */
+export function replyCategory(sentiment: unknown): ReplyCategory {
+  const value = String(sentiment ?? "").trim().toLowerCase();
+  if (value.includes("unsub") || value.includes("opt_out") || value.includes("opt-out")) {
+    return "unsubscribe";
+  }
+  if (value.includes("out_of_office") || value.includes("out-of-office") || value === "ooo" || value.includes("auto")) {
+    return "out_of_office";
+  }
+  if (value.includes("positive") || value.includes("interested") || value.includes("meeting")) {
+    return "positive";
+  }
+  if (value.includes("negative") || value.includes("not_interested") || value.includes("reject")) {
+    return "negative";
+  }
+  return "neutral";
+}
+
+/** Meetings booked in the range (lead activity written by the booking flows). */
+async function countMeetings(client: Client, data: RangeInput, from: Date, to: Date) {
+  let q = client
+    .from("lead_activities")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", data.workspaceId)
+    .eq("type", "meeting_booked")
+    .gte("created_at", from.toISOString())
+    .lt("created_at", to.toISOString());
+  if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+  const { count, error } = await q;
+  if (error) return null;
+  return Number(count ?? 0);
+}
+
 /** Totals for the selected range plus the immediately preceding range. */
 export const getAnalyticsOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -102,6 +154,7 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
     // Same authoritative reader as the Campaign Overview and the dashboard,
     // so workspace totals always equal the sum of the campaign numbers.
     const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+    const { collapseMessageUnits, computeAccountTotals } = await import("@/lib/campaign-stats");
     const sum = (rows: Iterable<import("@/lib/campaign-stats").CampaignStats>) => {
       const total = { ...ZERO };
       for (const s of rows) {
@@ -119,16 +172,58 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
       return total;
     };
 
-    const [current, previous] = await Promise.all([
-      fetchCampaignStats(client, { workspaceId: data.workspaceId, from, to }),
-      fetchCampaignStats(client, { workspaceId: data.workspaceId, from: prevFrom, to: from }),
+    const scope = campaignScope(data);
+    const [current, previous, meetings] = await Promise.all([
+      fetchCampaignStats(client, { workspaceId: data.workspaceId, ...scope, from, to }),
+      fetchCampaignStats(client, {
+        workspaceId: data.workspaceId,
+        ...scope,
+        from: prevFrom,
+        to: from,
+      }),
+      countMeetings(client, data, from, to),
     ]);
 
-    return {
-      current: sum(current.byCampaign.values()),
-      previous: sum(previous.byCampaign.values()),
+    if (!data.accountId) {
+      return {
+        current: sum(current.byCampaign.values()),
+        previous: sum(previous.byCampaign.values()),
+        meetings,
+      };
+    }
+
+    // Mailbox filter: derive the same metrics from the units that belong to
+    // that mailbox, and take reply intent from the replies it received.
+    const scoped = async (
+      bundle: Awaited<ReturnType<typeof fetchCampaignStats>>,
+      lo: Date,
+      hi: Date,
+    ): Promise<AnalyticsSummary> => {
+      const units = Array.from(
+        collapseMessageUnits(bundle.messages, bundle.signals).values(),
+      ).filter((u) => u.accountId === data.accountId);
+      const totals = computeAccountTotals(units, { from: lo, to: hi })[0];
+      const replies = await fetchReplyRows(client, data, lo, hi);
+      const positive = replies.filter((r) => replyCategory(r["sentiment"]) === "positive").length;
+      return {
+        ...ZERO,
+        sent: totals?.sent ?? 0,
+        delivered: totals?.delivered ?? 0,
+        opens: totals?.opens ?? 0,
+        clicks: totals?.clicks ?? 0,
+        replies: totals?.replies ?? 0,
+        positiveReplies: positive,
+        bounced: totals?.bounced ?? 0,
+        unsubscribed: totals?.unsubscribed ?? 0,
+        failed: totals?.failed ?? 0,
+      };
     };
 
+    return {
+      current: await scoped(current, from, to),
+      previous: await scoped(previous, prevFrom, from),
+      meetings,
+    };
   });
 
 /** Bucketed series for the performance chart. */
