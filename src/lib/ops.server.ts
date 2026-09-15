@@ -347,7 +347,6 @@ export async function runInboundTest(args: { userId: string; toEmail: string }) 
     to: args.toEmail,
     subject: "MunchReach inbound delivery test",
       text: "This is an automated inbound test.\n\nReply to this email and it should appear in the Unified Inbox within a minute.",
-      headers: { "Message-ID": messageIdHeader(outboundMessageId) },
     },
     { stage: "test" },
   );

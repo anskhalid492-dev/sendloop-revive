@@ -1162,7 +1162,6 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
           text: rendered.text,
           html: rendered.html,
           headers: {
-            "Message-ID": messageIdHeader(outboundMessageId),
             "X-MunchReach-Test-Request-ID": requestId,
             ...(rendered.url
               ? {

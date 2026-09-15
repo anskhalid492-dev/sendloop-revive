@@ -1216,7 +1216,6 @@ export async function dispatchDueMessages(
         text: message.body,
         ...(html ? { html } : {}),
         headers: {
-          "Message-ID": messageIdHeader(outboundMessageId),
           ...(carriesUnsubscribeLink
             ? {
                 "List-Unsubscribe": `<${withUnsubscribeSource(unsubUrl, "list_unsubscribe")}>`,

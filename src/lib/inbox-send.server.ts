@@ -169,7 +169,6 @@ export async function sendReplyThroughMailbox(args: {
     // Real RFC threading headers keep the prospect's mail client (and our own
     // ingestion) on the same conversation.
     headers: mergeEmailHeaders(
-      { "Message-ID": messageIdHeader(outboundMessageId) },
       parentId
         ? {
             "In-Reply-To": `<${parentId}>`,

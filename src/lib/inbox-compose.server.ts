@@ -106,7 +106,6 @@ export async function composeAndSend(input: ComposeInput) {
     subject: input.subject,
     text: input.body,
     attachments: input.attachments,
-    headers: { "Message-ID": messageIdHeader(outboundMessageId) },
   });
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
 
