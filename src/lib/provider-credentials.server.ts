@@ -55,6 +55,24 @@ export type ProviderTestResult = {
 };
 
 /**
+ * Removes whitespace and newlines pasted along with a credential, and drops
+ * masked placeholders so a redacted display value can never be stored as if it
+ * were the real key.
+ */
+export function trimCredentials(
+  credentials: Record<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(credentials)) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed === "" || /^[•*]{3,}/.test(trimmed)) continue;
+    out[key] = trimmed;
+  }
+  return out;
+}
+
+/**
  * Verifies provider credentials with a read-only API call.
  * SMTP and SES cannot be verified over plain HTTP from the server runtime, so
  * they stay "untested" until the sending engine performs the first real send.
