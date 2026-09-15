@@ -11,6 +11,7 @@ import {
   initialsOf,
   type ConversationListItem,
 } from "@/lib/inbox-model";
+import { replyPreview } from "@/lib/email-body";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string) {
