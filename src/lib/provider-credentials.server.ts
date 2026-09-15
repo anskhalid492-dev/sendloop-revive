@@ -192,7 +192,7 @@ export async function testProviderCredentials(
               "This looks like a per-domain sending key, not an Account API key. Account keys start with \"roo_\" and are created under API Keys in the sending infrastructure account; MunchReach creates per-domain sending keys itself.",
           };
         }
-        return await request("https://api.maileroo.com/v1/domains?per_page=1", {
+        return await request("https://api.maileroo.com/v1/domains?per_page=10", {
           Authorization: `Bearer ${key}`,
           Accept: "application/json",
         });

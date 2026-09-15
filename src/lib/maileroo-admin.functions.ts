@@ -95,10 +95,10 @@ export const getMailerooInfrastructure = createServerFn({ method: "POST" })
     if (!credentials?.["api_key"]) return base;
 
     // Read-only probe: listing domains proves authentication and domain access.
-    const probe = await providerFetch(`${MAILEROO_ACCOUNT_API}/domains?page=1&per_page=1`, {
+    const probe = await providerFetch(`${MAILEROO_ACCOUNT_API}/domains?page=1&per_page=10`, {
       headers: mailerooHeaders(credentials),
     });
-    const webhooks = await providerFetch(`${MAILEROO_ACCOUNT_API}/webhooks?page=1&per_page=1`, {
+    const webhooks = await providerFetch(`${MAILEROO_ACCOUNT_API}/webhooks?page=1&per_page=10`, {
       headers: mailerooHeaders(credentials),
     });
     const webhookRows = (() => {
