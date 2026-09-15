@@ -251,10 +251,13 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
     const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+    const from = new Date(data.from);
+    const to = new Date(data.to);
     const { byCampaign } = await fetchCampaignStats(client, {
       workspaceId: data.workspaceId,
-      from: new Date(data.from),
-      to: new Date(data.to),
+      ...campaignScope(data),
+      from,
+      to,
     });
 
     // Open tracking is per campaign: when it is off we must show "Disabled"
@@ -271,26 +274,60 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
       }
     }
 
-    return Array.from(byCampaign.values())
-      .map((s) => ({
-        openTracking: tracking.get(s.campaignId) ?? true,
-        campaignId: s.campaignId,
-        name: s.name || "Untitled campaign",
-        status: s.status,
-        sent: s.sent,
-        delivered: s.delivered,
-        opens: s.opened,
-        clicks: s.clicked,
-        replies: s.replied,
-        positiveReplies: s.positiveReplied,
-        negativeReplies: s.negativeReplied,
-        outOfOfficeReplies: s.outOfOfficeReplied,
-        bounced: s.bounced,
-        unsubscribed: s.unsubscribed,
-        complained: s.complained,
-        failed: s.failed,
-      }))
-      .sort((a, b) => b.sent - a.sent || a.name.localeCompare(b.name)) as AnalyticsCampaignRow[];
+    let rows = Array.from(byCampaign.values()).map((s) => ({
+      openTracking: tracking.get(s.campaignId) ?? true,
+      campaignId: s.campaignId,
+      name: s.name || "Untitled campaign",
+      status: s.status,
+      sent: s.sent,
+      delivered: s.delivered,
+      opens: s.opened,
+      clicks: s.clicked,
+      replies: s.replied,
+      positiveReplies: s.positiveReplied,
+      negativeReplies: s.negativeReplied,
+      outOfOfficeReplies: s.outOfOfficeReplied,
+      bounced: s.bounced,
+      unsubscribed: s.unsubscribed,
+      complained: s.complained,
+      failed: s.failed,
+    }));
+
+    // With a mailbox filter the table must only report what that mailbox did,
+    // recomputed from the same de-duplicated units as everything else.
+    if (data.accountId) {
+      const { computeUnitTotals } = await import("@/lib/analytics-sequence");
+      const { units } = await loadUnits(client, data);
+      const byId = new Map<string, typeof units>();
+      for (const unit of units) {
+        if (!unit.campaignId) continue;
+        const list = byId.get(unit.campaignId) ?? [];
+        list.push(unit);
+        byId.set(unit.campaignId, list);
+      }
+      const replies = await fetchReplyRows(client, data, from, to);
+      rows = rows
+        .filter((row) => byId.has(row.campaignId))
+        .map((row) => {
+          const totals = computeUnitTotals(byId.get(row.campaignId) ?? [], { from, to });
+          const scopedReplies = replies.filter(
+            (r) => String(r["campaign_id"] ?? "") === row.campaignId,
+          );
+          const count = (category: string) =>
+            scopedReplies.filter((r) => replyCategory(r["sentiment"]) === category).length;
+          return {
+            ...row,
+            ...totals,
+            positiveReplies: count("positive"),
+            negativeReplies: count("negative"),
+            outOfOfficeReplies: count("out_of_office"),
+          };
+        });
+    }
+
+    return rows.sort(
+      (a, b) => b.sent - a.sent || a.name.localeCompare(b.name),
+    ) as AnalyticsCampaignRow[];
   });
 
 
