@@ -237,7 +237,10 @@ export async function runInboundRetrySweep(limit = 25) {
       continue;
     }
     const last = new Date(row.last_retry_at ?? row.created_at).getTime();
-    const wait = backoffMinutes(settings, attempts + 1) * 60_000;
+    // A stalled (never-processed) event is not a failure needing backoff: it is
+    // simply unfinished work, so it is picked up after a one-minute grace.
+    const wait =
+      row.status === "pending" ? STALLED_GRACE_MS : backoffMinutes(settings, attempts + 1) * 60_000;
     if (now - last < wait) {
       skipped += 1;
       continue;
