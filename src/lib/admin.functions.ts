@@ -864,7 +864,7 @@ export const getInboundWebhooks = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const secretConfigured = Boolean(process.env["INBOUND_EMAIL_SECRET"]);
-    const { resolvePlatformProviderId } = await import("@/lib/ops.server");
+    const { resolvePlatformProviderId, platformCredentials } = await import("@/lib/ops.server");
     const { getEmailProvider } = await import("@/lib/email-providers/registry.server");
     const providerId = await resolvePlatformProviderId();
     const provider = getEmailProvider(providerId);
@@ -872,9 +872,12 @@ export const getInboundWebhooks = createServerFn({ method: "GET" })
       return { provider: providerId, available: false, secretConfigured, domains: [], webhooks: [] };
     }
 
+    // Provider reads without the stored infrastructure credential come back 401
+    // and get misreported as "nothing configured".
+    const creds = await platformCredentials(providerId);
     const [domains, webhooks] = await Promise.all([
-      provider.listDomains ? provider.listDomains({}).catch(() => []) : Promise.resolve([]),
-      provider.listWebhooks ? provider.listWebhooks({}).catch(() => []) : Promise.resolve([]),
+      provider.listDomains ? provider.listDomains(creds).catch(() => []) : Promise.resolve([]),
+      provider.listWebhooks ? provider.listWebhooks(creds).catch(() => []) : Promise.resolve([]),
     ]);
 
     return {

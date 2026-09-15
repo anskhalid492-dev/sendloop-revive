@@ -62,7 +62,7 @@ export async function resolvePlatformProviderId(): Promise<string> {
  * the same decryption the domain-provisioning path uses. Provider reads without
  * it come back 401 and get misreported as "domain not registered".
  */
-async function platformCredentials(providerId: string): Promise<Record<string, string>> {
+export async function platformCredentials(providerId: string): Promise<Record<string, string>> {
   const { credentialsForProviderRef } = await import("@/lib/provider-pool.server");
   const resolved = await credentialsForProviderRef(supabaseAdmin, { provider: providerId });
   return resolved?.credentials ?? {};
