@@ -17,6 +17,11 @@ import {
   findMailerooDomain,
   mailerooHeaders,
 } from "@/lib/domain-providers/maileroo.server";
+import {
+  isMailerooInboundPayload,
+  mailerooFlattenInboundPayload,
+  mailerooInboundEvent,
+} from "./maileroo-inbound";
 import type { EmailProvider } from "./provider";
 import {
   capabilities,
