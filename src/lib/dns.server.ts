@@ -106,10 +106,19 @@ async function queryResolver(
   type: keyof typeof TYPE_CODE,
 ): Promise<ResolverOutcome> {
   try {
-    const res = await fetch(`${endpoint}?name=${encodeURIComponent(name)}&type=${type}`, {
-      headers: { Accept: "application/dns-json" },
-      signal: AbortSignal.timeout(8000),
-    });
+    // Cache busting matters twice over: the edge runtime caches GET responses by
+    // URL, and DoH answers ship long `Cache-Control` lifetimes copied from the
+    // record TTL. Without this, a DNS change stays invisible for hours even
+    // though the customer already published it.
+    const nonce = crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36);
+    const res = await fetch(
+      `${endpoint}?name=${encodeURIComponent(name)}&type=${type}&_cb=${nonce}`,
+      {
+        headers: { Accept: "application/dns-json", "Cache-Control": "no-cache" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+      },
+    );
     if (!res.ok) return { ok: false, transient: true };
     const json = (await res.json()) as { Answer?: DohAnswer[]; Status?: number };
     const status = json.Status ?? 0;
@@ -123,6 +132,23 @@ async function queryResolver(
   }
 }
 
+/** One answer set per resolver that answered. Resolvers disagree while a change propagates. */
+async function resolveAll(
+  name: string,
+  type: keyof typeof TYPE_CODE,
+): Promise<{ sets: DohAnswer[][]; sawAuthoritativeEmpty: boolean }> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const outcomes = await Promise.all(RESOLVERS.map((r) => queryResolver(r, name, type)));
+    const sets = outcomes
+      .filter((o): o is { ok: true; answers: DohAnswer[] } => o.ok)
+      .map((o) => o.answers);
+    if (sets.length > 0) return { sets, sawAuthoritativeEmpty: false };
+    if (outcomes.some((o) => !o.ok && !o.transient))
+      return { sets: [], sawAuthoritativeEmpty: true };
+  }
+  return { sets: [], sawAuthoritativeEmpty: false };
+}
+
 /**
  * Queries several public resolvers and returns the first positive answer.
  * A record counts as present if ANY resolver sees it (propagation is uneven);
@@ -130,15 +156,19 @@ async function queryResolver(
  * with nothing. If every resolver failed, a TransientDnsError is thrown.
  */
 async function resolve(name: string, type: keyof typeof TYPE_CODE): Promise<DohAnswer[]> {
-  let sawAuthoritativeEmpty = false;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const outcomes = await Promise.all(RESOLVERS.map((r) => queryResolver(r, name, type)));
-    const hit = outcomes.find((o): o is { ok: true; answers: DohAnswer[] } => o.ok);
-    if (hit) return hit.answers;
-    if (outcomes.some((o) => !o.ok && !o.transient)) {
-      sawAuthoritativeEmpty = true;
-      break;
+  const { sets, sawAuthoritativeEmpty } = await resolveAll(name, type);
+  if (sets.length > 0) {
+    // Union across resolvers: a value counts as published when any resolver
+    // serves it, which is what the record checks above already assume.
+    const seen = new Set<string>();
+    const merged: DohAnswer[] = [];
+    for (const answer of sets.flat()) {
+      const key = `${answer.name}|${answer.type}|${answer.data}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(answer);
     }
+    return merged;
   }
   if (sawAuthoritativeEmpty) return [];
   throw new TransientDnsError(`Could not reach a DNS resolver for ${name}. Will retry.`);
@@ -238,6 +268,23 @@ export async function verifyDomainRecords(
 export async function lookupPublicMx(domain: string): Promise<MxRecordValue[]> {
   const answers = await resolve(domain.toLowerCase().replace(/^\.+|\.+$/g, ""), "MX");
   return answers.map((a) => parseMxAnswer(a.data));
+}
+
+/**
+ * Reads the MX records EACH resolver serves, without merging them.
+ *
+ * While an MX change propagates, one recursive resolver can still be serving the
+ * old delegation for hours (its cached TTL) while others already serve the new
+ * one. Merging those views invents a conflict that does not exist in the
+ * authoritative zone, so the caller compares each view separately and takes the
+ * most advanced one.
+ */
+export async function lookupPublicMxSets(domain: string): Promise<MxRecordValue[][]> {
+  const name = domain.toLowerCase().replace(/^\.+|\.+$/g, "");
+  const { sets, sawAuthoritativeEmpty } = await resolveAll(name, "MX");
+  if (sets.length > 0) return sets.map((set) => set.map((a) => parseMxAnswer(a.data)));
+  if (sawAuthoritativeEmpty) return [[]];
+  throw new TransientDnsError(`Could not reach a DNS resolver for ${name}. Will retry.`);
 }
 
 export function makeDkimSelector(): string {

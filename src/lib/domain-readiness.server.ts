@@ -25,7 +25,7 @@ import {
 } from "@/lib/email-providers/inbound";
 import { isRootInboundMxRecord } from "@/lib/email-providers/mx-host";
 import { dedupeDnsRequirements } from "@/lib/email-providers/dns-requirements";
-import { TransientDnsError, lookupPublicMx } from "@/lib/dns.server";
+import { TransientDnsError, lookupPublicMxSets } from "@/lib/dns.server";
 import type {
   EmailProviderCredentials,
   ProviderDnsRecord,
@@ -70,6 +70,35 @@ function dedupeMx<T extends { host: string; priority: number | null }>(records: 
     seen.add(key);
     return true;
   });
+}
+
+/** How advanced an MX picture is; the highest-ranked resolver view wins. */
+const MX_STATE_RANK: Record<MxComparison["state"], number> = {
+  correct: 6,
+  incorrect: 5,
+  mixed: 4,
+  third_party: 3,
+  no_mx: 2,
+  unknown_requirements: 1,
+  unresolved: 0,
+};
+
+/**
+ * Compares every resolver view against the requirement and returns the most
+ * advanced one, so a single resolver still serving a cached pre-change answer
+ * cannot report a conflict the authoritative zone no longer has.
+ */
+function bestMxComparison(
+  sets: Array<Array<{ priority: number | null; host: string }>>,
+  required: Array<{ priority: number | null; host: string }>,
+  lookupFailed: boolean,
+): MxComparison {
+  if (lookupFailed || sets.length === 0)
+    return compareMxRecords({ current: [], required, lookupFailed: true });
+  const comparisons = sets.map((current) => compareMxRecords({ current, required }));
+  return comparisons.reduce((best, candidate) =>
+    MX_STATE_RANK[candidate.state] > MX_STATE_RANK[best.state] ? candidate : best,
+  );
 }
 
 /**
@@ -166,15 +195,19 @@ export async function evaluateDomainReadiness(options: {
   );
   const required = dedupeMx(requiredMxFromRecords(rootMxRecords));
 
-  let current = [] as Awaited<ReturnType<typeof lookupPublicMx>>;
+  // Compare each resolver's own view and keep the most advanced one. A resolver
+  // still serving a cached pre-change delegation must never outvote resolvers
+  // that already serve the live records.
+  let mxSets: Awaited<ReturnType<typeof lookupPublicMxSets>> = [[]];
   let lookupFailed = false;
   try {
-    current = await lookupPublicMx(domain);
+    mxSets = await lookupPublicMxSets(domain);
   } catch (error) {
     lookupFailed = error instanceof TransientDnsError;
+    if (!lookupFailed) throw error;
   }
 
-  const mx = compareMxRecords({ current, required, lookupFailed });
+  const mx = bestMxComparison(mxSets, required, lookupFailed);
   const domainKnown = status.state !== "unknown" || dnsRecords.length > 0;
   const state = computeDomainReadiness({
     domainKnown,

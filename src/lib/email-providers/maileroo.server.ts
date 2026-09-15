@@ -221,8 +221,21 @@ export const mailerooEmailProvider: EmailProvider = {
     const { mapMailerooRecords, mailerooEntriesCreated } = await import(
       "@/lib/domain-providers/maileroo.server"
     );
-    const mxLive = mailerooEntriesCreated(found.dns_records?.["mx_record"]);
     const records = mapMailerooRecords(domain, found).filter((r) => r.kind === "mx");
+    // The provider re-checks MX on its own schedule, so its flag lags behind a
+    // change the customer has already published. Public DNS is the ground truth:
+    // when the required MX hosts are live, receiving is live.
+    let mxLive = mailerooEntriesCreated(found.dns_records?.["mx_record"]);
+    if (!mxLive && records.length > 0) {
+      const { lookupPublicMxSets } = await import("@/lib/dns.server");
+      const wanted = new Set(
+        records.map((r) => (r.value.split(/\s+/).pop() ?? r.value).replace(/\.$/, "").toLowerCase()),
+      );
+      const sets = await lookupPublicMxSets(domain).catch(() => [] as Array<Array<{ host: string }>>);
+      mxLive = sets.some(
+        (set) => set.length > 0 && set.every((record) => wanted.has(record.host.toLowerCase())),
+      );
+    }
     if (!res.ok) {
       // A credential without the inbound scope must be reported as such, not
       // silently reported as "no routes configured".
