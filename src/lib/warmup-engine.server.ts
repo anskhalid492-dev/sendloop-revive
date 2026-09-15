@@ -589,7 +589,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
   }
   const refundWarmup = () => releaseUsage(workspaceId, "warmup_daily", 1, "warmup_send_failed");
 
-  const provider = account.provider as string;
+  const provider = resolved.provider;
   const started = Date.now();
   const { getAdapter } = await import("@/lib/providers/adapter.server");
   let result: { ok: boolean; message: string; messageId?: string | undefined };
