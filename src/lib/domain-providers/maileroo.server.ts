@@ -13,6 +13,7 @@
  * synthesised locally.
  */
 import {
+  ProviderLookupError,
   failure,
   providerFetch,
   record,
