@@ -147,6 +147,7 @@ export const listSystemSenderIdentities = createServerFn({ method: "GET" })
       managedProvider: ctx.managedProvider,
       activeProvider: ctx.activeProvider,
       mailerooAvailable: ctx.mailerooAvailable,
+      unavailableReason: ctx.unavailableReason,
     });
 
     const mailerooActive = provider.provider === "maileroo";
