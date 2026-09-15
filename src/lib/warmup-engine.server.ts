@@ -308,19 +308,27 @@ function slots(settings: SettingsRow, count: number): Date[] {
 /** Human-readable state of a mailbox for the dashboard and the runner log. */
 export async function warmupBlockReason(
   admin: Admin,
-  account: Pick<AccountRow, "id" | "workspace_id" | "provider_id" | "status" | "paused" | "customer_enabled"> & {
+  account: Pick<
+    AccountRow,
+    "id" | "workspace_id" | "from_email" | "provider_id" | "status" | "paused" | "customer_enabled"
+  > & {
     provider_id?: string | null;
   },
 ): Promise<string | null> {
   if (account.paused) return "Mailbox is paused.";
   if (!account.customer_enabled) return "Mailbox sending is switched off.";
   if (account.status === "disabled") return "Mailbox is disabled.";
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(admin, {
+  // Availability is decided by the infrastructure that is active right now, not
+  // by the provider recorded on the mailbox when it was connected.
+  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
+  const resolved = await resolveMailboxSendingProvider(admin, {
     id: account.id,
+    from_email: account.from_email,
     provider_id: account.provider_id ?? null,
   });
-  if (!credentials) return "No sending credentials stored — reconnect this mailbox to start warmup.";
+  if (!resolved) {
+    return "No active sending infrastructure is available for this mailbox right now.";
+  }
   return null;
 }
 
@@ -556,14 +564,19 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     return;
   }
 
-  const { loadAccountCredentials } = await import("@/lib/account-credentials.server");
-  const credentials = await loadAccountCredentials(admin, {
+  // Provider resolution happens at send time against the infrastructure that is
+  // active right now. The provider stored on the mailbox row is historical and
+  // is never used as a credential source.
+  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
+  const resolved = await resolveMailboxSendingProvider(admin, {
     id: account.id as string,
+    from_email: account.from_email as string,
     provider_id: (account.provider_id as string | null) ?? null,
   });
-  if (!credentials) {
-    return fail("No stored credentials for this mailbox — reconnect it to resume warmup.", false);
+  if (!resolved) {
+    return fail("No active sending infrastructure is available for this mailbox right now.", true);
   }
+  const credentials = resolved.credentials;
 
   // Warmup traffic is metered on its own daily allowance and never consumes
   // the customer's campaign email allowance.
@@ -576,7 +589,7 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
   }
   const refundWarmup = () => releaseUsage(workspaceId, "warmup_daily", 1, "warmup_send_failed");
 
-  const provider = account.provider as string;
+  const provider = resolved.provider;
   const started = Date.now();
   const { getAdapter } = await import("@/lib/providers/adapter.server");
   let result: { ok: boolean; message: string; messageId?: string | undefined };
