@@ -18,9 +18,14 @@ import {
 } from "@/lib/system-email-senders";
 
 /** Which delivery provider an identity should use. */
-export type SenderProviderPreference = "auto" | "managed" | "ses";
+export type SenderProviderPreference = "auto" | "managed" | "ses" | "maileroo";
 
-export const SENDER_PROVIDER_OPTIONS: SenderProviderPreference[] = ["auto", "managed", "ses"];
+export const SENDER_PROVIDER_OPTIONS: SenderProviderPreference[] = [
+  "auto",
+  "managed",
+  "ses",
+  "maileroo",
+];
 
 export type SenderIdentityOverride = {
   email?: string;
@@ -47,6 +52,8 @@ export type ProviderAvailability = {
   sesEnabled: boolean;
   /** Amazon SES credentials resolved. */
   sesConnected: boolean;
+  /** Maileroo is configured server-side and allowed for system email. */
+  mailerooAvailable?: boolean;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,8 +67,14 @@ export function providerOptionAvailable(
   option: SenderProviderPreference,
   availability: ProviderAvailability,
 ): boolean {
-  if (option === "auto") return availability.managedAvailable || (availability.sesEnabled && availability.sesConnected);
+  if (option === "auto")
+    return (
+      availability.managedAvailable ||
+      (availability.sesEnabled && availability.sesConnected) ||
+      availability.mailerooAvailable === true
+    );
   if (option === "managed") return availability.managedAvailable;
+  if (option === "maileroo") return availability.mailerooAvailable === true;
   return availability.sesEnabled && availability.sesConnected;
 }
 
@@ -136,7 +149,14 @@ export type SenderIdentityEdit = {
 export function validateSenderIdentityEdit(
   edit: SenderIdentityEdit,
   availability: ProviderAvailability,
-  options: { allowedDomains?: string[]; verifiedDomains?: string[] } = {},
+  options: {
+    allowedDomains?: string[];
+    verifiedDomains?: string[];
+    /** Admin-pinned Active provider; SES rules only apply when SES delivers. */
+    activeProvider?: "auto" | "resend" | "ses" | "maileroo";
+    /** Domains Maileroo verifies at the domain level. */
+    mailerooVerifiedDomains?: string[];
+  } = {},
 ): string | null {
   const email = edit.email.trim().toLowerCase();
   const replyTo = edit.replyTo.trim().toLowerCase();
@@ -154,15 +174,31 @@ export function validateSenderIdentityEdit(
   if (!providerOptionAvailable(edit.provider, availability)) {
     return edit.provider === "ses"
       ? "Amazon SES is not enabled and connected, so it cannot be selected."
-      : "No sending provider is currently configured for that choice.";
+      : edit.provider === "maileroo"
+        ? "Maileroo is not configured for system email, so it cannot be selected."
+        : "No sending provider is currently configured for that choice.";
   }
 
+  const active = options.activeProvider ?? "auto";
   const usesSes =
     edit.provider === "ses" ||
-    (edit.provider === "auto" && availability.sesEnabled && availability.sesConnected);
+    (edit.provider === "auto" &&
+      active !== "maileroo" &&
+      active !== "resend" &&
+      availability.sesEnabled &&
+      availability.sesConnected);
   const verified = (options.verifiedDomains ?? []).map((d) => d.toLowerCase());
   if (usesSes && verified.length > 0 && !verified.includes(domain)) {
     return `${domain} is not a verified Amazon SES sending identity.`;
+  }
+
+  // Maileroo verifies whole domains, so any identity on a verified domain is
+  // usable — but an unverified domain must never be saved as sendable.
+  const usesMaileroo =
+    edit.provider === "maileroo" || (edit.provider === "auto" && active === "maileroo");
+  const mailerooVerified = (options.mailerooVerifiedDomains ?? []).map((d) => d.toLowerCase());
+  if (usesMaileroo && mailerooVerified.length > 0 && !mailerooVerified.includes(domain)) {
+    return `${domain} is not a verified sending domain on Maileroo.`;
   }
 
   return null;

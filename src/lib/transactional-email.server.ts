@@ -51,6 +51,11 @@ export type TransactionalSettings = {
    * Connecting SES never flips this on by itself.
    */
   ses_enabled?: boolean;
+  /**
+   * Admin-pinned Active provider for every system email category.
+   * "auto" keeps the historical behaviour (SES when enabled, else managed).
+   */
+  system_provider?: "auto" | "resend" | "ses" | "maileroo";
   lease_until?: string | null;
 };
 
@@ -67,6 +72,7 @@ const DEFAULT_SETTINGS: TransactionalSettings = {
   retry_delay_seconds: 300,
   batch_size: 25,
   ses_enabled: false,
+  system_provider: "auto",
 };
 
 
@@ -633,11 +639,58 @@ async function deliver(
   // A per-identity provider preference only narrows the existing selection:
   // it can opt an identity out of SES, or ask for SES when SES is enabled.
   const preference = (mappedSender as { provider?: string } | undefined)?.provider ?? "auto";
+
+  // The Active provider pinned by an admin applies to every system email
+  // category. A per-identity pin can only narrow it further.
+  const pinned = settings.system_provider ?? "auto";
+  const activeProvider =
+    preference === "ses"
+      ? "ses"
+      : preference === "maileroo"
+        ? "maileroo"
+        : preference === "managed"
+          ? "resend"
+          : pinned;
+
+  const { resolveSystemMaileroo } = await import("@/lib/system-email-maileroo.server");
+  const maileroo =
+    activeProvider === "maileroo" ? await resolveSystemMaileroo(admin, fromEmail) : null;
+
   const choice = selectSystemEmailProvider({
     sesEnabled: settings.ses_enabled === true && preference !== "managed" && sesAllowedForSystem,
     sesCredentialsAvailable: sesCredentials !== null,
     managedAvailable: managed !== null,
+    activeProvider,
+    mailerooAvailable: maileroo !== null,
   });
+
+  if (choice.provider === "maileroo" && maileroo) {
+    const result = await getAdapter("maileroo").sendEmail(maileroo.credentials, message);
+    if (!result.ok) {
+      console.error(
+        `[system-email] Maileroo send failed for ${row.to_email} [${result.statusCode ?? "no status"}]:`,
+        result.providerResponse || result.message,
+      );
+    }
+    await recordProviderIncident(
+      admin,
+      maileroo.providerId,
+      result.ok ? null : result.providerResponse ?? result.message,
+    );
+    return {
+      ok: result.ok,
+      provider: "maileroo",
+      messageId: result.messageId ?? null,
+      statusCode: result.statusCode ?? null,
+      error: result.ok ? null : result.providerResponse || result.message,
+    };
+  }
+
+  if (activeProvider === "maileroo" && !maileroo) {
+    console.error(
+      "[system-email] Maileroo is the active provider but no MunchReach Maileroo credential resolved; using the existing provider.",
+    );
+  }
 
   if (choice.provider === "ses" && sesCredentials) {
     const sesResult = await getAdapter("ses").sendEmail(
