@@ -17,7 +17,7 @@ import {
 import { AppShell } from "@/components/app/AppShell";
 import { SetupJourney } from "@/components/app/SetupJourney";
 import { getSetupProgress } from "@/lib/setup-progress.functions";
-import { countCompleted } from "@/lib/setup-journey";
+import { countCompleted, REQUIRED_SETUP_STEPS } from "@/lib/setup-journey";
 import { KpiBoard } from "@/components/dashboard/command/KpiBoard";
 import { ActivityChart } from "@/components/dashboard/command/ActivityChart";
 import { CampaignTable } from "@/components/dashboard/command/CampaignTable";
@@ -244,7 +244,12 @@ function DashboardPage() {
                 progress={setupProgress.data}
                 loading={setupProgress.isLoading}
                 variant="compact"
-                onDismiss={() => workspaceId && dismissMutation.mutate({ data: { workspaceId } })}
+                onDismiss={() => {
+                  if (!workspaceId) return;
+                  setDismissedLocally(true);
+                  dismissMutation.mutate({ data: { workspaceId } });
+                }}
+
               />
             </motion.div>
           ) : null}
