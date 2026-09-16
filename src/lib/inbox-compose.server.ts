@@ -92,7 +92,7 @@ export async function composeAndSend(input: ComposeInput) {
         : "This mailbox is not connected with your own email credentials yet. Connect it under Email Accounts, then send this email again.",
     );
   }
-  const { assertAttachmentsWithinLimit, archivedAttachments, relayAttachments } = await import(
+  const { assertAttachmentsWithinLimit, relayAttachments } = await import(
     "@/lib/mail-attachments"
   );
   assertAttachmentsWithinLimit(input.attachments);
@@ -129,8 +129,13 @@ export async function composeAndSend(input: ComposeInput) {
     attachments: relayAttachments(input.attachments),
   });
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
-  // File bytes are never persisted: only the name, type and size are archived.
-  const archived = archivedAttachments(input.attachments);
+  // A copy of each file is kept in private storage so the thread view can offer
+  // it for download later; the archive record still carries name, type and size.
+  const { storeOutboundAttachments } = await import("@/lib/mail-attachment-store.server");
+  const archived = await storeOutboundAttachments(supabaseAdmin, {
+    workspaceId: input.workspaceId,
+    attachments: input.attachments,
+  });
 
 
 

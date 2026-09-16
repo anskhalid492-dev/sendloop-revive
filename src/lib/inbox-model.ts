@@ -104,7 +104,14 @@ export type ConversationMessage = {
   subject: string;
   body: string;
   html: string | null;
-  attachments: { name: string; url?: string | undefined; size?: number | undefined }[];
+  attachments: {
+    name: string;
+    url?: string | undefined;
+    size?: number | undefined;
+    contentType?: string | undefined;
+    /** Present when a downloadable copy of the file was kept. */
+    path?: string | undefined;
+  }[];
   opened_at: string | null;
   clicked_at: string | null;
   occurred_at: string;
