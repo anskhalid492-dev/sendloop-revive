@@ -205,7 +205,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           label="Delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
-          hint="Confirmed in the recipient mailbox"
+          hint="Accepted and not bounced back"
         />
         <HeadlineCard
           icon={MousePointerClick}
