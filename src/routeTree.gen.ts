@@ -104,6 +104,8 @@ import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
 import { Route as AuthenticatedMailboxesAddRouteImport } from './routes/_authenticated/mailboxes.add'
 import { Route as AuthenticatedMailboxesAddGoogleRouteImport } from './routes/_authenticated/mailboxes.add-google'
+import { Route as AuthenticatedMailboxesAddImapRouteImport } from './routes/_authenticated/mailboxes.add-imap'
+import { Route as AuthenticatedMailboxesAddMicrosoftRouteImport } from './routes/_authenticated/mailboxes.add-microsoft'
 import { Route as AuthenticatedMailboxesConnectRouteImport } from './routes/_authenticated/mailboxes.connect'
 import { Route as AuthenticatedMranuskhalidIndexRouteImport } from './routes/_authenticated/mranuskhalid/index'
 import { Route as AuthenticatedMranuskhalidAnalyticsRouteImport } from './routes/_authenticated/mranuskhalid/analytics'
@@ -703,6 +705,18 @@ const AuthenticatedMailboxesAddGoogleRoute =
   AuthenticatedMailboxesAddGoogleRouteImport.update({
     id: '/mailboxes/add-google',
     path: '/mailboxes/add-google',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMailboxesAddImapRoute =
+  AuthenticatedMailboxesAddImapRouteImport.update({
+    id: '/mailboxes/add-imap',
+    path: '/mailboxes/add-imap',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMailboxesAddMicrosoftRoute =
+  AuthenticatedMailboxesAddMicrosoftRouteImport.update({
+    id: '/mailboxes/add-microsoft',
+    path: '/mailboxes/add-microsoft',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMailboxesConnectRoute =
@@ -1445,6 +1459,8 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/mailboxes/add': typeof AuthenticatedMailboxesAddRoute
   '/mailboxes/add-google': typeof AuthenticatedMailboxesAddGoogleRoute
+  '/mailboxes/add-imap': typeof AuthenticatedMailboxesAddImapRoute
+  '/mailboxes/add-microsoft': typeof AuthenticatedMailboxesAddMicrosoftRoute
   '/mailboxes/connect': typeof AuthenticatedMailboxesConnectRoute
   '/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
   '/mranuskhalid/audit': typeof AuthenticatedMranuskhalidAuditRoute
@@ -1648,6 +1664,8 @@ export interface FileRoutesByTo {
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/mailboxes/add': typeof AuthenticatedMailboxesAddRoute
   '/mailboxes/add-google': typeof AuthenticatedMailboxesAddGoogleRoute
+  '/mailboxes/add-imap': typeof AuthenticatedMailboxesAddImapRoute
+  '/mailboxes/add-microsoft': typeof AuthenticatedMailboxesAddMicrosoftRoute
   '/mailboxes/connect': typeof AuthenticatedMailboxesConnectRoute
   '/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
   '/mranuskhalid/audit': typeof AuthenticatedMranuskhalidAuditRoute
@@ -1856,6 +1874,8 @@ export interface FileRoutesById {
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/_authenticated/mailboxes/add': typeof AuthenticatedMailboxesAddRoute
   '/_authenticated/mailboxes/add-google': typeof AuthenticatedMailboxesAddGoogleRoute
+  '/_authenticated/mailboxes/add-imap': typeof AuthenticatedMailboxesAddImapRoute
+  '/_authenticated/mailboxes/add-microsoft': typeof AuthenticatedMailboxesAddMicrosoftRoute
   '/_authenticated/mailboxes/connect': typeof AuthenticatedMailboxesConnectRoute
   '/_authenticated/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
   '/_authenticated/mranuskhalid/audit': typeof AuthenticatedMranuskhalidAuditRoute
@@ -2064,6 +2084,8 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId'
     | '/mailboxes/add'
     | '/mailboxes/add-google'
+    | '/mailboxes/add-imap'
+    | '/mailboxes/add-microsoft'
     | '/mailboxes/connect'
     | '/mranuskhalid/analytics'
     | '/mranuskhalid/audit'
@@ -2267,6 +2289,8 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId'
     | '/mailboxes/add'
     | '/mailboxes/add-google'
+    | '/mailboxes/add-imap'
+    | '/mailboxes/add-microsoft'
     | '/mailboxes/connect'
     | '/mranuskhalid/analytics'
     | '/mranuskhalid/audit'
@@ -2474,6 +2498,8 @@ export interface FileRouteTypes {
     | '/_authenticated/campaigns/$campaignId'
     | '/_authenticated/mailboxes/add'
     | '/_authenticated/mailboxes/add-google'
+    | '/_authenticated/mailboxes/add-imap'
+    | '/_authenticated/mailboxes/add-microsoft'
     | '/_authenticated/mailboxes/connect'
     | '/_authenticated/mranuskhalid/analytics'
     | '/_authenticated/mranuskhalid/audit'
@@ -3358,6 +3384,20 @@ declare module '@tanstack/react-router' {
       path: '/mailboxes/add-google'
       fullPath: '/mailboxes/add-google'
       preLoaderRoute: typeof AuthenticatedMailboxesAddGoogleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mailboxes/add-imap': {
+      id: '/_authenticated/mailboxes/add-imap'
+      path: '/mailboxes/add-imap'
+      fullPath: '/mailboxes/add-imap'
+      preLoaderRoute: typeof AuthenticatedMailboxesAddImapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mailboxes/add-microsoft': {
+      id: '/_authenticated/mailboxes/add-microsoft'
+      path: '/mailboxes/add-microsoft'
+      fullPath: '/mailboxes/add-microsoft'
+      preLoaderRoute: typeof AuthenticatedMailboxesAddMicrosoftRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mailboxes/connect': {
@@ -4377,6 +4417,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCampaignsCampaignIdRoute: typeof AuthenticatedCampaignsCampaignIdRoute
   AuthenticatedMailboxesAddRoute: typeof AuthenticatedMailboxesAddRoute
   AuthenticatedMailboxesAddGoogleRoute: typeof AuthenticatedMailboxesAddGoogleRoute
+  AuthenticatedMailboxesAddImapRoute: typeof AuthenticatedMailboxesAddImapRoute
+  AuthenticatedMailboxesAddMicrosoftRoute: typeof AuthenticatedMailboxesAddMicrosoftRoute
   AuthenticatedMailboxesConnectRoute: typeof AuthenticatedMailboxesConnectRoute
   AuthenticatedCampaignsIndexRoute: typeof AuthenticatedCampaignsIndexRoute
 }
@@ -4407,6 +4449,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCampaignsCampaignIdRoute: AuthenticatedCampaignsCampaignIdRoute,
   AuthenticatedMailboxesAddRoute: AuthenticatedMailboxesAddRoute,
   AuthenticatedMailboxesAddGoogleRoute: AuthenticatedMailboxesAddGoogleRoute,
+  AuthenticatedMailboxesAddImapRoute: AuthenticatedMailboxesAddImapRoute,
+  AuthenticatedMailboxesAddMicrosoftRoute:
+    AuthenticatedMailboxesAddMicrosoftRoute,
   AuthenticatedMailboxesConnectRoute: AuthenticatedMailboxesConnectRoute,
   AuthenticatedCampaignsIndexRoute: AuthenticatedCampaignsIndexRoute,
 }
