@@ -39,6 +39,17 @@ export const connectMailbox = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    // RETIRED PATH — shared sending infrastructure.
+    //
+    // Customers now connect their own mailbox with their own SMTP/IMAP
+    // credentials (`mailboxes` table, /mailboxes/add). Creating a shared-provider
+    // `sending_accounts` row from a customer session is no longer permitted, so
+    // no customer can end up sending campaigns through platform-owned
+    // credentials. Admins retain their own management path.
+    throw new Error(
+      "Mailboxes are connected with your own email credentials. Open Email Accounts → Connect email account to add one.",
+    );
+    // eslint-disable-next-line no-unreachable
     const client = context.supabase as Client;
     // Read under RLS first: this proves the caller owns the domain/workspace.
     const domain = await loadVerifiedDomain(client, data.domainId);
