@@ -339,6 +339,11 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
 
   const contacted = new Set<string>();
   const repliedLeads = new Set<string>(input.replyLeadKeys ?? []);
+  // Opens and clicks count PEOPLE, not emails: one contact opening three
+  // follow-ups is one open. Admin counts distinct openers the same way, and
+  // both now read the shared rate helpers in `engagement-rates.ts`.
+  const openedLeads = new Set<string>();
+  const clickedLeads = new Set<string>();
   const steps = new Map<number, CampaignStepStats>();
   const stepOf = (step: number) => {
     let row = steps.get(step);
@@ -365,10 +370,10 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       step.delivered += 1;
     }
     if (inRange(s.opened_at)) {
-      stats.opened += 1;
+      openedLeads.add(unit.leadKey);
       step.opened += 1;
     }
-    if (inRange(s.clicked_at)) stats.clicked += 1;
+    if (inRange(s.clicked_at)) clickedLeads.add(unit.leadKey);
     if (inRange(s.replied_at)) {
       repliedLeads.add(unit.leadKey);
       step.replied += 1;
@@ -388,6 +393,8 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     if (unit.deliveryStatus === "delayed") stats.delayed += 1;
   }
 
+  stats.opened = openedLeads.size;
+  stats.clicked = clickedLeads.size;
   stats.replied = repliedLeads.size;
   stats.contacted = contacted.size;
   stats.queued = stats.scheduled;
@@ -472,6 +479,15 @@ export function computeAccountTotals(
     return Number.isFinite(t) && t >= lo && t < hi;
   };
   const rows = new Map<string, AccountTotals>();
+  // People, not emails — the same rule the campaign totals and Admin use.
+  const openers = new Map<string, Set<string>>();
+  const clickers = new Map<string, Set<string>>();
+  const repliers = new Map<string, Set<string>>();
+  const addPerson = (map: Map<string, Set<string>>, accountId: string, leadKey: string) => {
+    const set = map.get(accountId) ?? new Set<string>();
+    set.add(leadKey);
+    map.set(accountId, set);
+  };
   for (const u of units) {
     if (!u.accountId) continue;
     let row = rows.get(u.accountId);
@@ -491,12 +507,17 @@ export function computeAccountTotals(
     }
     if (inRange(u.sentAt)) row.sent += 1;
     if (inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at) row.delivered += 1;
-    if (inRange(u.signals.opened_at)) row.opens += 1;
-    if (inRange(u.signals.clicked_at)) row.clicks += 1;
-    if (inRange(u.signals.replied_at)) row.replies += 1;
+    if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);
+    if (inRange(u.signals.clicked_at)) addPerson(clickers, u.accountId, u.leadKey);
+    if (inRange(u.signals.replied_at)) addPerson(repliers, u.accountId, u.leadKey);
     if (inRange(u.signals.bounced_at)) row.bounced += 1;
     if (!u.signals.bounced_at && inRange(u.signals.failed_at)) row.failed += 1;
     if (inRange(u.signals.unsubscribed_at)) row.unsubscribed += 1;
+  }
+  for (const row of rows.values()) {
+    row.opens = openers.get(row.accountId)?.size ?? 0;
+    row.clicks = clickers.get(row.accountId)?.size ?? 0;
+    row.replies = repliers.get(row.accountId)?.size ?? 0;
   }
   return Array.from(rows.values());
 }

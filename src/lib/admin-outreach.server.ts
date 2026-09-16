@@ -233,9 +233,15 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       leads: recipientCounts[c.id] ?? 0,
       sent: sentCounts[c.id] ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
-      openRate: openRatePercent(openKeys[c.id]?.size ?? 0, sentCounts[c.id] ?? 0),
+      openRate: openRatePercent(openKeys[c.id]?.size ?? 0, {
+        sent: sentCounts[c.id] ?? 0,
+        bounced: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
+      }),
       clicks: clickKeysByCampaign[c.id]?.size ?? 0,
-      clickRate: clickRatePercent(clickKeysByCampaign[c.id]?.size ?? 0, sentCounts[c.id] ?? 0),
+      clickRate: clickRatePercent(clickKeysByCampaign[c.id]?.size ?? 0, {
+        sent: sentCounts[c.id] ?? 0,
+        bounced: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
+      }),
       unsubscribes: unsubscribeCounts[c.id] ?? 0,
 
       replies: replyCounts[c.id] ?? 0,
@@ -521,13 +527,22 @@ export async function getAdminCampaign(campaignId: string) {
       uniqueOpens: uniqueOpeners.size,
       rawOpens,
       prefetchOpens,
-      openRate: openRatePercent(Math.max(openKeys.size, uniqueOpeners.size), statsSent),
+      openRate: openRatePercent(Math.max(openKeys.size, uniqueOpeners.size), {
+        sent: statsSent,
+        bounced: bounceKeys.size,
+      }),
       clicks: Math.max(clickKeys.size, uniqueClickers.size),
       uniqueClicks: uniqueClickers.size,
       rawClicks,
-      clickRate: clickRatePercent(Math.max(clickKeys.size, uniqueClickers.size), statsSent),
+      clickRate: clickRatePercent(Math.max(clickKeys.size, uniqueClickers.size), {
+        sent: statsSent,
+        bounced: bounceKeys.size,
+      }),
       unsubscribes: unsubscribedEmails.size,
-      unsubscribeRate: clickRatePercent(unsubscribedEmails.size, statsSent),
+      unsubscribeRate: clickRatePercent(unsubscribedEmails.size, {
+        sent: statsSent,
+        bounced: bounceKeys.size,
+      }),
 
       bounces: bounceKeys.size,
       replies: statsReplies,

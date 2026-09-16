@@ -201,8 +201,8 @@ export function classifyOpenRequest(args: {
   return { isPrefetch: false, source: null };
 }
 
-/** Unique opens / delivered-or-sent, as a whole percentage. */
-export function openRatePercent(uniqueOpens: number, sent: number): number {
-  if (!sent || sent <= 0) return 0;
-  return Math.round((uniqueOpens / sent) * 1000) / 10;
-}
+/**
+ * Open rate. Re-exported from the one shared engagement-rate module so Admin,
+ * Analytics and the campaign tabs can never compute it differently.
+ */
+export { openRatePercent } from "@/lib/engagement-rates";

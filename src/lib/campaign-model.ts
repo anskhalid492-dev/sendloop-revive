@@ -280,10 +280,6 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
     group: "AI",
     variables: [
       { token: AI_VARIABLE_TOKEN, label: "AI personalization" },
-      ...PAIN_POINT_TOKENS.map((token, index) => ({
-        token,
-        label: index === 0 ? "AI pain point" : `AI pain point ${index + 1}`,
-      })),
     ],
   },
 
