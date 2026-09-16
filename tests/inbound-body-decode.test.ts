@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { cleanInboundText } from "@/lib/inbound-body";
 
 const BASE64_BODY = btoa(
-  "Dear Packologypro.com team,\n\nThanks for reaching out — happy to take a look.\n\nBest,\nAnna",
+  "Dear Packologypro.com team,\n\nThanks for reaching out - happy to take a look.\n\nBest,\nAnna",
 );
 
 describe("single decode step for inbound bodies", () => {
