@@ -54,20 +54,11 @@ async function writerContext(
     return { failure: { ok: false as const, message: "Campaign not found.", status: 404 } };
   const workspaceId = campaign.workspace_id as string;
 
-  const { requireEntitlement, evaluateEntitlement, EntitlementError } = await import(
-    "@/lib/billing/usage.server"
-  );
+  const { requireEntitlement, EntitlementError } = await import("@/lib/billing/usage.server");
   try {
+    // Plan access still applies; generations themselves are unlimited, so the
+    // AI allowance is deliberately not checked or consumed here.
     await requireEntitlement(workspaceId, "ai_campaign_writer");
-    const decision = await evaluateEntitlement(workspaceId, "ai_monthly", 1);
-    if (!decision.allowed)
-      return {
-        failure: {
-          ok: false as const,
-          message: `You've used your AI allowance for the ${decision.planName} plan (${decision.used.toLocaleString()} of ${(decision.limit ?? 0).toLocaleString()}). Upgrade your plan to keep generating.`,
-          status: 402,
-        },
-      };
   } catch (err) {
     if (err instanceof EntitlementError)
       return { failure: { ok: false as const, message: err.message, status: 402 } };
@@ -103,10 +94,10 @@ async function guard<T>(
   run: () => Promise<T>,
 ): Promise<({ ok: true } & T) | Failure> {
   const { AiGatewayError } = await import("@/lib/ai-personalization.server");
-  const { consumeUsage } = await import("@/lib/billing/usage.server");
   try {
     const result = await run();
-    await consumeUsage(workspaceId, "ai_monthly", 1, "ai_campaign_writer");
+    // Campaign writer generations are unlimited on every plan that includes the
+    // feature, so they are deliberately not metered against the AI allowance.
     return { ok: true as const, ...result };
   } catch (error) {
     if (error instanceof AiGatewayError)
