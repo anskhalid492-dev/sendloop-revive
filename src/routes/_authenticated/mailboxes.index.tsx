@@ -465,8 +465,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function MailboxCell({ row }: { row: WorkspaceMailboxRow }) {
-  const domain = row.email.split("@")[1] ?? "";
-  const type = mailboxTypeForDomain(domain);
+  const type = emailProviderOf(row.email);
   return (
     <div className="flex items-start gap-2">
       {type === "other" ? null : <MailboxTypeIcon type={type} />}
