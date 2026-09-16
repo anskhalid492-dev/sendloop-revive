@@ -30,19 +30,26 @@ function boundaryOf(contentType: string): string | null {
  * Finds the boundary when no top-level Content-Type header was fetched: the
  * first `--token` line that the message later closes with `--token--`, or at
  * least repeats. Guessing is safe because the only thing we do with it is split.
+ *
+ * A body that *starts* on a boundary line is accepted even when that marker
+ * appears only once: some clients (and some stored bodies) carry a single part
+ * with no closing marker, and leaving it unsplit is what used to leak part
+ * headers into the inbox.
  */
 function sniffBoundary(body: string): string | null {
   const lines = normalize(body).split("\n");
+  const firstMeaningful = lines.find((entry) => entry.trim().length > 0)?.trim() ?? "";
   for (const line of lines.slice(0, 40)) {
     const match = /^--([A-Za-z0-9'()+_,./:=?-]{6,200})\s*$/.exec(line.trim());
     const token = match?.[1];
     if (!token || token.endsWith("--")) continue;
     const marker = `--${token}`;
     const occurrences = lines.filter((entry) => entry.trim().startsWith(marker)).length;
-    if (occurrences >= 2) return token;
+    if (occurrences >= 2 || firstMeaningful === marker) return token;
   }
   return null;
 }
+
 
 function splitPartHeaders(section: string): { headers: Record<string, string>; body: string } {
   const text = normalize(section).replace(/^\n+/, "");
