@@ -572,19 +572,27 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     return;
   }
 
-  // Provider resolution happens at send time against the infrastructure that is
-  // active right now. The provider stored on the mailbox row is historical and
-  // is never used as a credential source.
-  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
-  const resolved = await resolveMailboxSendingProvider(admin, {
-    id: account.id as string,
-    from_email: account.from_email as string,
-    provider_id: (account.provider_id as string | null) ?? null,
-  });
-  if (!resolved) {
-    return fail("No active sending infrastructure is available for this mailbox right now.", true);
+  // Warmup exists to build reputation for the customer's OWN mailbox, so it must
+  // leave through that mailbox's own SMTP server via the mailbox-smtp-relay —
+  // exactly like campaign dispatch. Shared platform credentials are never used;
+  // without a connected mailbox warmup stops with a visible reason instead.
+  const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+    "@/lib/customer-mailbox-send.server"
+  );
+  const customerMailbox = await findCustomerMailbox(
+    admin,
+    workspaceId,
+    account.from_email as string,
+  );
+  if (!customerMailbox) {
+    console.warn(
+      `[warmup] refused: no connected customer mailbox for ${account.from_email} (workspace ${workspaceId}).`,
+    );
+    return fail(
+      "Warmup is paused: this mailbox is not connected with its own email credentials yet. Reconnect it under Email Accounts to resume warmup.",
+      false,
+    );
   }
-  const credentials = resolved.credentials;
 
   // Warmup traffic is metered on its own daily allowance and never consumes
   // the customer's campaign email allowance.
