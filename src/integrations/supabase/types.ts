@@ -1731,6 +1731,7 @@ export type Database = {
           lead_id: string | null
           message_id: string | null
           message_type: string
+          open_count: number
           opened_at: string | null
           provider: string | null
           provider_message_id: string | null
@@ -1776,6 +1777,7 @@ export type Database = {
           lead_id?: string | null
           message_id?: string | null
           message_type?: string
+          open_count?: number
           opened_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -1821,6 +1823,7 @@ export type Database = {
           lead_id?: string | null
           message_id?: string | null
           message_type?: string
+          open_count?: number
           opened_at?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -2554,6 +2557,7 @@ export type Database = {
           delivery_detail: string | null
           delivery_status: string
           direction: string
+          first_opened_at: string | null
           from_email: string
           from_name: string | null
           html: string | null
@@ -2561,6 +2565,7 @@ export type Database = {
           in_reply_to: string | null
           message_id: string | null
           occurred_at: string
+          open_count: number
           opened_at: string | null
           provider_message_id: string | null
           reference_ids: string[]
@@ -2582,6 +2587,7 @@ export type Database = {
           delivery_detail?: string | null
           delivery_status?: string
           direction: string
+          first_opened_at?: string | null
           from_email: string
           from_name?: string | null
           html?: string | null
@@ -2589,6 +2595,7 @@ export type Database = {
           in_reply_to?: string | null
           message_id?: string | null
           occurred_at?: string
+          open_count?: number
           opened_at?: string | null
           provider_message_id?: string | null
           reference_ids?: string[]
@@ -2610,6 +2617,7 @@ export type Database = {
           delivery_detail?: string | null
           delivery_status?: string
           direction?: string
+          first_opened_at?: string | null
           from_email?: string
           from_name?: string | null
           html?: string | null
@@ -2617,6 +2625,7 @@ export type Database = {
           in_reply_to?: string | null
           message_id?: string | null
           occurred_at?: string
+          open_count?: number
           opened_at?: string | null
           provider_message_id?: string | null
           reference_ids?: string[]
@@ -3256,6 +3265,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_open_events: {
+        Row: {
+          campaign_id: string | null
+          client_ip: string | null
+          created_at: string
+          id: string
+          is_prefetch: boolean
+          lead_id: string | null
+          message_id: string | null
+          message_kind: string
+          occurred_at: string
+          prefetch_source: string | null
+          recipient_email: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          client_ip?: string | null
+          created_at?: string
+          id?: string
+          is_prefetch?: boolean
+          lead_id?: string | null
+          message_id?: string | null
+          message_kind?: string
+          occurred_at?: string
+          prefetch_source?: string | null
+          recipient_email?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          client_ip?: string | null
+          created_at?: string
+          id?: string
+          is_prefetch?: boolean
+          lead_id?: string | null
+          message_id?: string | null
+          message_kind?: string
+          occurred_at?: string
+          prefetch_source?: string | null
+          recipient_email?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       email_provider_secrets: {
         Row: {
