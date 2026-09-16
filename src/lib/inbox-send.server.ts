@@ -158,11 +158,21 @@ export async function sendReplyThroughMailbox(args: {
     account.from_email as string,
   );
   if (!customerMailbox) {
+    const { isMailboxPaused, PAUSED_MAILBOX_MESSAGE } = await import(
+      "@/lib/mailbox-active.server"
+    );
+    const paused = await isMailboxPaused(
+      supabaseAdmin,
+      conversation.workspace_id as string,
+      account.from_email as string,
+    );
     console.warn(
-      `[inbox-reply] refused: no connected customer mailbox for ${account.from_email} (workspace ${conversation.workspace_id}).`,
+      `[inbox-reply] refused: ${paused ? "mailbox paused" : "no connected customer mailbox"} for ${account.from_email} (workspace ${conversation.workspace_id}).`,
     );
     throw new Error(
-      "This conversation's mailbox is not connected with your own email credentials yet. Reconnect it under Email Accounts, then send this reply again.",
+      paused
+        ? PAUSED_MAILBOX_MESSAGE
+        : "This conversation's mailbox is not connected with your own email credentials yet. Reconnect it under Email Accounts, then send this reply again.",
     );
   }
   if (args.attachments.length > 0) {

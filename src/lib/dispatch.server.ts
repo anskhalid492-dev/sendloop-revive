@@ -1238,13 +1238,25 @@ export async function dispatchDueMessages(
         // fallback. Refuse loudly with the real reason and keep the message
         // queued (handled below as an infrastructure block) rather than sending
         // through platform-owned credentials.
+        // A mailbox the customer paused (is_active = false) counts as "no
+        // connected mailbox", but the refusal names the real reason.
+        const { isMailboxPaused, PAUSED_MAILBOX_MESSAGE } = await import(
+          "@/lib/mailbox-active.server"
+        );
+        const paused = await isMailboxPaused(
+          supabaseAdmin,
+          message.workspace_id as string,
+          account.from_email as string,
+        );
         logDispatchDiagnostic({
           ...diagnosticBase,
           phase: "provider_send",
           messageId: message.id,
           mailboxId: account.id,
           mailboxEligible: true,
-          reason: "no_connected_customer_mailbox_for_sender",
+          reason: paused
+            ? "customer_mailbox_paused_for_sender"
+            : "no_connected_customer_mailbox_for_sender",
           providerResult: "rejected",
         });
         const { INFRA_NOT_CONFIGURED_MESSAGE: infraMessage } = await import(
@@ -1252,7 +1264,7 @@ export async function dispatchDueMessages(
         );
         send = {
           ok: false,
-          message: infraMessage,
+          message: paused ? PAUSED_MAILBOX_MESSAGE : infraMessage,
         } as Awaited<ReturnType<typeof sendManagedEmail>>;
       }
     } catch (error) {
