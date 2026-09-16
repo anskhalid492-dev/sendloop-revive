@@ -54,6 +54,8 @@ const SECURITY_OPTIONS: Array<{ value: MailSecurity; label: string }> = [
 
 type FormState = {
   emailAddress: string;
+  /** Shown as the sender's name in the recipient's inbox. */
+  displayName: string;
   smtpHost: string;
   smtpPort: string;
   smtpSecurity: MailSecurity;
@@ -68,6 +70,7 @@ type FormState = {
 
 const EMPTY: FormState = {
   emailAddress: "",
+  displayName: "",
   smtpHost: "",
   smtpPort: "465",
   smtpSecurity: "ssl",
@@ -114,6 +117,7 @@ function ConnectMailboxPage() {
     () => ({
       workspaceId: workspace?.id ?? "",
       emailAddress: form.emailAddress.trim(),
+      ...(form.displayName.trim() ? { displayName: form.displayName.trim() } : {}),
       smtp: {
         host: form.smtpHost.trim(),
         port: Number(form.smtpPort),
@@ -195,6 +199,21 @@ function ConnectMailboxPage() {
                   Hostinger and Namecheap Private Email / Titan.
                 </p>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="sender-name">Name</Label>
+              <Input
+                id="sender-name"
+                autoComplete="off"
+                value={form.displayName}
+                onChange={(event) => set("displayName", event.target.value)}
+                placeholder="Michael Scott"
+              />
+              <p className="text-xs text-muted-foreground">
+                This is the name recipients see next to your address on campaigns and replies.
+                Leave it empty to show only the email address.
+              </p>
             </div>
 
             <section className="space-y-3">
