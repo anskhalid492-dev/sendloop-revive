@@ -15,6 +15,7 @@ import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display"
 import {
   clickRatePercent,
   openRatePercent,
+  reachable,
   replyRatePercent,
   unsubscribeRatePercent,
 } from "@/lib/engagement-rates";
@@ -112,11 +113,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const eligibleToday =
     remainingToday === null ? remainingTotal : Math.min(remainingTotal, remainingToday);
   const sent = delivery?.sent ?? queue?.sent ?? 0;
-  const delivered = delivery?.delivered ?? 0;
+  const confirmedDelivered = delivery?.delivered ?? 0;
   const opened = delivery?.opened ?? 0;
   const clicked = delivery?.clicked ?? 0;
   const replied = delivery?.replied ?? queue?.replied ?? 0;
   const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
+  // Customer mailboxes send via the relay and return no delivery receipt, so
+  // "delivered" = everything accepted that did not bounce back.
+  const delivered = Math.max(confirmedDelivered, reachable({ sent, bounced }));
   const failed = delivery?.failed ?? queue?.failed ?? 0;
   const delayed = delivery?.delayed ?? 0;
   const unsubscribed = delivery?.unsubscribed ?? queue?.unsubscribed ?? 0;
@@ -201,7 +205,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           label="Delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
-          hint="Confirmed in the recipient mailbox"
+          hint="Accepted and not bounced back"
         />
         <HeadlineCard
           icon={MousePointerClick}
