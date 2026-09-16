@@ -56,121 +56,48 @@ export const testMailboxConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    // RETIRED PATH — shared sending infrastructure.
+    //
+    // This used to test the PLATFORM's provider credentials on behalf of an old
+    // `sending_accounts` row. Customers now own their mailbox credentials, so
+    // there is nothing customer-owned left to test here: refuse and point at the
+    // new mailbox system. Testing a connected mailbox lives in the mailbox
+    // connect flow (mailbox-smtp-relay); admin-side tooling is unchanged.
     const client = context.supabase as Client;
     const { data: account, error } = await client
       .from("sending_accounts")
-      .select("id, workspace_id, provider, provider_id, connection_method, from_email, domain_id")
+      .select("id, workspace_id, from_email")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!account) throw new Error("Mailbox not found");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // The test must reflect the infrastructure that would actually carry a send
-    // right now — never the provider recorded on the mailbox row.
-    const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
-    const resolved = await resolveMailboxSendingProvider(supabaseAdmin, {
-      id: account.id as string,
-      from_email: account.from_email as string,
-      provider: (account.provider as string | null) ?? null,
-      provider_id: (account.provider_id as string | null) ?? null,
-    });
-    if (!resolved) {
-      console.warn(
-        `[mailbox-test] refused: no active sending infrastructure for ${account.from_email} (recorded provider "${account.provider ?? "none"}").`,
-      );
-    }
-    const credentials = resolved?.credentials ?? null;
-    const activeProvider = resolved?.provider ?? (account.provider as string);
-    if (!credentials) {
-      await client
-        .from("sending_accounts")
-        .update({
-          status: "failed",
-          auth_status: "failed",
-          last_tested_at: new Date().toISOString(),
-          last_error: "Sending infrastructure is not configured yet. Please contact support.",
-        })
-        .eq("id", data.id);
-      await recordCheck(client, {
-        workspaceId: account.workspace_id as string,
-        accountId: data.id,
-        actorId: context.userId,
-        kind: "test",
-        ok: false,
-        provider: account.provider as string,
-        message: "Sending infrastructure is not configured yet. Please contact support.",
-      });
-      return { ok: false, message: "Sending infrastructure is not configured yet. Please contact support." };
-    }
+    const message =
+      "This is an older mailbox that was not connected with your own email credentials. Open Email Accounts \u2192 Connect email account to reconnect it, then test it there.";
+    console.warn(
+      `[mailbox-test] refused: retired shared-infrastructure test for ${account.from_email} (workspace ${account.workspace_id}).`,
+    );
 
-    const { testProviderCredentials } = await import("@/lib/provider-credentials.server");
-    const {
-      checkSenderDomainVerification,
-      senderDomain,
-      logManagedSend,
-      DOMAIN_NOT_VERIFIED_MESSAGE,
-      customerSafeMessage,
-    } = await import("@/lib/managed-sending.server");
-    const startedAt = Date.now();
-    const test = await testProviderCredentials(activeProvider, credentials);
-
-    // A mailbox is only active once its sender domain is verified with the
-    // managed provider — never on provider credentials alone.
-    const domain = senderDomain(account.from_email as string);
-    const verification = test.ok
-      ? await checkSenderDomainVerification(activeProvider, credentials, domain, {
-          fresh: true,
-        })
-      : { status: "unknown" as const, detail: "Provider credentials check failed." };
-    const domainBlocked = verification.status === "not_verified";
-    const ok = test.ok && !domainBlocked;
-    const rawMessage = domainBlocked ? DOMAIN_NOT_VERIFIED_MESSAGE : test.message;
-    // Customers never see provider identity; the raw text is kept for admin logs.
-    const message = ok ? "Connection verified." : customerSafeMessage(rawMessage);
-
-    logManagedSend({
-      stage: "test",
-      workspaceId: account.workspace_id as string,
-      mailboxId: account.id as string,
-      senderAddress: account.from_email as string,
-      senderDomain: domain,
-      provider: activeProvider,
-      credentialSource: "managed",
-      verificationStatus: verification.status,
-      verificationDetail: verification.detail,
-      result: ok ? "sent" : "blocked",
-      providerError: ok ? null : rawMessage,
-    });
-
-    const { error: updateError } = await client
+    await client
       .from("sending_accounts")
       .update({
-        status: domainBlocked ? "failed" : test.verified ? "verified" : test.ok ? "untested" : "failed",
-        auth_status: domainBlocked ? "failed" : test.verified ? "verified" : test.ok ? "untested" : "failed",
+        status: "failed",
+        auth_status: "failed",
         last_tested_at: new Date().toISOString(),
-        last_error: ok ? null : message,
+        last_error: message,
       })
       .eq("id", data.id);
-    if (updateError) throw new Error(updateError.message);
-
     await recordCheck(client, {
       workspaceId: account.workspace_id as string,
       accountId: data.id,
       actorId: context.userId,
       kind: "test",
-      ok,
-      provider: account.provider as string,
-      message: rawMessage,
-      durationMs: Date.now() - startedAt,
-      detail: {
-        verified: test.verified,
-        domain,
-        domainVerification: verification.status,
-        providerError: ok ? null : rawMessage,
-      },
+      ok: false,
+      provider: "smtp",
+      message,
     });
-    return { ok, message, domainVerification: verification.status };
+
+    return { ok: false, message };
   });
 
 
