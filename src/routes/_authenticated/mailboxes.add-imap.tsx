@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Loader2, Upload, XCircle } from "lucide-react"
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { BackLink } from "@/components/app/BackLink";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -114,6 +115,7 @@ function ConnectImapPage() {
 
   return (
     <AppShell title="IMAP / SMTP" description="Connect one mailbox or import many from a CSV">
+      <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
         <Link
           to="/mailboxes/add"

@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { BackLink } from "@/components/app/BackLink";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -174,6 +175,7 @@ function ConnectMailboxPage() {
       title="Connect Your Mailbox"
       description="Use your own mailbox over SMTP and IMAP"
     >
+      <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
         <Card>
           <CardHeader>
