@@ -4,7 +4,7 @@ import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { MAILBOX_TYPE_LABELS, type MailboxType } from "@/lib/mailbox-type";
 
 /** Microsoft's four-square mark, used for Outlook / Microsoft 365 mailboxes. */
-function MicrosoftMark({ className }: { className?: string }) {
+export function MicrosoftMark({ className }: { className?: string }) {
   return (
     <svg role="img" aria-label="Outlook" viewBox="0 0 24 24" className={className}>
       <rect x="1" y="1" width="10" height="10" fill="#F25022" />
