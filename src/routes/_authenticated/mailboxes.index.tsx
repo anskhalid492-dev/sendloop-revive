@@ -87,12 +87,12 @@ import {
   listWorkspaceMailboxes,
   recheckWorkspaceMailbox,
   sendWorkspaceMailboxTest,
+  setMailboxWarmup,
   setWorkspaceMailboxActive,
   type MailboxCampaignRef,
   type MailboxDeletionCheck,
   type WorkspaceMailboxRow,
 } from "@/lib/workspace-mailboxes.functions";
-import { bulkSetWarmup } from "@/lib/warmup.functions";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/")({
   head: () => ({
@@ -138,7 +138,7 @@ function MailboxesPage() {
 
   const fetchPage = useServerFn(listWorkspaceMailboxes);
   const runRecheck = useServerFn(recheckWorkspaceMailbox);
-  const runWarmup = useServerFn(bulkSetWarmup);
+  const runWarmup = useServerFn(setMailboxWarmup);
   const runSetActive = useServerFn(setWorkspaceMailboxActive);
 
   const filters = { workspaceId, page, pageSize, search, status, warmup, active };
@@ -217,10 +217,7 @@ function MailboxesPage() {
     onTest: () => setTestRow(row),
     onDetails: () => setDetailsRow(row),
     onDelete: () => setDeleteRow(row),
-    onWarmup: (enabled: boolean) =>
-      row.sendingAccountId
-        ? setWarmupEnabled.mutate({ ids: [row.sendingAccountId], enabled })
-        : toast.error("Warm-up becomes available once this mailbox is registered for sending."),
+    onWarmup: (enabled: boolean) => setWarmupEnabled.mutate({ ids: [row.id], enabled }),
   });
 
   return (
@@ -391,10 +388,12 @@ function MailboxesPage() {
               disabled={setWarmupEnabled.isPending}
               onClick={() => {
                 const ids = rows
-                  .filter((row) => selected.includes(row.id) && row.sendingAccountId)
-                  .map((row) => row.sendingAccountId as string);
+                  .filter(
+                    (row) => selected.includes(row.id) && row.status === "connected" && row.isActive,
+                  )
+                  .map((row) => row.id);
                 if (ids.length === 0) {
-                  toast.error("None of the selected mailboxes are registered for warm-up yet.");
+                  toast.error("Select at least one connected, active mailbox to warm up.");
                   return;
                 }
                 setWarmupEnabled.mutate({ ids, enabled: true });
