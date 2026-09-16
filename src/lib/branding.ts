@@ -43,3 +43,16 @@ export function brandLoginLogo(): string {
 export function brandFavicon(): string {
   return clean(brandingValue("favicon_url")) || DEFAULT_FAVICON;
 }
+
+/**
+ * Favicon shown by browsers in dark mode. Uses a dedicated dark upload when one
+ * exists, then the dark logo, and only then the light favicon — so the tab icon
+ * follows the same light/dark rules as the in-app logo.
+ */
+export function brandFaviconDark(): string {
+  return (
+    clean(brandingValue("favicon_dark_url")) ||
+    clean(brandingValue("logo_dark_url")) ||
+    brandFavicon()
+  );
+}
