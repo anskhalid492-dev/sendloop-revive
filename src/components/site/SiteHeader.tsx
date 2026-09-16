@@ -78,6 +78,12 @@ const featuredProducts: Card[] = [
 
 const secondaryProducts: Card[] = [
   {
+    label: "AI Campaign Writer",
+    to: "/products/ai-campaign-writer",
+    text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
+    icon: Sparkles,
+  },
+  {
     label: "AI Personalization",
     to: "/ai-personalized-outreach",
     text: "Write a unique opening line for every prospect with your own OpenAI key.",

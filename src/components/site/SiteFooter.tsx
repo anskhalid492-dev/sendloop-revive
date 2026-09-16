@@ -37,6 +37,7 @@ const fallbackColumns = [
     title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
+      { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" },
       { label: "AI", href: "/ai-personalized-outreach" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
