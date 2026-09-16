@@ -38,101 +38,17 @@ export const connectMailbox = createServerFn({ method: "POST" })
       .strict()
       .parse(input),
   )
-  .handler(async ({ data, context }) => {
+  .handler(async () => {
     // RETIRED PATH — shared sending infrastructure.
     //
     // Customers now connect their own mailbox with their own SMTP/IMAP
     // credentials (`mailboxes` table, /mailboxes/add). Creating a shared-provider
     // `sending_accounts` row from a customer session is no longer permitted, so
     // no customer can end up sending campaigns through platform-owned
-    // credentials. Admins retain their own management path.
+    // credentials. Admin-side management is unchanged.
     throw new Error(
-      "Mailboxes are connected with your own email credentials. Open Email Accounts → Connect email account to add one.",
+      "Mailboxes are connected with your own email credentials. Open Email Accounts \u2192 Connect email account to add one.",
     );
-    // eslint-disable-next-line no-unreachable
-    const client = context.supabase as Client;
-    // Read under RLS first: this proves the caller owns the domain/workspace.
-    const domain = await loadVerifiedDomain(client, data.domainId);
-    assertEmailOnDomain(data.email, domain.domain as string);
-
-    // Plan enforcement: mailbox count is capped by the active plan.
-    const { checkUsageLimit } = await import("@/lib/billing/usage.server");
-    await checkUsageLimit(domain.workspace_id as string, "sending_accounts", 1);
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const managed = await selectManagedProvider(supabaseAdmin);
-    if (!managed) {
-      throw new Error(
-        "Sending infrastructure is not available right now. Please contact support.",
-      );
-    }
-
-    const startedAt = Date.now();
-    const now = new Date().toISOString();
-    // Provider columns are assigned here, server-side; a database trigger
-    // rejects any attempt to set them from the customer's session.
-    const { data: created, error } = await supabaseAdmin
-      .from("sending_accounts")
-      .insert({
-        workspace_id: domain.workspace_id as string,
-        domain_id: domain.id as string,
-        provider: managed.provider as never,
-        provider_id: managed.id,
-        connection_method: "managed",
-        label: data.displayName,
-        from_name: data.displayName,
-        from_email: data.email,
-        reply_to: null,
-        daily_limit: data.dailyLimit,
-        hourly_limit: data.hourlyLimit,
-        status: "verified",
-        auth_status: "verified",
-        last_tested_at: now,
-        last_error: null,
-        spf_status: domain.spf_status === "verified" ? "pass" : "unknown",
-        dkim_status: domain.dkim_status === "verified" ? "pass" : "unknown",
-        dmarc_status: domain.dmarc_status === "verified" ? "pass" : "unknown",
-        mx_status: domain.mx_status === "verified" ? "pass" : "unknown",
-        warmup_status: data.enableWarmup ? "warming" : "not_started",
-        warmup_started_at: data.enableWarmup ? now : null,
-        warmup_daily_target: data.warmupDailyTarget,
-        customer_enabled: true,
-        paused: false,
-        created_by: context.userId,
-        assigned_at: now,
-      })
-      .select("id")
-      .single();
-    if (error) {
-      if (/duplicate key/i.test(error.message)) {
-        throw new Error("That mailbox is already connected.");
-      }
-      throw new Error(error.message);
-    }
-
-    {
-      const { emitTransactionalEvent } = await import("@/lib/transactional-events.server");
-      await emitTransactionalEvent({
-        eventKey: "mailbox.connected",
-        userId: context.userId,
-        workspaceId: domain.workspace_id as string,
-        idempotencyKey: `mailbox.connected:${created.id as string}`,
-        variables: { "mailbox.email": data.email, "mailbox.status": "connected" },
-      });
-    }
-
-    await recordCheck(client, {
-      workspaceId: domain.workspace_id as string,
-      accountId: created.id as string,
-      actorId: context.userId,
-      kind: "connect",
-      ok: true,
-      message: "Mailbox connected to MunchReach sending infrastructure.",
-      durationMs: Date.now() - startedAt,
-      detail: { domain: domain.domain },
-    });
-
-    return { id: created.id as string, verified: true, message: "Mailbox connected." };
   });
 
 /** Re-validates the stored credentials against the provider. */
