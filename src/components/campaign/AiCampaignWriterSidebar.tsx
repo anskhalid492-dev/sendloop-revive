@@ -12,6 +12,8 @@ import {
   Sparkles,
   Target,
   Wand2,
+  CheckCircle2,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +61,9 @@ import {
   defaultControls,
   emptyWriterState,
   stepPurposes,
+  totalSteps,
+  MAX_FOLLOW_UPS,
+  PAIN_POINT_MAX,
   type OfferAdvice,
   type WriterAngle,
   type WriterBrief,
@@ -76,6 +81,9 @@ import {
   improveCampaignOffer,
   reviewCampaignDraft,
   saveCampaignWriterState,
+  listWriterTargetCampaigns,
+  applyWriterSequenceToCampaign,
+  applyWriterStepToCampaign,
 } from "@/lib/ai-campaign-writer.functions";
 import { aiProviderLabel } from "@/lib/ai-providers";
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
@@ -163,6 +171,9 @@ export function AiCampaignWriterSidebar({
   const offerFn = useServerFn(improveCampaignOffer);
   const stepFn = useServerFn(generateCampaignStep);
   const reviewFn = useServerFn(reviewCampaignDraft);
+  const targetsFn = useServerFn(listWriterTargetCampaigns);
+  const applySequenceFn = useServerFn(applyWriterSequenceToCampaign);
+  const applyStepFn = useServerFn(applyWriterStepToCampaign);
 
   const [brief, setBrief] = useState<WriterBrief>(defaultBrief);
   const [controls, setControls] = useState<WriterControls>(defaultControls);
@@ -177,6 +188,9 @@ export function AiCampaignWriterSidebar({
   const [providerUsed, setProviderUsed] = useState<string | null>(null);
   /** Which connected AI the customer picked for this campaign (null = first connected). */
   const [providerChoice, setProviderChoice] = useState<string | null>(null);
+  /** Which existing campaign the generated copy gets written into. */
+  const [targetCampaignId, setTargetCampaignId] = useState<string>("");
+  const [confirmTarget, setConfirmTarget] = useState(false);
 
   const query = useQuery({
     queryKey: ["ai-writer", campaignId],
@@ -189,7 +203,13 @@ export function AiCampaignWriterSidebar({
     const saved = query.data?.state;
     if (!saved) return;
     setBrief(briefSchema.parse(defined(saved.brief)));
-    setControls(controlsSchema.parse(defined(saved.controls)));
+    const savedControls = controlsSchema.parse(defined(saved.controls));
+    const legacy = (saved.controls ?? {}) as { followUps?: number; steps?: number };
+    setControls(
+      legacy.followUps === undefined && typeof legacy.steps === "number"
+        ? { ...savedControls, followUps: Math.max(0, Math.min(MAX_FOLLOW_UPS, legacy.steps - 1)) }
+        : savedControls,
+    );
     setStrategy(saved.strategy);
     setAngles(saved.angles);
     setSelectedAngle(saved.selectedAngle);
@@ -200,6 +220,14 @@ export function AiCampaignWriterSidebar({
     setProviderChoice(saved.provider);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query.data?.state?.updatedAt, campaignId]);
+
+  const targets = useQuery({
+    queryKey: ["ai-writer-targets", campaignId],
+    queryFn: () => targetsFn({ data: { campaignId: campaignId! } }),
+    enabled: Boolean(campaignId) && open,
+  });
+  const targetCampaigns = targets.data?.campaigns ?? [];
+  const selectedTarget = targetCampaigns.find((c) => c.id === targetCampaignId) ?? null;
 
   const connected = query.data?.providers ?? [];
   /** The provider actually used for the next generation. */
@@ -301,7 +329,7 @@ export function AiCampaignWriterSidebar({
   const runSequence = useMutation({
     mutationFn: async (refinement?: string | null) => {
       if (!strategy) throw new Error("Generate the campaign strategy first.");
-      const total = controls.steps;
+      const total = totalSteps(controls);
       const purposes = stepPurposes(total);
       const produced: WriterStep[] = [];
       setProgress({ done: 0, total });
@@ -653,18 +681,50 @@ export function AiCampaignWriterSidebar({
                   </div>
                 ) : null}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Sequence length</Label>
+                  <Label className="text-xs text-muted-foreground">Number of follow-ups</Label>
                   <Select
-                    value={String(controls.steps)}
-                    onValueChange={(v) => setControls({ ...controls, steps: Number(v) })}
+                    value={String(controls.followUps)}
+                    onValueChange={(v) =>
+                      setControls({ ...controls, followUps: Number(v), steps: Number(v) + 1 })
+                    }
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {[3, 4, 5, 6, 7].map((n) => (
-                        <SelectItem key={n} value={String(n)}>{n} steps</SelectItem>
+                      {Array.from({ length: MAX_FOLLOW_UPS + 1 }, (_, n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n === 0 ? "No follow-ups" : `${n} follow-up${n > 1 ? "s" : ""}`}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Writes {totalSteps(controls)} email{totalSteps(controls) > 1 ? "s" : ""}: initial
+                    email{controls.followUps ? ` + follow-up 1–${controls.followUps}` : ""}.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Pain points per lead</Label>
+                  <Select
+                    value={String(controls.painPointsPerLead)}
+                    onValueChange={(v) => setControls({ ...controls, painPointsPerLead: Number(v) })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: PAIN_POINT_MAX + 1 }, (_, n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n === 0 ? "Off" : `${n} pain point${n > 1 ? "s" : ""}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    {controls.painPointsPerLead
+                      ? `The AI writes a different pain point for every lead. Use ${Array.from(
+                          { length: controls.painPointsPerLead },
+                          (_, i) => `{{${i === 0 ? "pain_point" : `pain_point_${i + 1}`}}}`,
+                        ).join(", ")} in your copy.`
+                      : "No lead-specific pain points."}
+                  </p>
                 </div>
               </div>
 
