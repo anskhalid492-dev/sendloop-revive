@@ -2331,6 +2331,7 @@ export type Database = {
         Row: {
           ai_config: Json
           ai_enabled: boolean
+          ai_writer_brief: Json
           audience_count: number
           business_days_only: boolean
           click_tracking: boolean
@@ -2379,6 +2380,7 @@ export type Database = {
         Insert: {
           ai_config?: Json
           ai_enabled?: boolean
+          ai_writer_brief?: Json
           audience_count?: number
           business_days_only?: boolean
           click_tracking?: boolean
@@ -2427,6 +2429,7 @@ export type Database = {
         Update: {
           ai_config?: Json
           ai_enabled?: boolean
+          ai_writer_brief?: Json
           audience_count?: number
           business_days_only?: boolean
           click_tracking?: boolean
