@@ -34,8 +34,23 @@ export function formatBytes(bytes: number): string {
   return `${bytes} B`;
 }
 
-export function totalAttachmentBytes(attachments: { size?: number | null | undefined }[]): number {
-  return attachments.reduce((sum, file) => sum + (file.size ?? 0), 0);
+/**
+ * Real byte size of one attachment. When base64 content is present its decoded
+ * length is authoritative — a client-reported `size` is never trusted for the
+ * limit check.
+ */
+export function attachmentBytes(file: {
+  size?: number | null | undefined;
+  content?: string | null | undefined;
+}): number {
+  if (file.content) return Math.floor((file.content.replace(/[\r\n\s=]/g, "").length * 3) / 4);
+  return file.size ?? 0;
+}
+
+export function totalAttachmentBytes(
+  attachments: { size?: number | null | undefined; content?: string | null | undefined }[],
+): number {
+  return attachments.reduce((sum, file) => sum + attachmentBytes(file), 0);
 }
 
 export const ATTACHMENT_LIMIT_MESSAGE = `Attachments are too large. Keep the total under ${formatBytes(
@@ -44,7 +59,7 @@ export const ATTACHMENT_LIMIT_MESSAGE = `Attachments are too large. Keep the tot
 
 /** Throws a customer-facing error when the files exceed what mail can carry. */
 export function assertAttachmentsWithinLimit(
-  attachments: { size?: number | null | undefined }[],
+  attachments: { size?: number | null | undefined; content?: string | null | undefined }[],
 ): void {
   if (attachments.length > MAX_ATTACHMENTS_PER_MESSAGE) {
     throw new Error(`You can attach up to ${MAX_ATTACHMENTS_PER_MESSAGE} files to one email.`);
@@ -80,7 +95,7 @@ export function archivedAttachments(attachments: OutboundAttachment[]) {
   return attachments.map((file) => ({
     name: file.name,
     contentType: file.contentType ?? "application/octet-stream",
-    size: file.size ?? 0,
+    size: attachmentBytes(file),
     ...(file.url ? { url: file.url } : {}),
   }));
 }
