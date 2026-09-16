@@ -17,6 +17,8 @@ import {
   Tag as TagIcon,
   Trash2,
   UserPlus,
+  X,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
