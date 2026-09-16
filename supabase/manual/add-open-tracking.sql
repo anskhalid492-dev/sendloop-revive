@@ -32,7 +32,7 @@ BEGIN
     CREATE POLICY "Workspace members can view open events"
       ON public.email_open_events
       FOR SELECT TO authenticated
-      USING (public.is_workspace_member(workspace_id));
+      USING (public.is_workspace_member(workspace_id, auth.uid()));
   END IF;
 
   IF NOT EXISTS (
