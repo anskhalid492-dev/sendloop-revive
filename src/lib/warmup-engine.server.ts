@@ -605,23 +605,28 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
   }
   const refundWarmup = () => releaseUsage(workspaceId, "warmup_daily", 1, "warmup_send_failed");
 
-  const provider = resolved.provider;
+  // The customer's own mailbox is the transport, so the recorded provider is
+  // plain SMTP rather than any platform ESP.
+  const provider = "smtp";
   const started = Date.now();
-  const { getAdapter } = await import("@/lib/providers/adapter.server");
   let result: { ok: boolean; message: string; messageId?: string | undefined };
   try {
-    result = await getAdapter(provider).sendEmail(credentials, {
-      fromName: account.from_name as string,
-      fromEmail: account.from_email as string,
-      replyTo: (account.reply_to as string | null) ?? null,
+    const relayed = await sendViaCustomerMailbox(admin, customerMailbox, {
       to: job["to_email"] as string,
       subject: job["subject"] as string,
       text: job["body"] as string,
+      fromName: account.from_name as string,
       headers: {
         "X-MunchReach-Warmup": "1",
+        ...(account.reply_to ? { "Reply-To": account.reply_to as string } : {}),
         ...(job["warmup_token"] ? { "X-MunchReach-Warmup-Id": String(job["warmup_token"]) } : {}),
       },
     });
+    result = {
+      ok: relayed.ok,
+      message: relayed.message,
+      ...(relayed.messageId ? { messageId: relayed.messageId } : {}),
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Provider request failed";
     await logCheck(admin, {
