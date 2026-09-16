@@ -94,3 +94,8 @@ begin
 end $$;
 
 commit;
+
+-- Two trigger helpers also carried a PUBLIC grant, which the role-level revoke
+-- above does not remove.
+revoke execute on function public.admin_audit_log_append_only() from public;
+revoke execute on function public.admin_security_events_append_only() from public;
