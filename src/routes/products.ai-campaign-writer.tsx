@@ -247,7 +247,7 @@ function Page() {
         <div />
       </Section>
 
-      <PageFaqs faqs={faqs} />
+      <PageFaqs page="/products/ai-campaign-writer" defaults={faqs} />
 
       <CtaBlock
         title="Write your next campaign in minutes"
