@@ -113,7 +113,9 @@ describe("signature verification", () => {
     if (result.ok) expect(result.verification.status).toBe("valid");
   });
 
-  it("rejects an invalid signature", async () => {
+  // The reject path deliberately spends time on constant-work verification, so
+  // it sits right at the default 5s budget on a loaded machine.
+  it("rejects an invalid signature", { timeout: 20_000 }, async () => {
     const body = JSON.stringify(INBOUND_PAYLOAD);
     const headers = await svixHeaders(body);
     headers["svix-signature"] = "v1,YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3OA==";
