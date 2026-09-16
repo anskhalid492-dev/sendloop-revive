@@ -12,6 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
+import {
+  clickRatePercent,
+  openRatePercent,
+  replyRatePercent,
+  unsubscribeRatePercent,
+} from "@/lib/engagement-rates";
 import { cn } from "@/lib/utils";
 import { LaunchAuditTrail } from "./LaunchAuditTrail";
 import type { CampaignBuilder } from "./useCampaignBuilder";
@@ -201,14 +207,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           icon={MousePointerClick}
           label="Opened"
           value={opened}
-          rateLabel={pct(rate(opened, delivered || sent))}
-          hint={`${clicked} link click${clicked === 1 ? "" : "s"}`}
+          rateLabel={sent ? `${openRatePercent(opened, { sent, bounced })}%` : "—"}
+          hint={`${clicked} link click${clicked === 1 ? "" : "s"} · ${clickRatePercent(clicked, { sent, bounced })}% click rate`}
         />
         <HeadlineCard
           icon={Reply}
           label="Replies"
           value={replied}
-          rateLabel={pct(rate(replied, delivered || sent))}
+          rateLabel={sent ? `${replyRatePercent(replied, { sent, bounced })}%` : "—"}
           hint="Conversations started from this campaign"
           tone={replied > 0 ? "text-emerald-600" : undefined}
         />
@@ -220,7 +226,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <h2 className="text-sm font-semibold">Send outcomes</h2>
           <span className="text-xs text-muted-foreground">
             Bounce rate {pct(rate(bounced, sent))} · Unsubscribe rate{" "}
-            {pct(rate(unsubscribed, delivered || sent))}
+            {sent ? `${unsubscribeRatePercent(unsubscribed, { sent, bounced })}%` : "—"}
           </span>
         </div>
 

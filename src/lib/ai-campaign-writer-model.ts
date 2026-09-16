@@ -227,9 +227,7 @@ export function sanitizeVariables(text: string): string {
   return text.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (match, token: string) => {
     const normalized = token.toLowerCase();
     const known =
-      LEAD_VARIABLES.some((v) => v.token === normalized) ||
-      normalized === "unsubscribe_link" ||
-      /^pain_point(_[1-5])?$/.test(normalized);
+      LEAD_VARIABLES.some((v) => v.token === normalized) || normalized === "unsubscribe_link";
     return known ? `{{${normalized}}}` : match.replace(/\{\{|\}\}/g, "");
   });
 }

@@ -65,17 +65,13 @@ describe("follow-up count, pain points and recreate", () => {
     expect(totalSteps({ followUps: 99 })).toBe(MAX_SEQUENCE_STEPS);
   });
 
-  it("keeps pain point variables intact in generated copy", () => {
+  it("strips pain point variables from generated copy", () => {
     const text = "One thing I noticed is {{pain_point}}, plus {{PAIN_POINT_3}} and {{made_up}}.";
     const out = sanitizeVariables(text);
-    expect(out).toContain("{{pain_point}}");
-    expect(out).toContain("{{pain_point_3}}");
+    expect(out).not.toContain("{{pain_point}}");
+    expect(out).not.toContain("{{pain_point_3}}");
     expect(out).not.toContain("{{made_up}}");
-  });
-
-  it("names one token per pain point slot", () => {
-    expect(painPointToken(1)).toBe("pain_point");
-    expect(painPointToken(4)).toBe("pain_point_4");
+    expect(sanitizeVariables("Hi {{first_name}}")).toContain("{{first_name}}");
   });
 
   it("counts the pain point slots a template actually uses", () => {

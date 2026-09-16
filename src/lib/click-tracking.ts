@@ -10,6 +10,10 @@
  * link with its own recorded event and must never be wrapped), the open pixel,
  * and anything about reply/bounce handling.
  */
+import {
+  clickRatePercent as sharedClickRate,
+  type ReachableBase,
+} from "@/lib/engagement-rates";
 import { createHmac, timingSafeEqual } from "crypto";
 
 import { OPEN_PIXEL_PATH } from "@/lib/open-tracking";
@@ -159,8 +163,13 @@ export function rewriteLinksForClickTracking(
   );
 }
 
-/** Unique clicks / delivered-or-sent, as a whole percentage. */
-export function clickRatePercent(uniqueClicks: number, sent: number): number {
-  if (!sent || sent <= 0) return 0;
-  return Math.round((uniqueClicks / sent) * 1000) / 10;
+/**
+ * Click rate. Re-exported from the one shared engagement-rate module, so every
+ * surface divides unique clickers by the same reachable base.
+ */
+export function clickRatePercent(
+  uniqueClicks: number,
+  base: ReachableBase | number,
+): number {
+  return sharedClickRate(uniqueClicks, typeof base === "number" ? { sent: base } : base);
 }

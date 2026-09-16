@@ -63,7 +63,6 @@ import {
   stepPurposes,
   totalSteps,
   MAX_FOLLOW_UPS,
-  PAIN_POINT_MAX,
   type OfferAdvice,
   type WriterAngle,
   type WriterBrief,
@@ -448,9 +447,6 @@ export function AiCampaignWriterSidebar({
       setConfirmTarget(false);
       toast.success(
         `Added ${result.steps} email${result.steps > 1 ? "s" : ""} to ${result.campaignName}.` +
-          (result.painPointsPerLead
-            ? ` AI pain points are on: ${result.painPointsPerLead} per lead.`
-            : "") +
           (result.keptExtraSteps
             ? ` ${result.keptExtraSteps} later step(s) were kept because they already have mail.`
             : ""),
@@ -794,30 +790,6 @@ export function AiCampaignWriterSidebar({
                   <p className="text-[11px] text-muted-foreground">
                     Writes {totalSteps(controls)} email{totalSteps(controls) > 1 ? "s" : ""}: initial
                     email{controls.followUps ? ` + follow-up 1–${controls.followUps}` : ""}.
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Pain points per lead</Label>
-                  <Select
-                    value={String(controls.painPointsPerLead)}
-                    onValueChange={(v) => setControls({ ...controls, painPointsPerLead: Number(v) })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: PAIN_POINT_MAX + 1 }, (_, n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n === 0 ? "Off" : `${n} pain point${n > 1 ? "s" : ""}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-muted-foreground">
-                    {controls.painPointsPerLead
-                      ? `The AI writes a different pain point for every lead. Use ${Array.from(
-                          { length: controls.painPointsPerLead },
-                          (_, i) => `{{${i === 0 ? "pain_point" : `pain_point_${i + 1}`}}}`,
-                        ).join(", ")} in your copy.`
-                      : "No lead-specific pain points."}
                   </p>
                 </div>
               </div>

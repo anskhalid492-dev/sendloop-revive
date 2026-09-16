@@ -240,14 +240,11 @@ export async function generateStep(input: {
     "",
     "Earlier steps in this sequence:",
     history,
-    input.controls.painPointsPerLead > 0
-      ? [
-          "",
-          `This campaign generates ${input.controls.painPointsPerLead} pain point(s) per lead, written by AI for each individual business at send time.`,
-          `Use ${Array.from({ length: input.controls.painPointsPerLead }, (_, i) => `{{${i === 0 ? "pain_point" : `pain_point_${i + 1}`}}}`).join(", ")} where a lead-specific pain point belongs, for example: One thing I noticed is {{pain_point}}.`,
-          "Write the sentence so the variable reads naturally in lower case mid-sentence. Do not write a generic pain point in its place, and use at most one pain point variable per email.",
-        ].join("\n")
-      : "",
+    // Pain point variables were removed: write the pain point as real sentences.
+    [
+      "",
+      "Never write a {{pain_point}} variable or any pain point placeholder. Write the pain point out as a real sentence in the copy.",
+    ].join("\n"),
     input.avoid
       ? [
           "",

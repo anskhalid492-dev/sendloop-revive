@@ -126,8 +126,8 @@ export function SequencePerformance({ filters }: { filters: AnalyticsFilters }) 
                           <td className="py-2 pr-3 pl-8 text-muted-foreground">{variant.label}</td>
                           <td className="py-2 pr-3">{formatCount(variant.sent)}</td>
                           <td className="py-2 pr-3">{formatCount(variant.delivered)}</td>
-                          <td className="py-2 pr-3">{formatPct(rate(variant.opens, variant.delivered))}</td>
-                          <td className="py-2 pr-3">{formatPct(rate(variant.replies, variant.sent))}</td>
+                          <td className="py-2 pr-3">{formatPct(openRate(variant))}</td>
+                          <td className="py-2 pr-3">{formatPct(replyRate(variant))}</td>
                           <td className="py-2 pr-3">{formatCount(variant.positiveReplies)}</td>
                           <td className="py-2 pr-3">{formatPct(rate(variant.bounced, variant.sent))}</td>
                         </tr>
