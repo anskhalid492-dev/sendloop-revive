@@ -1193,37 +1193,68 @@ export async function dispatchDueMessages(
     await persistSentSnapshot(supabase, message.id, sentSnapshot);
 
 
+    const outboundHeaders: Record<string, string> = {
+      ...(carriesUnsubscribeLink
+        ? {
+            "List-Unsubscribe": `<${withUnsubscribeSource(unsubUrl, "list_unsubscribe")}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          }
+        : {}),
+    };
+
     let send: Awaited<ReturnType<typeof sendManagedEmail>>;
     try {
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_send_started" });
-      send = await sendManagedEmail(
-      supabaseAdmin,
-      {
-        id: account.id,
-        workspace_id: message.workspace_id,
-        provider: account.provider,
-        provider_id: account.provider_id,
-        from_email: account.from_email,
-      },
-      {
-        fromName: account.from_name,
-        fromEmail: account.from_email,
-        replyTo,
-        to: message.to_email,
-        subject: message.subject,
-        text: message.body,
-        ...(html ? { html } : {}),
-        headers: {
-          ...(carriesUnsubscribeLink
-            ? {
-                "List-Unsubscribe": `<${withUnsubscribeSource(unsubUrl, "list_unsubscribe")}>`,
-                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-              }
-            : {}),
-        },
-      },
-      { stage: "campaign" },
+
+      // Customer-owned mailbox (the `mailboxes` table): the email leaves through
+      // that mailbox's own SMTP server, always via the mailbox-smtp-relay edge
+      // function — never a direct socket from this runtime.
+      const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+        "@/lib/customer-mailbox-send.server"
       );
+      const customerMailbox = await findCustomerMailbox(
+        supabaseAdmin,
+        message.workspace_id as string,
+        account.from_email as string,
+      );
+
+      if (customerMailbox) {
+        const relayed = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
+          to: message.to_email as string,
+          subject: message.subject as string,
+          html,
+          text: message.body,
+          fromName: account.from_name,
+          ...(replyTo ? { headers: { ...outboundHeaders, "Reply-To": replyTo } } : { headers: outboundHeaders }),
+        });
+        send = {
+          ok: relayed.ok,
+          message: relayed.message,
+          messageId: relayed.messageId,
+        } as Awaited<ReturnType<typeof sendManagedEmail>>;
+      } else {
+        send = await sendManagedEmail(
+        supabaseAdmin,
+        {
+          id: account.id,
+          workspace_id: message.workspace_id,
+          provider: account.provider,
+          provider_id: account.provider_id,
+          from_email: account.from_email,
+        },
+        {
+          fromName: account.from_name,
+          fromEmail: account.from_email,
+          replyTo,
+          to: message.to_email,
+          subject: message.subject,
+          text: message.body,
+          ...(html ? { html } : {}),
+          headers: outboundHeaders,
+        },
+        { stage: "campaign" },
+        );
+      }
     } catch (error) {
       // A thrown provider/transport error used to leave the row stuck in
       // `processing` forever. Treat it exactly like a failed send.
