@@ -90,7 +90,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/infrastructure", label: "Sending Infrastructure", icon: Share2 },
       { to: "/mranuskhalid/webhooks", label: "Webhooks", icon: Webhook },
       { to: "/mranuskhalid/environment", label: "System Configuration", icon: KeyRound },
-      { to: "/mranuskhalid/pool", label: "Sending Pool", icon: Mailbox },
+      { to: "/mranuskhalid/pool", label: "Sending Records Pool (legacy)", icon: Mailbox },
       { to: "/mranuskhalid/inbound-events", label: "Inbound Events", icon: Inbox },
       { to: "/mranuskhalid/system-emails", label: "System Emails", icon: Mail },
       { to: "/mranuskhalid/email-log", label: "System Email Log", icon: ScrollText },
@@ -119,7 +119,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/mranuskhalid/campaigns", label: "Campaigns", icon: Send },
       { to: "/mranuskhalid/leads", label: "Leads", icon: ContactRound },
-      { to: "/mranuskhalid/email-accounts", label: "Email Accounts", icon: AtSign },
+      { to: "/mranuskhalid/email-accounts", label: "Sending Records (legacy)", icon: AtSign },
       { to: "/mranuskhalid/mailboxes", label: "Mailboxes", icon: Mailbox },
       { to: "/mranuskhalid/domains", label: "Domain Verification", icon: Globe },
       { to: "/mranuskhalid/warmup", label: "Warmup", icon: Flame },
