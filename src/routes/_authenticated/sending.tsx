@@ -86,7 +86,18 @@ import {
 } from "@/lib/sending-model";
 import { cn } from "@/lib/utils";
 
+/**
+ * RETIRED SCREEN — no longer reachable.
+ *
+ * "Email Accounts" now opens the mailbox connection system at /mailboxes/add.
+ * The page code below is intentionally kept intact (nothing deleted) but this
+ * route redirects on entry, so it can never be opened, including by older links
+ * elsewhere in the app.
+ */
 export const Route = createFileRoute("/_authenticated/sending")({
+  beforeLoad: () => {
+    throw redirect({ to: "/mailboxes/add" });
+  },
   head: () => ({
     meta: [
       { title: "Email Accounts — MunchReach" },
