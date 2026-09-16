@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {} from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { BackLink } from "@/components/app/BackLink";
