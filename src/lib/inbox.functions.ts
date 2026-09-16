@@ -777,3 +777,41 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
 
 // Receiving-infrastructure status is admin-only; it is intentionally not
 // exposed to the customer inbox.
+
+/**
+ * Short-lived download link for one attachment on a message in this workspace.
+ *
+ * The conversation is read through the caller's own session first, so RLS decides
+ * whether they may see the message at all; only then is the private storage copy
+ * signed. Links expire after five minutes and are never stored anywhere.
+ */
+export const getAttachmentDownloadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { messageId: string; name: string }) =>
+    z.object({ messageId: z.string().uuid(), name: z.string().min(1).max(200) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: message, error } = await context.supabase
+      .from("conversation_messages")
+      .select("id, attachments")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!message) throw new Error("This message is no longer available.");
+
+    const files = (message.attachments ?? []) as {
+      name?: string;
+      path?: string;
+      url?: string;
+    }[];
+    const file = files.find((entry) => entry.name === data.name);
+    if (!file) throw new Error("This attachment is no longer available.");
+    if (file.url && !file.path) return { url: file.url };
+    if (!file.path) {
+      throw new Error("This file was sent before attachment copies were kept, so it cannot be downloaded.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { signAttachmentDownload } = await import("@/lib/mail-attachment-store.server");
+    return { url: await signAttachmentDownload(supabaseAdmin, { path: file.path, filename: data.name }) };
+  });
