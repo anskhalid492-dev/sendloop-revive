@@ -115,7 +115,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     let query = client
       .from("mailboxes")
       .select(
-        "id, email_address, display_name, smtp_host, imap_host, status, daily_send_limit, warmup_enabled, last_tested_at, created_at",
+        "id, email_address, display_name, smtp_host, imap_host, status, is_active, daily_send_limit, warmup_enabled, last_tested_at, created_at",
         { count: "exact" },
       )
       .eq("workspace_id", data.workspaceId);
@@ -126,6 +126,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     }
     if (data.status !== "all") query = query.eq("status", data.status);
     if (data.warmup !== "all") query = query.eq("warmup_enabled", data.warmup === "enabled");
+    if (data.active !== "all") query = query.eq("is_active", data.active === "active");
 
     const from = (data.page - 1) * data.pageSize;
     const {
@@ -142,6 +143,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       smtp_host: string | null;
       imap_host: string | null;
       status: string;
+      is_active: boolean | null;
       daily_send_limit: number | null;
       warmup_enabled: boolean | null;
       last_tested_at: string | null;
