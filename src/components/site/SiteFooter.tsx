@@ -198,12 +198,16 @@ export function SiteFooter() {
     }
     // AI Campaign Writer is a core product page and must always be listed under
     // Products, even if the admin-managed footer list omits it.
-    const products = groups.get("Products") ?? [];
+  const products = groups.get("Products") ?? [];
     if (!products.some((l) => l.href === "/products/ai-campaign-writer")) {
-      groups.set("Products", [
-        ...products,
-        { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" },
-      ]);
+      // Sits right after AI Personalization ("AI") to match the header order.
+      const aiIndex = products.findIndex((l) => l.href === "/ai-personalized-outreach");
+      const entry = { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" };
+      const next =
+        aiIndex === -1
+          ? [...products, entry]
+          : [...products.slice(0, aiIndex + 1), entry, ...products.slice(aiIndex + 1)];
+      groups.set("Products", next);
     }
     if (!legal.some((l) => l.href === "/compliance")) {
       groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);

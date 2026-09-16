@@ -260,18 +260,18 @@ export function SiteHeader() {
   // or files them under "More from MunchReach".
   const guaranteedCoreCards: Card[] = [
     {
-      label: "AI Campaign Writer",
-      to: "/products/ai-campaign-writer",
-      text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
-      icon: Sparkles,
-      cta: "Explore AI Campaign Writer",
-    },
-    {
       label: "AI Personalization",
       to: "/ai-personalized-outreach",
       text: "Write a unique opening line for every prospect with your own OpenAI key.",
       icon: Sparkles,
       cta: "Explore AI Personalization",
+    },
+    {
+      label: "AI Campaign Writer",
+      to: "/products/ai-campaign-writer",
+      text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
+      icon: PenLine,
+      cta: "Explore AI Campaign Writer",
     },
   ];
   const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
