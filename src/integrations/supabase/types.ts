@@ -9840,6 +9840,7 @@ export type Database = {
           out_workspace_id: string
         }[]
       }
+      run_mailbox_poll: { Args: never; Returns: undefined }
       run_provider_health_runner: { Args: never; Returns: undefined }
       run_transactional_email_runner: { Args: never; Returns: undefined }
       run_warmup_runner: { Args: never; Returns: undefined }
