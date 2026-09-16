@@ -392,6 +392,8 @@ export async function deliverEvent(
   eventType: string,
   payload: Record<string, unknown>,
   idempotencyKey?: string,
+  /** A customer-initiated test or retry ignores the cooldown — it is how they resume. */
+  options?: { force?: boolean },
 ): Promise<{ ok: boolean; message: string }> {
   const credentials = await loadCredentials(connection.id);
   if (!credentials) {
@@ -400,7 +402,9 @@ export async function deliverEvent(
 
   // A destination that just failed is left alone until its cooldown lapses, so a
   // burst of events can never turn into a burst of retries.
-  const health = readDeliveryHealth(connection.config);
+  const health = options?.force
+    ? { failures: 0, retryAfter: null, needsAttention: false }
+    : readDeliveryHealth(connection.config);
   const gate = deliveryGate(health);
   if (!gate.send) {
     await supabaseAdmin.from("integration_events").insert({
