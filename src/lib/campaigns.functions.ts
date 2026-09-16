@@ -1017,7 +1017,9 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendManagedEmail } = await import("./managed-sending.server");
+    const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+      "@/lib/customer-mailbox-send.server"
+    );
 
     const { data: account, error } = await context.supabase
       .from("sending_accounts")
@@ -1126,6 +1128,21 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       providerResponse?: string;
       webhookStatus: string;
     }>;
+    // Locked down exactly like campaign dispatch: a test email may only leave
+    // through a mailbox the customer connected themselves (SMTP/IMAP, via the
+    // mailbox-smtp-relay). There is no shared-provider fallback.
+    const customerMailbox = await findCustomerMailbox(
+      supabaseAdmin,
+      account.workspace_id as string,
+      account.from_email as string,
+    );
+    if (!customerMailbox) {
+      console.warn(
+        `[campaign-test] refused: no connected customer mailbox for ${account.from_email} (workspace ${account.workspace_id}).`,
+      );
+      throw new Error("Connect a mailbox for this campaign's sender before sending a test.");
+    }
+
     const { consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
     for (const to of data.to) {
       const requestId = crypto.randomUUID();
@@ -1144,35 +1161,23 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       const rendered = bodyForRecipient(to);
       // Test sends leave the platform like any other email, so they meter too.
       await consumeUsage(account.workspace_id, "emails_monthly", 1);
-      const result = await sendManagedEmail(
-        supabaseAdmin,
-        {
-          id: account.id,
-          workspace_id: account.workspace_id,
-          provider: account.provider,
-          provider_id: account.provider_id,
-          from_email: account.from_email,
+      const result = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
+        to,
+        subject: `[Test] ${subject}`,
+        text: rendered.text,
+        html: rendered.html,
+        fromName: account.from_name,
+        headers: {
+          "X-MunchReach-Test-Request-ID": requestId,
+          ...(replyTo ? { "Reply-To": replyTo } : {}),
+          ...(rendered.url
+            ? {
+                "List-Unsubscribe": `<${withUnsubscribeSource(rendered.url, "list_unsubscribe")}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              }
+            : {}),
         },
-        {
-          fromName: account.from_name,
-          fromEmail: account.from_email,
-          replyTo,
-          to,
-          subject: `[Test] ${subject}`,
-          text: rendered.text,
-          html: rendered.html,
-          headers: {
-            "X-MunchReach-Test-Request-ID": requestId,
-            ...(rendered.url
-              ? {
-                  "List-Unsubscribe": `<${withUnsubscribeSource(rendered.url, "list_unsubscribe")}>`,
-                  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-                }
-              : {}),
-          },
-        },
-        { stage: "test" },
-      );
+      });
 
       if (!result.ok) {
         await releaseUsage(account.workspace_id, "emails_monthly", 1).catch(() => {});
@@ -1187,7 +1192,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         recipient_email: to,
         provider: account.provider,
         provider_message_id: result.messageId ?? null,
-        provider_response: result.providerResponse ?? result.message,
+        provider_response: result.message,
         status: result.ok ? "accepted" : "rejected",
         error: result.ok ? null : result.message,
       };
@@ -1204,7 +1209,7 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
         toEmail: to,
         refTable: "campaign_test_sends",
         refId: null,
-        alternateProviderMessageIds: [result.rfcMessageId ?? null, outboundMessageId],
+        alternateProviderMessageIds: [outboundMessageId],
       });
       const { customerSafeMessage } = await import("@/lib/managed-sending.server");
       results.push({

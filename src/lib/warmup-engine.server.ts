@@ -572,19 +572,27 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     return;
   }
 
-  // Provider resolution happens at send time against the infrastructure that is
-  // active right now. The provider stored on the mailbox row is historical and
-  // is never used as a credential source.
-  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
-  const resolved = await resolveMailboxSendingProvider(admin, {
-    id: account.id as string,
-    from_email: account.from_email as string,
-    provider_id: (account.provider_id as string | null) ?? null,
-  });
-  if (!resolved) {
-    return fail("No active sending infrastructure is available for this mailbox right now.", true);
+  // Warmup exists to build reputation for the customer's OWN mailbox, so it must
+  // leave through that mailbox's own SMTP server via the mailbox-smtp-relay —
+  // exactly like campaign dispatch. Shared platform credentials are never used;
+  // without a connected mailbox warmup stops with a visible reason instead.
+  const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+    "@/lib/customer-mailbox-send.server"
+  );
+  const customerMailbox = await findCustomerMailbox(
+    admin,
+    workspaceId,
+    account.from_email as string,
+  );
+  if (!customerMailbox) {
+    console.warn(
+      `[warmup] refused: no connected customer mailbox for ${account.from_email} (workspace ${workspaceId}).`,
+    );
+    return fail(
+      "Warmup is paused: this mailbox is not connected with its own email credentials yet. Reconnect it under Email Accounts to resume warmup.",
+      false,
+    );
   }
-  const credentials = resolved.credentials;
 
   // Warmup traffic is metered on its own daily allowance and never consumes
   // the customer's campaign email allowance.
@@ -597,23 +605,28 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
   }
   const refundWarmup = () => releaseUsage(workspaceId, "warmup_daily", 1, "warmup_send_failed");
 
-  const provider = resolved.provider;
+  // The customer's own mailbox is the transport, so the recorded provider is
+  // plain SMTP rather than any platform ESP.
+  const provider = "smtp";
   const started = Date.now();
-  const { getAdapter } = await import("@/lib/providers/adapter.server");
   let result: { ok: boolean; message: string; messageId?: string | undefined };
   try {
-    result = await getAdapter(provider).sendEmail(credentials, {
-      fromName: account.from_name as string,
-      fromEmail: account.from_email as string,
-      replyTo: (account.reply_to as string | null) ?? null,
+    const relayed = await sendViaCustomerMailbox(admin, customerMailbox, {
       to: job["to_email"] as string,
       subject: job["subject"] as string,
       text: job["body"] as string,
+      fromName: account.from_name as string,
       headers: {
         "X-MunchReach-Warmup": "1",
+        ...(account.reply_to ? { "Reply-To": account.reply_to as string } : {}),
         ...(job["warmup_token"] ? { "X-MunchReach-Warmup-Id": String(job["warmup_token"]) } : {}),
       },
     });
+    result = {
+      ok: relayed.ok,
+      message: relayed.message,
+      ...(relayed.messageId ? { messageId: relayed.messageId } : {}),
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Provider request failed";
     await logCheck(admin, {

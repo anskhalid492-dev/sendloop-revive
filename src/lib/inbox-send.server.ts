@@ -146,39 +146,63 @@ export async function sendReplyThroughMailbox(args: {
   );
   const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
-  // Managed sending: MunchReach-owned credentials + provider-side domain check.
-  const { sendManagedEmail } = await import("@/lib/managed-sending.server");
-  const send = await sendManagedEmail(
-    supabaseAdmin,
-    {
-      id: account.id as string,
-      workspace_id: conversation.workspace_id as string,
-      provider: account.provider as string,
-      provider_id: (account.provider_id as string | null) ?? null,
-      from_email: account.from_email as string,
-    },
-    {
-    fromName: account.from_name,
-    fromEmail: account.from_email,
-    replyTo,
-    to: conversation.prospect_email,
-    cc: args.cc,
-    subject: subject,
-    text: body,
-    attachments: args.attachments,
-    // Real RFC threading headers keep the prospect's mail client (and our own
-    // ingestion) on the same conversation.
-    headers: mergeEmailHeaders(
-      parentId
-        ? {
-            "In-Reply-To": `<${parentId}>`,
-            References: threadRefs.map((id) => `<${id}>`).join(" "),
-          }
-        : null,
-    ),
-    },
-    { stage: "inbox" },
+  // Locked down exactly like campaign dispatch: a reply may only leave through a
+  // mailbox the customer connected themselves (SMTP/IMAP, via mailbox-smtp-relay).
+  // No fallback to shared platform credentials.
+  const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+    "@/lib/customer-mailbox-send.server"
   );
+  const customerMailbox = await findCustomerMailbox(
+    supabaseAdmin,
+    conversation.workspace_id as string,
+    account.from_email as string,
+  );
+  if (!customerMailbox) {
+    console.warn(
+      `[inbox-reply] refused: no connected customer mailbox for ${account.from_email} (workspace ${conversation.workspace_id}).`,
+    );
+    throw new Error(
+      "This conversation's mailbox is not connected with your own email credentials yet. Reconnect it under Email Accounts, then send this reply again.",
+    );
+  }
+  if (args.attachments.length > 0) {
+    throw new Error(
+      "Attachments cannot be sent through your own mailbox yet. Remove the attachment to send this reply.",
+    );
+  }
+
+  const replyHeaders = mergeEmailHeaders({
+    ...(replyTo ? { "Reply-To": replyTo } : {}),
+    ...(args.cc.length ? { Cc: args.cc.join(", ") } : {}),
+    ...(parentId
+      ? {
+          "In-Reply-To": `<${parentId}>`,
+          References: threadRefs.map((id) => `<${id}>`).join(" "),
+        }
+      : {}),
+  });
+
+  // The relay delivers to one envelope recipient per call, so any cc address
+  // receives its own copy of the same message, with the same thread headers.
+  const recipients = [conversation.prospect_email as string, ...args.cc];
+  let send: { ok: boolean; message: string; messageId: string | null } = {
+    ok: false,
+    message: "The reply could not be delivered. Please try again.",
+    messageId: null,
+  };
+  for (const [index, recipient] of recipients.entries()) {
+    const attempt = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
+      to: recipient,
+      subject,
+      text: body,
+      fromName: account.from_name,
+      headers: replyHeaders,
+    });
+    if (index === 0) {
+      send = { ok: attempt.ok, message: attempt.message, messageId: attempt.messageId };
+      if (!attempt.ok) break;
+    }
+  }
   if (!send.ok) {
     throw new Error(send.message || "The reply could not be delivered. Please try again.");
   }
@@ -201,7 +225,7 @@ export async function sendReplyThroughMailbox(args: {
       cc_emails: args.cc,
       subject: subject,
       body: body,
-      message_id: stripAngle(send.rfcMessageId ?? outboundMessageId),
+      message_id: stripAngle(outboundMessageId),
       in_reply_to: (lastInbound?.message_id as string | undefined) ?? null,
       reference_ids: references,
       sending_account_id: account.id,
@@ -224,7 +248,7 @@ export async function sendReplyThroughMailbox(args: {
       toEmail: conversation.prospect_email,
       refTable: "conversation_messages",
       refId: inserted.id,
-      alternateProviderMessageIds: [send.rfcMessageId ?? null, outboundMessageId],
+      alternateProviderMessageIds: [outboundMessageId],
     });
   } catch {
     /* classification must never fail an already delivered send */
