@@ -68,6 +68,17 @@ export type WorkspaceMailboxRow = {
   mx: string | null;
 };
 
+export type WorkspaceMailboxSummary = {
+  /** Every self-connected mailbox in the workspace, whatever its state. */
+  total: number;
+  /** status = connected AND is_active — the mailboxes that can actually send. */
+  usable: number;
+  /** Connected but paused by the customer. */
+  paused: number;
+  pending: number;
+  failed: number;
+};
+
 export type WorkspaceMailboxPage = {
   rows: WorkspaceMailboxRow[];
   total: number;
@@ -75,6 +86,7 @@ export type WorkspaceMailboxPage = {
   pageSize: number;
   /** Older addresses on file that have no self-connected mailbox yet. */
   legacyCount: number;
+  summary: WorkspaceMailboxSummary;
 };
 
 const listInput = z.object({
@@ -84,6 +96,7 @@ const listInput = z.object({
   search: z.string().trim().max(200).default(""),
   status: z.enum(["all", "connected", "pending", "failed"]).default("all"),
   warmup: z.enum(["all", "enabled", "disabled"]).default("all"),
+  active: z.enum(["all", "active", "inactive"]).default("all"),
 });
 
 /** PostgREST `or()` is comma/parenthesis delimited, so those are stripped. */
