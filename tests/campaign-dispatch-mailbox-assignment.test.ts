@@ -1,5 +1,15 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { dispatchDueMessages } from "@/lib/dispatch.server";
+
+// Campaign sends leave only through a mailbox the customer connected
+// themselves (SMTP/IMAP via the relay). There is no shared-provider path.
+const relaySend = vi.fn(async () => ({ ok: true, messageId: "provider-message-1", message: "sent" }));
+vi.mock("@/lib/customer-mailbox-send.server", () => ({
+  findCustomerMailbox: vi.fn(async () => ({ id: "smtp-mailbox-1", email_address: "sender@example.com" })),
+  sendViaCustomerMailbox: (...args: unknown[]) => relaySend(...(args as [])),
+}));
+
+beforeEach(() => relaySend.mockClear());
 
 const NOW = new Date("2026-08-28T16:00:00.000Z"); // 20:00 Asia/Dubai
 
@@ -119,7 +129,7 @@ describe("mailbox assignment during dispatch", () => {
     const result = await dispatchDueMessages(backend.client as never, { campaignId: campaign.id, now: NOW }, deps);
 
     expect(backend.updates.some(({ patch }) => patch.sending_account_id === "mailbox-1")).toBe(true);
-    expect(deps.sendManagedEmail).toHaveBeenCalledTimes(1);
+    expect(relaySend).toHaveBeenCalledTimes(1);
     expect(result.sent).toBe(1);
     expect(result.failed).toBe(0);
   });
@@ -129,7 +139,7 @@ describe("mailbox assignment during dispatch", () => {
     const deps = dependencies();
     const result = await dispatchDueMessages(backend.client as never, { campaignId: campaign.id, now: NOW }, deps);
 
-    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(relaySend).not.toHaveBeenCalled();
     expect(result.failed).toBe(0);
     expect(result.skipped).toBe(1);
     const deferral = backend.updates.find(({ patch }) => patch.status === "scheduled");

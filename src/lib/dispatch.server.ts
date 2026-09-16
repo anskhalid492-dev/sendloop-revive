@@ -1233,27 +1233,27 @@ export async function dispatchDueMessages(
           messageId: relayed.messageId,
         } as Awaited<ReturnType<typeof sendManagedEmail>>;
       } else {
-        send = await sendManagedEmail(
-        supabaseAdmin,
-        {
-          id: account.id,
-          workspace_id: message.workspace_id,
-          provider: account.provider,
-          provider_id: account.provider_id,
-          from_email: account.from_email,
-        },
-        {
-          fromName: account.from_name,
-          fromEmail: account.from_email,
-          replyTo,
-          to: message.to_email,
-          subject: message.subject,
-          text: message.body,
-          ...(html ? { html } : {}),
-          headers: outboundHeaders,
-        },
-        { stage: "campaign" },
+        // Locked down: a customer campaign may only leave through a mailbox the
+        // customer connected themselves (SMTP/IMAP). There is no shared-provider
+        // fallback. Refuse loudly with the real reason and keep the message
+        // queued (handled below as an infrastructure block) rather than sending
+        // through platform-owned credentials.
+        logDispatchDiagnostic({
+          ...diagnosticBase,
+          phase: "provider_send",
+          messageId: message.id,
+          mailboxId: account.id,
+          mailboxEligible: true,
+          reason: "no_connected_customer_mailbox_for_sender",
+          providerResult: "rejected",
+        });
+        const { INFRA_NOT_CONFIGURED_MESSAGE: infraMessage } = await import(
+          "@/lib/managed-sending.server"
         );
+        send = {
+          ok: false,
+          message: infraMessage,
+        } as Awaited<ReturnType<typeof sendManagedEmail>>;
       }
     } catch (error) {
       // A thrown provider/transport error used to leave the row stuck in
