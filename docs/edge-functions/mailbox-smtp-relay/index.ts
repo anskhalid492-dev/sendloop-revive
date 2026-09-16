@@ -372,14 +372,18 @@ async function sendViaSmtp(
 }
 
 function authorized(request: Request): boolean {
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const bearer = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (!serviceRoleKey || !bearer || bearer !== serviceRoleKey) return false;
-
+  // The shared secret is the primary credential when configured: service-role
+  // keys exist in two formats (legacy JWT and sb_secret_*) and the value the
+  // caller holds is not always byte-identical to this function's own env value.
   const relaySecret = Deno.env.get("MAILBOX_RELAY_SECRET");
-  if (relaySecret && request.headers.get("x-relay-secret") !== relaySecret) return false;
+  if (relaySecret) return request.headers.get("x-relay-secret") === relaySecret;
 
-  return true;
+  const bearer = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const accepted = [
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+    Deno.env.get("SB_SERVICE_ROLE_KEY"),
+  ].filter((value): value is string => !!value);
+  return !!bearer && accepted.includes(bearer);
 }
 
 Deno.serve(async (request) => {
