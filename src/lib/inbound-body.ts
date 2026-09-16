@@ -30,19 +30,26 @@ function boundaryOf(contentType: string): string | null {
  * Finds the boundary when no top-level Content-Type header was fetched: the
  * first `--token` line that the message later closes with `--token--`, or at
  * least repeats. Guessing is safe because the only thing we do with it is split.
+ *
+ * A body that *starts* on a boundary line is accepted even when that marker
+ * appears only once: some clients (and some stored bodies) carry a single part
+ * with no closing marker, and leaving it unsplit is what used to leak part
+ * headers into the inbox.
  */
 function sniffBoundary(body: string): string | null {
   const lines = normalize(body).split("\n");
+  const firstMeaningful = lines.find((entry) => entry.trim().length > 0)?.trim() ?? "";
   for (const line of lines.slice(0, 40)) {
     const match = /^--([A-Za-z0-9'()+_,./:=?-]{6,200})\s*$/.exec(line.trim());
     const token = match?.[1];
     if (!token || token.endsWith("--")) continue;
     const marker = `--${token}`;
     const occurrences = lines.filter((entry) => entry.trim().startsWith(marker)).length;
-    if (occurrences >= 2) return token;
+    if (occurrences >= 2 || firstMeaningful === marker) return token;
   }
   return null;
 }
+
 
 function splitPartHeaders(section: string): { headers: Record<string, string>; body: string } {
   const text = normalize(section).replace(/^\n+/, "");
@@ -115,13 +122,19 @@ function walk(section: string, contentTypeHint: string | null, out: InboundBody,
   if (boundary) {
     const source = parsed.headers["content-type"] || contentTypeHint ? parsed.body : section;
     const escaped = boundary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pieces = normalize(source).split(new RegExp(`\\n?--${escaped}(?:--)?[ \\t]*\\n?`));
+    const splitter = new RegExp(`\\n?--${escaped}(?:--)?[ \\t]*\\n?`);
+    const normalized = normalize(source);
+    // Anything before the first boundary is MIME preamble ("This is a
+    // multi-part message in MIME format."), never message text.
+    const firstMarker = normalized.search(new RegExp(`(^|\\n)--${escaped}[ \\t]*(\\n|$)`));
+    const pieces = (firstMarker > 0 ? normalized.slice(firstMarker) : normalized).split(splitter);
     for (const piece of pieces) {
       if (!piece || !piece.trim()) continue;
       walk(piece, null, out, depth + 1);
     }
     return;
   }
+
 
   // Real attachments are never message text.
   if (disposition.startsWith("attachment")) return;
