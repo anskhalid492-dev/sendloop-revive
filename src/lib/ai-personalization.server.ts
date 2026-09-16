@@ -99,6 +99,8 @@ async function generateWithAnthropic(input: {
   model: string;
   system: string;
   prompt: string;
+  maxTokens?: number;
+  temperature?: number;
 }): Promise<string> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -109,8 +111,8 @@ async function generateWithAnthropic(input: {
     },
     body: JSON.stringify({
       model: input.model,
-      max_tokens: 400,
-      temperature: 0.6,
+      max_tokens: input.maxTokens ?? 400,
+      temperature: input.temperature ?? 0.6,
       system: input.system,
       messages: [{ role: "user", content: input.prompt }],
     }),
@@ -365,6 +367,53 @@ function mapGatewayError(error: unknown, vendor = "OpenAI"): AiGatewayError {
       retryable: false,
     });
   return new AiGatewayError({ status: status || 500, message, retryable: true });
+}
+
+/**
+ * One raw completion with the workspace's own AI key.
+ *
+ * This is the shared gateway every AI writing feature uses (personalization and
+ * the AI Campaign Writer), so provider branching, key handling and the
+ * customer-facing error mapping exist in exactly one place.
+ */
+export async function generateWithWorkspaceAi(input: {
+  credentials: WorkspaceAiCredentials;
+  system: string;
+  prompt: string;
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<string> {
+  const { credentials, system, prompt } = input;
+  const maxTokens = input.maxTokens ?? 1200;
+  const temperature = input.temperature ?? 0.6;
+  try {
+    if (credentials.provider === "anthropic") {
+      if (!credentials.apiKey)
+        throw new AiGatewayError({
+          status: 401,
+          message: "No Anthropic API key is connected for this workspace.",
+          retryable: false,
+        });
+      return await generateWithAnthropic({
+        apiKey: credentials.apiKey,
+        model: credentials.model,
+        system,
+        prompt,
+        maxTokens,
+        temperature,
+      });
+    }
+    const result = await generateText({
+      model: provider(credentials)(credentials.model),
+      system,
+      prompt,
+      temperature,
+      maxOutputTokens: maxTokens,
+    });
+    return (result.text ?? "").trim();
+  } catch (error) {
+    throw mapGatewayError(error, vendorOf(credentials));
+  }
 }
 
 /** How much verified material the snippet was built from. */
