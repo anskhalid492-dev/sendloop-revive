@@ -102,6 +102,7 @@ import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_
 import { Route as AuthenticatedAutomationsWorkflowsRouteImport } from './routes/_authenticated/automations.workflows'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
+import { Route as AuthenticatedMailboxesIndexRouteImport } from './routes/_authenticated/mailboxes.index'
 import { Route as AuthenticatedMailboxesAddRouteImport } from './routes/_authenticated/mailboxes.add'
 import { Route as AuthenticatedMailboxesAddGoogleRouteImport } from './routes/_authenticated/mailboxes.add-google'
 import { Route as AuthenticatedMailboxesAddImapRouteImport } from './routes/_authenticated/mailboxes.add-imap'
@@ -694,6 +695,12 @@ const AuthenticatedCampaignsCampaignIdRoute =
   AuthenticatedCampaignsCampaignIdRouteImport.update({
     id: '/campaigns/$campaignId',
     path: '/campaigns/$campaignId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMailboxesIndexRoute =
+  AuthenticatedMailboxesIndexRouteImport.update({
+    id: '/mailboxes/',
+    path: '/mailboxes/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMailboxesAddRoute =
@@ -1522,6 +1529,7 @@ export interface FileRoutesByFullPath {
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/campaigns/': typeof AuthenticatedCampaignsIndexRoute
+  '/mailboxes/': typeof AuthenticatedMailboxesIndexRoute
   '/mranuskhalid/': typeof AuthenticatedMranuskhalidIndexRoute
   '/mranuskhalid/credits/ledger': typeof AuthenticatedMranuskhalidCreditsLedgerRoute
   '/mranuskhalid/inbound-events/$eventId': typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
@@ -1728,6 +1736,7 @@ export interface FileRoutesByTo {
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/campaigns': typeof AuthenticatedCampaignsIndexRoute
+  '/mailboxes': typeof AuthenticatedMailboxesIndexRoute
   '/mranuskhalid': typeof AuthenticatedMranuskhalidIndexRoute
   '/mranuskhalid/credits/ledger': typeof AuthenticatedMranuskhalidCreditsLedgerRoute
   '/mranuskhalid/inbound-events/$eventId': typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
@@ -1939,6 +1948,7 @@ export interface FileRoutesById {
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
   '/_authenticated/campaigns/': typeof AuthenticatedCampaignsIndexRoute
+  '/_authenticated/mailboxes/': typeof AuthenticatedMailboxesIndexRoute
   '/_authenticated/mranuskhalid/': typeof AuthenticatedMranuskhalidIndexRoute
   '/_authenticated/mranuskhalid/credits/ledger': typeof AuthenticatedMranuskhalidCreditsLedgerRoute
   '/_authenticated/mranuskhalid/inbound-events/$eventId': typeof AuthenticatedMranuskhalidInboundEventsEventIdRoute
@@ -2150,6 +2160,7 @@ export interface FileRouteTypes {
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/campaigns/'
+    | '/mailboxes/'
     | '/mranuskhalid/'
     | '/mranuskhalid/credits/ledger'
     | '/mranuskhalid/inbound-events/$eventId'
@@ -2356,6 +2367,7 @@ export interface FileRouteTypes {
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/campaigns'
+    | '/mailboxes'
     | '/mranuskhalid'
     | '/mranuskhalid/credits/ledger'
     | '/mranuskhalid/inbound-events/$eventId'
@@ -2566,6 +2578,7 @@ export interface FileRouteTypes {
     | '/blog/author/$slug'
     | '/blog/category/$slug'
     | '/_authenticated/campaigns/'
+    | '/_authenticated/mailboxes/'
     | '/_authenticated/mranuskhalid/'
     | '/_authenticated/mranuskhalid/credits/ledger'
     | '/_authenticated/mranuskhalid/inbound-events/$eventId'
@@ -3383,6 +3396,13 @@ declare module '@tanstack/react-router' {
       path: '/campaigns/$campaignId'
       fullPath: '/campaigns/$campaignId'
       preLoaderRoute: typeof AuthenticatedCampaignsCampaignIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mailboxes/': {
+      id: '/_authenticated/mailboxes/'
+      path: '/mailboxes'
+      fullPath: '/mailboxes/'
+      preLoaderRoute: typeof AuthenticatedMailboxesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mailboxes/add': {
@@ -4444,6 +4464,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMailboxesAddMicrosoftRoute: typeof AuthenticatedMailboxesAddMicrosoftRoute
   AuthenticatedMailboxesConnectRoute: typeof AuthenticatedMailboxesConnectRoute
   AuthenticatedCampaignsIndexRoute: typeof AuthenticatedCampaignsIndexRoute
+  AuthenticatedMailboxesIndexRoute: typeof AuthenticatedMailboxesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -4477,6 +4498,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedMailboxesAddMicrosoftRoute,
   AuthenticatedMailboxesConnectRoute: AuthenticatedMailboxesConnectRoute,
   AuthenticatedCampaignsIndexRoute: AuthenticatedCampaignsIndexRoute,
+  AuthenticatedMailboxesIndexRoute: AuthenticatedMailboxesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
