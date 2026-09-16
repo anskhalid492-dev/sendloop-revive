@@ -117,6 +117,9 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const clicked = delivery?.clicked ?? 0;
   const replied = delivery?.replied ?? queue?.replied ?? 0;
   const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
+  // Customer mailboxes send via the relay and return no delivery receipt, so
+  // "delivered" = everything accepted that did not bounce back.
+  const delivered = Math.max(confirmedDelivered, reachable({ sent, bounced }));
   const failed = delivery?.failed ?? queue?.failed ?? 0;
   const delayed = delivery?.delayed ?? 0;
   const unsubscribed = delivery?.unsubscribed ?? queue?.unsubscribed ?? 0;
