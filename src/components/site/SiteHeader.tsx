@@ -76,14 +76,14 @@ const featuredProducts: Card[] = [
     cta: "Explore Warmup",
   },
   {
-    label: "AI Campaign Writer",
+    label: "AI Writer",
     to: "/products/ai-campaign-writer",
     text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
-    icon: Sparkles,
-    cta: "Explore AI Campaign Writer",
+    icon: PenLine,
+    cta: "Explore AI Writer",
   },
   {
-    label: "AI Personalization",
+    label: "AI",
     to: "/ai-personalized-outreach",
     text: "Write a unique opening line for every prospect with your own OpenAI key.",
     icon: Sparkles,
@@ -256,23 +256,23 @@ export function SiteHeader() {
   const headerRows = (siteContent?.header ?? []) as NavRow[];
   const adminCoreCards = toCards(headerRows, "core", featuredProducts);
   const adminMoreCards = toCards(headerRows, "more", secondaryProducts);
-  // AI Campaign Writer and AI Personalization belong to the core platform list,
+  // AI Writer and AI Personalization belong to the core platform list,
   // so they always appear there even when the admin-managed menu leaves them out
   // or files them under "More from MunchReach".
   const guaranteedCoreCards: Card[] = [
     {
-      label: "AI Personalization",
+      label: "AI",
       to: "/ai-personalized-outreach",
       text: "Write a unique opening line for every prospect with your own OpenAI key.",
       icon: Sparkles,
       cta: "Explore AI Personalization",
     },
     {
-      label: "AI Campaign Writer",
+      label: "AI Writer",
       to: "/products/ai-campaign-writer",
       text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
       icon: PenLine,
-      cta: "Explore AI Campaign Writer",
+      cta: "Explore AI Writer",
     },
   ];
   const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
