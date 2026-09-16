@@ -63,8 +63,11 @@ type Wire = {
 type Any = any;
 
 async function loadWorkersConnect(): Promise<Any | null> {
+  // Built from parts so the bundler/typechecker does not try to resolve the
+  // Workers-only module during the Node/dev build.
+  const specifier = ["cloudflare", "sockets"].join(":");
   try {
-    const mod = (await import(/* @vite-ignore */ "cloudflare:sockets")) as Any;
+    const mod = (await import(/* @vite-ignore */ specifier)) as Any;
     return typeof mod?.connect === "function" ? mod.connect : null;
   } catch {
     return null;
