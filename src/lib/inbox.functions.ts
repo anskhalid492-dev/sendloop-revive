@@ -535,10 +535,7 @@ export const sendConversationReply = createServerFn({ method: "POST" })
         subject: z.string().trim().min(1).max(300),
         body: z.string().trim().min(1).max(50000),
         cc: z.array(z.string().email()).max(10).default([]),
-        attachments: z
-          .array(z.object({ name: z.string().max(200), url: z.string().url().max(600) }))
-          .max(10)
-          .default([]),
+        attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
       })
       .parse(input),
   )
@@ -615,10 +612,7 @@ const draftSchema = z.object({
   bcc: z.array(z.string().trim().max(320)).max(10).default([]),
   subject: z.string().max(300).default(""),
   body: z.string().max(50000).default(""),
-  attachments: z
-    .array(z.object({ name: z.string().max(200), url: z.string().url().max(600) }))
-    .max(10)
-    .default([]),
+  attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
 });
 
 export const saveDraft = createServerFn({ method: "POST" })
@@ -686,10 +680,7 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
         body: z.string().trim().min(1).max(50000),
         leadId: z.string().uuid().nullish(),
         draftId: z.string().uuid().nullish(),
-        attachments: z
-          .array(z.object({ name: z.string().max(200), url: z.string().url().max(600) }))
-          .max(10)
-          .default([]),
+        attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
       })
       .parse(input),
   )
