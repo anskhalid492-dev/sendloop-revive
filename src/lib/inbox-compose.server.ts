@@ -46,24 +46,6 @@ export async function composeAndSend(input: ComposeInput) {
   const { assertMailboxCapacity } = await import("@/lib/mailbox-capacity.server");
   await assertMailboxCapacity(account, "reply");
 
-  // Provider + credentials are resolved dynamically against the currently
-  // active infrastructure. The mailbox's stored provider is never a credential
-  // source, and there is no environment-key shortcut for a disabled provider.
-  const { resolveMailboxSendingProvider } = await import("@/lib/mailbox-sending-provider.server");
-  const resolved = await resolveMailboxSendingProvider(supabaseAdmin, {
-    id: account.id as string,
-    from_email: account.from_email as string,
-    provider: (account.provider as string | null) ?? null,
-    provider_id: (account.provider_id as string | null) ?? null,
-  });
-  if (!resolved) {
-    console.warn(
-      `[inbox-compose] refused: no active sending infrastructure for ${account.from_email} (recorded provider "${account.provider ?? "none"}").`,
-    );
-    throw new Error("Sending is temporarily unavailable for this mailbox.");
-  }
-  const credentials = resolved.credentials;
-
   // Resolve the lead so the conversation is attached to the CRM record.
   let leadId = input.leadId;
   if (!leadId) {
@@ -82,7 +64,41 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error(`This address is on your suppression list (${blocked}) and cannot be emailed.`);
   }
 
-  const adapter = getAdapter(resolved.provider);
+  // Locked down exactly like campaign dispatch and inbox replies: a composed
+  // email may only leave through a mailbox the customer connected themselves
+  // (SMTP via mailbox-smtp-relay). No shared platform credentials, ever.
+  const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+    "@/lib/customer-mailbox-send.server"
+  );
+  const customerMailbox = await findCustomerMailbox(
+    supabaseAdmin,
+    input.workspaceId,
+    account.from_email as string,
+  );
+  if (!customerMailbox) {
+    const { isMailboxPaused, PAUSED_MAILBOX_MESSAGE } = await import("@/lib/mailbox-active.server");
+    const paused = await isMailboxPaused(
+      supabaseAdmin,
+      input.workspaceId,
+      account.from_email as string,
+    );
+    console.warn(
+      `[inbox-compose] refused: ${paused ? "mailbox paused" : "no connected customer mailbox"} for ${account.from_email} (workspace ${input.workspaceId}).`,
+    );
+    throw new Error(
+      paused
+        ? PAUSED_MAILBOX_MESSAGE
+        : "This mailbox is not connected with your own email credentials yet. Connect it under Email Accounts, then send this email again.",
+    );
+  }
+  if (input.attachments.length > 0) {
+    throw new Error(
+      "Attachments cannot be sent through your own mailbox yet. Remove the attachment to send this email.",
+    );
+  }
+
+  // A tracked reply address is a nice-to-have here: replies to a mailbox the
+  // customer owns are picked up from that mailbox directly.
   const { mintReplyRoute } = await import("@/lib/inbound-routing.server");
   const replyRoute = await mintReplyRoute(account.from_email, {
     workspaceId: input.workspaceId,
@@ -90,24 +106,38 @@ export async function composeAndSend(input: ComposeInput) {
     leadId,
     purpose: "compose",
   });
-  if (!replyRoute) {
-    throw new Error("Reply routing is not ready for this mailbox. Please try again shortly.");
-  }
-  const replyTo = replyRoute.visibleAddress;
-  const { createOutboundRfcMessageId } = await import("@/lib/outbound-threading.server");
+  const { createOutboundRfcMessageId, mergeEmailHeaders } = await import(
+    "@/lib/outbound-threading.server"
+  );
   const outboundMessageId = createOutboundRfcMessageId(account.from_email);
-  const send = await adapter.sendEmail(credentials ?? {}, {
-    fromName: account.from_name,
-    fromEmail: account.from_email,
-    replyTo,
-    to,
-    cc: input.cc,
-    bcc: input.bcc,
-    subject: input.subject,
-    text: input.body,
-    attachments: input.attachments,
+  const headers = mergeEmailHeaders({
+    ...(replyRoute?.visibleAddress ? { "Reply-To": replyRoute.visibleAddress } : {}),
+    ...(input.cc.length ? { Cc: input.cc.join(", ") } : {}),
   });
+
+  // The relay delivers to one envelope recipient per call, so cc/bcc addresses
+  // each receive their own copy of the same message.
+  const recipients = [to, ...input.cc, ...input.bcc];
+  let send: { ok: boolean; message: string; messageId: string | null } = {
+    ok: false,
+    message: "The email could not be delivered. Please try again.",
+    messageId: null,
+  };
+  for (const [index, recipient] of recipients.entries()) {
+    const attempt = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
+      to: recipient,
+      subject: input.subject,
+      text: input.body,
+      fromName: account.from_name,
+      headers,
+    });
+    if (index === 0) {
+      send = { ok: attempt.ok, message: attempt.message, messageId: attempt.messageId };
+      if (!attempt.ok) break;
+    }
+  }
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
+
 
   const nowIso = new Date().toISOString();
   const legacyThreadKey = buildThreadKey({ prospectEmail: to, subject: input.subject });
