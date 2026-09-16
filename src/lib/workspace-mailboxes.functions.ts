@@ -220,6 +220,10 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       sentThisHour.set(row.sending_account_id, (sentThisHour.get(row.sending_account_id) ?? 0) + 1);
     }
 
+    // Real campaign usage: a campaign uses this mailbox when its sending pool
+    // (campaigns.sending_account_ids) contains the mailbox's sending account.
+    const campaignsByAccount = await loadCampaignUsage(client, data.workspaceId, accountIds);
+
     const dayStart = mailboxWindowStart();
     const rows: WorkspaceMailboxRow[] = mailboxes.map((row) => {
       const account = byEmail.get(row.email_address.toLowerCase()) ?? null;
@@ -229,12 +233,14 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
         email: row.email_address,
         displayName: row.display_name ?? account?.from_name ?? null,
         status: row.status,
+        isActive: row.is_active !== false,
         smtpHost: row.smtp_host ?? null,
         imapHost: row.imap_host ?? null,
         dailySendLimit: row.daily_send_limit ?? 0,
         warmupEnabledFlag: row.warmup_enabled === true,
         lastTestedAt: row.last_tested_at ?? null,
         createdAt: row.created_at,
+        campaigns: account ? campaignsByAccount.get(account.id) ?? [] : [],
 
         sendingAccountId: account?.id ?? null,
         paused: account ? account.paused === true : null,
@@ -265,19 +271,28 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       .select("from_email")
       .eq("workspace_id", data.workspaceId)
       .limit(500);
-    const { data: allMailboxEmails } = await client
+    const { data: allMailboxes } = await client
       .from("mailboxes")
-      .select("email_address")
+      .select("email_address, status, is_active")
       .eq("workspace_id", data.workspaceId)
       .limit(2000);
-    const connected = new Set(
-      ((allMailboxEmails ?? []) as Array<{ email_address: string }>).map((row) =>
-        row.email_address.toLowerCase(),
-      ),
-    );
+    type SummaryRecord = { email_address: string; status: string; is_active: boolean | null };
+    const everyMailbox = (allMailboxes ?? []) as SummaryRecord[];
+    const connected = new Set(everyMailbox.map((row) => row.email_address.toLowerCase()));
     const legacyCount = ((legacyRows ?? []) as Array<{ from_email: string | null }>).filter(
       (row) => row.from_email && !connected.has(row.from_email.toLowerCase()),
     ).length;
+
+    // Header counts describe the whole workspace, not just the current page.
+    const summary: WorkspaceMailboxSummary = {
+      total: everyMailbox.length,
+      usable: everyMailbox.filter((row) => row.status === "connected" && row.is_active !== false)
+        .length,
+      paused: everyMailbox.filter((row) => row.status === "connected" && row.is_active === false)
+        .length,
+      pending: everyMailbox.filter((row) => row.status === "pending").length,
+      failed: everyMailbox.filter((row) => row.status === "failed").length,
+    };
 
     return {
       rows,
@@ -285,8 +300,73 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       page: data.page,
       pageSize: data.pageSize,
       legacyCount,
+      summary,
     };
   });
+
+/**
+ * Campaigns that use each of these sending accounts, with the number of
+ * messages still queued for that account on that campaign. Real data only:
+ * campaigns come from `campaigns.sending_account_ids`, queued volume from
+ * `campaign_messages`. Returns an empty map when there is nothing to look up.
+ */
+async function loadCampaignUsage(
+  client: Client,
+  workspaceId: string,
+  accountIds: string[],
+): Promise<Map<string, MailboxCampaignRef[]>> {
+  const byAccount = new Map<string, MailboxCampaignRef[]>();
+  if (accountIds.length === 0) return byAccount;
+
+  const { data: campaignRows } = await client
+    .from("campaigns")
+    .select("id, name, status, sending_account_ids")
+    .eq("workspace_id", workspaceId)
+    .overlaps("sending_account_ids", accountIds)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  type CampaignRecord = {
+    id: string;
+    name: string | null;
+    status: string | null;
+    sending_account_ids: string[] | null;
+  };
+  const campaigns = (campaignRows ?? []) as CampaignRecord[];
+  if (campaigns.length === 0) return byAccount;
+
+  // Queued volume per (campaign, account), counted from the real queue.
+  const { data: queuedRows } = await client
+    .from("campaign_messages")
+    .select("campaign_id, sending_account_id")
+    .eq("workspace_id", workspaceId)
+    .in("status", ["pending", "scheduled"])
+    .in("sending_account_id", accountIds)
+    .limit(10000);
+  const queued = new Map<string, number>();
+  for (const row of (queuedRows ?? []) as Array<{
+    campaign_id: string | null;
+    sending_account_id: string | null;
+  }>) {
+    if (!row.campaign_id || !row.sending_account_id) continue;
+    const key = `${row.campaign_id}:${row.sending_account_id}`;
+    queued.set(key, (queued.get(key) ?? 0) + 1);
+  }
+
+  for (const campaign of campaigns) {
+    for (const accountId of campaign.sending_account_ids ?? []) {
+      if (!accountIds.includes(accountId)) continue;
+      const list = byAccount.get(accountId) ?? [];
+      list.push({
+        id: campaign.id,
+        name: campaign.name ?? "Untitled campaign",
+        status: campaign.status ?? "draft",
+        queued: queued.get(`${campaign.id}:${accountId}`) ?? 0,
+      });
+      byAccount.set(accountId, list);
+    }
+  }
+  return byAccount;
+}
 
 /**
  * Re-tests a saved mailbox with its stored credentials through the existing
