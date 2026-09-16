@@ -82,6 +82,13 @@ type Failure = { ok: false; message: string; status: number };
 const failed = (r: unknown): r is Failure =>
   Boolean(r) && (r as { ok?: boolean }).ok === false;
 
+/** Saved state may omit fields — never let undefined overwrite a default. */
+function defined<T extends object>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== undefined && v !== null),
+  ) as Partial<T>;
+}
+
 function Card({
   title,
   icon: Icon,
