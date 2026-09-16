@@ -455,7 +455,7 @@ export function AiCampaignWriterSidebar({
             ? ` ${result.keptExtraSteps} later step(s) were kept because they already have mail.`
             : ""),
       );
-      if (targetCampaignId === campaignId) builder.reload?.();
+      if (targetCampaignId === campaignId) void builder.refetch();
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -480,7 +480,7 @@ export function AiCampaignWriterSidebar({
     },
     onSuccess: (result) => {
       toast.success(`Step ${result.stepOrder} updated in ${result.campaignName}.`);
-      if (targetCampaignId === campaignId) builder.reload?.();
+      if (targetCampaignId === campaignId) void builder.refetch();
     },
     onError: (error: Error) => toast.error(error.message),
   });
