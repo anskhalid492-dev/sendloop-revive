@@ -14,7 +14,9 @@
  * "No data available" rather than invent a result.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { clickRatePercent } from "@/lib/click-tracking";
 import { openRatePercent } from "@/lib/open-tracking";
+
 
 const db = () => supabaseAdmin as any;
 
@@ -69,7 +71,14 @@ export type AdminCampaignRow = {
   opens: number;
   /** Unique opens / sent, as a percentage. */
   openRate: number;
+  /** Distinct contacts who clicked at least one link. */
+  clicks: number;
+  /** Unique clicks / sent, as a percentage. */
+  clickRate: number;
+  /** Unsubscribes recorded for this campaign. */
+  unsubscribes: number;
   replies: number;
+
   positiveReplies: number;
   bounces: number;
   meetings: number;
@@ -112,7 +121,18 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   const ids = campaigns.map((c) => c.id);
   if (!ids.length) return [] as AdminCampaignRow[];
 
-  const [recipients, messages, replies, engagement, workspaces, owners, accounts, activities] =
+  const [
+    recipients,
+    messages,
+    replies,
+    engagement,
+    workspaces,
+    owners,
+    accounts,
+    activities,
+    clickEvents,
+    unsubscribeRows,
+  ] =
     await Promise.all([
       fetchByIds<any>(ids, (chunk) =>
         db().from("campaign_recipients").select("campaign_id, status").in("campaign_id", chunk),
@@ -135,7 +155,17 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       fetchByIds<any>(ids, (chunk) =>
         db().from("lead_activities").select("campaign_id, type, created_at").in("campaign_id", chunk),
       ),
+      fetchByIds<any>(ids, (chunk) =>
+        db()
+          .from("email_click_events")
+          .select("campaign_id, lead_id, recipient_email, message_id")
+          .in("campaign_id", chunk),
+      ),
+      fetchByIds<any>(ids, (chunk) =>
+        db().from("campaign_unsubscribes").select("campaign_id, email").in("campaign_id", chunk),
+      ),
     ]);
+
 
   const recipientCounts = tally(recipients, (r: any) => r.campaign_id);
   const sentCounts: Dict<number> = {};
@@ -176,6 +206,20 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   const accountEmails: Dict<string> = {};
   for (const a of accounts as any[]) accountEmails[a.id] = a.from_email;
 
+  // Click rate, like open rate, is driven by DISTINCT clickers — not raw
+  // redirect hits, so one contact clicking five times still counts once.
+  const clickKeysByCampaign: Dict<Set<string>> = {};
+  for (const e of clickEvents as any[]) {
+    if (!e.campaign_id) continue;
+    const who = String(e.lead_id ?? e.recipient_email ?? e.message_id ?? "");
+    if (!who) continue;
+    const set = clickKeysByCampaign[e.campaign_id] ?? new Set<string>();
+    set.add(who);
+    clickKeysByCampaign[e.campaign_id] = set;
+  }
+  const unsubscribeCounts = tally(unsubscribeRows as any[], (r: any) => r.campaign_id);
+
+
   return campaigns.map((c): AdminCampaignRow => {
     const owner = owners[c.created_by] ?? { email: null, name: null };
     return {
@@ -190,6 +234,10 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       sent: sentCounts[c.id] ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
       openRate: openRatePercent(openKeys[c.id]?.size ?? 0, sentCounts[c.id] ?? 0),
+      clicks: clickKeysByCampaign[c.id]?.size ?? 0,
+      clickRate: clickRatePercent(clickKeysByCampaign[c.id]?.size ?? 0, sentCounts[c.id] ?? 0),
+      unsubscribes: unsubscribeCounts[c.id] ?? 0,
+
       replies: replyCounts[c.id] ?? 0,
       positiveReplies: positiveCounts[c.id] ?? 0,
       bounces: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
@@ -344,6 +392,48 @@ export async function getAdminCampaign(campaignId: string) {
     }
   }
 
+  // First-party click tracking + real unsubscribes, same shape as opens: the
+  // rate is unique clickers, the raw hit count is reported next to it.
+  const [{ data: clickEventRows }, { data: unsubRows }] = await Promise.all([
+    db()
+      .from("email_click_events")
+      .select("lead_id, recipient_email, message_id, url, occurred_at")
+      .eq("campaign_id", campaign.id)
+      .limit(50000),
+    db()
+      .from("campaign_unsubscribes")
+      .select("email, source, created_at")
+      .eq("campaign_id", campaign.id)
+      .limit(50000),
+  ]);
+  const uniqueClickers = new Set<string>();
+  const clickByLead: Dict<{ firstAt: string; count: number; lastUrl: string | null }> = {};
+  let rawClicks = 0;
+  for (const e of (clickEventRows ?? []) as any[]) {
+    rawClicks += 1;
+    const who = String(e.lead_id ?? e.recipient_email ?? e.message_id ?? "");
+    if (who) uniqueClickers.add(who);
+    const leadKey = e.lead_id ? String(e.lead_id) : "";
+    if (!leadKey) continue;
+    const entry = clickByLead[leadKey];
+    if (!entry) clickByLead[leadKey] = { firstAt: e.occurred_at, count: 1, lastUrl: e.url ?? null };
+    else {
+      entry.count += 1;
+      if (e.occurred_at < entry.firstAt) entry.firstAt = e.occurred_at;
+    }
+  }
+  const unsubscribedEmails = new Set<string>();
+  const unsubscribeByEmail: Dict<{ at: string; source: string | null }> = {};
+  for (const u of (unsubRows ?? []) as any[]) {
+    const email = String(u.email ?? "").toLowerCase();
+    if (!email) continue;
+    unsubscribedEmails.add(email);
+    const existing = unsubscribeByEmail[email];
+    if (!existing || u.created_at < existing.at)
+      unsubscribeByEmail[email] = { at: u.created_at, source: u.source ?? null };
+  }
+
+
   const msgRows = (messages.data ?? []) as any[];
   const engRows = engagementRows as any[];
   const openKeys = new Set<string>();
@@ -407,6 +497,12 @@ export async function getAdminCampaign(campaignId: string) {
       company: leadById[r.lead_id]?.company ?? null,
       openedAt: openByLead[String(r.lead_id)]?.firstAt ?? null,
       openCount: openByLead[String(r.lead_id)]?.count ?? 0,
+      clickedAt: clickByLead[String(r.lead_id)]?.firstAt ?? null,
+      clickCount: clickByLead[String(r.lead_id)]?.count ?? 0,
+      lastClickedUrl: clickByLead[String(r.lead_id)]?.lastUrl ?? null,
+      unsubscribedAt:
+        unsubscribeByEmail[String(leadById[r.lead_id]?.email ?? "").toLowerCase()]?.at ?? null,
+
     })),
     sendingAccounts: (accounts.data ?? []).map((a: any) => ({
       id: a.id,
@@ -426,7 +522,13 @@ export async function getAdminCampaign(campaignId: string) {
       rawOpens,
       prefetchOpens,
       openRate: openRatePercent(Math.max(openKeys.size, uniqueOpeners.size), statsSent),
-      clicks: clickKeys.size,
+      clicks: Math.max(clickKeys.size, uniqueClickers.size),
+      uniqueClicks: uniqueClickers.size,
+      rawClicks,
+      clickRate: clickRatePercent(Math.max(clickKeys.size, uniqueClickers.size), statsSent),
+      unsubscribes: unsubscribedEmails.size,
+      unsubscribeRate: clickRatePercent(unsubscribedEmails.size, statsSent),
+
       bounces: bounceKeys.size,
       replies: statsReplies,
       positiveReplies: statsPositiveReplies,

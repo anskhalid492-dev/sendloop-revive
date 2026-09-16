@@ -204,19 +204,21 @@ export async function sendReplyThroughMailbox(args: {
   const { randomUUID } = await import("crypto");
   const outboundRowId = randomUUID();
   const { campaignBodyHtml } = await import("@/lib/email-html");
-  const { injectOpenPixel, openPixelUrl } = await import("@/lib/open-tracking");
-  // Same shared injection step as campaign dispatch and Compose.
-  const replyHtml = injectOpenPixel(
-    campaignBodyHtml(body),
-    openPixelUrl({
+  const { applyEmailTracking } = await import("@/lib/email-tracking");
+  // Same shared tracking step as campaign dispatch and Compose.
+  const replyHtml = applyEmailTracking(campaignBodyHtml(body), {
+    target: {
       workspaceId: conversation.workspace_id as string,
       messageKind: "conversation",
       messageId: outboundRowId,
       campaignId: (conversation.campaign_id as string | null) ?? null,
       leadId: (conversation.lead_id as string | null) ?? null,
       email: conversation.prospect_email as string,
-    }),
-  );
+    },
+    trackOpens: true,
+    trackClicks: true,
+  });
+
 
   // ONE message: the prospect on To, any Cc addresses visible to each other,
   // all of them delivery targets on the same envelope.
