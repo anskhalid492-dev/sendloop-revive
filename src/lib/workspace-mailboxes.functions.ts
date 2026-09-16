@@ -464,6 +464,35 @@ export const setWorkspaceMailboxActive = createServerFn({ method: "POST" })
     return { updated: ((updated ?? []) as Array<{ id: string }>).length, active: data.active };
   });
 
+/**
+ * Saves the sender name shown next to this mailbox's address in the recipient's
+ * inbox. Name only: no credential, limit, pacing or status is touched, and
+ * clearing it simply sends from the bare email address again.
+ */
+export const setWorkspaceMailboxSenderName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ id: z.string().uuid(), displayName: z.string().trim().max(120) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    // RLS keeps this to the caller's own workspace.
+    const { data: updated, error } = await client
+      .from("mailboxes")
+      .update({
+        display_name: data.displayName === "" ? null : data.displayName,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.id)
+      .select("id, display_name");
+    if (error) throw new Error(error.message);
+    const row = (updated ?? [])[0] as { display_name: string | null } | undefined;
+    if (!row) throw new Error("That mailbox could not be found.");
+    return { displayName: row.display_name };
+  });
+
 export type MailboxDeletionCheck = {
   mailboxId: string;
   email: string;
