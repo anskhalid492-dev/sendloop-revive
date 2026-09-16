@@ -115,3 +115,38 @@ export async function relaySendMail(
 ): Promise<RelaySendResult> {
   return callRelay<RelaySendResult>({ action: "send", smtp, message });
 }
+
+export type RelayCheckedMessage = {
+  uid: number;
+  messageId: string | null;
+  inReplyTo: string | null;
+  references: string | null;
+  from: string | null;
+  to: string | null;
+  subject: string | null;
+  date: string | null;
+  text: string | null;
+};
+
+export type RelayCheckResult = {
+  ok: boolean;
+  message: string;
+  messages: RelayCheckedMessage[];
+};
+
+/**
+ * Reads new mail from a customer mailbox's OWN IMAP inbox through the relay.
+ * `sinceUid` is the highest UID already processed; null asks for the most recent
+ * slice of the inbox. Read-only: nothing is sent, moved or deleted.
+ */
+export async function relayCheckMailbox(
+  imap: MailEndpoint,
+  sinceUid: number | null,
+): Promise<RelayCheckResult> {
+  const result = await callRelay<RelayCheckResult>({ action: "check", imap, sinceUid });
+  return {
+    ok: !!result?.ok,
+    message: result?.message ?? "The mail relay returned no result.",
+    messages: Array.isArray(result?.messages) ? result.messages : [],
+  };
+}
