@@ -196,11 +196,11 @@ export async function composeAndSend(input: ComposeInput) {
     throw new Error("The email was sent but the thread could not be saved. Refresh to confirm.");
   }
   try {
-    if (replyRoute.id) {
+    if (replyRoute?.id) {
       await supabaseAdmin
         .from("inbound_routes")
         .update({ conversation_id: conversation.id })
-        .eq("id", replyRoute.id)
+        .eq("id", replyRoute!.id)
         .is("conversation_id", null);
     }
   } catch {
@@ -220,7 +220,7 @@ export async function composeAndSend(input: ComposeInput) {
       bcc_emails: input.bcc,
       subject: input.subject,
       body: input.body,
-      message_id: stripAngle(send.rfcMessageId ?? outboundMessageId),
+      message_id: stripAngle(outboundMessageId),
       reference_ids: [],
       sending_account_id: account.id,
       provider_message_id: send.messageId ?? null,
@@ -245,7 +245,7 @@ export async function composeAndSend(input: ComposeInput) {
       toEmail: to,
       refTable: "conversation_messages",
       refId: inserted.id,
-      alternateProviderMessageIds: [send.rfcMessageId ?? null, outboundMessageId],
+      alternateProviderMessageIds: [outboundMessageId],
     });
   } catch {
     /* classification must never fail an already delivered send */
