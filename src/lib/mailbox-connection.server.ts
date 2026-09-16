@@ -361,8 +361,8 @@ export async function testImapLogin(endpoint: MailEndpoint): Promise<ProtocolRes
   }
 }
 
-/** Runs both logins and reports them separately. */
-export async function testMailboxEndpoints(
+/** Runs both logins directly from this runtime and reports them separately. */
+export async function testMailboxEndpointsDirect(
   smtp: MailEndpoint,
   imap: MailEndpoint,
 ): Promise<MailboxTestResult> {
@@ -374,4 +374,33 @@ export async function testMailboxEndpoints(
     imap: imapResult,
     testedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Runs both logins and reports them separately.
+ *
+ * Default path is the `mailbox-smtp-relay` edge function over HTTPS: this
+ * runtime is Cloudflare Workers, which blocks outbound connections to
+ * Cloudflare's own IP ranges, so providers whose mail servers sit behind
+ * Cloudflare (Hostinger and similar) can never be reached directly. If the
+ * relay is unavailable (not configured, not deployed, network error) we fall
+ * back to the direct sockets so nothing regresses.
+ */
+export async function testMailboxEndpoints(
+  smtp: MailEndpoint,
+  imap: MailEndpoint,
+): Promise<MailboxTestResult> {
+  const { relayConfigured, relayTestMailboxEndpoints } = await import("@/lib/mailbox-relay.server");
+
+  if (relayConfigured()) {
+    try {
+      return await relayTestMailboxEndpoints(smtp, imap);
+    } catch (error) {
+      console.warn(
+        `[mailbox] relay test unavailable, falling back to direct sockets: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  return testMailboxEndpointsDirect(smtp, imap);
 }
