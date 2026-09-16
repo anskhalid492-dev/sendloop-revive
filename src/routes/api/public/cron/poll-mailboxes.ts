@@ -34,7 +34,16 @@ async function run(request: Request) {
     url.searchParams.get("token") ??
     "";
 
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: settings } = await supabaseAdmin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "mailbox_poll_runner")
+    .maybeSingle();
+  const dbToken = (settings?.value as { token?: string } | null)?.token ?? null;
+
   const secrets = [
+    dbToken,
     process.env["MAILBOX_POLL_CRON_SECRET"],
     process.env["INBOUND_EMAIL_SECRET"],
   ].filter((value): value is string => Boolean(value));
