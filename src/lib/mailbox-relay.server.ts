@@ -12,7 +12,11 @@
  *
  * Deployable function source: docs/edge-functions/mailbox-smtp-relay/index.ts
  */
-import { SUPABASE_URL, getServiceRoleKey } from "@/integrations/supabase/config";
+import {
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  getServiceRoleKey,
+} from "@/integrations/supabase/config";
 import type {
   MailEndpoint,
   MailboxTestResult,
@@ -34,23 +38,33 @@ export type RelaySendResult = { ok: boolean; message: string; messageId: string 
 const RELAY_URL = `${SUPABASE_URL}/functions/v1/mailbox-smtp-relay`;
 const RELAY_TIMEOUT_MS = 60_000;
 
-/** The relay can only be called when the service-role key is available. */
+function getRelaySecret(): string | undefined {
+  const value = typeof process !== "undefined" ? process.env?.["MAILBOX_RELAY_SECRET"] : undefined;
+  return value && value.length > 0 ? value : undefined;
+}
+
+/** The relay needs the shared secret (or, as a fallback, the service-role key). */
 export function relayConfigured(): boolean {
-  return !!getServiceRoleKey();
+  return !!getRelaySecret() || !!getServiceRoleKey();
 }
 
 async function callRelay<T>(body: Record<string, unknown>): Promise<T> {
+  const relaySecret = getRelaySecret();
   const serviceRoleKey = getServiceRoleKey();
-  if (!serviceRoleKey) throw new Error("Mail relay is not configured (missing service role key).");
+  if (!relaySecret && !serviceRoleKey) {
+    throw new Error("Mail relay is not configured (missing relay secret).");
+  }
 
+  // The functions gateway requires a project key in the Authorization header;
+  // the relay itself authenticates the caller with the shared secret.
+  const gatewayKey = SUPABASE_PUBLISHABLE_KEY;
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    Authorization: `Bearer ${serviceRoleKey}`,
-    apikey: serviceRoleKey,
+    Authorization: `Bearer ${gatewayKey}`,
+    apikey: gatewayKey,
   };
-  const relaySecret =
-    typeof process !== "undefined" ? process.env?.["MAILBOX_RELAY_SECRET"] : undefined;
   if (relaySecret) headers["x-relay-secret"] = relaySecret;
+  else if (serviceRoleKey) headers["x-service-role-key"] = serviceRoleKey;
 
   const response = await fetch(RELAY_URL, {
     method: "POST",
