@@ -78,3 +78,57 @@ export function bouncedRecipient(input: {
   }
   return null;
 }
+
+/**
+ * Automated machine reports (DMARC aggregate reports, list/auto-submitted mail,
+ * postmaster reports). These are never prospect replies: they must not be filed
+ * into the Unified Inbox and must not be recorded as an inbound failure either,
+ * because they are working as intended and only create alert noise.
+ */
+const REPORT_RECIPIENT_PATTERNS: RegExp[] = [
+  /^dmarc[@+._-]/i,
+  /^postmaster@/i,
+  /^abuse@/i,
+  /^tls-?rpt[@+._-]/i,
+];
+
+const REPORT_SUBJECT_PATTERNS: RegExp[] = [
+  /report\s+domain:/i,
+  /^\s*\[preview\]\s*report\s+domain:/i,
+  /aggregate\s+report/i,
+  /dmarc\s+report/i,
+  /smtp\s+tls\s+report/i,
+];
+
+const REPORT_SENDER_PATTERNS: RegExp[] = [
+  /(^|[.@])dmarc[^@]*@/i,
+  /noreply-dmarc/i,
+  /dmarcreport/i,
+  /dmarcreports/i,
+];
+
+/** True when the message is an automated report rather than human mail. */
+export function looksLikeAutomatedReport(input: {
+  from: string | null;
+  to?: string | null;
+  subject: string | null;
+  headers?: Record<string, string> | null;
+}): boolean {
+  const from = (input.from ?? "").trim();
+  const to = (input.to ?? "").trim();
+  const subject = (input.subject ?? "").trim();
+
+  if (REPORT_RECIPIENT_PATTERNS.some((pattern) => pattern.test(to))) return true;
+  if (REPORT_SUBJECT_PATTERNS.some((pattern) => pattern.test(subject))) return true;
+  if (REPORT_SENDER_PATTERNS.some((pattern) => pattern.test(from))) return true;
+
+  const headers = input.headers ?? null;
+  if (headers) {
+    for (const [key, value] of Object.entries(headers)) {
+      const name = key.toLowerCase();
+      if (name === "auto-submitted" && value && !/^no$/i.test(value.trim())) return true;
+      if (name === "x-report-domain" || name === "x-dmarc-report") return true;
+    }
+  }
+  return false;
+}

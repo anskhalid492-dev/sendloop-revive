@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { BackLink } from "@/components/app/BackLink";
 import { GuidedMailboxForm } from "@/components/sending/GuidedMailboxForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -45,14 +45,8 @@ const STEPS = [
 function ConnectGooglePage() {
   return (
     <AppShell title="Gmail / G-Suite" description="Connect with a Google App password">
+      <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          to="/mailboxes/add"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> All providers
-        </Link>
-
         <Card>
           <CardHeader>
             <CardTitle>Create your App password</CardTitle>

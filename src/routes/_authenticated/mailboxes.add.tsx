@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, ServerCog, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { BackLink } from "@/components/app/BackLink";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { MicrosoftMark } from "@/components/campaign/MailboxTypeBadge";
 
@@ -60,6 +61,7 @@ const OPTIONS = [
 function ChooseProviderPage() {
   return (
     <AppShell title="Connect Existing" description="Choose the provider your mailbox is hosted on">
+      <BackLink to="/mailboxes" />
       <div className="mx-auto w-full max-w-[1160px] px-1 py-2 sm:py-6">
         <div className="grid gap-5 md:grid-cols-3 md:gap-6">
           {OPTIONS.map((option) => (

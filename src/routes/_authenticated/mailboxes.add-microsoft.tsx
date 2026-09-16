@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { BackLink } from "@/components/app/BackLink";
 import { GuidedMailboxForm } from "@/components/sending/GuidedMailboxForm";
 import {
   Accordion,
@@ -62,14 +62,8 @@ function ConnectMicrosoftPage() {
 
   return (
     <AppShell title="Office 365 / Outlook" description="Enable SMTP access, then connect">
+      <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          to="/mailboxes/add"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> All providers
-        </Link>
-
         <Card>
           <CardHeader>
             <CardTitle>Enable SMTP access on your mailbox</CardTitle>
