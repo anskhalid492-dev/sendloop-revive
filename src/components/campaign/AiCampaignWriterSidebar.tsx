@@ -51,6 +51,8 @@ import {
   CAMPAIGN_GOALS,
   CTA_TYPES,
   REFINEMENTS,
+  briefSchema,
+  controlsSchema,
   STYLES,
   TONES,
   defaultBrief,
@@ -369,7 +371,7 @@ export function AiCampaignWriterSidebar({
         waitDays: index === 0 ? 0 : step.waitDays,
       };
     });
-    builder.updateSteps(drafts);
+    builder.updateSteps(() => drafts);
     setConfirmReplace(false);
     onOpenChange(false);
     toast.success("Applied to your sequence. Remember to save the campaign.");
