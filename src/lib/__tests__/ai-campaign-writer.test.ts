@@ -7,8 +7,12 @@ import {
   normalizeWriterState,
   sanitizeVariables,
   stepPurposes,
+  totalSteps,
+  MAX_SEQUENCE_STEPS,
   writerStateSchema,
 } from "@/lib/ai-campaign-writer-model";
+import { painPointToken, painPointSlotsUsed, defaultAiConfig } from "@/lib/ai-personalization-model";
+import { aiExtras } from "@/lib/ai-personalization-meta.server";
 
 describe("AI campaign writer model", () => {
   it("keeps only variables the platform supports", () => {
