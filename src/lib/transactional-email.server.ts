@@ -752,7 +752,11 @@ async function deliver(
  */
 export async function processTransactionalQueue(
   admin: Admin,
-  options: { limit?: number } = {},
+  /**
+   * `onlyId` delivers exactly one queued row. Admin test sends use it so a test
+   * never depends on — or drags along — whatever else is sitting in the queue.
+   */
+  options: { limit?: number; onlyId?: string } = {},
 ): Promise<QueueRunSummary> {
   const summary: QueueRunSummary = { ok: true, claimed: 0, sent: 0, failed: 0, retried: 0, errors: [] };
 
@@ -770,13 +774,15 @@ export async function processTransactionalQueue(
   try {
     const limit = Math.min(Math.max(1, options.limit ?? settings.batch_size), 100);
     const nowIso = new Date().toISOString();
-    const { data: pending } = await admin
+    let query = admin
       .from("transactional_emails")
       .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts")
-      .in("status", ["queued", "retrying"])
-      .lte("next_attempt_at", nowIso)
+      .in("status", ["queued", "retrying"]);
+    if (options.onlyId) query = query.eq("id", options.onlyId);
+    else query = query.lte("next_attempt_at", nowIso);
+    const { data: pending } = await query
       .order("queued_at", { ascending: true })
-      .limit(limit);
+      .limit(options.onlyId ? 1 : limit);
 
     for (const row of (pending ?? []) as Array<{
       id: string;
@@ -888,7 +894,7 @@ export async function sendTransactionalNow(
 }> {
   const queued = await triggerTransactionalEmail(admin, input);
   if (!queued.queued || !queued.id) return { ok: false, message: queued.reason ?? "Could not queue email." };
-  const run = await processTransactionalQueue(admin, { limit: 5 });
+  const run = await processTransactionalQueue(admin, { onlyId: queued.id });
   const { data } = await admin
     .from("transactional_emails")
     .select("status, error, provider, provider_message_id, from_email, subject")
