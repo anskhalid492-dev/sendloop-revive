@@ -120,6 +120,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/campaigns", label: "Campaigns", icon: Send },
       { to: "/mranuskhalid/leads", label: "Leads", icon: ContactRound },
       { to: "/mranuskhalid/email-accounts", label: "Email Accounts", icon: AtSign },
+      { to: "/mranuskhalid/mailboxes", label: "Mailboxes", icon: Mailbox },
       { to: "/mranuskhalid/domains", label: "Domain Verification", icon: Globe },
       { to: "/mranuskhalid/warmup", label: "Warmup", icon: Flame },
       { to: "/mranuskhalid/crm", label: "CRM", icon: Users },

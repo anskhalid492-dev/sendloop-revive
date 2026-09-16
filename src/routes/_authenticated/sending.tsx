@@ -1,6 +1,6 @@
 import { liveQueryOptions } from "@/lib/analytics-query";
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -86,7 +86,18 @@ import {
 } from "@/lib/sending-model";
 import { cn } from "@/lib/utils";
 
+/**
+ * RETIRED SCREEN — no longer reachable.
+ *
+ * "Email Accounts" now opens the mailbox connection system at /mailboxes/add.
+ * The page code below is intentionally kept intact (nothing deleted) but this
+ * route redirects on entry, so it can never be opened, including by older links
+ * elsewhere in the app.
+ */
 export const Route = createFileRoute("/_authenticated/sending")({
+  beforeLoad: () => {
+    throw redirect({ to: "/mailboxes/add" });
+  },
   head: () => ({
     meta: [
       { title: "Email Accounts — MunchReach" },
