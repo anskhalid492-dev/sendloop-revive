@@ -1247,9 +1247,12 @@ export async function dispatchDueMessages(
           reason: "no_connected_customer_mailbox_for_sender",
           providerResult: "rejected",
         });
+        const { INFRA_NOT_CONFIGURED_MESSAGE: infraMessage } = await import(
+          "@/lib/managed-sending.server"
+        );
         send = {
           ok: false,
-          message: INFRA_NOT_CONFIGURED_MESSAGE,
+          message: infraMessage,
         } as Awaited<ReturnType<typeof sendManagedEmail>>;
       }
     } catch (error) {
