@@ -157,7 +157,7 @@ You can skip the journey and set things up in any order; it will still reflect y
 - Headline performance for the current period: emails sent, open rate, reply rate, bounce rate
 - Campaign activity, so you can see which campaigns are actually sending
 - Sending account health and any mailboxes that need attention
-- Alerts for domains, mailboxes or campaigns that are blocking sends
+- Alerts for mailboxes or campaigns that are blocking sends
 
 ## Steps
 Click any figure or campaign name to open the underlying screen — Analytics for numbers, Campaigns for a specific campaign, Email Accounts for mailbox problems.
@@ -272,11 +272,9 @@ Do not judge copy on fewer than a few hundred sends. Small samples move wildly.
     updated: UPDATED,
     keywords: ["glossary", "terms", "definitions", "vocabulary"],
     related: ["how-munchreach-works", "campaign-statuses", "lead-statuses"],
-    content: `**Workspace** — the container for everything: domains, mailboxes, leads, campaigns, replies, billing and team access.
+    content: `**Workspace** — the container for everything: mailboxes, leads, campaigns, replies, billing and team access.
 
-**Sending domain** — a domain you control, verified in MunchReach, that mailboxes are created on.
-
-**Mailbox / email account** — an address on a verified domain that sends campaign email and receives replies.
+**Mailbox / email account** — a mailbox you own and connect to MunchReach (Gmail, Microsoft 365 or IMAP/SMTP) that sends campaign email and receives replies.
 
 **Warmup** — automated low-volume sending that builds a mailbox's reputation before and alongside campaign traffic.
 
@@ -305,13 +303,13 @@ Do not judge copy on fewer than a few hundred sends. Small samples move wildly.
     category: "getting-started",
     updated: UPDATED,
     keywords: ["best practice setup", "before sending", "preparation", "recommended"],
-    related: ["verify-a-domain", "spf-dkim-dmarc", "how-warmup-works", "deliverability-basics"],
+    related: ["spf-dkim-dmarc", "how-warmup-works", "deliverability-basics"],
     content: `## Short answer
-Send from a separate domain, authenticate it fully, warm the mailboxes, and start slow.
+Send from mailboxes on a separate domain, keep their authentication in order, warm them up, and start slow.
 
 ## Recommended
 1. **Use a secondary domain** for outreach, not your main company domain. If reputation suffers, your corporate mail is unaffected.
-2. **Publish SPF, DKIM and DMARC** for that domain and let verification pass before creating mailboxes.
+2. **Keep SPF, DKIM and DMARC in order** at your mail provider so your mailboxes are properly authenticated.
 3. **Two to four mailboxes per domain**, not one mailbox pushed hard.
 4. **Leave warmup on** and give it at least two weeks before real volume.
 5. **Cap each mailbox at 30–50 campaign emails a day** once warm. Scale by adding mailboxes.
@@ -329,9 +327,8 @@ None of this guarantees inbox placement — no platform can. It removes the caus
     updated: UPDATED,
     keywords: ["checklist", "pre-launch", "before launch", "qa"],
     related: ["launch-readiness", "launch-first-campaign", "variables-and-fallbacks"],
-    content: `## Domain and mailboxes
-- Domain shows Ready to send
-- SPF, DKIM and DMARC all verified
+    content: `## Mailboxes
+- Every mailbox connected and its test passed
 - Mailboxes active, warmup running, sensible daily and hourly limits
 
 ## Audience
