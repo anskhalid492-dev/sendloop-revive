@@ -62,6 +62,7 @@ import {
 import {
   addConversationNote,
   deleteConversationNote,
+  getAttachmentDownloadUrl,
   getConversation,
   sendConversationReply,
   updateConversation,
@@ -100,7 +101,9 @@ type ThreadMessage = {
   occurred_at: string;
   opened_at?: string | null;
   clicked_at?: string | null;
-  attachments?: { name: string; url?: string }[] | null;
+  attachments?:
+    | { name: string; url?: string; size?: number; contentType?: string; path?: string }[]
+    | null;
 };
 
 /**
@@ -237,9 +240,7 @@ function MessageRow({
             <ul className="mt-3 flex flex-wrap gap-2">
               {message.attachments.map((file) => (
                 <li key={file.name}>
-                  <Badge variant="outline" className="gap-1">
-                    <Paperclip className="h-3 w-3" /> {file.name}
-                  </Badge>
+                  <AttachmentChip messageId={message.id} file={file} />
                 </li>
               ))}
             </ul>
@@ -247,6 +248,60 @@ function MessageRow({
         </div>
       ) : null}
     </article>
+  );
+}
+
+
+/**
+ * One attachment on a message. Files with a kept copy (or a provider link) can
+ * be downloaded; older messages that only stored the file's details say so
+ * instead of offering a link that cannot work.
+ */
+function AttachmentChip({
+  messageId,
+  file,
+}: {
+  messageId: string;
+  file: { name: string; url?: string; size?: number; path?: string };
+}) {
+  const requestUrl = useServerFn(getAttachmentDownloadUrl);
+  const [busy, setBusy] = useState(false);
+  const downloadable = Boolean(file.path || file.url);
+
+  const open = async () => {
+    if (!downloadable || busy) return;
+    setBusy(true);
+    try {
+      const result = await requestUrl({ data: { messageId, name: file.name } });
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The file could not be downloaded.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const label = file.size ? `${file.name} · ${formatBytes(file.size)}` : file.name;
+
+  if (!downloadable) {
+    return (
+      <Badge
+        variant="outline"
+        className="gap-1 text-muted-foreground"
+        title="This file was sent before attachment copies were kept, so it can no longer be downloaded."
+      >
+        <Paperclip className="h-3 w-3" /> {label}
+      </Badge>
+    );
+  }
+
+  return (
+    <button type="button" onClick={open} disabled={busy} className="cursor-pointer">
+      <Badge variant="outline" className="gap-1 hover:bg-accent">
+        {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+        {label}
+      </Badge>
+    </button>
   );
 }
 
