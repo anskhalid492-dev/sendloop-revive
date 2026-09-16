@@ -288,6 +288,8 @@ export function ConversationView({
   const [cc, setCc] = useState("");
   const [attachments, setAttachments] = useState<OutboundAttachment[]>([]);
   const [readingFiles, setReadingFiles] = useState(false);
+  // Identifies this send attempt so a replayed request can never send twice.
+  const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
   const [note, setNote] = useState("");
   const [tagDraft, setTagDraft] = useState("");
   const [contactOpen, setContactOpen] = useState(false);
@@ -362,12 +364,14 @@ export function ConversationView({
             .map((v) => v.trim())
             .filter(Boolean),
           attachments,
+          sendKey,
         },
       }),
     onSuccess: () => {
       toast.success("Reply sent");
       setBody("");
       setAttachments([]);
+      setSendKey(crypto.randomUUID());
       void queryClient.invalidateQueries({ queryKey });
       onChanged();
     },

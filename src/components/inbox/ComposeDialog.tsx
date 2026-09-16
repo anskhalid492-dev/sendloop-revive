@@ -79,6 +79,9 @@ export function ComposeDialog({
   const [body, setBody] = useState("");
   const [draftId, setDraftId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<OutboundAttachment[]>([]);
+  // Identifies this send attempt. If the request is replayed (slow network, an
+  // automatic retry), the server recognises the key and delivers only once.
+  const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
   const [reading, setReading] = useState(false);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
 
@@ -100,6 +103,7 @@ export function ComposeDialog({
     setDraftId(seed?.draftId ?? null);
     setAccountId(seed?.sendingAccountId ?? "");
     setAttachments([]);
+    setSendKey(crypto.randomUUID());
     setLimitNotice(null);
   }, [open, seed]);
 
@@ -155,10 +159,12 @@ export function ComposeDialog({
           body: body.trim(),
           draftId,
           attachments,
+          sendKey,
         },
       }),
     onSuccess: (result) => {
       setLimitNotice(null);
+      setSendKey(crypto.randomUUID());
       toast.success("Email sent");
       void queryClient.invalidateQueries({ queryKey: ["conversations", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["inbox-drafts", workspaceId] });
