@@ -585,11 +585,17 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
     account.from_email as string,
   );
   if (!customerMailbox) {
+    const { isMailboxPaused, PAUSED_MAILBOX_MESSAGE } = await import(
+      "@/lib/mailbox-active.server"
+    );
+    const paused = await isMailboxPaused(admin, workspaceId, account.from_email as string);
     console.warn(
-      `[warmup] refused: no connected customer mailbox for ${account.from_email} (workspace ${workspaceId}).`,
+      `[warmup] refused: ${paused ? "mailbox paused" : "no connected customer mailbox"} for ${account.from_email} (workspace ${workspaceId}).`,
     );
     return fail(
-      "Warmup is paused: this mailbox is not connected with its own email credentials yet. Reconnect it under Email Accounts to resume warmup.",
+      paused
+        ? PAUSED_MAILBOX_MESSAGE
+        : "Warmup is paused: this mailbox is not connected with its own email credentials yet. Reconnect it under Email Accounts to resume warmup.",
       false,
     );
   }

@@ -1114,6 +1114,17 @@ export const runWarmupNow = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!account) throw new Error("Mailbox not found");
 
+    // A mailbox the customer paused (mailboxes.is_active = false) may not send
+    // anything at all, warmup included. Refuse up front with the real reason.
+    const { isMailboxPaused, PAUSED_MAILBOX_MESSAGE } = await import(
+      "@/lib/mailbox-active.server"
+    );
+    if (
+      await isMailboxPaused(client, account.workspace_id as string, account.from_email as string)
+    ) {
+      throw new Error(PAUSED_MAILBOX_MESSAGE);
+    }
+
     const { requireEntitlement } = await import("@/lib/billing/usage.server");
     await requireEntitlement(account.workspace_id as string, "warmup");
 

@@ -7,19 +7,43 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
+  Info,
   Loader2,
+  Mail,
   MailPlus,
   MoreHorizontal,
+  PauseCircle,
+  PlayCircle,
   RefreshCw,
   Search,
+  Send,
   Settings2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +53,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -37,6 +62,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import {
   Table,
   TableBody,
   TableCell,
@@ -44,12 +77,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { MailboxTypeIcon } from "@/components/campaign/MailboxTypeBadge";
 import { emailProviderOf } from "@/lib/mailbox-type";
 import {
+  checkWorkspaceMailboxDeletion,
+  deleteWorkspaceMailbox,
   listWorkspaceMailboxes,
   recheckWorkspaceMailbox,
+  sendWorkspaceMailboxTest,
+  setWorkspaceMailboxActive,
+  type MailboxCampaignRef,
+  type MailboxDeletionCheck,
   type WorkspaceMailboxRow,
 } from "@/lib/workspace-mailboxes.functions";
 import { bulkSetWarmup } from "@/lib/warmup.functions";
@@ -77,6 +117,7 @@ export const Route = createFileRoute("/_authenticated/mailboxes/")({
 
 type StatusFilter = "all" | "connected" | "pending" | "failed";
 type WarmupFilter = "all" | "enabled" | "disabled";
+type ActiveFilter = "all" | "active" | "inactive";
 
 function MailboxesPage() {
   const { workspace } = useWorkspace();
@@ -86,15 +127,21 @@ function MailboxesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [warmup, setWarmup] = useState<WarmupFilter>("all");
+  const [active, setActive] = useState<ActiveFilter>("all");
   const [pageSize, setPageSize] = useState<25 | 50 | 100>(25);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
 
+  const [detailsRow, setDetailsRow] = useState<WorkspaceMailboxRow | null>(null);
+  const [testRow, setTestRow] = useState<WorkspaceMailboxRow | null>(null);
+  const [deleteRow, setDeleteRow] = useState<WorkspaceMailboxRow | null>(null);
+
   const fetchPage = useServerFn(listWorkspaceMailboxes);
   const runRecheck = useServerFn(recheckWorkspaceMailbox);
   const runWarmup = useServerFn(bulkSetWarmup);
+  const runSetActive = useServerFn(setWorkspaceMailboxActive);
 
-  const filters = { workspaceId, page, pageSize, search, status, warmup };
+  const filters = { workspaceId, page, pageSize, search, status, warmup, active };
   const query = useQuery({
     queryKey: ["workspace-mailboxes", filters],
     queryFn: () => fetchPage({ data: filters }),
@@ -124,14 +171,31 @@ function MailboxesPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const setActiveState = useMutation({
+    mutationFn: (input: { ids: string[]; active: boolean }) => runSetActive({ data: input }),
+    onSuccess: (_result, input) => {
+      toast.success(
+        input.active
+          ? input.ids.length > 1
+            ? `${input.ids.length} mailboxes reactivated.`
+            : "Mailbox reactivated."
+          : input.ids.length > 1
+            ? `${input.ids.length} mailboxes paused.`
+            : "Mailbox paused. It will not send anything until you turn it back on.",
+      );
+      void invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const rows = query.data?.rows ?? [];
   const total = query.data?.total ?? 0;
   const legacyCount = query.data?.legacyCount ?? 0;
+  const summary = query.data?.summary ?? null;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   const allSelected = rows.length > 0 && rows.every((row) => selected.includes(row.id));
-  const toggleAll = () =>
-    setSelected(allSelected ? [] : rows.map((row) => row.id));
+  const toggleAll = () => setSelected(allSelected ? [] : rows.map((row) => row.id));
   const toggleOne = (id: string) =>
     setSelected((current) =>
       current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
@@ -140,20 +204,63 @@ function MailboxesPage() {
   const resetPage = () => setPage(1);
 
   const filtersActive = useMemo(
-    () => search.trim() !== "" || status !== "all" || warmup !== "all",
-    [search, status, warmup],
+    () => search.trim() !== "" || status !== "all" || warmup !== "all" || active !== "all",
+    [search, status, warmup, active],
   );
+
+  const busy = recheck.isPending || setWarmupEnabled.isPending || setActiveState.isPending;
+
+  const rowActionProps = (row: WorkspaceMailboxRow) => ({
+    row,
+    busy,
+    onRecheck: () => recheck.mutate(row.id),
+    onTest: () => setTestRow(row),
+    onDetails: () => setDetailsRow(row),
+    onDelete: () => setDeleteRow(row),
+    onWarmup: (enabled: boolean) =>
+      row.sendingAccountId
+        ? setWarmupEnabled.mutate({ ids: [row.sendingAccountId], enabled })
+        : toast.error("Warm-up becomes available once this mailbox is registered for sending."),
+  });
 
   return (
     <AppShell
-      title="Mailboxes"
-      description="Manage your connected sending accounts, warmup, health, and sending status."
+      title="Email Accounts"
+      description="The mailboxes you have connected for sending: connection, sending usage, warm-up, health and the campaigns using them."
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            {query.isLoading ? "Loading mailboxes…" : `${total} mailbox${total === 1 ? "" : "es"}`}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {query.isLoading || !summary ? (
+              <span>Loading mailboxes…</span>
+            ) : (
+              <>
+                <span className="font-medium text-foreground">
+                  {summary.total} mailbox{summary.total === 1 ? "" : "es"}
+                </span>
+                <span aria-hidden>·</span>
+                <span>{summary.usable} ready to send</span>
+                {summary.paused > 0 ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{summary.paused} paused</span>
+                  </>
+                ) : null}
+                {summary.pending > 0 ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{summary.pending} pending</span>
+                  </>
+                ) : null}
+                {summary.failed > 0 ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="text-destructive">{summary.failed} need attention</span>
+                  </>
+                ) : null}
+              </>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => void query.refetch()} disabled={query.isFetching}>
               {query.isFetching ? (
@@ -173,7 +280,7 @@ function MailboxesPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[240px] flex-1">
+          <div className="relative min-w-[220px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -181,11 +288,28 @@ function MailboxesPage() {
                 setSearch(event.target.value);
                 resetPage();
               }}
-              placeholder="Search by email, name, or campaign"
+              placeholder="Search by email or name"
               className="pl-9"
               aria-label="Search mailboxes"
             />
           </div>
+
+          <Select
+            value={active}
+            onValueChange={(value) => {
+              setActive(value as ActiveFilter);
+              resetPage();
+            }}
+          >
+            <SelectTrigger className="w-[150px]" aria-label="Active state">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Active & paused</SelectItem>
+              <SelectItem value="active">Active only</SelectItem>
+              <SelectItem value="inactive">Paused only</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Select
             value={warmup}
@@ -216,7 +340,7 @@ function MailboxesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Any account status</SelectItem>
-              <SelectItem value="connected">Active</SelectItem>
+              <SelectItem value="connected">Connected</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="failed">Needs attention</SelectItem>
             </SelectContent>
@@ -243,6 +367,24 @@ function MailboxesPage() {
         {selected.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
             <span>{selected.length} selected</span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={setActiveState.isPending}
+              onClick={() => setActiveState.mutate({ ids: selected, active: true })}
+            >
+              <PlayCircle className="mr-2 size-4" />
+              Activate
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={setActiveState.isPending}
+              onClick={() => setActiveState.mutate({ ids: selected, active: false })}
+            >
+              <PauseCircle className="mr-2 size-4" />
+              Pause
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -281,9 +423,7 @@ function MailboxesPage() {
         {query.isError ? (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-center">
             <p className="text-sm font-medium">Your mailboxes could not be loaded.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {(query.error as Error).message}
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{(query.error as Error).message}</p>
             <Button className="mt-4" variant="outline" onClick={() => void query.refetch()}>
               <RefreshCw className="mr-2 size-4" />
               Retry
@@ -320,7 +460,7 @@ function MailboxesPage() {
         ) : (
           <>
             {/* Desktop / tablet: full table, horizontally scrollable when narrow. */}
-            <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+            <div className="hidden overflow-x-auto rounded-lg border border-border lg:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -333,10 +473,12 @@ function MailboxesPage() {
                     </TableHead>
                     <TableHead>Mailbox</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="whitespace-nowrap">Active</TableHead>
                     <TableHead>Sending</TableHead>
                     <TableHead>Warm-up</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead>Authentication</TableHead>
+                    <TableHead>Campaigns</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -351,10 +493,19 @@ function MailboxesPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <MailboxCell row={row} />
+                        <MailboxCell row={row} onOpen={() => setDetailsRow(row)} />
                       </TableCell>
                       <TableCell>
                         <StatusBadge row={row} />
+                      </TableCell>
+                      <TableCell>
+                        <ActiveSwitch
+                          row={row}
+                          disabled={setActiveState.isPending}
+                          onChange={(next) =>
+                            setActiveState.mutate({ ids: [row.id], active: next })
+                          }
+                        />
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">
                         <SendingCell row={row} />
@@ -368,22 +519,11 @@ function MailboxesPage() {
                       <TableCell>
                         <AuthCell row={row} />
                       </TableCell>
+                      <TableCell>
+                        <CampaignsCell row={row} onOpen={() => setDetailsRow(row)} />
+                      </TableCell>
                       <TableCell className="text-right">
-                        <RowActions
-                          row={row}
-                          busy={recheck.isPending || setWarmupEnabled.isPending}
-                          onRecheck={() => recheck.mutate(row.id)}
-                          onWarmup={(enabled) =>
-                            row.sendingAccountId
-                              ? setWarmupEnabled.mutate({
-                                  ids: [row.sendingAccountId],
-                                  enabled,
-                                })
-                              : toast.error(
-                                  "Warm-up becomes available once this mailbox is registered for sending.",
-                                )
-                          }
-                        />
+                        <RowActions {...rowActionProps(row)} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -391,28 +531,25 @@ function MailboxesPage() {
               </Table>
             </div>
 
-            {/* Mobile: one card per mailbox. */}
-            <div className="space-y-3 md:hidden">
+            {/* Narrow screens: one card per mailbox. */}
+            <div className="space-y-3 lg:hidden">
               {rows.map((row) => (
                 <div key={row.id} className="space-y-3 rounded-lg border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <MailboxCell row={row} />
-                    <RowActions
-                      row={row}
-                      busy={recheck.isPending || setWarmupEnabled.isPending}
-                      onRecheck={() => recheck.mutate(row.id)}
-                      onWarmup={(enabled) =>
-                        row.sendingAccountId
-                          ? setWarmupEnabled.mutate({ ids: [row.sendingAccountId], enabled })
-                          : toast.error(
-                              "Warm-up becomes available once this mailbox is registered for sending.",
-                            )
-                      }
-                    />
+                    <MailboxCell row={row} onOpen={() => setDetailsRow(row)} />
+                    <RowActions {...rowActionProps(row)} />
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge row={row} />
                     <AuthCell row={row} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+                    <span className="text-sm">{row.isActive ? "Active" : "Paused"}</span>
+                    <ActiveSwitch
+                      row={row}
+                      disabled={setActiveState.isPending}
+                      onChange={(next) => setActiveState.mutate({ ids: [row.id], active: next })}
+                    />
                   </div>
                   <dl className="grid grid-cols-2 gap-2 text-sm">
                     <Field label="Sending">
@@ -423,6 +560,9 @@ function MailboxesPage() {
                     </Field>
                     <Field label="Health">
                       <HealthCell row={row} />
+                    </Field>
+                    <Field label="Campaigns">
+                      <CampaignsCell row={row} onOpen={() => setDetailsRow(row)} />
                     </Field>
                   </dl>
                 </div>
@@ -457,6 +597,27 @@ function MailboxesPage() {
           </>
         )}
       </div>
+
+      <MailboxDetails
+        row={detailsRow}
+        onClose={() => setDetailsRow(null)}
+        onTest={(row) => {
+          setDetailsRow(null);
+          setTestRow(row);
+        }}
+        onRecheck={(row) => recheck.mutate(row.id)}
+        recheckBusy={recheck.isPending}
+      />
+      <TestEmailDialog row={testRow} onClose={() => setTestRow(null)} />
+      <DeleteMailboxDialog
+        row={deleteRow}
+        onClose={() => setDeleteRow(null)}
+        onDeleted={() => {
+          setDeleteRow(null);
+          setSelected([]);
+          void invalidate();
+        }}
+      />
     </AppShell>
   );
 }
@@ -470,13 +631,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function MailboxCell({ row }: { row: WorkspaceMailboxRow }) {
+function MailboxCell({ row, onOpen }: { row: WorkspaceMailboxRow; onOpen: () => void }) {
   const type = emailProviderOf(row.email);
   return (
     <div className="flex items-start gap-2">
       {type === "other" ? null : <MailboxTypeIcon type={type} />}
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{row.email}</p>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="max-w-full truncate text-left text-sm font-medium hover:underline"
+        >
+          {row.email}
+        </button>
         {row.displayName ? (
           <p className="truncate text-xs text-muted-foreground">{row.displayName}</p>
         ) : null}
@@ -486,11 +653,34 @@ function MailboxCell({ row }: { row: WorkspaceMailboxRow }) {
 }
 
 function StatusBadge({ row }: { row: WorkspaceMailboxRow }) {
-  if (row.status === "failed") return <Badge variant="destructive">Needs attention</Badge>;
+  if (row.status === "failed") return <Badge variant="destructive">Error</Badge>;
   if (row.status === "pending") return <Badge variant="secondary">Pending</Badge>;
+  if (!row.isActive) return <Badge variant="secondary">Paused</Badge>;
   if (row.paused === true) return <Badge variant="secondary">Paused</Badge>;
   if (row.customerEnabled === false) return <Badge variant="secondary">Inactive</Badge>;
   return <Badge variant="outline">Active</Badge>;
+}
+
+function ActiveSwitch({
+  row,
+  disabled,
+  onChange,
+}: {
+  row: WorkspaceMailboxRow;
+  disabled: boolean;
+  onChange: (active: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={row.isActive}
+        disabled={disabled}
+        onCheckedChange={(next) => onChange(next === true)}
+        aria-label={row.isActive ? `Pause ${row.email}` : `Reactivate ${row.email}`}
+      />
+      <span className="text-xs text-muted-foreground">{row.isActive ? "Active" : "Paused"}</span>
+    </div>
+  );
 }
 
 function SendingCell({ row }: { row: WorkspaceMailboxRow }) {
@@ -501,7 +691,7 @@ function SendingCell({ row }: { row: WorkspaceMailboxRow }) {
           {row.sentThisHour ?? 0} / {row.hourlyLimit} this hour
         </p>
       ) : (
-        <p className="text-muted-foreground">Hourly usage not available</p>
+        <p className="text-muted-foreground">Hourly usage unavailable</p>
       )}
       <p className="text-xs text-muted-foreground">
         {row.sentToday !== null
@@ -516,7 +706,7 @@ function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
   if (row.warmupEnabled === true || (row.warmupEnabled === null && row.warmupEnabledFlag)) {
     return (
       <div className="space-y-0.5">
-        <Badge variant="outline">Warmup Active</Badge>
+        <Badge variant="outline">{row.warmupPauseReason ? "Warm-up paused" : "Warm-up active"}</Badge>
         {row.warmupDailyTarget ? (
           <p className="text-xs text-muted-foreground">{row.warmupDailyTarget}/day target</p>
         ) : null}
@@ -536,6 +726,13 @@ function HealthCell({ row }: { row: WorkspaceMailboxRow }) {
   return <span className="text-sm font-medium">{row.healthScore}</span>;
 }
 
+const AUTH_LABELS: Record<string, string> = {
+  pass: "passing",
+  verified: "verified",
+  fail: "failing",
+  pending: "not verified yet",
+};
+
 function AuthCell({ row }: { row: WorkspaceMailboxRow }) {
   const items: Array<[string, string | null]> = [
     ["SPF", row.spf],
@@ -548,7 +745,7 @@ function AuthCell({ row }: { row: WorkspaceMailboxRow }) {
       {items.map(([label, value]) => (
         <span
           key={label}
-          title={value ? `${label}: ${value}` : `${label}: not checked`}
+          title={`${label}: ${value ? AUTH_LABELS[value] ?? value : "not checked yet"}`}
           className={
             value === "pass" || value === "verified"
               ? "rounded border border-primary/40 px-1.5 py-0.5 text-[11px] font-medium text-primary"
@@ -564,18 +761,64 @@ function AuthCell({ row }: { row: WorkspaceMailboxRow }) {
   );
 }
 
+const CAMPAIGN_STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  scheduled: "Scheduled",
+  active: "Active",
+  paused: "Paused",
+  completed: "Completed",
+  archived: "Archived",
+};
+
+function CampaignsCell({ row, onOpen }: { row: WorkspaceMailboxRow; onOpen: () => void }) {
+  if (row.campaigns.length === 0) {
+    return <span className="text-sm text-muted-foreground">Not used in any campaigns</span>;
+  }
+  const shown = row.campaigns.slice(0, 2);
+  return (
+    <div className="space-y-0.5">
+      {shown.map((campaign) => (
+        <Link
+          key={campaign.id}
+          to="/campaigns/$campaignId"
+          params={{ campaignId: campaign.id }}
+          className="block max-w-[220px] truncate text-sm hover:underline"
+        >
+          {campaign.name}
+          <span className="text-muted-foreground">
+            {" — "}
+            {CAMPAIGN_STATUS_LABEL[campaign.status] ?? campaign.status}
+          </span>
+        </Link>
+      ))}
+      {row.campaigns.length > shown.length ? (
+        <button type="button" onClick={onOpen} className="text-xs text-muted-foreground hover:underline">
+          +{row.campaigns.length - shown.length} more
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function RowActions({
   row,
   busy,
   onRecheck,
   onWarmup,
+  onTest,
+  onDetails,
+  onDelete,
 }: {
   row: WorkspaceMailboxRow;
   busy: boolean;
   onRecheck: () => void;
   onWarmup: (enabled: boolean) => void;
+  onTest: () => void;
+  onDetails: () => void;
+  onDelete: () => void;
 }) {
   const warmupOn = row.warmupEnabled === true;
+  const canSend = row.status === "connected" && row.isActive;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -583,9 +826,26 @@ function RowActions({
           {busy ? <Loader2 className="size-4 animate-spin" /> : <MoreHorizontal className="size-4" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="truncate">{row.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(event) => {
+            if (!canSend) {
+              event.preventDefault();
+              toast.error(
+                row.isActive
+                  ? "This mailbox is not connected yet, so a test cannot be sent. Re-check the connection first."
+                  : "This mailbox is paused. Reactivate it under Email Accounts to use it.",
+              );
+              return;
+            }
+            onTest();
+          }}
+        >
+          <Send className="mr-2 size-4" />
+          Send test email
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onRecheck()}>
           <RefreshCw className="mr-2 size-4" />
           Re-check connection
@@ -600,7 +860,373 @@ function RowActions({
             Warm-up settings
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onDetails()}>
+          <Info className="mr-2 size-4" />
+          {row.campaigns.length > 0 ? "View campaigns & details" : "View mailbox details"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive" onSelect={() => onDelete()}>
+          <Trash2 className="mr-2 size-4" />
+          Delete mailbox
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function when(value: string | null): string {
+  if (!value) return "Never";
+  return new Date(value).toLocaleString();
+}
+
+function MailboxDetails({
+  row,
+  onClose,
+  onTest,
+  onRecheck,
+  recheckBusy,
+}: {
+  row: WorkspaceMailboxRow | null;
+  onClose: () => void;
+  onTest: (row: WorkspaceMailboxRow) => void;
+  onRecheck: (row: WorkspaceMailboxRow) => void;
+  recheckBusy: boolean;
+}) {
+  return (
+    <Sheet open={row !== null} onOpenChange={(open) => (open ? null : onClose())}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+        {row ? (
+          <>
+            <SheetHeader>
+              <SheetTitle className="truncate">{row.email}</SheetTitle>
+              <SheetDescription>
+                {row.displayName ?? "No display name set"} · added {when(row.createdAt)}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="space-y-6 py-4 text-sm">
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Mailbox
+                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge row={row} />
+                  <Badge variant="outline">{row.isActive ? "Active" : "Paused"}</Badge>
+                  <AuthCell row={row} />
+                </div>
+                <dl className="grid grid-cols-2 gap-2">
+                  <Field label="Outgoing server">
+                    <span className="break-all">{row.smtpHost ?? "Not saved"}</span>
+                  </Field>
+                  <Field label="Incoming server">
+                    <span className="break-all">{row.imapHost ?? "Not saved"}</span>
+                  </Field>
+                  <Field label="Health">
+                    <HealthCell row={row} />
+                  </Field>
+                  <Field label="Warm-up">
+                    <WarmupCell row={row} />
+                  </Field>
+                </dl>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Usage
+                </h3>
+                <dl className="grid grid-cols-2 gap-2">
+                  <Field label="This hour">
+                    {row.hourlyLimit !== null ? (
+                      <span>
+                        {row.sentThisHour ?? 0} / {row.hourlyLimit}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Hourly usage unavailable</span>
+                    )}
+                  </Field>
+                  <Field label="Today">
+                    {row.sentToday !== null ? (
+                      <span>
+                        {row.sentToday} / {row.dailyLimit ?? row.dailySendLimit}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Not available</span>
+                    )}
+                  </Field>
+                  <Field label="Daily limit">{row.dailyLimit ?? row.dailySendLimit}</Field>
+                  <Field label="Hourly limit">{row.hourlyLimit ?? "Not set"}</Field>
+                </dl>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Campaigns
+                </h3>
+                {row.campaigns.length === 0 ? (
+                  <p className="text-muted-foreground">Not used in any campaigns</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {row.campaigns.map((campaign) => (
+                      <li key={campaign.id}>
+                        <Link
+                          to="/campaigns/$campaignId"
+                          params={{ campaignId: campaign.id }}
+                          className="hover:underline"
+                        >
+                          {campaign.name}
+                        </Link>
+                        <span className="text-muted-foreground">
+                          {" — "}
+                          {CAMPAIGN_STATUS_LABEL[campaign.status] ?? campaign.status}
+                          {campaign.queued ? ` · ${campaign.queued} queued` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Activity
+                </h3>
+                <dl className="grid grid-cols-2 gap-2">
+                  <Field label="Last successful send">{when(row.lastSentAt)}</Field>
+                  <Field label="Last connection check">{when(row.lastTestedAt)}</Field>
+                </dl>
+                {row.status === "failed" ? (
+                  <p className="text-destructive">
+                    The last connection check failed. Re-check the connection to see the current
+                    error.
+                  </p>
+                ) : null}
+              </section>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => onTest(row)}
+                  disabled={row.status !== "connected" || !row.isActive}
+                >
+                  <Send className="mr-2 size-4" />
+                  Send test email
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={recheckBusy}
+                  onClick={() => onRecheck(row)}
+                >
+                  <RefreshCw className="mr-2 size-4" />
+                  Re-check connection
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function TestEmailDialog({
+  row,
+  onClose,
+}: {
+  row: WorkspaceMailboxRow | null;
+  onClose: () => void;
+}) {
+  const send = useServerFn(sendWorkspaceMailboxTest);
+  const [to, setTo] = useState("");
+  const [subject, setSubject] = useState("MunchReach Test Email");
+  const [body, setBody] = useState(
+    "This is a test email sent from MunchReach to confirm this mailbox can send.",
+  );
+
+  const mutation = useMutation({
+    mutationFn: (input: { id: string; to: string; subject: string; body: string }) =>
+      send({ data: input }),
+    onSuccess: (result) => {
+      toast.success(
+        result.messageId ? `Test email sent (id ${result.messageId}).` : "Test email sent.",
+      );
+      onClose();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <Dialog
+      open={row !== null}
+      onOpenChange={(open) => {
+        if (!open) {
+          mutation.reset();
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Send test email</DialogTitle>
+          <DialogDescription>
+            Sent through <span className="font-medium">{row?.email}</span> and its own connection.
+            Test emails are kept out of your campaign statistics.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="test-to">Send to</Label>
+            <Input
+              id="test-to"
+              type="email"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="test-subject">Subject</Label>
+            <Input
+              id="test-subject"
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="test-body">Message</Label>
+            <Textarea
+              id="test-body"
+              rows={4}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+            />
+          </div>
+          {mutation.isError ? (
+            <p className="text-sm text-destructive">{(mutation.error as Error).message}</p>
+          ) : null}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+            Cancel
+          </Button>
+          <Button
+            disabled={mutation.isPending || !row}
+            onClick={() => {
+              if (!row) return;
+              if (!to.trim()) {
+                toast.error("Enter an address to send the test to.");
+                return;
+              }
+              mutation.mutate({ id: row.id, to: to.trim(), subject, body });
+            }}
+          >
+            {mutation.isPending ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 size-4" />
+            )}
+            {mutation.isPending ? "Sending…" : "Send test"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteMailboxDialog({
+  row,
+  onClose,
+  onDeleted,
+}: {
+  row: WorkspaceMailboxRow | null;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const check = useServerFn(checkWorkspaceMailboxDeletion);
+  const remove = useServerFn(deleteWorkspaceMailbox);
+
+  const dependencies = useQuery({
+    queryKey: ["mailbox-deletion-check", row?.id],
+    queryFn: () => check({ data: { id: row?.id as string } }),
+    enabled: Boolean(row?.id),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: (result) => {
+      toast.success(`${result.email} was removed.`);
+      onDeleted();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const info = (dependencies.data ?? null) as MailboxDeletionCheck | null;
+  const campaigns: MailboxCampaignRef[] = info?.campaigns ?? [];
+
+  return (
+    <AlertDialog open={row !== null} onOpenChange={(open) => (open ? null : onClose())}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this mailbox?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="font-medium text-foreground">{row?.email}</span> will be removed
+                from your workspace and can no longer send. Your campaign history, conversations and
+                warm-up records are kept — only the connection is removed. You would need to
+                reconnect the mailbox with its password to use it again.
+              </p>
+              {dependencies.isLoading ? (
+                <p className="text-muted-foreground">Checking where this mailbox is used…</p>
+              ) : dependencies.isError ? (
+                <p className="text-destructive">
+                  {(dependencies.error as Error).message}
+                </p>
+              ) : info ? (
+                <>
+                  {campaigns.length === 0 ? (
+                    <p className="text-muted-foreground">Not used in any campaigns.</p>
+                  ) : (
+                    <div>
+                      <p className="text-muted-foreground">Used by {campaigns.length} campaign{campaigns.length === 1 ? "" : "s"}:</p>
+                      <ul className="mt-1 space-y-0.5">
+                        {campaigns.map((campaign) => (
+                          <li key={campaign.id}>
+                            {campaign.name} — {CAMPAIGN_STATUS_LABEL[campaign.status] ?? campaign.status}
+                            {campaign.queued ? ` · ${campaign.queued} queued` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {info.warmupEnabled ? <p className="text-muted-foreground">Warm-up is currently on for this mailbox.</p> : null}
+                  {info.conversations > 0 ? (
+                    <p className="text-muted-foreground">
+                      {info.conversations} inbox conversation{info.conversations === 1 ? "" : "s"} will be kept.
+                    </p>
+                  ) : null}
+                  {info.blockedReason ? (
+                    <p className="font-medium text-destructive">{info.blockedReason}</p>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={mutation.isPending || dependencies.isLoading || info?.canDelete !== true}
+            onClick={(event) => {
+              event.preventDefault();
+              if (row) mutation.mutate(row.id);
+            }}
+          >
+            {mutation.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+            Delete mailbox
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

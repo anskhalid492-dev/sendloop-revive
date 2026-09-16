@@ -21,18 +21,32 @@ import { mailboxWindowStart, storedSentToday } from "@/lib/mailbox-daily-usage";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
+export type MailboxCampaignRef = {
+  id: string;
+  name: string;
+  /** draft | scheduled | active | paused | completed | archived — the real value. */
+  status: string;
+  /** Messages still queued for this mailbox on that campaign, or null if unknown. */
+  queued: number | null;
+};
+
 export type WorkspaceMailboxRow = {
   id: string;
   email: string;
   displayName: string | null;
   /** pending | connected | failed — straight from the row. */
   status: string;
+  /** The customer's own pause switch (`mailboxes.is_active`). */
+  isActive: boolean;
   smtpHost: string | null;
   imapHost: string | null;
   dailySendLimit: number;
   warmupEnabledFlag: boolean;
   lastTestedAt: string | null;
   createdAt: string;
+  /** Real campaigns whose sending pool includes this mailbox's address. */
+  campaigns: MailboxCampaignRef[];
+
 
   /** Everything below comes from the sending record for this same address. */
   sendingAccountId: string | null;
@@ -54,6 +68,17 @@ export type WorkspaceMailboxRow = {
   mx: string | null;
 };
 
+export type WorkspaceMailboxSummary = {
+  /** Every self-connected mailbox in the workspace, whatever its state. */
+  total: number;
+  /** status = connected AND is_active — the mailboxes that can actually send. */
+  usable: number;
+  /** Connected but paused by the customer. */
+  paused: number;
+  pending: number;
+  failed: number;
+};
+
 export type WorkspaceMailboxPage = {
   rows: WorkspaceMailboxRow[];
   total: number;
@@ -61,6 +86,7 @@ export type WorkspaceMailboxPage = {
   pageSize: number;
   /** Older addresses on file that have no self-connected mailbox yet. */
   legacyCount: number;
+  summary: WorkspaceMailboxSummary;
 };
 
 const listInput = z.object({
@@ -70,6 +96,7 @@ const listInput = z.object({
   search: z.string().trim().max(200).default(""),
   status: z.enum(["all", "connected", "pending", "failed"]).default("all"),
   warmup: z.enum(["all", "enabled", "disabled"]).default("all"),
+  active: z.enum(["all", "active", "inactive"]).default("all"),
 });
 
 /** PostgREST `or()` is comma/parenthesis delimited, so those are stripped. */
@@ -88,7 +115,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     let query = client
       .from("mailboxes")
       .select(
-        "id, email_address, display_name, smtp_host, imap_host, status, daily_send_limit, warmup_enabled, last_tested_at, created_at",
+        "id, email_address, display_name, smtp_host, imap_host, status, is_active, daily_send_limit, warmup_enabled, last_tested_at, created_at",
         { count: "exact" },
       )
       .eq("workspace_id", data.workspaceId);
@@ -99,6 +126,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     }
     if (data.status !== "all") query = query.eq("status", data.status);
     if (data.warmup !== "all") query = query.eq("warmup_enabled", data.warmup === "enabled");
+    if (data.active !== "all") query = query.eq("is_active", data.active === "active");
 
     const from = (data.page - 1) * data.pageSize;
     const {
@@ -115,6 +143,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       smtp_host: string | null;
       imap_host: string | null;
       status: string;
+      is_active: boolean | null;
       daily_send_limit: number | null;
       warmup_enabled: boolean | null;
       last_tested_at: string | null;
@@ -191,6 +220,10 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       sentThisHour.set(row.sending_account_id, (sentThisHour.get(row.sending_account_id) ?? 0) + 1);
     }
 
+    // Real campaign usage: a campaign uses this mailbox when its sending pool
+    // (campaigns.sending_account_ids) contains the mailbox's sending account.
+    const campaignsByAccount = await loadCampaignUsage(client, data.workspaceId, accountIds);
+
     const dayStart = mailboxWindowStart();
     const rows: WorkspaceMailboxRow[] = mailboxes.map((row) => {
       const account = byEmail.get(row.email_address.toLowerCase()) ?? null;
@@ -200,12 +233,14 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
         email: row.email_address,
         displayName: row.display_name ?? account?.from_name ?? null,
         status: row.status,
+        isActive: row.is_active !== false,
         smtpHost: row.smtp_host ?? null,
         imapHost: row.imap_host ?? null,
         dailySendLimit: row.daily_send_limit ?? 0,
         warmupEnabledFlag: row.warmup_enabled === true,
         lastTestedAt: row.last_tested_at ?? null,
         createdAt: row.created_at,
+        campaigns: account ? campaignsByAccount.get(account.id) ?? [] : [],
 
         sendingAccountId: account?.id ?? null,
         paused: account ? account.paused === true : null,
@@ -236,19 +271,28 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       .select("from_email")
       .eq("workspace_id", data.workspaceId)
       .limit(500);
-    const { data: allMailboxEmails } = await client
+    const { data: allMailboxes } = await client
       .from("mailboxes")
-      .select("email_address")
+      .select("email_address, status, is_active")
       .eq("workspace_id", data.workspaceId)
       .limit(2000);
-    const connected = new Set(
-      ((allMailboxEmails ?? []) as Array<{ email_address: string }>).map((row) =>
-        row.email_address.toLowerCase(),
-      ),
-    );
+    type SummaryRecord = { email_address: string; status: string; is_active: boolean | null };
+    const everyMailbox = (allMailboxes ?? []) as SummaryRecord[];
+    const connected = new Set(everyMailbox.map((row) => row.email_address.toLowerCase()));
     const legacyCount = ((legacyRows ?? []) as Array<{ from_email: string | null }>).filter(
       (row) => row.from_email && !connected.has(row.from_email.toLowerCase()),
     ).length;
+
+    // Header counts describe the whole workspace, not just the current page.
+    const summary: WorkspaceMailboxSummary = {
+      total: everyMailbox.length,
+      usable: everyMailbox.filter((row) => row.status === "connected" && row.is_active !== false)
+        .length,
+      paused: everyMailbox.filter((row) => row.status === "connected" && row.is_active === false)
+        .length,
+      pending: everyMailbox.filter((row) => row.status === "pending").length,
+      failed: everyMailbox.filter((row) => row.status === "failed").length,
+    };
 
     return {
       rows,
@@ -256,8 +300,73 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       page: data.page,
       pageSize: data.pageSize,
       legacyCount,
+      summary,
     };
   });
+
+/**
+ * Campaigns that use each of these sending accounts, with the number of
+ * messages still queued for that account on that campaign. Real data only:
+ * campaigns come from `campaigns.sending_account_ids`, queued volume from
+ * `campaign_messages`. Returns an empty map when there is nothing to look up.
+ */
+async function loadCampaignUsage(
+  client: Client,
+  workspaceId: string,
+  accountIds: string[],
+): Promise<Map<string, MailboxCampaignRef[]>> {
+  const byAccount = new Map<string, MailboxCampaignRef[]>();
+  if (accountIds.length === 0) return byAccount;
+
+  const { data: campaignRows } = await client
+    .from("campaigns")
+    .select("id, name, status, sending_account_ids")
+    .eq("workspace_id", workspaceId)
+    .overlaps("sending_account_ids", accountIds)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  type CampaignRecord = {
+    id: string;
+    name: string | null;
+    status: string | null;
+    sending_account_ids: string[] | null;
+  };
+  const campaigns = (campaignRows ?? []) as CampaignRecord[];
+  if (campaigns.length === 0) return byAccount;
+
+  // Queued volume per (campaign, account), counted from the real queue.
+  const { data: queuedRows } = await client
+    .from("campaign_messages")
+    .select("campaign_id, sending_account_id")
+    .eq("workspace_id", workspaceId)
+    .in("status", ["pending", "scheduled"])
+    .in("sending_account_id", accountIds)
+    .limit(10000);
+  const queued = new Map<string, number>();
+  for (const row of (queuedRows ?? []) as Array<{
+    campaign_id: string | null;
+    sending_account_id: string | null;
+  }>) {
+    if (!row.campaign_id || !row.sending_account_id) continue;
+    const key = `${row.campaign_id}:${row.sending_account_id}`;
+    queued.set(key, (queued.get(key) ?? 0) + 1);
+  }
+
+  for (const campaign of campaigns) {
+    for (const accountId of campaign.sending_account_ids ?? []) {
+      if (!accountIds.includes(accountId)) continue;
+      const list = byAccount.get(accountId) ?? [];
+      list.push({
+        id: campaign.id,
+        name: campaign.name ?? "Untitled campaign",
+        status: campaign.status ?? "draft",
+        queued: queued.get(`${campaign.id}:${accountId}`) ?? 0,
+      });
+      byAccount.set(accountId, list);
+    }
+  }
+  return byAccount;
+}
 
 /**
  * Re-tests a saved mailbox with its stored credentials through the existing
@@ -326,4 +435,219 @@ export const recheckWorkspaceMailbox = createServerFn({ method: "POST" })
       imap: result.imap,
       status: result.ok ? "connected" : "failed",
     };
+  });
+
+/**
+ * Turns the customer's own pause switch (`mailboxes.is_active`) on or off for
+ * one or more of their mailboxes. Independent of `status`: a connected mailbox
+ * can be paused, and reactivating it does not re-test the connection.
+ *
+ * Nothing else on the row is touched, and no scheduling, pacing or warmup
+ * setting is changed — enforcement happens at send time.
+ */
+export const setWorkspaceMailboxActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ ids: z.array(z.string().uuid()).min(1).max(200), active: z.boolean() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    // RLS is the isolation boundary: rows in other workspaces simply don't match.
+    const { data: updated, error } = await client
+      .from("mailboxes")
+      .update({ is_active: data.active, updated_at: new Date().toISOString() })
+      .in("id", data.ids)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { updated: ((updated ?? []) as Array<{ id: string }>).length, active: data.active };
+  });
+
+export type MailboxDeletionCheck = {
+  mailboxId: string;
+  email: string;
+  /** Campaigns whose sending pool still contains this mailbox. */
+  campaigns: MailboxCampaignRef[];
+  /** Messages still queued for this mailbox across all campaigns. */
+  queued: number;
+  warmupEnabled: boolean;
+  conversations: number;
+  canDelete: boolean;
+  /** Plain-language reason when deletion is blocked. */
+  blockedReason: string | null;
+};
+
+/** Shared dependency lookup used by both the confirmation modal and the delete itself. */
+async function inspectMailboxForDeletion(
+  client: Client,
+  mailboxId: string,
+): Promise<MailboxDeletionCheck> {
+  const { data: row, error } = await client
+    .from("mailboxes")
+    .select("id, workspace_id, email_address")
+    .eq("id", mailboxId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Mailbox not found");
+
+  const workspaceId = row.workspace_id as string;
+  const email = (row.email_address as string).toLowerCase();
+
+  const { data: accountRows } = await client
+    .from("sending_accounts")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("from_email", email);
+  const accountIds = ((accountRows ?? []) as Array<{ id: string }>).map((account) => account.id);
+
+  const usage = await loadCampaignUsage(client, workspaceId, accountIds);
+  const campaigns: MailboxCampaignRef[] = [];
+  for (const list of usage.values()) campaigns.push(...list);
+
+  const queued = campaigns.reduce((total, campaign) => total + (campaign.queued ?? 0), 0);
+
+  let warmupEnabled = false;
+  if (accountIds.length > 0) {
+    const { data: warmupRows } = await client
+      .from("warmup_settings")
+      .select("enabled")
+      .in("sending_account_id", accountIds);
+    warmupEnabled = ((warmupRows ?? []) as Array<{ enabled: boolean | null }>).some(
+      (settings) => settings.enabled === true,
+    );
+  }
+
+  let conversations = 0;
+  if (accountIds.length > 0) {
+    const { count } = await client
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .in("sending_account_id", accountIds);
+    conversations = count ?? 0;
+  }
+
+  const live = campaigns.filter((campaign) =>
+    ["active", "scheduled", "paused"].includes(campaign.status),
+  );
+  const blockedReason =
+    live.length > 0
+      ? "This mailbox is still assigned to campaigns. Remove it from those campaigns first, or pause it instead of deleting it."
+      : queued > 0
+        ? "Messages are still queued for this mailbox. Wait for the queue to clear or remove it from those campaigns first."
+        : null;
+
+  return {
+    mailboxId,
+    email: row.email_address as string,
+    campaigns,
+    queued,
+    warmupEnabled,
+    conversations,
+    canDelete: blockedReason === null,
+    blockedReason,
+  };
+}
+
+/** Read-only dependency report shown in the delete confirmation modal. */
+export const checkWorkspaceMailboxDeletion = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<MailboxDeletionCheck> =>
+    inspectMailboxForDeletion(context.supabase as Client, data.id),
+  );
+
+/**
+ * Removes a self-connected mailbox. Only the `mailboxes` row is deleted: the
+ * sending record, campaign history, conversations and warmup history are all
+ * left exactly as they are. Refuses while live campaigns or a queue still
+ * depend on it, so nothing breaks silently.
+ */
+export const deleteWorkspaceMailbox = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    // Re-checked server-side: the modal's answer is never trusted.
+    const check = await inspectMailboxForDeletion(client, data.id);
+    if (!check.canDelete) throw new Error(check.blockedReason as string);
+
+    const { error } = await client.from("mailboxes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, email: check.email };
+  });
+
+/**
+ * Sends a one-off test email THROUGH THIS MAILBOX ONLY, using its own stored
+ * SMTP credentials via the existing mailbox-smtp-relay. It never falls back to
+ * another mailbox or provider, and it writes no campaign message row, so
+ * campaign analytics and sending statistics are untouched.
+ */
+export const sendWorkspaceMailboxTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        to: z.string().trim().email(),
+        subject: z.string().trim().min(1).max(200),
+        body: z.string().trim().min(1).max(5000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    // RLS proves membership before any credential is read.
+    const { data: row, error } = await client
+      .from("mailboxes")
+      .select("id, workspace_id, email_address, display_name, status, is_active")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Mailbox not found");
+
+    if (row.is_active === false) {
+      const { PAUSED_MAILBOX_MESSAGE } = await import("@/lib/mailbox-active.server");
+      throw new Error(PAUSED_MAILBOX_MESSAGE);
+    }
+    if (row.status !== "connected") {
+      throw new Error(
+        row.status === "failed"
+          ? "This mailbox's last connection check failed, so a test cannot be sent. Re-check the connection first."
+          : "This mailbox is not connected yet, so a test cannot be sent. Re-check the connection first.",
+      );
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { findCustomerMailbox, sendViaCustomerMailbox } = await import(
+      "@/lib/customer-mailbox-send.server"
+    );
+    const mailbox = await findCustomerMailbox(
+      supabaseAdmin,
+      row.workspace_id as string,
+      row.email_address as string,
+    );
+    if (!mailbox) {
+      throw new Error(
+        "This mailbox has no usable saved server details. Reconnect it, then send the test again.",
+      );
+    }
+
+    const result = await sendViaCustomerMailbox(supabaseAdmin, mailbox, {
+      to: data.to,
+      subject: data.subject,
+      text: data.body,
+      fromName: (row.display_name as string | null) ?? null,
+      // Marks the message as a mailbox test so it is never mistaken for campaign traffic.
+      headers: { "X-MunchReach-Mailbox-Test": "1" },
+    });
+
+    await client
+      .from("mailboxes")
+      .update({ last_tested_at: new Date().toISOString() })
+      .eq("id", data.id);
+
+    if (!result.ok) throw new Error(result.message);
+    return { ok: true, messageId: result.messageId, message: result.message };
   });

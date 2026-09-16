@@ -4468,6 +4468,7 @@ export type Database = {
           imap_port: number
           imap_secure: boolean
           imap_username: string
+          is_active: boolean
           last_tested_at: string | null
           smtp_host: string
           smtp_password: string | null
@@ -4490,6 +4491,7 @@ export type Database = {
           imap_port: number
           imap_secure?: boolean
           imap_username: string
+          is_active?: boolean
           last_tested_at?: string | null
           smtp_host: string
           smtp_password?: string | null
@@ -4512,6 +4514,7 @@ export type Database = {
           imap_port?: number
           imap_secure?: boolean
           imap_username?: string
+          is_active?: boolean
           last_tested_at?: string | null
           smtp_host?: string
           smtp_password?: string | null

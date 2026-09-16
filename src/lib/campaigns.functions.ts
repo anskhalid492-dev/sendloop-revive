@@ -1137,10 +1137,22 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       account.from_email as string,
     );
     if (!customerMailbox) {
-      console.warn(
-        `[campaign-test] refused: no connected customer mailbox for ${account.from_email} (workspace ${account.workspace_id}).`,
+      const { isMailboxPaused, PAUSED_MAILBOX_MESSAGE } = await import(
+        "@/lib/mailbox-active.server"
       );
-      throw new Error("Connect a mailbox for this campaign's sender before sending a test.");
+      const paused = await isMailboxPaused(
+        supabaseAdmin,
+        account.workspace_id as string,
+        account.from_email as string,
+      );
+      console.warn(
+        `[campaign-test] refused: ${paused ? "mailbox paused" : "no connected customer mailbox"} for ${account.from_email} (workspace ${account.workspace_id}).`,
+      );
+      throw new Error(
+        paused
+          ? PAUSED_MAILBOX_MESSAGE
+          : "Connect a mailbox for this campaign's sender before sending a test.",
+      );
     }
 
     const { consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
