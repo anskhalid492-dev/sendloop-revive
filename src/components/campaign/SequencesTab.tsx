@@ -5,6 +5,7 @@ import {
   ArrowUp,
   Braces,
   Check,
+  BrainCircuit,
   Copy,
   Eye,
   GitBranch,
@@ -62,6 +63,7 @@ import {
 import { insertAtSelection, variableSnippet } from "@/lib/campaign-editor";
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
 import { AiPersonalizationSidebar } from "./AiPersonalizationSidebar";
+import { AiCampaignWriterSidebar } from "./AiCampaignWriterSidebar";
 
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -104,6 +106,7 @@ export function SequencesTab({
   const { steps, updateSteps, leads, settings, patchSettings } = builder;
   const [activeIndex, setActiveIndex] = useState(0);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [writerOpen, setWriterOpen] = useState(false);
   const [variantIndex, setVariantIndex] = useState(0);
   const [variableDialogOpen, setVariableDialogOpen] = useState(false);
   const [newVarLabel, setNewVarLabel] = useState("");
@@ -473,6 +476,14 @@ export function SequencesTab({
                     className="text-primary"
                   >
                     <Sparkles className="mr-1.5 size-3.5" /> AI Personalization
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setWriterOpen(true)}
+                    className="text-primary"
+                  >
+                    <BrainCircuit className="mr-1.5 size-3.5" /> AI Campaign Writer
                   </Button>
                   <DropdownMenu>
 
@@ -1027,6 +1038,12 @@ export function SequencesTab({
       builder={builder}
       open={aiSidebarOpen}
       onOpenChange={setAiSidebarOpen}
+    />
+    {/* The writer builds the campaign; personalization above tailors it per lead. */}
+    <AiCampaignWriterSidebar
+      builder={builder}
+      open={writerOpen}
+      onOpenChange={setWriterOpen}
     />
     </div>
   );
