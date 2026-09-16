@@ -389,7 +389,11 @@ export const getCampaign = createServerFn({ method: "GET" })
       // Today's engagement, strictly separate from the lifetime numbers above.
       today: {
         sent: sentTodayCount,
-        delivered: num(todayCounts["delivered"]),
+        delivered: deliveredCount({
+          sent: sentTodayCount,
+          bounced: num(todayCounts["bounced"]),
+          confirmedDelivered: num(todayCounts["delivered"]),
+        }),
         opened: num(todayCounts["opened"]),
         clicked: num(todayCounts["clicked"]),
         replied: num(todayCounts["replied"]),
