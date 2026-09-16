@@ -112,7 +112,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const eligibleToday =
     remainingToday === null ? remainingTotal : Math.min(remainingTotal, remainingToday);
   const sent = delivery?.sent ?? queue?.sent ?? 0;
-  const delivered = delivery?.delivered ?? 0;
+  const confirmedDelivered = delivery?.delivered ?? 0;
   const opened = delivery?.opened ?? 0;
   const clicked = delivery?.clicked ?? 0;
   const replied = delivery?.replied ?? queue?.replied ?? 0;
