@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, CheckCircle2, Loader2, Upload, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Upload, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -117,13 +117,6 @@ function ConnectImapPage() {
     <AppShell title="IMAP / SMTP" description="Connect one mailbox or import many from a CSV">
       <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          to="/mailboxes/add"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> All providers
-        </Link>
-
         <Tabs defaultValue="single">
           <TabsList>
             <TabsTrigger value="single">Single Account</TabsTrigger>
