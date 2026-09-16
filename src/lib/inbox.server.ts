@@ -463,13 +463,29 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   if (!prospect || !mailbox) return { status: "unmatched", reason: "Missing sender or recipient" };
 
   const subject = (email.subject ?? "").slice(0, 300);
-  // Central safety net: whichever provider or mailbox this arrived through, a
-  // raw multipart body is cleaned and decoded here too, so boundary markers and
-  // part headers can never reach the Unified Inbox from any path.
+  // THE decode step. Whichever provider or mailbox this arrived through, the
+  // body is cleaned and decoded exactly once, here, and the result is what gets
+  // stored. Boundary markers, part headers, base64 and quoted-printable can
+  // therefore never reach the Unified Inbox, a notification email, a webhook
+  // payload or the reply log — none of those re-parse anything.
   const { cleanInboundText } = await import("@/lib/inbound-body");
+  const headerHints = (() => {
+    const raw = email.headers ?? null;
+    if (!raw) return undefined;
+    let contentType: string | null = null;
+    let contentTransferEncoding: string | null = null;
+    for (const [key, value] of Object.entries(raw)) {
+      const name = key.toLowerCase();
+      if (name === "content-type") contentType = value;
+      if (name === "content-transfer-encoding") contentTransferEncoding = value;
+    }
+    return contentType || contentTransferEncoding
+      ? { contentType, contentTransferEncoding }
+      : undefined;
+  })();
   const body = (
-    cleanInboundText(email.text) ??
-    cleanInboundText(previewOf(email.html, 20000)) ??
+    cleanInboundText(email.text, headerHints) ??
+    cleanInboundText(previewOf(email.html, 20000), headerHints) ??
     ""
   ).slice(0, 100000);
   const receivedAt = email.receivedAt ? new Date(email.receivedAt) : new Date();
