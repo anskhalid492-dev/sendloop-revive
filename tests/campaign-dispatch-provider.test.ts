@@ -1,5 +1,15 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { dispatchDueMessages, selectRetryableMessages } from "@/lib/dispatch.server";
+
+// Campaign sends leave only through a mailbox the customer connected
+// themselves (SMTP/IMAP via the relay). There is no shared-provider path.
+const relaySend = vi.fn(async () => ({ ok: true, messageId: "provider-message-1", message: "sent" }));
+vi.mock("@/lib/customer-mailbox-send.server", () => ({
+  findCustomerMailbox: vi.fn(async () => ({ id: "smtp-mailbox-1", email_address: "sender@example.com" })),
+  sendViaCustomerMailbox: (...args: unknown[]) => relaySend(...(args as [])),
+}));
+
+beforeEach(() => relaySend.mockClear());
 
 const campaign = {
   id: "campaign-1",
@@ -153,7 +163,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       deps,
     );
 
-    expect(deps.sendManagedEmail).toHaveBeenCalledTimes(1);
+    expect(relaySend).toHaveBeenCalledTimes(1);
     expect(result.sent).toBe(1);
     expect(backend.updates.some(({ patch }) => patch.status === "sent" && patch.provider_message_id === "provider-message-1")).toBe(true);
   });
@@ -170,7 +180,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       },
       deps,
     );
-    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(relaySend).not.toHaveBeenCalled();
     expect(result.sent).toBe(0);
     // The message is never failed or cancelled: the next cron run picks it up.
     expect(backend.updates.some(({ patch }) => patch.status === "failed" || patch.status === "cancelled")).toBe(false);
@@ -188,7 +198,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       },
       deps,
     );
-    expect(deps.sendManagedEmail).toHaveBeenCalledTimes(1);
+    expect(relaySend).toHaveBeenCalledTimes(1);
     expect(result.sent).toBe(1);
   });
 
@@ -199,7 +209,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       campaignId: campaign.id,
       now: new Date("2026-08-28T15:59:00.000Z"),
     }, deps);
-    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(relaySend).not.toHaveBeenCalled();
     expect(result.sent).toBe(0);
   });
 
@@ -210,7 +220,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       campaignId: campaign.id,
       now: new Date("2026-08-28T16:04:00.000Z"),
     }, deps);
-    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(relaySend).not.toHaveBeenCalled();
     expect(backend.updates.some(({ patch }) => patch.scheduled_at === "2026-08-29T16:00:00.000Z")).toBe(true);
   });
 
@@ -221,7 +231,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       campaignId: campaign.id,
       now: new Date("2026-08-28T16:04:00.000Z"),
     }, deps);
-    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(relaySend).not.toHaveBeenCalled();
     expect(result.skipped).toBe(1);
   });
 
@@ -246,7 +256,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       campaignId: campaign.id,
       now: new Date("2026-08-28T16:04:00.000Z"),
     }, deps);
-    expect(deps.sendManagedEmail).toHaveBeenCalledTimes(1);
+    expect(relaySend).toHaveBeenCalledTimes(1);
     expect(result.sent).toBe(1);
   });
 
@@ -257,7 +267,7 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
       campaignId: campaign.id,
       now: new Date("2026-08-28T16:04:00.000Z"),
     }, deps);
-    expect(deps.sendManagedEmail).not.toHaveBeenCalled();
+    expect(relaySend).not.toHaveBeenCalled();
     expect(result.sent).toBe(0);
     expect(backend.updates.some(({ patch }) => patch.status === "sent")).toBe(false);
   });
