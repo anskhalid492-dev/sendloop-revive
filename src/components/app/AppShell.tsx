@@ -87,7 +87,7 @@ const navGroups = [
   {
     label: "Infrastructure",
     items: [
-      { to: "/mailboxes/add", label: "Email Accounts", icon: Server },
+      { to: "/mailboxes", label: "Email Accounts", icon: Server },
       { to: "/warmup", label: "Warmup", icon: Flame },
     ],
   },
