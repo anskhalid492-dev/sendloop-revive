@@ -6,13 +6,13 @@
 --   2. email_open_events had two identical SELECT policies (duplicate, confusing).
 --   3. SECURITY DEFINER helpers were EXECUTE-able by the anon (not-signed-in) role.
 --
--- IMPORTANT: run this WITHOUT wrapping it in a transaction (no begin/commit).
--- The live app calls these same functions constantly; one long transaction that
--- locks every function at once deadlocks against in-flight requests
--- (40P01 deadlock detected). Each statement below commits on its own, and the
--- revoke loop commits after every function, so no lock is held for long.
--- lock_timeout makes a blocked statement give up quickly instead of deadlocking;
--- the loop retries those functions.
+-- HOW TO RUN (this is what caused "40P01 deadlock detected" before):
+-- Run the three numbered sections ONE AT A TIME (select a section, then Run) and
+-- do not wrap them in begin/commit. Section 1 briefly takes an exclusive lock on
+-- storage.objects while the live app is reading it; holding that lock through the
+-- long function loop in section 3 is what deadlocked against in-flight requests.
+-- lock_timeout below makes a blocked statement give up quickly instead of
+-- deadlocking, and section 3 retries anything that was busy. Safe to re-run.
 
 set lock_timeout = '3s';
 
@@ -71,8 +71,8 @@ drop policy if exists "Workspace members can view open events" on public.email_o
 --    Trigger functions are also revoked from authenticated — triggers fire as the
 --    table owner and never need a direct grant.
 --
---    One function per commit, with retries: a function that is busy serving a
---    live request is retried instead of dragging the whole run into a deadlock.
+--    Each revoke retries on its own: a function that is busy serving a live
+--    request is retried instead of dragging the whole run into a deadlock.
 -- ---------------------------------------------------------------------------
 do $$
 declare
@@ -119,12 +119,8 @@ begin
       end;
     end loop;
 
-    if done then
-      -- Release the locks taken for this function before moving to the next one.
-      commit;
-    else
+    if not done then
       skipped := skipped || fn.sig;
-      rollback;
     end if;
   end loop;
 
