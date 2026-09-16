@@ -183,7 +183,7 @@ export async function sendReplyThroughMailbox(args: {
   assertAttachmentsWithinLimit(args.attachments);
   // Same as Compose: a private copy is kept so the file stays downloadable.
   const { storeOutboundAttachments } = await import("@/lib/mail-attachment-store.server");
-  const archivedReplyAttachments = await storeOutboundAttachments(supabaseAdmin, {
+  const archivedReplyAttachments = await storeOutboundAttachments({
     workspaceId: conversation.workspace_id as string,
     attachments: args.attachments,
   });
