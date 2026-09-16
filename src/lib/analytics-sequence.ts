@@ -56,7 +56,14 @@ function makeInRange({ from, to }: Window) {
 
 function accumulate(target: SequenceTotals, unit: Unit, inRange: (iso: string | null) => boolean) {
   if (inRange(unit.sentAt)) target.sent += 1;
-  if (inRange(unit.signals.delivered_at) && !unit.signals.bounced_at && !unit.signals.failed_at) {
+  // Relay/SMTP sends never get a provider delivery confirmation, so a send that
+  // did not bounce or fail counts as delivered. Same rule as `deliveredCount`
+  // in engagement-rates.ts.
+  if (
+    (inRange(unit.signals.delivered_at) || inRange(unit.sentAt)) &&
+    !unit.signals.bounced_at &&
+    !unit.signals.failed_at
+  ) {
     target.delivered += 1;
   }
   if (inRange(unit.signals.opened_at)) target.opens += 1;
