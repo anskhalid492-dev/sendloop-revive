@@ -61,7 +61,9 @@ function safeRedirect(target: string | undefined): string {
   return target;
 }
 
-function SignInPage() {
+// Exported on purpose: it keeps this page in the main bundle instead of a lazy
+// chunk, so the server and the browser render identical markup on first paint.
+export function SignInPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const destination = safeRedirect(search.redirect);

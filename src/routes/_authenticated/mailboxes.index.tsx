@@ -706,7 +706,7 @@ function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
   if (row.warmupEnabled === true || (row.warmupEnabled === null && row.warmupEnabledFlag)) {
     return (
       <div className="space-y-0.5">
-        <Badge variant="outline">{row.warmupPauseReason ? "Warm-up paused" : "Warm-up active"}</Badge>
+        <Badge variant="outline">{row.warmupPauseReason ? "Inactive" : "Active"}</Badge>
         {row.warmupDailyTarget ? (
           <p className="text-xs text-muted-foreground">{row.warmupDailyTarget}/day target</p>
         ) : null}
@@ -716,7 +716,7 @@ function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
       </div>
     );
   }
-  return <span className="text-sm text-muted-foreground">Off</span>;
+  return <span className="text-sm text-muted-foreground">Inactive</span>;
 }
 
 function HealthCell({ row }: { row: WorkspaceMailboxRow }) {
@@ -770,6 +770,13 @@ const CAMPAIGN_STATUS_LABEL: Record<string, string> = {
   archived: "Archived",
 };
 
+/** Keeps long campaign names readable in a narrow column; full name stays in the tooltip. */
+function shortCampaignName(name: string, limit = 22): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= limit) return trimmed;
+  return `${trimmed.slice(0, limit - 1).trimEnd()}…`;
+}
+
 function CampaignsCell({ row, onOpen }: { row: WorkspaceMailboxRow; onOpen: () => void }) {
   if (row.campaigns.length === 0) {
     return <span className="text-sm text-muted-foreground">Not used in any campaigns</span>;
@@ -782,13 +789,10 @@ function CampaignsCell({ row, onOpen }: { row: WorkspaceMailboxRow; onOpen: () =
           key={campaign.id}
           to="/campaigns/$campaignId"
           params={{ campaignId: campaign.id }}
-          className="block max-w-[220px] truncate text-sm hover:underline"
+          title={campaign.name}
+          className="block max-w-[180px] truncate text-sm hover:underline"
         >
-          {campaign.name}
-          <span className="text-muted-foreground">
-            {" — "}
-            {CAMPAIGN_STATUS_LABEL[campaign.status] ?? campaign.status}
-          </span>
+          {shortCampaignName(campaign.name)}
         </Link>
       ))}
       {row.campaigns.length > shown.length ? (

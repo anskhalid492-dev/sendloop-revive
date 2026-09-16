@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -78,8 +79,8 @@ function AdminFeaturesPage() {
             </thead>
             <tbody>
               {categories.map((category) => (
-                <>
-                  <tr key={category} className="bg-muted/40">
+                <Fragment key={category}>
+                  <tr className="bg-muted/40">
                     <td
                       className="px-4 py-2 text-xs font-semibold uppercase text-muted-foreground"
                       colSpan={plans.length + 1}
@@ -122,7 +123,7 @@ function AdminFeaturesPage() {
                         })}
                       </tr>
                     ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
