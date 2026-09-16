@@ -140,11 +140,14 @@ function DashboardPage() {
 
   // Finishing every step is itself a decision: the card retires for good rather
   // than reappearing on each visit with nothing left to do.
+  const autoDismissed = useRef<string | null>(null);
   useEffect(() => {
     if (!workspaceId || !setupComplete || alreadyDismissed) return;
-    if (dismissMutation.isPending || dismissMutation.isSuccess) return;
+    if (autoDismissed.current === workspaceId) return;
+    autoDismissed.current = workspaceId;
     dismissMutation.mutate({ data: { workspaceId } });
-  }, [workspaceId, setupComplete, alreadyDismissed, dismissMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, setupComplete, alreadyDismissed]);
 
   const showChecklist = !alreadyDismissed && !dismissedLocally && !setupComplete;
 
