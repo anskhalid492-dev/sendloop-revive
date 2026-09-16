@@ -111,7 +111,11 @@ export async function sendViaCustomerMailbox(
     const { relaySendMail } = await import("@/lib/mailbox-relay.server");
     const result = await relaySendMail(smtp, {
       from: row.email_address,
-      ...(message.fromName ? { fromName: message.fromName } : {}),
+      // The name saved on the mailbox is what the customer typed for this
+      // address, so it wins over any name carried by older bookkeeping rows.
+      ...((row.display_name?.trim() || message.fromName?.trim())
+        ? { fromName: (row.display_name?.trim() || message.fromName?.trim())! }
+        : {}),
       to: message.to,
       ...(message.envelopeTo?.length ? { envelopeTo: message.envelopeTo } : {}),
       subject: message.subject,

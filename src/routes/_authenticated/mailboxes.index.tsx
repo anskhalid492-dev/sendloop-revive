@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -89,6 +89,7 @@ import {
   sendWorkspaceMailboxTest,
   setMailboxWarmup,
   setWorkspaceMailboxActive,
+  setWorkspaceMailboxSenderName,
   type MailboxCampaignRef,
   type MailboxDeletionCheck,
   type WorkspaceMailboxRow,
@@ -878,6 +879,53 @@ function when(value: string | null): string {
   return new Date(value).toLocaleString();
 }
 
+/** Lets the customer set the name recipients see next to this address. */
+function SenderNameEditor({ row }: { row: WorkspaceMailboxRow }) {
+  const queryClient = useQueryClient();
+  const saveName = useServerFn(setWorkspaceMailboxSenderName);
+  const [value, setValue] = useState(row.displayName ?? "");
+
+  useEffect(() => {
+    setValue(row.displayName ?? "");
+  }, [row.id, row.displayName]);
+
+  const save = useMutation({
+    mutationFn: () => saveName({ data: { id: row.id, displayName: value.trim() } }),
+    onSuccess: () => {
+      toast.success("Sender name saved.");
+      void queryClient.invalidateQueries({ queryKey: ["workspace-mailboxes"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Sender name
+      </h3>
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="Michael Scott"
+          maxLength={120}
+        />
+        <Button
+          variant="outline"
+          onClick={() => save.mutate()}
+          disabled={save.isPending || value.trim() === (row.displayName ?? "")}
+        >
+          Save
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Shown next to {row.email} in the recipient&apos;s inbox on campaigns and replies. Leave it
+        empty to send from the address alone.
+      </p>
+    </section>
+  );
+}
+
 function MailboxDetails({
   row,
   onClose,
@@ -904,6 +952,8 @@ function MailboxDetails({
             </SheetHeader>
 
             <div className="space-y-6 py-4 text-sm">
+              <SenderNameEditor row={row} />
+
               <section className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Mailbox
