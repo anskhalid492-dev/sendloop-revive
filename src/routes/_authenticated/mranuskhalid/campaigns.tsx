@@ -226,6 +226,10 @@ function AdminCampaignsPage() {
                 <TableHead className="text-right">Sent</TableHead>
                 <TableHead className="text-right">Opens</TableHead>
                 <TableHead className="text-right">Open rate</TableHead>
+                <TableHead className="text-right">Clicks</TableHead>
+                <TableHead className="text-right">Click rate</TableHead>
+                <TableHead className="text-right">Unsubs</TableHead>
+
                 <TableHead className="text-right">Replies</TableHead>
                 <TableHead className="text-right">Bounces</TableHead>
                 <TableHead>Last activity</TableHead>
@@ -253,6 +257,14 @@ function AdminCampaignsPage() {
                   <TableCell className="text-right tabular-nums">
                     {row.sent > 0 ? `${row.openRate}%` : "—"}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">{num(row.clicks)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {row.sent > 0 ? `${row.clickRate}%` : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {num(row.unsubscribes)}
+                  </TableCell>
+
                   <TableCell className="text-right tabular-nums">{num(row.replies)}</TableCell>
                   <TableCell className="text-right tabular-nums">{num(row.bounces)}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -376,16 +388,24 @@ function CampaignDetail({
           label="Open rate"
           value={data.stats.sent > 0 ? `${data.stats.openRate}%` : "—"}
         />
+        <StatCard label="Clicks (unique)" value={num(data.stats.clicks)} />
+        <StatCard
+          label="Click rate"
+          value={data.stats.sent > 0 ? `${data.stats.clickRate}%` : "—"}
+        />
+        <StatCard label="Unsubscribes" value={num(data.stats.unsubscribes)} />
         <StatCard label="Replies" value={num(data.stats.replies)} />
         <StatCard label="Bounces / failed" value={num(data.stats.bounces + data.stats.failed)} />
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Open rate counts each contact once, however many times they open. Apple Mail Privacy
-        Protection loads tracking images automatically on delivery; {num(data.stats.prefetchOpens)}{" "}
-        such automatic loads were detected and left out of the rate. Detection is best-effort, so
-        opens can still be slightly overstated.
+        Open and click rates count each contact once, however many times they open or click (raw
+        loads: {num(data.stats.rawOpens)} opens, {num(data.stats.rawClicks)} clicks). Apple Mail
+        Privacy Protection loads tracking images automatically on delivery;{" "}
+        {num(data.stats.prefetchOpens)} such automatic loads were detected and left out of the rate.
+        Detection is best-effort, so opens can still be slightly overstated.
       </p>
+
 
       <Tabs defaultValue="sequence">
         <TabsList>
@@ -426,6 +446,9 @@ function CampaignDetail({
                   <TableHead>Step</TableHead>
                   <TableHead>Last sent</TableHead>
                   <TableHead>Opened</TableHead>
+                  <TableHead>Clicked</TableHead>
+                  <TableHead>Unsubscribed</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -445,6 +468,15 @@ function CampaignDetail({
                         ? `${fmtDate(r.openedAt)}${r.openCount > 1 ? ` (${num(r.openCount)}x)` : ""}`
                         : "—"}
                     </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {r.clickedAt
+                        ? `${fmtDate(r.clickedAt)}${r.clickCount > 1 ? ` (${num(r.clickCount)}x)` : ""}`
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {r.unsubscribedAt ? fmtDate(r.unsubscribedAt) : "—"}
+                    </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

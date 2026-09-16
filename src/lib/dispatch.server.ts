@@ -1177,23 +1177,26 @@ export async function dispatchDueMessages(
         carriesUnsubscribeLink);
     let html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
 
-    // First-party open tracking. Only when the campaign's own "open tracking"
-    // switch is on AND this email actually has an HTML part — a plain-text
-    // email is never converted to HTML just to carry a pixel.
-    if (html && Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking)) {
-      const { injectOpenPixel, openPixelUrl } = await import("@/lib/open-tracking");
-      html = injectOpenPixel(
-        html,
-        openPixelUrl({
+    // First-party open + click tracking, through the one shared step every send
+    // path uses. Each part only happens when the campaign's own switch is on AND
+    // this email actually has an HTML part — a plain-text email is never
+    // converted to HTML just to carry tracking.
+    if (html) {
+      const { applyEmailTracking } = await import("@/lib/email-tracking");
+      html = applyEmailTracking(html, {
+        target: {
           workspaceId: message.workspace_id as string,
           messageKind: "campaign",
           messageId: message.id as string,
           campaignId: message.campaign_id as string,
           leadId: (message.lead_id as string | null) ?? null,
           email: message.to_email as string,
-        }),
-      );
+        },
+        trackOpens: Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking),
+        trackClicks: Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking),
+      });
     }
+
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
     // Freeze the exact personalized email for this recipient BEFORE handing it

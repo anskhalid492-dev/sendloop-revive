@@ -122,18 +122,20 @@ export async function composeAndSend(input: ComposeInput) {
   const { randomUUID } = await import("crypto");
   const outboundRowId = randomUUID();
   const { campaignBodyHtml } = await import("@/lib/email-html");
-  const { injectOpenPixel, openPixelUrl } = await import("@/lib/open-tracking");
-  // Same shared injection step as campaign dispatch and inbox replies.
-  const composeHtml = injectOpenPixel(
-    campaignBodyHtml(input.body),
-    openPixelUrl({
+  const { applyEmailTracking } = await import("@/lib/email-tracking");
+  // Same shared tracking step as campaign dispatch and inbox replies.
+  const composeHtml = applyEmailTracking(campaignBodyHtml(input.body), {
+    target: {
       workspaceId: input.workspaceId,
       messageKind: "conversation",
       messageId: outboundRowId,
       leadId,
       email: to,
-    }),
-  );
+    },
+    trackOpens: true,
+    trackClicks: true,
+  });
+
 
   // ONE message, delivered to every recipient: To + Cc + Bcc on the envelope.
   // (Campaign sending keeps its per-lead loop — that separation is intentional.)

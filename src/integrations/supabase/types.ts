@@ -2977,6 +2977,51 @@ export type Database = {
           },
         ]
       }
+      email_click_events: {
+        Row: {
+          campaign_id: string | null
+          client_ip: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          message_id: string | null
+          message_kind: string
+          occurred_at: string
+          recipient_email: string | null
+          url: string
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          client_ip?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          message_kind?: string
+          occurred_at?: string
+          recipient_email?: string | null
+          url: string
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          client_ip?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          message_kind?: string
+          occurred_at?: string
+          recipient_email?: string | null
+          url?: string
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       email_drafts: {
         Row: {
           attachments: Json
