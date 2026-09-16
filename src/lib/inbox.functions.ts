@@ -16,9 +16,30 @@ import {
   type ConversationMessage,
   type ConversationNote,
 } from "@/lib/inbox-model";
+import {
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+} from "@/lib/mail-attachments";
 
 const CONVERSATION_COLUMNS =
   "id, workspace_id, lead_id, campaign_id, sending_account_id, subject, prospect_email, status, assigned_to, tags, unread, archived, snoozed_until, message_count, last_message_at, last_direction, last_preview";
+
+/**
+ * A manual-send attachment: the file's own bytes as base64 (`content`), or a
+ * legacy link-style entry (`url`). Base64 grows content by about a third, so the
+ * per-file ceiling is the total raw limit plus that overhead.
+ */
+const attachmentInput = z.object({
+  name: z.string().max(200),
+  contentType: z.string().max(160).optional(),
+  size: z.number().int().nonnegative().max(MAX_TOTAL_ATTACHMENT_BYTES).optional(),
+  content: z
+    .string()
+    .max(Math.ceil((MAX_TOTAL_ATTACHMENT_BYTES * 4) / 3) + 1024)
+    .optional(),
+  url: z.string().url().max(600).optional(),
+});
+
 
 const filtersSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -535,10 +556,7 @@ export const sendConversationReply = createServerFn({ method: "POST" })
         subject: z.string().trim().min(1).max(300),
         body: z.string().trim().min(1).max(50000),
         cc: z.array(z.string().email()).max(10).default([]),
-        attachments: z
-          .array(z.object({ name: z.string().max(200), url: z.string().url().max(600) }))
-          .max(10)
-          .default([]),
+        attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
       })
       .parse(input),
   )
@@ -615,10 +633,7 @@ const draftSchema = z.object({
   bcc: z.array(z.string().trim().max(320)).max(10).default([]),
   subject: z.string().max(300).default(""),
   body: z.string().max(50000).default(""),
-  attachments: z
-    .array(z.object({ name: z.string().max(200), url: z.string().url().max(600) }))
-    .max(10)
-    .default([]),
+  attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
 });
 
 export const saveDraft = createServerFn({ method: "POST" })
@@ -686,10 +701,7 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
         body: z.string().trim().min(1).max(50000),
         leadId: z.string().uuid().nullish(),
         draftId: z.string().uuid().nullish(),
-        attachments: z
-          .array(z.object({ name: z.string().max(200), url: z.string().url().max(600) }))
-          .max(10)
-          .default([]),
+        attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
       })
       .parse(input),
   )

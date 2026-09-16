@@ -23,15 +23,25 @@ import type {
   ProtocolResult,
 } from "@/lib/mailbox-connection.server";
 
+export type RelayAttachment = { filename: string; contentType: string; contentBase64: string };
+
 export type RelaySendMessage = {
   from: string;
   fromName?: string;
+  /** Visible To header, and the default delivery recipient. */
   to: string;
+  /**
+   * Every delivery target for this ONE message: To + Cc + Bcc. Bcc addresses
+   * belong here and nowhere else, so they stay invisible to other recipients.
+   */
+  envelopeTo?: string[];
   subject: string;
   html?: string;
   text?: string;
   headers?: Record<string, string>;
+  attachments?: RelayAttachment[];
 };
+
 
 export type RelaySendResult = { ok: boolean; message: string; messageId: string | null };
 

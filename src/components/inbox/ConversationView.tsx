@@ -17,10 +17,21 @@ import {
   Tag as TagIcon,
   Trash2,
   UserPlus,
+  X,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { isMailboxLimitError, mailboxLimitMessage } from "@/lib/mailbox-capacity";
+import {
+  ATTACHMENT_LIMIT_MESSAGE,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+  fileToOutboundAttachment,
+  formatBytes,
+  totalAttachmentBytes,
+  type OutboundAttachment,
+} from "@/lib/mail-attachments";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -275,8 +286,8 @@ export function ConversationView({
   const [body, setBody] = useState("");
   const [subject, setSubject] = useState("");
   const [cc, setCc] = useState("");
-  const [attachmentName, setAttachmentName] = useState("");
-  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachments, setAttachments] = useState<OutboundAttachment[]>([]);
+  const [readingFiles, setReadingFiles] = useState(false);
   const [note, setNote] = useState("");
   const [tagDraft, setTagDraft] = useState("");
   const [contactOpen, setContactOpen] = useState(false);
@@ -292,6 +303,7 @@ export function ConversationView({
     setSubject(`Re: ${base}`);
     setBody("");
     setCc("");
+    setAttachments([]);
     setComposerOpen(false);
   }, [conversation?.id]);
 
@@ -314,6 +326,30 @@ export function ConversationView({
     onError: () => toast.error("That change couldn’t be saved. Please try again."),
   });
 
+  const onPickReplyFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const picked = Array.from(files);
+    if (attachments.length + picked.length > MAX_ATTACHMENTS_PER_MESSAGE) {
+      toast.error(`You can attach up to ${MAX_ATTACHMENTS_PER_MESSAGE} files to one reply.`);
+      return;
+    }
+    const total =
+      totalAttachmentBytes(attachments) + picked.reduce((sum, file) => sum + file.size, 0);
+    if (total > MAX_TOTAL_ATTACHMENT_BYTES) {
+      toast.error("Attachments too large", { description: ATTACHMENT_LIMIT_MESSAGE });
+      return;
+    }
+    setReadingFiles(true);
+    try {
+      const read = await Promise.all(picked.map(fileToOutboundAttachment));
+      setAttachments((current) => [...current, ...read]);
+    } catch {
+      toast.error("One of those files could not be read. Please try again.");
+    } finally {
+      setReadingFiles(false);
+    }
+  };
+
   const reply = useMutation({
     mutationFn: () =>
       sendReply({
@@ -325,15 +361,13 @@ export function ConversationView({
             .split(/[,;\s]+/)
             .map((v) => v.trim())
             .filter(Boolean),
-          attachments:
-            attachmentName && attachmentUrl ? [{ name: attachmentName, url: attachmentUrl }] : [],
+          attachments,
         },
       }),
     onSuccess: () => {
       toast.success("Reply sent");
       setBody("");
-      setAttachmentName("");
-      setAttachmentUrl("");
+      setAttachments([]);
       void queryClient.invalidateQueries({ queryKey });
       onChanged();
     },
@@ -682,20 +716,55 @@ export function ConversationView({
                   placeholder="Write your reply…"
                   aria-label="Reply body"
                 />
+                {attachments.length ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {attachments.map((file, index) => (
+                      <li
+                        key={`${file.name}-${index}`}
+                        className="flex items-center gap-1.5 rounded border border-border/70 bg-muted/40 px-2 py-1 text-xs"
+                      >
+                        <Paperclip className="h-3 w-3 text-muted-foreground" />
+                        <span className="max-w-40 truncate">{file.name}</span>
+                        <span className="text-muted-foreground">{formatBytes(file.size ?? 0)}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${file.name}`}
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() =>
+                            setAttachments((current) => current.filter((_, at) => at !== index))
+                          }
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <div className="flex flex-wrap items-center gap-2 pb-2">
-                  <Input
-                    value={attachmentName}
-                    onChange={(event) => setAttachmentName(event.target.value)}
-                    placeholder="Attachment name"
-                    className="h-8 w-36"
-                    aria-label="Attachment name"
-                  />
-                  <Input
-                    value={attachmentUrl}
-                    onChange={(event) => setAttachmentUrl(event.target.value)}
-                    placeholder="Attachment link"
-                    className="h-8 w-48"
-                    aria-label="Attachment link"
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    disabled={readingFiles}
+                    onClick={() => document.getElementById("reply-files")?.click()}
+                  >
+                    {readingFiles ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Paperclip className="mr-2 h-3.5 w-3.5" />
+                    )}
+                    Attach files
+                  </Button>
+                  <input
+                    id="reply-files"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      void onPickReplyFiles(event.target.files);
+                      event.target.value = "";
+                    }}
                   />
                   <span className="text-xs text-muted-foreground">
                     Sending from {data.account?.from_email ?? "your assigned mailbox"}
@@ -706,7 +775,7 @@ export function ConversationView({
                     </Button>
                     <Button
                       size="sm"
-                      disabled={!body.trim() || !subject.trim() || reply.isPending}
+                      disabled={!body.trim() || !subject.trim() || reply.isPending || readingFiles}
                       onClick={() => reply.mutate()}
                     >
                       {reply.isPending ? (
