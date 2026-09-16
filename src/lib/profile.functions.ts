@@ -76,18 +76,37 @@ export const requestEmailChange = createServerFn({ method: "POST" })
   });
 
 
+/**
+ * Permanently dismisses the guided-setup card for a workspace.
+ *
+ * The workspace UPDATE policy only allows owners and admins, so a plain member
+ * pressing "Dismiss" would silently change nothing and the card would come back
+ * on the next visit. Membership is verified with the caller's own RLS client
+ * first, then the single flag is written with the service client — the only
+ * field this ever touches.
+ */
 export const dismissChecklist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ workspaceId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    // RLS restricts the update to workspaces the caller can administer.
-    const { error } = await context.supabase
+    const { data: membership, error: membershipError } = await context.supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("workspace_id", data.workspaceId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (membershipError) throw new Error(membershipError.message);
+    if (!membership) throw new Error("You are not a member of this workspace.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("workspaces")
       .update({ checklist_dismissed: true })
       .eq("id", data.workspaceId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 /**
  * Self-healing profile provisioning.
