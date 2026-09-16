@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/setup")({
       {
         name: "description",
         content:
-          "Follow the eight guided steps from workspace to launch: connect a domain, verify DNS, connect a mailbox, add leads and start your first MunchReach campaign.",
+          "Follow the guided steps from workspace to launch: connect your own mailbox, add leads and start your first MunchReach campaign.",
       },
       { property: "og:title", content: "Your MunchReach setup" },
       {

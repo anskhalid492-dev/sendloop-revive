@@ -41,7 +41,7 @@ export const Route = createFileRoute("/how-it-works")({
 });
 
 const phases = [
-  { title: "Set up", text: "Workspace, domain, DNS and mailboxes — the foundation everything else sends on." },
+  { title: "Set up", text: "Workspace and your own connected mailboxes — the foundation everything else sends on." },
   { title: "Build", text: "Import leads, write the sequence, personalize with AI and test before launch." },
   { title: "Send", text: "Launch with pacing, rotation and sending windows across your connected mailboxes." },
   { title: "Convert", text: "Work replies in the Unified Inbox and move real conversations through the CRM." },
@@ -58,20 +58,20 @@ const steps = [
   {
     n: 2,
     icon: Globe,
-    title: "Connect your domain",
-    text: "Add a domain you own. It's the identity your prospects see and the reputation you keep, whichever provider you send through.",
+    title: "Connect your mailbox",
+    text: "Connect the mailbox you already send from — Gmail, Microsoft 365 or any IMAP/SMTP provider. Campaigns go out through your own account, so the sending identity and reputation stay yours.",
   },
   {
     n: 3,
     icon: ServerCog,
-    title: "Configure DNS",
-    text: "Add the SPF, DKIM and DMARC records MunchReach generates. Verification has to pass before the domain can be used for sending.",
+    title: "Test the connection",
+    text: "MunchReach checks sending and receiving on the mailbox before it is enabled, and stores the credentials encrypted. A mailbox that fails its test is never used to send.",
   },
   {
     n: 4,
     icon: Mail,
-    title: "Connect your email accounts",
-    text: "Bring your own mailboxes over SMTP or an API provider. Credentials are stored encrypted and tested before the account is enabled.",
+    title: "Add the rest of your mailboxes",
+    text: "Add as many mailboxes as you need and MunchReach rotates sending across them, respecting each one's own daily limits.",
   },
   {
     n: 5,

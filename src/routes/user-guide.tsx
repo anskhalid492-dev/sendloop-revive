@@ -23,12 +23,12 @@ const baseGuide: { category: string; title: string; summary: string; steps: stri
   {
     category: "Getting Started",
     title: "Set up MunchReach end to end",
-    summary: "From a new account to a live campaign in seven steps.",
+    summary: "From a new account to a live campaign, step by step.",
     steps: [
       "Create your account and confirm your email address.",
       "Create a workspace — each workspace has its own leads, campaigns, mailboxes and team.",
-      "Add a sending domain and publish the SPF, DKIM, DMARC and tracking DNS records shown to you.",
-      "Connect a mailbox on that domain and send a test message to confirm it works.",
+      "Connect the mailbox you send from — Gmail, Microsoft 365 or any IMAP/SMTP account.",
+      "Send a test message from that mailbox to confirm sending and receiving both work.",
       "Import leads from CSV, map the columns to fields, and let duplicate detection clean the list.",
       "Create a campaign: write the sequence, add follow-up steps and delays, and set your sending schedule.",
       "Launch the campaign. Sending starts inside your schedule and respects your plan and mailbox limits.",
@@ -37,9 +37,9 @@ const baseGuide: { category: string; title: string; summary: string; steps: stri
   {
     category: "Sending & Deliverability",
     title: "Protect your sending reputation",
-    summary: "Domain setup, warmup, limits, bounces, unsubscribes and replies.",
+    summary: "Mailbox setup, warmup, limits, bounces, unsubscribes and replies.",
     steps: [
-      "Domain and DNS: verification checks the real DNS records. A domain stays verified once all records are found; mailboxes only send from verified domains.",
+      "Mailbox connection: every mailbox is tested for sending and receiving before it is enabled, and a paused or failing mailbox is never used to send.",
       "Warmup: ramp a new mailbox gradually before real campaigns. Warmup traffic is fully separated from campaign traffic and never counted in campaign analytics.",
       "Sending limits: each mailbox has a daily cap, and your plan has a monthly email allowance. Sending pauses when a cap is reached rather than pushing volume through.",
       "Bounce handling: hard bounces suppress the address automatically so it is never contacted again from your workspace.",

@@ -102,7 +102,7 @@ export const Route = createFileRoute("/_authenticated/mailboxes/")({
       {
         name: "description",
         content:
-          "Manage the sending mailboxes connected to your MunchReach workspace: status, sending usage, warm-up, health score and domain authentication.",
+          "Manage the sending mailboxes connected to your MunchReach workspace: status, sending usage, warm-up and health score.",
       },
       { property: "og:title", content: "Mailboxes" },
       {

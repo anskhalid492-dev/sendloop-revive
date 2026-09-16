@@ -1,9 +1,13 @@
 /**
  * The guided MunchReach setup journey.
  *
- * Steps 1-7 are the required path from empty workspace to a live campaign and
- * count towards the "x/7 complete" progress indicator. Step 8 (monitor replies)
- * is the ongoing habit that follows launch, so it is shown but not counted.
+ * The required steps are the path from an empty workspace to a live campaign and
+ * count towards the progress indicator. The final step (monitor replies) is the
+ * ongoing habit that follows launch, so it is shown but not counted.
+ *
+ * Customers connect their own mailbox (Gmail, Outlook or IMAP) and campaigns
+ * send through it, so there is no domain/DNS step here any more. The `domain`
+ * and `dns` keys stay in the progress shape for stored/legacy data.
  */
 export type SetupStepKey =
   | "workspace"
@@ -21,7 +25,7 @@ export type SetupStepMeta = {
   title: string;
   description: string;
   cta: string;
-  to: "/workspace" | "/sending" | "/leads" | "/campaigns" | "/inbox";
+  to: "/workspace" | "/mailboxes/add" | "/leads" | "/campaigns" | "/inbox";
   /** Counts towards the progress indicator. */
   required: boolean;
   estimate: string;
@@ -39,38 +43,18 @@ export const SETUP_STEPS: readonly SetupStepMeta[] = [
     estimate: "1 min",
   },
   {
-    key: "domain",
-    index: 2,
-    title: "Connect domain",
-    description: "Add a domain you own — ideally a dedicated one for outreach.",
-    cta: "Add domain",
-    to: "/sending",
-    required: true,
-    estimate: "2 min",
-  },
-  {
-    key: "dns",
-    index: 3,
-    title: "Verify DNS",
-    description: "Publish the SPF, DKIM and DMARC records so inboxes trust you.",
-    cta: "Verify records",
-    to: "/sending",
-    required: true,
-    estimate: "5 min",
-  },
-  {
     key: "mailbox",
-    index: 4,
-    title: "Connect mailbox",
-    description: "Create a managed sending mailbox and start warming it up.",
+    index: 2,
+    title: "Connect your mailbox",
+    description: "Connect your own Gmail, Outlook or IMAP mailbox — campaigns send through it.",
     cta: "Connect mailbox",
-    to: "/sending",
+    to: "/mailboxes/add",
     required: true,
-    estimate: "2 min",
+    estimate: "3 min",
   },
   {
     key: "leads",
-    index: 5,
+    index: 3,
     title: "Add leads",
     description: "Import a CSV or add prospects manually into a lead list.",
     cta: "Import leads",
@@ -80,7 +64,7 @@ export const SETUP_STEPS: readonly SetupStepMeta[] = [
   },
   {
     key: "campaign",
-    index: 6,
+    index: 4,
     title: "Create campaign",
     description: "Write your opener, add follow-ups and pick your audience.",
     cta: "Build campaign",
@@ -90,7 +74,7 @@ export const SETUP_STEPS: readonly SetupStepMeta[] = [
   },
   {
     key: "launch",
-    index: 7,
+    index: 5,
     title: "Launch",
     description: "Go live — MunchReach paces sending across your mailboxes.",
     cta: "Launch campaign",
@@ -100,7 +84,7 @@ export const SETUP_STEPS: readonly SetupStepMeta[] = [
   },
   {
     key: "replies",
-    index: 8,
+    index: 6,
     title: "Monitor replies",
     description: "Work every reply from the unified inbox and book meetings.",
     cta: "Open inbox",
