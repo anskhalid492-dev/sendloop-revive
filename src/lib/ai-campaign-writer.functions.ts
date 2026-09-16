@@ -54,20 +54,11 @@ async function writerContext(
     return { failure: { ok: false as const, message: "Campaign not found.", status: 404 } };
   const workspaceId = campaign.workspace_id as string;
 
-  const { requireEntitlement, evaluateEntitlement, EntitlementError } = await import(
-    "@/lib/billing/usage.server"
-  );
+  const { requireEntitlement, EntitlementError } = await import("@/lib/billing/usage.server");
   try {
+    // Plan access still applies; generations themselves are unlimited, so the
+    // AI allowance is deliberately not checked or consumed here.
     await requireEntitlement(workspaceId, "ai_campaign_writer");
-    const decision = await evaluateEntitlement(workspaceId, "ai_monthly", 1);
-    if (!decision.allowed)
-      return {
-        failure: {
-          ok: false as const,
-          message: `You've used your AI allowance for the ${decision.planName} plan (${decision.used.toLocaleString()} of ${(decision.limit ?? 0).toLocaleString()}). Upgrade your plan to keep generating.`,
-          status: 402,
-        },
-      };
   } catch (err) {
     if (err instanceof EntitlementError)
       return { failure: { ok: false as const, message: err.message, status: 402 } };
