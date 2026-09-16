@@ -223,6 +223,7 @@ export type Database = {
           locked_by: string | null
           locked_until: string | null
           model: string | null
+          pain_points: Json
           prompt_hash: string
           quality: string
           started_at: string | null
@@ -246,6 +247,7 @@ export type Database = {
           locked_by?: string | null
           locked_until?: string | null
           model?: string | null
+          pain_points?: Json
           prompt_hash?: string
           quality?: string
           started_at?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           locked_by?: string | null
           locked_until?: string | null
           model?: string | null
+          pain_points?: Json
           prompt_hash?: string
           quality?: string
           started_at?: string | null
@@ -9606,6 +9609,7 @@ export type Database = {
           locked_by: string | null
           locked_until: string | null
           model: string | null
+          pain_points: Json
           prompt_hash: string
           quality: string
           started_at: string | null

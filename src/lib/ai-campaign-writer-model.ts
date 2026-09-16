@@ -7,7 +7,12 @@
 
 import { z } from "zod";
 
-import { LEAD_VARIABLES } from "@/lib/campaign-model";
+import { LEAD_VARIABLES, PAIN_POINT_MAX } from "@/lib/campaign-model";
+
+/** Hard ceiling on a generated sequence: the initial email plus follow-ups. */
+export const MAX_FOLLOW_UPS = 9;
+export const MAX_SEQUENCE_STEPS = MAX_FOLLOW_UPS + 1;
+export { PAIN_POINT_MAX };
 
 export const TONES = [
   "Professional",
@@ -92,8 +97,18 @@ export const controlsSchema = z.object({
   approach: z.enum(APPROACHES).default("Problem-focused"),
   ctaType: z.enum(CTA_TYPES).default("Request a reply"),
   customCta: z.string().max(200).default(""),
-  steps: z.number().int().min(3).max(7).default(4),
+  /** Legacy total-step control, kept so saved campaigns keep hydrating. */
+  steps: z.number().int().min(1).max(MAX_SEQUENCE_STEPS).default(4),
+  /** How many follow-ups after the initial email. Authoritative going forward. */
+  followUps: z.number().int().min(0).max(MAX_FOLLOW_UPS).default(3),
+  /** How many pain points the AI writes for EACH lead (0 = none). */
+  painPointsPerLead: z.number().int().min(0).max(PAIN_POINT_MAX).default(0),
 });
+
+/** Total emails in the sequence: the initial email plus the chosen follow-ups. */
+export function totalSteps(controls: Pick<WriterControls, "followUps">): number {
+  return Math.min(MAX_SEQUENCE_STEPS, Math.max(1, controls.followUps + 1));
+}
 
 export type WriterControls = z.infer<typeof controlsSchema>;
 
@@ -212,7 +227,9 @@ export function sanitizeVariables(text: string): string {
   return text.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (match, token: string) => {
     const normalized = token.toLowerCase();
     const known =
-      LEAD_VARIABLES.some((v) => v.token === normalized) || normalized === "unsubscribe_link";
+      LEAD_VARIABLES.some((v) => v.token === normalized) ||
+      normalized === "unsubscribe_link" ||
+      /^pain_point(_[1-5])?$/.test(normalized);
     return known ? `{{${normalized}}}` : match.replace(/\{\{|\}\}/g, "");
   });
 }

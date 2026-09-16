@@ -5,7 +5,13 @@
  * types and helpers without pulling server-only code into the browser bundle.
  */
 
+import { PAIN_POINT_MAX, painPointToken } from "@/lib/campaign-model";
+
+export { PAIN_POINT_MAX, painPointToken };
+
 export type PersonalizationLevel = "light" | "balanced" | "deep";
+
+
 
 export type PersonalizationTone =
   | "professional"
@@ -59,7 +65,15 @@ export type AiPersonalizationConfig = {
    * campaign had before the selector existed.
    */
   provider: "openai" | "anthropic" | null;
+  /**
+   * How many pain points the AI writes for EACH lead (0 = none). Filled into
+   * `{{pain_point}}`, `{{pain_point_2}}` … at send time, per lead.
+   */
+  painPointsPerLead: number;
+  /** Used when a lead has no generated pain point yet. Empty removes the token. */
+  painPointFallback: string;
 };
+
 
 
 export const AI_TOKEN = "ai_personalization";
@@ -225,7 +239,10 @@ export function defaultAiConfig(): AiPersonalizationConfig {
     fallbackMode: "fallback_text",
     fallbackText: "I came across your team and wanted to reach out.",
     provider: null,
+    painPointsPerLead: 0,
+    painPointFallback: "",
   };
+
 }
 
 /** Coerce whatever is stored on the campaign into a complete config. */
@@ -272,7 +289,14 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
       v["provider"] === "openai" || v["provider"] === "anthropic"
         ? (v["provider"] as "openai" | "anthropic")
         : null,
+    painPointsPerLead:
+      typeof v["painPointsPerLead"] === "number" && Number.isFinite(v["painPointsPerLead"])
+        ? Math.max(0, Math.min(PAIN_POINT_MAX, Math.trunc(v["painPointsPerLead"] as number)))
+        : base.painPointsPerLead,
+    painPointFallback:
+      typeof v["painPointFallback"] === "string" ? v["painPointFallback"] : base.painPointFallback,
   };
+
 }
 
 export type PersonalizationStatus = "queued" | "processing" | "completed" | "failed";
@@ -362,4 +386,18 @@ export type AiUsageStats = {
 /** Does this template actually use the AI token anywhere? */
 export function usesAiToken(text: string): boolean {
   return new RegExp(`\\{\\{\\s*${AI_TOKEN}\\b`).test(text);
+}
+
+/** Does this template use any per-lead pain point token? */
+export function usesPainPointToken(text: string): boolean {
+  return /\{\{\s*pain_point(_[1-5])?\s*(\|[^}]*)?\}\}/i.test(text);
+}
+
+/** How many pain point slots a template actually references. */
+export function painPointSlotsUsed(text: string): number {
+  let max = 0;
+  for (const match of text.matchAll(/\{\{\s*pain_point(?:_([1-5]))?\s*(?:\|[^}]*)?\}\}/gi)) {
+    max = Math.max(max, match[1] ? Number(match[1]) : 1);
+  }
+  return Math.min(PAIN_POINT_MAX, max);
 }
