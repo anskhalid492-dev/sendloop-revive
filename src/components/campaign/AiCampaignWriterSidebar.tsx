@@ -392,6 +392,99 @@ export function AiCampaignWriterSidebar({
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /** Recreate: a genuinely different version of one step, same brief and settings. */
+  const recreateOne = useMutation({
+    mutationFn: async (index: number) => {
+      if (!strategy) throw new Error("Generate the campaign strategy first.");
+      const current = steps[index];
+      if (!current) throw new Error("That step no longer exists.");
+      const result = await stepFn({
+        data: {
+          campaignId: campaignId!,
+          provider: activeProvider,
+          brief,
+          controls,
+          strategy,
+          index,
+          total: steps.length,
+          purpose: current.purpose || stepPurposes(steps.length)[index]!,
+          previous: steps.slice(0, index),
+          avoid: `Subject: ${current.subject}\n\n${current.body}`,
+        },
+      });
+      if (failed(result)) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (result) => {
+      const next = steps.slice();
+      next[result.index] = result.step;
+      setSteps(next);
+      save.mutate({ steps: next });
+      toast.success("New version written. Use it, or recreate again.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /** Writes the whole generated sequence into the campaign the customer picked. */
+  const addToCampaign = useMutation({
+    mutationFn: async () => {
+      if (!targetCampaignId) throw new Error("Choose a campaign first.");
+      const result = await applySequenceFn({
+        data: {
+          campaignId: campaignId!,
+          targetCampaignId,
+          painPointFallback: strategy?.painPoint ?? brief.painPoint ?? "",
+          steps: steps.map((step, index) => ({
+            subject: step.subject,
+            body: step.body,
+            waitDays: index === 0 ? 0 : step.waitDays,
+          })),
+        },
+      });
+      if (failed(result)) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (result) => {
+      setConfirmTarget(false);
+      toast.success(
+        `Added ${result.steps} email${result.steps > 1 ? "s" : ""} to ${result.campaignName}.` +
+          (result.painPointsPerLead
+            ? ` AI pain points are on: ${result.painPointsPerLead} per lead.`
+            : "") +
+          (result.keptExtraSteps
+            ? ` ${result.keptExtraSteps} later step(s) were kept because they already have mail.`
+            : ""),
+      );
+      if (targetCampaignId === campaignId) builder.reload?.();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /** "Use this version": replaces the copy of one step in the chosen campaign. */
+  const useThisVersion = useMutation({
+    mutationFn: async (index: number) => {
+      if (!targetCampaignId) throw new Error("Choose a campaign first.");
+      const step = steps[index];
+      if (!step) throw new Error("That step no longer exists.");
+      const result = await applyStepFn({
+        data: {
+          campaignId: campaignId!,
+          targetCampaignId,
+          stepOrder: index + 1,
+          painPointFallback: strategy?.painPoint ?? brief.painPoint ?? "",
+          step: { subject: step.subject, body: step.body, waitDays: index === 0 ? 0 : step.waitDays },
+        },
+      });
+      if (failed(result)) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (result) => {
+      toast.success(`Step ${result.stepOrder} updated in ${result.campaignName}.`);
+      if (targetCampaignId === campaignId) builder.reload?.();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const existingContent = useMemo(
     () => builder.steps.some((s) => s.subject.trim() || s.body.trim()),
     [builder.steps],
@@ -422,7 +515,8 @@ export function AiCampaignWriterSidebar({
     runOffer.isPending ||
     runSequence.isPending ||
     runReview.isPending ||
-    regenerateOne.isPending;
+    regenerateOne.isPending ||
+    recreateOne.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -846,17 +940,93 @@ export function AiCampaignWriterSidebar({
                       }}
                       onBlur={() => save.mutate({ steps })}
                     />
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy || !connected.length}
+                        onClick={() => recreateOne.mutate(index)}
+                      >
+                        {recreateOne.isPending && recreateOne.variables === index ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="size-4" />
+                        )}
+                        Recreate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={useThisVersion.isPending || !targetCampaignId}
+                        onClick={() => useThisVersion.mutate(index)}
+                      >
+                        {useThisVersion.isPending && useThisVersion.variables === index ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="size-4" />
+                        )}
+                        Use this version
+                      </Button>
+                      {!targetCampaignId ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          Pick a campaign below first.
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              <Separator className="my-4" />
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Add to an existing campaign</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={targetCampaignId} onValueChange={setTargetCampaignId}>
+                    <SelectTrigger className="h-9 w-[240px] text-xs">
+                      <SelectValue placeholder="Choose a campaign" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {targetCampaigns.map((item) => (
+                        <SelectItem
+                          key={item.id}
+                          value={item.id}
+                          disabled={!item.editable}
+                          className="text-xs"
+                        >
+                          {item.name}
+                          {item.editable ? "" : ` · ${item.status} (pause to edit)`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    disabled={busy || addToCampaign.isPending || !selectedTarget?.editable}
+                    onClick={() => setConfirmTarget(true)}
+                  >
+                    {addToCampaign.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}
+                    Add to campaign
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Writes these emails into the campaign you pick — subject, body, variables and step
+                  order are kept, and no duplicate campaign is created.
+                </p>
               </div>
 
               <Button
                 className="mt-4"
                 size="sm"
+                variant="secondary"
                 disabled={busy}
                 onClick={() => (existingContent ? setConfirmReplace(true) : applyToSequence())}
               >
-                Apply to sequence
+                Apply to this campaign's sequence
               </Button>
             </Card>
           ) : null}
@@ -875,6 +1045,19 @@ export function AiCampaignWriterSidebar({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={applyToSequence}>Replace</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmTarget} onOpenChange={setConfirmTarget}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Add these emails to {selectedTarget?.name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The generated copy replaces the subject and body of that campaign's steps, in order. Any
+            later step that already has mail is left alone.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => addToCampaign.mutate()}>Add copy</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
