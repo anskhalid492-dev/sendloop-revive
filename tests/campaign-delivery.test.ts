@@ -12,11 +12,17 @@ describe("test send pipeline uses the production sending flow", () => {
   const production = read("src/lib/dispatch.server.ts");
   const managed = read("src/lib/managed-sending.server.ts");
 
-  it("routes both paths through the single managed sending helper", () => {
+  it("routes both paths through the customer's own connected mailbox", () => {
     for (const source of [testSend, production]) {
-      expect(source).toContain("managed-sending.server");
-      expect(source).toContain("sendManagedEmail");
+      expect(source).toContain("customer-mailbox-send.server");
+      expect(source).toContain("findCustomerMailbox");
+      expect(source).toContain("sendViaCustomerMailbox");
     }
+  });
+
+  it("refuses a test send instead of falling back to shared infrastructure", () => {
+    expect(testSend).toContain("Connect a mailbox for this campaign's sender");
+    expect(testSend).not.toContain("sendManagedEmail(");
   });
 
   it("resolves the provider adapter inside the managed helper", () => {
