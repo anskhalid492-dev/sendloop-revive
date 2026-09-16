@@ -439,12 +439,25 @@ export async function deliverEvent(
     idempotency_key: idempotencyKey ?? null,
   });
 
+  const nextHealth = nextDeliveryHealth(health, result.ok);
   await supabaseAdmin
     .from("integration_connections")
     .update({
       last_event_at: new Date().toISOString(),
       status: result.ok ? "connected" : "error",
-      error_message: result.ok ? null : result.message,
+      error_message: result.ok
+        ? null
+        : nextHealth.needsAttention
+          ? `${result.message} Delivery is paused until you reconnect or test this integration.`
+          : result.message,
+      config: {
+        ...(connection.config ?? {}),
+        delivery_health: {
+          failures: nextHealth.failures,
+          retry_after: nextHealth.retryAfter,
+          needs_attention: nextHealth.needsAttention,
+        },
+      } as never,
     })
     .eq("id", connection.id);
 
