@@ -461,10 +461,15 @@ type CheckedMessage = {
   subject: string | null;
   date: string | null;
   text: string | null;
+  contentType: string | null;
+  contentTransferEncoding: string | null;
 };
 
 const MAX_MESSAGES_PER_CHECK = 50;
-const HEADER_FIELDS = "MESSAGE-ID IN-REPLY-TO REFERENCES FROM TO SUBJECT DATE";
+// Content-Type and Content-Transfer-Encoding travel with the message so the app
+// can decode multipart bodies without guessing the boundary.
+const HEADER_FIELDS =
+  "MESSAGE-ID IN-REPLY-TO REFERENCES FROM TO SUBJECT DATE CONTENT-TYPE CONTENT-TRANSFER-ENCODING";
 const BODY_PREVIEW_BYTES = 8192;
 
 /** Unfolds RFC 5322 headers and returns the first value for each name. */
@@ -517,6 +522,8 @@ function parseFetchResponse(raw: string): CheckedMessage[] {
       subject: headers["subject"] ?? null,
       date: headers["date"] ?? null,
       text: body ? body.slice(0, BODY_PREVIEW_BYTES) : null,
+      contentType: headers["content-type"] ?? null,
+      contentTransferEncoding: headers["content-transfer-encoding"] ?? null,
     });
   }
   return messages;

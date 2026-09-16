@@ -135,7 +135,11 @@ export type RelayCheckedMessage = {
   to: string | null;
   subject: string | null;
   date: string | null;
+  /** Raw MIME body as fetched; parsed by `@/lib/inbound-body`. */
   text: string | null;
+  /** Present once the relay is redeployed; lets the parser skip guessing. */
+  contentType?: string | null;
+  contentTransferEncoding?: string | null;
 };
 
 export type RelayCheckResult = {
