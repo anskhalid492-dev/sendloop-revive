@@ -17,8 +17,8 @@ export const GETTING_STARTED_ARTICLES: HelpArticle[] = [
     content: `MunchReach is a cold outreach platform. You import a list of leads, write an email sequence, connect one or more sending mailboxes, and MunchReach sends the sequence on a schedule you control and collects the replies in one inbox.
 
 ## What it handles for you
-- Sending domains and their DNS setup, with verification checks built in
-- Mailbox connection, health monitoring and daily/hourly limits
+- Mailbox connection for Gmail, Microsoft 365 and any IMAP/SMTP account, tested before it is enabled
+- Mailbox health monitoring and daily/hourly limits
 - Warmup, so a new mailbox builds reputation before it carries campaign traffic
 - Sequence sending with per-lead scheduling, pacing and stop rules
 - Reply capture and threading in a unified inbox
@@ -38,7 +38,7 @@ Sales teams, founders doing their own outreach, and agencies running outreach fo
       },
       {
         q: "Do I need my own mailbox?",
-        a: "You need a domain you control. Mailboxes are created on that domain inside MunchReach once the domain is verified.",
+        a: "Yes. You connect a mailbox you already own — Gmail, Microsoft 365 or any IMAP/SMTP account — and campaigns send through it.",
       },
     ],
   },
@@ -52,20 +52,19 @@ Sales teams, founders doing their own outreach, and agencies running outreach fo
     popular: true,
     keywords: ["how it works", "architecture", "flow", "pipeline"],
     related: ["what-is-munchreach", "how-sending-works", "campaign-queue", "quick-start"],
-    content: `Everything in MunchReach belongs to a workspace: domains, mailboxes, leads, campaigns, replies and billing.
+    content: `Everything in MunchReach belongs to a workspace: mailboxes, leads, campaigns, replies and billing.
 
 ## The flow
-1. **Domain.** You add a sending domain and publish the DNS records MunchReach shows you. The domain has to reach Ready to send before it can carry mail.
-2. **Mailbox.** You create a mailbox on that domain and set its daily and hourly limits. Warmup starts automatically unless you turn it off.
-3. **Leads.** You import a list. Invalid addresses, in-file duplicates and addresses already in the workspace are reported and skipped.
-4. **Campaign.** You build a sequence, attach leads, choose mailboxes and set a schedule.
-5. **Launch.** MunchReach checks readiness, then queues the audience in controlled batches. Once the whole audience is queued the campaign becomes Active.
-6. **Sending.** Messages go out inside your sending window, respecting campaign limits, per-mailbox limits and pacing delays.
-7. **Replies.** Inbound mail is threaded back onto the conversation, the lead and the campaign, and appears in the unified inbox.
-8. **Suppression.** Bounces, complaints and unsubscribes stop the sequence for that lead and are suppressed for future sends.
+1. **Mailbox.** You connect a mailbox you own — Gmail, Microsoft 365 or IMAP/SMTP. MunchReach tests sending and receiving, stores the credentials encrypted, then you set its daily and hourly limits. Warmup starts automatically unless you turn it off.
+2. **Leads.** You import a list. Invalid addresses, in-file duplicates and addresses already in the workspace are reported and skipped.
+3. **Campaign.** You build a sequence, attach leads, choose mailboxes and set a schedule.
+4. **Launch.** MunchReach checks readiness, then queues the audience in controlled batches. Once the whole audience is queued the campaign becomes Active.
+5. **Sending.** Messages go out inside your sending window, respecting campaign limits, per-mailbox limits and pacing delays.
+6. **Replies.** Inbound mail is threaded back onto the conversation, the lead and the campaign, and appears in the unified inbox.
+7. **Suppression.** Bounces, complaints and unsubscribes stop the sequence for that lead and are suppressed for future sends.
 
 ## Important notes
-MunchReach manages email delivery through its own sending infrastructure. You never configure delivery services yourself — you configure your domain, your mailboxes and your schedule, and MunchReach handles the rest.`,
+Campaign email is sent through the mailboxes you connect, so delivery happens on your own accounts. You configure your mailboxes, your limits and your schedule, and MunchReach handles the sequencing, pacing and replies.`,
   },
   {
     slug: "quick-start",
@@ -84,18 +83,17 @@ MunchReach manages email delivery through its own sending infrastructure. You ne
       "first-campaign-checklist",
     ],
     content: `## Short answer
-Verify a domain, create a mailbox on it, import leads, build a sequence, launch.
+Connect your mailbox, import leads, build a sequence, launch.
 
 ## Steps
 1. **Create your workspace.** After signing up you name your workspace. You can create more later and switch between them from the sidebar.
-2. **Add a sending domain.** Go to Email Accounts → Domains → Add domain, publish the records shown under DNS records, then click Verify domain.
-3. **Create a mailbox.** Once the domain shows Ready to send, click Connect email account, pick the domain, choose the mailbox address and sender name, and set daily and hourly limits. Leave Start warmup on.
-4. **Import leads.** Go to Leads → Import CSV. Map your columns, review the summary, confirm the list is verified and finish.
-5. **Build a campaign.** Campaigns → new campaign. Add leads on the Leads tab, write the first email and follow-ups on Sequences, set your window on Schedule, choose mailboxes on Email Accounts.
-6. **Launch.** When the readiness bar turns green, click Launch campaign.
+2. **Connect your mailbox.** Go to Email Accounts → Add accounts and choose Gmail / Google Workspace, Microsoft 365 / Outlook or IMAP/SMTP. Enter the address and sender name, and MunchReach tests the connection before enabling it. Leave Start warmup on.
+3. **Import leads.** Go to Leads → Import CSV. Map your columns, review the summary, confirm the list is verified and finish.
+4. **Build a campaign.** Campaigns → new campaign. Add leads on the Leads tab, write the first email and follow-ups on Sequences, set your window on Schedule, choose mailboxes on Email Accounts.
+5. **Launch.** When the readiness bar turns green, click Launch campaign.
 
 ## Important notes
-- A mailbox cannot send until its domain is verified. That is the step people skip.
+- A mailbox cannot send until its connection test passes and it is active. That is the step people skip.
 - Give warmup time before you push volume through a brand-new mailbox.
 
 ## Common problems
@@ -135,8 +133,7 @@ Verify a domain, create a mailbox on it, import leads, build a sequence, launch.
 
 ## What it covers
 - Workspace created
-- Sending domain added and verified
-- At least one mailbox connected
+- At least one mailbox connected and tested
 - Leads imported
 - A campaign created and launched
 
