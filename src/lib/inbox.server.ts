@@ -406,7 +406,19 @@ async function resolveWorkspaceFromMailbox(db: Db, mailbox: string) {
     .not("workspace_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(1);
-  return data?.[0] ?? null;
+  if (data?.[0]) return data[0];
+
+  // Self-connected mailbox (the `mailboxes` table) with no sending record: the
+  // workspace still owns the address, so a reply to it threads normally. The
+  // conversation simply carries no sending-account reference.
+  const { data: owned } = await db
+    .from("mailboxes")
+    .select("workspace_id")
+    .ilike("email_address", base)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const row = owned?.[0] as { workspace_id: string } | undefined;
+  return row ? { id: null as unknown as string, workspace_id: row.workspace_id } : null;
 }
 
 /** Nothing matched: keep the email in the Unmatched inbox instead of dropping it. */
