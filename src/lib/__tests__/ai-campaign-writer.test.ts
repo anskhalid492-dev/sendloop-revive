@@ -53,3 +53,46 @@ describe("AI campaign writer model", () => {
     expect(defaultControls().tone).toBe("Professional");
   });
 });
+
+describe("follow-up count, pain points and recreate", () => {
+  it("turns the follow-up count into the total number of emails", () => {
+    expect(totalSteps({ followUps: 0 })).toBe(1);
+    expect(totalSteps({ followUps: 3 })).toBe(4);
+    expect(totalSteps({ followUps: 99 })).toBe(MAX_SEQUENCE_STEPS);
+  });
+
+  it("keeps pain point variables intact in generated copy", () => {
+    const text = "One thing I noticed is {{pain_point}}, plus {{PAIN_POINT_3}} and {{made_up}}.";
+    const out = sanitizeVariables(text);
+    expect(out).toContain("{{pain_point}}");
+    expect(out).toContain("{{pain_point_3}}");
+    expect(out).not.toContain("{{made_up}}");
+  });
+
+  it("names one token per pain point slot", () => {
+    expect(painPointToken(1)).toBe("pain_point");
+    expect(painPointToken(4)).toBe("pain_point_4");
+  });
+
+  it("counts the pain point slots a template actually uses", () => {
+    expect(painPointSlotsUsed("hello")).toBe(0);
+    expect(painPointSlotsUsed("{{pain_point}} and {{pain_point_2}}")).toBe(2);
+    expect(painPointSlotsUsed("{{ pain_point_5 }}")).toBe(5);
+  });
+
+  it("gives each lead their own pain point, never one shared line", () => {
+    const config = { ...defaultAiConfig(), painPointsPerLead: 2, painPointFallback: "rising costs" };
+    const a = aiExtras(config, { content: "Saw your new menu", painPoints: ["slow reorders", "no repeat customers"] });
+    const b = aiExtras(config, { content: "Saw your new site", painPoints: ["thin margins", "empty midweek covers"] });
+    expect(a.extras["pain_point"]).toBe("slow reorders");
+    expect(b.extras["pain_point"]).toBe("thin margins");
+    expect(a.extras["pain_point_2"]).toBe("no repeat customers");
+    expect(b.extras["pain_point_2"]).toBe("empty midweek covers");
+  });
+
+  it("falls back rather than shipping a raw variable when a lead has no pain point", () => {
+    const config = { ...defaultAiConfig(), painPointsPerLead: 1, painPointFallback: "rising costs" };
+    const out = aiExtras(config, { content: "Hi", painPoints: [] });
+    expect(out.extras["pain_point"]).toBe("rising costs");
+  });
+});
