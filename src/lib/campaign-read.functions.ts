@@ -218,7 +218,11 @@ export const getCampaign = createServerFn({ method: "GET" })
       },
       today: {
         sent: sentTodayCount,
-        delivered: numberValue(todayCounts["delivered"]),
+        delivered: deliveredCount({
+          sent: sentTodayCount,
+          bounced: numberValue(todayCounts["bounced"]),
+          confirmedDelivered: numberValue(todayCounts["delivered"]),
+        }),
         opened: numberValue(todayCounts["opened"]),
         clicked: numberValue(todayCounts["clicked"]),
         replied: numberValue(todayCounts["replied"]),
