@@ -128,6 +128,7 @@ import { Route as AuthenticatedMranuskhalidInfrastructureRouteImport } from './r
 import { Route as AuthenticatedMranuskhalidIntegrationsRouteImport } from './routes/_authenticated/mranuskhalid/integrations'
 import { Route as AuthenticatedMranuskhalidLeadsRouteImport } from './routes/_authenticated/mranuskhalid/leads'
 import { Route as AuthenticatedMranuskhalidLogsRouteImport } from './routes/_authenticated/mranuskhalid/logs'
+import { Route as AuthenticatedMranuskhalidMailboxesRouteImport } from './routes/_authenticated/mranuskhalid/mailboxes'
 import { Route as AuthenticatedMranuskhalidMarketingRouteRouteImport } from './routes/_authenticated/mranuskhalid/marketing/route'
 import { Route as AuthenticatedMranuskhalidNavigationRouteImport } from './routes/_authenticated/mranuskhalid/navigation'
 import { Route as AuthenticatedMranuskhalidNotificationsRouteImport } from './routes/_authenticated/mranuskhalid/notifications'
@@ -851,6 +852,12 @@ const AuthenticatedMranuskhalidLogsRoute =
     path: '/logs',
     getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
   } as any)
+const AuthenticatedMranuskhalidMailboxesRoute =
+  AuthenticatedMranuskhalidMailboxesRouteImport.update({
+    id: '/mailboxes',
+    path: '/mailboxes',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
 const AuthenticatedMranuskhalidMarketingRouteRoute =
   AuthenticatedMranuskhalidMarketingRouteRouteImport.update({
     id: '/marketing',
@@ -1482,6 +1489,7 @@ export interface FileRoutesByFullPath {
   '/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
   '/mranuskhalid/leads': typeof AuthenticatedMranuskhalidLeadsRoute
   '/mranuskhalid/logs': typeof AuthenticatedMranuskhalidLogsRoute
+  '/mranuskhalid/mailboxes': typeof AuthenticatedMranuskhalidMailboxesRoute
   '/mranuskhalid/navigation': typeof AuthenticatedMranuskhalidNavigationRoute
   '/mranuskhalid/notifications': typeof AuthenticatedMranuskhalidNotificationsRoute
   '/mranuskhalid/pages': typeof AuthenticatedMranuskhalidPagesRoute
@@ -1687,6 +1695,7 @@ export interface FileRoutesByTo {
   '/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
   '/mranuskhalid/leads': typeof AuthenticatedMranuskhalidLeadsRoute
   '/mranuskhalid/logs': typeof AuthenticatedMranuskhalidLogsRoute
+  '/mranuskhalid/mailboxes': typeof AuthenticatedMranuskhalidMailboxesRoute
   '/mranuskhalid/navigation': typeof AuthenticatedMranuskhalidNavigationRoute
   '/mranuskhalid/notifications': typeof AuthenticatedMranuskhalidNotificationsRoute
   '/mranuskhalid/pages': typeof AuthenticatedMranuskhalidPagesRoute
@@ -1897,6 +1906,7 @@ export interface FileRoutesById {
   '/_authenticated/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
   '/_authenticated/mranuskhalid/leads': typeof AuthenticatedMranuskhalidLeadsRoute
   '/_authenticated/mranuskhalid/logs': typeof AuthenticatedMranuskhalidLogsRoute
+  '/_authenticated/mranuskhalid/mailboxes': typeof AuthenticatedMranuskhalidMailboxesRoute
   '/_authenticated/mranuskhalid/navigation': typeof AuthenticatedMranuskhalidNavigationRoute
   '/_authenticated/mranuskhalid/notifications': typeof AuthenticatedMranuskhalidNotificationsRoute
   '/_authenticated/mranuskhalid/pages': typeof AuthenticatedMranuskhalidPagesRoute
@@ -2107,6 +2117,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/integrations'
     | '/mranuskhalid/leads'
     | '/mranuskhalid/logs'
+    | '/mranuskhalid/mailboxes'
     | '/mranuskhalid/navigation'
     | '/mranuskhalid/notifications'
     | '/mranuskhalid/pages'
@@ -2312,6 +2323,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/integrations'
     | '/mranuskhalid/leads'
     | '/mranuskhalid/logs'
+    | '/mranuskhalid/mailboxes'
     | '/mranuskhalid/navigation'
     | '/mranuskhalid/notifications'
     | '/mranuskhalid/pages'
@@ -2521,6 +2533,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mranuskhalid/integrations'
     | '/_authenticated/mranuskhalid/leads'
     | '/_authenticated/mranuskhalid/logs'
+    | '/_authenticated/mranuskhalid/mailboxes'
     | '/_authenticated/mranuskhalid/navigation'
     | '/_authenticated/mranuskhalid/notifications'
     | '/_authenticated/mranuskhalid/pages'
@@ -3554,6 +3567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMranuskhalidLogsRouteImport
       parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
     }
+    '/_authenticated/mranuskhalid/mailboxes': {
+      id: '/_authenticated/mranuskhalid/mailboxes'
+      path: '/mailboxes'
+      fullPath: '/mranuskhalid/mailboxes'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidMailboxesRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
     '/_authenticated/mranuskhalid/marketing': {
       id: '/_authenticated/mranuskhalid/marketing'
       path: '/marketing'
@@ -4267,6 +4287,7 @@ interface AuthenticatedMranuskhalidRouteRouteChildren {
   AuthenticatedMranuskhalidIntegrationsRoute: typeof AuthenticatedMranuskhalidIntegrationsRoute
   AuthenticatedMranuskhalidLeadsRoute: typeof AuthenticatedMranuskhalidLeadsRoute
   AuthenticatedMranuskhalidLogsRoute: typeof AuthenticatedMranuskhalidLogsRoute
+  AuthenticatedMranuskhalidMailboxesRoute: typeof AuthenticatedMranuskhalidMailboxesRoute
   AuthenticatedMranuskhalidNavigationRoute: typeof AuthenticatedMranuskhalidNavigationRoute
   AuthenticatedMranuskhalidNotificationsRoute: typeof AuthenticatedMranuskhalidNotificationsRoute
   AuthenticatedMranuskhalidPagesRoute: typeof AuthenticatedMranuskhalidPagesRoute
@@ -4336,6 +4357,8 @@ const AuthenticatedMranuskhalidRouteRouteChildren: AuthenticatedMranuskhalidRout
       AuthenticatedMranuskhalidIntegrationsRoute,
     AuthenticatedMranuskhalidLeadsRoute: AuthenticatedMranuskhalidLeadsRoute,
     AuthenticatedMranuskhalidLogsRoute: AuthenticatedMranuskhalidLogsRoute,
+    AuthenticatedMranuskhalidMailboxesRoute:
+      AuthenticatedMranuskhalidMailboxesRoute,
     AuthenticatedMranuskhalidNavigationRoute:
       AuthenticatedMranuskhalidNavigationRoute,
     AuthenticatedMranuskhalidNotificationsRoute:
