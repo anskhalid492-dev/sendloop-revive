@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ChevronDown,
   Clock,
+  Download,
   Info,
   Loader2,
   Mail,
