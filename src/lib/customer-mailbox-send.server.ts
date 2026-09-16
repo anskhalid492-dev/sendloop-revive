@@ -85,7 +85,10 @@ async function smtpEndpoint(
 }
 
 /**
- * Sends one message through the customer's own mailbox via the relay.
+ * Sends ONE message through the customer's own mailbox via the relay.
+ *
+ * `envelopeTo` carries every delivery target (To + Cc + Bcc) for that single
+ * message, so Cc recipients see each other and Bcc recipients stay hidden.
  * Returns a failure result (never throws) so callers keep their retry handling.
  */
 export async function sendViaCustomerMailbox(
@@ -94,11 +97,13 @@ export async function sendViaCustomerMailbox(
   row: MailboxRow,
   message: {
     to: string;
+    envelopeTo?: string[];
     subject: string;
     html?: string | null;
     text?: string | null;
     fromName?: string | null;
     headers?: Record<string, string>;
+    attachments?: { filename: string; contentType: string; contentBase64: string }[];
   },
 ): Promise<CustomerMailboxSend> {
   try {
@@ -108,16 +113,19 @@ export async function sendViaCustomerMailbox(
       from: row.email_address,
       ...(message.fromName ? { fromName: message.fromName } : {}),
       to: message.to,
+      ...(message.envelopeTo?.length ? { envelopeTo: message.envelopeTo } : {}),
       subject: message.subject,
       ...(message.html ? { html: message.html } : {}),
       ...(message.text ? { text: message.text } : {}),
       ...(message.headers ? { headers: message.headers } : {}),
+      ...(message.attachments?.length ? { attachments: message.attachments } : {}),
     });
     return {
       ok: !!result?.ok,
       message: result?.message ?? (result?.ok ? "Sent." : "The mail relay did not accept the send."),
       messageId: result?.messageId ?? null,
     };
+
   } catch (error) {
     return { ok: false, message: (error as Error).message, messageId: null };
   }

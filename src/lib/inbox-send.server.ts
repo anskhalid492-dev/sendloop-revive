@@ -7,6 +7,8 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { previewOf, stripAngle } from "@/lib/inbox-model";
+import type { OutboundAttachment } from "@/lib/mail-attachments";
+
 import { mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 
 type AnyClient = {
@@ -38,7 +40,7 @@ export async function sendReplyThroughMailbox(args: {
   subject: string;
   body: string;
   cc: string[];
-  attachments: { name: string; url: string }[];
+  attachments: OutboundAttachment[];
 }) {
   const supabase = args.supabase;
 
@@ -175,11 +177,12 @@ export async function sendReplyThroughMailbox(args: {
         : "This conversation's mailbox is not connected with your own email credentials yet. Reconnect it under Email Accounts, then send this reply again.",
     );
   }
-  if (args.attachments.length > 0) {
-    throw new Error(
-      "Attachments cannot be sent through your own mailbox yet. Remove the attachment to send this reply.",
-    );
-  }
+  const { assertAttachmentsWithinLimit, archivedAttachments, relayAttachments } = await import(
+    "@/lib/mail-attachments"
+  );
+  assertAttachmentsWithinLimit(args.attachments);
+  // File bytes are never persisted: only the name, type and size are archived.
+  const archivedReplyAttachments = archivedAttachments(args.attachments);
 
   const replyHeaders = mergeEmailHeaders({
     ...(replyTo ? { "Reply-To": replyTo } : {}),
@@ -192,30 +195,21 @@ export async function sendReplyThroughMailbox(args: {
       : {}),
   });
 
-  // The relay delivers to one envelope recipient per call, so any cc address
-  // receives its own copy of the same message, with the same thread headers.
-  const recipients = [conversation.prospect_email as string, ...args.cc];
-  let send: { ok: boolean; message: string; messageId: string | null } = {
-    ok: false,
-    message: "The reply could not be delivered. Please try again.",
-    messageId: null,
-  };
-  for (const [index, recipient] of recipients.entries()) {
-    const attempt = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
-      to: recipient,
-      subject,
-      text: body,
-      fromName: account.from_name,
-      headers: replyHeaders,
-    });
-    if (index === 0) {
-      send = { ok: attempt.ok, message: attempt.message, messageId: attempt.messageId };
-      if (!attempt.ok) break;
-    }
-  }
+  // ONE message: the prospect on To, any Cc addresses visible to each other,
+  // all of them delivery targets on the same envelope.
+  const send = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
+    to: conversation.prospect_email as string,
+    envelopeTo: [conversation.prospect_email as string, ...args.cc],
+    subject,
+    text: body,
+    fromName: account.from_name,
+    headers: replyHeaders,
+    attachments: relayAttachments(args.attachments),
+  });
   if (!send.ok) {
     throw new Error(send.message || "The reply could not be delivered. Please try again.");
   }
+
 
   const nowIso = new Date().toISOString();
   const references = [
@@ -240,7 +234,7 @@ export async function sendReplyThroughMailbox(args: {
       reference_ids: references,
       sending_account_id: account.id,
       provider_message_id: send.messageId ?? null,
-      attachments: args.attachments,
+      attachments: archivedReplyAttachments,
       occurred_at: nowIso,
     })
     .select("id")

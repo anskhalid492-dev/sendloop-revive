@@ -253,22 +253,75 @@ async function testImapLogin(endpoint: Endpoint): Promise<ProtocolResult> {
   }
 }
 
+type SendAttachment = {
+  filename: string;
+  contentType: string;
+  /** Base64-encoded content, exactly as the app read it from the picked file. */
+  contentBase64: string;
+};
+
 type SendMessage = {
   from: string;
   fromName?: string;
+  /** Visible To header (and default envelope recipient). */
   to: string;
+  /**
+   * Every address the message is delivered to: To + Cc + Bcc. Bcc addresses
+   * appear here ONLY — never in a header — which is exactly standard Bcc
+   * behaviour. Omitted means "just the To address".
+   */
+  envelopeTo?: string[];
   subject: string;
   html?: string;
   text?: string;
   headers?: Record<string, string>;
+  attachments?: SendAttachment[];
 };
 
 function dotStuff(body: string): string {
   return body.replace(/\r?\n/g, "\r\n").replace(/^\./gm, "..");
 }
 
+/** Base64 payloads must be wrapped to keep SMTP line lengths legal. */
+function wrapBase64(value: string): string {
+  return (value.replace(/[\r\n\s]/g, "").match(/.{1,76}/g) ?? []).join("\r\n");
+}
+
+function sanitizeFilename(name: string): string {
+  return (name || "attachment").replace(/["\\\r\n]/g, "_").slice(0, 200);
+}
+
+function boundaryId(): string {
+  return `mr_${crypto.randomUUID().replace(/-/g, "")}`;
+}
+
+/** The body of the message: text, html, or a multipart/alternative of both. */
+function buildBodyPart(message: SendMessage): { headers: string[]; body: string } {
+  if (message.html && message.text) {
+    const boundary = boundaryId();
+    return {
+      headers: [`Content-Type: multipart/alternative; boundary="${boundary}"`],
+      body: [
+        `--${boundary}`,
+        'Content-Type: text/plain; charset="utf-8"',
+        "",
+        dotStuff(message.text),
+        `--${boundary}`,
+        'Content-Type: text/html; charset="utf-8"',
+        "",
+        dotStuff(message.html),
+        `--${boundary}--`,
+      ].join("\r\n"),
+    };
+  }
+  const isHtml = !!message.html;
+  return {
+    headers: [`Content-Type: text/${isHtml ? "html" : "plain"}; charset="utf-8"`],
+    body: dotStuff(message.html ?? message.text ?? ""),
+  };
+}
+
 function buildMime(message: SendMessage, messageId: string): string {
-  const boundary = `mr_${crypto.randomUUID().replace(/-/g, "")}`;
   const from = message.fromName ? `"${message.fromName}" <${message.from}>` : message.from;
   const extra = Object.entries(message.headers ?? {})
     .map(([key, value]) => `${key}: ${value}`)
@@ -284,33 +337,39 @@ function buildMime(message: SendMessage, messageId: string): string {
     ...(extra ? [extra] : []),
   ];
 
-  if (message.html && message.text) {
-    return [
-      ...head,
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      "",
-      `--${boundary}`,
-      'Content-Type: text/plain; charset="utf-8"',
-      "",
-      dotStuff(message.text),
-      `--${boundary}`,
-      'Content-Type: text/html; charset="utf-8"',
-      "",
-      dotStuff(message.html),
-      `--${boundary}--`,
-      "",
-    ].join("\r\n");
+  const part = buildBodyPart(message);
+  const attachments = message.attachments ?? [];
+  if (attachments.length === 0) {
+    return [...head, ...part.headers, "", part.body, ""].join("\r\n");
   }
 
-  const isHtml = !!message.html;
-  return [
+  // One multipart/mixed message: the body first, then each file as a real
+  // base64 attachment part.
+  const boundary = boundaryId();
+  const lines = [
     ...head,
-    `Content-Type: text/${isHtml ? "html" : "plain"}; charset="utf-8"`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
     "",
-    dotStuff(message.html ?? message.text ?? ""),
+    `--${boundary}`,
+    ...part.headers,
     "",
-  ].join("\r\n");
+    part.body,
+  ];
+  for (const file of attachments) {
+    const filename = sanitizeFilename(file.filename);
+    lines.push(
+      `--${boundary}`,
+      `Content-Type: ${file.contentType || "application/octet-stream"}; name="${filename}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${filename}"`,
+      "",
+      wrapBase64(file.contentBase64),
+    );
+  }
+  lines.push(`--${boundary}--`, "");
+  return lines.join("\r\n");
 }
+
 
 async function sendViaSmtp(
   endpoint: Endpoint,
@@ -333,15 +392,29 @@ async function sendViaSmtp(
       };
     }
 
-    await wire.send(`RCPT TO:<${message.to}>`);
-    const rcpt = await withTimeout(wire.readUntil(smtpComplete), "SMTP RCPT TO");
-    if (![250, 251].includes(smtpCode(rcpt))) {
+    // One message, every recipient at the envelope level: To, Cc and Bcc all
+    // get this same message, and Bcc addresses stay out of every header.
+    const envelope = (
+      message.envelopeTo?.length ? message.envelopeTo : [message.to]
+    ).filter((address, index, all) => !!address && all.indexOf(address) === index);
+    const rejected: string[] = [];
+    for (const recipient of envelope) {
+      await wire.send(`RCPT TO:<${recipient}>`);
+      const rcpt = await withTimeout(wire.readUntil(smtpComplete), "SMTP RCPT TO");
+      if (![250, 251].includes(smtpCode(rcpt))) {
+        rejected.push(`${recipient} (${firstLine(rcpt)})`);
+      }
+    }
+    if (rejected.length === envelope.length) {
       return {
         ok: false,
-        message: `SMTP rejected the recipient: ${firstLine(rcpt)}`,
+        message: `SMTP rejected the recipient: ${rejected[0]}`,
         messageId: null,
       };
     }
+
+
+
 
     await wire.send("DATA");
     const dataReady = await withTimeout(wire.readUntil(smtpComplete), "SMTP DATA");

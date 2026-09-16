@@ -6,6 +6,7 @@
  * reuses) the conversation thread so the reply lands in the same place.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { OutboundAttachment } from "@/lib/mail-attachments";
 import { buildThreadKey, previewOf, stripAngle } from "@/lib/inbox-model";
 import { mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 
@@ -22,7 +23,7 @@ export type ComposeInput = {
   subject: string;
   body: string;
   leadId: string | null;
-  attachments: { name: string; url: string }[];
+  attachments: OutboundAttachment[];
 };
 
 export async function composeAndSend(input: ComposeInput) {
@@ -91,11 +92,10 @@ export async function composeAndSend(input: ComposeInput) {
         : "This mailbox is not connected with your own email credentials yet. Connect it under Email Accounts, then send this email again.",
     );
   }
-  if (input.attachments.length > 0) {
-    throw new Error(
-      "Attachments cannot be sent through your own mailbox yet. Remove the attachment to send this email.",
-    );
-  }
+  const { assertAttachmentsWithinLimit, archivedAttachments, relayAttachments } = await import(
+    "@/lib/mail-attachments"
+  );
+  assertAttachmentsWithinLimit(input.attachments);
 
   // A tracked reply address is a nice-to-have here: replies to a mailbox the
   // customer owns are picked up from that mailbox directly.
@@ -110,33 +110,28 @@ export async function composeAndSend(input: ComposeInput) {
     "@/lib/outbound-threading.server"
   );
   const outboundMessageId = createOutboundRfcMessageId(account.from_email);
+  // Cc is a visible header so every Cc recipient sees the others. Bcc is
+  // deliberately absent from the headers — it only exists on the envelope.
   const headers = mergeEmailHeaders({
     ...(replyRoute?.visibleAddress ? { "Reply-To": replyRoute.visibleAddress } : {}),
     ...(input.cc.length ? { Cc: input.cc.join(", ") } : {}),
   });
 
-  // The relay delivers to one envelope recipient per call, so cc/bcc addresses
-  // each receive their own copy of the same message.
-  const recipients = [to, ...input.cc, ...input.bcc];
-  let send: { ok: boolean; message: string; messageId: string | null } = {
-    ok: false,
-    message: "The email could not be delivered. Please try again.",
-    messageId: null,
-  };
-  for (const [index, recipient] of recipients.entries()) {
-    const attempt = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
-      to: recipient,
-      subject: input.subject,
-      text: input.body,
-      fromName: account.from_name,
-      headers,
-    });
-    if (index === 0) {
-      send = { ok: attempt.ok, message: attempt.message, messageId: attempt.messageId };
-      if (!attempt.ok) break;
-    }
-  }
+  // ONE message, delivered to every recipient: To + Cc + Bcc on the envelope.
+  // (Campaign sending keeps its per-lead loop — that separation is intentional.)
+  const send = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
+    to,
+    envelopeTo: [to, ...input.cc, ...input.bcc],
+    subject: input.subject,
+    text: input.body,
+    fromName: account.from_name,
+    headers,
+    attachments: relayAttachments(input.attachments),
+  });
   if (!send.ok) throw new Error(send.message || "The email could not be delivered.");
+  // File bytes are never persisted: only the name, type and size are archived.
+  const archived = archivedAttachments(input.attachments);
+
 
 
   const nowIso = new Date().toISOString();
@@ -224,7 +219,7 @@ export async function composeAndSend(input: ComposeInput) {
       reference_ids: [],
       sending_account_id: account.id,
       provider_message_id: send.messageId ?? null,
-      attachments: input.attachments,
+      attachments: archived,
       delivery_status: "sent",
       occurred_at: nowIso,
     })
