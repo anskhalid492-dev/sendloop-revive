@@ -703,10 +703,10 @@ function SendingCell({ row }: { row: WorkspaceMailboxRow }) {
 }
 
 function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
-  if (row.warmupEnabled === true || (row.warmupEnabled === null && row.warmupEnabledFlag)) {
+  if (row.warmupEnabled === true) {
     return (
       <div className="space-y-0.5">
-        <Badge variant="outline">{row.warmupPauseReason ? "Inactive" : "Active"}</Badge>
+        <Badge variant="outline">Enabled</Badge>
         {row.warmupDailyTarget ? (
           <p className="text-xs text-muted-foreground">{row.warmupDailyTarget}/day target</p>
         ) : null}
@@ -716,7 +716,7 @@ function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
       </div>
     );
   }
-  return <span className="text-sm text-muted-foreground">Inactive</span>;
+  return <span className="text-sm text-muted-foreground">Disabled</span>;
 }
 
 function HealthCell({ row }: { row: WorkspaceMailboxRow }) {
