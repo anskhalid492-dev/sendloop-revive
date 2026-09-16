@@ -73,6 +73,11 @@ export function inboundFromRelayMessage(message: RelayCheckedMessage, mailbox: s
     from: from ?? "",
     fromName: extractDisplayName(message.from),
     to: extractEmail(message.to) ?? mailbox,
+    // The mailbox actually polled: used to resolve the workspace when the To
+    // address is a third party (forwards, Bcc), and to keep unrelated mail out
+    // of the unmatched-inbound alert feed.
+    deliveredTo: mailbox,
+    recordUnmatched: false,
     cc: [] as string[],
     subject: message.subject ?? null,
     text: body.text,

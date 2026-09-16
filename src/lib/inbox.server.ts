@@ -34,6 +34,18 @@ export type InboundEmail = {
   /** Raw headers when the inbound path supplies them (auto-reply detection). */
   headers?: Record<string, string> | null;
   attachments?: { name: string; url?: string | undefined; size?: number | undefined }[];
+  /**
+   * The mailbox this message was actually read from (IMAP polling). Ordinary
+   * mail sitting in that mailbox can be addressed to anyone, so this is used as
+   * the workspace anchor when the To address matches nothing.
+   */
+  deliveredTo?: string | null;
+  /**
+   * When false, mail that matches nothing is skipped silently instead of being
+   * recorded as an inbound failure. Polling a whole mailbox legitimately sees
+   * unrelated mail; only provider webhooks should raise an alert.
+   */
+  recordUnmatched?: boolean;
 };
 
 export type IngestResult = {
@@ -471,7 +483,10 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   const { resolveRouteFromAddress } = await import("@/lib/inbound-routing.server");
   const route = await resolveRouteFromAddress(mailbox);
 
-  const mailboxAccount = await resolveWorkspaceFromMailbox(db, mailbox);
+  const anchor = lower(email.deliveredTo ?? "");
+  const mailboxAccount =
+    (await resolveWorkspaceFromMailbox(db, mailbox)) ??
+    (anchor && anchor !== mailbox ? await resolveWorkspaceFromMailbox(db, anchor) : null);
   const campaignMessage = await findCampaignMessage(
     db,
     email,
@@ -488,7 +503,19 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     null;
 
   if (!workspaceId) {
-    await storeUnmatched(db, email, "No workspace matched this email");
+    // Automated machine reports (DMARC aggregate reports and friends) and mail
+    // seen while polling a whole mailbox are expected not to match anything —
+    // recording them as failures only produces admin alert noise.
+    const { looksLikeAutomatedReport } = await import("@/lib/mailbox-inbound-classify");
+    const quiet =
+      email.recordUnmatched === false ||
+      looksLikeAutomatedReport({
+        from: email.from,
+        to: email.to,
+        subject: email.subject ?? null,
+        headers: email.headers ?? null,
+      });
+    if (!quiet) await storeUnmatched(db, email, "No workspace matched this email");
     return { status: "unmatched", reason: "No workspace matched this email" };
   }
 
