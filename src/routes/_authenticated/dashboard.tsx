@@ -122,14 +122,32 @@ function DashboardPage() {
     queryFn: () => fetchSetup({ data: { workspaceId: workspaceId as string } }),
   });
 
+  // "Dismiss" is a stored decision, not UI state: the flag lives on the
+  // workspace row, so the card stays gone after a reload, a new session or on
+  // another device. `dismissedLocally` only hides it instantly while the write
+  // is in flight.
+  const [dismissedLocally, setDismissedLocally] = useState(false);
   const dismissMutation = useMutation({
     mutationFn: dismiss,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
+    onError: () => setDismissedLocally(false),
   });
 
-  const setupComplete = setupProgress.data ? countCompleted(setupProgress.data) === 7 : false;
-  const showChecklist =
-    !(workspace as { checklist_dismissed?: boolean } | null)?.checklist_dismissed && !setupComplete;
+  const setupComplete = setupProgress.data
+    ? countCompleted(setupProgress.data) === REQUIRED_SETUP_STEPS.length
+    : false;
+  const alreadyDismissed = Boolean(workspace?.checklist_dismissed);
+
+  // Finishing every step is itself a decision: the card retires for good rather
+  // than reappearing on each visit with nothing left to do.
+  useEffect(() => {
+    if (!workspaceId || !setupComplete || alreadyDismissed) return;
+    if (dismissMutation.isPending || dismissMutation.isSuccess) return;
+    dismissMutation.mutate({ data: { workspaceId } });
+  }, [workspaceId, setupComplete, alreadyDismissed, dismissMutation]);
+
+  const showChecklist = !alreadyDismissed && !dismissedLocally && !setupComplete;
+
 
   const firstName = profile.data?.full_name?.split(" ")[0];
   const data = command.data ?? null;
