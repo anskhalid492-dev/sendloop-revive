@@ -40,7 +40,7 @@ const fallbackColumns = [
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
       { label: "AI", href: "/ai-personalized-outreach" },
-      { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" },
+      { label: "AI Writer", href: "/products/ai-campaign-writer" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -115,7 +115,7 @@ const productIcons: Record<string, typeof Send> = {
   Campaigns: Send,
   AI: Sparkles,
   "AI Personalization": Sparkles,
-  "AI Campaign Writer": PenLine,
+  "AI Writer": PenLine,
   "Unified Inbox": Inbox,
   "Follow-Ups": Repeat,
   Warmup: Flame,
@@ -125,6 +125,19 @@ const productIcons: Record<string, typeof Send> = {
   Workspaces: LayoutGrid,
   Templates: FileText,
 };
+
+/**
+ * Menu labels for the two AI products are fixed in code so the footer always
+ * reads the same as the header, no matter what the admin-managed list says.
+ */
+const productLabelOverrides: Record<string, string> = {
+  "/products/ai-campaign-writer": "AI Writer",
+  "/ai-personalized-outreach": "AI",
+};
+
+function withProductLabels(links: { label: string; href: string }[]) {
+  return links.map((l) => ({ ...l, label: productLabelOverrides[l.href] ?? l.label }));
+}
 
 function XIcon({ className }: { className?: string }) {
   return (
