@@ -252,7 +252,17 @@ export function SiteHeader() {
   // Admin-managed menu, with the built-in menu as the fallback.
   const headerRows = (siteContent?.header ?? []) as NavRow[];
   const coreCards = toCards(headerRows, "core", featuredProducts);
-  const moreCards = toCards(headerRows, "more", secondaryProducts);
+  const adminMoreCards = toCards(headerRows, "more", secondaryProducts);
+  // AI Campaign Writer is a core product page, so it always appears under
+  // Products even when the admin-managed menu list leaves it out.
+  const writerCard: Card = {
+    label: "AI Campaign Writer",
+    to: "/products/ai-campaign-writer",
+    text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
+    icon: Sparkles,
+  };
+  const hasWriter = [...coreCards, ...adminMoreCards].some((c) => c.to === writerCard.to);
+  const moreCards = hasWriter ? adminMoreCards : [writerCard, ...adminMoreCards];
   // The eight solution pages are the single source of truth for this menu, so
   // the navigation can never list an audience that has no page behind it.
   const useCaseLinks = solutionNavLinks.map((l) => ({
