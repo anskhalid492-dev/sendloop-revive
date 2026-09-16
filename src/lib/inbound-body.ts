@@ -169,3 +169,17 @@ export function extractInboundBody(
   }
   return out;
 }
+
+/**
+ * Safety net for text that has already been extracted by a provider: leaves
+ * ordinary message text exactly as-is, and only re-parses when the value still
+ * looks like raw MIME (a boundary marker plus part headers).
+ */
+export function cleanInboundText(value: string | null | undefined): string | null {
+  if (!value || !value.trim()) return null;
+  const looksRawMime =
+    /^--[A-Za-z0-9'()+_,./:=?-]{6,}\s*$/m.test(value) && /^content-type:/im.test(value);
+  if (!looksRawMime) return value;
+  const parsed = extractInboundBody(value);
+  return parsed.text ?? value;
+}
