@@ -20,6 +20,7 @@
 // Actions:
 //   { action: "test", smtp, imap }            -> { ok, smtp, imap, testedAt }
 //   { action: "send", smtp, message: {...} }  -> { ok, message, messageId }
+//   { action: "check", imap, sinceUid }       -> { ok, message, messages: [...] }
 
 type Security = "ssl" | "tls" | "none";
 
@@ -371,6 +372,161 @@ async function sendViaSmtp(
   }
 }
 
+
+// ---------------------------------------------------------------- check (IMAP)
+//
+// Additive: reads new mail from the mailbox's own inbox. Never sends anything
+// and never touches the "test"/"send" paths above.
+
+type CheckedMessage = {
+  uid: number;
+  messageId: string | null;
+  inReplyTo: string | null;
+  references: string | null;
+  from: string | null;
+  to: string | null;
+  subject: string | null;
+  date: string | null;
+  text: string | null;
+};
+
+const MAX_MESSAGES_PER_CHECK = 50;
+const HEADER_FIELDS = "MESSAGE-ID IN-REPLY-TO REFERENCES FROM TO SUBJECT DATE";
+const BODY_PREVIEW_BYTES = 8192;
+
+/** Unfolds RFC 5322 headers and returns the first value for each name. */
+function parseHeaders(raw: string): Record<string, string> {
+  const unfolded = raw.replace(/\r\n[ \t]+/g, " ");
+  const out: Record<string, string> = {};
+  for (const line of unfolded.split(/\r?\n/)) {
+    const at = line.indexOf(":");
+    if (at <= 0) continue;
+    const name = line.slice(0, at).trim().toLowerCase();
+    if (!(name in out)) out[name] = line.slice(at + 1).trim();
+  }
+  return out;
+}
+
+/**
+ * Splits one FETCH response into its literal payloads, in the order the server
+ * sent them: headers first, then the body preview.
+ */
+function literals(chunk: string): string[] {
+  const found: string[] = [];
+  let index = 0;
+  while (index < chunk.length) {
+    const match = /\{(\d+)\}\r\n/.exec(chunk.slice(index));
+    if (!match) break;
+    const start = index + (match.index ?? 0) + match[0].length;
+    const length = Number(match[1]);
+    found.push(chunk.slice(start, start + length));
+    index = start + length;
+  }
+  return found;
+}
+
+function parseFetchResponse(raw: string): CheckedMessage[] {
+  const parts = raw.split(/\r\n(?=\* \d+ FETCH )/i).filter((part) => /\* \d+ FETCH /i.test(part));
+  const messages: CheckedMessage[] = [];
+  for (const part of parts) {
+    const uid = Number(/UID (\d+)/i.exec(part)?.[1] ?? 0);
+    if (!uid) continue;
+    const blocks = literals(part);
+    const headers = parseHeaders(blocks[0] ?? "");
+    const body = (blocks[1] ?? "").trim();
+    messages.push({
+      uid,
+      messageId: headers["message-id"] ?? null,
+      inReplyTo: headers["in-reply-to"] ?? null,
+      references: headers["references"] ?? null,
+      from: headers["from"] ?? null,
+      to: headers["to"] ?? null,
+      subject: headers["subject"] ?? null,
+      date: headers["date"] ?? null,
+      text: body ? body.slice(0, BODY_PREVIEW_BYTES) : null,
+    });
+  }
+  return messages;
+}
+
+async function checkImapMailbox(
+  endpoint: Endpoint,
+  sinceUid: number | null,
+): Promise<{ ok: boolean; message: string; messages: CheckedMessage[] }> {
+  let wire: Wire | null = null;
+  try {
+    wire = await withTimeout(Wire.open(endpoint), "IMAP connection");
+
+    const greeting = await withTimeout(
+      wire.readUntil((text) => text.includes("\r\n")),
+      "IMAP greeting",
+    );
+    if (!/^\* (OK|PREAUTH)/i.test(greeting.trim())) {
+      return { ok: false, message: `IMAP server refused the connection: ${firstLine(greeting)}`, messages: [] };
+    }
+
+    if (endpoint.security === "tls") {
+      await wire.send("b0 STARTTLS");
+      const ready = await withTimeout(
+        wire.readUntil((text) => /b0 (OK|NO|BAD)/i.test(text)),
+        "IMAP STARTTLS",
+      );
+      if (!/b0 OK/i.test(ready)) {
+        return { ok: false, message: `IMAP STARTTLS refused: ${firstLine(ready)}`, messages: [] };
+      }
+      await wire.startTls();
+    }
+
+    const escape = (value: string) => value.replace(/(["\\])/g, "\\$1");
+    await wire.send(`b1 LOGIN "${escape(endpoint.username)}" "${escape(endpoint.password)}"`);
+    const login = await withTimeout(
+      wire.readUntil((text) => /b1 (OK|NO|BAD)/i.test(text)),
+      "IMAP login",
+    );
+    if (!/b1 OK/i.test(login)) {
+      return { ok: false, message: `IMAP login failed: ${firstLine(login)}`, messages: [] };
+    }
+
+    await wire.send("b2 SELECT INBOX");
+    const select = await withTimeout(
+      wire.readUntil((text) => /b2 (OK|NO|BAD)/i.test(text)),
+      "IMAP SELECT",
+    );
+    if (!/b2 OK/i.test(select)) {
+      return { ok: false, message: `IMAP could not open the inbox: ${firstLine(select)}`, messages: [] };
+    }
+
+    const uidNext = Number(/UIDNEXT (\d+)/i.exec(select)?.[1] ?? 0);
+    // First-ever check: only look at the most recent slice of the inbox.
+    const from =
+      sinceUid && sinceUid > 0
+        ? sinceUid + 1
+        : Math.max(1, (uidNext || MAX_MESSAGES_PER_CHECK + 1) - MAX_MESSAGES_PER_CHECK);
+
+    await wire.send(
+      `b3 UID FETCH ${from}:* (UID BODY.PEEK[HEADER.FIELDS (${HEADER_FIELDS})] BODY.PEEK[TEXT]<0.${BODY_PREVIEW_BYTES}>)`,
+    );
+    const fetched = await withTimeout(
+      wire.readUntil((text) => /^b3 (OK|NO|BAD)/im.test(text)),
+      "IMAP FETCH",
+    );
+    if (/^b3 (NO|BAD)/im.test(fetched)) {
+      return { ok: false, message: `IMAP fetch failed: ${firstLine(fetched)}`, messages: [] };
+    }
+
+    const all = parseFetchResponse(fetched).sort((a, b) => a.uid - b.uid);
+    // Cap the batch so one very busy inbox can never overload a single run.
+    const messages = all.slice(-MAX_MESSAGES_PER_CHECK);
+
+    await wire.send("b4 LOGOUT");
+    return { ok: true, message: `Fetched ${messages.length} message(s).`, messages };
+  } catch (error) {
+    return { ok: false, message: `IMAP error: ${(error as Error).message}`, messages: [] };
+  } finally {
+    wire?.close();
+  }
+}
+
 function authorized(request: Request): boolean {
   // The shared secret is the primary credential when configured: service-role
   // keys exist in two formats (legacy JWT and sb_secret_*) and the value the
@@ -426,5 +582,15 @@ Deno.serve(async (request) => {
     return json(await sendViaSmtp(smtp, message));
   }
 
-  return json({ error: "Unknown action. Use 'test' or 'send'." }, 400);
+  if (action === "check") {
+    const imap = payload["imap"] as Endpoint | undefined;
+    if (!imap?.host || !imap?.username) {
+      return json({ error: "imap{host,port,security,username,password} is required for action 'check'" }, 400);
+    }
+    const rawSince = payload["sinceUid"];
+    const sinceUid = typeof rawSince === "number" && Number.isFinite(rawSince) ? Math.trunc(rawSince) : null;
+    return json(await checkImapMailbox(imap, sinceUid));
+  }
+
+  return json({ error: "Unknown action. Use 'test', 'send' or 'check'." }, 400);
 });
