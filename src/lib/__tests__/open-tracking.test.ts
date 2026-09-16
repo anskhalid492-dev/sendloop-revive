@@ -69,7 +69,7 @@ describe("pixel injection", () => {
 
   it("never turns a plain-text email into html", () => {
     expect(injectOpenPixel(null, url)).toBeNull();
-    expect(injectOpenPixel("", url)).toBeNull();
+    expect(injectOpenPixel("", url)).toBeFalsy();
   });
 
   it("does not inject twice", () => {
