@@ -11,7 +11,9 @@
  * A mailbox is only polled while it is `status = 'connected'` AND `is_active`.
  * Failures are recorded per mailbox and never stop the loop.
  */
+import { extractInboundBody } from "@/lib/inbound-body";
 import {
+
   bouncedRecipient,
   extractDisplayName,
   extractEmail,
