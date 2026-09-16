@@ -7,6 +7,8 @@
 
 import { z } from "zod";
 
+import { LEAD_VARIABLES } from "@/lib/campaign-model";
+
 export const TONES = [
   "Professional",
   "Conversational",
@@ -192,6 +194,7 @@ export function stepPurposes(count: number): string[] {
     "Address a likely objection or risk",
     "Add a second pain point or a concrete outcome",
     "Short insight or observation, no pitch",
+    "Restate the offer with a lower-friction ask",
   ];
   const purposes = ["Open the conversation: problem, value and a light ask"];
   for (let i = 0; i < Math.max(0, count - 2); i += 1) {
@@ -199,4 +202,17 @@ export function stepPurposes(count: number): string[] {
   }
   if (count > 1) purposes.push("Low-pressure close: permission-based ask");
   return purposes.slice(0, count);
+}
+
+/**
+ * Strips any variable the platform does not support, so generated copy can never
+ * break at send time. Unknown tokens keep their text but lose the braces.
+ */
+export function sanitizeVariables(text: string): string {
+  return text.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (match, token: string) => {
+    const normalized = token.toLowerCase();
+    const known =
+      LEAD_VARIABLES.some((v) => v.token === normalized) || normalized === "unsubscribe_link";
+    return known ? `{{${normalized}}}` : match.replace(/\{\{|\}\}/g, "");
+  });
 }
