@@ -108,6 +108,15 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
     fallback: false,
   },
   {
+    key: "ai_campaign_writer",
+    label: "AI campaign writer",
+    category: "Outreach",
+    description:
+      "AI-built campaign strategy, offer messaging and complete email sequences inside the campaign builder.",
+    column: null,
+    fallback: false,
+  },
+  {
     key: "priority_support",
     label: "Priority support",
     category: "Support",
