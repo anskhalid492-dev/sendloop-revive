@@ -122,13 +122,19 @@ function walk(section: string, contentTypeHint: string | null, out: InboundBody,
   if (boundary) {
     const source = parsed.headers["content-type"] || contentTypeHint ? parsed.body : section;
     const escaped = boundary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pieces = normalize(source).split(new RegExp(`\\n?--${escaped}(?:--)?[ \\t]*\\n?`));
+    const splitter = new RegExp(`\\n?--${escaped}(?:--)?[ \\t]*\\n?`);
+    const normalized = normalize(source);
+    // Anything before the first boundary is MIME preamble ("This is a
+    // multi-part message in MIME format."), never message text.
+    const firstMarker = normalized.search(new RegExp(`(^|\\n)--${escaped}[ \\t]*(\\n|$)`));
+    const pieces = (firstMarker > 0 ? normalized.slice(firstMarker) : normalized).split(splitter);
     for (const piece of pieces) {
       if (!piece || !piece.trim()) continue;
       walk(piece, null, out, depth + 1);
     }
     return;
   }
+
 
   // Real attachments are never message text.
   if (disposition.startsWith("attachment")) return;
