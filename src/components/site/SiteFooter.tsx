@@ -196,6 +196,15 @@ export function SiteFooter() {
           : [...legal.slice(0, privacyIndex + 1), entry, ...legal.slice(privacyIndex + 1)];
       groups.set("Legal", legal);
     }
+    // AI Campaign Writer is a core product page and must always be listed under
+    // Products, even if the admin-managed footer list omits it.
+    const products = groups.get("Products") ?? [];
+    if (!products.some((l) => l.href === "/products/ai-campaign-writer")) {
+      groups.set("Products", [
+        ...products,
+        { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" },
+      ]);
+    }
     if (!legal.some((l) => l.href === "/compliance")) {
       groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);
     }

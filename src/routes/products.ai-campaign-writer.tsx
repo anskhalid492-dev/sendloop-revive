@@ -1,14 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Braces,
   BrainCircuit,
   Layers,
   Lightbulb,
   ListChecks,
   MessagesSquare,
+  MousePointerClick,
   PencilLine,
+  Repeat,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Target,
+  Type,
   Wand2,
 } from "lucide-react";
 
@@ -71,8 +76,8 @@ const faqs = [
 export const Route = createFileRoute("/products/ai-campaign-writer")({
   head: () =>
     metaFor(
-      "AI Campaign Writer for Cold Outreach | MunchReach",
-      "Create stronger cold outreach campaigns with AI. Build offers, messaging angles, email sequences, follow-ups, CTAs, and personalized campaigns with MunchReach AI Campaign Writer.",
+      "AI Campaign Writer — AI Email Campaign & Follow-Up Generator | MunchReach",
+      "MunchReach AI Campaign Writer is an AI cold email writer and outreach campaign generator: AI subject lines, email copy, follow-up generation, dynamic pain points and lead-level AI email personalization.",
       "/products/ai-campaign-writer",
       faqs,
     ),
@@ -81,20 +86,94 @@ export const Route = createFileRoute("/products/ai-campaign-writer")({
 
 const howItWorks = [
   {
+    title: "Choose audience",
+    text: "Say who the campaign is for — the industry, role or list you are targeting — so every email is written for those people.",
+  },
+  {
     title: "Describe your offer",
-    text: "Write what you sell, who it is for and the problem you solve. Add as many of the optional details as you like — the writer works with whatever you give it.",
+    text: "Write what you sell, who it is for and the problem you solve. Add as many optional details as you like; the writer uses whatever you give it.",
   },
   {
-    title: "Review the strategy",
-    text: "Before any email is written you get the angle, value proposition, main pain point, recommended offer, CTA approach and tone.",
+    title: "Generate campaign",
+    text: "You get the strategy first — angle, value proposition, pain point, offer, CTA and tone — then the full sequence with the number of follow-ups you asked for.",
   },
   {
-    title: "Generate the sequence",
-    text: "Choose exactly how many follow-ups you want. Each email is written for its own purpose: open the conversation, add a new angle, answer an objection, then close politely.",
+    title: "Review emails",
+    text: "Every step previews on its own: subject line, email body, variables. Edit anything inline before it goes anywhere near a campaign.",
   },
   {
-    title: "Apply to your campaign",
-    text: "Preview every email, edit anything, recreate a single step, then add the sequence to any campaign you already have in one click.",
+    title: "Generate pain points",
+    text: "Choose how many pain points the AI writes per lead. Each lead gets pain points from their own business information, filled in at send time.",
+  },
+  {
+    title: "Recreate if needed",
+    text: "Recreate any email as a genuinely different version — new subject, new opening, new structure — keeping your audience, offer, tone and variables.",
+  },
+  {
+    title: "Add to campaign",
+    text: "Pick an existing campaign and insert the sequence in one click: subjects, bodies, variables and step order kept, no duplicate campaign created.",
+  },
+  {
+    title: "Launch",
+    text: "Launch from the campaign builder as usual — your own connected mailboxes, your schedule, your sending limits and warmup.",
+  },
+];
+
+const capabilities = [
+  {
+    icon: Layers,
+    title: "AI-generated campaign sequences",
+    text: "A complete multi-step sequence where each email has its own job instead of restating the first one.",
+  },
+  {
+    icon: Repeat,
+    title: "Custom follow-up generation",
+    text: "Ask for the exact number of follow-ups you want, from none up to nine, and the AI follow-up generator writes exactly that many.",
+  },
+  {
+    icon: Type,
+    title: "AI subject lines",
+    text: "A subject line written for each step's purpose, short enough to read on a phone and matched to the email underneath it.",
+  },
+  {
+    icon: PencilLine,
+    title: "AI email copy",
+    text: "Full email bodies in the tone, length and approach you choose — no filler, no invented proof.",
+  },
+  {
+    icon: Target,
+    title: "Dynamic pain points",
+    text: "Pain points written per lead from that lead's own business information, dropped into your copy with {{pain_point}}.",
+  },
+  {
+    icon: Sparkles,
+    title: "Lead-level personalization",
+    text: "AI email personalization tailors the generated campaign for each individual lead when you send it.",
+  },
+  {
+    icon: Braces,
+    title: "Campaign variables",
+    text: "Generated copy only uses variables MunchReach supports — first name, company, job title, industry and your own campaign variables.",
+  },
+  {
+    icon: RefreshCw,
+    title: "Recreate and regenerate copy",
+    text: "Not convinced by an email? Recreate it for a genuinely different version, as many times as you need.",
+  },
+  {
+    icon: MousePointerClick,
+    title: "One-click campaign insertion",
+    text: "Use this version drops one email into its matching step; Add to campaign writes the whole sequence into an existing campaign.",
+  },
+  {
+    icon: ListChecks,
+    title: "Multiple campaign steps",
+    text: "Initial email plus follow-ups, each numbered and editable, using the same sequence builder your campaigns already use.",
+  },
+  {
+    icon: BrainCircuit,
+    title: "AI personalization built in",
+    text: "The campaign writer and AI Personalization share one setup, so the campaign you generate is the campaign that gets personalized.",
   },
 ];
 
@@ -171,7 +250,7 @@ function Page() {
       <PageHero
         eyebrow="AI Campaign Writer"
         title="AI Campaign Writer"
-        description="Turn your offer into outreach campaigns people actually want to respond to. Describe what you sell and the problem you solve, and the writer builds the strategy, the messaging and a complete sequence you can edit and send."
+        description="Create personalized email campaigns, follow-ups, subject lines, and pain points with AI. Describe what you sell and the problem you solve, and the writer builds the strategy, the messaging and a complete sequence you can edit and send."
         benefits={[
           "Strategy, offer and sequence in one place",
           "Uses your own connected AI provider",
@@ -185,9 +264,16 @@ function Page() {
       <Section
         id="how-it-works"
         title="How it works"
-        description="Four steps from a description of your offer to a sequence in your campaign."
+        description="Eight steps from an audience and an offer to a campaign that is ready to launch."
       >
         <WorkflowStrip steps={howItWorks} />
+      </Section>
+
+      <Section
+        title="What the AI campaign writer creates"
+        description="Everything an outreach campaign needs, generated in the campaign builder you already use."
+      >
+        <FeatureGrid items={capabilities} />
       </Section>
 
       <Section
