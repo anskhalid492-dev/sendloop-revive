@@ -1,6 +1,6 @@
 import { liveQueryOptions } from "@/lib/analytics-query";
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -24,7 +24,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { AuthBadgeRow } from "@/components/sending/AuthBadges";
 import { AccountDetailSheet } from "@/components/sending/AccountDetailSheet";
 import { AddDomainDialog } from "@/components/sending/AddDomainDialog";
-import { ConnectMailboxDialog } from "@/components/sending/ConnectMailboxDialog";
+
 import { MailboxDailyLimitPopover } from "@/components/sending/MailboxDailyLimitPopover";
 
 import { DnsSetupDialog } from "@/components/sending/DnsSetupDialog";
@@ -160,8 +160,7 @@ function EmailAccountsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [dnsDomainId, setDnsDomainId] = useState<string | null>(null);
-  const [connectOpen, setConnectOpen] = useState(false);
-  const [connectDomainId, setConnectDomainId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "failed">(
     "connecting",
@@ -912,12 +911,6 @@ function EmailAccountsPage() {
         onOpenChange={(open) => setDnsDomainId(open ? dnsDomainId : null)}
       />
 
-      <ConnectMailboxDialog
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        domains={domains}
-        defaultDomainId={connectDomainId}
-      />
 
       <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
         <AlertDialogContent>
