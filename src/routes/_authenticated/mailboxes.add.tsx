@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Mail, Server } from "lucide-react";
+import { ArrowRight, ServerCog, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
-import { Card, CardContent } from "@/components/ui/card";
+import { MicrosoftMark } from "@/components/campaign/MailboxTypeBadge";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/add")({
   head: () => ({
