@@ -737,7 +737,7 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
             provider: "smtp",
             connection_method: "self_connected",
             label: row.email_address,
-            from_name: row.display_name ?? row.email_address.split("@")[0],
+            from_name: row.display_name ?? row.email_address.split("@")[0] ?? row.email_address,
             from_email: row.email_address,
             // The connection was proven by the mailbox login test.
             status: "verified",
