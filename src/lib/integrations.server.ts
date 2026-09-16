@@ -398,6 +398,25 @@ export async function deliverEvent(
     return { ok: false, message: "Stored credentials could not be read. Reconnect the integration." };
   }
 
+  // A destination that just failed is left alone until its cooldown lapses, so a
+  // burst of events can never turn into a burst of retries.
+  const health = readDeliveryHealth(connection.config);
+  const gate = deliveryGate(health);
+  if (!gate.send) {
+    await supabaseAdmin.from("integration_events").insert({
+      workspace_id: connection.workspace_id,
+      connection_id: connection.id,
+      slug: connection.slug,
+      direction: "outbound",
+      event_type: eventType,
+      status: "skipped",
+      message: gate.message,
+      payload: payload as never,
+      idempotency_key: idempotencyKey ?? null,
+    });
+    return { ok: false, message: gate.message };
+  }
+
   let result: { ok: boolean; message: string };
   try {
     const webhookUrl = credentials["webhook_url"];
