@@ -15,7 +15,7 @@ export const getSetupProgress = createServerFn({ method: "GET" })
     const { supabase } = context;
     const workspaceId = data.workspaceId;
 
-    const [domains, mailboxes, leads, campaigns, replies] = await Promise.all([
+    const [domains, mailboxes, connectedMailboxes, leads, campaigns, replies] = await Promise.all([
       supabase
         .from("sending_domains")
         .select("id, dns_status")
@@ -25,6 +25,12 @@ export const getSetupProgress = createServerFn({ method: "GET" })
         .from("sending_accounts")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId),
+      // Customers now connect their own mailbox, so this is what the journey checks.
+      supabase
+        .from("mailboxes")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+        .eq("status", "connected"),
       supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
@@ -48,7 +54,7 @@ export const getSetupProgress = createServerFn({ method: "GET" })
       workspace: true,
       domain: domainRows.length > 0,
       dns: domainRows.some((d) => d.dns_status === "verified"),
-      mailbox: (mailboxes.count ?? 0) > 0,
+      mailbox: (connectedMailboxes.count ?? 0) > 0 || (mailboxes.count ?? 0) > 0,
       leads: (leads.count ?? 0) > 0,
       campaign: campaignRows.length > 0,
       launch: campaignRows.some((c) => c.launched_at),

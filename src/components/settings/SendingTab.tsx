@@ -111,11 +111,11 @@ export function SendingTab({ workspaceId }: { workspaceId: string | null }) {
           <div>
             <h2 className="text-base font-semibold">Connected mailboxes</h2>
             <p className="text-sm text-muted-foreground">
-              Domain verification and connection status for every sender.
+              Connection status and sending health for every mailbox you have connected.
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link to="/sending">Manage mailboxes</Link>
+            <Link to="/mailboxes">Manage mailboxes</Link>
           </Button>
         </div>
         <SenderStatusList workspaceId={workspaceId} />

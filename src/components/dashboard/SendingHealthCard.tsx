@@ -98,11 +98,11 @@ export function SendingHealthCard({
           <div>
             <p className="text-sm font-medium">No sending mailboxes connected</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Connect a mailbox and verify your domain to start sending safely.
+              Connect your own mailbox to start sending safely.
             </p>
           </div>
           <Button asChild size="sm">
-            <Link to="/sending">Connect a mailbox</Link>
+            <Link to="/mailboxes/add">Connect a mailbox</Link>
           </Button>
         </div>
       )}

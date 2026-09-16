@@ -213,8 +213,8 @@ function Page() {
 
       <Section
         muted
-        title="Know When Your Domain Is Ready"
-        description="Domain verification and sending readiness are different from simply adding an email account."
+        title="Know When A Mailbox Is Ready"
+        description="Passing the connection test and being ready to send are different from simply adding an email account."
       >
         <DomainReadinessMock />
         <ReadinessNote />

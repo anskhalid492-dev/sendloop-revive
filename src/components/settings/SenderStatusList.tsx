@@ -91,10 +91,10 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
       <div className="space-y-3 p-6 text-center">
         <p className="text-sm font-medium">No mailboxes connected yet</p>
         <p className="text-sm text-muted-foreground">
-          Add a domain and connect a mailbox to start sending.
+          Connect your own mailbox to start sending.
         </p>
         <Button asChild variant="outline" size="sm">
-          <Link to="/sending">Go to Email Accounts</Link>
+          <Link to="/mailboxes/add">Go to Email Accounts</Link>
         </Button>
       </div>
     );

@@ -112,17 +112,17 @@ const controlRows = [
     ),
   },
   {
-    eyebrow: "Domains & mailboxes",
-    title: "Your domains, your mailboxes, your reputation",
-    text: "You verify SPF, DKIM and DMARC on domains you own, then connect the mailboxes behind them. Sending reputation is built on assets that stay with you, not on a shared pool you rent by the month.",
+    eyebrow: "Your mailboxes",
+    title: "Your mailboxes, your reputation",
+    text: "You connect the mailboxes you already own and campaigns send through them. Sending reputation is built on accounts that stay with you, not on a shared pool you rent by the month.",
     bullets: [
-      "DNS verification before a domain can send",
-      "Bring your own provider: SMTP, SES, SendGrid, Mailgun, Postmark, Resend and more",
+      "Every mailbox is tested for sending and receiving before it is enabled",
+      "Bring your own mailbox: Gmail, Microsoft 365 or any IMAP/SMTP provider",
       "Credentials stored encrypted and never shown back in plain text",
-      "Leave whenever you want — the domains keep working",
+      "Leave whenever you want — your mailboxes keep working",
     ],
     visual: (
-      <MockPanel title="Domain verification">
+      <MockPanel title="Mailbox connection">
         <MockRows
           rows={[
             { left: "SPF", muted: "v=spf1 include:… -all", badge: "Verified" },
@@ -299,7 +299,7 @@ function WhySendloop() {
 
       <CtaBlock
         title="Consolidate your outbound stack"
-        description="Create a free workspace, connect a domain and see the whole loop in one place."
+        description="Create a free workspace, connect your mailbox and see the whole loop in one place."
       />
     </MarketingLayout>
   );

@@ -169,8 +169,7 @@ function WarmupPage() {
           <div className="surface-card space-y-2 p-10 text-center">
             <h2 className="text-lg font-semibold">No mailboxes connected yet</h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground">
-              Connect your own domain and mailbox on the Email Accounts page, then enable warmup
-              here.
+              Connect your own mailbox on the Email Accounts page, then enable warmup here.
             </p>
           </div>
         ) : (
