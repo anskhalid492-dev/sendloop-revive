@@ -254,18 +254,37 @@ export function SiteHeader() {
   // Admin-managed menu, with the built-in menu as the fallback.
   const headerRows = (siteContent?.header ?? []) as NavRow[];
   const adminCoreCards = toCards(headerRows, "core", featuredProducts);
-  const moreCards = toCards(headerRows, "more", secondaryProducts);
-  // AI Campaign Writer belongs to the core platform list, so it always appears
-  // there even when the admin-managed menu list leaves it out.
-  const writerCard: Card = {
-    label: "AI Campaign Writer",
-    to: "/products/ai-campaign-writer",
-    text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
-    icon: Sparkles,
-    cta: "Explore AI Campaign Writer",
-  };
-  const hasWriter = [...adminCoreCards, ...moreCards].some((c) => c.to === writerCard.to);
-  const coreCards = hasWriter ? adminCoreCards : [...adminCoreCards, writerCard];
+  const adminMoreCards = toCards(headerRows, "more", secondaryProducts);
+  // AI Campaign Writer and AI Personalization belong to the core platform list,
+  // so they always appear there even when the admin-managed menu leaves them out
+  // or files them under "More from MunchReach".
+  const guaranteedCoreCards: Card[] = [
+    {
+      label: "AI Campaign Writer",
+      to: "/products/ai-campaign-writer",
+      text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
+      icon: Sparkles,
+      cta: "Explore AI Campaign Writer",
+    },
+    {
+      label: "AI Personalization",
+      to: "/ai-personalized-outreach",
+      text: "Write a unique opening line for every prospect with your own OpenAI key.",
+      icon: Sparkles,
+      cta: "Explore AI Personalization",
+    },
+  ];
+  const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
+  const moreCards = adminMoreCards.filter((c) => !guaranteedHrefs.has(c.to));
+  // Every core product card gets a link to its own page, labelled after the product.
+  const withCta = (card: Card): Card => ({
+    ...card,
+    cta: card.cta ?? `Explore ${card.label}`,
+  });
+  const coreCards = [
+    ...adminCoreCards.filter((c) => !guaranteedHrefs.has(c.to)),
+    ...guaranteedCoreCards,
+  ].map(withCta);
   // The eight solution pages are the single source of truth for this menu, so
   // the navigation can never list an audience that has no page behind it.
   const useCaseLinks = solutionNavLinks.map((l) => ({
