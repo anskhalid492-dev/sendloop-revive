@@ -368,5 +368,6 @@ export const retryIntegrationEvent = createServerFn({ method: "POST" })
       row.event_type,
       (row.payload ?? {}) as Record<string, unknown>,
       `retry:${crypto.randomUUID()}`,
+      { force: true },
     );
   });
