@@ -103,10 +103,10 @@ async function guard<T>(
   run: () => Promise<T>,
 ): Promise<({ ok: true } & T) | Failure> {
   const { AiGatewayError } = await import("@/lib/ai-personalization.server");
-  const { consumeUsage } = await import("@/lib/billing/usage.server");
   try {
     const result = await run();
-    await consumeUsage(workspaceId, "ai_monthly", 1, "ai_campaign_writer");
+    // Campaign writer generations are unlimited on every plan that includes the
+    // feature, so they are deliberately not metered against the AI allowance.
     return { ok: true as const, ...result };
   } catch (error) {
     if (error instanceof AiGatewayError)
