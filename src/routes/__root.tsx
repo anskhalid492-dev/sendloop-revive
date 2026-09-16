@@ -12,7 +12,11 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { initStaleChunkReload } from "@/lib/stale-chunk-reload";
+import {
+  initStaleChunkReload,
+  isStaleChunkError,
+  recoverFromStaleChunk,
+} from "@/lib/stale-chunk-reload";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,15 +47,26 @@ function NotFoundComponent() {
 
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
   const router = useRouter();
+  // A chunk that vanished after a deploy is not a real failure: reload quietly.
+  const staleChunk = isStaleChunkError(error);
+  if (!staleChunk) console.error(error);
   useEffect(() => {
+    if (recoverFromStaleChunk(error)) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
     void import("@/instrument-browser").then(({ initBrowserSentry, captureBrowserError }) => {
       initBrowserSentry();
       captureBrowserError(error, { boundary: "tanstack_root_error_component" });
     });
   }, [error]);
+
+  if (staleChunk) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-sm text-muted-foreground">A new version is available, reloading…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

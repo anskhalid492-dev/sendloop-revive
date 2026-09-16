@@ -114,12 +114,12 @@ const navGroups = [
 
 export function AppShell({
   title,
-  description,
   actions,
   children,
   contentClassName,
 }: {
   title: string;
+  /** Kept for call sites; the sub-heading is no longer shown in the app header. */
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -278,9 +278,6 @@ export function AppShell({
 
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-semibold">{title}</h1>
-            {description ? (
-              <p className="truncate text-xs text-muted-foreground">{description}</p>
-            ) : null}
           </div>
 
           <div className="hidden md:block">

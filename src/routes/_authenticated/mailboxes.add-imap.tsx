@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { saveMailboxConnection } from "@/lib/customer-mailboxes.functions";
 import { mailboxCsvTemplate, parseMailboxCsv } from "@/lib/mailbox-csv";
+import { setMailboxWarmup } from "@/lib/workspace-mailboxes.functions";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/add-imap")({
   head: () => ({
@@ -48,6 +49,7 @@ type RowResult = { email: string; ok: boolean; message: string };
 function ConnectImapPage() {
   const { workspace } = useWorkspace();
   const runSave = useServerFn(saveMailboxConnection);
+  const runWarmup = useServerFn(setMailboxWarmup);
   const fileInput = useRef<HTMLInputElement>(null);
   const [results, setResults] = useState<RowResult[]>([]);
 
@@ -87,12 +89,25 @@ function ConnectImapPage() {
               imap: row.imap,
             },
           });
+          // A "true" in the Warmup Enabled column turns warm-up on straight away,
+          // through the same path as the toggle on the mailbox list.
+          let warmupNote = "";
+          if (row.warmupEnabled && saved.status === "connected" && saved.mailboxId) {
+            try {
+              await runWarmup({ data: { ids: [saved.mailboxId], enabled: true } });
+              warmupNote = " Warm-up on.";
+            } catch (error) {
+              warmupNote = ` Warm-up could not be turned on: ${
+                error instanceof Error ? error.message : "unknown error"
+              }`;
+            }
+          }
           collected.push({
             email: label,
             ok: saved.status === "connected",
             message:
               saved.status === "connected"
-                ? "Connected."
+                ? `Connected.${warmupNote}`
                 : `SMTP: ${saved.smtp.message} IMAP: ${saved.imap.message}`,
           });
         } catch (error) {
