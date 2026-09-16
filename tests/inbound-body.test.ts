@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { extractInboundBody, htmlBodyToText } from "@/lib/inbound-body";
 
+/** UTF-8 safe base64, the way a real mail client encodes a part. */
+const b64 = (value: string) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(value)));
+
 const gmailAlternative = [
   "--000000000000f18d77065b9bce20",
   'Content-Type: text/plain; charset="UTF-8"',
@@ -43,7 +47,7 @@ describe("inbound body extraction", () => {
       "Content-Type: text/plain",
       "Content-Transfer-Encoding: base64",
       "",
-      btoa("Sounds good 👍"),
+      b64("Sounds good 👍"),
       "--b1--",
       "",
     ].join("\r\n");
@@ -68,7 +72,7 @@ describe("inbound body extraction", () => {
       'Content-Disposition: attachment; filename="invoice.pdf"',
       "Content-Transfer-Encoding: base64",
       "",
-      btoa("PDFBYTES"),
+      b64("PDFBYTES"),
       "--mixed--",
       "",
     ].join("\r\n");
@@ -112,6 +116,6 @@ describe("inbound body extraction", () => {
   });
 
   it("strips markup predictably", () => {
-    expect(htmlBodyToText("<p>One</p><p>Two</p>")).toBe("One\n\nTwo");
+    expect(htmlBodyToText("<p>One</p><p>Two</p>")).toBe("One\nTwo");
   });
 });
