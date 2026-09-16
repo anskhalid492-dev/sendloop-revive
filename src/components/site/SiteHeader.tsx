@@ -74,21 +74,23 @@ const featuredProducts: Card[] = [
     icon: Flame,
     cta: "Explore Warmup",
   },
-];
-
-const secondaryProducts: Card[] = [
   {
     label: "AI Campaign Writer",
     to: "/products/ai-campaign-writer",
     text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
     icon: Sparkles,
+    cta: "Explore AI Campaign Writer",
   },
   {
     label: "AI Personalization",
     to: "/ai-personalized-outreach",
     text: "Write a unique opening line for every prospect with your own OpenAI key.",
     icon: Sparkles,
+    cta: "Explore AI Personalization",
   },
+];
+
+const secondaryProducts: Card[] = [
   {
     label: "Automations",
     to: "/automations",
@@ -251,18 +253,19 @@ export function SiteHeader() {
 
   // Admin-managed menu, with the built-in menu as the fallback.
   const headerRows = (siteContent?.header ?? []) as NavRow[];
-  const coreCards = toCards(headerRows, "core", featuredProducts);
-  const adminMoreCards = toCards(headerRows, "more", secondaryProducts);
-  // AI Campaign Writer is a core product page, so it always appears under
-  // Products even when the admin-managed menu list leaves it out.
+  const adminCoreCards = toCards(headerRows, "core", featuredProducts);
+  const moreCards = toCards(headerRows, "more", secondaryProducts);
+  // AI Campaign Writer belongs to the core platform list, so it always appears
+  // there even when the admin-managed menu list leaves it out.
   const writerCard: Card = {
     label: "AI Campaign Writer",
     to: "/products/ai-campaign-writer",
     text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
     icon: Sparkles,
+    cta: "Explore AI Campaign Writer",
   };
-  const hasWriter = [...coreCards, ...adminMoreCards].some((c) => c.to === writerCard.to);
-  const moreCards = hasWriter ? adminMoreCards : [writerCard, ...adminMoreCards];
+  const hasWriter = [...adminCoreCards, ...moreCards].some((c) => c.to === writerCard.to);
+  const coreCards = hasWriter ? adminCoreCards : [...adminCoreCards, writerCard];
   // The eight solution pages are the single source of truth for this menu, so
   // the navigation can never list an audience that has no page behind it.
   const useCaseLinks = solutionNavLinks.map((l) => ({
