@@ -177,7 +177,7 @@ export async function sendReplyThroughMailbox(args: {
         : "This conversation's mailbox is not connected with your own email credentials yet. Reconnect it under Email Accounts, then send this reply again.",
     );
   }
-  const { assertAttachmentsWithinLimit, archivedAttachments, relayAttachments } = await import(
+  const { assertAttachmentsWithinLimit, relayAttachments } = await import(
     "@/lib/mail-attachments"
   );
   assertAttachmentsWithinLimit(args.attachments);

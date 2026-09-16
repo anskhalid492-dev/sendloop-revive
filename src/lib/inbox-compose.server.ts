@@ -92,7 +92,7 @@ export async function composeAndSend(input: ComposeInput) {
         : "This mailbox is not connected with your own email credentials yet. Connect it under Email Accounts, then send this email again.",
     );
   }
-  const { assertAttachmentsWithinLimit, archivedAttachments, relayAttachments } = await import(
+  const { assertAttachmentsWithinLimit, relayAttachments } = await import(
     "@/lib/mail-attachments"
   );
   assertAttachmentsWithinLimit(input.attachments);
