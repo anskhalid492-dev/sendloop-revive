@@ -177,8 +177,8 @@ export function AiCampaignWriterSidebar({
   useEffect(() => {
     const saved = query.data?.state;
     if (!saved) return;
-    setBrief({ ...defaultBrief(), ...saved.brief });
-    setControls({ ...defaultControls(), ...saved.controls });
+    setBrief({ ...defaultBrief(), ...defined(saved.brief) });
+    setControls({ ...defaultControls(), ...defined(saved.controls) });
     setStrategy(saved.strategy);
     setAngles(saved.angles);
     setSelectedAngle(saved.selectedAngle);
