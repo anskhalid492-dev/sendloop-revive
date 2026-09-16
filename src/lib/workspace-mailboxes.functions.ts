@@ -651,3 +651,137 @@ export const sendWorkspaceMailboxTest = createServerFn({ method: "POST" })
     if (!result.ok) throw new Error(result.message);
     return { ok: true, messageId: result.messageId, message: result.message };
   });
+
+/**
+ * Turns warm-up on or off for a self-connected mailbox.
+ *
+ * Eligibility is simply `status = 'connected'` AND `is_active = true`: in the
+ * current architecture a connected mailbox is by definition ready to send, so
+ * there is no separate "registered for sending" step for the customer to do.
+ *
+ * The warm-up engine (settings, jobs, daily stats, health) is keyed to a
+ * `sending_accounts` row by `sending_account_id`, so this handler makes sure the
+ * bookkeeping row for the mailbox's own address exists before writing the
+ * warm-up setting. That row carries no credentials — warm-up still sends
+ * through the customer's own mailbox via the relay. Pacing, ramp, safety and
+ * auto-pause logic are untouched.
+ */
+export const setMailboxWarmup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ ids: z.array(z.string().uuid()).min(1).max(100), enabled: z.boolean() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    // RLS decides which mailboxes the caller may see at all.
+    const { data: rows, error } = await client
+      .from("mailboxes")
+      .select("id, workspace_id, email_address, display_name, status, is_active, daily_send_limit")
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+
+    type Row = {
+      id: string;
+      workspace_id: string;
+      email_address: string;
+      display_name: string | null;
+      status: string;
+      is_active: boolean | null;
+      daily_send_limit: number | null;
+    };
+    const mailboxes = (rows ?? []) as Row[];
+    if (mailboxes.length === 0) throw new Error("Mailbox not found");
+
+    if (data.enabled) {
+      const unusable = mailboxes.filter(
+        (row) => row.status !== "connected" || row.is_active === false,
+      );
+      if (unusable.length === mailboxes.length) {
+        const first = unusable[0] as Row;
+        if (first.is_active === false) {
+          const { PAUSED_MAILBOX_MESSAGE } = await import("@/lib/mailbox-active.server");
+          throw new Error(PAUSED_MAILBOX_MESSAGE);
+        }
+        throw new Error(
+          "Warm-up needs a connected mailbox. Re-check the connection first, then turn warm-up on.",
+        );
+      }
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    let changed = 0;
+
+    for (const row of mailboxes) {
+      if (data.enabled && (row.status !== "connected" || row.is_active === false)) continue;
+
+      // Find, or create, the warm-up bookkeeping row for this exact address.
+      const { data: existingAccount } = await supabaseAdmin
+        .from("sending_accounts")
+        .select("id")
+        .eq("workspace_id", row.workspace_id)
+        .eq("from_email", row.email_address)
+        .maybeSingle();
+
+      let accountId = (existingAccount as { id: string } | null)?.id ?? null;
+
+      if (!accountId) {
+        if (!data.enabled) continue; // nothing to switch off
+        const { data: created, error: createError } = await supabaseAdmin
+          .from("sending_accounts")
+          .insert({
+            workspace_id: row.workspace_id,
+            // Self-connected: the credentials live with the mailbox, not here.
+            provider: "smtp",
+            connection_method: "self_connected",
+            label: row.email_address,
+            from_name: row.display_name ?? row.email_address.split("@")[0],
+            from_email: row.email_address,
+            // The connection was proven by the mailbox login test.
+            status: "verified",
+            customer_enabled: true,
+            paused: false,
+            ...(row.daily_send_limit ? { daily_limit: row.daily_send_limit } : {}),
+          })
+          .select("id")
+          .single();
+        if (createError) throw new Error(createError.message);
+        accountId = (created as { id: string }).id;
+      }
+
+      const { data: existingSettings } = await supabaseAdmin
+        .from("warmup_settings")
+        .select("id, started_at")
+        .eq("sending_account_id", accountId)
+        .maybeSingle();
+      const settings = existingSettings as { id: string; started_at: string | null } | null;
+
+      const body = {
+        enabled: data.enabled,
+        paused_by_system: false,
+        pause_reason: null,
+        started_at: data.enabled ? (settings?.started_at ?? now) : (settings?.started_at ?? null),
+      };
+
+      const { error: writeError } = settings
+        ? await supabaseAdmin.from("warmup_settings").update(body).eq("id", settings.id)
+        : await supabaseAdmin.from("warmup_settings").insert({
+            ...body,
+            workspace_id: row.workspace_id,
+            sending_account_id: accountId,
+          });
+      if (writeError) throw new Error(writeError.message);
+
+      // Keep the mailbox row's own flag in step with what the customer sees.
+      await supabaseAdmin
+        .from("mailboxes")
+        .update({ warmup_enabled: data.enabled, updated_at: now })
+        .eq("id", row.id);
+
+      changed += 1;
+    }
+
+    return { changed, enabled: data.enabled };
+  });
