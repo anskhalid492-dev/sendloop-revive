@@ -33,7 +33,8 @@ const SUPPORTED_TOKENS = LEAD_VARIABLES.map((v) => `{{${v.token}}}`);
 const GROUND_RULES = [
   "You write B2B cold outreach for a real sending platform.",
   "Never invent customer results, testimonials, statistics, guarantees, certifications, awards or business claims. If proof was not provided, say proof is missing instead of creating any.",
-  `The only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}. Never invent other variables.`,
+  `The only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}, plus the AI pain point variables {{pain_point}} to {{pain_point_5}}. Never invent other variables.`,
+  "Only use a pain point variable when the campaign was set up to generate pain points per lead.",
   "Use at most one or two variables per email — personalization must feel natural, not stuffed.",
   "Never expose your reasoning. Return only the requested JSON.",
   "No spam words, no fake urgency, no walls of text, no emoji.",
