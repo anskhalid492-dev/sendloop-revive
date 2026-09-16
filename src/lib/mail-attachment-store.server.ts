@@ -1,48 +1,32 @@
 /**
  * Storage for MANUAL email attachments (Unified Inbox Compose + Reply).
  *
- * Files still travel inline through the mail relay — this only keeps a copy so
- * the same file can be downloaded again from the thread view. Copies live in the
- * private `mail-attachments` bucket under the workspace id, and are only ever
- * handed out as short-lived signed links generated on the server.
+ * Files live in the same private Cloudflare R2 bucket as every other file the
+ * product stores — there is no second storage system. Files still travel inline
+ * through the mail relay; this keeps a copy so the same file can be downloaded
+ * again from the thread view, handed out only as short-lived signed links.
+ *
+ * Keys are namespaced `campaigns/mail-attachments/<workspace>/…` so the generic
+ * shared-file endpoints refuse them: the only way to a link is the inbox
+ * download function, which checks the caller can read that message first.
  *
  * Campaign sending is untouched: campaigns do not send files.
  */
+import { safeFileName } from "@/lib/files-model";
 import type { OutboundAttachment } from "@/lib/mail-attachments";
 
-type Admin = {
-  storage: {
-    from: (bucket: string) => {
-      upload: (
-        path: string,
-        body: ArrayBuffer | Uint8Array | Blob,
-        options?: { contentType?: string; upsert?: boolean },
-      ) => Promise<{ error: { message: string } | null }>;
-      createSignedUrl: (
-        path: string,
-        expiresIn: number,
-        options?: { download?: string | boolean },
-      ) => Promise<{ data: { signedUrl: string } | null; error: { message: string } | null }>;
-    };
-  };
-};
-
-export const MAIL_ATTACHMENT_BUCKET = "mail-attachments";
+const KEY_PREFIX = "campaigns/mail-attachments";
 
 /** Stored attachment shape written into `conversation_messages.attachments`. */
 export type ArchivedAttachment = {
   name: string;
   contentType: string;
   size: number;
-  /** Object path inside the private bucket; absent for older messages. */
+  /** Object key in the private R2 bucket; absent for older messages. */
   path?: string;
   /** Legacy/provider-hosted link. */
   url?: string;
 };
-
-function safeName(name: string): string {
-  return (name || "attachment").replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 120);
-}
 
 function decodeBase64(content: string): Uint8Array {
   const binary = atob(content.replace(/[\r\n\s]/g, ""));
@@ -51,17 +35,31 @@ function decodeBase64(content: string): Uint8Array {
   return bytes;
 }
 
+function randomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** True for keys this module owns, so the download path can never sign anything else. */
+export function isMailAttachmentKey(key: string): boolean {
+  return (
+    key.startsWith(`${KEY_PREFIX}/`) && !key.includes("..") && !key.includes("//") && key.length < 512
+  );
+}
+
 /**
  * Keeps a copy of every attachment that carries content and returns the archive
  * records for the message. A failed upload never fails the send — the message is
  * already delivered at that point, so the attachment is archived as metadata
  * only and simply is not downloadable.
  */
-export async function storeOutboundAttachments(
-  admin: Admin,
-  input: { workspaceId: string; attachments: OutboundAttachment[] },
-): Promise<ArchivedAttachment[]> {
+export async function storeOutboundAttachments(input: {
+  workspaceId: string;
+  attachments: OutboundAttachment[];
+}): Promise<ArchivedAttachment[]> {
   const { attachmentBytes } = await import("@/lib/mail-attachments");
+  const { putR2Object, r2Configured } = await import("@/lib/r2.server");
+  const configured = r2Configured();
   const stored: ArchivedAttachment[] = [];
 
   for (const file of input.attachments) {
@@ -72,17 +70,11 @@ export async function storeOutboundAttachments(
       ...(file.url ? { url: file.url } : {}),
     };
 
-    if (file.content) {
-      const path = `${input.workspaceId}/${crypto.randomUUID()}-${safeName(file.name)}`;
+    if (file.content && configured) {
+      const key = `${KEY_PREFIX}/${input.workspaceId}/${randomId()}-${safeFileName(file.name)}`;
       try {
-        const { error } = await admin.storage
-          .from(MAIL_ATTACHMENT_BUCKET)
-          .upload(path, decodeBase64(file.content), {
-            contentType: record.contentType,
-            upsert: false,
-          });
-        if (error) throw new Error(error.message);
-        record.path = path;
+        await putR2Object(key, decodeBase64(file.content), record.contentType);
+        record.path = key;
       } catch (error) {
         console.warn(
           `[mail-attachments] copy of "${file.name}" could not be kept — ${
@@ -99,15 +91,10 @@ export async function storeOutboundAttachments(
 }
 
 /** Short-lived download link for one stored attachment. */
-export async function signAttachmentDownload(
-  admin: Admin,
-  input: { path: string; filename: string },
-): Promise<string> {
-  const { data, error } = await admin.storage
-    .from(MAIL_ATTACHMENT_BUCKET)
-    .createSignedUrl(input.path, 300, { download: input.filename });
-  if (error || !data?.signedUrl) {
-    throw new Error("This attachment could not be prepared for download. Try again.");
+export async function signAttachmentDownload(input: { path: string }): Promise<string> {
+  if (!isMailAttachmentKey(input.path)) {
+    throw new Error("This attachment reference is not valid.");
   }
-  return data.signedUrl;
+  const { presignR2Url } = await import("@/lib/r2.server");
+  return presignR2Url({ key: input.path, method: "GET", expiresInSeconds: 300 });
 }
