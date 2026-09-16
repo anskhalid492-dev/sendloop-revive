@@ -18,6 +18,7 @@ import {
   Menu,
   Plug,
   Send,
+  PenLine,
   Sparkles,
   ShieldCheck,
   Users,

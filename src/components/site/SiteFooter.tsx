@@ -10,6 +10,8 @@ import {
   Instagram,
   LayoutGrid,
   Linkedin,
+  PenLine,
+
 
   Lock,
   Repeat,
@@ -37,8 +39,8 @@ const fallbackColumns = [
     title: "Products",
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
-      { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" },
       { label: "AI", href: "/ai-personalized-outreach" },
+      { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -113,6 +115,7 @@ const productIcons: Record<string, typeof Send> = {
   Campaigns: Send,
   AI: Sparkles,
   "AI Personalization": Sparkles,
+  "AI Campaign Writer": PenLine,
   "Unified Inbox": Inbox,
   "Follow-Ups": Repeat,
   Warmup: Flame,
