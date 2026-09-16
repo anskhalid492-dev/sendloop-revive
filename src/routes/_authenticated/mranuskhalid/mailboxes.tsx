@@ -47,7 +47,7 @@ import {
   num,
   type Tone,
 } from "@/components/app/admin/OutreachUI";
-import { GoogleIcon } from "@/components/icons/GoogleIcon";
+import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { MicrosoftMark } from "@/components/campaign/MailboxTypeBadge";
 import {
   adminListCustomerMailboxes,
