@@ -76,9 +76,15 @@ const ZERO: AnalyticsSummary = {
 
 function toSummary(row: Record<string, unknown> | undefined): AnalyticsSummary {
   if (!row) return ZERO;
+  const sent = Number(row["sent"] ?? 0);
+  const bounced = Number(row["bounced"] ?? 0);
   return {
-    sent: Number(row["sent"] ?? 0),
-    delivered: Number(row["delivered"] ?? 0),
+    sent,
+    delivered: deliveredCount({
+      sent,
+      bounced,
+      confirmedDelivered: Number(row["delivered"] ?? 0),
+    }),
     opens: Number(row["opens"] ?? 0),
     clicks: Number(row["clicks"] ?? 0),
     replies: Number(row["replies"] ?? 0),
