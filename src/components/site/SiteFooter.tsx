@@ -189,7 +189,12 @@ export function SiteFooter() {
     };
 
     const items = content?.footer ?? [];
-    if (!items.length) return withCommunity(fallbackColumns);
+    if (!items.length)
+      return withCommunity(
+        fallbackColumns.map((c) =>
+          c.title === "Products" ? { ...c, links: withProductLabels(c.links) } : c,
+        ),
+      );
     const groups = new Map<string, { label: string; href: string }[]>();
     for (const item of items) {
       const key = item.group_label || "More";
@@ -212,19 +217,21 @@ export function SiteFooter() {
           : [...legal.slice(0, privacyIndex + 1), entry, ...legal.slice(privacyIndex + 1)];
       groups.set("Legal", legal);
     }
-    // AI Campaign Writer is a core product page and must always be listed under
+    // AI Writer is a core product page and must always be listed under
     // Products, even if the admin-managed footer list omits it.
   const products = groups.get("Products") ?? [];
     if (!products.some((l) => l.href === "/products/ai-campaign-writer")) {
       // Sits right after AI Personalization ("AI") to match the header order.
       const aiIndex = products.findIndex((l) => l.href === "/ai-personalized-outreach");
-      const entry = { label: "AI Campaign Writer", href: "/products/ai-campaign-writer" };
+      const entry = { label: "AI Writer", href: "/products/ai-campaign-writer" };
       const next =
         aiIndex === -1
           ? [...products, entry]
           : [...products.slice(0, aiIndex + 1), entry, ...products.slice(aiIndex + 1)];
       groups.set("Products", next);
     }
+    // Fixed menu names for the AI products, matching the header exactly.
+    groups.set("Products", withProductLabels(groups.get("Products") ?? []));
     if (!legal.some((l) => l.href === "/compliance")) {
       groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);
     }
