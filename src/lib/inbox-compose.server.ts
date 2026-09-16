@@ -26,8 +26,8 @@ export type ComposeInput = {
 };
 
 export async function composeAndSend(input: ComposeInput) {
-  const { getAdapter } = await import("@/lib/providers/adapter.server");
   const supabase = input.supabase;
+
   const to = input.to.trim().toLowerCase();
 
   const { data: account, error: accountError } = await supabase
