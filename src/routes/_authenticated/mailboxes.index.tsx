@@ -294,22 +294,28 @@ function MailboxesPage() {
             <Loader2 className="mr-2 size-4 animate-spin" />
             Loading your mailboxes…
           </div>
+        ) : rows.length === 0 && !filtersActive ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card px-6 py-16 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
+              <MailPlus className="size-7 text-primary" />
+            </div>
+            <h2 className="mt-5 text-xl font-semibold tracking-tight">
+              Connect Your First Sending Account
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+              Connect a sending account to start sending campaigns and managing your outreach from
+              MunchReach.
+            </p>
+            <Button asChild className="mt-6">
+              <Link to="/mailboxes/add">+ Add Accounts</Link>
+            </Button>
+          </div>
         ) : rows.length === 0 ? (
           <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <h2 className="text-base font-semibold">
-              {filtersActive ? "No mailboxes match these filters" : "No mailboxes connected yet"}
-            </h2>
+            <h2 className="text-base font-semibold">No mailboxes match these filters</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              {filtersActive
-                ? "Try a different search term or clear the filters."
-                : "Connect a sending mailbox to start sending campaigns from MunchReach."}
+              Try a different search term or clear the filters.
             </p>
-            <Button asChild className="mt-5">
-              <Link to="/mailboxes/add">
-                <MailPlus className="mr-2 size-4" />
-                Add Mailbox
-              </Link>
-            </Button>
           </div>
         ) : (
           <>
