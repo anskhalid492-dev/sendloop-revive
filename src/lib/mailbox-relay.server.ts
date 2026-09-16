@@ -12,7 +12,11 @@
  *
  * Deployable function source: docs/edge-functions/mailbox-smtp-relay/index.ts
  */
-import { SUPABASE_URL, getServiceRoleKey } from "@/integrations/supabase/config";
+import {
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  getServiceRoleKey,
+} from "@/integrations/supabase/config";
 import type {
   MailEndpoint,
   MailboxTestResult,
