@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Send, Save } from "lucide-react";
+import { Loader2, Paperclip, Send, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { listComposeMailboxes, saveDraft, sendComposedEmail } from "@/lib/inbox.functions";
 import { isMailboxLimitError, mailboxLimitMessage } from "@/lib/mailbox-capacity";
+import {
+  ATTACHMENT_LIMIT_MESSAGE,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+  fileToOutboundAttachment,
+  formatBytes,
+  totalAttachmentBytes,
+  type OutboundAttachment,
+} from "@/lib/mail-attachments";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 
@@ -69,6 +78,8 @@ export function ComposeDialog({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<OutboundAttachment[]>([]);
+  const [reading, setReading] = useState(false);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
 
   const mailboxesQuery = useQuery({
@@ -88,6 +99,7 @@ export function ComposeDialog({
     setBody(seed?.body ?? "");
     setDraftId(seed?.draftId ?? null);
     setAccountId(seed?.sendingAccountId ?? "");
+    setAttachments([]);
     setLimitNotice(null);
   }, [open, seed]);
 
@@ -105,6 +117,31 @@ export function ComposeDialog({
     if (eligible.length) setAccountId(eligible[0]!.id);
   }, [mailboxes, eligible, accountId]);
 
+  const attachedBytes = totalAttachmentBytes(attachments);
+
+  const onPickFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const picked = Array.from(files);
+    if (attachments.length + picked.length > MAX_ATTACHMENTS_PER_MESSAGE) {
+      toast.error(`You can attach up to ${MAX_ATTACHMENTS_PER_MESSAGE} files to one email.`);
+      return;
+    }
+    const incoming = picked.reduce((sum, file) => sum + file.size, 0);
+    if (attachedBytes + incoming > MAX_TOTAL_ATTACHMENT_BYTES) {
+      toast.error("Attachments too large", { description: ATTACHMENT_LIMIT_MESSAGE });
+      return;
+    }
+    setReading(true);
+    try {
+      const read = await Promise.all(picked.map(fileToOutboundAttachment));
+      setAttachments((current) => [...current, ...read]);
+    } catch {
+      toast.error("One of those files could not be read. Please try again.");
+    } finally {
+      setReading(false);
+    }
+  };
+
   const sendMutation = useMutation({
     mutationFn: async () =>
       send({
@@ -117,6 +154,7 @@ export function ComposeDialog({
           subject: subject.trim(),
           body: body.trim(),
           draftId,
+          attachments,
         },
       }),
     onSuccess: (result) => {
@@ -153,7 +191,13 @@ export function ComposeDialog({
           bcc: splitEmails(bcc),
           subject,
           body,
-          attachments: [],
+          // Drafts keep the file list as metadata only; files are re-attached
+          // when the draft is finished.
+          attachments: attachments.map((file) => ({
+            name: file.name,
+            contentType: file.contentType,
+            size: file.size,
+          })),
         },
       }),
     onSuccess: (result) => {
@@ -169,7 +213,8 @@ export function ComposeDialog({
     Boolean(selected?.available) &&
     to.trim().length > 3 &&
     Boolean(subject.trim()) &&
-    Boolean(body.trim());
+    Boolean(body.trim()) &&
+    !reading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -272,6 +317,65 @@ export function ComposeDialog({
               onChange={(event) => setBody(event.target.value)}
               rows={10}
             />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="compose-files">Attachments</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={reading}
+                onClick={() => document.getElementById("compose-files")?.click()}
+              >
+                {reading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Paperclip className="mr-2 h-4 w-4" />
+                )}
+                Attach files
+              </Button>
+              <input
+                id="compose-files"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(event) => {
+                  void onPickFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+              <span className="text-xs text-muted-foreground">
+                Up to {MAX_ATTACHMENTS_PER_MESSAGE} files, {formatBytes(MAX_TOTAL_ATTACHMENT_BYTES)}{" "}
+                total
+                {attachments.length ? ` · ${formatBytes(attachedBytes)} attached` : ""}
+              </span>
+            </div>
+            {attachments.length ? (
+              <ul className="flex flex-wrap gap-2">
+                {attachments.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="flex items-center gap-1.5 rounded border border-border/70 bg-muted/40 px-2 py-1 text-xs"
+                  >
+                    <Paperclip className="h-3 w-3 text-muted-foreground" />
+                    <span className="max-w-48 truncate">{file.name}</span>
+                    <span className="text-muted-foreground">{formatBytes(file.size ?? 0)}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${file.name}`}
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() =>
+                        setAttachments((current) => current.filter((_, at) => at !== index))
+                      }
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </div>
 
