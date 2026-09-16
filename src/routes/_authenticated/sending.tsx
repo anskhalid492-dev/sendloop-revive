@@ -317,13 +317,10 @@ function EmailAccountsPage() {
           <Button variant="outline" onClick={() => setAddDomainOpen(true)}>
             <Globe className="size-4" /> Add domain
           </Button>
-          <Button
-            onClick={() => {
-              setConnectDomainId(null);
-              setConnectOpen(true);
-            }}
-          >
-            <Plus className="size-4" /> Connect email account
+          <Button asChild>
+            <Link to="/mailboxes/add">
+              <Plus className="size-4" /> Connect email account
+            </Link>
           </Button>
         </div>
       }
@@ -347,9 +344,8 @@ function EmailAccountsPage() {
           isLoading={domainsQuery.isLoading}
           onAddDomain={() => setAddDomainOpen(true)}
           onOpenDns={(id) => setDnsDomainId(id)}
-          onConnectMailbox={(id) => {
-            setConnectDomainId(id);
-            setConnectOpen(true);
+          onConnectMailbox={() => {
+            void navigate({ to: "/mailboxes/add" });
           }}
         />
 
@@ -392,13 +388,10 @@ function EmailAccountsPage() {
               Add your domain, publish the DNS records, verify, then connect your own email account.
               You keep ownership of every mailbox.
             </p>
-            <Button
-              onClick={() => {
-                setConnectDomainId(null);
-                setConnectOpen(true);
-              }}
-            >
-              <Plus className="size-4" /> Connect email account
+            <Button asChild>
+              <Link to="/mailboxes/add">
+                <Plus className="size-4" /> Connect email account
+              </Link>
             </Button>
           </div>
         ) : (
