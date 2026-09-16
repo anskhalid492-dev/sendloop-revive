@@ -12,6 +12,8 @@ import {
   Sparkles,
   Target,
   Wand2,
+  CheckCircle2,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +61,9 @@ import {
   defaultControls,
   emptyWriterState,
   stepPurposes,
+  totalSteps,
+  MAX_FOLLOW_UPS,
+  PAIN_POINT_MAX,
   type OfferAdvice,
   type WriterAngle,
   type WriterBrief,
@@ -76,6 +81,9 @@ import {
   improveCampaignOffer,
   reviewCampaignDraft,
   saveCampaignWriterState,
+  listWriterTargetCampaigns,
+  applyWriterSequenceToCampaign,
+  applyWriterStepToCampaign,
 } from "@/lib/ai-campaign-writer.functions";
 import { aiProviderLabel } from "@/lib/ai-providers";
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
@@ -163,6 +171,9 @@ export function AiCampaignWriterSidebar({
   const offerFn = useServerFn(improveCampaignOffer);
   const stepFn = useServerFn(generateCampaignStep);
   const reviewFn = useServerFn(reviewCampaignDraft);
+  const targetsFn = useServerFn(listWriterTargetCampaigns);
+  const applySequenceFn = useServerFn(applyWriterSequenceToCampaign);
+  const applyStepFn = useServerFn(applyWriterStepToCampaign);
 
   const [brief, setBrief] = useState<WriterBrief>(defaultBrief);
   const [controls, setControls] = useState<WriterControls>(defaultControls);
@@ -177,6 +188,9 @@ export function AiCampaignWriterSidebar({
   const [providerUsed, setProviderUsed] = useState<string | null>(null);
   /** Which connected AI the customer picked for this campaign (null = first connected). */
   const [providerChoice, setProviderChoice] = useState<string | null>(null);
+  /** Which existing campaign the generated copy gets written into. */
+  const [targetCampaignId, setTargetCampaignId] = useState<string>("");
+  const [confirmTarget, setConfirmTarget] = useState(false);
 
   const query = useQuery({
     queryKey: ["ai-writer", campaignId],
@@ -189,7 +203,13 @@ export function AiCampaignWriterSidebar({
     const saved = query.data?.state;
     if (!saved) return;
     setBrief(briefSchema.parse(defined(saved.brief)));
-    setControls(controlsSchema.parse(defined(saved.controls)));
+    const savedControls = controlsSchema.parse(defined(saved.controls));
+    const legacy = (saved.controls ?? {}) as { followUps?: number; steps?: number };
+    setControls(
+      legacy.followUps === undefined && typeof legacy.steps === "number"
+        ? { ...savedControls, followUps: Math.max(0, Math.min(MAX_FOLLOW_UPS, legacy.steps - 1)) }
+        : savedControls,
+    );
     setStrategy(saved.strategy);
     setAngles(saved.angles);
     setSelectedAngle(saved.selectedAngle);
@@ -200,6 +220,14 @@ export function AiCampaignWriterSidebar({
     setProviderChoice(saved.provider);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query.data?.state?.updatedAt, campaignId]);
+
+  const targets = useQuery({
+    queryKey: ["ai-writer-targets", campaignId],
+    queryFn: () => targetsFn({ data: { campaignId: campaignId! } }),
+    enabled: Boolean(campaignId) && open,
+  });
+  const targetCampaigns = targets.data?.campaigns ?? [];
+  const selectedTarget = targetCampaigns.find((c) => c.id === targetCampaignId) ?? null;
 
   const connected = query.data?.providers ?? [];
   /** The provider actually used for the next generation. */
@@ -301,7 +329,7 @@ export function AiCampaignWriterSidebar({
   const runSequence = useMutation({
     mutationFn: async (refinement?: string | null) => {
       if (!strategy) throw new Error("Generate the campaign strategy first.");
-      const total = controls.steps;
+      const total = totalSteps(controls);
       const purposes = stepPurposes(total);
       const produced: WriterStep[] = [];
       setProgress({ done: 0, total });
@@ -364,6 +392,99 @@ export function AiCampaignWriterSidebar({
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /** Recreate: a genuinely different version of one step, same brief and settings. */
+  const recreateOne = useMutation({
+    mutationFn: async (index: number) => {
+      if (!strategy) throw new Error("Generate the campaign strategy first.");
+      const current = steps[index];
+      if (!current) throw new Error("That step no longer exists.");
+      const result = await stepFn({
+        data: {
+          campaignId: campaignId!,
+          provider: activeProvider,
+          brief,
+          controls,
+          strategy,
+          index,
+          total: steps.length,
+          purpose: current.purpose || stepPurposes(steps.length)[index]!,
+          previous: steps.slice(0, index),
+          avoid: `Subject: ${current.subject}\n\n${current.body}`,
+        },
+      });
+      if (failed(result)) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (result) => {
+      const next = steps.slice();
+      next[result.index] = result.step;
+      setSteps(next);
+      save.mutate({ steps: next });
+      toast.success("New version written. Use it, or recreate again.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /** Writes the whole generated sequence into the campaign the customer picked. */
+  const addToCampaign = useMutation({
+    mutationFn: async () => {
+      if (!targetCampaignId) throw new Error("Choose a campaign first.");
+      const result = await applySequenceFn({
+        data: {
+          campaignId: campaignId!,
+          targetCampaignId,
+          painPointFallback: strategy?.painPoint ?? brief.painPoint ?? "",
+          steps: steps.map((step, index) => ({
+            subject: step.subject,
+            body: step.body,
+            waitDays: index === 0 ? 0 : step.waitDays,
+          })),
+        },
+      });
+      if (failed(result)) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (result) => {
+      setConfirmTarget(false);
+      toast.success(
+        `Added ${result.steps} email${result.steps > 1 ? "s" : ""} to ${result.campaignName}.` +
+          (result.painPointsPerLead
+            ? ` AI pain points are on: ${result.painPointsPerLead} per lead.`
+            : "") +
+          (result.keptExtraSteps
+            ? ` ${result.keptExtraSteps} later step(s) were kept because they already have mail.`
+            : ""),
+      );
+      if (targetCampaignId === campaignId) void builder.refetch();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /** "Use this version": replaces the copy of one step in the chosen campaign. */
+  const useThisVersion = useMutation({
+    mutationFn: async (index: number) => {
+      if (!targetCampaignId) throw new Error("Choose a campaign first.");
+      const step = steps[index];
+      if (!step) throw new Error("That step no longer exists.");
+      const result = await applyStepFn({
+        data: {
+          campaignId: campaignId!,
+          targetCampaignId,
+          stepOrder: index + 1,
+          painPointFallback: strategy?.painPoint ?? brief.painPoint ?? "",
+          step: { subject: step.subject, body: step.body, waitDays: index === 0 ? 0 : step.waitDays },
+        },
+      });
+      if (failed(result)) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (result) => {
+      toast.success(`Step ${result.stepOrder} updated in ${result.campaignName}.`);
+      if (targetCampaignId === campaignId) void builder.refetch();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const existingContent = useMemo(
     () => builder.steps.some((s) => s.subject.trim() || s.body.trim()),
     [builder.steps],
@@ -394,7 +515,8 @@ export function AiCampaignWriterSidebar({
     runOffer.isPending ||
     runSequence.isPending ||
     runReview.isPending ||
-    regenerateOne.isPending;
+    regenerateOne.isPending ||
+    recreateOne.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -653,18 +775,50 @@ export function AiCampaignWriterSidebar({
                   </div>
                 ) : null}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Sequence length</Label>
+                  <Label className="text-xs text-muted-foreground">Number of follow-ups</Label>
                   <Select
-                    value={String(controls.steps)}
-                    onValueChange={(v) => setControls({ ...controls, steps: Number(v) })}
+                    value={String(controls.followUps)}
+                    onValueChange={(v) =>
+                      setControls({ ...controls, followUps: Number(v), steps: Number(v) + 1 })
+                    }
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {[3, 4, 5, 6, 7].map((n) => (
-                        <SelectItem key={n} value={String(n)}>{n} steps</SelectItem>
+                      {Array.from({ length: MAX_FOLLOW_UPS + 1 }, (_, n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n === 0 ? "No follow-ups" : `${n} follow-up${n > 1 ? "s" : ""}`}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Writes {totalSteps(controls)} email{totalSteps(controls) > 1 ? "s" : ""}: initial
+                    email{controls.followUps ? ` + follow-up 1–${controls.followUps}` : ""}.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Pain points per lead</Label>
+                  <Select
+                    value={String(controls.painPointsPerLead)}
+                    onValueChange={(v) => setControls({ ...controls, painPointsPerLead: Number(v) })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: PAIN_POINT_MAX + 1 }, (_, n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n === 0 ? "Off" : `${n} pain point${n > 1 ? "s" : ""}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    {controls.painPointsPerLead
+                      ? `The AI writes a different pain point for every lead. Use ${Array.from(
+                          { length: controls.painPointsPerLead },
+                          (_, i) => `{{${i === 0 ? "pain_point" : `pain_point_${i + 1}`}}}`,
+                        ).join(", ")} in your copy.`
+                      : "No lead-specific pain points."}
+                  </p>
                 </div>
               </div>
 
@@ -786,17 +940,93 @@ export function AiCampaignWriterSidebar({
                       }}
                       onBlur={() => save.mutate({ steps })}
                     />
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy || !connected.length}
+                        onClick={() => recreateOne.mutate(index)}
+                      >
+                        {recreateOne.isPending && recreateOne.variables === index ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="size-4" />
+                        )}
+                        Recreate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={useThisVersion.isPending || !targetCampaignId}
+                        onClick={() => useThisVersion.mutate(index)}
+                      >
+                        {useThisVersion.isPending && useThisVersion.variables === index ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="size-4" />
+                        )}
+                        Use this version
+                      </Button>
+                      {!targetCampaignId ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          Pick a campaign below first.
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              <Separator className="my-4" />
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Add to an existing campaign</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={targetCampaignId} onValueChange={setTargetCampaignId}>
+                    <SelectTrigger className="h-9 w-[240px] text-xs">
+                      <SelectValue placeholder="Choose a campaign" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {targetCampaigns.map((item) => (
+                        <SelectItem
+                          key={item.id}
+                          value={item.id}
+                          disabled={!item.editable}
+                          className="text-xs"
+                        >
+                          {item.name}
+                          {item.editable ? "" : ` · ${item.status} (pause to edit)`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    disabled={busy || addToCampaign.isPending || !selectedTarget?.editable}
+                    onClick={() => setConfirmTarget(true)}
+                  >
+                    {addToCampaign.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}
+                    Add to campaign
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Writes these emails into the campaign you pick — subject, body, variables and step
+                  order are kept, and no duplicate campaign is created.
+                </p>
               </div>
 
               <Button
                 className="mt-4"
                 size="sm"
+                variant="secondary"
                 disabled={busy}
                 onClick={() => (existingContent ? setConfirmReplace(true) : applyToSequence())}
               >
-                Apply to sequence
+                Apply to this campaign's sequence
               </Button>
             </Card>
           ) : null}
@@ -815,6 +1045,19 @@ export function AiCampaignWriterSidebar({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={applyToSequence}>Replace</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmTarget} onOpenChange={setConfirmTarget}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Add these emails to {selectedTarget?.name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The generated copy replaces the subject and body of that campaign's steps, in order. Any
+            later step that already has mail is left alone.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => addToCampaign.mutate()}>Add copy</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -154,10 +154,16 @@ export async function evaluateLaunchReadiness(
   // AI personalization: only blocks the launch when the campaign actually uses
   // the AI variable AND chose to hold unpersonalized leads back.
   if (campaign.ai_enabled) {
-    const { normalizeAiConfig, usesAiToken } = await import("@/lib/ai-personalization-model");
+    const { normalizeAiConfig, usesAiToken, usesPainPointToken } = await import(
+      "@/lib/ai-personalization-model"
+    );
     const aiConfig = normalizeAiConfig(campaign.ai_config);
     const aiUsed = ((steps ?? []) as Array<Record<string, string>>).some(
-      (step) => usesAiToken(String(step["subject"] ?? "")) || usesAiToken(String(step["body"] ?? "")),
+      (step) =>
+        usesAiToken(String(step["subject"] ?? "")) ||
+        usesAiToken(String(step["body"] ?? "")) ||
+        usesPainPointToken(String(step["subject"] ?? "")) ||
+        usesPainPointToken(String(step["body"] ?? "")),
     );
     if (aiUsed && aiConfig.fallbackMode === "hold") {
       // Counted in the database across the whole audience (attached recipients

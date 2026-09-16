@@ -33,7 +33,8 @@ const SUPPORTED_TOKENS = LEAD_VARIABLES.map((v) => `{{${v.token}}}`);
 const GROUND_RULES = [
   "You write B2B cold outreach for a real sending platform.",
   "Never invent customer results, testimonials, statistics, guarantees, certifications, awards or business claims. If proof was not provided, say proof is missing instead of creating any.",
-  `The only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}. Never invent other variables.`,
+  `The only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}, plus the AI pain point variables {{pain_point}} to {{pain_point_5}}. Never invent other variables.`,
+  "Only use a pain point variable when the campaign was set up to generate pain points per lead.",
   "Use at most one or two variables per email — personalization must feel natural, not stuffed.",
   "Never expose your reasoning. Return only the requested JSON.",
   "No spam words, no fake urgency, no walls of text, no emoji.",
@@ -203,6 +204,8 @@ export async function generateStep(input: {
   purpose: string;
   previous: WriterStep[];
   refinement?: string | null;
+  /** The version being recreated, so the new one is genuinely different. */
+  avoid?: string | null;
 }): Promise<WriterStep> {
   const history = input.previous.length
     ? input.previous
@@ -237,6 +240,23 @@ export async function generateStep(input: {
     "",
     "Earlier steps in this sequence:",
     history,
+    input.controls.painPointsPerLead > 0
+      ? [
+          "",
+          `This campaign generates ${input.controls.painPointsPerLead} pain point(s) per lead, written by AI for each individual business at send time.`,
+          `Use ${Array.from({ length: input.controls.painPointsPerLead }, (_, i) => `{{${i === 0 ? "pain_point" : `pain_point_${i + 1}`}}}`).join(", ")} where a lead-specific pain point belongs, for example: One thing I noticed is {{pain_point}}.`,
+          "Write the sentence so the variable reads naturally in lower case mid-sentence. Do not write a generic pain point in its place, and use at most one pain point variable per email.",
+        ].join("\n")
+      : "",
+    input.avoid
+      ? [
+          "",
+          "You are RECREATING this email. Produce a genuinely different version: a new subject line, a different opening, a different structure and a different argument order. Do not reuse its sentences or swap a few words.",
+          "Keep the same audience, objective, offer, tone, personalization variables and purpose.",
+          "Version to replace:",
+          input.avoid.slice(0, 4000),
+        ].join("\n")
+      : "",
     input.refinement ? `\nAdjustment: ${input.refinement}` : "",
   ]
     .filter(Boolean)

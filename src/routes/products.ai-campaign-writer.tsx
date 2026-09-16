@@ -28,7 +28,7 @@ import { PageFaqs } from "@/components/site/PageFaqs";
 const faqs = [
   {
     q: "What does AI Campaign Writer actually produce?",
-    a: "A campaign strategy — angle, value proposition, main pain point, recommended offer, CTA approach and tone — followed by a complete email sequence of three to seven steps, where each step has its own purpose instead of repeating the first email.",
+    a: "A campaign strategy — angle, value proposition, main pain point, recommended offer, CTA approach and tone — followed by a complete email sequence — you choose how many follow-ups you want, up to nine — where each step has its own purpose instead of repeating the first email.",
   },
   {
     q: "Which AI does it use?",
@@ -41,6 +41,18 @@ const faqs = [
   {
     q: "How is it different from AI Personalization?",
     a: "The campaign writer creates the campaign: the offer messaging, the emails and the sequence. AI Personalization then tailors that campaign for each individual lead using their own data. They work together and stay separate.",
+  },
+  {
+    q: "Can it write the copy straight into a campaign I already have?",
+    a: "Yes. Pick one of your existing campaigns, click Add to campaign, and the subject lines, email bodies, variables and step order are written into it. No duplicate campaign is created, and live campaigns are left alone until you pause them.",
+  },
+  {
+    q: "What is a pain point variable?",
+    a: "Choose how many pain points the AI should write for each lead, then drop {{pain_point}} into your copy. Every lead gets a pain point written from their own business information — never one generic line reused for everybody.",
+  },
+  {
+    q: "What does Recreate do?",
+    a: "It writes a genuinely different version of that email — new subject line, new opening, new structure — while keeping your audience, objective, offer, tone, variables and follow-up count. If you prefer the new version, Use this version puts it straight into the campaign step.",
   },
   {
     q: "Will it overwrite my existing sequence?",
@@ -78,11 +90,11 @@ const howItWorks = [
   },
   {
     title: "Generate the sequence",
-    text: "Choose three to seven steps. Each step is written for its own purpose: open the conversation, add a new angle, answer an objection, then close politely.",
+    text: "Choose exactly how many follow-ups you want. Each email is written for its own purpose: open the conversation, add a new angle, answer an objection, then close politely.",
   },
   {
     title: "Apply to your campaign",
-    text: "Edit anything, rewrite a single step, then apply the result to the sequence in your campaign builder.",
+    text: "Preview every email, edit anything, recreate a single step, then add the sequence to any campaign you already have in one click.",
   },
 ];
 
@@ -122,13 +134,13 @@ const controls = [
   },
   {
     icon: Layers,
-    title: "Sequence length",
-    text: "Three to seven steps, each with a distinct job, so a follow-up adds a new reason to reply instead of nagging.",
+    title: "Follow-up count and pain points",
+    text: "Pick the initial email plus up to nine follow-ups, and how many pain points the AI writes for each individual lead.",
   },
   {
     icon: Sparkles,
-    title: "Rewrite controls",
-    text: "Regenerate, make it more direct, more conversational, more premium, more concise, or try another angle — for one step or the whole campaign.",
+    title: "Recreate and reuse",
+    text: "Recreate any email as a genuinely different version, then use this version to drop it straight into the matching campaign step.",
   },
 ];
 

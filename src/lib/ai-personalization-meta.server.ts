@@ -1,5 +1,7 @@
 import {
   AI_TOKEN,
+  PAIN_POINT_MAX,
+  painPointToken,
   normalizeAiConfig,
   type AiPersonalizationConfig,
   type AiPersonalizationCoverage,
@@ -22,6 +24,7 @@ export function promptFingerprint(config: AiPersonalizationConfig): string {
     i: config.instructions.trim(),
     f: [...config.fields].sort(),
     e: config.exampleOutput.trim(),
+    pp: config.painPointsPerLead,
   });
   let hash = 0x811c9dc5;
   for (let i = 0; i < payload.length; i += 1) {
@@ -31,15 +34,41 @@ export function promptFingerprint(config: AiPersonalizationConfig): string {
   return hash.toString(16).padStart(8, "0");
 }
 
+/** What one lead's stored AI output looks like: the opener plus its own pain points. */
+export type PersonalizationDetail = { content: string | null; painPoints: string[] };
+
+/**
+ * Pain point tokens for ONE lead. Each slot uses that lead's own generated pain
+ * point; a lead without one falls back to the campaign's fallback line (or the
+ * token is removed when there is none), so no email ever ships `{{pain_point}}`.
+ */
+function painPointExtras(
+  config: AiPersonalizationConfig,
+  painPoints: string[],
+): Record<string, string> {
+  const extras: Record<string, string> = {};
+  const slots = Math.max(config.painPointsPerLead, painPoints.length);
+  for (let i = 0; i < Math.min(PAIN_POINT_MAX, slots); i += 1) {
+    extras[painPointToken(i + 1)] = (painPoints[i] ?? config.painPointFallback ?? "").trim();
+  }
+  return extras;
+}
+
 export function aiExtras(
   config: AiPersonalizationConfig,
-  content: string | null,
+  stored: string | PersonalizationDetail | null,
 ): { extras: Record<string, string>; hold: boolean } {
-  if (content?.trim()) return { extras: { [AI_TOKEN]: content.trim() }, hold: false };
+  const detail: PersonalizationDetail =
+    typeof stored === "string" || stored === null || stored === undefined
+      ? { content: (stored as string | null) ?? null, painPoints: [] }
+      : stored;
+  const pain = painPointExtras(config, detail.painPoints);
+  if (detail.content?.trim())
+    return { extras: { [AI_TOKEN]: detail.content.trim(), ...pain }, hold: false };
   const mode: FallbackMode = config.fallbackMode;
   if (mode === "hold") return { extras: {}, hold: true };
-  if (mode === "skip") return { extras: { [AI_TOKEN]: "" }, hold: false };
-  return { extras: { [AI_TOKEN]: config.fallbackText.trim() }, hold: false };
+  if (mode === "skip") return { extras: { [AI_TOKEN]: "", ...pain }, hold: false };
+  return { extras: { [AI_TOKEN]: config.fallbackText.trim(), ...pain }, hold: false };
 }
 
 export async function campaignAiSettings(
@@ -59,8 +88,8 @@ export async function personalizationByLead(
   supabase: Client,
   campaignId: string,
   leadIds: string[],
-): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
+): Promise<Map<string, PersonalizationDetail>> {
+  const out = new Map<string, PersonalizationDetail>();
   if (!leadIds.length) return out;
   const { data: campaign } = await supabase
     .from("campaigns")
@@ -71,13 +100,21 @@ export async function personalizationByLead(
   for (let i = 0; i < leadIds.length; i += 300) {
     const { data } = await supabase
       .from("ai_personalizations")
-      .select("lead_id, content, status")
+      .select("lead_id, content, status, pain_points")
       .eq("campaign_id", campaignId)
       .eq("workspace_id", campaign.workspace_id)
       .eq("status", "completed")
       .in("lead_id", leadIds.slice(i, i + 300));
-    for (const row of (data ?? []) as Array<{ lead_id: string; content: string | null }>) {
-      if (row.content?.trim()) out.set(row.lead_id, row.content.trim());
+    for (const row of (data ?? []) as Array<{
+      lead_id: string;
+      content: string | null;
+      pain_points: unknown;
+    }>) {
+      const painPoints = Array.isArray(row.pain_points)
+        ? (row.pain_points as unknown[]).filter((v): v is string => typeof v === "string")
+        : [];
+      if (row.content?.trim() || painPoints.length)
+        out.set(row.lead_id, { content: row.content?.trim() ?? null, painPoints });
     }
   }
   return out;

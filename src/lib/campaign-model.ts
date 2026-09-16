@@ -233,6 +233,19 @@ export type VariableDef = { token: string; label: string };
 /** The AI-generated snippet token. Resolved from stored personalization, never lead data. */
 export const AI_VARIABLE_TOKEN = "ai_personalization";
 
+/** How many AI pain points a campaign can generate per lead. */
+export const PAIN_POINT_MAX = 5;
+
+/** `{{pain_point}}`, `{{pain_point_2}}` … — filled per lead from stored AI output. */
+export function painPointToken(position: number): string {
+  return position <= 1 ? "pain_point" : `pain_point_${position}`;
+}
+
+export const PAIN_POINT_TOKENS: string[] = Array.from({ length: PAIN_POINT_MAX }, (_, i) =>
+  painPointToken(i + 1),
+);
+
+
 /** The single source of truth for built-in personalization variables. */
 export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }> = [
   {
@@ -265,8 +278,15 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
   },
   {
     group: "AI",
-    variables: [{ token: AI_VARIABLE_TOKEN, label: "AI personalization" }],
+    variables: [
+      { token: AI_VARIABLE_TOKEN, label: "AI personalization" },
+      ...PAIN_POINT_TOKENS.map((token, index) => ({
+        token,
+        label: index === 0 ? "AI pain point" : `AI pain point ${index + 1}`,
+      })),
+    ],
   },
+
 ];
 
 export const LEAD_VARIABLES: VariableDef[] = VARIABLE_GROUPS.flatMap((g) => g.variables);
@@ -284,7 +304,14 @@ const VARIABLE_ALIASES: Record<string, string> = {
 };
 
 /** Tokens the sending system fills in itself. */
-export const SYSTEM_VARIABLES = new Set(["unsubscribe_link", "sender_name", "sender_email"]);
+export const SYSTEM_VARIABLES = new Set([
+  "unsubscribe_link",
+  "sender_name",
+  "sender_email",
+  AI_VARIABLE_TOKEN,
+  ...PAIN_POINT_TOKENS,
+]);
+
 
 export type SenderLike = {
   from_name?: string | null;

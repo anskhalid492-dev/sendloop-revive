@@ -12,6 +12,8 @@ import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import { aiProvider } from "@/lib/ai-providers";
 import {
   AI_TOKEN,
+  PAIN_POINT_MAX,
+  painPointToken,
   frameworkGuidance,
   normalizeAiConfig,
   type AiPersonalizationConfig,
@@ -287,6 +289,14 @@ export function buildPrompt(
     "",
     'Reply with JSON only, in this exact shape: {"personalization": string, "confidence": "high" | "medium" | "low", "data_used": string[]}',
     '"data_used" lists the fact labels you actually used. "personalization" must never be empty.',
+    ...(config.painPointsPerLead > 0
+      ? [
+          "",
+          `Also add "pain_points": an array of exactly ${config.painPointsPerLead} short phrases naming pain points THIS specific business plausibly has, based only on the facts provided.`,
+          'Each pain point is one clause that can be dropped straight into a sentence such as "One thing I noticed is <pain point>." — lower case, no leading "that", no full stop, at most 20 words.',
+          "Never invent internal details, numbers or events. Keep each pain point clearly different from the others.",
+        ]
+      : []),
   ].join("\n");
 
 
@@ -313,6 +323,7 @@ function parseStructured(raw: string): {
   personalization: string;
   confidence: string;
   dataUsed: string[];
+  painPoints: string[];
 } | null {
   const text = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const start = text.indexOf("{");
@@ -327,7 +338,15 @@ function parseStructured(raw: string): {
     const dataUsed = Array.isArray(parsed["data_used"])
       ? (parsed["data_used"] as unknown[]).filter((v): v is string => typeof v === "string").slice(0, 12)
       : [];
-    return { personalization, confidence, dataUsed };
+    const painPoints = Array.isArray(parsed["pain_points"])
+      ? (parsed["pain_points"] as unknown[])
+          .filter((v): v is string => typeof v === "string")
+          .map((v) => v.replace(/^["'`\s]+|["'`\s.]+$/g, "").replace(/\s+/g, " ").trim())
+          .filter((v) => v && !/\{\{|\[\[/.test(v))
+          .map((v) => v.slice(0, 200))
+          .slice(0, PAIN_POINT_MAX)
+      : [];
+    return { personalization, confidence, dataUsed, painPoints };
   } catch {
     return null;
   }
@@ -424,6 +443,8 @@ export type GenerationResult = {
   model: string;
   quality: PersonalizationQuality;
   dataUsed: string[];
+  /** One pain point per requested slot, written for THIS lead only. */
+  painPoints: string[];
 };
 
 /**
@@ -445,6 +466,7 @@ export async function generatePersonalization(
     model: credentials.model,
     quality: "fallback" as const,
     dataUsed: [],
+    painPoints: [],
   });
 
   // Nothing verified to work from — return the neutral line instead of failing.
@@ -497,7 +519,8 @@ export async function generatePersonalization(
   const quality: PersonalizationQuality =
     structured?.confidence === "low" || facts.length <= 1 ? "limited" : "complete";
 
-  return { content: cleaned.slice(0, 600), model: credentials.model, quality, dataUsed };
+  const painPoints = (structured?.painPoints ?? []).slice(0, config.painPointsPerLead);
+  return { content: cleaned.slice(0, 600), model: credentials.model, quality, dataUsed, painPoints };
 }
 
 
@@ -758,7 +781,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       }
 
       try {
-        const { content, model, quality, dataUsed } = await generatePersonalization(
+        const { content, model, quality, dataUsed, painPoints } = await generatePersonalization(
           settings.config,
           lead,
           credentials,
@@ -775,6 +798,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
             model,
             quality,
             data_used: dataUsed,
+            pain_points: painPoints,
             error: null,
             locked_by: null,
             locked_until: null,
@@ -849,11 +873,23 @@ export async function resolveAiTokenAtSend(
   config: AiPersonalizationConfig,
 ): Promise<{ text: string; hold: boolean }> {
   const token = new RegExp(`\\{\\{\\s*${AI_TOKEN}\\s*(\\|[^}]*)?\\}\\}`, "g");
-  if (!token.test(text)) return { text, hold: false };
-  const content = leadId
+  const painToken = /\{\{\s*pain_point(?:_([1-5]))?\s*(?:\|[^}]*)?\}\}/gi;
+  const usesAi = token.test(text);
+  const usesPain = painToken.test(text);
+  token.lastIndex = 0;
+  painToken.lastIndex = 0;
+  if (!usesAi && !usesPain) return { text, hold: false };
+  const stored = leadId
     ? (await personalizationByLead(supabase, campaignId, [leadId])).get(leadId) ?? null
     : null;
-  const { extras, hold } = aiExtras(config, content);
+  const { extras, hold } = aiExtras(config, stored);
   if (hold) return { text, hold: true };
-  return { text: text.replace(token, extras[AI_TOKEN] ?? ""), hold: false };
+  let out = usesAi ? text.replace(token, extras[AI_TOKEN] ?? "") : text;
+  if (usesPain) {
+    out = out.replace(painToken, (_match, slot: string | undefined) => {
+      const key = painPointToken(slot ? Number(slot) : 1);
+      return extras[key] ?? config.painPointFallback ?? "";
+    });
+  }
+  return { text: out, hold: false };
 }
