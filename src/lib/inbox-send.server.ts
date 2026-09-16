@@ -181,8 +181,12 @@ export async function sendReplyThroughMailbox(args: {
     "@/lib/mail-attachments"
   );
   assertAttachmentsWithinLimit(args.attachments);
-  // File bytes are never persisted: only the name, type and size are archived.
-  const archivedReplyAttachments = archivedAttachments(args.attachments);
+  // Same as Compose: a private copy is kept so the file stays downloadable.
+  const { storeOutboundAttachments } = await import("@/lib/mail-attachment-store.server");
+  const archivedReplyAttachments = await storeOutboundAttachments(supabaseAdmin, {
+    workspaceId: conversation.workspace_id as string,
+    attachments: args.attachments,
+  });
 
   const replyHeaders = mergeEmailHeaders({
     ...(replyTo ? { "Reply-To": replyTo } : {}),
