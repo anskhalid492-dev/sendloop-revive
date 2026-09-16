@@ -15,6 +15,7 @@ import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display"
 import {
   clickRatePercent,
   openRatePercent,
+  reachable,
   replyRatePercent,
   unsubscribeRatePercent,
 } from "@/lib/engagement-rates";
