@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,7 +17,7 @@ import {
 import { AppShell } from "@/components/app/AppShell";
 import { SetupJourney } from "@/components/app/SetupJourney";
 import { getSetupProgress } from "@/lib/setup-progress.functions";
-import { countCompleted } from "@/lib/setup-journey";
+import { countCompleted, REQUIRED_SETUP_STEPS } from "@/lib/setup-journey";
 import { KpiBoard } from "@/components/dashboard/command/KpiBoard";
 import { ActivityChart } from "@/components/dashboard/command/ActivityChart";
 import { CampaignTable } from "@/components/dashboard/command/CampaignTable";
@@ -122,14 +122,35 @@ function DashboardPage() {
     queryFn: () => fetchSetup({ data: { workspaceId: workspaceId as string } }),
   });
 
+  // "Dismiss" is a stored decision, not UI state: the flag lives on the
+  // workspace row, so the card stays gone after a reload, a new session or on
+  // another device. `dismissedLocally` only hides it instantly while the write
+  // is in flight.
+  const [dismissedLocally, setDismissedLocally] = useState(false);
   const dismissMutation = useMutation({
     mutationFn: dismiss,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
+    onError: () => setDismissedLocally(false),
   });
 
-  const setupComplete = setupProgress.data ? countCompleted(setupProgress.data) === 7 : false;
-  const showChecklist =
-    !(workspace as { checklist_dismissed?: boolean } | null)?.checklist_dismissed && !setupComplete;
+  const setupComplete = setupProgress.data
+    ? countCompleted(setupProgress.data) === REQUIRED_SETUP_STEPS.length
+    : false;
+  const alreadyDismissed = Boolean(workspace?.checklist_dismissed);
+
+  // Finishing every step is itself a decision: the card retires for good rather
+  // than reappearing on each visit with nothing left to do.
+  const autoDismissed = useRef<string | null>(null);
+  useEffect(() => {
+    if (!workspaceId || !setupComplete || alreadyDismissed) return;
+    if (autoDismissed.current === workspaceId) return;
+    autoDismissed.current = workspaceId;
+    dismissMutation.mutate({ data: { workspaceId } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, setupComplete, alreadyDismissed]);
+
+  const showChecklist = !alreadyDismissed && !dismissedLocally && !setupComplete;
+
 
   const firstName = profile.data?.full_name?.split(" ")[0];
   const data = command.data ?? null;
@@ -226,7 +247,12 @@ function DashboardPage() {
                 progress={setupProgress.data}
                 loading={setupProgress.isLoading}
                 variant="compact"
-                onDismiss={() => workspaceId && dismissMutation.mutate({ data: { workspaceId } })}
+                onDismiss={() => {
+                  if (!workspaceId) return;
+                  setDismissedLocally(true);
+                  dismissMutation.mutate({ data: { workspaceId } });
+                }}
+
               />
             </motion.div>
           ) : null}

@@ -10,6 +10,8 @@ export type Workspace = {
   owner_id: string;
   created_at: string;
   outreach_type: string | null;
+  /** True once someone dismissed the guided-setup card for this workspace. */
+  checklist_dismissed: boolean;
   role: string;
 };
 
@@ -20,9 +22,12 @@ export const getMyWorkspaces = createServerFn({ method: "GET" })
     // every workspace in their customer dashboard).
     const { data, error } = await context.supabase
       .from("workspaces")
-      .select("id, name, slug, owner_id, created_at, outreach_type, workspace_members!inner(role, user_id)")
+      .select(
+        "id, name, slug, owner_id, created_at, outreach_type, checklist_dismissed, workspace_members!inner(role, user_id)",
+      )
       .eq("workspace_members.user_id", context.userId)
       .order("created_at", { ascending: true });
+
     if (error) throw new Error(error.message);
     return (data ?? []).map((w) => {
       const { workspace_members, ...rest } = w as typeof w & {
