@@ -99,6 +99,8 @@ async function generateWithAnthropic(input: {
   model: string;
   system: string;
   prompt: string;
+  maxTokens?: number;
+  temperature?: number;
 }): Promise<string> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
