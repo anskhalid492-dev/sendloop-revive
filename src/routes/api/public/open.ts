@@ -15,7 +15,11 @@ import { openPixelHeaders, parseOpenToken, transparentGifBytes } from "@/lib/ope
 
 function pixel(): Response {
   const bytes = transparentGifBytes();
-  return new Response(bytes, { status: 200, headers: openPixelHeaders(bytes.byteLength) });
+  const body = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
+  return new Response(body, { status: 200, headers: openPixelHeaders(bytes.byteLength) });
 }
 
 function clientIp(request: Request): string | null {

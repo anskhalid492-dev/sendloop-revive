@@ -160,6 +160,7 @@ import { Route as AuthenticatedMranuskhalidUsersRouteImport } from './routes/_au
 import { Route as AuthenticatedMranuskhalidWarmupRouteImport } from './routes/_authenticated/mranuskhalid/warmup'
 import { Route as AuthenticatedMranuskhalidWebhooksRouteImport } from './routes/_authenticated/mranuskhalid/webhooks'
 import { Route as AuthenticatedMranuskhalidWorkspacesRouteImport } from './routes/_authenticated/mranuskhalid/workspaces'
+import { Route as ApiPublicOpenRouteImport } from './routes/api/public/open'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as BlogAuthorSlugRouteImport } from './routes/blog.author.$slug'
 import { Route as BlogCategorySlugRouteImport } from './routes/blog.category.$slug'
@@ -1047,6 +1048,11 @@ const AuthenticatedMranuskhalidWorkspacesRoute =
     path: '/workspaces',
     getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
   } as any)
+const ApiPublicOpenRoute = ApiPublicOpenRouteImport.update({
+  id: '/api/public/open',
+  path: '/api/public/open',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
   id: '/api/public/unsubscribe',
   path: '/api/public/unsubscribe',
@@ -1540,6 +1546,7 @@ export interface FileRoutesByFullPath {
   '/mranuskhalid/warmup': typeof AuthenticatedMranuskhalidWarmupRoute
   '/mranuskhalid/webhooks': typeof AuthenticatedMranuskhalidWebhooksRoute
   '/mranuskhalid/workspaces': typeof AuthenticatedMranuskhalidWorkspacesRoute
+  '/api/public/open': typeof ApiPublicOpenRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
@@ -1749,6 +1756,7 @@ export interface FileRoutesByTo {
   '/mranuskhalid/warmup': typeof AuthenticatedMranuskhalidWarmupRoute
   '/mranuskhalid/webhooks': typeof AuthenticatedMranuskhalidWebhooksRoute
   '/mranuskhalid/workspaces': typeof AuthenticatedMranuskhalidWorkspacesRoute
+  '/api/public/open': typeof ApiPublicOpenRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
@@ -1963,6 +1971,7 @@ export interface FileRoutesById {
   '/_authenticated/mranuskhalid/warmup': typeof AuthenticatedMranuskhalidWarmupRoute
   '/_authenticated/mranuskhalid/webhooks': typeof AuthenticatedMranuskhalidWebhooksRoute
   '/_authenticated/mranuskhalid/workspaces': typeof AuthenticatedMranuskhalidWorkspacesRoute
+  '/api/public/open': typeof ApiPublicOpenRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/blog/author/$slug': typeof BlogAuthorSlugRoute
   '/blog/category/$slug': typeof BlogCategorySlugRoute
@@ -2177,6 +2186,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/warmup'
     | '/mranuskhalid/webhooks'
     | '/mranuskhalid/workspaces'
+    | '/api/public/open'
     | '/api/public/unsubscribe'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
@@ -2386,6 +2396,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/warmup'
     | '/mranuskhalid/webhooks'
     | '/mranuskhalid/workspaces'
+    | '/api/public/open'
     | '/api/public/unsubscribe'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
@@ -2599,6 +2610,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mranuskhalid/warmup'
     | '/_authenticated/mranuskhalid/webhooks'
     | '/_authenticated/mranuskhalid/workspaces'
+    | '/api/public/open'
     | '/api/public/unsubscribe'
     | '/blog/author/$slug'
     | '/blog/category/$slug'
@@ -2735,6 +2747,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
   SolutionsIndexRoute: typeof SolutionsIndexRoute
+  ApiPublicOpenRoute: typeof ApiPublicOpenRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
@@ -3832,6 +3845,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMranuskhalidWorkspacesRouteImport
       parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
     }
+    '/api/public/open': {
+      id: '/api/public/open'
+      path: '/api/public/open'
+      fullPath: '/api/public/open'
+      preLoaderRoute: typeof ApiPublicOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/unsubscribe': {
       id: '/api/public/unsubscribe'
       path: '/api/public/unsubscribe'
@@ -4747,6 +4767,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   IntegrationsIndexRoute: IntegrationsIndexRoute,
   SolutionsIndexRoute: SolutionsIndexRoute,
+  ApiPublicOpenRoute: ApiPublicOpenRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
