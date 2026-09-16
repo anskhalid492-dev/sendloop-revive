@@ -175,6 +175,8 @@ export function AiCampaignWriterSidebar({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [providerUsed, setProviderUsed] = useState<string | null>(null);
+  /** Which connected AI the customer picked for this campaign (null = first connected). */
+  const [providerChoice, setProviderChoice] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["ai-writer", campaignId],
@@ -195,10 +197,17 @@ export function AiCampaignWriterSidebar({
     setSteps(saved.steps);
     setReview(saved.review);
     setProviderUsed(saved.provider);
+    setProviderChoice(saved.provider);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query.data?.state?.updatedAt, campaignId]);
 
   const connected = query.data?.providers ?? [];
+  /** The provider actually used for the next generation. */
+  const activeProvider =
+    (providerChoice === "openai" || providerChoice === "anthropic" ? providerChoice : null) ??
+    (connected[0]?.provider === "openai" || connected[0]?.provider === "anthropic"
+      ? (connected[0]!.provider as "openai" | "anthropic")
+      : null);
 
   const save = useMutation({
     mutationFn: async (patch: Partial<WriterState>) => {
@@ -226,6 +235,7 @@ export function AiCampaignWriterSidebar({
       const result = await strategyFn({
         data: {
           campaignId: campaignId!,
+          provider: activeProvider,
           brief,
           controls,
           angle: selectedAngle,
@@ -245,7 +255,7 @@ export function AiCampaignWriterSidebar({
 
   const runAngles = useMutation({
     mutationFn: async () => {
-      const result = await anglesFn({ data: { campaignId: campaignId!, brief, controls } });
+      const result = await anglesFn({ data: { campaignId: campaignId!, provider: activeProvider, brief, controls } });
       if (failed(result)) throw new Error(result.message);
       return result;
     },
@@ -259,7 +269,7 @@ export function AiCampaignWriterSidebar({
 
   const runOffer = useMutation({
     mutationFn: async () => {
-      const result = await offerFn({ data: { campaignId: campaignId!, brief, controls } });
+      const result = await offerFn({ data: { campaignId: campaignId!, provider: activeProvider, brief, controls } });
       if (failed(result)) throw new Error(result.message);
       return result;
     },
@@ -275,7 +285,7 @@ export function AiCampaignWriterSidebar({
     mutationFn: async () => {
       if (!strategy || !steps.length) throw new Error("Generate the campaign first.");
       const result = await reviewFn({
-        data: { campaignId: campaignId!, brief, strategy, steps },
+        data: { campaignId: campaignId!, provider: activeProvider, brief, strategy, steps },
       });
       if (failed(result)) throw new Error(result.message);
       return result;
@@ -299,6 +309,7 @@ export function AiCampaignWriterSidebar({
         const result = await stepFn({
           data: {
             campaignId: campaignId!,
+            provider: activeProvider,
             brief,
             controls,
             strategy,
@@ -401,12 +412,36 @@ export function AiCampaignWriterSidebar({
 
         <div className="mt-4 space-y-4 pb-10">
           {connected.length ? (
-            <p className="text-xs text-muted-foreground">
-              Using your connected AI:{" "}
-              <span className="font-medium text-foreground">
-                {aiProviderLabel(providerUsed ?? connected[0]?.provider)}
-              </span>
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>Generate with</span>
+              {connected.length > 1 ? (
+                <Select
+                  value={activeProvider ?? ""}
+                  onValueChange={(value) => {
+                    setProviderChoice(value);
+                    save.mutate({ provider: value });
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-[190px] text-xs">
+                    <SelectValue placeholder="Choose AI provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {connected.map((item) => (
+                      <SelectItem key={item.provider} value={item.provider} className="text-xs">
+                        {aiProviderLabel(item.provider)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="font-medium text-foreground">
+                  {aiProviderLabel(activeProvider ?? connected[0]?.provider)}
+                </span>
+              )}
+              {providerUsed && providerUsed !== activeProvider ? (
+                <span>· last generated with {aiProviderLabel(providerUsed)}</span>
+              ) : null}
+            </div>
           ) : (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
               Connect an AI provider key (OpenAI or Claude) in the AI settings to use the campaign

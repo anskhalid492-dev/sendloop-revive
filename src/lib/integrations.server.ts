@@ -223,8 +223,92 @@ async function deliverToWebhook(
     signal: AbortSignal.timeout(10_000),
   });
   if (res.ok) return { ok: true, message: "Delivered." };
-  const text = (await res.text()).slice(0, 200);
-  return { ok: false, message: `Destination responded ${res.status}: ${text}` };
+  return { ok: false, message: `Destination responded ${res.status}: ${describeBody(await res.text())}` };
+}
+
+/**
+ * Turns a destination's response body into one readable line.
+ *
+ * Some destinations answer with a whole HTML page instead of an API error — a
+ * Google Apps Script whose deployment needs re-authorising answers with the
+ * Google sign-in page, for example. Storing 200 characters of markup told the
+ * customer nothing, so HTML is summarised instead of pasted.
+ */
+export function describeBody(body: string): string {
+  const text = (body ?? "").trim();
+  if (!text) return "no response body.";
+  if (/^<(!doctype|html)/i.test(text) || /<html[\s>]/i.test(text.slice(0, 400))) {
+    const title = /<title[^>]*>([^<]{1,120})<\/title>/i.exec(text)?.[1]?.trim();
+    return title
+      ? `the destination returned a web page ("${title}") instead of an API response, which usually means the link now needs signing in again.`
+      : "the destination returned a web page instead of an API response, which usually means the link now needs signing in again.";
+  }
+  return text.replace(/\s+/g, " ").slice(0, 200);
+}
+
+/**
+ * Retry policy for outbound destinations.
+ *
+ * A failing destination used to be hit again on the very next event, which for a
+ * busy workspace meant several attempts a second — enough to make a provider's
+ * own queue overflow. Instead each consecutive failure puts the connection in a
+ * cooldown of 1 minute, then 5, then 30; if it still fails after that the
+ * connection is marked as needing attention and nothing more is sent to it until
+ * the customer reconnects or retests it.
+ */
+const RETRY_COOLDOWNS_MS = [60_000, 5 * 60_000, 30 * 60_000];
+
+type DeliveryHealth = { failures: number; retryAfter: string | null; needsAttention: boolean };
+
+export function readDeliveryHealth(config: Record<string, unknown> | null): DeliveryHealth {
+  const raw = (config?.["delivery_health"] ?? null) as Record<string, unknown> | null;
+  const failures = Number(raw?.["failures"] ?? 0);
+  return {
+    failures: Number.isFinite(failures) && failures > 0 ? Math.floor(failures) : 0,
+    retryAfter: typeof raw?.["retry_after"] === "string" ? (raw["retry_after"] as string) : null,
+    needsAttention: raw?.["needs_attention"] === true,
+  };
+}
+
+/** What should happen with this delivery right now. */
+export function deliveryGate(
+  health: DeliveryHealth,
+  now = Date.now(),
+): { send: true } | { send: false; message: string } {
+  if (health.needsAttention) {
+    return {
+      send: false,
+      message:
+        "Delivery is paused after repeated failures. Fix the destination, then reconnect or test this integration to resume.",
+    };
+  }
+  if (health.retryAfter) {
+    const due = Date.parse(health.retryAfter);
+    if (Number.isFinite(due) && due > now) {
+      const minutes = Math.max(1, Math.round((due - now) / 60_000));
+      return {
+        send: false,
+        message: `Skipped while the destination is in a ${minutes}-minute cooldown after an earlier failure.`,
+      };
+    }
+  }
+  return { send: true };
+}
+
+/** The health record to store after an attempt. */
+export function nextDeliveryHealth(
+  health: DeliveryHealth,
+  succeeded: boolean,
+  now = Date.now(),
+): DeliveryHealth {
+  if (succeeded) return { failures: 0, retryAfter: null, needsAttention: false };
+  const failures = health.failures + 1;
+  const cooldown = RETRY_COOLDOWNS_MS[failures - 1];
+  return {
+    failures,
+    retryAfter: cooldown ? new Date(now + cooldown).toISOString() : null,
+    needsAttention: cooldown === undefined,
+  };
 }
 
 function slackText(payload: Record<string, unknown>) {
@@ -308,10 +392,33 @@ export async function deliverEvent(
   eventType: string,
   payload: Record<string, unknown>,
   idempotencyKey?: string,
+  /** A customer-initiated test or retry ignores the cooldown — it is how they resume. */
+  options?: { force?: boolean },
 ): Promise<{ ok: boolean; message: string }> {
   const credentials = await loadCredentials(connection.id);
   if (!credentials) {
     return { ok: false, message: "Stored credentials could not be read. Reconnect the integration." };
+  }
+
+  // A destination that just failed is left alone until its cooldown lapses, so a
+  // burst of events can never turn into a burst of retries.
+  const health = options?.force
+    ? { failures: 0, retryAfter: null, needsAttention: false }
+    : readDeliveryHealth(connection.config);
+  const gate = deliveryGate(health);
+  if (!gate.send) {
+    await supabaseAdmin.from("integration_events").insert({
+      workspace_id: connection.workspace_id,
+      connection_id: connection.id,
+      slug: connection.slug,
+      direction: "outbound",
+      event_type: eventType,
+      status: "skipped",
+      message: gate.message,
+      payload: payload as never,
+      idempotency_key: idempotencyKey ?? null,
+    });
+    return { ok: false, message: gate.message };
   }
 
   let result: { ok: boolean; message: string };
@@ -336,12 +443,25 @@ export async function deliverEvent(
     idempotency_key: idempotencyKey ?? null,
   });
 
+  const nextHealth = nextDeliveryHealth(health, result.ok);
   await supabaseAdmin
     .from("integration_connections")
     .update({
       last_event_at: new Date().toISOString(),
       status: result.ok ? "connected" : "error",
-      error_message: result.ok ? null : result.message,
+      error_message: result.ok
+        ? null
+        : nextHealth.needsAttention
+          ? `${result.message} Delivery is paused until you reconnect or test this integration.`
+          : result.message,
+      config: {
+        ...(connection.config ?? {}),
+        delivery_health: {
+          failures: nextHealth.failures,
+          retry_after: nextHealth.retryAfter,
+          needs_attention: nextHealth.needsAttention,
+        },
+      } as never,
     })
     .eq("id", connection.id);
 

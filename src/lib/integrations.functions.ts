@@ -274,6 +274,7 @@ export const testIntegration = createServerFn({ method: "POST" })
         timestamp: new Date().toISOString(),
       },
       `test:${crypto.randomUUID()}`,
+      { force: true },
     );
 
     await supabaseAdmin.from("integration_sync_logs").insert({
@@ -367,5 +368,6 @@ export const retryIntegrationEvent = createServerFn({ method: "POST" })
       row.event_type,
       (row.payload ?? {}) as Record<string, unknown>,
       `retry:${crypto.randomUUID()}`,
+      { force: true },
     );
   });

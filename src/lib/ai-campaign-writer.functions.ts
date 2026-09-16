@@ -26,9 +26,13 @@ const campaignInput = z.object({ campaignId: z.string().uuid() });
 
 type Failure = { ok: false; message: string; status: number };
 
+const providerInput = z.enum(["openai", "anthropic"]).nullish();
+
 const generationInput = campaignInput.extend({
   brief: briefSchema,
   controls: controlsSchema,
+  /** Which connected AI provider to generate with; falls back to the campaign's saved choice. */
+  provider: providerInput,
 });
 
 /**
@@ -165,7 +169,7 @@ export const generateCampaignStrategy = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const ctx = await writerContext(context.supabase as never, data.campaignId);
+    const ctx = await writerContext(context.supabase as never, data.campaignId, data.provider ?? null);
     if ("failure" in ctx) return ctx.failure;
     const { generateStrategy } = await import("@/lib/ai-campaign-writer.server");
     return guard(ctx.workspaceId, async () => ({
@@ -185,7 +189,7 @@ export const generateCampaignAngles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => generationInput.parse(input))
   .handler(async ({ data, context }) => {
-    const ctx = await writerContext(context.supabase as never, data.campaignId);
+    const ctx = await writerContext(context.supabase as never, data.campaignId, data.provider ?? null);
     if ("failure" in ctx) return ctx.failure;
     const { generateAngles } = await import("@/lib/ai-campaign-writer.server");
     return guard(ctx.workspaceId, async () => ({
@@ -199,7 +203,7 @@ export const improveCampaignOffer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => generationInput.parse(input))
   .handler(async ({ data, context }) => {
-    const ctx = await writerContext(context.supabase as never, data.campaignId);
+    const ctx = await writerContext(context.supabase as never, data.campaignId, data.provider ?? null);
     if ("failure" in ctx) return ctx.failure;
     const { improveOffer } = await import("@/lib/ai-campaign-writer.server");
     return guard(ctx.workspaceId, async () => ({
@@ -224,7 +228,7 @@ export const generateCampaignStep = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const ctx = await writerContext(context.supabase as never, data.campaignId);
+    const ctx = await writerContext(context.supabase as never, data.campaignId, data.provider ?? null);
     if ("failure" in ctx) return ctx.failure;
     const { generateStep } = await import("@/lib/ai-campaign-writer.server");
     return guard(ctx.workspaceId, async () => ({
@@ -253,11 +257,12 @@ export const reviewCampaignDraft = createServerFn({ method: "POST" })
         brief: briefSchema,
         strategy: strategySchema,
         steps: z.array(writerStepSchema).min(1).max(7),
+        provider: providerInput,
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const ctx = await writerContext(context.supabase as never, data.campaignId);
+    const ctx = await writerContext(context.supabase as never, data.campaignId, data.provider ?? null);
     if ("failure" in ctx) return ctx.failure;
     const { reviewCampaign } = await import("@/lib/ai-campaign-writer.server");
     return guard(ctx.workspaceId, async () => ({
