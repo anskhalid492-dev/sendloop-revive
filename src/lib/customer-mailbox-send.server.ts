@@ -27,9 +27,15 @@ type MailboxRow = {
   smtp_username: string | null;
   smtp_password: string | null;
   status: string | null;
+  is_active?: boolean | null;
 };
 
-/** Loads the connected mailbox for this sender address, or null when there is none. */
+/**
+ * Loads the USABLE mailbox for this sender address, or null when there is none.
+ * Usable means both `status = 'connected'` and `is_active = true` — a paused
+ * mailbox is treated exactly like no connected mailbox at all. See
+ * `@/lib/mailbox-active.server` for the customer-facing paused wording.
+ */
 export async function findCustomerMailbox(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
@@ -42,7 +48,7 @@ export async function findCustomerMailbox(
   const { data, error } = await admin
     .from("mailboxes")
     .select(
-      "id, email_address, display_name, smtp_host, smtp_port, smtp_secure, smtp_username, smtp_password, status",
+      "id, email_address, display_name, smtp_host, smtp_port, smtp_secure, smtp_username, smtp_password, status, is_active",
     )
     .eq("workspace_id", workspaceId)
     .eq("email_address", email)
@@ -52,6 +58,8 @@ export async function findCustomerMailbox(
   const row = (data as MailboxRow | null) ?? null;
   if (!row) return null;
   if (row.status !== "connected") return null;
+  // The customer's own pause switch. Never fall back to anything else.
+  if (row.is_active === false) return null;
   if (!row.smtp_host || !row.smtp_port || !row.smtp_username || !row.smtp_password) return null;
   return row;
 }
