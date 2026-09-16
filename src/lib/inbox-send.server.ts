@@ -199,6 +199,25 @@ export async function sendReplyThroughMailbox(args: {
       : {}),
   });
 
+  // The stored row's id is minted here so the open-tracking pixel can point at
+  // this exact reply before it is sent.
+  const { randomUUID } = await import("crypto");
+  const outboundRowId = randomUUID();
+  const { campaignBodyHtml } = await import("@/lib/email-html");
+  const { injectOpenPixel, openPixelUrl } = await import("@/lib/open-tracking");
+  // Same shared injection step as campaign dispatch and Compose.
+  const replyHtml = injectOpenPixel(
+    campaignBodyHtml(body),
+    openPixelUrl({
+      workspaceId: conversation.workspace_id as string,
+      messageKind: "conversation",
+      messageId: outboundRowId,
+      campaignId: (conversation.campaign_id as string | null) ?? null,
+      leadId: (conversation.lead_id as string | null) ?? null,
+      email: conversation.prospect_email as string,
+    }),
+  );
+
   // ONE message: the prospect on To, any Cc addresses visible to each other,
   // all of them delivery targets on the same envelope.
   const send = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
@@ -206,6 +225,7 @@ export async function sendReplyThroughMailbox(args: {
     envelopeTo: [conversation.prospect_email as string, ...args.cc],
     subject,
     text: body,
+    html: replyHtml,
     fromName: account.from_name,
     headers: replyHeaders,
     attachments: relayAttachments(args.attachments),
@@ -224,6 +244,7 @@ export async function sendReplyThroughMailbox(args: {
   const { data: inserted, error: insertError } = await supabase
     .from("conversation_messages")
     .insert({
+      id: outboundRowId,
       conversation_id: conversation.id,
       workspace_id: conversation.workspace_id,
       direction: "outbound",

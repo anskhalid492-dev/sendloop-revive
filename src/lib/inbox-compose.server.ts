@@ -117,6 +117,24 @@ export async function composeAndSend(input: ComposeInput) {
     ...(input.cc.length ? { Cc: input.cc.join(", ") } : {}),
   });
 
+  // The stored row's id is minted here so the open-tracking pixel can point at
+  // this exact message before it is sent.
+  const { randomUUID } = await import("crypto");
+  const outboundRowId = randomUUID();
+  const { campaignBodyHtml } = await import("@/lib/email-html");
+  const { injectOpenPixel, openPixelUrl } = await import("@/lib/open-tracking");
+  // Same shared injection step as campaign dispatch and inbox replies.
+  const composeHtml = injectOpenPixel(
+    campaignBodyHtml(input.body),
+    openPixelUrl({
+      workspaceId: input.workspaceId,
+      messageKind: "conversation",
+      messageId: outboundRowId,
+      leadId,
+      email: to,
+    }),
+  );
+
   // ONE message, delivered to every recipient: To + Cc + Bcc on the envelope.
   // (Campaign sending keeps its per-lead loop — that separation is intentional.)
   const send = await sendViaCustomerMailbox(supabaseAdmin, customerMailbox, {
@@ -124,6 +142,7 @@ export async function composeAndSend(input: ComposeInput) {
     envelopeTo: [to, ...input.cc, ...input.bcc],
     subject: input.subject,
     text: input.body,
+    html: composeHtml,
     fromName: account.from_name,
     headers,
     attachments: relayAttachments(input.attachments),
@@ -210,6 +229,7 @@ export async function composeAndSend(input: ComposeInput) {
   const { data: inserted, error: insertError } = await supabase
     .from("conversation_messages")
     .insert({
+      id: outboundRowId,
       conversation_id: conversation.id,
       workspace_id: input.workspaceId,
       direction: "outbound",
