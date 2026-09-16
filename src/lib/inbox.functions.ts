@@ -581,6 +581,14 @@ export const listComposeMailboxes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ workspaceId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    // Mailboxes the customer connected themselves must be pickable here too,
+    // not only the older platform-registered addresses.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { syncSelfConnectedSendingAccounts } = await import(
+      "@/lib/self-connected-account.server"
+    );
+    await syncSelfConnectedSendingAccounts(supabaseAdmin, data.workspaceId);
+
     const { data: accounts, error } = await context.supabase
       .from("sending_accounts")
       .select(
@@ -590,6 +598,7 @@ export const listComposeMailboxes = createServerFn({ method: "GET" })
       .eq("customer_enabled", true)
       .order("from_email");
     if (error) throw new Error(error.message);
+
     const { loadMailboxCapacities } = await import("@/lib/mailbox-capacity.server");
     const capacities = await loadMailboxCapacities((accounts ?? []) as never, "reply");
     return { accounts: capacities };
