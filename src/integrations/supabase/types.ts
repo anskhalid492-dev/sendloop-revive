@@ -4539,6 +4539,39 @@ export type Database = {
           },
         ]
       }
+      manual_send_claims: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          result: Json | null
+          send_key: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          result?: Json | null
+          send_key: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          result?: Json | null
+          send_key?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       marketing_automation_enrollments: {
         Row: {
           automation_id: string

@@ -11,7 +11,9 @@
  * A mailbox is only polled while it is `status = 'connected'` AND `is_active`.
  * Failures are recorded per mailbox and never stop the loop.
  */
+import { extractInboundBody } from "@/lib/inbound-body";
 import {
+
   bouncedRecipient,
   extractDisplayName,
   extractEmail,
@@ -60,14 +62,21 @@ const MAILBOX_BATCH = 100;
 export function inboundFromRelayMessage(message: RelayCheckedMessage, mailbox: string) {
   const from = extractEmail(message.from);
   const received = message.date ? new Date(message.date) : null;
+  // IMAP hands over the raw MIME body. Boundary lines, part headers and
+  // quoted-printable/base64 encoding are stripped here — the same shared step
+  // every inbound path uses — so only the real message text is ever stored.
+  const body = extractInboundBody(message.text, {
+    contentType: message.contentType ?? null,
+    contentTransferEncoding: message.contentTransferEncoding ?? null,
+  });
   return {
     from: from ?? "",
     fromName: extractDisplayName(message.from),
     to: extractEmail(message.to) ?? mailbox,
     cc: [] as string[],
     subject: message.subject ?? null,
-    text: message.text ?? null,
-    html: null as string | null,
+    text: body.text,
+    html: body.html,
     messageId: message.messageId ?? null,
     inReplyTo: message.inReplyTo ?? null,
     references: splitReferences(message.references),
@@ -151,7 +160,10 @@ export async function pollMailbox(
     try {
       if (looksLikeBounce({ from: message.from, subject: message.subject })) {
         const recipient = bouncedRecipient({
-          text: message.text,
+          text: extractInboundBody(message.text, {
+            contentType: message.contentType ?? null,
+            contentTransferEncoding: message.contentTransferEncoding ?? null,
+          }).text,
           subject: message.subject,
           mailbox,
         });

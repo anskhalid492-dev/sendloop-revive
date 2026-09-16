@@ -451,7 +451,15 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   if (!prospect || !mailbox) return { status: "unmatched", reason: "Missing sender or recipient" };
 
   const subject = (email.subject ?? "").slice(0, 300);
-  const body = (email.text ?? previewOf(email.html, 20000) ?? "").slice(0, 100000);
+  // Central safety net: whichever provider or mailbox this arrived through, a
+  // raw multipart body is cleaned and decoded here too, so boundary markers and
+  // part headers can never reach the Unified Inbox from any path.
+  const { cleanInboundText } = await import("@/lib/inbound-body");
+  const body = (
+    cleanInboundText(email.text) ??
+    cleanInboundText(previewOf(email.html, 20000)) ??
+    ""
+  ).slice(0, 100000);
   const receivedAt = email.receivedAt ? new Date(email.receivedAt) : new Date();
   const receivedIso = Number.isNaN(receivedAt.getTime())
     ? new Date().toISOString()
