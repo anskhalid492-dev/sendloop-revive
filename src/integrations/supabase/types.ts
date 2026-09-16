@@ -4456,6 +4456,83 @@ export type Database = {
           },
         ]
       }
+      mailboxes: {
+        Row: {
+          created_at: string
+          daily_send_limit: number
+          display_name: string | null
+          email_address: string
+          id: string
+          imap_host: string
+          imap_password: string | null
+          imap_port: number
+          imap_secure: boolean
+          imap_username: string
+          last_tested_at: string | null
+          smtp_host: string
+          smtp_password: string | null
+          smtp_port: number
+          smtp_secure: boolean
+          smtp_username: string
+          status: string
+          updated_at: string
+          warmup_enabled: boolean
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_send_limit?: number
+          display_name?: string | null
+          email_address: string
+          id?: string
+          imap_host: string
+          imap_password?: string | null
+          imap_port: number
+          imap_secure?: boolean
+          imap_username: string
+          last_tested_at?: string | null
+          smtp_host: string
+          smtp_password?: string | null
+          smtp_port: number
+          smtp_secure?: boolean
+          smtp_username: string
+          status?: string
+          updated_at?: string
+          warmup_enabled?: boolean
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_send_limit?: number
+          display_name?: string | null
+          email_address?: string
+          id?: string
+          imap_host?: string
+          imap_password?: string | null
+          imap_port?: number
+          imap_secure?: boolean
+          imap_username?: string
+          last_tested_at?: string | null
+          smtp_host?: string
+          smtp_password?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_username?: string
+          status?: string
+          updated_at?: string
+          warmup_enabled?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mailboxes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_automation_enrollments: {
         Row: {
           automation_id: string
@@ -9595,6 +9672,11 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      mailbox_read_secret: { Args: { _id: string }; Returns: string }
+      mailbox_store_secret: {
+        Args: { _label?: string; _value: string }
+        Returns: string
       }
       move_crm_contacts: {
         Args: { _lead_ids: string[]; _stage_id: string }
