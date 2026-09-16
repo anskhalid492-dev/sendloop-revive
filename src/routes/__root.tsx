@@ -209,7 +209,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
-      faviconLink(),
+      ...faviconLinks(),
     ],
     ...(global?.head_scripts?.trim()
       ? { scripts: [{ children: global.head_scripts }] }
@@ -224,16 +224,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-/** Favicon comes from Admin → Branding when uploaded, otherwise the default. */
-function faviconLink() {
-  const custom = getPlatformConfig()?.branding?.["favicon_url"];
-  const href = typeof custom === "string" && custom.trim() ? custom.trim() : "/favicon.png";
-  const type = href.endsWith(".svg")
+function iconType(href: string) {
+  return href.endsWith(".svg")
     ? "image/svg+xml"
     : href.endsWith(".ico")
       ? "image/x-icon"
       : "image/png";
-  return { rel: "icon", href, type };
+}
+
+/**
+ * Favicons come from Admin → Branding when uploaded, otherwise the default.
+ * A separate dark-mode icon is emitted whenever one is available, so the tab
+ * icon stays legible in both light and dark browser themes.
+ */
+function faviconLinks() {
+  const branding = getPlatformConfig()?.branding ?? {};
+  const pick = (key: string) => {
+    const value = branding[key];
+    return typeof value === "string" && value.trim() ? value.trim() : "";
+  };
+  const light = pick("favicon_url") || "/favicon.png";
+  const dark = pick("favicon_dark_url") || pick("logo_dark_url") || "";
+  const links: { rel: string; href: string; type: string; media?: string }[] = [
+    { rel: "icon", href: light, type: iconType(light) },
+  ];
+  if (dark && dark !== light) {
+    links[0] = { ...links[0]!, media: "(prefers-color-scheme: light)" };
+    links.push({
+      rel: "icon",
+      href: dark,
+      type: iconType(dark),
+      media: "(prefers-color-scheme: dark)",
+    });
+  }
+  return links;
 }
 
 function RootShell({ children }: { children: ReactNode }) {
