@@ -170,16 +170,76 @@ export function extractInboundBody(
   return out;
 }
 
+/** Share of characters that are ordinary readable text. */
+function printableRatio(value: string): number {
+  if (!value) return 0;
+  // eslint-disable-next-line no-control-regex
+  const control = (value.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g) ?? []).length;
+  return 1 - control / value.length;
+}
+
 /**
- * Safety net for text that has already been extracted by a provider: leaves
- * ordinary message text exactly as-is, and only re-parses when the value still
- * looks like raw MIME (a boundary marker plus part headers).
+ * A body that is nothing but a base64 blob — the shape a client produces for a
+ * single-part message with `Content-Transfer-Encoding: base64`. There are no
+ * boundaries or part headers to recognise, so the encoding itself is the signal:
+ * base64 alphabet only, long enough not to be a short sentence, and it must
+ * decode to readable text.
  */
-export function cleanInboundText(value: string | null | undefined): string | null {
+function base64OnlyBody(value: string): string | null {
+  const compact = value.replace(/\s+/g, "");
+  if (compact.length < 32) return null;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(compact)) return null;
+  if (compact.length % 4 !== 0) return null;
+  // Plain prose almost never satisfies the above, but a single lowercase word
+  // could; requiring some mixed case or padding keeps false positives away.
+  if (!/[A-Z]/.test(compact) && !/[0-9+/=]/.test(compact)) return null;
+  try {
+    const decoded = decodeBase64(compact);
+    if (!decoded.trim() || printableRatio(decoded) < 0.9) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The single decode step for message text, applied once at ingestion so every
+ * later consumer — Unified Inbox, notification emails, webhooks, automations,
+ * the campaign reply log — reads the same already-clean text and never re-parses
+ * anything itself.
+ *
+ * It handles: full raw MIME (boundary + part headers), a body whose Content-Type
+ * / Content-Transfer-Encoding headers came with it, a bare base64 body, and
+ * quoted-printable. Ordinary text is returned untouched.
+ */
+export function cleanInboundText(
+  value: string | null | undefined,
+  headers?: { contentType?: string | null; contentTransferEncoding?: string | null },
+): string | null {
   if (!value || !value.trim()) return null;
+
+  const contentType = headers?.contentType?.trim() || null;
+  const encoding = headers?.contentTransferEncoding?.trim() || null;
+  if (contentType || encoding) {
+    const parsed = extractInboundBody(value, { contentType, contentTransferEncoding: encoding });
+    if (parsed.text) return parsed.text;
+  }
+
   const looksRawMime =
     /^--[A-Za-z0-9'()+_,./:=?-]{6,}\s*$/m.test(value) && /^content-type:/im.test(value);
-  if (!looksRawMime) return value;
-  const parsed = extractInboundBody(value);
-  return parsed.text ?? value;
+  if (looksRawMime) {
+    const parsed = extractInboundBody(value);
+    if (parsed.text) return parsed.text;
+  }
+
+  const base64 = base64OnlyBody(value);
+  if (base64) return base64;
+
+  // Quoted-printable escapes leaking into the text: unambiguous enough that
+  // decoding can only improve it.
+  const softBreaks = (value.match(/=\n/g) ?? []).length;
+  const escapes = (value.match(/=[0-9A-F]{2}/g) ?? []).length;
+  if (softBreaks + escapes >= 2) return decodeQuotedPrintable(value);
+
+  return value;
 }

@@ -811,7 +811,6 @@ export const getAttachmentDownloadUrl = createServerFn({ method: "POST" })
       throw new Error("This file was sent before attachment copies were kept, so it cannot be downloaded.");
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { signAttachmentDownload } = await import("@/lib/mail-attachment-store.server");
-    return { url: await signAttachmentDownload(supabaseAdmin, { path: file.path, filename: data.name }) };
+    return { url: await signAttachmentDownload({ path: file.path }) };
   });

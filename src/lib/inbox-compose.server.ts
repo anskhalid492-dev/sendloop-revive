@@ -132,7 +132,7 @@ export async function composeAndSend(input: ComposeInput) {
   // A copy of each file is kept in private storage so the thread view can offer
   // it for download later; the archive record still carries name, type and size.
   const { storeOutboundAttachments } = await import("@/lib/mail-attachment-store.server");
-  const archived = await storeOutboundAttachments(supabaseAdmin, {
+  const archived = await storeOutboundAttachments({
     workspaceId: input.workspaceId,
     attachments: input.attachments,
   });
