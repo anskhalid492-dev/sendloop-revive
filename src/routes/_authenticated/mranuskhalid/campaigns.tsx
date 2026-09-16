@@ -106,12 +106,15 @@ function AdminCampaignsPage() {
   const campaignsQuery = useQuery({
     queryKey: ["admin", "outreach", "campaigns", filters],
     queryFn: () => listCampaigns({ data: filters }),
+    // Opens arrive continuously from the tracking pixel, so keep this near-live.
+    refetchInterval: 20000,
   });
 
   const detailQuery = useQuery({
     queryKey: ["admin", "outreach", "campaign", openId],
     queryFn: () => getCampaign({ data: { campaignId: openId! } }),
     enabled: Boolean(openId),
+    refetchInterval: openId ? 15000 : false,
   });
 
   const mutation = useMutation({
@@ -222,6 +225,7 @@ function AdminCampaignsPage() {
                 <TableHead className="text-right">Leads</TableHead>
                 <TableHead className="text-right">Sent</TableHead>
                 <TableHead className="text-right">Opens</TableHead>
+                <TableHead className="text-right">Open rate</TableHead>
                 <TableHead className="text-right">Replies</TableHead>
                 <TableHead className="text-right">Bounces</TableHead>
                 <TableHead>Last activity</TableHead>
@@ -246,6 +250,9 @@ function AdminCampaignsPage() {
                   <TableCell className="text-right tabular-nums">{num(row.leads)}</TableCell>
                   <TableCell className="text-right tabular-nums">{num(row.sent)}</TableCell>
                   <TableCell className="text-right tabular-nums">{num(row.opens)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {row.sent > 0 ? `${row.openRate}%` : "—"}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{num(row.replies)}</TableCell>
                   <TableCell className="text-right tabular-nums">{num(row.bounces)}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -364,10 +371,21 @@ function CampaignDetail({
         <StatCard label="Recipients" value={num(data.stats.recipients)} />
         <StatCard label="Sent" value={num(data.stats.sent)} />
         <StatCard label="Queued" value={num(data.stats.queued)} />
-        <StatCard label="Opens" value={num(data.stats.opens)} />
+        <StatCard label="Opens (unique)" value={num(data.stats.opens)} />
+        <StatCard
+          label="Open rate"
+          value={data.stats.sent > 0 ? `${data.stats.openRate}%` : "—"}
+        />
         <StatCard label="Replies" value={num(data.stats.replies)} />
         <StatCard label="Bounces / failed" value={num(data.stats.bounces + data.stats.failed)} />
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Open rate counts each contact once, however many times they open. Apple Mail Privacy
+        Protection loads tracking images automatically on delivery; {num(data.stats.prefetchOpens)}{" "}
+        such automatic loads were detected and left out of the rate. Detection is best-effort, so
+        opens can still be slightly overstated.
+      </p>
 
       <Tabs defaultValue="sequence">
         <TabsList>
@@ -407,6 +425,7 @@ function CampaignDetail({
                   <TableHead>Status</TableHead>
                   <TableHead>Step</TableHead>
                   <TableHead>Last sent</TableHead>
+                  <TableHead>Opened</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -421,6 +440,11 @@ function CampaignDetail({
                     </TableCell>
                     <TableCell>{num(r.currentStep)}</TableCell>
                     <TableCell className="text-muted-foreground">{fmtDate(r.lastSentAt)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {r.openedAt
+                        ? `${fmtDate(r.openedAt)}${r.openCount > 1 ? ` (${num(r.openCount)}x)` : ""}`
+                        : "—"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

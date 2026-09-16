@@ -14,6 +14,7 @@
  * "No data available" rather than invent a result.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { openRatePercent } from "@/lib/open-tracking";
 
 const db = () => supabaseAdmin as any;
 
@@ -66,6 +67,8 @@ export type AdminCampaignRow = {
   leads: number;
   sent: number;
   opens: number;
+  /** Unique opens / sent, as a percentage. */
+  openRate: number;
   replies: number;
   positiveReplies: number;
   bounces: number;
@@ -186,6 +189,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       leads: recipientCounts[c.id] ?? 0,
       sent: sentCounts[c.id] ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
+      openRate: openRatePercent(openKeys[c.id]?.size ?? 0, sentCounts[c.id] ?? 0),
       replies: replyCounts[c.id] ?? 0,
       positiveReplies: positiveCounts[c.id] ?? 0,
       bounces: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
@@ -309,6 +313,37 @@ export async function getAdminCampaign(campaignId: string) {
   const leadById: Dict<any> = {};
   for (const l of leads ?? []) leadById[l.id] = l;
 
+  // First-party open tracking. The rate is always driven by UNIQUE opens
+  // (distinct leads who opened at least once), never by raw pixel hits, and
+  // Apple's automatic delivery-time prefetches are reported separately instead
+  // of quietly inflating the number.
+  const { data: openEventRows } = await db()
+    .from("email_open_events")
+    .select("lead_id, recipient_email, message_id, occurred_at, is_prefetch")
+    .eq("campaign_id", campaign.id)
+    .limit(50000);
+  const uniqueOpeners = new Set<string>();
+  const openByLead: Dict<{ firstAt: string; count: number }> = {};
+  let rawOpens = 0;
+  let prefetchOpens = 0;
+  for (const e of (openEventRows ?? []) as any[]) {
+    if (e.is_prefetch) {
+      prefetchOpens += 1;
+      continue;
+    }
+    rawOpens += 1;
+    const who = String(e.lead_id ?? e.recipient_email ?? e.message_id ?? "");
+    if (who) uniqueOpeners.add(who);
+    const leadKey = e.lead_id ? String(e.lead_id) : "";
+    if (!leadKey) continue;
+    const entry = openByLead[leadKey];
+    if (!entry) openByLead[leadKey] = { firstAt: e.occurred_at, count: 1 };
+    else {
+      entry.count += 1;
+      if (e.occurred_at < entry.firstAt) entry.firstAt = e.occurred_at;
+    }
+  }
+
   const msgRows = (messages.data ?? []) as any[];
   const engRows = engagementRows as any[];
   const openKeys = new Set<string>();
@@ -370,6 +405,8 @@ export async function getAdminCampaign(campaignId: string) {
           .filter(Boolean)
           .join(" ") || null,
       company: leadById[r.lead_id]?.company ?? null,
+      openedAt: openByLead[String(r.lead_id)]?.firstAt ?? null,
+      openCount: openByLead[String(r.lead_id)]?.count ?? 0,
     })),
     sendingAccounts: (accounts.data ?? []).map((a: any) => ({
       id: a.id,
@@ -384,7 +421,11 @@ export async function getAdminCampaign(campaignId: string) {
       queued: statsQueued,
       sent: statsSent,
       failed: statsFailed,
-      opens: openKeys.size,
+      opens: Math.max(openKeys.size, uniqueOpeners.size),
+      uniqueOpens: uniqueOpeners.size,
+      rawOpens,
+      prefetchOpens,
+      openRate: openRatePercent(Math.max(openKeys.size, uniqueOpeners.size), statsSent),
       clicks: clickKeys.size,
       bounces: bounceKeys.size,
       replies: statsReplies,
