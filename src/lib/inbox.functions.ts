@@ -16,9 +16,30 @@ import {
   type ConversationMessage,
   type ConversationNote,
 } from "@/lib/inbox-model";
+import {
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+} from "@/lib/mail-attachments";
 
 const CONVERSATION_COLUMNS =
   "id, workspace_id, lead_id, campaign_id, sending_account_id, subject, prospect_email, status, assigned_to, tags, unread, archived, snoozed_until, message_count, last_message_at, last_direction, last_preview";
+
+/**
+ * A manual-send attachment: the file's own bytes as base64 (`content`), or a
+ * legacy link-style entry (`url`). Base64 grows content by about a third, so the
+ * per-file ceiling is the total raw limit plus that overhead.
+ */
+const attachmentInput = z.object({
+  name: z.string().max(200),
+  contentType: z.string().max(160).optional(),
+  size: z.number().int().nonnegative().max(MAX_TOTAL_ATTACHMENT_BYTES).optional(),
+  content: z
+    .string()
+    .max(Math.ceil((MAX_TOTAL_ATTACHMENT_BYTES * 4) / 3) + 1024)
+    .optional(),
+  url: z.string().url().max(600).optional(),
+});
+
 
 const filtersSchema = z.object({
   workspaceId: z.string().uuid(),
