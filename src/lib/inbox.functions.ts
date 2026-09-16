@@ -557,6 +557,8 @@ export const sendConversationReply = createServerFn({ method: "POST" })
         body: z.string().trim().min(1).max(50000),
         cc: z.array(z.string().email()).max(10).default([]),
         attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
+        /** Identifies this send ATTEMPT so a replayed request never sends twice. */
+        sendKey: z.string().trim().min(8).max(80).optional(),
       })
       .parse(input),
   )
@@ -566,6 +568,26 @@ export const sendConversationReply = createServerFn({ method: "POST" })
       .select("workspace_id")
       .eq("id", data.conversationId)
       .maybeSingle();
+
+    // Same exactly-once guard as Compose, before any allowance is consumed.
+    const { claimManualSend } = await import("@/lib/manual-send-idempotency.server");
+    type ReplyResult = Awaited<
+      ReturnType<typeof import("@/lib/inbox-send.server").sendReplyThroughMailbox>
+    >;
+    const claim = conversation?.workspace_id
+      ? await claimManualSend<ReplyResult>(
+          conversation.workspace_id,
+          data.sendKey ?? crypto.randomUUID(),
+          "reply",
+        )
+      : null;
+    if (claim && !claim.proceed) {
+      if (claim.result) return claim.result;
+      throw new Error(
+        "This reply is already being sent. Check the conversation in a moment before sending it again.",
+      );
+    }
+
     let consumedWorkspace: string | null = null;
     if (conversation?.workspace_id) {
       const { requireEntitlement, consumeUsage } = await import("@/lib/billing/usage.server");
@@ -575,12 +597,15 @@ export const sendConversationReply = createServerFn({ method: "POST" })
     }
     const { sendReplyThroughMailbox } = await import("@/lib/inbox-send.server");
     try {
-      return await sendReplyThroughMailbox({
+      const sent = await sendReplyThroughMailbox({
         supabase: context.supabase,
         userId: context.userId,
         ...data,
       });
+      if (claim?.proceed) await claim.finish(sent);
+      return sent;
     } catch (error) {
+      if (claim?.proceed) await claim.release();
       // The allowance must not be burned when the email never left the platform.
       if (consumedWorkspace) {
         const { releaseUsage } = await import("@/lib/billing/usage.server");
@@ -702,24 +727,48 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
         leadId: z.string().uuid().nullish(),
         draftId: z.string().uuid().nullish(),
         attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
+        /** Identifies this send ATTEMPT so a replayed request never sends twice. */
+        sendKey: z.string().trim().min(8).max(80).optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { claimManualSend } = await import("@/lib/manual-send-idempotency.server");
+    type ComposeResult = { ok: boolean; conversationId: string; messageId: string };
+    const claim = await claimManualSend<ComposeResult>(
+      data.workspaceId,
+      data.sendKey ?? crypto.randomUUID(),
+      "compose",
+    );
+    if (!claim.proceed) {
+      if (claim.result) return claim.result;
+      throw new Error(
+        "This email is already being sent. Check your sent messages in a moment before sending it again.",
+      );
+    }
+
     const { composeAndSend } = await import("@/lib/inbox-compose.server");
-    const result = await composeAndSend({
-      supabase: context.supabase,
-      userId: context.userId,
-      workspaceId: data.workspaceId,
-      sendingAccountId: data.sendingAccountId,
-      to: data.to,
-      cc: data.cc,
-      bcc: data.bcc,
-      subject: data.subject,
-      body: data.body,
-      leadId: data.leadId ?? null,
-      attachments: data.attachments,
-    });
+    let result: ComposeResult;
+    try {
+      result = (await composeAndSend({
+        supabase: context.supabase,
+        userId: context.userId,
+        workspaceId: data.workspaceId,
+        sendingAccountId: data.sendingAccountId,
+        to: data.to,
+        cc: data.cc,
+        bcc: data.bcc,
+        subject: data.subject,
+        body: data.body,
+        leadId: data.leadId ?? null,
+        attachments: data.attachments,
+      })) as ComposeResult;
+    } catch (error) {
+      // Nothing was delivered: free the key so the customer can simply retry.
+      await claim.release();
+      throw error;
+    }
+    await claim.finish(result);
     if (data.draftId) {
       await context.supabase.from("email_drafts").delete().eq("id", data.draftId);
     }
