@@ -21,18 +21,32 @@ import { mailboxWindowStart, storedSentToday } from "@/lib/mailbox-daily-usage";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
 
+export type MailboxCampaignRef = {
+  id: string;
+  name: string;
+  /** draft | scheduled | active | paused | completed | archived — the real value. */
+  status: string;
+  /** Messages still queued for this mailbox on that campaign, or null if unknown. */
+  queued: number | null;
+};
+
 export type WorkspaceMailboxRow = {
   id: string;
   email: string;
   displayName: string | null;
   /** pending | connected | failed — straight from the row. */
   status: string;
+  /** The customer's own pause switch (`mailboxes.is_active`). */
+  isActive: boolean;
   smtpHost: string | null;
   imapHost: string | null;
   dailySendLimit: number;
   warmupEnabledFlag: boolean;
   lastTestedAt: string | null;
   createdAt: string;
+  /** Real campaigns whose sending pool includes this mailbox's address. */
+  campaigns: MailboxCampaignRef[];
+
 
   /** Everything below comes from the sending record for this same address. */
   sendingAccountId: string | null;
