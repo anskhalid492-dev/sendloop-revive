@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/table";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { MailboxTypeIcon } from "@/components/campaign/MailboxTypeBadge";
-import { mailboxTypeForDomain } from "@/lib/mailbox-type";
+import { emailProviderOf } from "@/lib/mailbox-type";
 import {
   listWorkspaceMailboxes,
   recheckWorkspaceMailbox,
