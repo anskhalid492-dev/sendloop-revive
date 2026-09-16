@@ -416,7 +416,7 @@ export function AiCampaignWriterSidebar({
               <span>Generate with</span>
               {connected.length > 1 ? (
                 <Select
-                  value={activeProvider ?? undefined}
+                  value={activeProvider ?? ""}
                   onValueChange={(value) => {
                     setProviderChoice(value);
                     save.mutate({ provider: value });
