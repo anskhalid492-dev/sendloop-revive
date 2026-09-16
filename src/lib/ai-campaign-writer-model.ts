@@ -194,6 +194,7 @@ export function stepPurposes(count: number): string[] {
     "Address a likely objection or risk",
     "Add a second pain point or a concrete outcome",
     "Short insight or observation, no pitch",
+    "Restate the offer with a lower-friction ask",
   ];
   const purposes = ["Open the conversation: problem, value and a light ask"];
   for (let i = 0; i < Math.max(0, count - 2); i += 1) {
