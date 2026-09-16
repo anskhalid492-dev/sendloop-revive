@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+
+import { deliveredCount } from "@/lib/engagement-rates";
 import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 import { buildCampaignUpdatePatch } from "@/lib/campaign-update-patch";
 
@@ -364,7 +366,11 @@ export const getCampaign = createServerFn({ method: "GET" })
         totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentTotal,
-        delivered: num(deliveryCounts["delivered"]),
+        delivered: deliveredCount({
+          sent: sentTotal,
+          bounced: num(deliveryCounts["bounced"]),
+          confirmedDelivered: num(deliveryCounts["delivered"]),
+        }),
         delayed: num(deliveryCounts["delayed"]),
         opened: num(deliveryCounts["opened"]),
         clicked: num(deliveryCounts["clicked"]),
@@ -383,7 +389,11 @@ export const getCampaign = createServerFn({ method: "GET" })
       // Today's engagement, strictly separate from the lifetime numbers above.
       today: {
         sent: sentTodayCount,
-        delivered: num(todayCounts["delivered"]),
+        delivered: deliveredCount({
+          sent: sentTodayCount,
+          bounced: num(todayCounts["bounced"]),
+          confirmedDelivered: num(todayCounts["delivered"]),
+        }),
         opened: num(todayCounts["opened"]),
         clicked: num(todayCounts["clicked"]),
         replied: num(todayCounts["replied"]),

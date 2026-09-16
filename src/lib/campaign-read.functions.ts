@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+import { deliveredCount } from "@/lib/engagement-rates";
+
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   campaignColumns,
@@ -194,7 +196,11 @@ export const getCampaign = createServerFn({ method: "GET" })
         totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentTotal,
-        delivered: numberValue(deliveryCounts["delivered"]),
+        delivered: deliveredCount({
+          sent: sentTotal,
+          bounced: numberValue(deliveryCounts["bounced"]),
+          confirmedDelivered: numberValue(deliveryCounts["delivered"]),
+        }),
         delayed: numberValue(deliveryCounts["delayed"]),
         opened: numberValue(deliveryCounts["opened"]),
         clicked: numberValue(deliveryCounts["clicked"]),
@@ -212,7 +218,11 @@ export const getCampaign = createServerFn({ method: "GET" })
       },
       today: {
         sent: sentTodayCount,
-        delivered: numberValue(todayCounts["delivered"]),
+        delivered: deliveredCount({
+          sent: sentTodayCount,
+          bounced: numberValue(todayCounts["bounced"]),
+          confirmedDelivered: numberValue(todayCounts["delivered"]),
+        }),
         opened: numberValue(todayCounts["opened"]),
         clicked: numberValue(todayCounts["clicked"]),
         replied: numberValue(todayCounts["replied"]),

@@ -66,3 +66,14 @@ export function bounceRatePercent(bounced: number, sent: number): number {
 export function unsubscribeRatePercent(unsubscribed: number, base: ReachableBase): number {
   return engagementRatePercent(unsubscribed, base);
 }
+
+/**
+ * Delivered = everything accepted for sending that did not bounce back, or the
+ * provider's own confirmation when it is higher. Customer mailboxes send over
+ * SMTP through the relay and never report a delivery confirmation, so the raw
+ * `delivered` flag under-reports badly (a 50-send campaign read "18 delivered").
+ * Every surface that shows a delivered count MUST use this helper.
+ */
+export function deliveredCount(base: ReachableBase & { confirmedDelivered?: number }): number {
+  return Math.max(base.confirmedDelivered ?? 0, reachable(base));
+}
