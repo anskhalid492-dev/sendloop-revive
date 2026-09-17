@@ -108,11 +108,34 @@ export const getCampaign = createServerFn({ method: "GET" })
         code: summaryRes.error.code,
         databaseError: summaryRes.error.message,
       });
-      summaryValue = await campaignPageSummaryFallback(
-        context.supabase,
-        data.id,
-        runDayStart.toISOString(),
-      );
+      // Hard time budget: when the database is overloaded the fallback's many
+      // aggregates can outlive the request, and the runtime kills the whole SSR
+      // response as a hang (502). Render the page with empty counters instead.
+      const FALLBACK_BUDGET_MS = 8_000;
+      let budgetTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        summaryValue = await Promise.race([
+          campaignPageSummaryFallback(context.supabase, data.id, runDayStart.toISOString()),
+          new Promise<null>((resolve) => {
+            budgetTimer = setTimeout(() => resolve(null), FALLBACK_BUDGET_MS);
+          }),
+        ]);
+      } catch (fallbackError) {
+        summaryValue = null;
+        console.error("[campaign.getCampaign] summary fallback failed", {
+          campaignId: data.id,
+          databaseError: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        });
+      } finally {
+        if (budgetTimer) clearTimeout(budgetTimer);
+      }
+      if (summaryValue === null) {
+        console.error("[campaign.getCampaign] summary fallback exceeded time budget", {
+          campaignId: data.id,
+          budgetMs: FALLBACK_BUDGET_MS,
+        });
+        summaryValue = {};
+      }
     }
 
     phaseStartedAt = Date.now();
