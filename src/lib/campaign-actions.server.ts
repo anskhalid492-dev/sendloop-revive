@@ -24,6 +24,12 @@ import {
 } from "@/lib/campaign-model";
 import { unsubscribeExtras } from "@/lib/unsubscribe";
 import { normalizeSendDays, windowStartAt } from "@/lib/campaign-schedule";
+import {
+  mailboxDailyRemaining,
+  mailboxSentToday,
+  mailboxWindowStart,
+} from "@/lib/mailbox-daily-usage";
+
 
 /** Launch a campaign: validate, materialise the queue and flip it to active. */
 export async function launchCampaignService(
