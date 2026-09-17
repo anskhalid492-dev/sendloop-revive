@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Trend } from "@/components/dashboard/command/primitives";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -122,14 +123,15 @@ export function KpiBoard({
                   <span className="truncate">{card.label}</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span
-                        role="button"
-                        tabIndex={0}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         aria-label={`About ${card.label}`}
-                        className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="size-5 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <Info className="size-3.5" />
-                      </span>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-64 normal-case leading-relaxed tracking-normal">
                       {card.description}
