@@ -132,17 +132,23 @@ export const updateMailbox = createServerFn({ method: "POST" })
       .from("sending_accounts")
       .update(patch)
       .eq("id", data.id)
-      .select("id, daily_limit, hourly_limit, sent_today")
+      .select("id, daily_limit, hourly_limit, sent_today, last_sent_at")
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("You do not have permission to change this mailbox.");
 
+    // Same shared date-aware usage rule as dispatch and the mailbox list.
+    const { mailboxDailyRemaining, mailboxSentToday, mailboxWindowStart } = await import(
+      "@/lib/mailbox-daily-usage"
+    );
+    const windowStart = mailboxWindowStart();
     return {
       ok: true,
       dailyLimit: Number(updated.daily_limit ?? 0),
-      sentToday: Number(updated.sent_today ?? 0),
-      remaining: Math.max(0, Number(updated.daily_limit ?? 0) - Number(updated.sent_today ?? 0)),
+      sentToday: mailboxSentToday(updated, windowStart),
+      remaining: mailboxDailyRemaining(updated, windowStart),
     };
+
 
   });
 

@@ -16,6 +16,8 @@ import {
   type EmailAccountSummary,
   type WarmupAccountStats,
 } from "@/lib/sending-model";
+import { mailboxSentToday, mailboxWindowStart } from "@/lib/mailbox-daily-usage";
+
 
 /** Untyped view of the request-scoped Supabase client (generated types lag the new columns). */
 type Client = any;
@@ -263,8 +265,12 @@ export function decorate(
   const { workspace_id: _ignored, ...rest } = row;
   return {
     ...(rest as Omit<EmailAccountRow, "domain" | "accountStatus" | "campaignCount" | "activeCampaigns" | "completedCampaigns" | "stats" | "warmupStats">),
+    // Date-aware: a stored counter from an earlier sending window must never be
+    // displayed as today's usage (it made mailboxes read as permanently full).
+    sent_today: mailboxSentToday(row, mailboxWindowStart()),
     domain: domainOf(row.from_email as string),
     accountStatus: accountStatusOf(row),
+
     campaignCount: campaigns?.total ?? 0,
     activeCampaigns: campaigns?.active ?? 0,
     completedCampaigns: campaigns?.completed ?? 0,
@@ -290,7 +296,7 @@ function buildSummary(rows: any[]): EmailAccountSummary {
         warmupProgress(r).label === "Needs attention",
     ).length,
     dailyCapacity: rows.reduce((sum, r) => sum + Number(r.daily_limit ?? 0), 0),
-    sentToday: rows.reduce((sum, r) => sum + Number(r.sent_today ?? 0), 0),
+    sentToday: rows.reduce((sum, r) => sum + mailboxSentToday(r, mailboxWindowStart()), 0),
   };
 }
 

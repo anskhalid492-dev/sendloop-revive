@@ -24,6 +24,12 @@ import {
 } from "@/lib/campaign-model";
 import { unsubscribeExtras } from "@/lib/unsubscribe";
 import { normalizeSendDays, windowStartAt } from "@/lib/campaign-schedule";
+import {
+  mailboxDailyRemaining,
+  mailboxSentToday,
+  mailboxWindowStart,
+} from "@/lib/mailbox-daily-usage";
+
 
 /** Launch a campaign: validate, materialise the queue and flip it to active. */
 export async function launchCampaignService(
@@ -105,7 +111,9 @@ export async function launchCampaignService(
 
     const { data: accounts, error: aErr } = await supabase
       .from("sending_accounts")
-      .select("id, provider, status, customer_enabled, paused, daily_limit, sent_today, from_name, from_email")
+      .select(
+        "id, provider, status, customer_enabled, paused, daily_limit, sent_today, last_sent_at, from_name, from_email",
+      )
       .in("id", c.sending_account_ids);
     if (aErr) throw new Error(aErr.message);
     const active = (accounts ?? []).filter(
@@ -119,17 +127,21 @@ export async function launchCampaignService(
     const campaignVariables = (c.custom_variables ?? []) as CustomVariable[];
     const rotationOn = c.inbox_rotation_enabled !== false;
     const perInboxCap = c.rotation_daily_cap_per_inbox || 0;
+    // Usage is read through the shared date-aware helper: a counter left over
+    // from an earlier sending window must never make a mailbox look full.
+    const usageWindowStart = mailboxWindowStart();
     let pool = active.map((a: any) => ({
       id: a.id,
       headroom: Math.max(
         0,
         Math.min(
           perInboxCap || Number.MAX_SAFE_INTEGER,
-          (a.daily_limit ?? 0) - (a.sent_today ?? 0),
+          mailboxDailyRemaining(a, usageWindowStart),
         ),
       ),
-      sentToday: a.sent_today ?? 0,
+      sentToday: mailboxSentToday(a, usageWindowStart),
     }));
+
 
     if (!rotationOn) pool = pool.slice(0, 1);
     else if (c.inbox_rotation_strategy === "random")
