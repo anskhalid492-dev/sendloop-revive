@@ -1481,8 +1481,12 @@ export function selectRetryableMessages(
     if (row.sent_at) return false;
     if (row.provider_message_id) return false;
     if (row.bounced_at) return false;
-    if ((row.attempts ?? 0) >= maxAttempts) return false;
     if (!isRetryableFailure(row.last_error ?? null)) return false;
+    // A configuration failure (paused mailbox, relay/credentials) never reached
+    // the recipient, so once the customer fixes it the message resumes on the
+    // very next run instead of being stuck as Failed forever.
+    if (isSetupFailure(row.last_error ?? null)) return true;
+    if ((row.attempts ?? 0) >= maxAttempts) return false;
     const last = row.updated_at ?? row.created_at ?? null;
     if (!last) return false;
     const at = new Date(last).getTime();
