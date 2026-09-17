@@ -244,20 +244,44 @@ export function ImportWizard({
   };
 
   const runImport = useMutation({
-    mutationFn: () =>
-      importFn({
-        data: {
-          workspaceId: workspaceId!,
-          listId,
-          tags: tagInput
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-            .slice(0, 10),
-          listVerified: verified === true,
-          rows: mapped.out as never,
-        },
-      }),
+    mutationFn: async () => {
+      const tags = tagInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 10);
+
+      // Big files are sent in slices: one giant upload can exceed the request
+      // limit and surface as a bare network failure instead of a real error.
+      const BATCH = 500;
+      const all = mapped.out as Array<Record<string, unknown>>;
+      const totals = {
+        received: 0,
+        inserted: 0,
+        duplicatesInFile: 0,
+        duplicatesInWorkspace: 0,
+        failed: [] as Array<{ row: number; field: string; reason: string; email: string }>,
+      };
+
+      for (let i = 0; i < all.length; i += BATCH) {
+        const result = await importFn({
+          data: {
+            workspaceId: workspaceId!,
+            listId,
+            tags,
+            listVerified: verified === true,
+            rows: all.slice(i, i + BATCH) as never,
+          },
+        });
+        totals.received += result.received ?? 0;
+        totals.inserted += result.inserted ?? 0;
+        totals.duplicatesInFile += result.duplicatesInFile ?? 0;
+        totals.duplicatesInWorkspace += result.duplicatesInWorkspace ?? 0;
+        totals.failed.push(...(result.failed ?? []));
+      }
+
+      return totals;
+    },
     onSuccess: (result) => {
       setSummary({
         ...result,

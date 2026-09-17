@@ -503,7 +503,12 @@ export type BulkLeadResult = {
   affected: number;
   failed: number;
   reasons: Array<{ count: number; reason: string }>;
+  /** Deletes are capped per call so one request stays short; >0 means call again. */
+  remaining?: number;
 };
+
+/** Ids deleted in a single request; the client loops until nothing remains. */
+const DELETE_CAP = 1000;
 
 export const bulkLeadAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -531,8 +536,13 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
     for (let i = 0; i < ids.length; i += 200) chunks.push(ids.slice(i, i + 200));
 
     if (data.action === "delete") {
+      // Large selections are deleted in capped slices: each request stays well
+      // inside the statement timeout and the caller repeats until none remain.
+      const work = ids.slice(0, DELETE_CAP);
+      const remaining = Math.max(0, ids.length - work.length);
       let affected = 0;
-      for (const chunk of chunks) {
+      for (let i = 0; i < work.length; i += 200) {
+        const chunk = work.slice(i, i + 200);
         const { data: rows, error } = await supabase
           .from("leads")
           .delete()
@@ -542,7 +552,7 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
         if (error) throw new Error(error.message);
         affected += (rows ?? []).length;
       }
-      return { affected, failed: dropped + (ids.length - affected), reasons };
+      return { affected, failed: dropped + (work.length - affected), reasons, remaining };
     }
 
     if (data.action === "add_to_list" || data.action === "remove_from_list") {

@@ -178,10 +178,26 @@ function LeadsPage() {
   };
 
   const bulk = useMutation({
-    mutationFn: (vars: Record<string, unknown>) =>
-      bulkFn({
-        data: { selection, filters: bulkFilters, workspaceId, ...vars } as never,
-      }),
+    mutationFn: async (vars: Record<string, unknown>) => {
+      const call = () =>
+        bulkFn({
+          data: { selection, filters: bulkFilters, workspaceId, ...vars } as never,
+        });
+      let result = await call();
+      // Deleting a big selection is served in capped slices; keep going until the
+      // server reports nothing left so one click clears the whole selection.
+      let affected = result?.affected ?? 0;
+      let failed = result?.failed ?? 0;
+      let guard = 0;
+      while (vars["action"] === "delete" && (result?.remaining ?? 0) > 0 && guard < 200) {
+        guard += 1;
+        result = await call();
+        affected += result?.affected ?? 0;
+        failed += result?.failed ?? 0;
+        if ((result?.affected ?? 0) === 0) break;
+      }
+      return { ...result, affected, failed };
+    },
     onSuccess: (result) => {
       const failed = result?.failed ?? 0;
       const detail = (result?.reasons ?? [])
