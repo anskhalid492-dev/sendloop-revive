@@ -77,7 +77,7 @@ const featuredProducts: Card[] = [
   },
   {
     label: "AI Writer",
-    to: "/products/ai-campaign-writer",
+    to: "/ai-campaign-writer",
     text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
     icon: PenLine,
     cta: "Explore AI Writer",
@@ -269,7 +269,7 @@ export function SiteHeader() {
     },
     {
       label: "AI Writer",
-      to: "/products/ai-campaign-writer",
+      to: "/ai-campaign-writer",
       text: "Turn your offer into a full outreach campaign: strategy, messaging and sequence.",
       icon: PenLine,
       cta: "Explore AI Writer",
