@@ -255,7 +255,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
           : null,
         lastSentAt: account?.last_sent_at ?? null,
         warmupStatus: account?.warmup_status ?? null,
-        warmupDailyTarget: warmup?.daily_target ?? account?.warmup_daily_target ?? null,
+        warmupDailyTarget: warmup?.max_volume ?? account?.warmup_daily_target ?? null,
         warmupEnabled: warmup ? warmup.enabled === true : row.warmup_enabled === true,
         warmupPauseReason: warmup?.paused_by_system ? warmup.pause_reason ?? null : null,
         spf: account?.spf_status ?? null,
