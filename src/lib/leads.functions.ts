@@ -169,6 +169,7 @@ export const deleteLeadList = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const BATCH = 300;
     let processed = 0;
+    let lastFirstId: string | null = null;
 
     // Loop until no lead references the list any more. Each pass reads a small
     // page of ids and mutates only those, keeping every statement short.
@@ -181,6 +182,13 @@ export const deleteLeadList = createServerFn({ method: "POST" })
       if (readError) throw new Error(readError.message);
       const ids = (rows ?? []).map((r) => (r as { id: string }).id);
       if (ids.length === 0) break;
+
+      // No progress between passes means the rows cannot be changed (permissions
+      // or a blocking reference); stop instead of spinning.
+      if (ids[0] === lastFirstId) {
+        throw new Error("Some leads in this list could not be updated. Please contact support.");
+      }
+      lastFirstId = ids[0] ?? null;
 
       if (data.deleteLeads) {
         const { error } = await context.supabase.from("leads").delete().in("id", ids);
@@ -195,6 +203,7 @@ export const deleteLeadList = createServerFn({ method: "POST" })
       processed += ids.length;
       if (ids.length < BATCH) break;
     }
+
 
     const { error } = await context.supabase.from("lead_lists").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
