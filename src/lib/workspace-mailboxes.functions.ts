@@ -189,13 +189,14 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const { data: warmupRows } = accountIds.length
       ? await client
           .from("warmup_settings")
-          .select("sending_account_id, enabled, daily_target, paused_by_system, pause_reason")
+          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason")
           .in("sending_account_id", accountIds)
       : { data: [] };
     type WarmupRecord = {
       sending_account_id: string;
       enabled: boolean | null;
-      daily_target: number | null;
+      max_volume: number | null;
+
       paused_by_system: boolean | null;
       pause_reason: string | null;
     };
