@@ -503,7 +503,12 @@ export type BulkLeadResult = {
   affected: number;
   failed: number;
   reasons: Array<{ count: number; reason: string }>;
+  /** Deletes are capped per call so one request stays short; >0 means call again. */
+  remaining?: number;
 };
+
+/** Ids deleted in a single request; the client loops until nothing remains. */
+const DELETE_CAP = 1000;
 
 export const bulkLeadAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
