@@ -98,11 +98,10 @@ export async function getMeteringPeriod(workspaceId: string): Promise<MeteringPe
 
     const start = new Date(sub.current_period_start as string);
     const end = sub.current_period_end ? new Date(sub.current_period_end as string) : null;
-    // Roll forward if the provider webhook is late so a stale cycle never
-    // gives away a second allowance.
-    if (end && end.getTime() < Date.now()) {
-      return { key: periodStart(), start: `${periodStart()}T00:00:00.000Z`, end: null, resets: true };
-    }
+    // An expired cycle HOLDS its usage bucket. Rolling into a fresh calendar
+    // month here would hand out a second allowance whenever a provider webhook
+    // is late, and would look to the customer like their usage had reset.
+    // The bucket only moves when the subscription itself reports a new period.
     return {
       key: start.toISOString().slice(0, 10),
       start: start.toISOString(),
