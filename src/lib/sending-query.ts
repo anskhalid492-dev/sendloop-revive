@@ -265,8 +265,12 @@ export function decorate(
   const { workspace_id: _ignored, ...rest } = row;
   return {
     ...(rest as Omit<EmailAccountRow, "domain" | "accountStatus" | "campaignCount" | "activeCampaigns" | "completedCampaigns" | "stats" | "warmupStats">),
+    // Date-aware: a stored counter from an earlier sending window must never be
+    // displayed as today's usage (it made mailboxes read as permanently full).
+    sent_today: mailboxSentToday(row, mailboxWindowStart()),
     domain: domainOf(row.from_email as string),
     accountStatus: accountStatusOf(row),
+
     campaignCount: campaigns?.total ?? 0,
     activeCampaigns: campaigns?.active ?? 0,
     completedCampaigns: campaigns?.completed ?? 0,
