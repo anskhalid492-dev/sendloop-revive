@@ -133,16 +133,39 @@ export function replyCategory(sentiment: unknown): ReplyCategory {
   return "neutral";
 }
 
-/** Meetings booked in the range (lead activity written by the booking flows). */
+/**
+ * Meetings booked in the range. Bookings are recorded on the lead itself
+ * (crm_stage opportunity/customer with last_activity_at at booking time) —
+ * the same source the dashboard uses — not every booking writes a
+ * lead_activities row, so counting activities under-reports.
+ */
 async function countMeetings(client: Client, data: RangeInput, from: Date, to: Date) {
+  let leadIds: string[] | null = null;
+  if (data.campaignId) {
+    const { data: recipients, error: recErr } = await client
+      .from("campaign_recipients")
+      .select("lead_id")
+      .eq("workspace_id", data.workspaceId)
+      .eq("campaign_id", data.campaignId)
+      .not("lead_id", "is", null);
+    if (recErr) return null;
+    leadIds = [
+      ...new Set(
+        ((recipients ?? []) as Array<{ lead_id: string | null }>)
+          .map((r) => r.lead_id)
+          .filter((id): id is string => typeof id === "string"),
+      ),
+    ];
+    if (leadIds.length === 0) return 0;
+  }
   let q = client
-    .from("lead_activities")
+    .from("leads")
     .select("id", { count: "exact", head: true })
     .eq("workspace_id", data.workspaceId)
-    .eq("type", "meeting_booked")
-    .gte("created_at", from.toISOString())
-    .lt("created_at", to.toISOString());
-  if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+    .in("crm_stage", ["opportunity", "customer"])
+    .gte("last_activity_at", from.toISOString())
+    .lt("last_activity_at", to.toISOString());
+  if (leadIds) q = q.in("id", leadIds);
   const { count, error } = await q;
   if (error) return null;
   return Number(count ?? 0);
