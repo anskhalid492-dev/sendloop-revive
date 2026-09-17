@@ -1081,14 +1081,49 @@ export async function dispatchDueMessages(
         continue;
       }
     }
-    // Hard 70/hour per-mailbox ceiling — independent of daily limits/pacing.
+    // Per-mailbox hourly ceiling (mailbox setting clamped to the platform
+    // maximum, minus the reply reserve). Same starvation rule as the daily
+    // block above: writing nothing here re-examines the same head-of-queue
+    // messages every run while pool mailboxes with room never get a turn.
     const hourlyLimit = campaignHourlyLimit(account.hourly_limit);
     const sentThisHour = (sentThisHourByAccount.get(account.id) ?? 0) + usedNow;
     if (sentThisHour >= hourlyLimit) {
-      result.skipped += 1;
-      if (result.errors.length < 5) result.errors.push(MAX_MAILBOX_HOURLY_MESSAGE);
-      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_hourly_cap_reached" });
-      continue;
+      let hourlyPickedId: string | undefined;
+      let hourlyPickedUsed = Number.POSITIVE_INFINITY;
+      for (const id of campaignMailboxPool) {
+        const candidate = accountById.get(id);
+        if (!candidate || !isEligibleMailbox(candidate, allowedProviders)) continue;
+        const cap = campaignHourlyLimit(candidate.hourly_limit);
+        const used = (sentThisHourByAccount.get(id) ?? 0) + (sentPerAccount.get(id) ?? 0);
+        if (used < cap && used < hourlyPickedUsed) {
+          hourlyPickedId = id;
+          hourlyPickedUsed = used;
+        }
+      }
+      const hourlyPicked = hourlyPickedId ? accountById.get(hourlyPickedId) : undefined;
+      if (hourlyPicked && hourlyPicked.id !== account.id) {
+        await supabase
+          .from("campaign_messages")
+          .update({ sending_account_id: hourlyPicked.id })
+          .eq("id", message.id);
+        message.sending_account_id = hourlyPicked.id;
+        account = hourlyPicked;
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: hourlyPicked.id, mailboxEligible: true, reason: "mailbox_reassigned_hourly_cap" });
+      } else {
+        // TEMPORARY condition — defer with a concrete retry time so the message
+        // leaves the head of the queue and later messages are examined next run.
+        result.skipped += 1;
+        if (result.errors.length < 5) result.errors.push(MAX_MAILBOX_HOURLY_MESSAGE);
+        await supabase
+          .from("campaign_messages")
+          .update({
+            scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+            last_error: MAILBOX_CAPACITY_MESSAGE,
+          })
+          .eq("id", message.id);
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_hourly_cap_reached_deferred" });
+        continue;
+      }
     }
     logDispatchDiagnostic({
       ...diagnosticBase,
