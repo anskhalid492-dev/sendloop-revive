@@ -73,12 +73,12 @@ const faqs = [
   },
 ];
 
-export const Route = createFileRoute("/products/ai-campaign-writer")({
+export const Route = createFileRoute("/ai-campaign-writer")({
   head: () =>
     metaFor(
       "AI Campaign Writer — AI Email Campaign & Follow-Up Generator | MunchReach",
       "MunchReach AI Campaign Writer is an AI cold email writer and outreach campaign generator: AI subject lines, email copy, follow-up generation, dynamic pain points and lead-level AI email personalization.",
-      "/products/ai-campaign-writer",
+      "/ai-campaign-writer",
       faqs,
     ),
   component: Page,
@@ -345,7 +345,7 @@ function Page() {
         <div />
       </Section>
 
-      <PageFaqs page="/products/ai-campaign-writer" defaults={faqs} />
+      <PageFaqs page="/ai-campaign-writer" defaults={faqs} />
 
       <CtaBlock
         title="Write your next campaign in minutes"

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
+import { Route as AiCampaignWriterRouteImport } from './routes/ai-campaign-writer'
 import { Route as AiPersonalizedOutreachRouteImport } from './routes/ai-personalized-outreach'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -94,7 +95,6 @@ import { Route as ProductTemplatesRouteImport } from './routes/product.templates
 import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unified-inbox'
 import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
-import { Route as ProductsAiCampaignWriterRouteImport } from './routes/products.ai-campaign-writer'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as SolutionsIndexRouteImport } from './routes/solutions.index'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
@@ -240,6 +240,11 @@ const AboutRoute = AboutRouteImport.update({
 const AcceptableUseRoute = AcceptableUseRouteImport.update({
   id: '/acceptable-use',
   path: '/acceptable-use',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiCampaignWriterRoute = AiCampaignWriterRouteImport.update({
+  id: '/ai-campaign-writer',
+  path: '/ai-campaign-writer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiPersonalizedOutreachRoute = AiPersonalizedOutreachRouteImport.update({
@@ -656,12 +661,6 @@ const ProductWorkspacesRoute = ProductWorkspacesRouteImport.update({
   path: '/product/workspaces',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductsAiCampaignWriterRoute =
-  ProductsAiCampaignWriterRouteImport.update({
-    id: '/products/ai-campaign-writer',
-    path: '/products/ai-campaign-writer',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
@@ -1408,6 +1407,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
@@ -1486,7 +1486,6 @@ export interface FileRoutesByFullPath {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
-  '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
@@ -1622,6 +1621,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
@@ -1698,7 +1698,6 @@ export interface FileRoutesByTo {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
-  '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
@@ -1835,6 +1834,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
@@ -1913,7 +1913,6 @@ export interface FileRoutesById {
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
-  '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
@@ -2051,6 +2050,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/acceptable-use'
+    | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
@@ -2129,7 +2129,6 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
-    | '/products/ai-campaign-writer'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
@@ -2265,6 +2264,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/acceptable-use'
+    | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
@@ -2341,7 +2341,6 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
-    | '/products/ai-campaign-writer'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog'
@@ -2477,6 +2476,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/acceptable-use'
+    | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
@@ -2555,7 +2555,6 @@ export interface FileRouteTypes {
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
-    | '/products/ai-campaign-writer'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
@@ -2693,6 +2692,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AcceptableUseRoute: typeof AcceptableUseRoute
+  AiCampaignWriterRoute: typeof AiCampaignWriterRoute
   AiPersonalizedOutreachRoute: typeof AiPersonalizedOutreachRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
@@ -2753,7 +2753,6 @@ export interface RootRouteChildren {
   ProductUnifiedInboxRoute: typeof ProductUnifiedInboxRoute
   ProductWarmupRoute: typeof ProductWarmupRoute
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
-  ProductsAiCampaignWriterRoute: typeof ProductsAiCampaignWriterRoute
   RCodeRoute: typeof RCodeRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -2827,6 +2826,13 @@ declare module '@tanstack/react-router' {
       path: '/acceptable-use'
       fullPath: '/acceptable-use'
       preLoaderRoute: typeof AcceptableUseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-campaign-writer': {
+      id: '/ai-campaign-writer'
+      path: '/ai-campaign-writer'
+      fullPath: '/ai-campaign-writer'
+      preLoaderRoute: typeof AiCampaignWriterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-personalized-outreach': {
@@ -3394,13 +3400,6 @@ declare module '@tanstack/react-router' {
       path: '/product/workspaces'
       fullPath: '/product/workspaces'
       preLoaderRoute: typeof ProductWorkspacesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products/ai-campaign-writer': {
-      id: '/products/ai-campaign-writer'
-      path: '/products/ai-campaign-writer'
-      fullPath: '/products/ai-campaign-writer'
-      preLoaderRoute: typeof ProductsAiCampaignWriterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/r/$code': {
@@ -4721,6 +4720,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AcceptableUseRoute: AcceptableUseRoute,
+  AiCampaignWriterRoute: AiCampaignWriterRoute,
   AiPersonalizedOutreachRoute: AiPersonalizedOutreachRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
@@ -4781,7 +4781,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProductUnifiedInboxRoute: ProductUnifiedInboxRoute,
   ProductWarmupRoute: ProductWarmupRoute,
   ProductWorkspacesRoute: ProductWorkspacesRoute,
-  ProductsAiCampaignWriterRoute: ProductsAiCampaignWriterRoute,
   RCodeRoute: RCodeRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
