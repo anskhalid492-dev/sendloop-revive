@@ -259,11 +259,7 @@ function DashboardPage() {
         </AnimatePresence>
 
         {/* 2. Today's outbound overview */}
-        <Panel
-          title="Today's outbound"
-          description="Scoped to the current sending day and compared with yesterday. Lifetime totals live in the campaign table."
-          bare
-        >
+        <Panel title="Today's outbound" bare>
           <KpiBoard today={data?.today ?? null} yesterday={data?.yesterday ?? null} loading={loading} />
         </Panel>
 
@@ -299,11 +295,7 @@ function DashboardPage() {
         </Panel>
 
         {/* 4. Campaign performance */}
-        <Panel
-          title="Campaign performance"
-          description="Run state comes from the scheduler — a campaign that only used today's quota is never marked completed."
-          action={<PanelLink to="/campaigns" label="All campaigns" />}
-        >
+        <Panel title="Campaign performance" action={<PanelLink to="/campaigns" label="All campaigns" />}>
           <CampaignTable rows={data?.campaigns ?? []} loading={loading} />
         </Panel>
 

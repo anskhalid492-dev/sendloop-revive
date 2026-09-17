@@ -80,6 +80,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { MailboxTypeIcon } from "@/components/campaign/MailboxTypeBadge";
+import { WarmupHealthIndicator } from "@/components/mailboxes/WarmupHealthIndicator";
 import { emailProviderOf } from "@/lib/mailbox-type";
 import {
   checkWorkspaceMailboxDeletion,
@@ -720,10 +721,9 @@ function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
 }
 
 function HealthCell({ row }: { row: WorkspaceMailboxRow }) {
-  if (row.healthScore === null) {
-    return <span className="text-sm text-muted-foreground">Not scored yet</span>;
-  }
-  return <span className="text-sm font-medium">{row.healthScore}</span>;
+  return (
+    <WarmupHealthIndicator score={row.healthScore} paused={row.warmupEnabled !== true} />
+  );
 }
 
 const AUTH_LABELS: Record<string, string> = {
