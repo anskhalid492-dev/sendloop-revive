@@ -149,7 +149,13 @@ async function countMeetings(client: Client, data: RangeInput, from: Date, to: D
       .eq("campaign_id", data.campaignId)
       .not("lead_id", "is", null);
     if (recErr) return null;
-    leadIds = [...new Set((recipients ?? []).map((r) => r.lead_id as string))];
+    leadIds = [
+      ...new Set(
+        ((recipients ?? []) as Array<{ lead_id: string | null }>)
+          .map((r) => r.lead_id)
+          .filter((id): id is string => typeof id === "string"),
+      ),
+    ];
     if (leadIds.length === 0) return 0;
   }
   let q = client
