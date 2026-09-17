@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { retryFailedCampaignMessages } from "@/lib/dispatch.functions";
 import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
