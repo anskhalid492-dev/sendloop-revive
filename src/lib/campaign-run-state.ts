@@ -159,7 +159,13 @@ const SETUP_FAILURE_PATTERNS: RegExp[] = [
   /mailbox\s*(is\s*)?not\s*(connected|active)/i,
   /reactivate\s*it\s*under\s*email\s*accounts/i,
   /connect\s*(your|a)\s*mailbox/i,
-  /relay/i,
+  // Only relay *configuration/availability* problems — never a relay-reported
+  // permanent SMTP rejection, whose text also mentions the relay.
+  /relay\s*(is\s*)?not\s*configured/i,
+  /missing\s*relay\s*secret/i,
+  /relay\s*returned\s*(an\s*unreadable|50[0-9])/i,
+  /relay\s*(is\s*)?(unavailable|unreachable|degraded)/i,
+  /SERVICE_DEGRADED/i,
   /provider\s*(is\s*)?(unavailable|disabled|not\s*configured)/i,
   /authentication\s*fail/i,
   /invalid\s*(credentials|login|password)/i,
@@ -178,11 +184,19 @@ export function isSetupFailure(lastError: string | null | undefined): boolean {
   return SETUP_FAILURE_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+/** True when the address/recipient itself was permanently rejected. */
+export function isPermanentFailure(lastError: string | null | undefined): boolean {
+  const text = (lastError ?? "").trim();
+  if (!text) return false;
+  return PERMANENT_FAILURE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 /** True when a failed attempt may be retried on a later run. */
 export function isRetryableFailure(lastError: string | null | undefined): boolean {
+  // A permanent rejection always wins: retrying a dead address can only bounce.
+  if (isPermanentFailure(lastError)) return false;
   if (isSetupFailure(lastError)) return true;
-  const text = (lastError ?? "").trim();
-  // No recorded reason: treat as transient (the attempt counter still bounds it).
-  if (!text) return true;
-  return !PERMANENT_FAILURE_PATTERNS.some((pattern) => pattern.test(text));
+  // Anything else (including no recorded reason) is transient; the attempt
+  // counter still bounds how often it is retried.
+  return true;
 }

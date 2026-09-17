@@ -1530,6 +1530,13 @@ export async function dispatchDueMessages(
 /** How many send attempts a single campaign message may ever consume. */
 export const MAX_SEND_ATTEMPTS = 3;
 
+/**
+ * Attempt budget for account/configuration failures. Higher than the normal
+ * budget (the customer may need several runs to fix their mailbox) but still
+ * finite, so a message can never be re-queued forever.
+ */
+export const MAX_SETUP_SEND_ATTEMPTS = 10;
+
 export type RetryableMessageRow = {
   id: string;
   status: string;
@@ -1562,8 +1569,11 @@ export function selectRetryableMessages(
     if (!isRetryableFailure(row.last_error ?? null)) return false;
     // A configuration failure (paused mailbox, relay/credentials) never reached
     // the recipient, so once the customer fixes it the message resumes on the
-    // very next run instead of being stuck as Failed forever.
-    if (isSetupFailure(row.last_error ?? null)) return true;
+    // very next run instead of waiting for a new sending day — but it still has
+    // a hard attempt budget so it can never retry forever.
+    if (isSetupFailure(row.last_error ?? null)) {
+      return (row.attempts ?? 0) < MAX_SETUP_SEND_ATTEMPTS;
+    }
     if ((row.attempts ?? 0) >= maxAttempts) return false;
     const last = row.updated_at ?? row.created_at ?? null;
     if (!last) return false;
