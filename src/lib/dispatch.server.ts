@@ -13,7 +13,7 @@ import {
   campaignHourlyLimit,
 } from "@/lib/mailbox-hourly-cap";
 import { campaignScheduleState, normalizeSendDays, windowStartAt, zonedStartOfDay, type ScheduleWindow } from "@/lib/campaign-schedule";
-import { isRetryableFailure } from "@/lib/campaign-run-state";
+import { isRetryableFailure, isSetupFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import {
