@@ -1,3 +1,6 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   CircleAlert,
   Gauge,
@@ -9,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { retryFailedCampaignMessages } from "@/lib/dispatch.functions";
 import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
@@ -91,6 +96,28 @@ function MiniStat({
 
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const { campaign, queue, delivery, today, run, steps, accounts, settings, leads } = builder;
+  const queryClient = useQueryClient();
+  const retryFn = useServerFn(retryFailedCampaignMessages);
+  const campaignId = campaign?.id ?? null;
+  const retry = useMutation({
+    mutationFn: async () => {
+      if (!campaignId) return { retried: 0 };
+      return retryFn({ data: { campaignId } });
+    },
+    onSuccess: async (result) => {
+      toast.success(
+        result.retried
+          ? `${result.retried.toLocaleString()} message${result.retried === 1 ? "" : "s"} queued to send again.`
+          : "Nothing left to retry.",
+      );
+      if (!campaignId) return;
+      await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-queue", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Could not retry these messages."),
+  });
   if (!campaign || !settings) return null;
 
   const selected = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
@@ -289,6 +316,22 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
               <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
               <MiniStat label="Delayed" value={delayed} hint="Retrying" />
             </div>
+            {failed > 0 ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={retry.isPending}
+                  onClick={() => retry.mutate()}
+                >
+                  {retry.isPending ? "Queueing…" : "Retry failed sends"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Fixed what caused the failures? Send these again — already sent and bounced
+                  emails are never repeated.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div>
