@@ -117,3 +117,7 @@ export function mailboxRetryAt(now: Date, nextWindowStart?: Date | null): Date {
 
 export const NO_MAILBOX_AVAILABLE_MESSAGE =
   "No sending mailbox is available right now — the message stays queued and will retry.";
+
+/** Temporary condition: the assigned mailbox (and every pool mailbox) is at its sending limit. */
+export const MAILBOX_CAPACITY_MESSAGE =
+  "The sending mailbox has used up its limit for now — the message stays queued and will retry when capacity returns.";

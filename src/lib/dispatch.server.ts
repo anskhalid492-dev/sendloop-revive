@@ -17,6 +17,7 @@ import { isRetryableFailure, isSetupFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import {
+  MAILBOX_CAPACITY_MESSAGE,
   NO_MAILBOX_AVAILABLE_MESSAGE,
   isEligibleMailbox,
   mailboxRetryAt,
@@ -1034,9 +1035,51 @@ export async function dispatchDueMessages(
       sentTodayByAccount.get(account.id) ?? 0,
     );
     if (accountSentToday + usedNow >= (account.daily_limit ?? 0)) {
-      result.skipped += 1;
-      logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached" });
-      continue;
+      // The assigned mailbox is full, but another mailbox in the campaign's
+      // pool may still have room — reassign first. Writing nothing here (the
+      // old behaviour) starved the queue: the same head-of-queue messages were
+      // re-examined every run while messages assigned to mailboxes WITH room
+      // never got a turn.
+      const capacityUsageById = new Map<string, number>();
+      for (const id of campaignMailboxPool) {
+        const candidate = accountById.get(id);
+        if (!candidate) continue;
+        capacityUsageById.set(
+          id,
+          mailboxSentToday(candidate, windowStart, sentTodayByAccount.get(id) ?? 0) +
+            (sentPerAccount.get(id) ?? 0),
+        );
+      }
+      const capacityPickedId = selectMailboxForMessage({
+        poolIds: campaignMailboxPool,
+        accountsById: accountById,
+        usageById: capacityUsageById,
+        allowedProviders,
+      });
+      const capacityPicked = capacityPickedId ? accountById.get(capacityPickedId) : undefined;
+      if (capacityPicked && capacityPicked.id !== account.id) {
+        await supabase
+          .from("campaign_messages")
+          .update({ sending_account_id: capacityPicked.id })
+          .eq("id", message.id);
+        message.sending_account_id = capacityPicked.id;
+        account = capacityPicked;
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: capacityPicked.id, mailboxEligible: true, reason: "mailbox_reassigned_capacity" });
+      } else {
+        // TEMPORARY condition — defer with a concrete retry time so the message
+        // leaves the head of the queue and later messages are examined next run.
+        result.skipped += 1;
+        if (result.errors.length < 5) result.errors.push(MAILBOX_CAPACITY_MESSAGE);
+        await supabase
+          .from("campaign_messages")
+          .update({
+            scheduled_at: mailboxRetryAt(now, dispatchSchedule.nextWindowStart).toISOString(),
+            last_error: MAILBOX_CAPACITY_MESSAGE,
+          })
+          .eq("id", message.id);
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "mailbox_check", messageId: message.id, mailboxId: account.id, mailboxEligible: false, reason: "mailbox_12_hour_capacity_reached_deferred" });
+        continue;
+      }
     }
     // Hard 70/hour per-mailbox ceiling — independent of daily limits/pacing.
     const hourlyLimit = campaignHourlyLimit(account.hourly_limit);
