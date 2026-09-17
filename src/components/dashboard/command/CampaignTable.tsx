@@ -126,13 +126,7 @@ export function CampaignTable({
                 {row.sentLifetime.toLocaleString()}
               </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.delivered.toLocaleString()}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                {pct(row.delivered, row.delivered + row.bounced).toFixed(1)}%
-              </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.replies.toLocaleString()}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                {pct(row.replies, row.sentLifetime).toFixed(1)}%
-              </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.positive.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums">{row.meetings.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
