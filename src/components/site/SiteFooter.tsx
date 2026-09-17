@@ -40,7 +40,7 @@ const fallbackColumns = [
     links: [
       { label: "Campaigns", href: "/product/campaigns" },
       { label: "AI", href: "/ai-personalized-outreach" },
-      { label: "AI Writer", href: "/products/ai-campaign-writer" },
+      { label: "AI Writer", href: "/ai-campaign-writer" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -131,7 +131,7 @@ const productIcons: Record<string, typeof Send> = {
  * reads the same as the header, no matter what the admin-managed list says.
  */
 const productLabelOverrides: Record<string, string> = {
-  "/products/ai-campaign-writer": "AI Writer",
+  "/ai-campaign-writer": "AI Writer",
   "/ai-personalized-outreach": "AI",
 };
 
@@ -220,10 +220,10 @@ export function SiteFooter() {
     // AI Writer is a core product page and must always be listed under
     // Products, even if the admin-managed footer list omits it.
   const products = groups.get("Products") ?? [];
-    if (!products.some((l) => l.href === "/products/ai-campaign-writer")) {
+    if (!products.some((l) => l.href === "/ai-campaign-writer")) {
       // Sits right after AI Personalization ("AI") to match the header order.
       const aiIndex = products.findIndex((l) => l.href === "/ai-personalized-outreach");
-      const entry = { label: "AI Writer", href: "/products/ai-campaign-writer" };
+      const entry = { label: "AI Writer", href: "/ai-campaign-writer" };
       const next =
         aiIndex === -1
           ? [...products, entry]

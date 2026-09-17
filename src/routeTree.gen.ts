@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
+import { Route as AiCampaignWriterRouteImport } from './routes/ai-campaign-writer'
 import { Route as AiPersonalizedOutreachRouteImport } from './routes/ai-personalized-outreach'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -240,6 +241,11 @@ const AboutRoute = AboutRouteImport.update({
 const AcceptableUseRoute = AcceptableUseRouteImport.update({
   id: '/acceptable-use',
   path: '/acceptable-use',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiCampaignWriterRoute = AiCampaignWriterRouteImport.update({
+  id: '/ai-campaign-writer',
+  path: '/ai-campaign-writer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiPersonalizedOutreachRoute = AiPersonalizedOutreachRouteImport.update({
@@ -1408,6 +1414,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
@@ -1622,6 +1629,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
@@ -1835,6 +1843,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
@@ -2051,6 +2060,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/acceptable-use'
+    | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
@@ -2265,6 +2275,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/acceptable-use'
+    | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
@@ -2477,6 +2488,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/acceptable-use'
+    | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
     | '/api-docs'
     | '/auth'
@@ -2693,6 +2705,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AcceptableUseRoute: typeof AcceptableUseRoute
+  AiCampaignWriterRoute: typeof AiCampaignWriterRoute
   AiPersonalizedOutreachRoute: typeof AiPersonalizedOutreachRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
@@ -2827,6 +2840,13 @@ declare module '@tanstack/react-router' {
       path: '/acceptable-use'
       fullPath: '/acceptable-use'
       preLoaderRoute: typeof AcceptableUseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-campaign-writer': {
+      id: '/ai-campaign-writer'
+      path: '/ai-campaign-writer'
+      fullPath: '/ai-campaign-writer'
+      preLoaderRoute: typeof AiCampaignWriterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-personalized-outreach': {
@@ -4721,6 +4741,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AcceptableUseRoute: AcceptableUseRoute,
+  AiCampaignWriterRoute: AiCampaignWriterRoute,
   AiPersonalizedOutreachRoute: AiPersonalizedOutreachRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
