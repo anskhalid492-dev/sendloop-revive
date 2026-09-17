@@ -94,9 +94,12 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
   const other = data.usage.filter(
     (u) => !["leads", "emails_monthly", "emails_daily"].includes(u.key),
   );
+  const daysLeft = data.period.end
+    ? Math.max(0, Math.ceil((new Date(data.period.end).getTime() - Date.now()) / 86_400_000))
+    : null;
   const resetLabel = data.period.resets
     ? data.period.end
-      ? `Resets ${new Date(data.period.end).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+      ? `Resets ${new Date(data.period.end).toLocaleDateString(undefined, { month: "short", day: "numeric" })} — ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
       : "Resets each billing cycle"
     : "Total trial allowance — does not reset";
 
