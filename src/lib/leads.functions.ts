@@ -156,26 +156,51 @@ export const renameLeadList = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Deleting a list touches every lead in it. A single statement over tens of
+ * thousands of rows (plus cascading child rows) blows past Postgres'
+ * statement_timeout, so the work is chunked into small batches instead.
+ */
 export const deleteLeadList = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({ id: z.string().uuid(), deleteLeads: z.boolean().default(false) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    if (data.deleteLeads) {
-      const { error } = await context.supabase.from("leads").delete().eq("list_id", data.id);
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await context.supabase
+    const BATCH = 300;
+    let processed = 0;
+
+    // Loop until no lead references the list any more. Each pass reads a small
+    // page of ids and mutates only those, keeping every statement short.
+    for (let guard = 0; guard < 10_000; guard += 1) {
+      const { data: rows, error: readError } = await context.supabase
         .from("leads")
-        .update({ list_id: null })
-        .eq("list_id", data.id);
-      if (error) throw new Error(error.message);
+        .select("id")
+        .eq("list_id", data.id)
+        .limit(BATCH);
+      if (readError) throw new Error(readError.message);
+      const ids = (rows ?? []).map((r) => (r as { id: string }).id);
+      if (ids.length === 0) break;
+
+      if (data.deleteLeads) {
+        const { error } = await context.supabase.from("leads").delete().in("id", ids);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await context.supabase
+          .from("leads")
+          .update({ list_id: null })
+          .in("id", ids);
+        if (error) throw new Error(error.message);
+      }
+      processed += ids.length;
+      if (ids.length < BATCH) break;
     }
+
     const { error } = await context.supabase.from("lead_lists").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, processed };
   });
+
 
 /* ------------------------------------------------------------------ leads */
 
