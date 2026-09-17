@@ -4,6 +4,7 @@ import {
   computeAccountTotals,
   computeCampaignStats,
   computeTimeseries,
+  collapseMessageUnits,
   EMPTY_CAMPAIGN_STATS,
   rate,
   toCampaignStats,
@@ -77,9 +78,7 @@ describe("campaign stats source", () => {
     const from = new Date("2026-09-17T00:00:00.000Z");
     const to = new Date("2026-09-18T00:00:00.000Z");
     const stats = computeCampaignStats({ campaignId: "c1", leads: 2, messages, from, to });
-    const units = Array.from(
-      (await import("../src/lib/campaign-stats")).collapseMessageUnits(messages).values(),
-    );
+    const units = Array.from(collapseMessageUnits(messages).values());
     const series = computeTimeseries(units, { bucket: "day", from, to });
     const accounts = computeAccountTotals(units, { from, to });
 
