@@ -189,13 +189,14 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const { data: warmupRows } = accountIds.length
       ? await client
           .from("warmup_settings")
-          .select("sending_account_id, enabled, daily_target, paused_by_system, pause_reason")
+          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason")
           .in("sending_account_id", accountIds)
       : { data: [] };
     type WarmupRecord = {
       sending_account_id: string;
       enabled: boolean | null;
-      daily_target: number | null;
+      max_volume: number | null;
+
       paused_by_system: boolean | null;
       pause_reason: string | null;
     };
@@ -254,7 +255,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
           : null,
         lastSentAt: account?.last_sent_at ?? null,
         warmupStatus: account?.warmup_status ?? null,
-        warmupDailyTarget: warmup?.daily_target ?? account?.warmup_daily_target ?? null,
+        warmupDailyTarget: warmup?.max_volume ?? account?.warmup_daily_target ?? null,
         warmupEnabled: warmup ? warmup.enabled === true : row.warmup_enabled === true,
         warmupPauseReason: warmup?.paused_by_system ? warmup.pause_reason ?? null : null,
         spf: account?.spf_status ?? null,

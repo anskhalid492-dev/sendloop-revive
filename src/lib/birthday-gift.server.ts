@@ -120,8 +120,16 @@ export type BirthdayCycleResult = {
   errors: number;
 };
 
+/**
+ * When the optional birthday schema is absent the cycle disables itself for the
+ * life of this worker, so it cannot log the same "column does not exist"
+ * database error on every scheduler tick.
+ */
+let birthdaySchemaMissing = false;
+
 export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleResult> {
   const result: BirthdayCycleResult = { checked: 0, matched: 0, gifted: 0, skipped: 0, errors: 0 };
+  if (birthdaySchemaMissing) return result;
   const now = new Date();
 
   const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
@@ -138,7 +146,12 @@ export async function runBirthdayGiftCycle(limit = 200): Promise<BirthdayCycleRe
 
   // The birthday column is added by supabase/manual/birthday-gift.sql; until it
   // exists the automation simply does nothing.
-  if (error) return result;
+  if (error) {
+    // 42703 = undefined_column: the optional schema is not installed.
+    if ((error as { code?: string }).code === "42703") birthdaySchemaMissing = true;
+    return result;
+  }
+
 
   const profiles = (data ?? []) as unknown as ProfileRow[];
   result.checked = profiles.length;
