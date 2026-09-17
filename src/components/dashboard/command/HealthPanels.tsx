@@ -68,7 +68,7 @@ export function SendingHealthPanel({ health }: { health: SendingHealth }) {
         <Progress value={used} className="mt-4 h-1.5" />
         <p className="mt-2 text-[11px] text-muted-foreground">
           {health.usedInWindow.toLocaleString()} of {health.capacity.toLocaleString()} used ·{" "}
-          {health.domainsReady}/{health.domainsTotal} domains verified
+          {health.domainsReady}/{health.domainsTotal} mailboxes verified
         </p>
       </div>
     </div>
