@@ -1403,6 +1403,82 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_gifts: {
+        Row: {
+          created_at: string
+          email_status: string
+          email_to: string | null
+          gift_date: string
+          gift_year: number
+          grant_error: string | null
+          grant_expires_at: string | null
+          granted: boolean
+          id: string
+          plan_grant_id: string | null
+          plan_id: string | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_status?: string
+          email_to?: string | null
+          gift_date: string
+          gift_year: number
+          grant_error?: string | null
+          grant_expires_at?: string | null
+          granted?: boolean
+          id?: string
+          plan_grant_id?: string | null
+          plan_id?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_status?: string
+          email_to?: string | null
+          gift_date?: string
+          gift_year?: number
+          grant_error?: string | null
+          grant_expires_at?: string | null
+          granted?: boolean
+          id?: string
+          plan_grant_id?: string | null
+          plan_id?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_gifts_plan_grant_id_fkey"
+            columns: ["plan_grant_id"]
+            isOneToOne: false
+            referencedRelation: "plan_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_gifts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_gifts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_authors: {
         Row: {
           avatar_url: string | null
@@ -6160,6 +6236,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          birthday: string | null
           created_at: string
           display_name: string | null
           email: string | null
@@ -6174,6 +6251,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -6188,6 +6266,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null

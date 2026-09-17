@@ -360,7 +360,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       const windowMessages = messageRows.filter((m) => within(m.sent_at));
       return {
         sent: windowMessages.length,
-        delivered: windowMessages.filter((m) => m.delivered_at).length,
+        delivered: windowMessages.filter((m) => !m.bounced_at).length,
         replies: windowReplies.length,
         positive: windowReplies.filter((r) => r.sentiment === "positive").length,
         meetings: meetingRows.filter((l) => within(l.last_activity_at)).length,
@@ -382,7 +382,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       const b = buckets.get((m.sent_at as string).slice(0, 10));
       if (!b) continue;
       b.sent += 1;
-      if (m.delivered_at) b.delivered += 1;
+      if (!m.bounced_at) b.delivered += 1;
     }
     for (const r of replyRows) {
       if (!inWindow(r.received_at, start)) continue;
