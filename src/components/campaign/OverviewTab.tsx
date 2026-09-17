@@ -316,6 +316,22 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
               <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
               <MiniStat label="Delayed" value={delayed} hint="Retrying" />
             </div>
+            {failed > 0 ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={retry.isPending}
+                  onClick={() => retry.mutate()}
+                >
+                  {retry.isPending ? "Queueing…" : "Retry failed sends"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Fixed what caused the failures? Send these again — already sent and bounced
+                  emails are never repeated.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div>
