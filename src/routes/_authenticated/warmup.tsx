@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
 import { listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
-import { HEALTH_STATUS_LABEL, healthTone, type WarmupHealthStatus } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
 
 

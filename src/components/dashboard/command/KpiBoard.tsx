@@ -122,13 +122,14 @@ export function KpiBoard({
                   <span className="truncate">{card.label}</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button
-                        type="button"
+                      <span
+                        role="button"
+                        tabIndex={0}
                         aria-label={`About ${card.label}`}
                         className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Info className="size-3.5" />
-                      </button>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-64 normal-case leading-relaxed tracking-normal">
                       {card.description}

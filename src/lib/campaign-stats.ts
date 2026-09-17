@@ -346,6 +346,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   const openedLeads = new Set<string>();
   const clickedLeads = new Set<string>();
   const steps = new Map<number, CampaignStepStats>();
+  let sentBounced = 0;
   const stepBounces = new Map<number, number>();
   const stepOf = (step: number) => {
     let row = steps.get(step);
@@ -362,10 +363,15 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     const bounced = Boolean(s.bounced_at);
     const failed = Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt);
 
-    if (inRange(unit.sentAt)) {
+    const sentInRange = inRange(unit.sentAt);
+    if (sentInRange) {
       stats.sent += 1;
       step.sent += 1;
       contacted.add(unit.leadKey);
+      if (bounced) {
+        sentBounced += 1;
+        stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
+      }
     }
     if (inRange(s.delivered_at) && !bounced && !s.failed_at) {
       stats.delivered += 1;
@@ -382,7 +388,6 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     }
     if (inRange(s.bounced_at)) {
       stats.bounced += 1;
-      if (inRange(unit.sentAt)) stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
     }
     if (inRange(s.unsubscribed_at)) stats.unsubscribed += 1;
     if (inRange(s.complained_at)) stats.complained += 1;
@@ -404,7 +409,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   // Customer SMTP relays do not emit delivery receipts. Use the shared
   // accepted-minus-confirmed-bounces definition while retaining any larger
   // provider-confirmed count.
-  stats.delivered = Math.max(stats.delivered, Math.max(0, stats.sent - stats.bounced));
+  stats.delivered = Math.max(stats.delivered, Math.max(0, stats.sent - sentBounced));
   for (const [stepNumber, step] of steps) {
     step.delivered = Math.max(step.delivered, Math.max(0, step.sent - (stepBounces.get(stepNumber) ?? 0)));
   }
@@ -498,6 +503,7 @@ export function computeAccountTotals(
   const clickers = new Map<string, Set<string>>();
   const repliers = new Map<string, Set<string>>();
   const confirmedDelivered = new Map<string, number>();
+  const sentBounces = new Map<string, number>();
   const addPerson = (map: Map<string, Set<string>>, accountId: string, leadKey: string) => {
     const set = map.get(accountId) ?? new Set<string>();
     set.add(leadKey);
@@ -520,7 +526,12 @@ export function computeAccountTotals(
       };
       rows.set(u.accountId, row);
     }
-    if (inRange(u.sentAt)) row.sent += 1;
+    if (inRange(u.sentAt)) {
+      row.sent += 1;
+      if (u.signals.bounced_at) {
+        sentBounces.set(u.accountId, (sentBounces.get(u.accountId) ?? 0) + 1);
+      }
+    }
     if (inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
     }
@@ -532,7 +543,10 @@ export function computeAccountTotals(
     if (inRange(u.signals.unsubscribed_at)) row.unsubscribed += 1;
   }
   for (const row of rows.values()) {
-    row.delivered = Math.max(confirmedDelivered.get(row.accountId) ?? 0, Math.max(0, row.sent - row.bounced));
+    row.delivered = Math.max(
+      confirmedDelivered.get(row.accountId) ?? 0,
+      Math.max(0, row.sent - (sentBounces.get(row.accountId) ?? 0)),
+    );
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;
     row.replies = repliers.get(row.accountId)?.size ?? 0;
