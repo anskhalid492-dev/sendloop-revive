@@ -146,8 +146,41 @@ const PERMANENT_FAILURE_PATTERNS: RegExp[] = [
   /message\s*rejected/i,
 ];
 
+/**
+ * Setup failures: nothing was ever offered to the recipient, the *account*
+ * configuration refused the send (paused mailbox, missing connection, relay
+ * unreachable, bad credentials). The customer can fix these, so they must be
+ * retried once fixed — even if the wording happens to trip a permanent
+ * pattern, and even after the normal attempt budget is spent.
+ */
+const SETUP_FAILURE_PATTERNS: RegExp[] = [
+  /mailbox\s*is\s*paused/i,
+  /no\s*(connected|active)\s*mailbox/i,
+  /mailbox\s*(is\s*)?not\s*(connected|active)/i,
+  /reactivate\s*it\s*under\s*email\s*accounts/i,
+  /connect\s*(your|a)\s*mailbox/i,
+  /relay/i,
+  /provider\s*(is\s*)?(unavailable|disabled|not\s*configured)/i,
+  /authentication\s*fail/i,
+  /invalid\s*(credentials|login|password)/i,
+  /login\s*(failed|denied)/i,
+  /535|534|530/,
+  /connection\s*(refused|reset|timed?\s*out|closed)/i,
+  /stream\s*was\s*cancelled/i,
+  /unknown\s*action/i,
+  /not\s*configured/i,
+];
+
+/** True when the failure is an account/configuration problem the customer can fix. */
+export function isSetupFailure(lastError: string | null | undefined): boolean {
+  const text = (lastError ?? "").trim();
+  if (!text) return false;
+  return SETUP_FAILURE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 /** True when a failed attempt may be retried on a later run. */
 export function isRetryableFailure(lastError: string | null | undefined): boolean {
+  if (isSetupFailure(lastError)) return true;
   const text = (lastError ?? "").trim();
   // No recorded reason: treat as transient (the attempt counter still bounds it).
   if (!text) return true;
