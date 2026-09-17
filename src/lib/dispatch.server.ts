@@ -17,6 +17,7 @@ import { isRetryableFailure, isSetupFailure } from "@/lib/campaign-run-state";
 
 import { mailboxSentToday, mailboxWindowStart, nextStoredSentToday } from "@/lib/mailbox-daily-usage";
 import {
+  MAILBOX_CAPACITY_MESSAGE,
   NO_MAILBOX_AVAILABLE_MESSAGE,
   isEligibleMailbox,
   mailboxRetryAt,
