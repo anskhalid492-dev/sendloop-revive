@@ -60,38 +60,17 @@ export function DeliverabilityPanel({ filters }: { filters: AnalyticsFilters }) 
       {query.isLoading ? (
         <Skeleton className="mt-3 h-32 w-full rounded-xl" />
       ) : (
-        <>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {tiles.map((tile) => (
-              <div key={tile.label} className="rounded-xl border border-border/50 p-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {tile.label}
-                </p>
-                <p className={`mt-1 text-xl font-semibold ${tile.tone}`}>{tile.value}</p>
-                <p className="text-xs text-muted-foreground">{tile.sub}</p>
-              </div>
-            ))}
-          </div>
-
-          {(data?.reasons ?? []).length > 0 ? (
-            <div className="mt-4">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {tiles.map((tile) => (
+            <div key={tile.label} className="rounded-xl border border-border/50 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Most common failure reasons
+                {tile.label}
               </p>
-              <ul className="mt-2 space-y-1.5">
-                {(data?.reasons ?? []).map((reason) => (
-                  <li
-                    key={reason.reason}
-                    className="flex items-start justify-between gap-3 border-b border-border/40 pb-1.5 text-sm last:border-0"
-                  >
-                    <span className="text-muted-foreground">{reason.reason}</span>
-                    <span className="shrink-0 tabular-nums">{formatCount(reason.count)}</span>
-                  </li>
-                ))}
-              </ul>
+              <p className={`mt-1 text-xl font-semibold ${tile.tone}`}>{tile.value}</p>
+              <p className="text-xs text-muted-foreground">{tile.sub}</p>
             </div>
-          ) : null}
-        </>
+          ))}
+        </div>
       )}
     </section>
   );
