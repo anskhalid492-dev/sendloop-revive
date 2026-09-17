@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { EMPTY_CAMPAIGN_STATS, rate, toCampaignStats } from "../src/lib/campaign-stats";
+import {
+  computeAccountTotals,
+  computeCampaignStats,
+  computeTimeseries,
+  collapseMessageUnits,
+  EMPTY_CAMPAIGN_STATS,
+  rate,
+  toCampaignStats,
+} from "../src/lib/campaign-stats";
 
 describe("campaign stats source", () => {
   it("maps every metric from the shared database row", () => {
@@ -43,5 +51,40 @@ describe("campaign stats source", () => {
   it("uses one shared rate helper so percentages match everywhere", () => {
     expect(rate(42, 1502)).toBe(2.8);
     expect(rate(1, 0)).toBeNull();
+  });
+
+  it("counts accepted, non-bounced SMTP sends as delivered everywhere", () => {
+    const messages = [
+      {
+        id: "m1",
+        campaign_id: "c1",
+        sending_account_id: "a1",
+        recipient_id: "r1",
+        step_order: 1,
+        status: "sent",
+        sent_at: "2026-09-17T10:00:00.000Z",
+      },
+      {
+        id: "m2",
+        campaign_id: "c1",
+        sending_account_id: "a1",
+        recipient_id: "r2",
+        step_order: 1,
+        status: "sent",
+        sent_at: "2026-09-17T11:00:00.000Z",
+        bounced_at: "2026-09-17T11:05:00.000Z",
+      },
+    ];
+    const from = new Date("2026-09-17T00:00:00.000Z");
+    const to = new Date("2026-09-18T00:00:00.000Z");
+    const stats = computeCampaignStats({ campaignId: "c1", leads: 2, messages, from, to });
+    const units = Array.from(collapseMessageUnits(messages).values());
+    const series = computeTimeseries(units, { bucket: "day", from, to });
+    const accounts = computeAccountTotals(units, { from, to });
+
+    expect(stats).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
+    expect(stats.byStep[0]).toMatchObject({ sent: 2, delivered: 1 });
+    expect(series[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
+    expect(accounts[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
   });
 });
