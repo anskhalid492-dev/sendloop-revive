@@ -2,7 +2,18 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, AlertTriangle, Flame, Pause, Play, Send, Settings2 } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Flame,
+  HeartPulse,
+  Pause,
+  Play,
+  Send,
+  Settings2,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -63,6 +74,53 @@ function placement(value: number, counterpart: number, sent: number): string {
   if (value > 0 || counterpart > 0) return String(value);
   if (sent > 0) return "Not available";
   return "—";
+}
+
+function HealthIndicator({ score }: { score: number | null }) {
+  if (score === null) {
+    return <span className="text-xs text-muted-foreground">Not scored</span>;
+  }
+
+  const bounded = Math.max(0, Math.min(100, score));
+  const state =
+    bounded >= 90
+      ? { label: "Healthy", icon: ShieldCheck, tone: "text-success", surface: "border-success/20 bg-success/10" }
+      : bounded >= 70
+        ? { label: "Good / Watch", icon: HeartPulse, tone: "text-primary", surface: "border-primary/20 bg-primary/10" }
+        : bounded >= 50
+          ? { label: "Needs Attention", icon: ShieldAlert, tone: "text-warning", surface: "border-warning/25 bg-warning/10" }
+          : { label: "At Risk", icon: ShieldAlert, tone: "text-destructive", surface: "border-destructive/20 bg-destructive/10" };
+  const Icon = state.icon;
+  const circumference = 2 * Math.PI * 16;
+  const dashOffset = circumference * (1 - bounded / 100);
+
+  return (
+    <div className={cn("inline-flex min-w-[138px] items-center gap-2.5 rounded-lg border px-2.5 py-1.5 shadow-sm", state.surface)}>
+      <span className={cn("relative flex size-10 shrink-0 items-center justify-center", state.tone)}>
+        <svg viewBox="0 0 40 40" className="absolute inset-0 size-10 -rotate-90" aria-hidden="true">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" opacity="0.16" />
+          <circle
+            cx="20"
+            cy="20"
+            r="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+          />
+        </svg>
+        <Icon className="size-3.5" aria-hidden="true" />
+      </span>
+      <span className="min-w-0 text-left">
+        <span className={cn("block truncate text-xs font-semibold", state.tone)}>{state.label}</span>
+        <span className="block text-[11px] font-medium tabular-nums text-foreground">
+          {bounded}/100
+        </span>
+      </span>
+    </div>
+  );
 }
 
 function WarmupPage() {
@@ -252,17 +310,7 @@ function WarmupPage() {
 
                     </td>
                     <td className="px-3 py-2.5">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "font-medium",
-                          healthTone(row.health_status as WarmupHealthStatus),
-                        )}
-                      >
-                        {HEALTH_STATUS_LABEL[row.health_status as WarmupHealthStatus] ??
-                          row.health_status}
-                        {row.health_score !== null ? ` · ${row.health_score}` : ""}
-                      </Badge>
+                      <HealthIndicator score={row.health_score} />
                     </td>
                     <td className="w-44 px-3 py-2.5">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">

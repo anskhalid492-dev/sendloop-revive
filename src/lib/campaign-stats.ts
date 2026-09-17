@@ -15,7 +15,8 @@
  * Definitions
  * -----------
  * - sent:        the email was accepted by the sending provider (`sent_at`)
- * - delivered:   accepted by the recipient server and never bounced or failed
+ * - delivered:   accepted for sending and not confirmed as bounced; explicit
+ *                provider confirmations are retained when available
  * - opened / clicked / replied / unsubscribed / complained: real provider signals
  * - bounced / failed: mutually exclusive terminal outcomes (a bounce is not a failure)
  * - scheduled:   pending work — a planned email that has not been sent or cancelled
@@ -345,6 +346,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   const openedLeads = new Set<string>();
   const clickedLeads = new Set<string>();
   const steps = new Map<number, CampaignStepStats>();
+  const stepBounces = new Map<number, number>();
   const stepOf = (step: number) => {
     let row = steps.get(step);
     if (!row) {
@@ -378,7 +380,10 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       repliedLeads.add(unit.leadKey);
       step.replied += 1;
     }
-    if (inRange(s.bounced_at)) stats.bounced += 1;
+    if (inRange(s.bounced_at)) {
+      stats.bounced += 1;
+      if (inRange(unit.sentAt)) stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
+    }
     if (inRange(s.unsubscribed_at)) stats.unsubscribed += 1;
     if (inRange(s.complained_at)) stats.complained += 1;
     if (!bounced && (inRange(s.failed_at) || (failed && inRange(unit.updatedAt)))) {
@@ -396,6 +401,13 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.opened = openedLeads.size;
   stats.clicked = clickedLeads.size;
   stats.replied = repliedLeads.size;
+  // Customer SMTP relays do not emit delivery receipts. Use the shared
+  // accepted-minus-confirmed-bounces definition while retaining any larger
+  // provider-confirmed count.
+  stats.delivered = Math.max(stats.delivered, Math.max(0, stats.sent - stats.bounced));
+  for (const [stepNumber, step] of steps) {
+    step.delivered = Math.max(step.delivered, Math.max(0, step.sent - (stepBounces.get(stepNumber) ?? 0)));
+  }
   stats.contacted = contacted.size;
   stats.queued = stats.scheduled;
   stats.remaining = Math.max(0, stats.leads - stats.contacted);
@@ -443,7 +455,9 @@ export function computeTimeseries(
 
   for (const u of units) {
     at(u.sentAt, "sent");
-    if (!u.signals.bounced_at && !u.signals.failed_at) at(u.signals.delivered_at, "delivered");
+    if (!u.signals.bounced_at && !u.signals.failed_at) {
+      at(u.signals.delivered_at ?? u.sentAt, "delivered");
+    }
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
     at(u.signals.replied_at, "replies");
@@ -483,6 +497,7 @@ export function computeAccountTotals(
   const openers = new Map<string, Set<string>>();
   const clickers = new Map<string, Set<string>>();
   const repliers = new Map<string, Set<string>>();
+  const confirmedDelivered = new Map<string, number>();
   const addPerson = (map: Map<string, Set<string>>, accountId: string, leadKey: string) => {
     const set = map.get(accountId) ?? new Set<string>();
     set.add(leadKey);
@@ -506,7 +521,9 @@ export function computeAccountTotals(
       rows.set(u.accountId, row);
     }
     if (inRange(u.sentAt)) row.sent += 1;
-    if (inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at) row.delivered += 1;
+    if (inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at) {
+      confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
+    }
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);
     if (inRange(u.signals.clicked_at)) addPerson(clickers, u.accountId, u.leadKey);
     if (inRange(u.signals.replied_at)) addPerson(repliers, u.accountId, u.leadKey);
@@ -515,6 +532,7 @@ export function computeAccountTotals(
     if (inRange(u.signals.unsubscribed_at)) row.unsubscribed += 1;
   }
   for (const row of rows.values()) {
+    row.delivered = Math.max(confirmedDelivered.get(row.accountId) ?? 0, Math.max(0, row.sent - row.bounced));
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;
     row.replies = repliers.get(row.accountId)?.size ?? 0;
