@@ -16,6 +16,8 @@ import {
   type EmailAccountSummary,
   type WarmupAccountStats,
 } from "@/lib/sending-model";
+import { mailboxSentToday, mailboxWindowStart } from "@/lib/mailbox-daily-usage";
+
 
 /** Untyped view of the request-scoped Supabase client (generated types lag the new columns). */
 type Client = any;
