@@ -21,12 +21,36 @@ export type AssignableMailbox = {
 };
 
 /**
+ * Providers governed by the shared MunchReach infrastructure toggles in
+ * `email_providers`. Everything else is a CUSTOMER-CONNECTED mailbox (SMTP /
+ * IMAP / Google / Microsoft sending through the relay): those are owned by the
+ * customer, are never listed in `email_providers`, and must therefore never be
+ * ruled ineligible by that table — doing so left whole campaigns stuck on
+ * "No sending mailbox is available".
+ */
+export const MANAGED_SHARED_PROVIDERS = new Set([
+  "ses",
+  "resend",
+  "maileroo",
+  "emailit",
+  "sendgrid",
+  "mailgun",
+  "postmark",
+]);
+
+/** True when the provider's availability is decided by `email_providers`. */
+export function isManagedSharedProvider(provider: string | null | undefined): boolean {
+  return MANAGED_SHARED_PROVIDERS.has(String(provider ?? "").toLowerCase());
+}
+
+/**
  * A mailbox that is allowed to send right now (ignoring capacity).
  *
- * `allowedProviders`, when given, is the set of providers currently enabled for
- * customer sending. A mailbox on a disabled provider (e.g. SES turned off) is
- * ineligible: its messages must be repaired onto another mailbox instead of
- * being claimed and deferred forever.
+ * `allowedProviders`, when given, is the set of shared providers currently
+ * enabled for customer sending. A mailbox on a disabled shared provider (e.g.
+ * SES turned off) is ineligible: its messages must be repaired onto another
+ * mailbox instead of being claimed and deferred forever. Customer-connected
+ * mailboxes are not affected by that set.
  */
 export function isEligibleMailbox(
   account: AssignableMailbox | null | undefined,
@@ -37,7 +61,13 @@ export function isEligibleMailbox(
   if (account.customer_enabled === false) return false;
   if (account.status === "disabled") return false;
   if (account.status === "disconnected") return false;
-  if (allowedProviders && !allowedProviders.has(String(account.provider ?? ""))) return false;
+  if (
+    allowedProviders &&
+    isManagedSharedProvider(account.provider) &&
+    !allowedProviders.has(String(account.provider ?? ""))
+  ) {
+    return false;
+  }
   return true;
 }
 
