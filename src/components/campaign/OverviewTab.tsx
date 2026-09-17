@@ -91,6 +91,28 @@ function MiniStat({
 
 export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const { campaign, queue, delivery, today, run, steps, accounts, settings, leads } = builder;
+  const queryClient = useQueryClient();
+  const retryFn = useServerFn(retryFailedCampaignMessages);
+  const campaignId = campaign?.id ?? null;
+  const retry = useMutation({
+    mutationFn: async () => {
+      if (!campaignId) return { retried: 0 };
+      return retryFn({ data: { campaignId } });
+    },
+    onSuccess: async (result) => {
+      toast.success(
+        result.retried
+          ? `${result.retried.toLocaleString()} message${result.retried === 1 ? "" : "s"} queued to send again.`
+          : "Nothing left to retry.",
+      );
+      if (!campaignId) return;
+      await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-queue", campaignId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Could not retry these messages."),
+  });
   if (!campaign || !settings) return null;
 
   const selected = accounts.filter((a) => settings.sendingAccountIds.includes(a.id));
