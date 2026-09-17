@@ -88,23 +88,54 @@ function decodePart(body: string, encoding: string | undefined): string {
   return body;
 }
 
+/**
+ * Removes CSS rule blocks (`selector { ... }`, including `@media` wrappers) that
+ * survived tag stripping. Marketing mail often arrives with its `<style>` block
+ * broken up — a chunked-transfer length marker or a truncated fetch can split the
+ * opening/closing tag — and without this the whole stylesheet used to be shown as
+ * the message text.
+ */
+function stripCssBlocks(value: string): string {
+  let out = value;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const next = out
+      // @media / @supports wrappers with nested rules
+      .replace(/@[a-z-]+[^{}]{0,200}\{(?:[^{}]*\{[^{}]*\}\s*)*[^{}]*\}/gi, "\n")
+      // plain `selector { prop: value; }` blocks
+      .replace(/(^|\n)[ \t]*[^{}\n;:]{0,200}\{[^{}]*:[^{}]*\}/g, "\n");
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+}
+
 /** Very small HTML→text pass, used only when there is no text/plain part. */
 export function htmlBodyToText(html: string): string {
-  return html
+  const withoutStyles = html
+    // Closed blocks first, then any unterminated one (broken or truncated mail).
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+    .replace(/<style[\s\S]*$/gi, "")
+    .replace(/<script[\s\S]*$/gi, "");
+
+  return stripCssBlocks(
+    withoutStyles
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
+      .replace(/<[^>]+>/g, ""),
+  )
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
 
 function walk(section: string, contentTypeHint: string | null, out: InboundBody, depth: number) {
   if (depth > MAX_DEPTH) return;
@@ -252,7 +283,15 @@ export function cleanInboundText(
   // decoding can only improve it.
   const softBreaks = (value.match(/=\n/g) ?? []).length;
   const escapes = (value.match(/=[0-9A-F]{2}/g) ?? []).length;
-  if (softBreaks + escapes >= 2) return decodeQuotedPrintable(value);
+  const decoded = softBreaks + escapes >= 2 ? decodeQuotedPrintable(value) : value;
 
-  return value;
+  // An HTML body (or the leftovers of a broken one) must never be shown as the
+  // message text: markup and stylesheets are not something a person wrote.
+  if (/<\/?(html|body|head|table|div|p|style|br)\b/i.test(decoded) || /\{[^{}]*:[^{}]*\}/.test(decoded)) {
+    const asText = htmlBodyToText(decoded);
+    return asText || null;
+  }
+
+  return decoded;
 }
+
