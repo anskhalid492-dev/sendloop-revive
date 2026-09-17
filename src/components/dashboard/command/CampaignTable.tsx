@@ -45,12 +45,10 @@ const HEADERS = [
   "Leads",
   "Sent",
   "Delivered",
-  "Delivery %",
   "Replies",
-  "Reply %",
   "Positive",
   "Meetings",
-  "Bounce %",
+  "Bounce",
   "Next run",
 ];
 
@@ -87,7 +85,7 @@ export function CampaignTable({
               <th
                 key={h}
                 className={`px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground ${
-                  i >= 2 && i <= 10 ? "text-right" : ""
+                  i >= 2 && i <= 8 ? "text-right" : ""
                 }`}
               >
                 {h}
@@ -128,13 +126,7 @@ export function CampaignTable({
                 {row.sentLifetime.toLocaleString()}
               </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.delivered.toLocaleString()}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                {pct(row.delivered, row.delivered + row.bounced).toFixed(1)}%
-              </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.replies.toLocaleString()}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                {pct(row.replies, row.sentLifetime).toFixed(1)}%
-              </td>
               <td className="px-4 py-3 text-right tabular-nums">{row.positive.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums">{row.meetings.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
