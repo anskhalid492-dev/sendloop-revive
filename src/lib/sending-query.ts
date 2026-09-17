@@ -296,7 +296,7 @@ function buildSummary(rows: any[]): EmailAccountSummary {
         warmupProgress(r).label === "Needs attention",
     ).length,
     dailyCapacity: rows.reduce((sum, r) => sum + Number(r.daily_limit ?? 0), 0),
-    sentToday: rows.reduce((sum, r) => sum + Number(r.sent_today ?? 0), 0),
+    sentToday: rows.reduce((sum, r) => sum + mailboxSentToday(r, mailboxWindowStart()), 0),
   };
 }
 
