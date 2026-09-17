@@ -265,8 +265,11 @@ supabase
     );
     return {
       sent: sentMsgs.length,
+      // Delivered = accepted for sending and not bounced back. Customer
+      // mailboxes send over SMTP and never report a delivery confirmation, so
+      // `delivered_at` can never be the base (see engagement-rates.ts).
       delivered: sentMsgs.filter(
-        (m) => m["delivered_at"] && !m["bounced_at"] && m["delivery_status"] !== "failed",
+        (m) => !m["bounced_at"] && m["delivery_status"] !== "failed",
       ).length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
@@ -295,7 +298,7 @@ supabase
     const b = buckets.get(new Date(t).toISOString().slice(0, 10));
     if (!b) continue;
     b.sent += 1;
-    if (m["delivered_at"] && !m["bounced_at"]) b.delivered += 1;
+    if (!m["bounced_at"] && m["delivery_status"] !== "failed") b.delivered += 1;
   }
   for (const r of replyRows) {
     const t = ts(r["received_at"]);
@@ -368,7 +371,7 @@ supabase
       leads: leadsPerCampaign.get(id) ?? 0,
       sentLifetime: Number(c["emails_sent_count"] ?? 0) || sentMine.length,
       sentToday,
-      delivered: inRange.filter((m) => m["delivered_at"] && !m["bounced_at"]).length,
+      delivered: inRange.filter((m) => !m["bounced_at"] && m["delivery_status"] !== "failed").length,
       replies: uniqueReplies,
       positive,
       meetings,
@@ -448,7 +451,7 @@ supabase
           : (snapshot.state.detail ?? (a["last_error"] as string | null) ?? null),
       healthScore: (a["health_score"] as number | null) ?? null,
       sent: inRange.length,
-      delivered: inRange.filter((m) => m["delivered_at"] && !m["bounced_at"]).length,
+      delivered: inRange.filter((m) => !m["bounced_at"] && m["delivery_status"] !== "failed").length,
       bounced: inRange.filter((m) => m["bounced_at"]).length,
       replies: replyCount,
       dailyLimit,
