@@ -283,7 +283,15 @@ export function cleanInboundText(
   // decoding can only improve it.
   const softBreaks = (value.match(/=\n/g) ?? []).length;
   const escapes = (value.match(/=[0-9A-F]{2}/g) ?? []).length;
-  if (softBreaks + escapes >= 2) return decodeQuotedPrintable(value);
+  const decoded = softBreaks + escapes >= 2 ? decodeQuotedPrintable(value) : value;
 
-  return value;
+  // An HTML body (or the leftovers of a broken one) must never be shown as the
+  // message text: markup and stylesheets are not something a person wrote.
+  if (/<\/?(html|body|head|table|div|p|style|br)\b/i.test(decoded) || /\{[^{}]*:[^{}]*\}/.test(decoded)) {
+    const asText = htmlBodyToText(decoded);
+    return asText || null;
+  }
+
+  return decoded;
 }
+
