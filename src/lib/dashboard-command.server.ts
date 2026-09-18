@@ -319,18 +319,19 @@ supabase
         .map((r) => r["lead_id"] ?? r["from_email"])
         .filter(Boolean),
     );
+    const windowBounced = countBounced(bounceAtByPerson, from, to);
     return {
       sent: sentMsgs.length,
-      // Delivered = accepted for sending and not bounced back. Customer
-      // mailboxes send over SMTP and never report a delivery confirmation, so
-      // `delivered_at` can never be the base (see engagement-rates.ts).
-      delivered: sentMsgs.filter(
-        (m) => !personBounced(m) && m["delivery_status"] !== "failed",
-      ).length,
+      // Delivered = accepted for sending minus bounced PEOPLE in the same window.
+      // A bounce usually lands on a cancelled follow-up with no `sent_at`, so
+      // filtering send rows left delivered == sent next to a non-zero bounce
+      // count. Customer mailboxes send over SMTP and never report a delivery
+      // confirmation, so `delivered_at` can never be the base.
+      delivered: Math.max(0, sentMsgs.length - windowBounced),
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
-      bounced: countBounced(bounceAtByPerson, from, to),
+      bounced: windowBounced,
       uniqueRecipients: new Set(
         sentMsgs.map((m) => m["lead_id"] ?? m["id"]).filter(Boolean),
       ).size,
@@ -354,7 +355,16 @@ supabase
     const b = buckets.get(new Date(t).toISOString().slice(0, 10));
     if (!b) continue;
     b.sent += 1;
-    if (!personBounced(m) && m["delivery_status"] !== "failed") b.delivered += 1;
+  }
+  // Delivered per day = that day's sends minus that day's bounced people.
+  const bouncesPerDay = new Map<string, number>();
+  for (const at of bounceAtByPerson.values()) {
+    if (at < rangeStart) continue;
+    const key = new Date(at).toISOString().slice(0, 10);
+    bouncesPerDay.set(key, (bouncesPerDay.get(key) ?? 0) + 1);
+  }
+  for (const [key, b] of buckets) {
+    b.delivered = Math.max(0, b.sent - (bouncesPerDay.get(key) ?? 0));
   }
   for (const r of replyRows) {
     const t = ts(r["received_at"]);
@@ -427,7 +437,10 @@ supabase
       leads: leadsPerCampaign.get(id) ?? 0,
       sentLifetime: Number(c["emails_sent_count"] ?? 0) || sentMine.length,
       sentToday,
-      delivered: inRange.filter((m) => !personBounced(m) && m["delivery_status"] !== "failed").length,
+      delivered: Math.max(
+        0,
+        inRange.length - countBounced(bounceAtByCampaign.get(id), rangeStart, nowMs + 1),
+      ),
       replies: uniqueReplies,
       positive,
       meetings,
@@ -507,7 +520,10 @@ supabase
           : (snapshot.state.detail ?? (a["last_error"] as string | null) ?? null),
       healthScore: (a["health_score"] as number | null) ?? null,
       sent: inRange.length,
-      delivered: inRange.filter((m) => !personBounced(m) && m["delivery_status"] !== "failed").length,
+      delivered: Math.max(
+        0,
+        inRange.length - countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
+      ),
       bounced: countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
       replies: replyCount,
       dailyLimit,

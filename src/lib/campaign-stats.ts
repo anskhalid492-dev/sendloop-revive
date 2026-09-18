@@ -475,7 +475,12 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   // Customer SMTP relays do not emit delivery receipts. Use the shared
   // accepted-minus-confirmed-bounces definition while retaining any larger
   // provider-confirmed count.
-  stats.delivered = Math.max(stats.delivered, Math.max(0, stats.sent - sentBounced));
+  // Bounces are counted per PERSON and often land on a cancelled follow-up that
+  // has no `sent_at` of its own, so subtracting bounced SEND ROWS left delivered
+  // equal to sent while the bounced tile showed 3. Always subtract the bounced
+  // people, so delivered + bounced can never exceed sent.
+  void sentBounced;
+  stats.delivered = Math.max(0, stats.sent - stats.bounced);
   for (const [stepNumber, step] of steps) {
     step.delivered = Math.max(step.delivered, Math.max(0, step.sent - (stepBounces.get(stepNumber) ?? 0)));
   }
@@ -546,6 +551,13 @@ export function computeTimeseries(
       countedUnsub.add(u.leadKey);
       at(unsubAt, "unsubscribed");
     }
+  }
+
+  // Delivered is always accepted-minus-bounced for the same bucket: a bounce can
+  // be recorded on a row with no `sent_at`, so filtering send rows alone left the
+  // chart showing delivered == sent next to a non-zero bounce count.
+  for (const point of points.values()) {
+    point.delivered = Math.max(0, point.sent - point.bounced);
   }
 
   return Array.from(points.values()).sort((a, b) => a.bucket.localeCompare(b.bucket));
@@ -640,10 +652,11 @@ export function computeAccountTotals(
     }
   }
   for (const row of rows.values()) {
-    row.delivered = Math.max(
-      confirmedDelivered.get(row.accountId) ?? 0,
-      Math.max(0, row.sent - (sentBounces.get(row.accountId) ?? 0)),
-    );
+    // Same rule as the campaign totals: subtract bounced PEOPLE, not bounced
+    // send rows (a bounce often sits on a cancelled row with no `sent_at`).
+    void confirmedDelivered;
+    void sentBounces;
+    row.delivered = Math.max(0, row.sent - row.bounced);
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;
     row.replies = repliers.get(row.accountId)?.size ?? 0;
