@@ -303,6 +303,12 @@ function WarmupDetail({ data }: { data: any }) {
             { label: "Ramp days", value: num(s.rampDays) },
             { label: "Max bounce rate", value: s.maxBounceRate ?? "—" },
             { label: "Min health score", value: s.minHealthScore ?? "—" },
+            { label: "Ramp stage", value: <Pill>{s.rampStage ?? "ramp_up"}</Pill> },
+            { label: "Current volume", value: s.currentVolume ?? "—" },
+            { label: "Hold failure rate", value: s.holdFailureRate ?? "—" },
+            { label: "Recovery bounce rate", value: s.recoveryBounceRate ?? "—" },
+            { label: "Recovery days", value: s.recoveryDays ?? "—" },
+            { label: "Stage reason", value: s.stageReason ?? "—" },
             { label: "Auto pause", value: s.autoPause ? "On" : "Off" },
             { label: "Started", value: fmtDate(s.startedAt) },
           ]}

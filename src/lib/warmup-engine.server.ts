@@ -11,6 +11,13 @@
 import { buildWarmupMessage, buildWarmupReply } from "@/lib/warmup-content.server";
 import { evaluateSafetyViolation, type SafetyStatRow } from "@/lib/mailbox-pause-state";
 import { statusFromScore, type WarmupHealthFactor, type WarmupHealthStatus } from "@/lib/warmup-model";
+import {
+  evaluateWarmupRamp,
+  type RampStatRow,
+  type WarmupStage,
+  type WarmupStageAction,
+} from "@/lib/warmup-ramp";
+import { evaluateMailboxCapacity } from "@/lib/mailbox-capacity";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Admin = any;
@@ -114,7 +121,16 @@ async function releaseLease(admin: Admin, result: RunSummary) {
 
 async function bumpStats(
   admin: Admin,
-  args: { workspaceId: string; accountId: string; day?: string; target?: number },
+  args: {
+    workspaceId: string;
+    accountId: string;
+    day?: string;
+    target?: number;
+    /** Ramp stage that produced today's target, for the history table. */
+    stage?: WarmupStage;
+    stageAction?: WarmupStageAction;
+    plannedTarget?: number;
+  },
   patch: Partial<
     Record<
       | "scheduled"
@@ -161,15 +177,21 @@ async function bumpStats(
       deferred: patch.deferred ?? 0,
       rejected: patch.rejected ?? 0,
       not_received: patch.not_received ?? 0,
+      ...(args.stage ? { stage: args.stage } : {}),
+      ...(args.stageAction ? { stage_action: args.stageAction } : {}),
+      ...(args.plannedTarget !== undefined ? { planned_target: args.plannedTarget } : {}),
     });
     return;
   }
 
-  const next: Record<string, number> = {};
+  const next: Record<string, number | string> = {};
   for (const [key, value] of Object.entries(patch)) {
     next[key] = (existing[key] ?? 0) + (value ?? 0);
   }
   if (args.target !== undefined) next["target"] = args.target;
+  if (args.stage) next["stage"] = args.stage;
+  if (args.stageAction) next["stage_action"] = args.stageAction;
+  if (args.plannedTarget !== undefined) next["planned_target"] = args.plannedTarget;
   await admin.from("warmup_daily_stats").update(next).eq("id", existing.id);
 }
 
@@ -274,22 +296,116 @@ type SettingsRow = {
   auto_pause: boolean;
   paused_by_system: boolean;
   started_at: string | null;
+  ramp_stage?: WarmupStage | null;
+  stage_since?: string | null;
+  stage_reason?: string | null;
+  current_volume?: number | null;
+  hold_failure_rate?: number | null;
+  recovery_bounce_rate?: number | null;
+  recovery_days?: number | null;
 };
 
-/** Day 1 = start volume, then +increase per elapsed day, capped at max. */
-export function dailyTarget(settings: SettingsRow, startedAt: string | null, healthScore: number | null): number {
-  const start = startedAt ? new Date(startedAt) : new Date();
-  const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / 86_400_000));
-  const cappedDays = Math.min(days, settings.ramp_days);
-  let target = settings.start_volume + cappedDays * settings.daily_increase;
-  target = Math.min(target, settings.max_volume);
+/** Columns the scheduler needs from `warmup_settings`. */
+export const WARMUP_SETTINGS_COLUMNS =
+  "id, sending_account_id, workspace_id, enabled, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, started_at, ramp_stage, stage_since, stage_reason, current_volume, hold_failure_rate, recovery_bounce_rate, recovery_days";
 
-  // Safety: a degraded mailbox holds or reduces volume instead of ramping.
-  if (healthScore !== null) {
-    if (healthScore < 50) target = Math.max(settings.start_volume, Math.floor(target * 0.4));
-    else if (healthScore < 70) target = Math.max(settings.start_volume, Math.floor(target * 0.7));
-  }
-  return Math.max(0, target);
+/**
+ * How much warmup capacity the mailbox has left today after human replies and
+ * campaign sending have taken their share. Warmup is always last in line.
+ */
+async function warmupCapacityCeiling(admin: Admin, accountId: string): Promise<number | null> {
+  const { data } = await admin
+    .from("sending_accounts")
+    .select("id, from_name, from_email, paused, customer_enabled, status, sent_today, daily_limit, hourly_limit, last_sent_at")
+    .eq("id", accountId)
+    .maybeSingle();
+  if (!data) return null;
+  const capacity = evaluateMailboxCapacity(data as never, 0, undefined, "warmup");
+  return capacity.dailyRemaining;
+}
+
+/** Recent provider throttling seen on this mailbox's own warmup attempts. */
+async function recentlyThrottled(admin: Admin, accountId: string): Promise<boolean> {
+  const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
+  const { data } = await admin
+    .from("warmup_jobs")
+    .select("error")
+    .eq("sending_account_id", accountId)
+    .gte("created_at", since)
+    .not("error", "is", null)
+    .limit(50);
+  return ((data ?? []) as Array<{ error: string | null }>).some((row) =>
+    /rate limit|too many|throttl|429|greylist|try again later/i.test(row.error ?? ""),
+  );
+}
+
+/**
+ * Today's warmup volume, decided from the mailbox's real record by the ramp
+ * state machine — never from elapsed days alone. The chosen stage, reason and
+ * volume are persisted so the dashboard and history show exactly what the
+ * engine did and why.
+ */
+export async function resolveDailyTarget(
+  admin: Admin,
+  account: AccountRow,
+  settings: SettingsRow,
+): Promise<{ target: number; stage: WarmupStage; action: WarmupStageAction; reason: string }> {
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
+  const { data: stats } = await admin
+    .from("warmup_daily_stats")
+    .select("day, target, sent, delivered, bounced, complained, failed, replied, deferred, rejected, not_received")
+    .eq("sending_account_id", account.id)
+    .gte("day", since)
+    .order("day", { ascending: false })
+    .limit(14);
+
+  const [throttled, ceiling] = await Promise.all([
+    recentlyThrottled(admin, account.id),
+    warmupCapacityCeiling(admin, account.id),
+  ]);
+
+  // Yesterday and earlier only: today's partial row must not hold the ramp back.
+  const rows = ((stats ?? []) as RampStatRow[]).filter((row) => row.day < today());
+  const todayRow = ((stats ?? []) as RampStatRow[]).find((row) => row.day === today());
+
+  const decision = evaluateWarmupRamp({
+    settings: {
+      start_volume: settings.start_volume,
+      max_volume: settings.max_volume,
+      daily_increase: settings.daily_increase,
+      max_bounce_rate: settings.max_bounce_rate,
+      min_health_score: settings.min_health_score,
+      hold_failure_rate: settings.hold_failure_rate ?? null,
+      recovery_bounce_rate: settings.recovery_bounce_rate ?? null,
+      recovery_days: settings.recovery_days ?? null,
+    },
+    stats: rows,
+    healthScore: account.health_score ?? null,
+    authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status],
+    stage: settings.ramp_stage ?? null,
+    stageSince: settings.stage_since ?? null,
+    currentVolume: settings.current_volume ?? todayRow?.target ?? null,
+    throttled,
+    capacityCeiling: ceiling,
+  });
+
+  const stageChanged = (settings.ramp_stage ?? null) !== decision.stage;
+  await admin
+    .from("warmup_settings")
+    .update({
+      ramp_stage: decision.stage,
+      stage_reason: decision.reason,
+      current_volume: decision.target,
+      ...(stageChanged ? { stage_since: new Date().toISOString() } : {}),
+    })
+    .eq("id", settings.id);
+
+  return {
+    target: decision.target,
+    stage: decision.stage,
+    action: decision.action,
+    reason: decision.reason,
+  };
 }
 
 function withinWindow(settings: SettingsRow, date: Date): boolean {
@@ -408,6 +524,16 @@ async function scheduleAccount(
     if (fresh.length > 0) pool = fresh;
   }
 
+  // Suppressed addresses (hard bounce, complaint) are never warmed again.
+  if (pool.length > 0) {
+    const { suppressedSet } = await import("@/lib/suppression.server");
+    const emails = pool.flatMap((t) => (t.kind === "pool" ? [t.email] : []));
+    const blocked = await suppressedSet(account.workspace_id, emails);
+    if (blocked.size > 0) {
+      pool = pool.filter((t) => t.kind !== "pool" || !blocked.has(t.email.toLowerCase()));
+    }
+  }
+
   const recipients: Target[] =
     pool.length > 0
       ? pool
@@ -415,9 +541,11 @@ async function scheduleAccount(
         ? peers.map((p) => ({ kind: "peer" as const, account: p }))
         : [{ kind: "peer" as const, account }];
 
-
-  const target = dailyTarget(settings, settings.started_at, account.health_score);
-  if (target <= 0) return { scheduled: 0, reason: "Today's warmup target is zero." };
+  const decision = await resolveDailyTarget(admin, account, settings);
+  const target = decision.target;
+  if (target <= 0) {
+    return { scheduled: 0, reason: decision.reason };
+  }
 
   const day = today();
   const { count: already } = await admin
@@ -506,7 +634,14 @@ async function scheduleAccount(
   if (scheduled > 0) {
     await bumpStats(
       admin,
-      { workspaceId: account.workspace_id, accountId: account.id, target },
+      {
+        workspaceId: account.workspace_id,
+        accountId: account.id,
+        target,
+        stage: decision.stage,
+        stageAction: decision.action,
+        plannedTarget: target,
+      },
       { scheduled },
     );
   }
@@ -836,7 +971,7 @@ export async function applyWarmupDeliveryEvent(args: {
 
   const { data: job } = await supabaseAdmin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id, status, conversation_id, pool_recipient_id")
+    .select("id, workspace_id, sending_account_id, status, conversation_id, pool_recipient_id, to_email")
     .eq("provider_message_id", args.providerMessageId)
     .maybeSingle();
   if (!job) return false;
@@ -907,8 +1042,25 @@ export async function applyWarmupDeliveryEvent(args: {
   }
 
   const poolId = (job as Record<string, unknown>)["pool_recipient_id"] as string | null;
+  // A hard bounce or a complaint retires the address for the whole workspace,
+  // through the same suppression list campaigns obey.
+  if (args.kind === "bounced" || args.kind === "complained") {
+    const address = args.email ?? ((job as Record<string, unknown>)["to_email"] as string | null);
+    if (address) {
+      const { suppressEmail } = await import("@/lib/suppression.server");
+      await suppressEmail({
+        workspaceId: job.workspace_id,
+        email: address,
+        reason: args.kind === "complained" ? "complained" : "bounced",
+        source: "warmup",
+        detail: args.reason ?? null,
+      });
+    }
+  }
   if (args.kind === "bounced" || args.kind === "rejected") {
     await touchPoolRecipient(supabaseAdmin, poolId, "bounced", args.reason);
+  } else if (args.kind === "complained") {
+    await touchPoolRecipient(supabaseAdmin, poolId, "bounced", args.reason ?? "Spam complaint");
   } else if (args.kind === "replied") {
     await touchPoolRecipient(supabaseAdmin, poolId, "replied");
   } else if (args.kind === "delivered") {
@@ -1440,7 +1592,7 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
     const { data: settingsRows } = await admin
       .from("warmup_settings")
       .select(
-        "id, sending_account_id, workspace_id, enabled, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, started_at",
+        WARMUP_SETTINGS_COLUMNS,
       )
       .eq("enabled", true)
       .eq("paused_by_system", false)
@@ -1570,7 +1722,7 @@ export async function runWarmupForAccount(
   const { data: setting } = await admin
     .from("warmup_settings")
     .select(
-      "id, sending_account_id, workspace_id, enabled, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, started_at",
+      WARMUP_SETTINGS_COLUMNS,
     )
     .eq("sending_account_id", accountId)
     .maybeSingle();
