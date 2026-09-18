@@ -41,6 +41,8 @@ export type MailboxPollOutcome = {
   ok: boolean;
   fetched: number;
   replies: number;
+  /** Warmup arrivals confirmed from this mailbox (never shown in the inbox). */
+  warmup: number;
   bounces: number;
   skipped: number;
   highestUid: number | null;
@@ -50,6 +52,7 @@ export type MailboxPollOutcome = {
 export type MailboxPollSummary = {
   mailboxes: number;
   replies: number;
+  warmup: number;
   bounces: number;
   skipped: number;
   failures: number;
@@ -122,6 +125,7 @@ export async function pollMailbox(
     ok: false,
     fetched: 0,
     replies: 0,
+    warmup: 0,
     bounces: 0,
     skipped: 0,
     highestUid: null,
@@ -284,6 +288,7 @@ export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<Mai
   const summary: MailboxPollSummary = {
     mailboxes: rows.length,
     replies: 0,
+    warmup: 0,
     bounces: 0,
     skipped: 0,
     failures: 0,
@@ -294,6 +299,7 @@ export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<Mai
     const outcome = await pollMailbox(supabaseAdmin, row);
     summary.results.push(outcome);
     summary.replies += outcome.replies;
+    summary.warmup += outcome.warmup;
     summary.bounces += outcome.bounces;
     summary.skipped += outcome.skipped;
     if (!outcome.ok) summary.failures += 1;
