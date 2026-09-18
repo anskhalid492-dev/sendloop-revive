@@ -12,6 +12,12 @@ import { buildWarmupMessage, buildWarmupReply } from "@/lib/warmup-content.serve
 import { evaluateSafetyViolation, type SafetyStatRow } from "@/lib/mailbox-pause-state";
 import { statusFromScore, type WarmupHealthFactor, type WarmupHealthStatus } from "@/lib/warmup-model";
 import {
+  advancesWarmupDelivery,
+  normalizeWarmupDeliveryState,
+  type WarmupDeliveryState,
+} from "@/lib/warmup-delivery";
+import { providerMessageIdCandidates } from "@/lib/provider-message-id";
+import {
   evaluateWarmupRamp,
   type RampStatRow,
   type WarmupStage,
