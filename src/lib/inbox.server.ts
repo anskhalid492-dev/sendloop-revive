@@ -904,7 +904,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     sendingAccountId,
     attributed: attribution.attributed,
     attributionEvidence: attribution.evidence,
-    reason: attribution.attributed ? undefined : attribution.reason,
+    ...(attribution.attributed ? {} : { reason: attribution.reason }),
   };
 }
 
