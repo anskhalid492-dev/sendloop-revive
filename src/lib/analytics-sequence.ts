@@ -59,11 +59,22 @@ function makeInRange({ from, to }: Window) {
   };
 }
 
+/**
+ * Per-row counters that must only ever count a PERSON once, however many of
+ * their queued follow-ups were stopped by the same bounce or unsubscribe.
+ */
+type PeopleCounted = { bounced: Set<string>; unsubscribed: Set<string> };
+
+function newPeopleCounted(): PeopleCounted {
+  return { bounced: new Set<string>(), unsubscribed: new Set<string>() };
+}
+
 function accumulate(
   target: SequenceTotals,
   unit: Unit,
   inRange: (iso: string | null) => boolean,
   bouncedPeople: Set<string>,
+  counted: PeopleCounted,
 ) {
   // Bounce / unsubscribe use the ONE shared rule (signal or cancelled reason),
   // and a bounce applies to the whole person, not just the row carrying it.
@@ -84,9 +95,17 @@ function accumulate(
   // (delivered is re-derived as sent - bounced after accumulation, see below)
   if (inRange(unit.signals.clicked_at)) target.clicks += 1;
   if (inRange(unit.signals.replied_at)) target.replies += 1;
-  if (inRange(bouncedAt)) target.bounced += 1;
+  // One bounced person = one bounce, exactly like the campaign totals, which
+  // count bounced/unsubscribed leads as sets of people.
+  if (inRange(bouncedAt) && !counted.bounced.has(unit.leadKey)) {
+    counted.bounced.add(unit.leadKey);
+    target.bounced += 1;
+  }
   if (!personBounced && inRange(unit.signals.failed_at)) target.failed += 1;
-  if (inRange(unitUnsubscribeAt(unit))) target.unsubscribed += 1;
+  if (inRange(unitUnsubscribeAt(unit)) && !counted.unsubscribed.has(unit.leadKey)) {
+    counted.unsubscribed.add(unit.leadKey);
+    target.unsubscribed += 1;
+  }
 }
 
 /**
