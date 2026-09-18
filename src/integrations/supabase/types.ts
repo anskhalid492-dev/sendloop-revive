@@ -8653,6 +8653,9 @@ export type Database = {
           body: string
           conversation_id: string | null
           created_at: string
+          delivered_at: string | null
+          delivered_source: string | null
+          delivery_state: string
           error: string | null
           from_email: string
           id: string
@@ -8683,6 +8686,9 @@ export type Database = {
           body: string
           conversation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivered_source?: string | null
+          delivery_state?: string
           error?: string | null
           from_email: string
           id?: string
@@ -8713,6 +8719,9 @@ export type Database = {
           body?: string
           conversation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivered_source?: string | null
+          delivery_state?: string
           error?: string | null
           from_email?: string
           id?: string
@@ -9785,6 +9794,9 @@ export type Database = {
           body: string
           conversation_id: string | null
           created_at: string
+          delivered_at: string | null
+          delivered_source: string | null
+          delivery_state: string
           error: string | null
           from_email: string
           id: string
@@ -9824,6 +9836,9 @@ export type Database = {
           body: string
           conversation_id: string | null
           created_at: string
+          delivered_at: string | null
+          delivered_source: string | null
+          delivery_state: string
           error: string | null
           from_email: string
           id: string
