@@ -60,6 +60,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         status: z.enum(MESSAGE_STATUSES).nullable().optional(),
         /** Filter to bounced messages (bounced_at set). Distinct from failed. */
         bounced: z.boolean().optional(),
+        /** Filter to unsubscribed recipients. */
+        unsubscribed: z.boolean().optional(),
         search: z.string().trim().max(120).optional(),
         limit: z.number().int().min(1).max(500).default(200),
       })
@@ -76,7 +78,14 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     // Bounces are their own outcome: a bounced message never counts as failed,
     // and failed never includes bounced rows.
     if (data.status === "failed") query = query.is("bounced_at", null);
-    if (data.bounced) query = query.not("bounced_at", "is", null);
+    // A recipient who bounced or unsubscribed mid-sequence has their remaining
+    // mail cancelled with the reason attached — include those rows here too.
+    if (data.bounced) {
+      query = query.or("bounced_at.not.is.null,cancelled_reason.eq.recipient_bounced");
+    }
+    if (data.unsubscribed) {
+      query = query.or("unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed");
+    }
     if (data.search) query = query.ilike("to_email", `%${data.search}%`);
 
     // Counts are exact server-side COUNTs. A plain select() is capped at 1,000
