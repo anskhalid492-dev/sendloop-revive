@@ -692,6 +692,11 @@ export const dismissDomainAlert = createServerFn({ method: "POST" })
 
 export type WarmupAnalyticsPoint = {
   day: string;
+  /** Volume the ramp machine planned for that day. */
+  planned: number;
+  /** What the engine did that day, e.g. increase / hold / reduce. */
+  action: string | null;
+  stage: string | null;
   sent: number;
   delivered: number;
   inbox: number;
@@ -804,7 +809,7 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         client
           .from("warmup_daily_stats")
           .select(
-            "sending_account_id, day, sent, delivered, inbox, spam, deferred, rejected, not_received, bounced, complained, failed, replied, health_score",
+            "sending_account_id, day, target, planned_target, stage, stage_action, sent, delivered, inbox, spam, deferred, rejected, not_received, bounced, complained, failed, replied, health_score",
           )
           .in("sending_account_id", ids)
           .gte("day", sinceDay)
@@ -849,6 +854,9 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         byDay.get(day) ??
         ({
           day,
+          planned: 0,
+          action: null,
+          stage: null,
           sent: 0,
           delivered: 0,
           inbox: 0,
@@ -882,6 +890,9 @@ export const getWarmupAnalytics = createServerFn({ method: "GET" })
         point[key] += value;
         totals[key] += value;
       }
+      point.planned += num(raw, "planned_target") || num(raw, "target");
+      if (raw["stage_action"]) point.action = String(raw["stage_action"]);
+      if (raw["stage"]) point.stage = String(raw["stage"]);
       byDay.set(day, point);
 
       const score = raw["health_score"];
