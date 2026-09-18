@@ -6,9 +6,6 @@ import {
   BriefcaseBusiness,
   Building2,
   CheckCircle2,
-  CirclePause,
-  Clock3,
-  Gauge,
   Mail,
   MailCheck,
   PauseCircle,
@@ -16,7 +13,6 @@ import {
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
   TrendingUp,
   UserRound,
@@ -26,13 +22,13 @@ import {
 import {
   BeforeAfter,
   CtaBlock,
+  FaqBlock,
   FeatureGrid,
   MarketingLayout,
   Section,
   UseCaseGrid,
   metaFor,
 } from "@/components/site/MarketingPage";
-import { PageFaqs } from "@/components/site/PageFaqs";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import {
   HealthTimeline,
@@ -171,7 +167,7 @@ function WarmupProductPage() {
 
     <TestimonialCarousel page="warmup" title="Loved By Outreach Teams" />
 
-    <Section muted><PageFaqs page="warmup" defaults={faqs} title="Frequently Asked Questions" description="Clear answers about mailbox warmup, health, capacity, and campaigns." /></Section>
+    <Section muted><FaqBlock faqs={faqs} title="Frequently Asked Questions" description="Clear answers about mailbox warmup, health, capacity, and campaigns." /></Section>
 
     <CtaBlock title="Build Mailbox Health Before You Build Sending Volume" description="Start warming your sending accounts and monitor their health from one workspace." cta="Start Sending Free" secondaryCta="Explore MunchReach" secondaryHref="/why-munchreach" />
   </MarketingLayout>;
