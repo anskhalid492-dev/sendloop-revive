@@ -369,10 +369,41 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     return row;
   };
 
+  // Bounced / unsubscribed / complained count PEOPLE, and a person counts when
+  // either a real provider signal exists OR their remaining queued emails were
+  // cancelled for that reason. Without the second half, a bounce or unsubscribe
+  // part-way through a sequence vanished into the Cancelled bucket. This is the
+  // same rule as `countOutcomeRecipients` in `@/lib/cancellation-reason` and the
+  // SQL aggregates.
+  const noRange = lo === -Infinity && hi === Infinity;
+  const bouncedLeads = new Set<string>();
+  const unsubscribedLeads = new Set<string>();
+  const complainedLeads = new Set<string>();
+  for (const unit of units.values()) {
+    const s = unit.signals;
+    const reasonInWindow =
+      noRange || inRange(unit.updatedAt) || inRange(unit.sentAt) || inRange(unit.signals.failed_at);
+    if (inRange(s.bounced_at) || (unit.cancelledReason === "recipient_bounced" && reasonInWindow)) {
+      bouncedLeads.add(unit.leadKey);
+    }
+    if (
+      inRange(s.unsubscribed_at) ||
+      (unit.cancelledReason === "recipient_unsubscribed" && reasonInWindow)
+    ) {
+      unsubscribedLeads.add(unit.leadKey);
+    }
+    if (
+      inRange(s.complained_at) ||
+      (unit.cancelledReason === "recipient_complained" && reasonInWindow)
+    ) {
+      complainedLeads.add(unit.leadKey);
+    }
+  }
+
   for (const unit of units.values()) {
     const s = unit.signals;
     const step = stepOf(unit.step);
-    const bounced = Boolean(s.bounced_at);
+    const bounced = Boolean(s.bounced_at) || bouncedLeads.has(unit.leadKey);
     const failed = Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt);
 
     const sentInRange = inRange(unit.sentAt);
