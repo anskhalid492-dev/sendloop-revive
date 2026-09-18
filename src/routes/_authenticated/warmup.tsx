@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   Flame,
+  Info,
   Pause,
   Play,
   Send,
@@ -19,6 +20,12 @@ import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
 import { listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
 import { cn } from "@/lib/utils";
