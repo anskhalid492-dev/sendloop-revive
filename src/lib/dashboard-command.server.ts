@@ -209,15 +209,30 @@ supabase
     if (prev === undefined || at < prev) inner.set(key, at);
     scope.set(String(id), inner);
   };
+  // When a bounce only exists on a cancelled follow-up, `updated_at` is when the
+  // row was written (a backfill can make that "today"), not when the bounce
+  // happened. The real moment is the person's last actual send, so use that
+  // first — otherwise old bounces pile into today's bounce rate.
+  const lastSentByPerson = new Map<string, number>();
   for (const m of messageRows) {
+    const at = ts(m["sent_at"]);
+    const key = outcomeRecipientKey(m);
+    if (at === null || !key) continue;
+    const prev = lastSentByPerson.get(key);
+    if (prev === undefined || at > prev) lastSentByPerson.set(key, at);
+  }
+  for (const m of messageRows) {
+    const key = outcomeRecipientKey(m);
+    if (!key) continue;
     const at =
       ts(m["bounced_at"]) ??
       (m["cancelled_reason"] === "recipient_bounced"
-        ? (ts(m["updated_at"]) ?? ts(m["sent_at"]) ?? ts(m["scheduled_at"]))
+        ? (ts(m["sent_at"]) ??
+          lastSentByPerson.get(key) ??
+          ts(m["scheduled_at"]) ??
+          ts(m["updated_at"]))
         : null);
-    if (at === null) continue;
-    const key = outcomeRecipientKey(m);
-    if (!key) continue;
+    if (at === null || at === undefined) continue;
     const prev = bounceAtByPerson.get(key);
     if (prev === undefined || at < prev) bounceAtByPerson.set(key, at);
     noteBounce(bounceAtByCampaign, m["campaign_id"], key, at);
