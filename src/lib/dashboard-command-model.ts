@@ -156,7 +156,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
         id: `mailbox-blocked-${box.id}`,
         severity: "critical",
         title: `${box.label} is blocked`,
-        detail: box.reason ?? "This mailbox cannot send until the issue is resolved.",
+        detail: box.reason ?? "This mailbox can't send right now.",
         actionLabel: "Review mailbox",
         to: "/warmup",
       });
@@ -169,7 +169,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
       id: "mailboxes-warming",
       severity: "info",
       title: `${warming.length} mailbox${warming.length > 1 ? "es are" : " is"} still warming up`,
-      detail: "Sending volume stays limited until warmup completes.",
+      detail: "Volume stays limited until warmup completes.",
       actionLabel: "Open warmup",
       to: "/warmup",
     });
@@ -180,7 +180,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
       id: "domains-pending",
       severity: "warning",
       title: `${input.domainsPending} domain${input.domainsPending > 1 ? "s need" : " needs"} verification`,
-      detail: "Unverified domains hurt deliverability and can block sending.",
+      detail: "Unverified domains can block sending.",
       actionLabel: "Verify domain",
       to: "/sending",
     });
@@ -191,7 +191,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
       id: "no-mailbox",
       severity: "critical",
       title: "No mailbox connected",
-      detail: "Connect a sending mailbox before launching a campaign.",
+      detail: "Connect a mailbox before launching a campaign.",
       actionLabel: "Connect mailbox",
       to: "/sending",
     });
@@ -202,7 +202,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
       id: "no-leads",
       severity: "warning",
       title: "No leads imported yet",
-      detail: "Import a list so your campaigns have an audience.",
+      detail: "Import a list for your campaigns.",
       actionLabel: "Import leads",
       to: "/leads",
     });
@@ -214,7 +214,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
         id: `campaign-empty-${campaign.id}`,
         severity: "warning",
         title: `${campaign.name} has no leads`,
-        detail: "This campaign is active but has nothing to send.",
+        detail: "Active but has nothing to send.",
         actionLabel: "Add leads",
         to: "/campaigns",
       });
@@ -224,9 +224,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
         id: `campaign-quota-${campaign.id}`,
         severity: "info",
         title: `${campaign.name} reached today's quota`,
-        detail: campaign.nextRunAt
-          ? "Sending continues automatically at the next scheduled run."
-          : "Sending continues at the next scheduled run.",
+        detail: "Continues at the next scheduled run.",
         actionLabel: "Open campaign",
         to: "/campaigns",
       });
@@ -236,7 +234,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
         id: `campaign-limit-${campaign.id}`,
         severity: "warning",
         title: `${campaign.name} hit its total send limit`,
-        detail: "Remaining leads stay queued until the limit is raised.",
+        detail: "Queued until the limit is raised.",
         actionLabel: "Adjust limit",
         to: "/campaigns",
       });
@@ -246,7 +244,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
         id: `campaign-scheduled-${campaign.id}`,
         severity: "info",
         title: `${campaign.name} is scheduled`,
-        detail: "It starts sending at its next scheduled window.",
+        detail: "Starts at its next scheduled window.",
         actionLabel: "Open campaign",
         to: "/campaigns",
       });
@@ -258,7 +256,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
       id: "retryable-failures",
       severity: "warning",
       title: `${input.retryableFailures} email${input.retryableFailures > 1 ? "s" : ""} failed and can be retried`,
-      detail: "These are temporary failures and are picked up on the next run.",
+      detail: "Temporary failures — retried automatically.",
       actionLabel: "View campaigns",
       to: "/campaigns",
     });
@@ -269,7 +267,7 @@ export function buildActionItems(input: ActionInput): ActionItem[] {
       id: "unread-replies",
       severity: "critical",
       title: `${input.unreadReplies} unread repl${input.unreadReplies > 1 ? "ies" : "y"}`,
-      detail: "Prospects are waiting for an answer.",
+      detail: "Prospects are waiting.",
       actionLabel: "Open inbox",
       to: "/inbox",
     });
