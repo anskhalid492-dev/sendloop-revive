@@ -99,15 +99,17 @@ export function computeSequenceStats(
   const inRange = makeInRange(opts);
   const steps = new Map<number, SequenceStepRow>();
   const variants = new Map<string, SequenceVariantRow>();
+  const all = Array.from(units);
+  const bouncedPeople = bouncedLeadKeys(all);
 
-  for (const unit of units) {
+  for (const unit of all) {
     const step = Math.max(1, unit.step || 1);
     let stepRow = steps.get(step);
     if (!stepRow) {
       stepRow = { step, variants: [], ...emptySequenceTotals() };
       steps.set(step, stepRow);
     }
-    accumulate(stepRow, unit, inRange);
+    accumulate(stepRow, unit, inRange, bouncedPeople);
 
     const variantId = unit.variantId ?? null;
     const variantKey = `${step}|${variantId ?? "base"}`;
@@ -121,7 +123,7 @@ export function computeSequenceStats(
       };
       variants.set(variantKey, variantRow);
     }
-    accumulate(variantRow, unit, inRange);
+    accumulate(variantRow, unit, inRange, bouncedPeople);
   }
 
   for (const variantRow of variants.values()) {
@@ -138,6 +140,8 @@ export function computeSequenceStats(
 export function computeUnitTotals(units: Iterable<Unit>, opts: Window): SequenceTotals {
   const inRange = makeInRange(opts);
   const totals = emptySequenceTotals();
-  for (const unit of units) accumulate(totals, unit, inRange);
+  const all = Array.from(units);
+  const bouncedPeople = bouncedLeadKeys(all);
+  for (const unit of all) accumulate(totals, unit, inRange, bouncedPeople);
   return totals;
 }
