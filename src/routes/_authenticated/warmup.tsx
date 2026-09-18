@@ -201,6 +201,17 @@ function WarmupPage() {
 
         {accountsQuery.isLoading ? (
           <div className="h-56 animate-pulse rounded-xl bg-muted" />
+        ) : accountsQuery.isError ? (
+          <div className="surface-card space-y-3 p-10 text-center">
+            <h2 className="text-lg font-semibold">Warmup data could not be loaded</h2>
+            <p className="mx-auto max-w-lg text-sm text-muted-foreground">
+              {(accountsQuery.error as Error)?.message ??
+                "The warmup dashboard did not receive a response."}
+            </p>
+            <Button variant="outline" onClick={() => accountsQuery.refetch()}>
+              Try again
+            </Button>
+          </div>
         ) : rows.length === 0 ? (
           <div className="surface-card space-y-2 p-10 text-center">
             <h2 className="text-lg font-semibold">No mailboxes connected yet</h2>
@@ -209,6 +220,7 @@ function WarmupPage() {
             </p>
           </div>
         ) : (
+
           <div className="surface-card overflow-x-auto">
             <table className="w-full min-w-[900px] border-collapse text-sm">
               <thead>
