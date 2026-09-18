@@ -109,7 +109,21 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       return Number(count ?? 0);
     };
 
-    const [messagesRes, statusCounts, bouncedCount, total] = await Promise.all([
+    // Bounced and unsubscribed are counted per PERSON through the shared rule in
+    // `@/lib/cancellation-reason`, so a bounce that stopped three follow-ups is
+    // one bounce and a recipient cancelled because of a bounce/unsubscribe is
+    // never hidden inside the Cancelled tile.
+    const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
+      "@/lib/cancellation-reason"
+    );
+    const outcomeRows = context.supabase
+      .from("campaign_messages")
+      .select(OUTCOME_COLUMNS)
+      .eq("campaign_id", data.campaignId)
+      .or(OUTCOME_OR_FILTER)
+      .limit(5000);
+
+    const [messagesRes, statusCounts, outcomeRes, total] = await Promise.all([
       query,
       Promise.all(
         MESSAGE_STATUSES.map((status) =>
@@ -118,9 +132,11 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
           status === "failed" ? countFor({ status, bounced: "exclude" }) : countFor({ status }),
         ),
       ),
-      countFor({ bounced: "only" }),
+      outcomeRows,
       countFor(),
     ]);
+    if (outcomeRes.error) throw new Error(outcomeRes.error.message);
+    const outcomes = countOutcomeRecipients((outcomeRes.data ?? []) as never[]);
     if (messagesRes.error) throw new Error(messagesRes.error.message);
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
     // Strip vendor identity and raw provider errors before the queue reaches
