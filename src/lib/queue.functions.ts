@@ -239,7 +239,7 @@ export const updateQueueMessages = createServerFn({ method: "POST" })
 
     const patch =
       data.action === "cancel"
-        ? { status: "cancelled" as const }
+        ? ({ status: "cancelled" as const, cancelled_reason: "manual" } as never)
         : { status: "pending" as const, last_error: null, scheduled_at: null };
 
     const { error } = await context.supabase

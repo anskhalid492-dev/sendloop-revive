@@ -880,7 +880,7 @@ async function applyReplyAutomation(args: {
     if (stopOnReply) {
       await db
         .from("campaign_messages")
-        .update({ status: "cancelled" })
+        .update({ status: "cancelled", cancelled_reason: "recipient_replied" } as never)
         .eq("campaign_id", campaignId)
         .eq("lead_id", leadId)
         .in("status", ["pending", "scheduled"]);
@@ -970,7 +970,7 @@ async function applyReplyAutomation(args: {
       if (campaignId && leadId) {
         await db
           .from("campaign_messages")
-          .update({ status: "cancelled" })
+          .update({ status: "cancelled", cancelled_reason: "recipient_unsubscribed" } as never)
           .eq("workspace_id", workspaceId)
           .eq("lead_id", leadId)
           .in("status", ["pending", "scheduled"]);

@@ -138,7 +138,7 @@ export const recordReply = createServerFn({ method: "POST" })
     if (stop) {
       await context.supabase
         .from("campaign_messages")
-        .update({ status: "cancelled" } as never)
+        .update({ status: "cancelled", cancelled_reason: "recipient_replied" } as never)
         .eq("campaign_id", m.campaign_id)
         .eq("lead_id", m.lead_id)
         .in("status", ["pending", "scheduled"]);
