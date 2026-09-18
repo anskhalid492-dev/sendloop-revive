@@ -4,7 +4,7 @@ import {
   Info,
   Mail,
   MailX,
-  MessageSquareReply,
+  Reply,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,7 +29,7 @@ type Card = {
   hint?: string;
   description: string;
   icon: LucideIcon;
-  iconTone: string;
+  iconColor: string;
 };
 
 /**
@@ -59,7 +59,7 @@ export function KpiBoard({
       hint: "Today",
       description: "Total emails successfully sent from your connected sending accounts today.",
       icon: Mail,
-      iconTone: "bg-tint-sky text-tint-sky-foreground",
+      iconColor: "text-tint-sky-foreground",
     },
     {
       key: "replyRate",
@@ -68,8 +68,8 @@ export function KpiBoard({
       change: y ? delta(pct(t.replies, t.sent), pct(y.replies, y.sent)) : null,
       hint: "Unique prospects",
       description: "Percentage of unique prospects who replied to emails sent today.",
-      icon: MessageSquareReply,
-      iconTone: "bg-tint-violet text-tint-violet-foreground",
+      icon: Reply,
+      iconColor: "text-tint-violet-foreground",
     },
     {
       key: "bounceRate",
@@ -80,7 +80,7 @@ export function KpiBoard({
       hint: "Of sent",
       description: "Percentage of sent emails that could not be delivered because they bounced.",
       icon: MailX,
-      iconTone: "bg-tint-rose text-tint-rose-foreground",
+      iconColor: "text-tint-rose-foreground",
     },
     {
       key: "meetings",
@@ -91,7 +91,7 @@ export function KpiBoard({
       hint: "Today",
       description: "Number of meetings attributed to your outreach today.",
       icon: CalendarCheck,
-      iconTone: "bg-tint-mint text-tint-mint-foreground",
+      iconColor: "text-tint-mint-foreground",
     },
   ];
 
@@ -120,6 +120,11 @@ export function KpiBoard({
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  <Icon
+                    className={cn("size-5 shrink-0", card.iconColor)}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
                   <span className="truncate">{card.label}</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -137,9 +142,6 @@ export function KpiBoard({
                       {card.description}
                     </TooltipContent>
                   </Tooltip>
-                </span>
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", card.iconTone)}>
-                  <Icon className="size-4" aria-hidden="true" />
                 </span>
               </div>
               <div
