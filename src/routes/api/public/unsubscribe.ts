@@ -72,10 +72,11 @@ async function unsubscribe(token: string, source: UnsubscribeSource, userAgent: 
     .eq("to_email", target.email)
     .is("unsubscribed_at", null);
 
-  // Stop any further queued emails for this address in this campaign.
+  // Stop any further queued emails for this address in this campaign, recording
+  // why — otherwise the stopped mail hides the unsubscribe inside "cancelled".
   await supabaseAdmin
     .from("campaign_messages")
-    .update({ status: "cancelled" })
+    .update({ status: "cancelled", cancelled_reason: "recipient_unsubscribed" })
     .eq("campaign_id", target.campaignId)
     .eq("to_email", target.email)
     .eq("status", "scheduled");

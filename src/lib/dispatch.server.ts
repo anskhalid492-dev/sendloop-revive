@@ -941,7 +941,19 @@ export async function dispatchDueMessages(
       result.skipped += 1;
       await supabase
         .from("campaign_messages")
-        .update({ status: "cancelled", last_error: `Recipient ${suppressionReason}` })
+        .update({
+          status: "cancelled",
+          last_error: `Recipient ${suppressionReason}`,
+          // Keep the real outcome attached so it is still counted as a bounce /
+          // unsubscribe / complaint rather than a generic cancellation.
+          cancelled_reason: /bounce/i.test(suppressionReason)
+            ? "recipient_bounced"
+            : /complain|spam/i.test(suppressionReason)
+              ? "recipient_complained"
+              : /unsub/i.test(suppressionReason)
+                ? "recipient_unsubscribed"
+                : "sequence_stopped",
+        })
         .eq("id", message.id);
       logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: `recipient_suppressed_${suppressionReason}` });
       continue;
