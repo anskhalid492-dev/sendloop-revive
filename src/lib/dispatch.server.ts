@@ -931,6 +931,8 @@ export async function dispatchDueMessages(
   const aiSendConfig = normalizeSendAiConfig((campaignRow as { ai_config?: unknown }).ai_config);
 
   const sentPerAccount = new Map<string, number>();
+  /** Buffered per-recipient progress, written in grouped chunks (see flush). */
+  const recipientProgress: RecipientPatchEntry[] = [];
   let quotaDeferralSlot: string | null = null;
 
 
