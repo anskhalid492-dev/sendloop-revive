@@ -263,8 +263,14 @@ async function setWarmupDeliveryState(
   next: WarmupDeliveryState,
 ): Promise<void> {
   if (!advancesWarmupDelivery((job.delivery_state ?? null) as WarmupDeliveryState | null, next)) return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await admin.from("warmup_jobs").update({ delivery_state: next } as any).eq("id", job.id);
+  // Tolerant of a not-yet-applied migration: the state column is an audit aid,
+  // it must never break event handling.
+  const { error } = await admin
+    .from("warmup_jobs")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ delivery_state: next } as any)
+    .eq("id", job.id);
+  if (error && error.code !== "42703" && error.code !== "PGRST204") throw new Error(error.message);
 }
 
 /**
