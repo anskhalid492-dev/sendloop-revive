@@ -285,12 +285,16 @@ export function collapseMessageUnits(
         unsubscribed_at: null,
         failed_at: null,
       },
+      cancelledReason: null,
       cancelled: true,
       pending: false,
       processing: false,
       updatedAt: null,
     };
 
+    if (!unit.cancelledReason && m.cancelled_reason) {
+      unit.cancelledReason = String(m.cancelled_reason);
+    }
     unit.sentAt = earlier(unit.sentAt, m.sent_at ?? null);
     for (const signal of SIGNALS) {
       unit.signals[signal] = earlier(
