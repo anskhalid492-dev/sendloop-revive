@@ -165,6 +165,7 @@ function WarmupPage() {
       title="Inbox Warmup"
       description="Real mailbox-to-mailbox warmup with automatic ramping, health scoring and safety pauses."
     >
+      <TooltipProvider delayDuration={150}>
       <div className="space-y-5">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <Stat label="Active warmups" value={totals.active} />
@@ -439,6 +440,7 @@ function WarmupPage() {
 
 
       </div>
+      </TooltipProvider>
 
       <WarmupSettingsDialog
         accountId={settingsId}
