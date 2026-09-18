@@ -58,10 +58,10 @@ export function messageDeliveryState(m: DeliveryMessage): string {
 }
 
 const STATE_TIMESTAMP: Record<string, readonly string[]> = {
-  bounced: ["bounced_at", "last_event_at"],
+  bounced: ["bounced_at", "last_event_at", "updated_at"],
   failed: ["failed_at", "last_event_at"],
-  complained: ["complained_at", "last_event_at"],
-  unsubscribed: ["unsubscribed_at", "last_event_at"],
+  complained: ["complained_at", "last_event_at", "updated_at"],
+  unsubscribed: ["unsubscribed_at", "last_event_at", "updated_at"],
   replied: ["replied_at", "last_event_at"],
   clicked: ["clicked_at", "last_event_at"],
   opened: ["opened_at", "last_event_at"],
