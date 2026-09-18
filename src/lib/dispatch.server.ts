@@ -41,10 +41,34 @@ import {
   type CustomVariable,
   type StepType,
 } from "@/lib/campaign-model";
+import {
+  groupRecipientPatches,
+  type RecipientPatchEntry,
+} from "@/lib/recipient-status-batch";
 
 /** Any Supabase client (user-scoped or service role). Kept loose on purpose. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySupabase = any;
+
+/**
+ * Writes buffered `campaign_recipients` progress in grouped chunks (<= 100 ids
+ * per call) instead of one HTTP update per recipient. Recipients with different
+ * outcomes stay in separate groups, so no per-recipient detail is lost. The
+ * buffer is emptied even when a chunk fails, and a failure here never aborts a
+ * send: campaign_messages is the authoritative record for stats and follow-ups.
+ */
+async function flushRecipientPatches(supabase: AnySupabase, buffer: RecipientPatchEntry[]) {
+  if (buffer.length === 0) return;
+  const batches = groupRecipientPatches(buffer, 100);
+  buffer.length = 0;
+  for (const batch of batches) {
+    const { error } = await supabase
+      .from("campaign_recipients")
+      .update(batch.patch)
+      .in("id", batch.ids);
+    if (error) console.error("campaign_recipients batch update failed", error.message);
+  }
+}
 
 type AccountRow = {
   id: string;
@@ -369,12 +393,13 @@ export async function ensureInitialCampaignMessages(
     const { error } = await supabase.from("campaign_messages").insert(inserts.slice(i, i + 500));
     if (error) throw new Error(error.message);
   }
-  for (const assignment of recipientAssignments) {
-    await supabase
-      .from("campaign_recipients")
-      .update({ sending_account_id: assignment.accountId, next_send_at: assignment.nextAt })
-      .eq("id", assignment.id);
-  }
+  await flushRecipientPatches(
+    supabase,
+    recipientAssignments.map((assignment) => ({
+      id: assignment.id,
+      patch: { sending_account_id: assignment.accountId, next_send_at: assignment.nextAt },
+    })),
+  );
 
   return inserts.length;
 }
@@ -598,12 +623,13 @@ export async function scheduleFollowUps(
     const { error } = await supabase.from("campaign_messages").insert(inserts);
     if (error) throw new Error(error.message);
   }
-  for (const row of advanced) {
-    await supabase
-      .from("campaign_recipients")
-      .update({ current_step: row.step, next_send_at: row.nextAt, status: "in_progress" })
-      .eq("id", row.id);
-  }
+  await flushRecipientPatches(
+    supabase,
+    advanced.map((row) => ({
+      id: row.id,
+      patch: { current_step: row.step, next_send_at: row.nextAt, status: "in_progress" },
+    })),
+  );
   if (finished.length) {
     await supabase
       .from("campaign_recipients")
@@ -905,6 +931,8 @@ export async function dispatchDueMessages(
   const aiSendConfig = normalizeSendAiConfig((campaignRow as { ai_config?: unknown }).ai_config);
 
   const sentPerAccount = new Map<string, number>();
+  /** Buffered per-recipient progress, written in grouped chunks (see flush). */
+  const recipientProgress: RecipientPatchEntry[] = [];
   let quotaDeferralSlot: string | null = null;
 
 
@@ -1499,17 +1527,22 @@ export async function dispatchDueMessages(
 
 
     if (message.recipient_id) {
-      await supabase
-        .from("campaign_recipients")
-        .update({
+      // Buffered, then written in grouped chunks: one HTTP call per ~50 sends
+      // instead of one per recipient. Flushed inside the loop so live progress
+      // still lands while a long run is in flight.
+      recipientProgress.push({
+        id: message.recipient_id as string,
+        patch: {
           status: "in_progress",
           current_step: message.step_order,
           last_sent_at: sentAt,
           next_send_at: null,
-        })
-        .eq("id", message.recipient_id);
+        },
+      });
+      if (recipientProgress.length >= 50) await flushRecipientPatches(supabase, recipientProgress);
     }
   }
+  await flushRecipientPatches(supabase, recipientProgress);
 
   // Keep per-mailbox daily counters honest so rotation and caps stay accurate.
   for (const [accountId, count] of sentPerAccount) {
