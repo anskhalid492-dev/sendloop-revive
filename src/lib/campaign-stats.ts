@@ -214,11 +214,12 @@ export type Unit = {
  * mid-sequence case, where the bounce only exists on the cancelled rows).
  */
 export const unitBounceAt = (u: Unit): string | null =>
-  u.signals.bounced_at ?? (u.cancelledReason === "recipient_bounced" ? u.updatedAt : null);
+  u.signals.bounced_at ??
+  (u.cancelledReason === "recipient_bounced" ? (u.sentAt ?? u.updatedAt) : null);
 
 export const unitUnsubscribeAt = (u: Unit): string | null =>
   u.signals.unsubscribed_at ??
-  (u.cancelledReason === "recipient_unsubscribed" ? u.updatedAt : null);
+  (u.cancelledReason === "recipient_unsubscribed" ? (u.sentAt ?? u.updatedAt) : null);
 
 /**
  * People whose mail bounced, keyed the same way units are. A bounce recorded on
