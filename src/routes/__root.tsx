@@ -105,13 +105,33 @@ export const siteContentQueryOptions = {
   staleTime: 5 * 60 * 1000,
 };
 
+const PUBLIC_CONFIG_TIMEOUT_MS = 1_500;
+
+async function withPublicConfigTimeout<T>(request: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error("Public configuration request timed out")),
+      PUBLIC_CONFIG_TIMEOUT_MS,
+    );
+  });
+
+  try {
+    return await Promise.race([request, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ context, location }) => {
     // Load the admin-managed navigation, footer, SEO overrides and redirects
     // once per session. A content failure must never take the site down, so
     // every error here falls back to the hardcoded defaults.
     try {
-      const content = await context.queryClient.ensureQueryData(siteContentQueryOptions);
+      const content = await withPublicConfigTimeout(
+        context.queryClient.ensureQueryData(siteContentQueryOptions),
+      );
       setSiteContent(content);
       const path =
         location.pathname.length > 1 ? location.pathname.replace(/\/+$/, "") : location.pathname;
@@ -129,7 +149,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   loader: async ({ context, location }) => {
     let siteContent: Awaited<ReturnType<typeof getSiteContent>> | null = null;
     try {
-      siteContent = await context.queryClient.ensureQueryData(siteContentQueryOptions);
+      siteContent = await withPublicConfigTimeout(
+        context.queryClient.ensureQueryData(siteContentQueryOptions),
+      );
       if (siteContent) setSiteContent(siteContent);
 
     } catch {
@@ -149,7 +171,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       path.startsWith("/api");
     if (!exempt) {
       try {
-        const flags = await getPlatformFlags();
+        const flags = await withPublicConfigTimeout(getPlatformFlags());
         maintenance = {
           active: Boolean(flags.maintenanceMode),
           message: flags.maintenanceMessage || "MunchReach is temporarily unavailable for scheduled maintenance.",
@@ -164,7 +186,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     // server and after hydration.
     let platformConfig: PublicPlatformConfigShape | null = null;
     try {
-      platformConfig = (await getPublicPlatformConfig()) as PublicPlatformConfigShape;
+      platformConfig = (await withPublicConfigTimeout(
+        getPublicPlatformConfig(),
+      )) as PublicPlatformConfigShape;
       setPlatformConfig(platformConfig);
     } catch {
       platformConfig = null;
