@@ -59,7 +59,7 @@ export function KpiBoard({
       hint: "Today",
       description: "Total emails successfully sent from your connected sending accounts today.",
       icon: Mail,
-      iconTone: "bg-tint-sky text-tint-sky-foreground",
+      iconColor: "text-tint-sky-foreground",
     },
     {
       key: "replyRate",
@@ -68,8 +68,8 @@ export function KpiBoard({
       change: y ? delta(pct(t.replies, t.sent), pct(y.replies, y.sent)) : null,
       hint: "Unique prospects",
       description: "Percentage of unique prospects who replied to emails sent today.",
-      icon: MessageSquareReply,
-      iconTone: "bg-tint-violet text-tint-violet-foreground",
+      icon: Reply,
+      iconColor: "text-tint-violet-foreground",
     },
     {
       key: "bounceRate",
@@ -80,7 +80,7 @@ export function KpiBoard({
       hint: "Of sent",
       description: "Percentage of sent emails that could not be delivered because they bounced.",
       icon: MailX,
-      iconTone: "bg-tint-rose text-tint-rose-foreground",
+      iconColor: "text-tint-rose-foreground",
     },
     {
       key: "meetings",
@@ -91,7 +91,7 @@ export function KpiBoard({
       hint: "Today",
       description: "Number of meetings attributed to your outreach today.",
       icon: CalendarCheck,
-      iconTone: "bg-tint-mint text-tint-mint-foreground",
+      iconColor: "text-tint-mint-foreground",
     },
   ];
 
