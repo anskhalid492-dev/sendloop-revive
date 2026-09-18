@@ -444,6 +444,9 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.opened = openedLeads.size;
   stats.clicked = clickedLeads.size;
   stats.replied = repliedLeads.size;
+  stats.bounced = bouncedLeads.size;
+  stats.unsubscribed = unsubscribedLeads.size;
+  stats.complained = complainedLeads.size;
   // Customer SMTP relays do not emit delivery receipts. Use the shared
   // accepted-minus-confirmed-bounces definition while retaining any larger
   // provider-confirmed count.
