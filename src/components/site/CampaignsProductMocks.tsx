@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+
+import scheduleScreenshot from "@/assets/campaign-schedule.png.asset.json";
+
 import {
   ArrowRight,
   Ban,
