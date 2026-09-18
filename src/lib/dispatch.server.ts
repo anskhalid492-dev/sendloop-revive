@@ -393,12 +393,13 @@ export async function ensureInitialCampaignMessages(
     const { error } = await supabase.from("campaign_messages").insert(inserts.slice(i, i + 500));
     if (error) throw new Error(error.message);
   }
-  for (const assignment of recipientAssignments) {
-    await supabase
-      .from("campaign_recipients")
-      .update({ sending_account_id: assignment.accountId, next_send_at: assignment.nextAt })
-      .eq("id", assignment.id);
-  }
+  await flushRecipientPatches(
+    supabase,
+    recipientAssignments.map((assignment) => ({
+      id: assignment.id,
+      patch: { sending_account_id: assignment.accountId, next_send_at: assignment.nextAt },
+    })),
+  );
 
   return inserts.length;
 }
@@ -622,12 +623,13 @@ export async function scheduleFollowUps(
     const { error } = await supabase.from("campaign_messages").insert(inserts);
     if (error) throw new Error(error.message);
   }
-  for (const row of advanced) {
-    await supabase
-      .from("campaign_recipients")
-      .update({ current_step: row.step, next_send_at: row.nextAt, status: "in_progress" })
-      .eq("id", row.id);
-  }
+  await flushRecipientPatches(
+    supabase,
+    advanced.map((row) => ({
+      id: row.id,
+      patch: { current_step: row.step, next_send_at: row.nextAt, status: "in_progress" },
+    })),
+  );
   if (finished.length) {
     await supabase
       .from("campaign_recipients")
