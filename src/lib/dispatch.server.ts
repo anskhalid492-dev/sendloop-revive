@@ -953,7 +953,7 @@ export async function dispatchDueMessages(
               : /unsub/i.test(suppressionReason)
                 ? "recipient_unsubscribed"
                 : "sequence_stopped",
-        })
+        } as never)
         .eq("id", message.id);
       logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: message.sending_account_id, mailboxEligible: false, reason: `recipient_suppressed_${suppressionReason}` });
       continue;

@@ -76,7 +76,7 @@ async function unsubscribe(token: string, source: UnsubscribeSource, userAgent: 
   // why — otherwise the stopped mail hides the unsubscribe inside "cancelled".
   await supabaseAdmin
     .from("campaign_messages")
-    .update({ status: "cancelled", cancelled_reason: "recipient_unsubscribed" })
+    .update({ status: "cancelled", cancelled_reason: "recipient_unsubscribed" } as never)
     .eq("campaign_id", target.campaignId)
     .eq("to_email", target.email)
     .eq("status", "scheduled");

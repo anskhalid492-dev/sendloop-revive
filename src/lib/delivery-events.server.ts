@@ -176,7 +176,7 @@ export async function applyDeliveryEvent(args: {
 
     await db
       .from("campaign_messages")
-      .update({ status: "cancelled", cancelled_reason: cancelledReason })
+      .update({ status: "cancelled", cancelled_reason: cancelledReason } as never)
       .eq("campaign_id", message.campaign_id)
       .eq("lead_id", leadId)
       .in("status", ["pending", "scheduled"]);
@@ -186,7 +186,7 @@ export async function applyDeliveryEvent(args: {
   if (email && (args.kind === "bounced" || args.kind === "unsubscribed")) {
     await db
       .from("campaign_messages")
-      .update({ status: "cancelled", cancelled_reason: cancelledReason })
+      .update({ status: "cancelled", cancelled_reason: cancelledReason } as never)
       .eq("workspace_id", workspaceId)
       .eq("to_email", email)
       .in("status", ["pending", "scheduled"]);
