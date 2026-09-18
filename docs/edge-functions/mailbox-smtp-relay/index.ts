@@ -20,7 +20,11 @@
 // Actions:
 //   { action: "test", smtp, imap }            -> { ok, smtp, imap, testedAt }
 //   { action: "send", smtp, message: {...} }  -> { ok, message, messageId }
-//   { action: "check", imap, sinceUid }       -> { ok, message, messages: [...] }
+//   { action: "check", imap, sinceUid, folder? }
+//        -> { ok, message, folder, messages: [...] }
+//     `folder` may be a single name or a list of candidates; the first one the
+//     server can open is used. Omitted -> INBOX. Used to read Junk/Spam too,
+//     because genuine replies are regularly filed there by the mail host.
 
 type Security = "ssl" | "tls" | "none";
 
@@ -532,7 +536,8 @@ function parseFetchResponse(raw: string): CheckedMessage[] {
 async function checkImapMailbox(
   endpoint: Endpoint,
   sinceUid: number | null,
-): Promise<{ ok: boolean; message: string; messages: CheckedMessage[] }> {
+  folders: string[] = ["INBOX"],
+): Promise<{ ok: boolean; message: string; folder: string | null; messages: CheckedMessage[] }> {
   let wire: Wire | null = null;
   try {
     wire = await withTimeout(Wire.open(endpoint), "IMAP connection");
@@ -542,7 +547,12 @@ async function checkImapMailbox(
       "IMAP greeting",
     );
     if (!/^\* (OK|PREAUTH)/i.test(greeting.trim())) {
-      return { ok: false, message: `IMAP server refused the connection: ${firstLine(greeting)}`, messages: [] };
+      return {
+        ok: false,
+        message: `IMAP server refused the connection: ${firstLine(greeting)}`,
+        folder: null,
+        messages: [],
+      };
     }
 
     if (endpoint.security === "tls") {
@@ -552,7 +562,7 @@ async function checkImapMailbox(
         "IMAP STARTTLS",
       );
       if (!/b0 OK/i.test(ready)) {
-        return { ok: false, message: `IMAP STARTTLS refused: ${firstLine(ready)}`, messages: [] };
+        return { ok: false, message: `IMAP STARTTLS refused: ${firstLine(ready)}`, folder: null, messages: [] };
       }
       await wire.startTls();
     }
@@ -564,16 +574,37 @@ async function checkImapMailbox(
       "IMAP login",
     );
     if (!/b1 OK/i.test(login)) {
-      return { ok: false, message: `IMAP login failed: ${firstLine(login)}`, messages: [] };
+      return { ok: false, message: `IMAP login failed: ${firstLine(login)}`, folder: null, messages: [] };
     }
 
-    await wire.send("b2 SELECT INBOX");
-    const select = await withTimeout(
-      wire.readUntil((text) => /b2 (OK|NO|BAD)/i.test(text)),
-      "IMAP SELECT",
-    );
-    if (!/b2 OK/i.test(select)) {
-      return { ok: false, message: `IMAP could not open the inbox: ${firstLine(select)}`, messages: [] };
+    // Folder candidates are tried in order; hosts name the spam folder
+    // differently (INBOX.Junk, Junk, Spam, ...), so the first one that opens
+    // wins and is reported back to the caller.
+    const candidates = folders.length > 0 ? folders : ["INBOX"];
+    let select = "";
+    let opened: string | null = null;
+    let tag = 0;
+    for (const candidate of candidates) {
+      tag += 1;
+      const label = `b2${tag}`;
+      await wire.send(`${label} SELECT "${escape(candidate)}"`);
+      const response = await withTimeout(
+        wire.readUntil((text) => new RegExp(`${label} (OK|NO|BAD)`, "i").test(text)),
+        "IMAP SELECT",
+      );
+      if (new RegExp(`${label} OK`, "i").test(response)) {
+        select = response;
+        opened = candidate;
+        break;
+      }
+    }
+    if (!opened) {
+      return {
+        ok: false,
+        message: `IMAP could not open ${candidates.join(", ")}.`,
+        folder: null,
+        messages: [],
+      };
     }
 
     const uidNext = Number(/UIDNEXT (\d+)/i.exec(select)?.[1] ?? 0);
@@ -591,7 +622,7 @@ async function checkImapMailbox(
       "IMAP FETCH",
     );
     if (/^b3 (NO|BAD)/im.test(fetched)) {
-      return { ok: false, message: `IMAP fetch failed: ${firstLine(fetched)}`, messages: [] };
+      return { ok: false, message: `IMAP fetch failed: ${firstLine(fetched)}`, folder: opened, messages: [] };
     }
 
     const all = parseFetchResponse(fetched).sort((a, b) => a.uid - b.uid);
@@ -599,9 +630,14 @@ async function checkImapMailbox(
     const messages = all.slice(-MAX_MESSAGES_PER_CHECK);
 
     await wire.send("b4 LOGOUT");
-    return { ok: true, message: `Fetched ${messages.length} message(s).`, messages };
+    return {
+      ok: true,
+      message: `Fetched ${messages.length} message(s) from ${opened}.`,
+      folder: opened,
+      messages,
+    };
   } catch (error) {
-    return { ok: false, message: `IMAP error: ${(error as Error).message}`, messages: [] };
+    return { ok: false, message: `IMAP error: ${(error as Error).message}`, folder: null, messages: [] };
   } finally {
     wire?.close();
   }
@@ -669,7 +705,13 @@ Deno.serve(async (request) => {
     }
     const rawSince = payload["sinceUid"];
     const sinceUid = typeof rawSince === "number" && Number.isFinite(rawSince) ? Math.trunc(rawSince) : null;
-    return json(await checkImapMailbox(imap, sinceUid));
+    const rawFolder = payload["folder"];
+    const folders = Array.isArray(rawFolder)
+      ? rawFolder.filter((value): value is string => typeof value === "string" && value.length > 0)
+      : typeof rawFolder === "string" && rawFolder.length > 0
+        ? [rawFolder]
+        : ["INBOX"];
+    return json(await checkImapMailbox(imap, sinceUid, folders));
   }
 
   return json({ error: "Unknown action. Use 'test', 'send' or 'check'." }, 400);

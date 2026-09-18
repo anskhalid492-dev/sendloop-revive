@@ -145,22 +145,43 @@ export type RelayCheckedMessage = {
 export type RelayCheckResult = {
   ok: boolean;
   message: string;
+  /** Folder actually opened. Null on older relay builds that only read INBOX. */
+  folder?: string | null;
   messages: RelayCheckedMessage[];
 };
 
+/** Names mail hosts use for the spam folder, tried in order. */
+export const SPAM_FOLDER_CANDIDATES = [
+  "INBOX.Junk",
+  "Junk",
+  "INBOX.spam",
+  "Spam",
+  "INBOX.Spam",
+  "Junk E-mail",
+  "[Gmail]/Spam",
+];
+
 /**
- * Reads new mail from a customer mailbox's OWN IMAP inbox through the relay.
+ * Reads new mail from a customer mailbox's OWN IMAP folder through the relay.
  * `sinceUid` is the highest UID already processed; null asks for the most recent
- * slice of the inbox. Read-only: nothing is sent, moved or deleted.
+ * slice. `folders` lists candidate folder names (first one that opens wins);
+ * omitted means INBOX. Read-only: nothing is sent, moved or deleted.
  */
 export async function relayCheckMailbox(
   imap: MailEndpoint,
   sinceUid: number | null,
+  folders?: string[],
 ): Promise<RelayCheckResult> {
-  const result = await callRelay<RelayCheckResult>({ action: "check", imap, sinceUid });
+  const result = await callRelay<RelayCheckResult>({
+    action: "check",
+    imap,
+    sinceUid,
+    ...(folders && folders.length > 0 ? { folder: folders } : {}),
+  });
   return {
     ok: !!result?.ok,
     message: result?.message ?? "The mail relay returned no result.",
+    folder: result?.folder ?? null,
     messages: Array.isArray(result?.messages) ? result.messages : [],
   };
 }
