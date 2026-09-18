@@ -49,7 +49,24 @@ async function run(request: Request) {
 
   const { runInboundRetrySweep, reconcileInboundEvents } = await import("@/lib/inbound-ops.server");
   const retry = await runInboundRetrySweep();
-  const reconciliation = await reconcileInboundEvents();
+  // Reconciliation is a read-only audit pass. A slow database must never abort
+  // the tick, because the warmup safety net below still has to run.
+  let reconciliation: { scanned: number; linked: number; mismatched: number; error?: string } = {
+    scanned: 0,
+    linked: 0,
+    mismatched: 0,
+  };
+  try {
+    const result = await reconcileInboundEvents();
+    reconciliation = {
+      scanned: result.scanned,
+      linked: result.linked,
+      mismatched: result.mismatched,
+    };
+  } catch (error) {
+    console.error("inbound reconciliation failed", error);
+    reconciliation.error = error instanceof Error ? error.message : "failed";
+  }
 
   // Warmup safety net: if the dedicated warmup schedule stops firing, warmup
   // silently stops dispatching while mailboxes still show as active. This tick
