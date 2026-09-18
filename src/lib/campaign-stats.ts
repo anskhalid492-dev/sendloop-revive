@@ -163,6 +163,8 @@ export type CampaignMessageRow = {
   failed_at?: string | null;
   delayed_at?: string | null;
   updated_at?: string | null;
+  /** Why this message was cancelled (see `@/lib/cancellation-reason`). */
+  cancelled_reason?: string | null;
 };
 
 /** Per-message provider signals, keyed by message id (event feed). */
@@ -194,6 +196,12 @@ export type Unit = {
   deliveryStatus: string;
   sentAt: string | null;
   signals: Record<SignalKey, string | null>;
+  /**
+   * Why this recipient's queued mail was cancelled, when it was. A bounce or
+   * unsubscribe mid-sequence is recorded here, so it is still counted as a
+   * bounce/unsubscribe even though the message status reads "cancelled".
+   */
+  cancelledReason: string | null;
   cancelled: boolean;
   pending: boolean;
   processing: boolean;
