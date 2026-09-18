@@ -143,14 +143,25 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const startedAt = Date.now();
     const like = (value: string) => `%${value.replace(/[%,()]/g, " ").trim()}%`;
+    const outcome = OUTCOME_STATUSES.includes(data.status as OutcomeStatus)
+      ? (data.status as OutcomeStatus)
+      : null;
+    const outcomeIds = outcome
+      ? await outcomeRecipientIds(context.supabase, data.campaignId, outcome)
+      : null;
     const applyFilters = <T>(builder: T): T => {
       let query = builder as unknown as {
         eq: (column: string, value: unknown) => typeof query;
+        in: (column: string, values: readonly unknown[]) => typeof query;
         ilike: (column: string, value: string) => typeof query;
         or: (filter: string, options?: { referencedTable: string }) => typeof query;
       };
       query = query.eq("campaign_id", data.campaignId);
-      if (data.status) query = query.eq("status", data.status);
+      if (outcomeIds) {
+        query = query.in("id", outcomeIds.length ? outcomeIds : [NO_MATCH_ID]);
+      } else if (data.status) {
+        query = query.eq("status", data.status);
+      }
       if (data.step !== undefined) query = query.eq("current_step", data.step);
       if (data.accountId) query = query.eq("sending_account_id", data.accountId);
       if (data.company) query = query.ilike("leads.company", like(data.company));
