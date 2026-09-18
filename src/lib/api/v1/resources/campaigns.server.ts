@@ -329,7 +329,7 @@ export async function campaignAction(ctx: ApiContext, action: "launch" | "pause"
     // Stopping must also clear the queue, otherwise scheduled mail still goes out.
     await ctx.admin
       .from("campaign_messages")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled", cancelled_reason: "sequence_stopped" } as never)
       .eq("campaign_id", id)
       .eq("workspace_id", ctx.auth.workspaceId)
       .in("status", ["pending", "scheduled"]);

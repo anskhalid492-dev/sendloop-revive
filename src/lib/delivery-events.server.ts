@@ -153,7 +153,16 @@ export async function applyDeliveryEvent(args: {
     });
   }
 
-  // A bounce, complaint or unsubscribe always stops future sending.
+  // A bounce, complaint or unsubscribe always stops future sending. The reason
+  // is persisted on every cancelled message so the bounce/unsubscribe is still
+  // counted everywhere instead of disappearing into the Cancelled bucket.
+  const cancelledReason =
+    args.kind === "bounced"
+      ? "recipient_bounced"
+      : args.kind === "complained"
+        ? "recipient_complained"
+        : "recipient_unsubscribed";
+
   if (message?.campaign_id && leadId) {
     await db
       .from("campaign_recipients")
@@ -167,7 +176,7 @@ export async function applyDeliveryEvent(args: {
 
     await db
       .from("campaign_messages")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled", cancelled_reason: cancelledReason } as never)
       .eq("campaign_id", message.campaign_id)
       .eq("lead_id", leadId)
       .in("status", ["pending", "scheduled"]);
@@ -177,7 +186,7 @@ export async function applyDeliveryEvent(args: {
   if (email && (args.kind === "bounced" || args.kind === "unsubscribed")) {
     await db
       .from("campaign_messages")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled", cancelled_reason: cancelledReason } as never)
       .eq("workspace_id", workspaceId)
       .eq("to_email", email)
       .in("status", ["pending", "scheduled"]);

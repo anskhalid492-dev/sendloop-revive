@@ -52,7 +52,7 @@ import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 
-const STATUS_STYLES: Record<MessageStatus | "bounced", string> = {
+const STATUS_STYLES: Record<MessageStatus | "bounced" | "unsubscribed", string> = {
   pending: "bg-muted text-muted-foreground border-border",
   scheduled: "bg-sky-500/10 text-sky-700 border-sky-500/20",
   processing: "bg-amber-500/10 text-amber-700 border-amber-500/20",
@@ -60,6 +60,7 @@ const STATUS_STYLES: Record<MessageStatus | "bounced", string> = {
   // Failed = internal send failures only; bounces are their own chip below.
   failed: "bg-destructive/10 text-destructive border-destructive/20",
   bounced: "bg-destructive/10 text-destructive border-destructive/20",
+  unsubscribed: "bg-amber-500/10 text-amber-700 border-amber-500/20",
   cancelled: "bg-muted text-muted-foreground border-border",
 };
 
@@ -76,7 +77,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
   const deleteReplyFn = useServerFn(deleteReply);
 
 
-  const [status, setStatus] = useState<MessageStatus | "bounced" | null>(null);
+  const [status, setStatus] = useState<MessageStatus | "bounced" | "unsubscribed" | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<QueueMessage | null>(null);
@@ -95,8 +96,9 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
       fetchQueue({
         data: {
           campaignId: builder.campaignId,
-          status: status === "bounced" ? null : status,
+          status: status === "bounced" || status === "unsubscribed" ? null : status,
           bounced: status === "bounced" ? true : undefined,
+          unsubscribed: status === "unsubscribed" ? true : undefined,
           search: search || undefined,
           limit: 200,
         },
@@ -194,8 +196,8 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
-        {([...MESSAGE_STATUSES, "bounced"] as const).map((s) => (
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-8">
+        {([...MESSAGE_STATUSES, "bounced", "unsubscribed"] as const).map((s) => (
           <button
             key={s}
             type="button"

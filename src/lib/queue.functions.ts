@@ -60,6 +60,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         status: z.enum(MESSAGE_STATUSES).nullable().optional(),
         /** Filter to bounced messages (bounced_at set). Distinct from failed. */
         bounced: z.boolean().optional(),
+        /** Filter to unsubscribed recipients. */
+        unsubscribed: z.boolean().optional(),
         search: z.string().trim().max(120).optional(),
         limit: z.number().int().min(1).max(500).default(200),
       })
@@ -76,7 +78,14 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     // Bounces are their own outcome: a bounced message never counts as failed,
     // and failed never includes bounced rows.
     if (data.status === "failed") query = query.is("bounced_at", null);
-    if (data.bounced) query = query.not("bounced_at", "is", null);
+    // A recipient who bounced or unsubscribed mid-sequence has their remaining
+    // mail cancelled with the reason attached — include those rows here too.
+    if (data.bounced) {
+      query = query.or("bounced_at.not.is.null,cancelled_reason.eq.recipient_bounced");
+    }
+    if (data.unsubscribed) {
+      query = query.or("unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed");
+    }
     if (data.search) query = query.ilike("to_email", `%${data.search}%`);
 
     // Counts are exact server-side COUNTs. A plain select() is capped at 1,000
@@ -100,7 +109,21 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       return Number(count ?? 0);
     };
 
-    const [messagesRes, statusCounts, bouncedCount, total] = await Promise.all([
+    // Bounced and unsubscribed are counted per PERSON through the shared rule in
+    // `@/lib/cancellation-reason`, so a bounce that stopped three follow-ups is
+    // one bounce and a recipient cancelled because of a bounce/unsubscribe is
+    // never hidden inside the Cancelled tile.
+    const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
+      "@/lib/cancellation-reason"
+    );
+    const outcomeRows = context.supabase
+      .from("campaign_messages")
+      .select(OUTCOME_COLUMNS)
+      .eq("campaign_id", data.campaignId)
+      .or(OUTCOME_OR_FILTER)
+      .limit(5000);
+
+    const [messagesRes, statusCounts, outcomeRes, total] = await Promise.all([
       query,
       Promise.all(
         MESSAGE_STATUSES.map((status) =>
@@ -109,9 +132,11 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
           status === "failed" ? countFor({ status, bounced: "exclude" }) : countFor({ status }),
         ),
       ),
-      countFor({ bounced: "only" }),
+      outcomeRows,
       countFor(),
     ]);
+    if (outcomeRes.error) throw new Error(outcomeRes.error.message);
+    const outcomes = countOutcomeRecipients((outcomeRes.data ?? []) as never[]);
     if (messagesRes.error) throw new Error(messagesRes.error.message);
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
     // Strip vendor identity and raw provider errors before the queue reaches
@@ -131,7 +156,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       ...(Object.fromEntries(
         MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
       ) as Record<MessageStatus, number>),
-      bounced: bouncedCount,
+      bounced: outcomes.bounced,
+      unsubscribed: outcomes.unsubscribed,
     };
 
     // Send log: per-mailbox rotation breakdown, also from exact counts. The
@@ -239,7 +265,7 @@ export const updateQueueMessages = createServerFn({ method: "POST" })
 
     const patch =
       data.action === "cancel"
-        ? { status: "cancelled" as const }
+        ? ({ status: "cancelled" as const, cancelled_reason: "manual" } as never)
         : { status: "pending" as const, last_error: null, scheduled_at: null };
 
     const { error } = await context.supabase

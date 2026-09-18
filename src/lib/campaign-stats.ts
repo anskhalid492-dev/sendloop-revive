@@ -163,6 +163,8 @@ export type CampaignMessageRow = {
   failed_at?: string | null;
   delayed_at?: string | null;
   updated_at?: string | null;
+  /** Why this message was cancelled (see `@/lib/cancellation-reason`). */
+  cancelled_reason?: string | null;
 };
 
 /** Per-message provider signals, keyed by message id (event feed). */
@@ -194,6 +196,12 @@ export type Unit = {
   deliveryStatus: string;
   sentAt: string | null;
   signals: Record<SignalKey, string | null>;
+  /**
+   * Why this recipient's queued mail was cancelled, when it was. A bounce or
+   * unsubscribe mid-sequence is recorded here, so it is still counted as a
+   * bounce/unsubscribe even though the message status reads "cancelled".
+   */
+  cancelledReason: string | null;
   cancelled: boolean;
   pending: boolean;
   processing: boolean;
@@ -277,12 +285,16 @@ export function collapseMessageUnits(
         unsubscribed_at: null,
         failed_at: null,
       },
+      cancelledReason: null,
       cancelled: true,
       pending: false,
       processing: false,
       updatedAt: null,
     };
 
+    if (!unit.cancelledReason && m.cancelled_reason) {
+      unit.cancelledReason = String(m.cancelled_reason);
+    }
     unit.sentAt = earlier(unit.sentAt, m.sent_at ?? null);
     for (const signal of SIGNALS) {
       unit.signals[signal] = earlier(
@@ -357,10 +369,41 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     return row;
   };
 
+  // Bounced / unsubscribed / complained count PEOPLE, and a person counts when
+  // either a real provider signal exists OR their remaining queued emails were
+  // cancelled for that reason. Without the second half, a bounce or unsubscribe
+  // part-way through a sequence vanished into the Cancelled bucket. This is the
+  // same rule as `countOutcomeRecipients` in `@/lib/cancellation-reason` and the
+  // SQL aggregates.
+  const noRange = lo === -Infinity && hi === Infinity;
+  const bouncedLeads = new Set<string>();
+  const unsubscribedLeads = new Set<string>();
+  const complainedLeads = new Set<string>();
+  for (const unit of units.values()) {
+    const s = unit.signals;
+    const reasonInWindow =
+      noRange || inRange(unit.updatedAt) || inRange(unit.sentAt) || inRange(unit.signals.failed_at);
+    if (inRange(s.bounced_at) || (unit.cancelledReason === "recipient_bounced" && reasonInWindow)) {
+      bouncedLeads.add(unit.leadKey);
+    }
+    if (
+      inRange(s.unsubscribed_at) ||
+      (unit.cancelledReason === "recipient_unsubscribed" && reasonInWindow)
+    ) {
+      unsubscribedLeads.add(unit.leadKey);
+    }
+    if (
+      inRange(s.complained_at) ||
+      (unit.cancelledReason === "recipient_complained" && reasonInWindow)
+    ) {
+      complainedLeads.add(unit.leadKey);
+    }
+  }
+
   for (const unit of units.values()) {
     const s = unit.signals;
     const step = stepOf(unit.step);
-    const bounced = Boolean(s.bounced_at);
+    const bounced = Boolean(s.bounced_at) || bouncedLeads.has(unit.leadKey);
     const failed = Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt);
 
     const sentInRange = inRange(unit.sentAt);
@@ -386,11 +429,6 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       repliedLeads.add(unit.leadKey);
       step.replied += 1;
     }
-    if (inRange(s.bounced_at)) {
-      stats.bounced += 1;
-    }
-    if (inRange(s.unsubscribed_at)) stats.unsubscribed += 1;
-    if (inRange(s.complained_at)) stats.complained += 1;
     if (!bounced && (inRange(s.failed_at) || (failed && inRange(unit.updatedAt)))) {
       stats.failed += 1;
     }
@@ -406,6 +444,9 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.opened = openedLeads.size;
   stats.clicked = clickedLeads.size;
   stats.replied = repliedLeads.size;
+  stats.bounced = bouncedLeads.size;
+  stats.unsubscribed = unsubscribedLeads.size;
+  stats.complained = complainedLeads.size;
   // Customer SMTP relays do not emit delivery receipts. Use the shared
   // accepted-minus-confirmed-bounces definition while retaining any larger
   // provider-confirmed count.
