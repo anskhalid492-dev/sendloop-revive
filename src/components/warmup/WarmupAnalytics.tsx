@@ -364,6 +364,47 @@ export function WarmupAnalytics() {
           </div>
 
           <div className="surface-card overflow-x-auto">
+            <div className="px-3 pt-3">
+              <h3 className="text-sm font-semibold">Daily warmup history</h3>
+              <p className="text-xs text-muted-foreground">
+                Planned versus actual warmup volume, and what the ramp did each day.
+              </p>
+            </div>
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2.5 font-medium">Date</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Planned</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Sent</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Replies</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Bounces</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Failures</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Health</th>
+                  <th className="px-3 py-2.5 font-medium">Ramp action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...series].reverse().map((point) => (
+                  <tr key={point.day} className="border-b border-border/50 hover:bg-muted/40">
+                    <td className="px-3 py-2.5">{fmtDay(point.day)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{point.planned || "—"}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{point.sent}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{point.replied}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{point.bounced}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">
+                      {point.failed + point.deferred + point.rejected}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">
+                      {point.health_score ?? "—"}
+                    </td>
+                    <td className="px-3 py-2.5 capitalize">{point.action ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="surface-card overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
