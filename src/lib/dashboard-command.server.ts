@@ -41,6 +41,7 @@ import {
   type SeriesPoint,
 } from "@/lib/dashboard-command-model";
 import { mailboxActivityCopy } from "@/lib/activity-copy";
+import { outcomeRecipientKey } from "@/lib/cancellation-reason";
 
 type AnyClient = {
   from: (table: string) => any;
@@ -137,7 +138,7 @@ const [
       supabase
         .from("campaign_messages")
         .select(
-          "id, campaign_id, lead_id, sending_account_id, status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, bounced_at, replied_at, unsubscribed_at, complained_at, failed_at, last_event_at, delivery_status, last_error",
+          "id, campaign_id, lead_id, recipient_id, sending_account_id, status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, bounced_at, replied_at, unsubscribed_at, complained_at, failed_at, last_event_at, delivery_status, last_error, cancelled_reason, updated_at",
         )
         .eq("workspace_id", workspaceId)
         .gte("created_at", fetchSince),
@@ -191,6 +192,46 @@ supabase
   const messageRows: Row[] = messages ?? [];
   const recipientRows: Row[] = recipients ?? [];
   const meetingRows: Row[] = (meetingLeads ?? []).filter((l) => l["last_activity_at"]);
+
+  /* --------------------------------------------------------------- bounces */
+  // A person bounced when a real provider signal exists OR their remaining
+  // queued mail was cancelled because they bounced. Without the second half the
+  // dashboard reported 0 bounced while the campaign page showed them, since a
+  // mid-sequence bounce only ever lands on the cancelled rows. Same rule as
+  // `countOutcomeRecipients` and `computeCampaignStats`. Counted per PERSON.
+  const bounceAtByPerson = new Map<string, number>();
+  const bounceAtByCampaign = new Map<string, Map<string, number>>();
+  const bounceAtByAccount = new Map<string, Map<string, number>>();
+  const noteBounce = (scope: Map<string, Map<string, number>>, id: unknown, key: string, at: number) => {
+    if (!id) return;
+    const inner = scope.get(String(id)) ?? new Map<string, number>();
+    const prev = inner.get(key);
+    if (prev === undefined || at < prev) inner.set(key, at);
+    scope.set(String(id), inner);
+  };
+  for (const m of messageRows) {
+    const at =
+      ts(m["bounced_at"]) ??
+      (m["cancelled_reason"] === "recipient_bounced"
+        ? (ts(m["updated_at"]) ?? ts(m["sent_at"]) ?? ts(m["scheduled_at"]))
+        : null);
+    if (at === null) continue;
+    const key = outcomeRecipientKey(m);
+    if (!key) continue;
+    const prev = bounceAtByPerson.get(key);
+    if (prev === undefined || at < prev) bounceAtByPerson.set(key, at);
+    noteBounce(bounceAtByCampaign, m["campaign_id"], key, at);
+    noteBounce(bounceAtByAccount, m["sending_account_id"], key, at);
+  }
+  /** Did the person this message belongs to bounce at any point? */
+  const personBounced = (m: Row) => bounceAtByPerson.has(outcomeRecipientKey(m));
+  const countBounced = (scope: Map<string, number> | undefined, from: number, to: number) => {
+    if (!scope) return 0;
+    let total = 0;
+    for (const at of scope.values()) if (at >= from && at < to) total += 1;
+    return total;
+  };
+
 
   const accountIds = accountRows.map((a) => a["id"] as string);
   const [warmupSettingsRes, safetyStatsRes] = await Promise.all([
@@ -269,12 +310,12 @@ supabase
       // mailboxes send over SMTP and never report a delivery confirmation, so
       // `delivered_at` can never be the base (see engagement-rates.ts).
       delivered: sentMsgs.filter(
-        (m) => !m["bounced_at"] && m["delivery_status"] !== "failed",
+        (m) => !personBounced(m) && m["delivery_status"] !== "failed",
       ).length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
-      bounced: sentMsgs.filter((m) => m["bounced_at"]).length,
+      bounced: countBounced(bounceAtByPerson, from, to),
       uniqueRecipients: new Set(
         sentMsgs.map((m) => m["lead_id"] ?? m["id"]).filter(Boolean),
       ).size,
@@ -298,7 +339,7 @@ supabase
     const b = buckets.get(new Date(t).toISOString().slice(0, 10));
     if (!b) continue;
     b.sent += 1;
-    if (!m["bounced_at"] && m["delivery_status"] !== "failed") b.delivered += 1;
+    if (!personBounced(m) && m["delivery_status"] !== "failed") b.delivered += 1;
   }
   for (const r of replyRows) {
     const t = ts(r["received_at"]);
@@ -371,11 +412,11 @@ supabase
       leads: leadsPerCampaign.get(id) ?? 0,
       sentLifetime: Number(c["emails_sent_count"] ?? 0) || sentMine.length,
       sentToday,
-      delivered: inRange.filter((m) => !m["bounced_at"] && m["delivery_status"] !== "failed").length,
+      delivered: inRange.filter((m) => !personBounced(m) && m["delivery_status"] !== "failed").length,
       replies: uniqueReplies,
       positive,
       meetings,
-      bounced: inRange.filter((m) => m["bounced_at"]).length,
+      bounced: countBounced(bounceAtByCampaign.get(id), rangeStart, nowMs + 1),
       remainingDailyCapacity: status.remainingDailyCapacity,
       dailyQuota: Number(c["daily_cap"] ?? 0) || 0,
     };
@@ -451,8 +492,8 @@ supabase
           : (snapshot.state.detail ?? (a["last_error"] as string | null) ?? null),
       healthScore: (a["health_score"] as number | null) ?? null,
       sent: inRange.length,
-      delivered: inRange.filter((m) => !m["bounced_at"] && m["delivery_status"] !== "failed").length,
-      bounced: inRange.filter((m) => m["bounced_at"]).length,
+      delivered: inRange.filter((m) => !personBounced(m) && m["delivery_status"] !== "failed").length,
+      bounced: countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
       replies: replyCount,
       dailyLimit,
       usedInWindow: used,
@@ -585,7 +626,7 @@ supabase
     (m) =>
       m["status"] === "failed" &&
       !m["sent_at"] &&
-      !m["bounced_at"] &&
+      !personBounced(m) &&
       isRetryableFailure((m["last_error"] as string | null) ?? null),
   ).length;
 

@@ -3,7 +3,7 @@
  * same de-duplicated message units as every other number on the page, so the
  * sequence and variant tables can never disagree with the headline totals.
  */
-import type { Unit } from "@/lib/campaign-stats";
+import { unitBounceAt, unitUnsubscribeAt, type Unit } from "@/lib/campaign-stats";
 
 export type SequenceTotals = {
   sent: number;
@@ -55,13 +55,15 @@ function makeInRange({ from, to }: Window) {
 }
 
 function accumulate(target: SequenceTotals, unit: Unit, inRange: (iso: string | null) => boolean) {
+  // Bounce / unsubscribe use the ONE shared rule (signal or cancelled reason).
+  const bouncedAt = unitBounceAt(unit);
   if (inRange(unit.sentAt)) target.sent += 1;
   // Relay/SMTP sends never get a provider delivery confirmation, so a send that
   // did not bounce or fail counts as delivered. Same rule as `deliveredCount`
   // in engagement-rates.ts.
   if (
     (inRange(unit.signals.delivered_at) || inRange(unit.sentAt)) &&
-    !unit.signals.bounced_at &&
+    !bouncedAt &&
     !unit.signals.failed_at
   ) {
     target.delivered += 1;
@@ -69,9 +71,9 @@ function accumulate(target: SequenceTotals, unit: Unit, inRange: (iso: string | 
   if (inRange(unit.signals.opened_at)) target.opens += 1;
   if (inRange(unit.signals.clicked_at)) target.clicks += 1;
   if (inRange(unit.signals.replied_at)) target.replies += 1;
-  if (inRange(unit.signals.bounced_at)) target.bounced += 1;
-  if (!unit.signals.bounced_at && inRange(unit.signals.failed_at)) target.failed += 1;
-  if (inRange(unit.signals.unsubscribed_at)) target.unsubscribed += 1;
+  if (inRange(bouncedAt)) target.bounced += 1;
+  if (!bouncedAt && inRange(unit.signals.failed_at)) target.failed += 1;
+  if (inRange(unitUnsubscribeAt(unit))) target.unsubscribed += 1;
 }
 
 /**
