@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import scheduleScreenshot from "@/assets/campaign-schedule.png.asset.json";
+import aiPersonalizationScreenshot from "@/assets/campaign-ai-personalization.png.asset.json";
 
 import {
   ArrowRight,
