@@ -1307,7 +1307,17 @@ export async function applyWarmupInbound(input: {
   text?: string | null;
   html?: string | null;
   headers?: unknown;
+  messageId?: string | null;
   payload?: Record<string, unknown>;
+  /**
+   * Folder the message was read from, when the reader knows it. An IMAP read of
+   * the main inbox is itself the placement verdict; webhooks leave this unset.
+   */
+  folder?: "inbox" | "spam" | null;
+  /** Where the confirmation came from, for auditing. */
+  source?: "inbound_arrival" | "imap_arrival";
+  /** Provider time of arrival, when reported. */
+  receivedAt?: string | null;
 }): Promise<boolean> {
   const token = warmupTokenFrom(input);
   if (!token) return false;
@@ -1315,27 +1325,35 @@ export async function applyWarmupInbound(input: {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: job } = await supabaseAdmin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id")
+    .select(
+      "id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id, pool_recipient_id",
+    )
     .eq("warmup_token", token)
     .maybeSingle();
   if (!job) return false;
 
-  // Already classified: acknowledge the redelivery without double counting.
-  if (job.placement && job.placement !== "pending") return true;
-
   const spam = spamVerdict(input);
-  const placement = spam === true ? "spam" : spam === false ? "inbox" : "received_unknown";
-  const now = new Date().toISOString();
+  const placement =
+    spam === true || input.folder === "spam"
+      ? "spam"
+      : spam === false || input.folder === "inbox"
+        ? "inbox"
+        : "received_unknown";
+  const now = input.receivedAt ?? new Date().toISOString();
+  const alreadyClassified = !!job.placement && job.placement !== "pending";
 
-  await supabaseAdmin
-    .from("warmup_jobs")
-    .update({
-      placement,
-      placement_checked_at: now,
-      received_at: now,
-      status: job.status === "sent" || job.status === "processing" ? "delivered" : job.status,
-    })
-    .eq("id", job.id);
+  // Arrival is the strongest signal warmup has: the receiving side handed the
+  // message back to us. It goes through the shared idempotent confirmation, so
+  // the same message read twice (webhook retry, second IMAP pass) is counted
+  // exactly once.
+  const firstConfirmation = await confirmWarmupDelivery(supabaseAdmin, {
+    job: job as unknown as WarmupDeliveryJob,
+    source: input.source ?? "inbound_arrival",
+    occurredAt: now,
+    extraPatch: alreadyClassified
+      ? { received_at: now }
+      : { placement, placement_checked_at: now, received_at: now },
+  });
 
   const fresh = await logEvent(supabaseAdmin, {
     workspaceId: job.workspace_id,
@@ -1349,20 +1367,28 @@ export async function applyWarmupInbound(input: {
           ? `Filtered to spam at ${input.to ?? "the receiving mailbox"}.`
           : `Received by ${input.to ?? "the receiving mailbox"} — folder not reported.`,
     externalId: `warmup:placement:${token}`,
-    payload: { placement, to: input.to, from: input.from },
+    payload: { placement, to: input.to, from: input.from, source: input.source ?? "inbound_arrival" },
   });
 
-  if (fresh) {
+  if (fresh && !alreadyClassified) {
     const counter: Record<string, number> =
       placement === "spam" ? { spam: 1 } : placement === "inbox" ? { inbox: 1 } : {};
-    if (job.status !== "delivered") counter["delivered"] = 1;
     if (Object.keys(counter).length) {
       await bumpStats(
         supabaseAdmin,
-        { workspaceId: job.workspace_id, accountId: job.sending_account_id },
+        { workspaceId: job.workspace_id, accountId: job.sending_account_id, day: now.slice(0, 10) },
         counter,
       );
     }
+  }
+  if (firstConfirmation) {
+    await touchPoolRecipient(
+      supabaseAdmin,
+      (job as Record<string, unknown>)["pool_recipient_id"] as string | null,
+      "received",
+    );
+  }
+  if (fresh || firstConfirmation) {
     await recalculateHealth(supabaseAdmin, job.sending_account_id);
   }
   return true;
