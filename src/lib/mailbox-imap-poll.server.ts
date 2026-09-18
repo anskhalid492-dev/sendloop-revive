@@ -330,7 +330,12 @@ export async function pollMailbox(
       row.last_spam_imap_uid ?? null,
       SPAM_FOLDER_CANDIDATES,
     );
-    if (spam.ok) {
+    // Older relay builds ignore the folder request and silently return INBOX
+    // again. They echo no folder name, so anything without a confirmed junk
+    // folder is skipped rather than processed twice.
+    const confirmed =
+      typeof spam.folder === "string" && spam.folder.length > 0 && spam.folder.toUpperCase() !== "INBOX";
+    if (spam.ok && confirmed) {
       outcome.spamFolder = spam.folder ?? null;
       outcome.spamFetched = spam.messages.length;
       const spamHighest = await processFolderMessages(
