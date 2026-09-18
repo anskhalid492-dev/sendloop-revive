@@ -240,6 +240,98 @@ async function logEvent(
   return true;
 }
 
+/* -------------------------------------------------- delivery state tracking */
+
+export type WarmupDeliveryJob = {
+  id: string;
+  workspace_id: string;
+  sending_account_id: string;
+  status?: string | null;
+  delivery_state?: string | null;
+  delivered_at?: string | null;
+};
+
+/**
+ * Moves a warmup message's internal delivery state forward. A weaker signal
+ * never overwrites a stronger one, so a late "accepted" cannot hide a bounce.
+ * Never touches the daily counters — those are owned by the callers that know
+ * which counter the event belongs to.
+ */
+async function setWarmupDeliveryState(
+  admin: Admin,
+  job: WarmupDeliveryJob,
+  next: WarmupDeliveryState,
+): Promise<void> {
+  if (!advancesWarmupDelivery((job.delivery_state ?? null) as WarmupDeliveryState | null, next)) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await admin.from("warmup_jobs").update({ delivery_state: next } as any).eq("id", job.id);
+}
+
+/**
+ * Records a confirmed arrival for one warmup message and bumps the daily
+ * `delivered` counter exactly once.
+ *
+ * Idempotency is enforced in the database: the update only matches while
+ * `delivered_at` is still null, so a redelivered webhook, a second IMAP read of
+ * the same message and the reconciliation sweep can all run without ever
+ * double counting. Returns true only for the first confirmation.
+ */
+export async function confirmWarmupDelivery(
+  admin: Admin,
+  args: {
+    job: WarmupDeliveryJob;
+    /** Where the proof came from, for auditing. */
+    source: "inbound_arrival" | "imap_arrival" | "provider_event" | "peer_reply";
+    occurredAt?: string | null;
+    /** Extra columns the caller already knows (placement, received_at, …). */
+    extraPatch?: Record<string, unknown>;
+  },
+): Promise<boolean> {
+  const at = args.occurredAt ?? new Date().toISOString();
+  const patch: Record<string, unknown> = {
+    ...(args.extraPatch ?? {}),
+    delivery_state: "delivered",
+    delivered_at: at,
+    delivered_source: args.source,
+  };
+  // A confirmed arrival also lifts the job status, unless it already moved on
+  // to a stronger outcome (replied) or a negative one (failed/cancelled).
+  const status = args.job.status ?? null;
+  if (status === "sent" || status === "processing" || status === "queued") {
+    patch["status"] = "delivered";
+  }
+
+  const { data, error } = await admin
+    .from("warmup_jobs")
+    .update(patch as never)
+    .eq("id", args.job.id)
+    .is("delivered_at", null)
+    .select("id");
+  if (error) {
+    // Columns missing (SQL not applied yet): fall back to the legacy patch so
+    // arrival detection keeps working, without the idempotency guard.
+    if (error.code === "42703" || error.code === "PGRST204") {
+      await admin
+        .from("warmup_jobs")
+        .update({ ...(args.extraPatch ?? {}), ...(patch["status"] ? { status: patch["status"] } : {}) } as never)
+        .eq("id", args.job.id);
+      return true;
+    }
+    throw new Error(error.message);
+  }
+  const firstConfirmation = ((data ?? []) as Array<unknown>).length > 0;
+  if (!firstConfirmation) return false;
+
+  await bumpStats(
+    admin,
+    { workspaceId: args.job.workspace_id, accountId: args.job.sending_account_id, day: at.slice(0, 10) },
+    { delivered: 1 },
+  );
+  return true;
+}
+
+
+
 async function logCheck(
   admin: Admin,
   row: {
