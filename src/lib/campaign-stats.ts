@@ -429,11 +429,6 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       repliedLeads.add(unit.leadKey);
       step.replied += 1;
     }
-    if (inRange(s.bounced_at)) {
-      stats.bounced += 1;
-    }
-    if (inRange(s.unsubscribed_at)) stats.unsubscribed += 1;
-    if (inRange(s.complained_at)) stats.complained += 1;
     if (!bounced && (inRange(s.failed_at) || (failed && inRange(unit.updatedAt)))) {
       stats.failed += 1;
     }
