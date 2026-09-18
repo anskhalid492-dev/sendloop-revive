@@ -240,7 +240,7 @@ async function readFolder(
   row: PollMailboxRow,
   sinceUid: number | null,
   folders?: string[],
-): Promise<{ ok: boolean; message: string; folder: string | null; messages: RelayCheckedMessage[] }> {
+): Promise<{ ok: boolean; message: string; folder?: string | null; messages: RelayCheckedMessage[] }> {
   const endpoint = await imapEndpoint(admin, row);
   const { relayCheckMailbox } = await import("@/lib/mailbox-relay.server");
   return relayCheckMailbox(endpoint, sinceUid, folders);
