@@ -81,6 +81,21 @@ export async function campaignPageSummaryFallback(
   const recipientStatusCounts = await mapWithConcurrency(recipientStatuses, 4, countRecipient);
   const recipientTotal = await countRecipient();
 
+  // Bounced / unsubscribed / complained come from the shared per-person rule, so
+  // a recipient whose remaining mail was cancelled after a bounce or unsubscribe
+  // is still counted instead of hiding inside "cancelled".
+  const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
+    "@/lib/cancellation-reason"
+  );
+  const outcomeRes = await supabase
+    .from("campaign_messages")
+    .select(OUTCOME_COLUMNS)
+    .eq("campaign_id", campaignId)
+    .or(OUTCOME_OR_FILTER)
+    .limit(5000);
+  if (outcomeRes.error) throw new Error(outcomeRes.error.message);
+  const outcomes = countOutcomeRecipients(outcomeRes.data ?? []);
+
   const [
     sent,
     scheduled,
@@ -177,9 +192,9 @@ export async function campaignPageSummaryFallback(
       opened,
       clicked,
       replied,
-      bounced,
-      complained,
-      unsubscribed,
+      bounced: Math.max(bounced, outcomes.bounced),
+      complained: Math.max(complained, outcomes.complained),
+      unsubscribed: Math.max(unsubscribed, outcomes.unsubscribed),
       failed,
       scheduled,
       sending: processing,

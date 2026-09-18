@@ -35,8 +35,16 @@ export function isAcceptedSend(m: DeliveryMessage): boolean {
 
 export function messageDeliveryState(m: DeliveryMessage): string {
   const accepted = isAcceptedSend(m);
-  if (m["bounced_at"] || m["delivery_status"] === "bounced") return "bounced";
+  // A message cancelled because the recipient bounced, complained or
+  // unsubscribed carries that reason, and must report the real outcome instead
+  // of a blank "not contacted" (see `@/lib/cancellation-reason`).
+  const reason = m["cancelled_reason"];
+  if (m["bounced_at"] || m["delivery_status"] === "bounced" || reason === "recipient_bounced") {
+    return "bounced";
+  }
   if (m["failed_at"] || m["status"] === "failed") return "failed";
+  if (reason === "recipient_complained") return "complained";
+  if (reason === "recipient_unsubscribed") return "unsubscribed";
   if (m["status"] === "cancelled") return "not_contacted";
   if (!accepted) return "queued";
   if (m["complained_at"]) return "complained";

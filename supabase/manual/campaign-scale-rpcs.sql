@@ -11,6 +11,9 @@
 -- which surfaced in the app as a generic "Internal server error".
 -- =====================================================================
 
+-- Prerequisite: run supabase/manual/cancelled-reason.sql first — these
+-- aggregates read campaign_messages.cancelled_reason.
+
 -- Indexes these aggregates rely on (all IF NOT EXISTS).
 CREATE UNIQUE INDEX IF NOT EXISTS campaign_messages_recipient_step_uniq
   ON public.campaign_messages (campaign_id, recipient_id, step_order);
@@ -115,7 +118,10 @@ AS $function$
     coalesce((SELECT count(*) FROM public.campaign_recipients r WHERE r.campaign_id = s.id), 0)::bigint,
     coalesce((SELECT count(*) FROM public.campaign_messages m WHERE m.campaign_id = s.id AND m.status::text = 'sent'), 0)::bigint,
     coalesce((SELECT count(*) FROM public.campaign_messages m WHERE m.campaign_id = s.id AND m.status::text = 'sent' AND m.sent_at >= date_trunc('day', now())), 0)::bigint,
-    coalesce((SELECT count(*) FROM public.campaign_messages m WHERE m.campaign_id = s.id AND m.bounced_at IS NOT NULL), 0)::bigint,
+    coalesce((SELECT count(DISTINCT coalesce(m.recipient_id::text, m.lead_id::text, m.id::text))
+      FROM public.campaign_messages m
+      WHERE m.campaign_id = s.id
+        AND (m.bounced_at IS NOT NULL OR m.cancelled_reason = 'recipient_bounced')), 0)::bigint,
     coalesce((SELECT count(*) FROM public.campaign_messages m WHERE m.campaign_id = s.id AND m.status::text = 'failed' AND m.bounced_at IS NULL), 0)::bigint,
     coalesce((SELECT count(DISTINCT coalesce(r.lead_id::text, lower(r.from_email))) FROM public.campaign_replies r WHERE r.campaign_id = s.id), 0)::bigint,
     coalesce((SELECT count(DISTINCT coalesce(r.lead_id::text, lower(r.from_email))) FROM public.campaign_replies r WHERE r.campaign_id = s.id AND r.sentiment = 'positive'), 0)::bigint,
@@ -177,11 +183,15 @@ WITH msg AS MATERIALIZED (
     m.complained_at,
     m.unsubscribed_at,
     m.failed_at,
+    m.cancelled_reason,
     (coalesce(m.last_error, '') !~* '(hard\s*bounce|permanent|invalid\s*(recipient|address|email|destination)|no\s*such\s*(user|mailbox|recipient)|mailbox\s*(does\s*not\s*exist|unavailable)|address\s*rejected|recipient\s*(suppressed|blocked|blacklisted)|suppress|unsubscrib|complaint|5\.[17]\.[0-9]+|domain\s*(not\s*found|does\s*not\s*exist)|account\s*disabled|message\s*rejected)') AS soft_retryable,
     (coalesce(m.last_error, '') !~* '(hard\s*bounce|permanent|invalid\s*(recipient|address|email|destination)|no\s*such\s*(user|mailbox|recipient)|address\s*rejected|suppress|unsubscrib|complaint|5\.[17]\.[0-9]+|domain\s*(not\s*found|does\s*not\s*exist)|account\s*disabled|message\s*rejected)') AS soft_owed,
     CASE
-      WHEN m.bounced_at IS NOT NULL OR m.delivery_status = 'bounced' THEN 11
+      WHEN m.bounced_at IS NOT NULL OR m.delivery_status = 'bounced'
+        OR m.cancelled_reason = 'recipient_bounced' THEN 11
       WHEN m.failed_at IS NOT NULL OR m.status::text = 'failed' THEN 10
+      WHEN m.cancelled_reason = 'recipient_complained' THEN 9
+      WHEN m.cancelled_reason = 'recipient_unsubscribed' THEN 8
       WHEN m.status::text = 'cancelled' THEN 0
       WHEN m.sent_at IS NULL THEN 1
       WHEN m.complained_at IS NOT NULL THEN 9
@@ -256,9 +266,15 @@ SELECT jsonb_build_object(
       'opened', count(*) FILTER (WHERE opened_at IS NOT NULL)::bigint,
       'clicked', count(*) FILTER (WHERE clicked_at IS NOT NULL)::bigint,
       'replied', count(DISTINCT coalesce(lead_id::text, id::text)) FILTER (WHERE replied_at IS NOT NULL)::bigint,
-      'bounced', count(*) FILTER (WHERE bounced_at IS NOT NULL)::bigint,
-      'complained', count(*) FILTER (WHERE complained_at IS NOT NULL)::bigint,
-      'unsubscribed', count(*) FILTER (WHERE unsubscribed_at IS NOT NULL)::bigint,
+      -- Counted per PERSON, and a recipient whose remaining mail was cancelled
+      -- because of a bounce/unsubscribe/complaint still counts. Mirrors
+      -- countOutcomeRecipients() in src/lib/cancellation-reason.ts.
+      'bounced', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text))
+        FILTER (WHERE bounced_at IS NOT NULL OR cancelled_reason = 'recipient_bounced')::bigint,
+      'complained', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text))
+        FILTER (WHERE complained_at IS NOT NULL OR cancelled_reason = 'recipient_complained')::bigint,
+      'unsubscribed', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text))
+        FILTER (WHERE unsubscribed_at IS NOT NULL OR cancelled_reason = 'recipient_unsubscribed')::bigint,
       'failed', count(*) FILTER (WHERE bounced_at IS NULL AND (failed_at IS NOT NULL OR status::text = 'failed'))::bigint,
       'scheduled', count(*) FILTER (WHERE sent_at IS NULL AND status::text IN ('pending','scheduled','queued'))::bigint,
       'sending', count(*) FILTER (WHERE sent_at IS NULL AND status::text = 'processing')::bigint,
@@ -366,9 +382,20 @@ BEGIN
       count(DISTINCT coalesce(m.lead_id::text, m.id::text)) FILTER (
         WHERE m.replied_at IS NOT NULL AND m.replied_at >= lo AND m.replied_at < hi
       )::bigint AS replied,
-      count(*) FILTER (WHERE m.bounced_at IS NOT NULL AND m.bounced_at >= lo AND m.bounced_at < hi)::bigint AS bounced,
-      count(*) FILTER (WHERE m.unsubscribed_at IS NOT NULL AND m.unsubscribed_at >= lo AND m.unsubscribed_at < hi)::bigint AS unsubscribed,
-      count(*) FILTER (WHERE m.complained_at IS NOT NULL AND m.complained_at >= lo AND m.complained_at < hi)::bigint AS complained,
+      -- Per-person outcomes, including recipients whose remaining mail was
+      -- cancelled with the reason attached (see src/lib/cancellation-reason.ts).
+      count(DISTINCT coalesce(m.recipient_id::text, m.lead_id::text, m.id::text)) FILTER (
+        WHERE (m.bounced_at IS NOT NULL AND m.bounced_at >= lo AND m.bounced_at < hi)
+           OR (m.cancelled_reason = 'recipient_bounced' AND m.updated_at >= lo AND m.updated_at < hi)
+      )::bigint AS bounced,
+      count(DISTINCT coalesce(m.recipient_id::text, m.lead_id::text, m.id::text)) FILTER (
+        WHERE (m.unsubscribed_at IS NOT NULL AND m.unsubscribed_at >= lo AND m.unsubscribed_at < hi)
+           OR (m.cancelled_reason = 'recipient_unsubscribed' AND m.updated_at >= lo AND m.updated_at < hi)
+      )::bigint AS unsubscribed,
+      count(DISTINCT coalesce(m.recipient_id::text, m.lead_id::text, m.id::text)) FILTER (
+        WHERE (m.complained_at IS NOT NULL AND m.complained_at >= lo AND m.complained_at < hi)
+           OR (m.cancelled_reason = 'recipient_complained' AND m.updated_at >= lo AND m.updated_at < hi)
+      )::bigint AS complained,
       -- Terminal states are mutually exclusive: a bounce is never also a failure.
       count(*) FILTER (
         WHERE m.bounced_at IS NULL
