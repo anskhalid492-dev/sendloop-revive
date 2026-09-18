@@ -338,106 +338,13 @@ export function SequenceMock() {
 
 export function AiPersonalizationMock() {
   return (
-    <AppWindow title="AI personalization" breadcrumb="Q4 Outbound / Sequence / AI personalization">
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        <div className="space-y-3 border-b border-border/70 p-4 lg:border-b-0 lg:border-r">
-          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5">
-            <div>
-              <div className="text-sm font-medium">AI personalization</div>
-              <div className="text-[11px] text-muted-foreground">Applies to Step 1</div>
-            </div>
-            <span className="flex h-5 w-9 items-center rounded-full bg-primary p-0.5">
-              <span className="ml-auto size-4 rounded-full bg-primary-foreground" />
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-border/70 bg-background px-3.5 py-2.5">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Tone</div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {["Direct", "Friendly", "Consultative", "Concise"].map((t, i) => (
-                <span
-                  key={t}
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[11px]",
-                    i === 1 ? "bg-primary/12 font-medium text-primary" : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border/70 bg-background px-3.5 py-2.5">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Instructions</div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              One sentence referencing something specific about the company. No compliments, no
-              questions.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border/70 bg-background px-3.5 py-2.5">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Lead fields used</div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {["first_name", "company", "job_title", "website", "industry"].map((f) => (
-                <span key={f} className="rounded-md border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground">
-                  {f}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0 p-4 sm:p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Bot className="size-4 text-primary" /> Generated preview
-          </div>
-
-          <div className="mt-3 space-y-3">
-            <div className="rounded-xl border border-border/70 bg-background p-3.5">
-              <Pill tone="muted">Before</Pill>
-              <p className="mt-2 text-sm text-muted-foreground">
-                &ldquo;Hi {"{{first_name}}"}, I wanted to reach out…&rdquo;
-              </p>
-            </div>
-            <div className="flex justify-center">
-              <ArrowRight className="size-4 rotate-90 text-primary" />
-            </div>
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5">
-              <Pill>After</Pill>
-              <p className="mt-2 text-sm">
-                &ldquo;Hi Sarah, noticed your team recently expanded into procurement tooling — that
-                usually means a lot of new vendor conversations.&rdquo;
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-xl border border-border/70 bg-background p-3.5">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Variable resolution
-            </div>
-            <div className="mt-2 space-y-2">
-              {[
-                { left: "Sarah Chen · Northwind", badge: "Generated", tone: "ok" as const },
-                { left: "Miguel Ortiz · Ardor Labs", badge: "Generated", tone: "ok" as const },
-                { left: "J. Patel · (no company data)", badge: "Fallback line", tone: "warn" as const },
-              ].map((r) => (
-                <div
-                  key={r.left}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2"
-                >
-                  <span className="truncate text-xs">{r.left}</span>
-                  <Pill tone={r.tone}>{r.badge}</Pill>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              {"{{ai_personalization}}"} is resolved for each lead before the email is handed to the
-              sending account.
-            </p>
-          </div>
-        </div>
-      </div>
+    <AppWindow title="Sequence" breadcrumb="Q4 Outbound / Sequence / AI personalization">
+      <img
+        src={aiPersonalizationScreenshot.url}
+        alt="Sequence editor with AI Personalization and AI Campaign Writer tools, subject and email body with variables"
+        className="block w-full"
+        loading="lazy"
+      />
     </AppWindow>
   );
 }
