@@ -41,6 +41,8 @@ export type MailboxPollOutcome = {
   ok: boolean;
   fetched: number;
   replies: number;
+  /** Warmup arrivals confirmed from this mailbox (never shown in the inbox). */
+  warmup: number;
   bounces: number;
   skipped: number;
   highestUid: number | null;
@@ -50,6 +52,7 @@ export type MailboxPollOutcome = {
 export type MailboxPollSummary = {
   mailboxes: number;
   replies: number;
+  warmup: number;
   bounces: number;
   skipped: number;
   failures: number;
@@ -122,6 +125,7 @@ export async function pollMailbox(
     ok: false,
     fetched: 0,
     replies: 0,
+    warmup: 0,
     bounces: 0,
     skipped: 0,
     highestUid: null,
@@ -156,6 +160,7 @@ export async function pollMailbox(
   const mailbox = row.email_address.trim().toLowerCase();
   const { ingestInboundEmail } = await import("@/lib/inbox.server");
   const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
+  const { applyWarmupInbound } = await import("@/lib/warmup-engine.server");
 
   let highest = row.last_imap_uid ?? 0;
 
@@ -163,6 +168,32 @@ export async function pollMailbox(
     if (message.uid > highest) highest = message.uid;
 
     try {
+      // Warmup mail that arrives in a connected mailbox is the strongest
+      // delivery confirmation warmup has: our own message came back to us. It
+      // is claimed here — before any inbox handling — so warmup traffic never
+      // reaches the Unified Inbox and the arrival is counted once.
+      const body = extractInboundBody(message.text, {
+        contentType: message.contentType ?? null,
+        contentTransferEncoding: message.contentTransferEncoding ?? null,
+      });
+      const warmupClaimed = await applyWarmupInbound({
+        from: extractEmail(message.from),
+        to: extractEmail(message.to) ?? mailbox,
+        subject: message.subject ?? null,
+        text: body.text,
+        html: body.html,
+        messageId: message.messageId ?? null,
+        // The relay reads the main inbox, so a message found here landed in the
+        // inbox rather than the spam folder.
+        folder: "inbox",
+        source: "imap_arrival",
+        receivedAt: message.date ? new Date(message.date).toISOString() : null,
+      });
+      if (warmupClaimed) {
+        outcome.warmup += 1;
+        continue;
+      }
+
       if (looksLikeBounce({ from: message.from, subject: message.subject })) {
         const recipient = bouncedRecipient({
           text: extractInboundBody(message.text, {
@@ -257,6 +288,7 @@ export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<Mai
   const summary: MailboxPollSummary = {
     mailboxes: rows.length,
     replies: 0,
+    warmup: 0,
     bounces: 0,
     skipped: 0,
     failures: 0,
@@ -267,6 +299,7 @@ export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<Mai
     const outcome = await pollMailbox(supabaseAdmin, row);
     summary.results.push(outcome);
     summary.replies += outcome.replies;
+    summary.warmup += outcome.warmup;
     summary.bounces += outcome.bounces;
     summary.skipped += outcome.skipped;
     if (!outcome.ok) summary.failures += 1;

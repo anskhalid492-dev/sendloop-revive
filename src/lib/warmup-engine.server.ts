@@ -12,6 +12,12 @@ import { buildWarmupMessage, buildWarmupReply } from "@/lib/warmup-content.serve
 import { evaluateSafetyViolation, type SafetyStatRow } from "@/lib/mailbox-pause-state";
 import { statusFromScore, type WarmupHealthFactor, type WarmupHealthStatus } from "@/lib/warmup-model";
 import {
+  advancesWarmupDelivery,
+  normalizeWarmupDeliveryState,
+  type WarmupDeliveryState,
+} from "@/lib/warmup-delivery";
+import { providerMessageIdCandidates } from "@/lib/provider-message-id";
+import {
   evaluateWarmupRamp,
   type RampStatRow,
   type WarmupStage,
@@ -233,6 +239,104 @@ async function logEvent(
   if (error) throw new Error(error.message);
   return true;
 }
+
+/* -------------------------------------------------- delivery state tracking */
+
+export type WarmupDeliveryJob = {
+  id: string;
+  workspace_id: string;
+  sending_account_id: string;
+  status?: string | null;
+  delivery_state?: string | null;
+  delivered_at?: string | null;
+};
+
+/**
+ * Moves a warmup message's internal delivery state forward. A weaker signal
+ * never overwrites a stronger one, so a late "accepted" cannot hide a bounce.
+ * Never touches the daily counters — those are owned by the callers that know
+ * which counter the event belongs to.
+ */
+async function setWarmupDeliveryState(
+  admin: Admin,
+  job: WarmupDeliveryJob,
+  next: WarmupDeliveryState,
+): Promise<void> {
+  if (!advancesWarmupDelivery((job.delivery_state ?? null) as WarmupDeliveryState | null, next)) return;
+  // Tolerant of a not-yet-applied migration: the state column is an audit aid,
+  // it must never break event handling.
+  const { error } = await admin
+    .from("warmup_jobs")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ delivery_state: next } as any)
+    .eq("id", job.id);
+  if (error && error.code !== "42703" && error.code !== "PGRST204") throw new Error(error.message);
+}
+
+/**
+ * Records a confirmed arrival for one warmup message and bumps the daily
+ * `delivered` counter exactly once.
+ *
+ * Idempotency is enforced in the database: the update only matches while
+ * `delivered_at` is still null, so a redelivered webhook, a second IMAP read of
+ * the same message and the reconciliation sweep can all run without ever
+ * double counting. Returns true only for the first confirmation.
+ */
+export async function confirmWarmupDelivery(
+  admin: Admin,
+  args: {
+    job: WarmupDeliveryJob;
+    /** Where the proof came from, for auditing. */
+    source: "inbound_arrival" | "imap_arrival" | "provider_event" | "peer_reply";
+    occurredAt?: string | null;
+    /** Extra columns the caller already knows (placement, received_at, …). */
+    extraPatch?: Record<string, unknown>;
+  },
+): Promise<boolean> {
+  const at = args.occurredAt ?? new Date().toISOString();
+  const patch: Record<string, unknown> = {
+    ...(args.extraPatch ?? {}),
+    delivery_state: "delivered",
+    delivered_at: at,
+    delivered_source: args.source,
+  };
+  // A confirmed arrival also lifts the job status, unless it already moved on
+  // to a stronger outcome (replied) or a negative one (failed/cancelled).
+  const status = args.job.status ?? null;
+  if (status === "sent" || status === "processing" || status === "queued") {
+    patch["status"] = "delivered";
+  }
+
+  const { data, error } = await admin
+    .from("warmup_jobs")
+    .update(patch as never)
+    .eq("id", args.job.id)
+    .is("delivered_at", null)
+    .select("id");
+  if (error) {
+    // Columns missing (SQL not applied yet): fall back to the legacy patch so
+    // arrival detection keeps working, without the idempotency guard.
+    if (error.code === "42703" || error.code === "PGRST204") {
+      await admin
+        .from("warmup_jobs")
+        .update({ ...(args.extraPatch ?? {}), ...(patch["status"] ? { status: patch["status"] } : {}) } as never)
+        .eq("id", args.job.id);
+      return true;
+    }
+    throw new Error(error.message);
+  }
+  const firstConfirmation = ((data ?? []) as Array<unknown>).length > 0;
+  if (!firstConfirmation) return false;
+
+  await bumpStats(
+    admin,
+    { workspaceId: args.job.workspace_id, accountId: args.job.sending_account_id, day: at.slice(0, 10) },
+    { delivered: 1 },
+  );
+  return true;
+}
+
+
 
 async function logCheck(
   admin: Admin,
@@ -814,6 +918,19 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       processed_at: new Date().toISOString(),
     })
     .eq("id", jobId);
+  // Internal delivery state: the mailbox accepted the hand-off. This is never
+  // treated as an arrival — only a real confirmation moves it to `delivered`.
+  // Written separately so a pending column migration can never fail a send.
+  await admin
+    .from("warmup_jobs")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ delivery_state: "sent" } as any)
+    .eq("id", jobId)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+
 
   // Classify the send as warmup up-front so provider events can never be
   // attributed to campaign statistics.
@@ -969,13 +1086,22 @@ export async function applyWarmupDeliveryEvent(args: {
   if (!args.providerMessageId) return false;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data: job } = await supabaseAdmin
+  // Providers report the same message id in different shapes (angle brackets,
+  // URL-encoded, SendGrid's suffixed form). The stored id is matched against
+  // every normalized candidate so a real delivery event is never dropped.
+  const candidates = providerMessageIdCandidates(args.providerMessageId);
+  if (!candidates.length) return false;
+  const { data: jobs } = await supabaseAdmin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id, status, conversation_id, pool_recipient_id, to_email")
-    .eq("provider_message_id", args.providerMessageId)
-    .maybeSingle();
+    .select(
+      "id, workspace_id, sending_account_id, status, delivery_state, delivered_at, conversation_id, pool_recipient_id, to_email",
+    )
+    .in("provider_message_id", candidates)
+    .limit(1);
+  const job = ((jobs ?? []) as unknown as Array<Record<string, unknown>>)[0] as unknown as
+    | (WarmupDeliveryJob & Record<string, unknown>)
+    | undefined;
   if (!job) return false;
-
 
   const fresh = await logEvent(supabaseAdmin, {
     workspaceId: job.workspace_id,
@@ -1012,16 +1138,38 @@ export async function applyWarmupDeliveryEvent(args: {
     jobPatch["placement"] = "not_delivered";
     jobPatch["placement_checked_at"] = new Date().toISOString();
   }
-  if (Object.keys(jobPatch).length) {
+
+  // A provider delivery, a complaint (the recipient saw it) or a reply are all
+  // real arrival confirmations and go through the one idempotent path, so the
+  // delivered counter can never move twice for the same message.
+  const arrival =
+    args.kind === "delivered" || args.kind === "replied" || args.kind === "complained";
+  let confirmed = false;
+  if (arrival) {
+    confirmed = await confirmWarmupDelivery(supabaseAdmin, {
+      job,
+      source: args.kind === "replied" ? "peer_reply" : "provider_event",
+      extraPatch: jobPatch,
+    });
+    if (!confirmed && Object.keys(jobPatch).length) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await supabaseAdmin.from("warmup_jobs").update(jobPatch as any).eq("id", job.id);
+    }
+  } else if (Object.keys(jobPatch).length) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabaseAdmin.from("warmup_jobs").update(jobPatch as any).eq("id", job.id);
+  }
+
+  const normalized = normalizeWarmupDeliveryState(args.kind);
+  if (normalized && normalized !== "delivered") {
+    await setWarmupDeliveryState(supabaseAdmin, job, normalized);
   }
 
   const counter: Record<string, number> =
     args.kind === "sent"
       ? { sent: 1 }
       : args.kind === "delivered"
-      ? { delivered: 1 }
+      ? {}
       : args.kind === "bounced"
         ? { bounced: 1 }
         : args.kind === "complained"
@@ -1040,6 +1188,7 @@ export async function applyWarmupDeliveryEvent(args: {
       counter,
     );
   }
+
 
   const poolId = (job as Record<string, unknown>)["pool_recipient_id"] as string | null;
   // A hard bounce or a complaint retires the address for the whole workspace,
@@ -1164,7 +1313,17 @@ export async function applyWarmupInbound(input: {
   text?: string | null;
   html?: string | null;
   headers?: unknown;
+  messageId?: string | null;
   payload?: Record<string, unknown>;
+  /**
+   * Folder the message was read from, when the reader knows it. An IMAP read of
+   * the main inbox is itself the placement verdict; webhooks leave this unset.
+   */
+  folder?: "inbox" | "spam" | null;
+  /** Where the confirmation came from, for auditing. */
+  source?: "inbound_arrival" | "imap_arrival";
+  /** Provider time of arrival, when reported. */
+  receivedAt?: string | null;
 }): Promise<boolean> {
   const token = warmupTokenFrom(input);
   if (!token) return false;
@@ -1172,27 +1331,35 @@ export async function applyWarmupInbound(input: {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: job } = await supabaseAdmin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id")
+    .select(
+      "id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id, pool_recipient_id",
+    )
     .eq("warmup_token", token)
     .maybeSingle();
   if (!job) return false;
 
-  // Already classified: acknowledge the redelivery without double counting.
-  if (job.placement && job.placement !== "pending") return true;
-
   const spam = spamVerdict(input);
-  const placement = spam === true ? "spam" : spam === false ? "inbox" : "received_unknown";
-  const now = new Date().toISOString();
+  const placement =
+    spam === true || input.folder === "spam"
+      ? "spam"
+      : spam === false || input.folder === "inbox"
+        ? "inbox"
+        : "received_unknown";
+  const now = input.receivedAt ?? new Date().toISOString();
+  const alreadyClassified = !!job.placement && job.placement !== "pending";
 
-  await supabaseAdmin
-    .from("warmup_jobs")
-    .update({
-      placement,
-      placement_checked_at: now,
-      received_at: now,
-      status: job.status === "sent" || job.status === "processing" ? "delivered" : job.status,
-    })
-    .eq("id", job.id);
+  // Arrival is the strongest signal warmup has: the receiving side handed the
+  // message back to us. It goes through the shared idempotent confirmation, so
+  // the same message read twice (webhook retry, second IMAP pass) is counted
+  // exactly once.
+  const firstConfirmation = await confirmWarmupDelivery(supabaseAdmin, {
+    job: job as unknown as WarmupDeliveryJob,
+    source: input.source ?? "inbound_arrival",
+    occurredAt: now,
+    extraPatch: alreadyClassified
+      ? { received_at: now }
+      : { placement, placement_checked_at: now, received_at: now },
+  });
 
   const fresh = await logEvent(supabaseAdmin, {
     workspaceId: job.workspace_id,
@@ -1206,20 +1373,28 @@ export async function applyWarmupInbound(input: {
           ? `Filtered to spam at ${input.to ?? "the receiving mailbox"}.`
           : `Received by ${input.to ?? "the receiving mailbox"} — folder not reported.`,
     externalId: `warmup:placement:${token}`,
-    payload: { placement, to: input.to, from: input.from },
+    payload: { placement, to: input.to, from: input.from, source: input.source ?? "inbound_arrival" },
   });
 
-  if (fresh) {
+  if (fresh && !alreadyClassified) {
     const counter: Record<string, number> =
       placement === "spam" ? { spam: 1 } : placement === "inbox" ? { inbox: 1 } : {};
-    if (job.status !== "delivered") counter["delivered"] = 1;
     if (Object.keys(counter).length) {
       await bumpStats(
         supabaseAdmin,
-        { workspaceId: job.workspace_id, accountId: job.sending_account_id },
+        { workspaceId: job.workspace_id, accountId: job.sending_account_id, day: now.slice(0, 10) },
         counter,
       );
     }
+  }
+  if (firstConfirmation) {
+    await touchPoolRecipient(
+      supabaseAdmin,
+      (job as Record<string, unknown>)["pool_recipient_id"] as string | null,
+      "received",
+    );
+  }
+  if (fresh || firstConfirmation) {
     await recalculateHealth(supabaseAdmin, job.sending_account_id);
   }
   return true;
@@ -1240,6 +1415,26 @@ async function observableRecipientDomains(admin: Admin): Promise<Set<string>> {
   return new Set(
     ((data ?? []) as Array<{ domain: string | null }>)
       .map((row) => (row.domain ?? "").trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+/**
+ * Addresses we read ourselves: any mailbox connected with its own incoming-mail
+ * server is polled on every cycle, so warmup mail sent to it *is* observable
+ * even when its domain does not route receiving to us.
+ */
+async function observableRecipientAddresses(admin: Admin): Promise<Set<string>> {
+  const { data } = await admin
+    .from("mailboxes")
+    .select("email_address, imap_host, status, is_active")
+    .eq("status", "connected")
+    .not("imap_host", "is", null)
+    .limit(5000);
+  return new Set(
+    ((data ?? []) as Array<{ email_address: string | null; is_active: boolean | null }>)
+      .filter((row) => row.is_active !== false)
+      .map((row) => (row.email_address ?? "").trim().toLowerCase())
       .filter(Boolean),
   );
 }
@@ -1265,10 +1460,15 @@ async function sweepPlacement(admin: Admin): Promise<number> {
     .limit(200);
 
   if (!stale?.length) return 0;
-  const observable = await observableRecipientDomains(admin);
+  const [observable, observableAddresses] = await Promise.all([
+    observableRecipientDomains(admin),
+    observableRecipientAddresses(admin),
+  ]);
 
   for (const job of stale as Array<Record<string, string>>) {
-    const measurable = observable.has(recipientDomain(job["to_email"]));
+    const address = (job["to_email"] ?? "").trim().toLowerCase();
+    const measurable =
+      observable.has(recipientDomain(job["to_email"])) || observableAddresses.has(address);
     if (!measurable) {
       // Delivered as far as the provider is concerned; no inbound feed exists on
       // the receiving side, so there is nothing to confirm and nothing to score.

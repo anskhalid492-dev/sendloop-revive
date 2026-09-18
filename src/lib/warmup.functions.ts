@@ -21,6 +21,7 @@ import {
 } from "@/lib/mailbox-pause-state";
 
 import { WARMUP_MODES } from "@/lib/warmup-model";
+import { warmupDeliveryCounts } from "@/lib/warmup-delivery";
 import type {
   MailboxCheck,
   WarmupDayStat,
@@ -53,6 +54,11 @@ export type WarmupAccountRow = {
   target_today: number;
   sent_today: number;
   delivered_today: number;
+  /**
+   * Sends the mailbox accepted for which no arrival confirmation exists. Never
+   * counted as delivered and never counted as a failure.
+   */
+  unconfirmed_today: number;
   inbox_today: number;
   spam_today: number;
   bounced_today: number;
@@ -142,7 +148,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
-        .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied, deferred, rejected, stage, stage_action, planned_target")
+        .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied, deferred, rejected, not_received, stage, stage_action, planned_target")
         .in("sending_account_id", ids)
         .eq("day", today),
       client
@@ -199,8 +205,17 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         health_score: (a["health_score"] as number | null) ?? null,
       };
       const domainRel = a["sending_domains"] as { domain?: string } | null;
-      const sent = (stat?.["sent"] as number) ?? 0;
-      const delivered = (stat?.["delivered"] as number) ?? 0;
+      // One shared calculation for every warmup surface: delivered counts
+      // confirmed arrivals only, the rest is reported as unconfirmed.
+      const delivery = warmupDeliveryCounts({
+        sent: (stat?.["sent"] as number) ?? 0,
+        delivered: (stat?.["delivered"] as number) ?? 0,
+        bounced: (stat?.["bounced"] as number) ?? 0,
+        failed: (stat?.["failed"] as number) ?? 0,
+        notReceived: (stat?.["not_received"] as number) ?? 0,
+      });
+      const sent = delivery.sent;
+      const delivered = delivery.delivered;
       const startedAt = setting?.["started_at"] as string | null | undefined;
       const rampDays = (setting?.["ramp_days"] as number) ?? 0;
       const rampDay = startedAt
@@ -262,8 +277,9 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         pause_reason: (setting?.["pause_reason"] as string | null) ?? null,
         mode: (setting?.["mode"] as string) ?? "balanced",
         target_today: (stat?.["target"] as number) ?? 0,
-        sent_today: (stat?.["sent"] as number) ?? 0,
-        delivered_today: (stat?.["delivered"] as number) ?? 0,
+        sent_today: delivery.sent,
+        delivered_today: delivery.delivered,
+        unconfirmed_today: delivery.unconfirmed,
         inbox_today: (stat?.["inbox"] as number) ?? 0,
         spam_today: (stat?.["spam"] as number) ?? 0,
         bounced_today: (stat?.["bounced"] as number) ?? 0,
@@ -299,7 +315,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
           sent > 0
             ? Math.round((((stat?.["bounced"] as number) ?? 0) / sent) * 1000) / 10
             : null,
-        delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
+        delivery_rate: delivery.rate,
         ramp_day: rampDay,
         ramp_days: rampDays,
         daily_limit: (stat?.["target"] as number) ?? 0,
