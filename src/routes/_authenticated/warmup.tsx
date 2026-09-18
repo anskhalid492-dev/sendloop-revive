@@ -278,8 +278,8 @@ function WarmupPage() {
                                   const info: string[] = [];
                                   if (!row.block_reason && !row.pause_reason && row.stage_reason)
                                     info.push(row.stage_reason);
-                                  if (row.block_reason || row.pause_reason)
-                                    info.push(row.block_reason ?? row.pause_reason);
+                                  const reason = row.block_reason ?? row.pause_reason;
+                                  if (reason) info.push(reason);
                                   if (row.state === "blocked")
                                     info.push(
                                       `Bounce rate ${row.safety_metrics.bounceRate}% of ${row.safety_metrics.maxBounceRate}% limit · ${row.safety_metrics.bounced}/${row.safety_metrics.sent} sends in the last ${row.safety_metrics.windowDays} days${row.safety_metrics.sampleSufficient ? "" : ` · below the ${row.safety_metrics.minSample}-send minimum sample`}${row.safety_active ? ` · re-checked ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}`,
