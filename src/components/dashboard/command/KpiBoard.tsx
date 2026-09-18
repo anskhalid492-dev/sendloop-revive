@@ -143,9 +143,6 @@ export function KpiBoard({
                     </TooltipContent>
                   </Tooltip>
                 </span>
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", card.iconTone)}>
-                  <Icon className="size-4" aria-hidden="true" />
-                </span>
               </div>
               <div
                 className={cn(
