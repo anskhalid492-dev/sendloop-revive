@@ -379,12 +379,6 @@ function WarmupPage() {
         )}
 
 
-        <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Activity className="size-3.5" />
-          Warmup runs on a scheduled worker: it sends real emails from your connected mailboxes,
-          tracks delivery events and recalculates mailbox health after every run. This dashboard updates
-          live as jobs send and placement is detected — no refresh needed.
-        </p>
       </div>
 
       <WarmupSettingsDialog
