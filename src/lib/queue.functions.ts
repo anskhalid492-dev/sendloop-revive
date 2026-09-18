@@ -38,6 +38,9 @@ export type QueueMessage = {
   attempts: number;
   created_at: string;
   sending_account_id: string | null;
+  bounced_at: string | null;
+  bounce_reason: string | null;
+  cancelled_reason: string | null;
 };
 
 export type MailboxInfo = {
@@ -49,7 +52,7 @@ export type MailboxInfo = {
 };
 
 const QUEUE_COLUMNS =
-  "id, campaign_id, lead_id, step_order, status, to_email, subject, body, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at, sending_account_id";
+  "id, campaign_id, lead_id, step_order, status, to_email, subject, body, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at, sending_account_id, bounced_at, bounce_reason, cancelled_reason";
 
 export const listCampaignQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -141,9 +144,13 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
     // Strip vendor identity and raw provider errors before the queue reaches
     // the customer; the untouched values stay in the database for admins.
+    const { redactBounceReason } = await import("@/lib/bounce-reason");
     messagesRes.data = (messagesRes.data ?? []).map((row) => ({
       ...row,
       provider: null,
+      // The bounce reason is shown to the customer, with vendor identity,
+      // endpoints and keys redacted by the shared helper.
+      bounce_reason: redactBounceReason((row as { bounce_reason?: string | null }).bounce_reason),
       last_error: (row as { last_error?: string | null }).last_error
         ? customerSafeMessage(
             (row as { last_error?: string | null }).last_error,
