@@ -4,7 +4,7 @@ import {
   Info,
   Mail,
   MailX,
-  MessageSquareReply,
+  Reply,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,7 +29,7 @@ type Card = {
   hint?: string;
   description: string;
   icon: LucideIcon;
-  iconTone: string;
+  iconColor: string;
 };
 
 /**
