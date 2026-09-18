@@ -1,4 +1,4 @@
-import type { LucideIcon, ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -14,6 +14,7 @@ import {
   Settings2,
   ShieldCheck,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 
 import { AppWindow, Pill } from "@/components/site/CampaignsProductMocks";
