@@ -156,6 +156,7 @@ export async function pollMailbox(
   const mailbox = row.email_address.trim().toLowerCase();
   const { ingestInboundEmail } = await import("@/lib/inbox.server");
   const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
+  const { applyWarmupInbound } = await import("@/lib/warmup-engine.server");
 
   let highest = row.last_imap_uid ?? 0;
 
@@ -163,6 +164,32 @@ export async function pollMailbox(
     if (message.uid > highest) highest = message.uid;
 
     try {
+      // Warmup mail that arrives in a connected mailbox is the strongest
+      // delivery confirmation warmup has: our own message came back to us. It
+      // is claimed here — before any inbox handling — so warmup traffic never
+      // reaches the Unified Inbox and the arrival is counted once.
+      const body = extractInboundBody(message.text, {
+        contentType: message.contentType ?? null,
+        contentTransferEncoding: message.contentTransferEncoding ?? null,
+      });
+      const warmupClaimed = await applyWarmupInbound({
+        from: extractEmail(message.from),
+        to: extractEmail(message.to) ?? mailbox,
+        subject: message.subject ?? null,
+        text: body.text,
+        html: body.html,
+        messageId: message.messageId ?? null,
+        // The relay reads the main inbox, so a message found here landed in the
+        // inbox rather than the spam folder.
+        folder: "inbox",
+        source: "imap_arrival",
+        receivedAt: message.date ? new Date(message.date).toISOString() : null,
+      });
+      if (warmupClaimed) {
+        outcome.warmup += 1;
+        continue;
+      }
+
       if (looksLikeBounce({ from: message.from, subject: message.subject })) {
         const recipient = bouncedRecipient({
           text: extractInboundBody(message.text, {
