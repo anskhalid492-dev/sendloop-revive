@@ -69,6 +69,12 @@ export const PLACEMENT_LABEL: Record<WarmupPlacement, string> = {
 export type WarmupDayStat = {
   day: string;
   target: number;
+  /** Volume the ramp machine planned for the day. */
+  planned_target?: number | null;
+  /** Ramp stage in force that day. */
+  stage?: string | null;
+  /** What the engine did that day: start / increase / hold / reduce / recover / pause. */
+  stage_action?: string | null;
   scheduled: number;
   sent: number;
   delivered: number;

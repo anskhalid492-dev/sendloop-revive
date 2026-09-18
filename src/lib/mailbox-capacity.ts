@@ -8,7 +8,7 @@
  * limit system and never mutates any counter.
  */
 
-import { laneHourlyLimit, type SendingLane } from "@/lib/mailbox-hourly-cap";
+import { laneHourlyLimit, WARMUP_LANE_RATIO, type SendingLane } from "@/lib/mailbox-hourly-cap";
 
 export type { SendingLane } from "@/lib/mailbox-hourly-cap";
 import {
@@ -78,7 +78,11 @@ export function evaluateMailboxCapacity(
   // Date-aware: a stored counter from a previous day no longer consumes today's
   // allowance, and it can never exceed the mailbox's own daily limit.
   const sentToday = mailboxSentToday(row, dayStart);
-  const dailyLimit = Number(row.daily_limit ?? 0);
+  const rawDailyLimit = Number(row.daily_limit ?? 0);
+  // Warmup sits below campaigns: it plans against a slice of the mailbox's
+  // daily allowance so it can never consume the capacity campaigns need.
+  const dailyLimit =
+    lane === "warmup" ? Math.max(1, Math.floor(rawDailyLimit * WARMUP_LANE_RATIO)) : rawDailyLimit;
   // Hard platform ceiling: never above 70/hour per mailbox, whatever is stored.
   // Campaign sending is additionally held below the reply reservation so an
   // automated campaign can never consume a mailbox's whole hourly capacity.
@@ -93,8 +97,8 @@ export function evaluateMailboxCapacity(
   // sending only. A human reply from the Unified Inbox is never blocked by
   // them — only real safety states (paused/disabled) and the provider itself
   // can stop it.
-  else if (lane === "campaign" && dailyRemaining <= 0) reason = "daily";
-  else if (lane === "campaign" && hourlyRemaining <= 0) reason = "hourly";
+  else if (lane !== "reply" && dailyRemaining <= 0) reason = "daily";
+  else if (lane !== "reply" && hourlyRemaining <= 0) reason = "hourly";
 
   const next = new Date(dayStart.getTime() + 12 * 3_600_000);
 

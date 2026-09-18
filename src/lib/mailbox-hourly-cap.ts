@@ -43,7 +43,14 @@ export function effectiveMailboxHourlyLimit(limit: number | null | undefined): n
  * the reduced number, replies are not gated by it at all.
  * ------------------------------------------------------------------ */
 
-export type SendingLane = "campaign" | "reply";
+export type SendingLane = "campaign" | "reply" | "warmup";
+
+/**
+ * Share of a mailbox's campaign capacity warmup may use. Priority is always
+ * human replies -> campaign sends -> warmup, so warmup plans against what is
+ * left after the reply reserve *and* the campaign allocation.
+ */
+export const WARMUP_LANE_RATIO = 0.3;
 
 export const DEFAULT_REPLY_RESERVE_RATIO = 0.1;
 
@@ -76,7 +83,14 @@ export function campaignHourlyLimit(limit: number | null | undefined): number {
   return Math.max(1, effective - replyReserveForHourlyLimit(limit));
 }
 
+/** The hourly limit warmup may use — a slice of the campaign allocation only. */
+export function warmupHourlyLimit(limit: number | null | undefined): number {
+  return Math.max(1, Math.floor(campaignHourlyLimit(limit) * WARMUP_LANE_RATIO));
+}
+
 /** The hourly limit for a lane: campaigns are reserved-down, replies are not. */
 export function laneHourlyLimit(limit: number | null | undefined, lane: SendingLane): number {
-  return lane === "reply" ? effectiveMailboxHourlyLimit(limit) : campaignHourlyLimit(limit);
+  if (lane === "reply") return effectiveMailboxHourlyLimit(limit);
+  if (lane === "warmup") return warmupHourlyLimit(limit);
+  return campaignHourlyLimit(limit);
 }

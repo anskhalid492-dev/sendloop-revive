@@ -33,7 +33,7 @@ import type {
 type Client = any;
 
 const SETTINGS_COLUMNS =
-  "id, sending_account_id, enabled, mode, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, timezone, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, pause_reason, paused_at, started_at, last_run_reason, last_run_at";
+  "id, sending_account_id, enabled, mode, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, timezone, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, pause_reason, paused_at, started_at, last_run_reason, last_run_at, ramp_stage, stage_since, stage_reason, current_volume";
 
 export type WarmupAccountRow = {
   id: string;
@@ -80,6 +80,13 @@ export type WarmupAccountRow = {
 
   failed_today: number;
   delivery_rate: number | null;
+  /** Ramp stage the engine is in right now. */
+  ramp_stage: string;
+  /** Plain-English explanation of the current stage and volume. */
+  stage_reason: string | null;
+  /** Today's temporary failure rate (deferrals + soft failures). */
+  temp_failure_rate: number | null;
+  bounce_rate: number | null;
   ramp_day: number;
   ramp_days: number;
   daily_limit: number;
@@ -135,7 +142,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
-        .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied")
+        .select("sending_account_id, target, sent, delivered, failed, inbox, spam, bounced, replied, deferred, rejected, stage, stage_action, planned_target")
         .in("sending_account_id", ids)
         .eq("day", today),
       client
@@ -276,6 +283,22 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         next_evaluation_at: snapshot.nextEvaluationAt,
 
         failed_today: (stat?.["failed"] as number) ?? 0,
+        ramp_stage: (setting?.["ramp_stage"] as string) ?? "ramp_up",
+        stage_reason:
+          (setting?.["stage_reason"] as string | null) ??
+          ((setting?.["last_run_reason"] as string | null) ?? null),
+        temp_failure_rate:
+          sent > 0
+            ? Math.round(
+                ((((stat?.["deferred"] as number) ?? 0) + ((stat?.["failed"] as number) ?? 0)) /
+                  sent) *
+                  1000,
+              ) / 10
+            : null,
+        bounce_rate:
+          sent > 0
+            ? Math.round((((stat?.["bounced"] as number) ?? 0) / sent) * 1000) / 10
+            : null,
         delivery_rate: sent > 0 ? Math.round((delivered / sent) * 1000) / 10 : null,
         ramp_day: rampDay,
         ramp_days: rampDays,
@@ -319,7 +342,7 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
       client
         .from("warmup_daily_stats")
         .select(
-          "day, target, scheduled, sent, delivered, inbox, spam, deferred, rejected, not_received, bounced, complained, failed, replied, health_score",
+          "day, target, planned_target, stage, stage_action, scheduled, sent, delivered, inbox, spam, deferred, rejected, not_received, bounced, complained, failed, replied, health_score",
         )
         .eq("sending_account_id", data.id)
         .gte("day", since)

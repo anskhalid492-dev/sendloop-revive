@@ -8443,12 +8443,15 @@ export type Database = {
           id: string
           inbox: number
           not_received: number
+          planned_target: number | null
           rejected: number
           replied: number
           scheduled: number
           sending_account_id: string
           sent: number
           spam: number
+          stage: string | null
+          stage_action: string | null
           target: number
           updated_at: string
           workspace_id: string
@@ -8465,12 +8468,15 @@ export type Database = {
           id?: string
           inbox?: number
           not_received?: number
+          planned_target?: number | null
           rejected?: number
           replied?: number
           scheduled?: number
           sending_account_id: string
           sent?: number
           spam?: number
+          stage?: string | null
+          stage_action?: string | null
           target?: number
           updated_at?: string
           workspace_id: string
@@ -8487,12 +8493,15 @@ export type Database = {
           id?: string
           inbox?: number
           not_received?: number
+          planned_target?: number | null
           rejected?: number
           replied?: number
           scheduled?: number
           sending_account_id?: string
           sent?: number
           spam?: number
+          stage?: string | null
+          stage_action?: string | null
           target?: number
           updated_at?: string
           workspace_id?: string
@@ -8855,8 +8864,10 @@ export type Database = {
         Row: {
           auto_pause: boolean
           created_at: string
+          current_volume: number | null
           daily_increase: number
           enabled: boolean
+          hold_failure_rate: number
           id: string
           last_run_at: string | null
           last_run_reason: string | null
@@ -8868,12 +8879,17 @@ export type Database = {
           paused_at: string | null
           paused_by_system: boolean
           ramp_days: number
+          ramp_stage: string
+          recovery_bounce_rate: number
+          recovery_days: number
           reply_rate: number
           send_days: number[]
           send_end_hour: number
           send_start_hour: number
           sending_account_id: string
           solo_mode: boolean
+          stage_reason: string | null
+          stage_since: string | null
           start_volume: number
           started_at: string | null
           timezone: string
@@ -8883,8 +8899,10 @@ export type Database = {
         Insert: {
           auto_pause?: boolean
           created_at?: string
+          current_volume?: number | null
           daily_increase?: number
           enabled?: boolean
+          hold_failure_rate?: number
           id?: string
           last_run_at?: string | null
           last_run_reason?: string | null
@@ -8896,12 +8914,17 @@ export type Database = {
           paused_at?: string | null
           paused_by_system?: boolean
           ramp_days?: number
+          ramp_stage?: string
+          recovery_bounce_rate?: number
+          recovery_days?: number
           reply_rate?: number
           send_days?: number[]
           send_end_hour?: number
           send_start_hour?: number
           sending_account_id: string
           solo_mode?: boolean
+          stage_reason?: string | null
+          stage_since?: string | null
           start_volume?: number
           started_at?: string | null
           timezone?: string
@@ -8911,8 +8934,10 @@ export type Database = {
         Update: {
           auto_pause?: boolean
           created_at?: string
+          current_volume?: number | null
           daily_increase?: number
           enabled?: boolean
+          hold_failure_rate?: number
           id?: string
           last_run_at?: string | null
           last_run_reason?: string | null
@@ -8924,12 +8949,17 @@ export type Database = {
           paused_at?: string | null
           paused_by_system?: boolean
           ramp_days?: number
+          ramp_stage?: string
+          recovery_bounce_rate?: number
+          recovery_days?: number
           reply_rate?: number
           send_days?: number[]
           send_end_hour?: number
           send_start_hour?: number
           sending_account_id?: string
           solo_mode?: boolean
+          stage_reason?: string | null
+          stage_since?: string | null
           start_volume?: number
           started_at?: string | null
           timezone?: string

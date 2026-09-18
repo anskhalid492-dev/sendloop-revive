@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { STAGE_LABEL } from "@/lib/warmup-ramp";
 import { WarmupHealthIndicator } from "@/components/mailboxes/WarmupHealthIndicator";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
@@ -133,7 +134,13 @@ function WarmupPage() {
       ? Math.round(scored.reduce((sum, r) => sum + (r.health_score ?? 0), 0) / scored.length)
       : 0;
     const paused = rows.filter((r) => r.paused_by_system).length;
-    return { active, sent, target, avg, paused };
+    const recovery = rows.filter(
+      (r) => r.warmup_enabled && !r.paused_by_system && r.ramp_stage === "recovery",
+    ).length;
+    const healthy = rows.filter(
+      (r) => r.warmup_enabled && !r.paused_by_system && (r.health_score ?? 0) >= 90,
+    ).length;
+    return { active, sent, target, avg, paused, recovery, healthy };
   }, [rows]);
 
   const settingsAccount = rows.find((r) => r.id === settingsId) ?? null;
@@ -144,10 +151,15 @@ function WarmupPage() {
       description="Real mailbox-to-mailbox warmup with automatic ramping, health scoring and safety pauses."
     >
       <div className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <Stat label="Warming mailboxes" value={totals.active} />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          <Stat label="Active warmups" value={totals.active} />
+          <Stat label="Healthy" value={totals.healthy} />
+          <Stat
+            label="In recovery"
+            value={totals.recovery}
+            tone={totals.recovery > 0 ? "text-amber-600" : undefined}
+          />
           <Stat label="Warmup sent today" value={totals.sent} />
-          <Stat label="Today's target" value={totals.target} />
           <Stat label="Average health" value={totals.avg || "—"} />
           <Stat
             label="Auto-paused"
@@ -239,6 +251,11 @@ function WarmupPage() {
                           </span>
                         ) : null}
                       </div>
+                      {!row.block_reason && !row.pause_reason && row.stage_reason ? (
+                        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                          {row.stage_reason}
+                        </p>
+                      ) : null}
                       {row.block_reason || row.pause_reason ? (
                         <p className="mt-1 max-w-xs text-xs text-muted-foreground">
                           {row.block_reason ?? row.pause_reason}
@@ -282,11 +299,19 @@ function WarmupPage() {
                         }
                       />
                     </td>
-                    <td className="px-3 py-2.5 capitalize">
-                      {row.mode}
-                      <span className="block text-xs text-muted-foreground">
-                        max {row.max_volume || "—"}/day
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium">
+                        {STAGE_LABEL[(row.ramp_stage as keyof typeof STAGE_LABEL) ?? "ramp_up"] ??
+                          "Ramping up"}
                       </span>
+                      <span className="block text-xs capitalize text-muted-foreground">
+                        {row.mode} · max {row.max_volume || "—"}/day
+                      </span>
+                      {row.temp_failure_rate !== null ? (
+                        <span className="block text-[11px] text-muted-foreground">
+                          {row.temp_failure_rate}% temporary failures today
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-emerald-600">
                       {placement(row.inbox_today, row.spam_today, row.sent_today)}
