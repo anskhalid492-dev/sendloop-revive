@@ -256,31 +256,45 @@ function WarmupPage() {
                             {row.failed_today} failed today
                           </span>
                         ) : null}
+                        <TooltipProvider delayDuration={150}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                aria-label={`Warmup details for ${row.from_email}`}
+                                className="rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-1 focus-visible:outline-ring"
+                              >
+                                <Info className="size-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="right"
+                              align="start"
+                              collisionPadding={12}
+                              className="w-72 border border-border bg-popover text-popover-foreground shadow-md"
+                            >
+                              <div className="space-y-1.5 text-xs leading-relaxed">
+                                {(() => {
+                                  const info: string[] = [];
+                                  if (!row.block_reason && !row.pause_reason && row.stage_reason)
+                                    info.push(row.stage_reason);
+                                  if (row.block_reason || row.pause_reason)
+                                    info.push(row.block_reason ?? row.pause_reason);
+                                  if (row.state === "blocked")
+                                    info.push(
+                                      `Bounce rate ${row.safety_metrics.bounceRate}% of ${row.safety_metrics.maxBounceRate}% limit · ${row.safety_metrics.bounced}/${row.safety_metrics.sent} sends in the last ${row.safety_metrics.windowDays} days${row.safety_metrics.sampleSufficient ? "" : ` · below the ${row.safety_metrics.minSample}-send minimum sample`}${row.safety_active ? ` · re-checked ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}`,
+                                    );
+                                  if (info.length === 0)
+                                    info.push("Warmup is running normally within current limits.");
+                                  return info.map((line, i) => (
+                                    <p key={i}>{line}</p>
+                                  ));
+                                })()}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
-                      {!row.block_reason && !row.pause_reason && row.stage_reason ? (
-                        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                          {row.stage_reason}
-                        </p>
-                      ) : null}
-                      {row.block_reason || row.pause_reason ? (
-                        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                          {row.block_reason ?? row.pause_reason}
-                        </p>
-                      ) : null}
-                      {row.state === "blocked" ? (
-                        <p className="mt-1 max-w-xs text-[11px] text-muted-foreground">
-                          Bounce rate {row.safety_metrics.bounceRate}% of{" "}
-                          {row.safety_metrics.maxBounceRate}% limit ·{" "}
-                          {row.safety_metrics.bounced}/{row.safety_metrics.sent} sends in the last{" "}
-                          {row.safety_metrics.windowDays} days
-                          {row.safety_metrics.sampleSufficient
-                            ? ""
-                            : ` · below the ${row.safety_metrics.minSample}-send minimum sample`}
-                          {row.safety_active
-                            ? ` · re-checked ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                            : ""}
-                        </p>
-                      ) : null}
 
                     </td>
                     <td className="px-3 py-2.5">
@@ -311,11 +325,11 @@ function WarmupPage() {
                           "Ramping up"}
                       </span>
                       <span className="block text-xs capitalize text-muted-foreground">
-                        {row.mode} · max {row.max_volume || "—"}/day
+                        {row.mode} · {row.max_volume || "—"}/day
                       </span>
                       {row.temp_failure_rate !== null ? (
                         <span className="block text-[11px] text-muted-foreground">
-                          {row.temp_failure_rate}% temporary failures today
+                          {row.temp_failure_rate}% failures
                         </span>
                       ) : null}
                     </td>
