@@ -90,11 +90,7 @@ async function run(request: Request) {
       retry,
       warmup,
       warmupStalls,
-      reconciliation: {
-        scanned: reconciliation.scanned,
-        linked: reconciliation.linked,
-        mismatched: reconciliation.mismatched,
-      },
+      reconciliation,
     },
     200,
   );

@@ -430,21 +430,26 @@ export async function reconcileInboundEvents(limit = 300) {
   const conversationIds = [...new Set(rows.map((r) => r.conversation_id).filter(Boolean))] as string[];
   const messageIds = [...new Set(rows.map((r) => r.message_id).filter(Boolean))] as string[];
 
+  // Bounded lookups: one huge IN list is what pushes these reads past the
+  // statement timeout, so walk them in small batches instead.
+  const chunk = <T,>(values: T[], size = 50): T[][] => {
+    const out: T[][] = [];
+    for (let i = 0; i < values.length; i += size) out.push(values.slice(i, i + size));
+    return out;
+  };
+
   const liveConversations = new Set<string>();
-  if (conversationIds.length) {
-    const { data } = await supabaseAdmin
-      .from("conversations")
-      .select("id")
-      .in("id", conversationIds);
+  for (const batch of chunk(conversationIds)) {
+    const { data } = await supabaseAdmin.from("conversations").select("id").in("id", batch);
     for (const c of data ?? []) liveConversations.add(c.id);
   }
 
   const messageIndex = new Map<string, string>();
-  if (messageIds.length) {
+  for (const batch of chunk(messageIds)) {
     const { data } = await supabaseAdmin
       .from("conversation_messages")
       .select("message_id, conversation_id")
-      .in("message_id", messageIds);
+      .in("message_id", batch);
     for (const m of data ?? []) if (m.message_id) messageIndex.set(m.message_id, m.conversation_id);
   }
 
