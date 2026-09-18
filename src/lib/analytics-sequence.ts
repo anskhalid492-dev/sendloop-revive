@@ -81,6 +81,7 @@ function accumulate(
     target.delivered += 1;
   }
   if (inRange(unit.signals.opened_at)) target.opens += 1;
+  // (delivered is re-derived as sent - bounced after accumulation, see below)
   if (inRange(unit.signals.clicked_at)) target.clicks += 1;
   if (inRange(unit.signals.replied_at)) target.replies += 1;
   if (inRange(bouncedAt)) target.bounced += 1;
@@ -131,9 +132,16 @@ export function computeSequenceStats(
   }
   for (const stepRow of steps.values()) {
     stepRow.variants.sort((a, b) => b.sent - a.sent || a.label.localeCompare(b.label));
+    for (const v of stepRow.variants) finaliseDelivered(v);
+    finaliseDelivered(stepRow);
   }
 
   return Array.from(steps.values()).sort((a, b) => a.step - b.step);
+}
+
+/** delivered + bounced can never exceed the accepted sends. */
+function finaliseDelivered(totals: SequenceTotals) {
+  totals.delivered = Math.max(0, totals.sent - totals.bounced);
 }
 
 /** Totals for an arbitrary set of units (used by filtered breakdowns). */
@@ -143,5 +151,6 @@ export function computeUnitTotals(units: Iterable<Unit>, opts: Window): Sequence
   const all = Array.from(units);
   const bouncedPeople = bouncedLeadKeys(all);
   for (const unit of all) accumulate(totals, unit, inRange, bouncedPeople);
+  finaliseDelivered(totals);
   return totals;
 }
