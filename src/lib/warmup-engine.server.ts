@@ -1080,13 +1080,22 @@ export async function applyWarmupDeliveryEvent(args: {
   if (!args.providerMessageId) return false;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data: job } = await supabaseAdmin
+  // Providers report the same message id in different shapes (angle brackets,
+  // URL-encoded, SendGrid's suffixed form). The stored id is matched against
+  // every normalized candidate so a real delivery event is never dropped.
+  const candidates = providerMessageIdCandidates(args.providerMessageId);
+  if (!candidates.length) return false;
+  const { data: jobs } = await supabaseAdmin
     .from("warmup_jobs")
-    .select("id, workspace_id, sending_account_id, status, conversation_id, pool_recipient_id, to_email")
-    .eq("provider_message_id", args.providerMessageId)
-    .maybeSingle();
+    .select(
+      "id, workspace_id, sending_account_id, status, delivery_state, delivered_at, conversation_id, pool_recipient_id, to_email",
+    )
+    .in("provider_message_id", candidates)
+    .limit(1);
+  const job = ((jobs ?? []) as Array<Record<string, unknown>>)[0] as
+    | (WarmupDeliveryJob & Record<string, unknown>)
+    | undefined;
   if (!job) return false;
-
 
   const fresh = await logEvent(supabaseAdmin, {
     workspaceId: job.workspace_id,
@@ -1123,16 +1132,38 @@ export async function applyWarmupDeliveryEvent(args: {
     jobPatch["placement"] = "not_delivered";
     jobPatch["placement_checked_at"] = new Date().toISOString();
   }
-  if (Object.keys(jobPatch).length) {
+
+  // A provider delivery, a complaint (the recipient saw it) or a reply are all
+  // real arrival confirmations and go through the one idempotent path, so the
+  // delivered counter can never move twice for the same message.
+  const arrival =
+    args.kind === "delivered" || args.kind === "replied" || args.kind === "complained";
+  let confirmed = false;
+  if (arrival) {
+    confirmed = await confirmWarmupDelivery(supabaseAdmin, {
+      job,
+      source: args.kind === "replied" ? "peer_reply" : "provider_event",
+      extraPatch: jobPatch,
+    });
+    if (!confirmed && Object.keys(jobPatch).length) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await supabaseAdmin.from("warmup_jobs").update(jobPatch as any).eq("id", job.id);
+    }
+  } else if (Object.keys(jobPatch).length) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabaseAdmin.from("warmup_jobs").update(jobPatch as any).eq("id", job.id);
+  }
+
+  const normalized = normalizeWarmupDeliveryState(args.kind);
+  if (normalized && normalized !== "delivered") {
+    await setWarmupDeliveryState(supabaseAdmin, job, normalized);
   }
 
   const counter: Record<string, number> =
     args.kind === "sent"
       ? { sent: 1 }
       : args.kind === "delivered"
-      ? { delivered: 1 }
+      ? {}
       : args.kind === "bounced"
         ? { bounced: 1 }
         : args.kind === "complained"
@@ -1151,6 +1182,7 @@ export async function applyWarmupDeliveryEvent(args: {
       counter,
     );
   }
+
 
   const poolId = (job as Record<string, unknown>)["pool_recipient_id"] as string | null;
   // A hard bounce or a complaint retires the address for the whole workspace,
