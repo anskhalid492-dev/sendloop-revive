@@ -15,6 +15,11 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { STAGE_LABEL } from "@/lib/warmup-ramp";
+import {
+  WARMUP_DELIVERY_EXPLANATION,
+  warmupDeliveryCounts,
+  warmupDeliveryLabel,
+} from "@/lib/warmup-delivery";
 import { WarmupHealthIndicator } from "@/components/mailboxes/WarmupHealthIndicator";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { Badge } from "@/components/ui/badge";
