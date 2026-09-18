@@ -208,6 +208,30 @@ export type Unit = {
   updatedAt: string | null;
 };
 
+/**
+ * When this unit's recipient bounced / unsubscribed, in the ONE shared way:
+ * a real provider signal, or their queued mail cancelled for that reason (the
+ * mid-sequence case, where the bounce only exists on the cancelled rows).
+ */
+export const unitBounceAt = (u: Unit): string | null =>
+  u.signals.bounced_at ?? (u.cancelledReason === "recipient_bounced" ? u.updatedAt : null);
+
+export const unitUnsubscribeAt = (u: Unit): string | null =>
+  u.signals.unsubscribed_at ??
+  (u.cancelledReason === "recipient_unsubscribed" ? u.updatedAt : null);
+
+/**
+ * People whose mail bounced, keyed the same way units are. A bounce recorded on
+ * ONE unit (usually the cancelled follow-up) applies to that person's other
+ * units too, so a sent step is never reported as delivered after its recipient
+ * bounced.
+ */
+export function bouncedLeadKeys(units: Iterable<Unit>): Set<string> {
+  const keys = new Set<string>();
+  for (const u of units) if (unitBounceAt(u)) keys.add(u.leadKey);
+  return keys;
+}
+
 const earlier = (a: string | null, b: string | null | undefined) => {
   if (!a) return b ?? null;
   if (!b) return a;
@@ -499,16 +523,28 @@ export function computeTimeseries(
     point[field] += 1;
   };
 
-  for (const u of units) {
+  const all = Array.from(units);
+  const bouncedPeople = bouncedLeadKeys(all);
+  const countedBounce = new Set<string>();
+  const countedUnsub = new Set<string>();
+  for (const u of all) {
+    const bouncedAt = unitBounceAt(u);
     at(u.sentAt, "sent");
-    if (!u.signals.bounced_at && !u.signals.failed_at) {
+    if (!bouncedPeople.has(u.leadKey) && !u.signals.failed_at) {
       at(u.signals.delivered_at ?? u.sentAt, "delivered");
     }
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
     at(u.signals.replied_at, "replies");
-    at(u.signals.bounced_at, "bounced");
-    at(u.signals.unsubscribed_at, "unsubscribed");
+    if (bouncedAt && !countedBounce.has(u.leadKey)) {
+      countedBounce.add(u.leadKey);
+      at(bouncedAt, "bounced");
+    }
+    const unsubAt = unitUnsubscribeAt(u);
+    if (unsubAt && !countedUnsub.has(u.leadKey)) {
+      countedUnsub.add(u.leadKey);
+      at(unsubAt, "unsubscribed");
+    }
   }
 
   return Array.from(points.values()).sort((a, b) => a.bucket.localeCompare(b.bucket));
@@ -545,12 +581,24 @@ export function computeAccountTotals(
   const repliers = new Map<string, Set<string>>();
   const confirmedDelivered = new Map<string, number>();
   const sentBounces = new Map<string, number>();
+  /** True the first time this person is counted for this mailbox. */
+  const addPersonOnce = (map: Map<string, Set<string>>, accountId: string, leadKey: string) => {
+    const set = map.get(accountId) ?? new Set<string>();
+    if (set.has(leadKey)) return false;
+    set.add(leadKey);
+    map.set(accountId, set);
+    return true;
+  };
   const addPerson = (map: Map<string, Set<string>>, accountId: string, leadKey: string) => {
     const set = map.get(accountId) ?? new Set<string>();
     set.add(leadKey);
     map.set(accountId, set);
   };
-  for (const u of units) {
+  const allUnits = Array.from(units);
+  const bouncedPeople = bouncedLeadKeys(allUnits);
+  const bouncedCounted = new Map<string, Set<string>>();
+  const unsubCounted = new Map<string, Set<string>>();
+  for (const u of allUnits) {
     if (!u.accountId) continue;
     let row = rows.get(u.accountId);
     if (!row) {
@@ -567,21 +615,28 @@ export function computeAccountTotals(
       };
       rows.set(u.accountId, row);
     }
+    const bouncedAt = unitBounceAt(u);
+    const personBounced = bouncedPeople.has(u.leadKey);
     if (inRange(u.sentAt)) {
       row.sent += 1;
-      if (u.signals.bounced_at) {
+      if (personBounced) {
         sentBounces.set(u.accountId, (sentBounces.get(u.accountId) ?? 0) + 1);
       }
     }
-    if (inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at) {
+    if (inRange(u.signals.delivered_at) && !personBounced && !u.signals.failed_at) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
     }
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);
     if (inRange(u.signals.clicked_at)) addPerson(clickers, u.accountId, u.leadKey);
     if (inRange(u.signals.replied_at)) addPerson(repliers, u.accountId, u.leadKey);
-    if (inRange(u.signals.bounced_at)) row.bounced += 1;
-    if (!u.signals.bounced_at && inRange(u.signals.failed_at)) row.failed += 1;
-    if (inRange(u.signals.unsubscribed_at)) row.unsubscribed += 1;
+    if (inRange(bouncedAt) && addPersonOnce(bouncedCounted, u.accountId, u.leadKey)) {
+      row.bounced += 1;
+    }
+    if (!personBounced && inRange(u.signals.failed_at)) row.failed += 1;
+    const unsubAt = unitUnsubscribeAt(u);
+    if (inRange(unsubAt) && addPersonOnce(unsubCounted, u.accountId, u.leadKey)) {
+      row.unsubscribed += 1;
+    }
   }
   for (const row of rows.values()) {
     row.delivered = Math.max(
