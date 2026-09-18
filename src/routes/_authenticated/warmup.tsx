@@ -102,8 +102,12 @@ function WarmupPage() {
     // live channel could not connect.
     refetchInterval: liveConnected ? false : 30_000,
     refetchOnWindowFocus: !liveConnected,
+    // One quick retry only: a failed load must show its reason instead of
+    // leaving the dashboard on a blank placeholder.
+    retry: 1,
   });
   const rows = accountsQuery.data?.accounts ?? [];
+
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["warmup-accounts"] });
