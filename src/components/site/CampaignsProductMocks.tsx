@@ -541,70 +541,14 @@ export function MailboxMock() {
 /* ------------------------------------------------------------------ */
 
 export function ScheduleMock() {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   return (
     <AppWindow title="Schedule" breadcrumb="Q4 Outbound / Schedule">
-      <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-2">
-        <div className="space-y-3">
-          <FieldRow label="Sending window" value="6:00 PM → 11:00 PM" hint="5 hours per day" />
-          <FieldRow label="Timezone" value="Asia/Dubai" hint="Window follows the campaign timezone" />
-          <div className="rounded-xl border border-border/70 bg-background px-3.5 py-3">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Sending days</div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {days.map((d) => (
-                <span
-                  key={d}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1 text-xs",
-                    d === "Sun"
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-primary/12 font-medium text-primary",
-                  )}
-                >
-                  {d}
-                </span>
-              ))}
-            </div>
-          </div>
-          <FieldRow
-            label="Daily limit"
-            value="180 emails / day"
-            hint="Queue carries over to the next eligible window"
-            right={<Pill tone="muted">Editable</Pill>}
-          />
-        </div>
-
-        <div className="rounded-xl border border-border/70 bg-background p-4">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            How a scheduled run flows
-          </div>
-          <ol className="mt-3 space-y-2">
-            {[
-              { icon: Users, label: "Leads", note: "1,240 in the campaign" },
-              { icon: Inbox, label: "Campaign queue", note: "Ordered, deduplicated, suppression-checked" },
-              { icon: CalendarClock, label: "6:00 PM sending window", note: "Asia/Dubai, Mon–Sat" },
-              { icon: Mail, label: "Available mailboxes", note: "Capacity and safety state respected" },
-              { icon: Send, label: "Emails sent", note: "142 today" },
-              { icon: Clock, label: "Follow-up scheduled", note: "Step 2 queued for day 3" },
-            ].map((s, i, arr) => (
-              <li key={s.label}>
-                <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2">
-                  <s.icon className="size-4 shrink-0 text-primary" />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{s.label}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">{s.note}</div>
-                  </div>
-                </div>
-                {i < arr.length - 1 ? (
-                  <div className="flex justify-center py-1">
-                    <ChevronDown className="size-3.5 text-muted-foreground" />
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
+      <img
+        src={scheduleScreenshot.url}
+        alt="Campaign schedule settings — sending days, sending window, pacing, campaign dates and a throughput estimate"
+        className="block w-full"
+        loading="lazy"
+      />
     </AppWindow>
   );
 }
