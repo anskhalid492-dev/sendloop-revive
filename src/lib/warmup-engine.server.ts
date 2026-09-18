@@ -1092,7 +1092,7 @@ export async function applyWarmupDeliveryEvent(args: {
     )
     .in("provider_message_id", candidates)
     .limit(1);
-  const job = ((jobs ?? []) as Array<Record<string, unknown>>)[0] as
+  const job = ((jobs ?? []) as unknown as Array<Record<string, unknown>>)[0] as unknown as
     | (WarmupDeliveryJob & Record<string, unknown>)
     | undefined;
   if (!job) return false;
