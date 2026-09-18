@@ -55,7 +55,15 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
   // Counted from the live per-lead delivery state (derived from real message
   // events), so this matches what the Leads tab and the activity feed show.
   // Exact server-side per-lead counts over the whole audience.
-  const statusCounts = leadStates;
+  //
+  // An accepted send that never bounced counts as delivered — the same rule the
+  // KPI cards, dashboard and Analytics page use — so the breakdown can never
+  // disagree with "Emails sent" above.
+  const statusCounts: Record<string, number> = { ...leadStates };
+  if (statusCounts["sent"]) {
+    statusCounts["delivered"] = (statusCounts["delivered"] ?? 0) + statusCounts["sent"];
+    statusCounts["sent"] = 0;
+  }
   const breakdown = LEAD_DELIVERY_STATES.map((state) => ({
     state,
     label: LEAD_DELIVERY_LABELS[state],
