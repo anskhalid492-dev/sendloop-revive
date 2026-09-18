@@ -41,10 +41,34 @@ import {
   type CustomVariable,
   type StepType,
 } from "@/lib/campaign-model";
+import {
+  groupRecipientPatches,
+  type RecipientPatchEntry,
+} from "@/lib/recipient-status-batch";
 
 /** Any Supabase client (user-scoped or service role). Kept loose on purpose. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySupabase = any;
+
+/**
+ * Writes buffered `campaign_recipients` progress in grouped chunks (<= 100 ids
+ * per call) instead of one HTTP update per recipient. Recipients with different
+ * outcomes stay in separate groups, so no per-recipient detail is lost. The
+ * buffer is emptied even when a chunk fails, and a failure here never aborts a
+ * send: campaign_messages is the authoritative record for stats and follow-ups.
+ */
+async function flushRecipientPatches(supabase: AnySupabase, buffer: RecipientPatchEntry[]) {
+  if (buffer.length === 0) return;
+  const batches = groupRecipientPatches(buffer, 100);
+  buffer.length = 0;
+  for (const batch of batches) {
+    const { error } = await supabase
+      .from("campaign_recipients")
+      .update(batch.patch)
+      .in("id", batch.ids);
+    if (error) console.error("campaign_recipients batch update failed", error.message);
+  }
+}
 
 type AccountRow = {
   id: string;
