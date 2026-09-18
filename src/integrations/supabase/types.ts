@@ -1790,6 +1790,7 @@ export type Database = {
           body: string
           bounced_at: string | null
           campaign_id: string
+          cancelled_reason: string | null
           clicked_at: string | null
           complained_at: string | null
           created_at: string
@@ -1836,6 +1837,7 @@ export type Database = {
           body?: string
           bounced_at?: string | null
           campaign_id: string
+          cancelled_reason?: string | null
           clicked_at?: string | null
           complained_at?: string | null
           created_at?: string
@@ -1882,6 +1884,7 @@ export type Database = {
           body?: string
           bounced_at?: string | null
           campaign_id?: string
+          cancelled_reason?: string | null
           clicked_at?: string | null
           complained_at?: string | null
           created_at?: string
