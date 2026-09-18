@@ -32,6 +32,8 @@ type PollMailboxRow = {
   imap_username: string | null;
   imap_password: string | null;
   last_imap_uid: number | null;
+  /** Cursor for the spam/junk folder. Missing on older schemas. */
+  last_spam_imap_uid?: number | null;
   status: string | null;
   is_active: boolean | null;
 };
@@ -46,6 +48,10 @@ export type MailboxPollOutcome = {
   bounces: number;
   skipped: number;
   highestUid: number | null;
+  /** Messages read from the spam/junk folder in this run. */
+  spamFetched?: number;
+  spamFolder?: string | null;
+  spamHighestUid?: number | null;
   error?: string;
 };
 
@@ -114,55 +120,26 @@ async function imapEndpoint(
   };
 }
 
-/** Reads one mailbox and files everything it can match. Never throws. */
-export async function pollMailbox(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  admin: any,
+/**
+ * Files one folder's worth of mail. Returns the highest UID seen.
+ *
+ * `placement` tells warmup where its own mail landed ("inbox" or "spam"); it
+ * changes nothing about how real replies are handled — a genuine reply counts
+ * the same whether the mail host filed it in the inbox or in Junk.
+ */
+async function processFolderMessages(
   row: PollMailboxRow,
-): Promise<MailboxPollOutcome> {
-  const outcome: MailboxPollOutcome = {
-    mailbox: row.email_address,
-    ok: false,
-    fetched: 0,
-    replies: 0,
-    warmup: 0,
-    bounces: 0,
-    skipped: 0,
-    highestUid: null,
-  };
-
-  if (!row.imap_host || !row.imap_port || !row.imap_username || !row.imap_password) {
-    outcome.error = "This mailbox has no incoming-mail server saved. Reconnect it.";
-    console.warn(`[imap-poll] ${row.email_address}: ${outcome.error}`);
-    return outcome;
-  }
-
-  let messages: RelayCheckedMessage[] = [];
-  try {
-    const endpoint = await imapEndpoint(admin, row);
-    const { relayCheckMailbox } = await import("@/lib/mailbox-relay.server");
-    const result = await relayCheckMailbox(endpoint, row.last_imap_uid ?? null);
-    if (!result.ok) {
-      outcome.error = result.message;
-      console.warn(`[imap-poll] ${row.email_address}: check failed — ${result.message}`);
-      return outcome;
-    }
-    messages = result.messages;
-  } catch (error) {
-    outcome.error = error instanceof Error ? error.message : "IMAP check failed";
-    console.warn(`[imap-poll] ${row.email_address}: ${outcome.error}`);
-    return outcome;
-  }
-
-  outcome.ok = true;
-  outcome.fetched = messages.length;
-
+  messages: RelayCheckedMessage[],
+  placement: "inbox" | "spam",
+  startUid: number,
+  outcome: MailboxPollOutcome,
+): Promise<number> {
   const mailbox = row.email_address.trim().toLowerCase();
   const { ingestInboundEmail } = await import("@/lib/inbox.server");
   const { applyDeliveryEvent } = await import("@/lib/delivery-events.server");
   const { applyWarmupInbound } = await import("@/lib/warmup-engine.server");
 
-  let highest = row.last_imap_uid ?? 0;
+  let highest = startUid;
 
   for (const message of messages.slice().sort((a, b) => a.uid - b.uid)) {
     if (message.uid > highest) highest = message.uid;
@@ -183,9 +160,8 @@ export async function pollMailbox(
         text: body.text,
         html: body.html,
         messageId: message.messageId ?? null,
-        // The relay reads the main inbox, so a message found here landed in the
-        // inbox rather than the spam folder.
-        folder: "inbox",
+        // Which folder this run is reading: warmup records real placement.
+        folder: placement,
         source: "imap_arrival",
         receivedAt: message.date ? new Date(message.date).toISOString() : null,
       });
@@ -251,17 +227,141 @@ export async function pollMailbox(
     }
   }
 
+  return highest;
+}
+
+/**
+ * Reads one folder through the relay. Returns null when the folder could not be
+ * opened (common for the spam folder: not every host has one).
+ */
+async function readFolder(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  row: PollMailboxRow,
+  sinceUid: number | null,
+  folders?: string[],
+): Promise<{ ok: boolean; message: string; folder?: string | null; messages: RelayCheckedMessage[] }> {
+  const endpoint = await imapEndpoint(admin, row);
+  const { relayCheckMailbox } = await import("@/lib/mailbox-relay.server");
+  return relayCheckMailbox(endpoint, sinceUid, folders);
+}
+
+/**
+ * Reads one mailbox and files everything it can match. Never throws.
+ *
+ * Both the main inbox AND the spam/junk folder are read: mail hosts routinely
+ * file genuine replies (and bounce reports) as junk, and mail that is never read
+ * can never reach the Unified Inbox. Each folder keeps its own UID cursor, so no
+ * message is processed twice.
+ */
+export async function pollMailbox(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  row: PollMailboxRow,
+): Promise<MailboxPollOutcome> {
+  const outcome: MailboxPollOutcome = {
+    mailbox: row.email_address,
+    ok: false,
+    fetched: 0,
+    replies: 0,
+    warmup: 0,
+    bounces: 0,
+    skipped: 0,
+    highestUid: null,
+  };
+
+  if (!row.imap_host || !row.imap_port || !row.imap_username || !row.imap_password) {
+    outcome.error = "This mailbox has no incoming-mail server saved. Reconnect it.";
+    console.warn(`[imap-poll] ${row.email_address}: ${outcome.error}`);
+    return outcome;
+  }
+
+  // ---- main inbox -------------------------------------------------------
+  let messages: RelayCheckedMessage[] = [];
+  try {
+    const result = await readFolder(admin, row, row.last_imap_uid ?? null);
+    if (!result.ok) {
+      outcome.error = result.message;
+      console.warn(`[imap-poll] ${row.email_address}: check failed — ${result.message}`);
+      return outcome;
+    }
+    messages = result.messages;
+  } catch (error) {
+    outcome.error = error instanceof Error ? error.message : "IMAP check failed";
+    console.warn(`[imap-poll] ${row.email_address}: ${outcome.error}`);
+    return outcome;
+  }
+
+  outcome.ok = true;
+  outcome.fetched = messages.length;
+
+  const inboxHighest = await processFolderMessages(
+    row,
+    messages,
+    "inbox",
+    row.last_imap_uid ?? 0,
+    outcome,
+  );
+
   // Advance the cursor even for skipped mail, so the same messages are never
   // fetched again on the next run.
-  if (highest > (row.last_imap_uid ?? 0)) {
-    outcome.highestUid = highest;
+  if (inboxHighest > (row.last_imap_uid ?? 0)) {
+    outcome.highestUid = inboxHighest;
     const { error } = await admin
       .from("mailboxes")
-      .update({ last_imap_uid: highest })
+      .update({ last_imap_uid: inboxHighest })
       .eq("id", row.id);
     if (error) console.warn(`[imap-poll] ${row.email_address}: cursor not saved — ${error.message}`);
   } else {
     outcome.highestUid = row.last_imap_uid ?? null;
+  }
+
+  // ---- spam / junk folder ----------------------------------------------
+  // A missing cursor column (older schema) means nothing can be remembered
+  // between runs, so only idempotent handling is allowed there: replies are
+  // de-duplicated on Message-ID and warmup arrivals are counted once, while
+  // bounce reports are left for the run after the column exists.
+  const spamCursorKnown = row.last_spam_imap_uid !== undefined;
+  try {
+    const { SPAM_FOLDER_CANDIDATES } = await import("@/lib/mailbox-relay.server");
+    const spam = await readFolder(
+      admin,
+      row,
+      row.last_spam_imap_uid ?? null,
+      SPAM_FOLDER_CANDIDATES,
+    );
+    if (spam.ok) {
+      outcome.spamFolder = spam.folder ?? null;
+      outcome.spamFetched = spam.messages.length;
+      const spamHighest = await processFolderMessages(
+        row,
+        spam.messages,
+        "spam",
+        row.last_spam_imap_uid ?? 0,
+        outcome,
+      );
+      outcome.spamHighestUid = spamHighest;
+      if (spamCursorKnown && spamHighest > (row.last_spam_imap_uid ?? 0)) {
+        const { error } = await admin
+          .from("mailboxes")
+          .update({ last_spam_imap_uid: spamHighest })
+          .eq("id", row.id);
+        // 42703 / PGRST204: the column is not deployed yet — not a failure.
+        if (error && error.code !== "42703" && error.code !== "PGRST204") {
+          console.warn(`[imap-poll] ${row.email_address}: junk cursor not saved — ${error.message}`);
+        }
+      }
+    } else {
+      outcome.spamFolder = null;
+      outcome.spamFetched = 0;
+    }
+  } catch (error) {
+    // The junk folder is best-effort: never let it fail the mailbox.
+    console.warn(
+      `[imap-poll] ${row.email_address}: junk folder not read — ${
+        error instanceof Error ? error.message : "unknown error"
+      }`,
+    );
   }
 
   return outcome;
@@ -271,14 +371,23 @@ export async function pollMailbox(
 export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<MailboxPollSummary> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data, error } = await supabaseAdmin
-    .from("mailboxes")
-    .select(
-      "id, workspace_id, email_address, imap_host, imap_port, imap_secure, imap_username, imap_password, last_imap_uid, status, is_active",
-    )
-    .eq("status", "connected")
-    .order("last_tested_at", { ascending: true, nullsFirst: true })
-    .limit(limit);
+  const BASE_COLUMNS =
+    "id, workspace_id, email_address, imap_host, imap_port, imap_secure, imap_username, imap_password, last_imap_uid, status, is_active";
+
+  const select = (columns: string) =>
+    supabaseAdmin
+      .from("mailboxes")
+      .select(columns)
+      .eq("status", "connected")
+      .order("last_tested_at", { ascending: true, nullsFirst: true })
+      .limit(limit);
+
+  // The junk-folder cursor is additive: on schemas without it the query falls
+  // back to the original column list instead of failing the whole run.
+  let { data, error } = await select(`${BASE_COLUMNS}, last_spam_imap_uid`);
+  if (error && (error.code === "42703" || error.code === "PGRST204" || /last_spam_imap_uid/.test(error.message))) {
+    ({ data, error } = await select(BASE_COLUMNS));
+  }
   if (error) throw new Error(error.message);
 
   const rows = ((data ?? []) as unknown as PollMailboxRow[]).filter(
