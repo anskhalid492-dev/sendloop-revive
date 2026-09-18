@@ -362,14 +362,20 @@ export async function campaignStats(ctx: ApiContext) {
       countOf("status", ["pending", "scheduled", "processing"]),
       countOf("status", ["failed"]),
       countOf("status", ["cancelled"]),
+      // Bounced comes from the shared per-person rule, so a recipient whose
+      // remaining mail was cancelled after their bounce is still counted.
       (async () => {
-        const { count } = await ctx.admin
+        const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
+          "@/lib/cancellation-reason"
+        );
+        const { data } = await ctx.admin
           .from("campaign_messages")
-          .select("id", { count: "exact", head: true })
+          .select(OUTCOME_COLUMNS)
           .eq("campaign_id", id)
           .eq("workspace_id", ctx.auth.workspaceId)
-          .not("bounced_at", "is", null);
-        return count ?? 0;
+          .or(OUTCOME_OR_FILTER)
+          .limit(5000);
+        return countOutcomeRecipients((data ?? []) as never[]).bounced;
       })(),
       (async () => {
         const { count } = await ctx.admin
@@ -398,13 +404,25 @@ export async function campaignStats(ctx: ApiContext) {
         return count ?? 0;
       })(),
       (async () => {
-        const { count } = await ctx.admin
-          .from("campaign_recipients")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", id)
-          .eq("workspace_id", ctx.auth.workspaceId)
-          .eq("status", "unsubscribed");
-        return count ?? 0;
+        const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
+          "@/lib/cancellation-reason"
+        );
+        const [{ count }, { data }] = await Promise.all([
+          ctx.admin
+            .from("campaign_recipients")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", id)
+            .eq("workspace_id", ctx.auth.workspaceId)
+            .eq("status", "unsubscribed"),
+          ctx.admin
+            .from("campaign_messages")
+            .select(OUTCOME_COLUMNS)
+            .eq("campaign_id", id)
+            .eq("workspace_id", ctx.auth.workspaceId)
+            .or(OUTCOME_OR_FILTER)
+            .limit(5000),
+        ]);
+        return Math.max(count ?? 0, countOutcomeRecipients((data ?? []) as never[]).unsubscribed);
       })(),
       (async () => {
         const { count } = await ctx.admin
