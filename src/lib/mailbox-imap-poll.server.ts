@@ -371,14 +371,23 @@ export async function pollMailbox(
 export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<MailboxPollSummary> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data, error } = await supabaseAdmin
-    .from("mailboxes")
-    .select(
-      "id, workspace_id, email_address, imap_host, imap_port, imap_secure, imap_username, imap_password, last_imap_uid, status, is_active",
-    )
-    .eq("status", "connected")
-    .order("last_tested_at", { ascending: true, nullsFirst: true })
-    .limit(limit);
+  const BASE_COLUMNS =
+    "id, workspace_id, email_address, imap_host, imap_port, imap_secure, imap_username, imap_password, last_imap_uid, status, is_active";
+
+  const select = (columns: string) =>
+    supabaseAdmin
+      .from("mailboxes")
+      .select(columns)
+      .eq("status", "connected")
+      .order("last_tested_at", { ascending: true, nullsFirst: true })
+      .limit(limit);
+
+  // The junk-folder cursor is additive: on schemas without it the query falls
+  // back to the original column list instead of failing the whole run.
+  let { data, error } = await select(`${BASE_COLUMNS}, last_spam_imap_uid`);
+  if (error && (error.code === "42703" || error.code === "PGRST204" || /last_spam_imap_uid/.test(error.message))) {
+    ({ data, error } = await select(BASE_COLUMNS));
+  }
   if (error) throw new Error(error.message);
 
   const rows = ((data ?? []) as unknown as PollMailboxRow[]).filter(
