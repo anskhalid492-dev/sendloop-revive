@@ -120,6 +120,11 @@ export function KpiBoard({
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  <Icon
+                    className={cn("size-5 shrink-0", card.iconColor)}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
                   <span className="truncate">{card.label}</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
