@@ -280,6 +280,12 @@ export const getCampaignMailboxSummary = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const like = (value: string) => `%${value.replace(/[%,()]/g, " ").trim()}%`;
+    const outcome = OUTCOME_STATUSES.includes(data.status as OutcomeStatus)
+      ? (data.status as OutcomeStatus)
+      : null;
+    const outcomeIds = outcome
+      ? await outcomeRecipientIds(context.supabase, data.campaignId, outcome)
+      : null;
     // The lead embed is always joined: every count filters on lead email domains.
     const baseQuery = () => {
       let query = context.supabase
@@ -287,10 +293,15 @@ export const getCampaignMailboxSummary = createServerFn({ method: "POST" })
         .select(`id, ${LEAD_EMBED}`, { count: "exact", head: true })
         .eq("campaign_id", data.campaignId) as never as {
         eq: (column: string, value: unknown) => typeof query;
+        in: (column: string, values: readonly unknown[]) => typeof query;
         ilike: (column: string, value: string) => typeof query;
         or: (filter: string, options?: { referencedTable: string }) => typeof query;
       };
-      if (data.status) query = query.eq("status", data.status);
+      if (outcomeIds) {
+        query = query.in("id", outcomeIds.length ? outcomeIds : [NO_MATCH_ID]);
+      } else if (data.status) {
+        query = query.eq("status", data.status);
+      }
       if (data.step !== undefined) query = query.eq("current_step", data.step);
       if (data.accountId) query = query.eq("sending_account_id", data.accountId);
       if (data.company) query = query.ilike("leads.company", like(data.company));
