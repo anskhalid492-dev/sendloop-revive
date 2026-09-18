@@ -308,7 +308,25 @@ function WarmupPage() {
                         <span>
                           {row.sent_today} / {row.target_today || "—"}
                         </span>
-                        <span>{row.delivered_today} delivered</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-default">
+                              {warmupDeliveryLabel(
+                                warmupDeliveryCounts({
+                                  sent: row.sent_today,
+                                  delivered: row.delivered_today,
+                                  notReceived: Math.max(
+                                    0,
+                                    row.sent_today - row.delivered_today - row.unconfirmed_today,
+                                  ),
+                                }),
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            {WARMUP_DELIVERY_EXPLANATION}
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                       <Progress
                         className="mt-1 h-1.5"
