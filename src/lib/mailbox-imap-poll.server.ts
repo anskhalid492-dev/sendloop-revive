@@ -11,6 +11,7 @@
  * A mailbox is only polled while it is `status = 'connected'` AND `is_active`.
  * Failures are recorded per mailbox and never stop the loop.
  */
+import { parseDeliveryReport } from "@/lib/dsn-parse";
 import { extractInboundBody } from "@/lib/inbound-body";
 import {
 
@@ -142,6 +143,11 @@ async function processFolderMessages(
   let highest = startUid;
 
   for (const message of messages.slice().sort((a, b) => a.uid - b.uid)) {
+    // Mail at or below the saved position was already handled on an earlier run.
+    // Some mail servers ignore the "since" filter and hand back the newest
+    // messages regardless, which previously made the same failure report count
+    // again on every single check.
+    if (startUid > 0 && message.uid <= startUid) continue;
     if (message.uid > highest) highest = message.uid;
 
     try {
@@ -172,10 +178,7 @@ async function processFolderMessages(
 
       if (looksLikeBounce({ from: message.from, subject: message.subject })) {
         const recipient = bouncedRecipient({
-          text: extractInboundBody(message.text, {
-            contentType: message.contentType ?? null,
-            contentTransferEncoding: message.contentTransferEncoding ?? null,
-          }).text,
+          text: body.text,
           subject: message.subject,
           mailbox,
         });
@@ -186,19 +189,23 @@ async function processFolderMessages(
           );
           continue;
         }
-        // Matches the failed send by recipient address and applies the existing
-        // bounce bookkeeping (message state, recipient, lead, suppression).
+        // The report itself says whether the failure was permanent (bad address,
+        // blocked) or only a temporary deferral. A deferral must never be
+        // recorded as a bounce or suppress a perfectly valid address.
+        const report = parseDeliveryReport({ text: body.text, subject: message.subject });
         const applied = await applyDeliveryEvent({
-          kind: "bounced",
+          kind: report.kind,
           email: recipient,
           providerMessageId: null,
-          reason: (message.subject ?? "Delivery failure reported by the receiving server").slice(0, 500),
+          reason: report.reason,
         });
-        if (applied.status === "applied") outcome.bounces += 1;
-        else {
+        if (applied.status === "applied") {
+          if (report.kind === "bounced") outcome.bounces += 1;
+          else outcome.skipped += 1;
+        } else {
           outcome.skipped += 1;
           console.warn(
-            `[imap-poll] ${row.email_address}: bounce for ${recipient} matched no send — ${applied.reason ?? "unmatched"}.`,
+            `[imap-poll] ${row.email_address}: ${report.kind} for ${recipient} matched no send — ${applied.reason ?? "unmatched"}.`,
           );
         }
         continue;
