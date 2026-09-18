@@ -275,7 +275,6 @@ function DashboardPage() {
           </div>
           <Panel
             title="Needs your attention"
-            description="Blocked mailboxes, unverified domains, stalled campaigns and unread replies."
           >
             {loading ? <SkeletonRows rows={4} height={72} /> : <ActionCenter items={data?.actions ?? []} />}
           </Panel>
