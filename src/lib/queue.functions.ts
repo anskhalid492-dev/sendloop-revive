@@ -156,7 +156,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       ...(Object.fromEntries(
         MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
       ) as Record<MessageStatus, number>),
-      bounced: bouncedCount,
+      bounced: outcomes.bounced,
+      unsubscribed: outcomes.unsubscribed,
     };
 
     // Send log: per-mailbox rotation breakdown, also from exact counts. The
