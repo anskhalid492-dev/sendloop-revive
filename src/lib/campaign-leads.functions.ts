@@ -49,6 +49,58 @@ const RECIPIENT_STATUSES = [
   "stopped",
 ] as const;
 
+/**
+ * Bounces and unsubscribes are recorded per PERSON, and usually land on the
+ * stopped follow-up rather than on the recipient row's own status, so filtering
+ * `campaign_recipients.status` alone finds nothing. Resolve the affected
+ * recipient ids from the message outcomes (real signal or cancellation reason),
+ * exactly like the campaign status tiles and analytics do.
+ */
+const OUTCOME_STATUSES = ["bounced", "unsubscribed"] as const;
+type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];
+
+async function outcomeRecipientIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  campaignId: string,
+  kind: OutcomeStatus,
+): Promise<string[]> {
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+  const filter =
+    kind === "bounced"
+      ? "bounced_at.not.is.null,cancelled_reason.eq.recipient_bounced"
+      : "unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed";
+  const messages = await fetchAllRows<{ recipient_id: string | null; lead_id: string | null }>(
+    () =>
+      supabase
+        .from("campaign_messages")
+        .select("recipient_id, lead_id")
+        .eq("campaign_id", campaignId)
+        .or(filter)
+        .order("id", { ascending: true }),
+  );
+  const ids = new Set<string>();
+  const leadIds = new Set<string>();
+  for (const message of messages) {
+    if (message.recipient_id) ids.add(message.recipient_id);
+    else if (message.lead_id) leadIds.add(message.lead_id);
+  }
+  if (leadIds.size) {
+    const extra = await fetchByIds<{ id: string }>([...leadIds], (chunk) =>
+      supabase
+        .from("campaign_recipients")
+        .select("id")
+        .eq("campaign_id", campaignId)
+        .in("lead_id", chunk),
+    );
+    for (const row of extra) ids.add(row.id);
+  }
+  return [...ids];
+}
+
+/** A filter value that can never match, so an empty outcome returns no rows. */
+const NO_MATCH_ID = "00000000-0000-0000-0000-000000000000";
+
 const LEAD_EMBED =
   "leads!inner(id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields)";
 
