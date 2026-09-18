@@ -94,6 +94,11 @@ export async function applyDeliveryState(args: {
       if (args.detail) patch["last_error"] = args.detail.slice(0, 500);
     }
   }
+  // The bounce reason is kept whatever the ranking decides, so a late bounce
+  // webhook still explains itself on the campaign page.
+  if (args.state === "bounced" && args.detail) {
+    patch["bounce_reason"] = args.detail.slice(0, 500);
+  }
 
   await supabaseAdmin
     .from("campaign_messages")

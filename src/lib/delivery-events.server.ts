@@ -170,7 +170,11 @@ export async function applyDeliveryEvent(args: {
         status: args.kind === "bounced" ? "bounced" : "unsubscribed",
         next_send_at: null,
         last_error: args.reason,
-      })
+        // Why the bounce happened, kept on the recipient as well as the email.
+        ...(args.kind === "bounced"
+          ? { bounce_reason: args.reason?.slice(0, 500) ?? null, bounced_at: nowIso }
+          : {}),
+      } as never)
       .eq("campaign_id", message.campaign_id)
       .eq("lead_id", leadId);
 

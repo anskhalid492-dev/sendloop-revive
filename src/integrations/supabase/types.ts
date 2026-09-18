@@ -1788,6 +1788,7 @@ export type Database = {
         Row: {
           attempts: number
           body: string
+          bounce_reason: string | null
           bounced_at: string | null
           campaign_id: string
           cancelled_reason: string | null
@@ -1835,6 +1836,7 @@ export type Database = {
         Insert: {
           attempts?: number
           body?: string
+          bounce_reason?: string | null
           bounced_at?: string | null
           campaign_id: string
           cancelled_reason?: string | null
@@ -1882,6 +1884,7 @@ export type Database = {
         Update: {
           attempts?: number
           body?: string
+          bounce_reason?: string | null
           bounced_at?: string | null
           campaign_id?: string
           cancelled_reason?: string | null
@@ -1980,6 +1983,8 @@ export type Database = {
       }
       campaign_recipients: {
         Row: {
+          bounce_reason: string | null
+          bounced_at: string | null
           campaign_id: string
           created_at: string
           current_step: number
@@ -1994,6 +1999,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          bounce_reason?: string | null
+          bounced_at?: string | null
           campaign_id: string
           created_at?: string
           current_step?: number
@@ -2008,6 +2015,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          bounce_reason?: string | null
+          bounced_at?: string | null
           campaign_id?: string
           created_at?: string
           current_step?: number

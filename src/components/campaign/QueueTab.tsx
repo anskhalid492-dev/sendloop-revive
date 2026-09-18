@@ -47,10 +47,22 @@ import {
   type ReplySentiment,
 } from "@/lib/reply-model";
 import { deleteReply, recordReply } from "@/lib/replies.functions";
+import { explainBounce, type BounceExplanation } from "@/lib/bounce-reason";
 import { processCampaignQueue } from "@/lib/dispatch.functions";
 import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
+
+/**
+ * A message is a bounce when the provider said so, or when it was cancelled
+ * because this recipient bounced earlier in the sequence. The reason text is
+ * turned into a short label by the shared `@/lib/bounce-reason` helper.
+ */
+function bounceOf(m: QueueMessage): BounceExplanation | null {
+  const isBounce = Boolean(m.bounced_at) || m.cancelled_reason === "recipient_bounced";
+  if (!isBounce) return null;
+  return explainBounce(m.bounce_reason);
+}
 
 const STATUS_STYLES: Record<MessageStatus | "bounced" | "unsubscribed", string> = {
   pending: "bg-muted text-muted-foreground border-border",
@@ -409,9 +421,18 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                     </td>
                     <td className="px-3 py-2 tabular-nums">#{m.step_order}</td>
                     <td className="px-3 py-2">
-                      <Badge variant="outline" className={STATUS_STYLES[m.status]}>
-                        {m.status}
+                      <Badge
+                        variant="outline"
+                        className={bounceOf(m) ? STATUS_STYLES.bounced : STATUS_STYLES[m.status]}
+                      >
+                        {bounceOf(m) ? "bounced" : m.status}
                       </Badge>
+                      {bounceOf(m) ? (
+                        <p className="mt-0.5 max-w-[16rem] text-xs text-destructive">
+                          {bounceOf(m)!.label}
+                          {bounceOf(m)!.code ? ` · ${bounceOf(m)!.code}` : ""}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2">
                       <p className="truncate text-xs font-medium">
@@ -497,7 +518,30 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                   <MailCheck className="mr-1.5 size-4" /> Log reply
                 </Button>
               ) : null}
-              {detail.last_error ? (
+              {bounceOf(detail) ? (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-destructive">
+                    Why this bounced
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-destructive">
+                    {bounceOf(detail)!.label}
+                    {bounceOf(detail)!.code ? ` · code ${bounceOf(detail)!.code}` : ""}
+                  </p>
+                  {bounceOf(detail)!.detail ? (
+                    <p className="mt-1 text-xs text-destructive/90">{bounceOf(detail)!.detail}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-destructive/90">
+                      The receiving server did not give a reason.
+                    </p>
+                  )}
+                  {detail.bounced_at ? (
+                    <p className="mt-1 text-xs text-destructive/80">
+                      Recorded {when(detail.bounced_at)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {detail.last_error && !bounceOf(detail) ? (
                 <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
                   {detail.last_error}
                 </p>
