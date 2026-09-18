@@ -139,6 +139,12 @@ function WarmupProductPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{[
           ["Active", "bg-success/10 text-success"], ["Warming", "bg-primary/10 text-primary"], ["Paused", "bg-muted text-muted-foreground"], ["Inactive", "bg-secondary text-secondary-foreground"], ["Error", "bg-destructive/10 text-destructive"],
         ].map(([label, tone]) => <div key={label} className="rounded-lg border border-border bg-card p-4 text-center"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>{label}</span></div>)}</div>
+        <div className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-lg border border-border bg-secondary/35 px-4 py-3 text-xs">
+          <span className="font-medium text-muted-foreground">Health bands</span>
+          <span className="rounded-full bg-success/10 px-2.5 py-1 font-semibold text-success">Good</span>
+          <span className="rounded-full bg-warning/10 px-2.5 py-1 font-semibold text-warning">Fair</span>
+          <span className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive">Poor</span>
+        </div>
         <HealthTimeline />
         <p className="mx-auto max-w-3xl text-center text-sm text-muted-foreground">Authentication is shown when it can be verified; otherwise MunchReach shows that manual verification is required. Mailbox health helps explain current signals—it does not guarantee inbox placement.</p>
       </div>
