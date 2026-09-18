@@ -49,6 +49,58 @@ const RECIPIENT_STATUSES = [
   "stopped",
 ] as const;
 
+/**
+ * Bounces and unsubscribes are recorded per PERSON, and usually land on the
+ * stopped follow-up rather than on the recipient row's own status, so filtering
+ * `campaign_recipients.status` alone finds nothing. Resolve the affected
+ * recipient ids from the message outcomes (real signal or cancellation reason),
+ * exactly like the campaign status tiles and analytics do.
+ */
+const OUTCOME_STATUSES = ["bounced", "unsubscribed"] as const;
+type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];
+
+async function outcomeRecipientIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  campaignId: string,
+  kind: OutcomeStatus,
+): Promise<string[]> {
+  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+  const filter =
+    kind === "bounced"
+      ? "bounced_at.not.is.null,cancelled_reason.eq.recipient_bounced"
+      : "unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed";
+  const messages = await fetchAllRows<{ recipient_id: string | null; lead_id: string | null }>(
+    () =>
+      supabase
+        .from("campaign_messages")
+        .select("recipient_id, lead_id")
+        .eq("campaign_id", campaignId)
+        .or(filter)
+        .order("id", { ascending: true }),
+  );
+  const ids = new Set<string>();
+  const leadIds = new Set<string>();
+  for (const message of messages) {
+    if (message.recipient_id) ids.add(message.recipient_id);
+    else if (message.lead_id) leadIds.add(message.lead_id);
+  }
+  if (leadIds.size) {
+    const extra = await fetchByIds<{ id: string }>([...leadIds], (chunk) =>
+      supabase
+        .from("campaign_recipients")
+        .select("id")
+        .eq("campaign_id", campaignId)
+        .in("lead_id", chunk),
+    );
+    for (const row of extra) ids.add(row.id);
+  }
+  return [...ids];
+}
+
+/** A filter value that can never match, so an empty outcome returns no rows. */
+const NO_MATCH_ID = "00000000-0000-0000-0000-000000000000";
+
 const LEAD_EMBED =
   "leads!inner(id, email, first_name, last_name, company, job_title, country, city, state, website, phone, linkedin_url, custom_fields)";
 
@@ -91,14 +143,25 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const startedAt = Date.now();
     const like = (value: string) => `%${value.replace(/[%,()]/g, " ").trim()}%`;
+    const outcome = OUTCOME_STATUSES.includes(data.status as OutcomeStatus)
+      ? (data.status as OutcomeStatus)
+      : null;
+    const outcomeIds = outcome
+      ? await outcomeRecipientIds(context.supabase, data.campaignId, outcome)
+      : null;
     const applyFilters = <T>(builder: T): T => {
       let query = builder as unknown as {
         eq: (column: string, value: unknown) => typeof query;
+        in: (column: string, values: readonly unknown[]) => typeof query;
         ilike: (column: string, value: string) => typeof query;
         or: (filter: string, options?: { referencedTable: string }) => typeof query;
       };
       query = query.eq("campaign_id", data.campaignId);
-      if (data.status) query = query.eq("status", data.status);
+      if (outcomeIds) {
+        query = query.in("id", outcomeIds.length ? outcomeIds : [NO_MATCH_ID]);
+      } else if (data.status) {
+        query = query.eq("status", data.status);
+      }
       if (data.step !== undefined) query = query.eq("current_step", data.step);
       if (data.accountId) query = query.eq("sending_account_id", data.accountId);
       if (data.company) query = query.ilike("leads.company", like(data.company));
@@ -217,6 +280,12 @@ export const getCampaignMailboxSummary = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const like = (value: string) => `%${value.replace(/[%,()]/g, " ").trim()}%`;
+    const outcome = OUTCOME_STATUSES.includes(data.status as OutcomeStatus)
+      ? (data.status as OutcomeStatus)
+      : null;
+    const outcomeIds = outcome
+      ? await outcomeRecipientIds(context.supabase, data.campaignId, outcome)
+      : null;
     // The lead embed is always joined: every count filters on lead email domains.
     const baseQuery = () => {
       let query = context.supabase
@@ -224,10 +293,15 @@ export const getCampaignMailboxSummary = createServerFn({ method: "POST" })
         .select(`id, ${LEAD_EMBED}`, { count: "exact", head: true })
         .eq("campaign_id", data.campaignId) as never as {
         eq: (column: string, value: unknown) => typeof query;
+        in: (column: string, values: readonly unknown[]) => typeof query;
         ilike: (column: string, value: string) => typeof query;
         or: (filter: string, options?: { referencedTable: string }) => typeof query;
       };
-      if (data.status) query = query.eq("status", data.status);
+      if (outcomeIds) {
+        query = query.in("id", outcomeIds.length ? outcomeIds : [NO_MATCH_ID]);
+      } else if (data.status) {
+        query = query.eq("status", data.status);
+      }
       if (data.step !== undefined) query = query.eq("current_step", data.step);
       if (data.accountId) query = query.eq("sending_account_id", data.accountId);
       if (data.company) query = query.ilike("leads.company", like(data.company));
