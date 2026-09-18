@@ -1525,17 +1525,22 @@ export async function dispatchDueMessages(
 
 
     if (message.recipient_id) {
-      await supabase
-        .from("campaign_recipients")
-        .update({
+      // Buffered, then written in grouped chunks: one HTTP call per ~50 sends
+      // instead of one per recipient. Flushed inside the loop so live progress
+      // still lands while a long run is in flight.
+      recipientProgress.push({
+        id: message.recipient_id as string,
+        patch: {
           status: "in_progress",
           current_step: message.step_order,
           last_sent_at: sentAt,
           next_send_at: null,
-        })
-        .eq("id", message.recipient_id);
+        },
+      });
+      if (recipientProgress.length >= 50) await flushRecipientPatches(supabase, recipientProgress);
     }
   }
+  await flushRecipientPatches(supabase, recipientProgress);
 
   // Keep per-mailbox daily counters honest so rotation and caps stay accurate.
   for (const [accountId, count] of sentPerAccount) {
