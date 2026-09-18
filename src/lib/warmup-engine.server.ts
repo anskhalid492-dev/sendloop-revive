@@ -1413,6 +1413,26 @@ async function observableRecipientDomains(admin: Admin): Promise<Set<string>> {
   );
 }
 
+/**
+ * Addresses we read ourselves: any mailbox connected with its own incoming-mail
+ * server is polled on every cycle, so warmup mail sent to it *is* observable
+ * even when its domain does not route receiving to us.
+ */
+async function observableRecipientAddresses(admin: Admin): Promise<Set<string>> {
+  const { data } = await admin
+    .from("mailboxes")
+    .select("email_address, imap_host, status, is_active")
+    .eq("status", "connected")
+    .not("imap_host", "is", null)
+    .limit(5000);
+  return new Set(
+    ((data ?? []) as Array<{ email_address: string | null; is_active: boolean | null }>)
+      .filter((row) => row.is_active !== false)
+      .map((row) => (row.email_address ?? "").trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 function recipientDomain(email: string | null | undefined): string {
   const at = (email ?? "").trim().toLowerCase().lastIndexOf("@");
   return at === -1 ? "" : (email ?? "").trim().toLowerCase().slice(at + 1);
@@ -1434,10 +1454,15 @@ async function sweepPlacement(admin: Admin): Promise<number> {
     .limit(200);
 
   if (!stale?.length) return 0;
-  const observable = await observableRecipientDomains(admin);
+  const [observable, observableAddresses] = await Promise.all([
+    observableRecipientDomains(admin),
+    observableRecipientAddresses(admin),
+  ]);
 
   for (const job of stale as Array<Record<string, string>>) {
-    const measurable = observable.has(recipientDomain(job["to_email"]));
+    const address = (job["to_email"] ?? "").trim().toLowerCase();
+    const measurable =
+      observable.has(recipientDomain(job["to_email"])) || observableAddresses.has(address);
     if (!measurable) {
       // Delivered as far as the provider is concerned; no inbound feed exists on
       // the receiving side, so there is nothing to confirm and nothing to score.
