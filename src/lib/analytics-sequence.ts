@@ -119,6 +119,10 @@ export function computeSequenceStats(
   const inRange = makeInRange(opts);
   const steps = new Map<number, SequenceStepRow>();
   const variants = new Map<string, SequenceVariantRow>();
+  // Each row de-duplicates people on its own, so a step row and a variant row
+  // never share (or steal) a person's single bounce.
+  const stepCounted = new Map<number, PeopleCounted>();
+  const variantCounted = new Map<string, PeopleCounted>();
   const all = Array.from(units);
   const bouncedPeople = bouncedLeadKeys(all);
 
@@ -128,8 +132,9 @@ export function computeSequenceStats(
     if (!stepRow) {
       stepRow = { step, variants: [], ...emptySequenceTotals() };
       steps.set(step, stepRow);
+      stepCounted.set(step, newPeopleCounted());
     }
-    accumulate(stepRow, unit, inRange, bouncedPeople);
+    accumulate(stepRow, unit, inRange, bouncedPeople, stepCounted.get(step)!);
 
     const variantId = unit.variantId ?? null;
     const variantKey = `${step}|${variantId ?? "base"}`;
@@ -142,8 +147,9 @@ export function computeSequenceStats(
         ...emptySequenceTotals(),
       };
       variants.set(variantKey, variantRow);
+      variantCounted.set(variantKey, newPeopleCounted());
     }
-    accumulate(variantRow, unit, inRange, bouncedPeople);
+    accumulate(variantRow, unit, inRange, bouncedPeople, variantCounted.get(variantKey)!);
   }
 
   for (const variantRow of variants.values()) {
@@ -169,7 +175,8 @@ export function computeUnitTotals(units: Iterable<Unit>, opts: Window): Sequence
   const totals = emptySequenceTotals();
   const all = Array.from(units);
   const bouncedPeople = bouncedLeadKeys(all);
-  for (const unit of all) accumulate(totals, unit, inRange, bouncedPeople);
+  const counted = newPeopleCounted();
+  for (const unit of all) accumulate(totals, unit, inRange, bouncedPeople, counted);
   finaliseDelivered(totals);
   return totals;
 }
