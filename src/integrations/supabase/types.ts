@@ -4666,6 +4666,7 @@ export type Database = {
           imap_username: string
           is_active: boolean
           last_imap_uid: number | null
+          last_spam_imap_uid: number | null
           last_tested_at: string | null
           smtp_host: string
           smtp_password: string | null
@@ -4690,6 +4691,7 @@ export type Database = {
           imap_username: string
           is_active?: boolean
           last_imap_uid?: number | null
+          last_spam_imap_uid?: number | null
           last_tested_at?: string | null
           smtp_host: string
           smtp_password?: string | null
@@ -4714,6 +4716,7 @@ export type Database = {
           imap_username?: string
           is_active?: boolean
           last_imap_uid?: number | null
+          last_spam_imap_uid?: number | null
           last_tested_at?: string | null
           smtp_host?: string
           smtp_password?: string | null
