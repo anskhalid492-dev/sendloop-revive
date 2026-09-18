@@ -17,6 +17,14 @@ import {
   stripAngle,
   type ConversationStatus,
 } from "@/lib/inbox-model";
+import {
+  decideCampaignAttribution,
+  evaluateSecondaryAttribution,
+  evidenceForCandidate,
+  type AttributionVerdict,
+  type CampaignAttribution,
+  type InboundShape,
+} from "@/lib/campaign-attribution";
 
 
 export type InboundEmail = {
@@ -57,6 +65,9 @@ export type IngestResult = {
   campaignId?: string | null;
   sendingAccountId?: string | null;
   reason?: string;
+  /** True only when the message was confidently tied to a campaign send. */
+  attributed?: boolean;
+  attributionEvidence?: CampaignAttribution["evidence"];
 };
 
 type Db = typeof supabaseAdmin;
@@ -161,110 +172,163 @@ function inList(values: string[]): string {
 }
 
 const CAMPAIGN_MESSAGE_COLUMNS =
-  "id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject, to_email";
+  "id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject, to_email, provider_message_id, sent_at";
+
+type CampaignMessageRow = {
+  id: string;
+  workspace_id: string;
+  campaign_id: string | null;
+  lead_id: string | null;
+  recipient_id: string | null;
+  sending_account_id: string | null;
+  subject?: string | null;
+  to_email?: string | null;
+  provider_message_id?: string | null;
+  sent_at?: string | null;
+};
 
 /**
- * Finds the outbound send this reply answers. Order: the Message-ID we stored
- * when sending (provider id or our own id), then the newest email actually
- * sent to this prospect from this mailbox. A routing token is never required.
+ * Strict attribution: the outbound send this reply answers, found ONLY through
+ * a Message-ID we stored when sending (In-Reply-To / References). No subject
+ * matching, no "sender exists in the CRM" guessing.
  */
-async function findCampaignMessage(
+async function findCampaignMessageByHeaders(
   db: Db,
   email: InboundEmail,
-  prospect: string,
   mailboxWorkspaceId: string | null,
   mailboxAccountId: string | null,
-) {
+): Promise<{ message: CampaignMessageRow; via: "in_reply_to" | "references" | "thread_message_id" } | null> {
   const candidates = threadCandidates(email);
+  if (!candidates.length) return null;
 
-  if (candidates.length) {
-    let registryQuery = db
-      .from("outbound_messages")
-      .select("ref_id")
-      .eq("ref_table", "campaign_messages")
-      .not("ref_id", "is", null)
-      .in("provider_message_id", candidates)
-      .limit(20);
-    if (mailboxWorkspaceId) registryQuery = registryQuery.eq("workspace_id", mailboxWorkspaceId);
-    if (mailboxAccountId) registryQuery = registryQuery.eq("sending_account_id", mailboxAccountId);
-    const { data: registryRows } = await registryQuery;
-    const registryIds = Array.from(
-      new Set((registryRows ?? []).map((row: { ref_id: string | null }) => row.ref_id).filter(Boolean)),
-    ) as string[];
-    if (registryIds.length) {
-      let linkedQuery = db
-        .from("campaign_messages")
-        .select(CAMPAIGN_MESSAGE_COLUMNS)
-        .in("id", registryIds)
-        .limit(1);
-      if (mailboxWorkspaceId) linkedQuery = linkedQuery.eq("workspace_id", mailboxWorkspaceId);
-      if (mailboxAccountId) linkedQuery = linkedQuery.eq("sending_account_id", mailboxAccountId);
-      const { data: linkedByRegistry } = await linkedQuery;
-      if (linkedByRegistry?.[0]) return linkedByRegistry[0];
-    }
-
-    const list = inList(candidates);
-    let campaignQuery = db
-      .from("campaign_messages")
-      .select(CAMPAIGN_MESSAGE_COLUMNS)
-      .or(`provider_message_id.in.${list}`)
-      .limit(1);
-    if (mailboxWorkspaceId) campaignQuery = campaignQuery.eq("workspace_id", mailboxWorkspaceId);
-    if (mailboxAccountId) campaignQuery = campaignQuery.eq("sending_account_id", mailboxAccountId);
-    const { data } = await campaignQuery;
-    if (data?.[0]) return data[0];
-
-    // The id may belong to a reply we sent from the inbox rather than a
-    // campaign step: that row carries the campaign message it belongs to.
-    let conversationQuery = db
-      .from("conversation_messages")
-      .select("campaign_message_id")
-      .or(`message_id.in.${list},provider_message_id.in.${list}`)
-      .not("campaign_message_id", "is", null)
-      .order("occurred_at", { ascending: false })
-      .limit(1);
-    if (mailboxWorkspaceId) conversationQuery = conversationQuery.eq("workspace_id", mailboxWorkspaceId);
-    if (mailboxAccountId) conversationQuery = conversationQuery.eq("sending_account_id", mailboxAccountId);
-    const { data: viaConversation } = await conversationQuery;
-    const campaignMessageId = viaConversation?.[0]?.campaign_message_id as string | undefined;
-    if (campaignMessageId) {
-      const { data: linked } = await db
-        .from("campaign_messages")
-        .select(CAMPAIGN_MESSAGE_COLUMNS)
-        .eq("id", campaignMessageId)
-        .maybeSingle();
-      if (linked) return linked;
+  let registryQuery = db
+    .from("outbound_messages")
+    .select("ref_id, provider_message_id")
+    .eq("ref_table", "campaign_messages")
+    .not("ref_id", "is", null)
+    .in("provider_message_id", candidates)
+    .limit(20);
+  if (mailboxWorkspaceId) registryQuery = registryQuery.eq("workspace_id", mailboxWorkspaceId);
+  if (mailboxAccountId) registryQuery = registryQuery.eq("sending_account_id", mailboxAccountId);
+  const { data: registryRows } = await registryQuery;
+  const registry = (registryRows ?? []) as { ref_id: string | null; provider_message_id: string | null }[];
+  const registryIds = Array.from(new Set(registry.map((row) => row.ref_id).filter(Boolean))) as string[];
+  if (registryIds.length) {
+    let linkedQuery = db.from("campaign_messages").select(CAMPAIGN_MESSAGE_COLUMNS).in("id", registryIds).limit(1);
+    if (mailboxWorkspaceId) linkedQuery = linkedQuery.eq("workspace_id", mailboxWorkspaceId);
+    if (mailboxAccountId) linkedQuery = linkedQuery.eq("sending_account_id", mailboxAccountId);
+    const { data: linkedByRegistry } = await linkedQuery;
+    const message = linkedByRegistry?.[0] as CampaignMessageRow | undefined;
+    if (message) {
+      const matched = registry.find((row) => row.ref_id === message.id)?.provider_message_id ?? null;
+      return { message, via: evidenceForCandidate(matched, stripAngle(email.inReplyTo)) };
     }
   }
 
-  // No usable threading headers: fall back to the most recent email actually
-  // sent to this prospect from the mailbox that received the reply. Never claim
-  // a reply through a different workspace/default/first mailbox when we know the
-  // recipient mailbox.
+  const list = inList(candidates);
+  let campaignQuery = db
+    .from("campaign_messages")
+    .select(CAMPAIGN_MESSAGE_COLUMNS)
+    .or(`provider_message_id.in.${list}`)
+    .limit(1);
+  if (mailboxWorkspaceId) campaignQuery = campaignQuery.eq("workspace_id", mailboxWorkspaceId);
+  if (mailboxAccountId) campaignQuery = campaignQuery.eq("sending_account_id", mailboxAccountId);
+  const { data } = await campaignQuery;
+  const direct = data?.[0] as CampaignMessageRow | undefined;
+  if (direct) {
+    return {
+      message: direct,
+      via: evidenceForCandidate(direct.provider_message_id ?? null, stripAngle(email.inReplyTo)),
+    };
+  }
+
+  // The id may belong to a reply we sent from the inbox rather than a campaign
+  // step: that row carries the campaign message it belongs to.
+  let conversationQuery = db
+    .from("conversation_messages")
+    .select("campaign_message_id")
+    .or(`message_id.in.${list},provider_message_id.in.${list}`)
+    .not("campaign_message_id", "is", null)
+    .order("occurred_at", { ascending: false })
+    .limit(1);
+  if (mailboxWorkspaceId) conversationQuery = conversationQuery.eq("workspace_id", mailboxWorkspaceId);
+  if (mailboxAccountId) conversationQuery = conversationQuery.eq("sending_account_id", mailboxAccountId);
+  const { data: viaConversation } = await conversationQuery;
+  const campaignMessageId = viaConversation?.[0]?.campaign_message_id as string | undefined;
+  if (campaignMessageId) {
+    const { data: linked } = await db
+      .from("campaign_messages")
+      .select(CAMPAIGN_MESSAGE_COLUMNS)
+      .eq("id", campaignMessageId)
+      .maybeSingle();
+    if (linked) return { message: linked as CampaignMessageRow, via: "thread_message_id" };
+  }
+  return null;
+}
+
+/**
+ * Qualified secondary check for a genuine reply whose client dropped the
+ * threading headers. A real send to this address is required, the contact must
+ * be a recipient of that campaign, it must have left this mailbox, and the
+ * inbound must be reply-shaped and not a forward. Subject similarity or simply
+ * knowing the sender is never enough.
+ */
+async function findCampaignMessageBySender(
+  db: Db,
+  args: {
+    shape: InboundShape;
+    prospect: string;
+    workspaceId: string;
+    mailboxAccountId: string | null;
+    receivedIso: string;
+  },
+): Promise<{ message: CampaignMessageRow | null; verdict: AttributionVerdict }> {
   let query = db
     .from("campaign_messages")
     .select(CAMPAIGN_MESSAGE_COLUMNS)
-    .eq("to_email", prospect)
+    .eq("workspace_id", args.workspaceId)
+    .eq("to_email", args.prospect)
     .not("sent_at", "is", null)
     .order("sent_at", { ascending: false })
     .limit(1);
-  if (mailboxWorkspaceId) query = query.eq("workspace_id", mailboxWorkspaceId);
-  if (mailboxAccountId) query = query.eq("sending_account_id", mailboxAccountId);
-  const { data: fallback } = await query;
-  if (fallback?.[0]) return fallback[0];
+  if (args.mailboxAccountId) query = query.eq("sending_account_id", args.mailboxAccountId);
+  const { data } = await query;
+  const message = (data?.[0] as CampaignMessageRow | undefined) ?? null;
 
-  if (mailboxWorkspaceId && !mailboxAccountId) {
-    const { data: anyWorkspace } = await db
-      .from("campaign_messages")
-      .select(CAMPAIGN_MESSAGE_COLUMNS)
-      .eq("workspace_id", mailboxWorkspaceId)
-      .eq("to_email", prospect)
-      .not("sent_at", "is", null)
-      .order("sent_at", { ascending: false })
-      .limit(1);
-    return anyWorkspace?.[0] ?? null;
+  if (!message) {
+    return {
+      message: null,
+      verdict: evaluateSecondaryAttribution({
+        shape: args.shape,
+        leadIsCampaignRecipient: false,
+        outboundSendExists: false,
+        sameSendingAccount: false,
+        sentAt: null,
+        receivedAt: args.receivedIso,
+      }),
+    };
   }
-  return null;
+
+  let leadIsCampaignRecipient = false;
+  if (message.campaign_id && message.lead_id) {
+    const { data: recipient } = await db
+      .from("campaign_recipients")
+      .select("id")
+      .eq("campaign_id", message.campaign_id)
+      .eq("lead_id", message.lead_id)
+      .limit(1);
+    leadIsCampaignRecipient = Boolean(recipient?.[0]);
+  }
+
+  const verdict = evaluateSecondaryAttribution({
+    shape: args.shape,
+    leadIsCampaignRecipient,
+    outboundSendExists: true,
+    sameSendingAccount: !args.mailboxAccountId || message.sending_account_id === args.mailboxAccountId,
+    sentAt: message.sent_at ?? null,
+    receivedAt: args.receivedIso,
+  });
+  return { message: verdict.attributed ? message : null, verdict };
 }
 
 type ConversationRef = {
@@ -503,13 +567,20 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   const mailboxAccount =
     (await resolveWorkspaceFromMailbox(db, mailbox)) ??
     (anchor && anchor !== mailbox ? await resolveWorkspaceFromMailbox(db, anchor) : null);
-  const campaignMessage = await findCampaignMessage(
+  const shape: InboundShape = {
+    subject,
+    body,
+    inReplyTo: stripAngle(email.inReplyTo),
+    references: (email.references ?? []).map((r) => stripAngle(r)).filter(Boolean) as string[],
+  };
+  const headerMatch = await findCampaignMessageByHeaders(
     db,
     email,
-    prospect,
     route?.workspace_id ?? mailboxAccount?.workspace_id ?? null,
     route?.sending_account_id ?? mailboxAccount?.id ?? null,
   );
+  let campaignMessage: CampaignMessageRow | null = headerMatch?.message ?? null;
+  let secondary: { campaignId: string | null; verdict: AttributionVerdict } | null = null;
   const workspaceId =
     route?.workspace_id ?? campaignMessage?.workspace_id ?? mailboxAccount?.workspace_id ?? null;
   const sendingAccountId =
@@ -534,6 +605,23 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     if (!quiet) await storeUnmatched(db, email, "No workspace matched this email");
     return { status: "unmatched", reason: "No workspace matched this email" };
   }
+
+  // Headers identified nothing: run the qualified secondary check. It can only
+  // succeed for a campaign recipient replying to a real send on this mailbox.
+  if (!campaignMessage && !route?.campaign_id) {
+    secondary = await findCampaignMessageBySender(db, {
+      shape,
+      prospect,
+      workspaceId,
+      mailboxAccountId: sendingAccountId,
+      receivedIso,
+    }).then((result) => {
+      campaignMessage = result.message;
+      return { campaignId: result.message?.campaign_id ?? null, verdict: result.verdict };
+    });
+  }
+
+
 
 
   // Duplicate delivery of the very same email: stop before any side effect.
@@ -577,22 +665,9 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .maybeSingle();
     leadId = lead?.id ?? null;
   }
-  if (!leadId) {
-    // Someone replied who is not in the database yet: create the CRM contact
-    // so the conversation always has a record to hang activity off. Email is
-    // the duplicate key, and the lookup above already ruled out a match.
-    const { data: created } = await db
-      .from("leads")
-      .insert({
-        workspace_id: workspaceId,
-        email: prospect,
-        status: "replied",
-        lead_source: "inbound_reply",
-      })
-      .select("id")
-      .maybeSingle();
-    leadId = created?.id ?? null;
-  }
+  // A CRM contact is only created for a confidently attributed campaign reply
+  // (below, once attribution is decided). Unrelated mailbox mail must never
+  // create or touch CRM records.
 
 
   const campaignId = route?.campaign_id ?? campaignMessage?.campaign_id ?? null;
@@ -607,13 +682,17 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   // 1. routing token pointing at an exact thread
   // 2. In-Reply-To / References matching a Message-ID we stored
   // 3. the campaign send this reply answers
-  // 4. sender + recipient + subject matching an existing thread
+  // 4. sender + recipient + subject matching an existing thread (display only —
+  //    never a campaign attribution signal)
   let routedConversation: ConversationRef | null = null;
+  let threadEvidence: "route" | "headers" | "campaign_send" | "participants" | null = null;
   if (route?.conversation_id) {
     routedConversation = await loadConversation(db, route.conversation_id);
+    if (routedConversation) threadEvidence = "route";
   }
   if (!routedConversation) {
     routedConversation = await findConversationByHeaders(db, email, workspaceId, sendingAccountId);
+    if (routedConversation) threadEvidence = "headers";
   }
   if (!routedConversation && campaignMessage?.id) {
     const { data: viaSend } = await db
@@ -624,18 +703,58 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .order("occurred_at", { ascending: false })
       .limit(1);
     const id = viaSend?.[0]?.conversation_id as string | undefined;
-    if (id) routedConversation = await loadConversation(db, id);
+    if (id) {
+      routedConversation = await loadConversation(db, id);
+      if (routedConversation) threadEvidence = "campaign_send";
+    }
   }
   if (!routedConversation) {
-    routedConversation = await findConversationByParticipants(
+    const byParticipants = await findConversationByParticipants(
       db,
       workspaceId,
       prospect,
       subject,
       sendingAccountId,
     );
+    // Sender + subject is never campaign evidence, so an unattributed message
+    // must not land on (or revive) a campaign thread.
+    const unrelatedToCampaign = !campaignMessage && !route?.campaign_id;
+    if (byParticipants && !(unrelatedToCampaign && byParticipants.campaign_id)) {
+      routedConversation = byParticipants;
+      threadEvidence = "participants";
+    }
   }
 
+  // THE attribution verdict. Everything downstream that touches CRM state or
+  // campaign analytics is gated on it.
+  const threadCampaignId =
+    threadEvidence === "route" || threadEvidence === "headers" || threadEvidence === "campaign_send"
+      ? (routedConversation?.campaign_id ?? null)
+      : null;
+  const attribution: CampaignAttribution = decideCampaignAttribution({
+    routeCampaignId: route?.campaign_id ?? null,
+    headerMatch: headerMatch
+      ? { campaignId: headerMatch.message.campaign_id ?? null, via: headerMatch.via }
+      : null,
+    threadCampaignId,
+    secondary,
+  });
+
+  if (attribution.attributed && !leadId) {
+    // A confidently attributed reply from someone not yet in the database gets
+    // a CRM contact so the conversation has a record to hang activity off.
+    const { data: created } = await db
+      .from("leads")
+      .insert({
+        workspace_id: workspaceId,
+        email: prospect,
+        status: "replied",
+        lead_source: "inbound_reply",
+      })
+      .select("id")
+      .maybeSingle();
+    leadId = created?.id ?? null;
+  }
 
   const { data: upserted, error: convError } = routedConversation
     ? { data: routedConversation, error: null }
@@ -647,7 +766,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
         thread_key: threadKey,
         prospect_email: prospect,
         lead_id: leadId,
-        campaign_id: campaignId,
+        campaign_id: attribution.campaignId,
         sending_account_id: sendingAccountId,
         subject: subject || campaignMessage?.subject || "(no subject)",
       },
@@ -660,26 +779,25 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     return { status: "unmatched", reason: convError?.message ?? "Conversation not created" };
   }
 
-  // Attribution, once the thread is known. A reply that threaded onto an
-  // existing conversation inherits that thread's campaign and contact when the
-  // headers alone did not identify the original send — otherwise a genuine
-  // reply would never reach campaign analytics. Nothing is invented: without a
-  // thread campaign the reply simply stays unattributed.
-  const attributedCampaignId = campaignId ?? conversation.campaign_id ?? null;
-  if (!leadId && conversation.lead_id) leadId = conversation.lead_id;
+  // Attributed replies carry the campaign; anything else leaves the thread's
+  // existing campaign untouched and adds no new association.
+  const attributedCampaignId = attribution.attributed
+    ? (attribution.campaignId ?? conversation.campaign_id ?? null)
+    : (conversation.campaign_id ?? null);
+  if (attribution.attributed && !leadId && conversation.lead_id) leadId = conversation.lead_id;
 
-  let attributedMessage = campaignMessage;
-  if (!attributedMessage && attributedCampaignId && leadId) {
+  let attributedMessage: CampaignMessageRow | null = attribution.attributed ? campaignMessage : null;
+  if (attribution.attributed && !attributedMessage && attributedCampaignId && leadId) {
     const { data: lastSend } = await db
       .from("campaign_messages")
-      .select("id, workspace_id, campaign_id, lead_id, recipient_id, sending_account_id, subject")
+      .select(CAMPAIGN_MESSAGE_COLUMNS)
       .eq("workspace_id", workspaceId)
       .eq("campaign_id", attributedCampaignId)
       .eq("lead_id", leadId)
       .not("sent_at", "is", null)
       .order("sent_at", { ascending: false })
       .limit(1);
-    attributedMessage = (lastSend?.[0] as typeof campaignMessage) ?? null;
+    attributedMessage = (lastSend?.[0] as CampaignMessageRow | undefined) ?? null;
   }
 
   // A reply must always sit under the exact email this prospect received.
@@ -728,12 +846,15 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   }
 
   const detected: ConversationStatus | null = classifyInbound(subject, body, email.headers ?? null);
+  // Reply sentiment only moves a thread that belongs to a campaign.
   const nextStatus =
-    conversation.status === "lead" && detected ? detected : (conversation.status as string);
+    attribution.attributed && conversation.status === "lead" && detected
+      ? detected
+      : (conversation.status as string);
 
   const visibilityError = await markConversationInbound(db, {
     conversationId: conversation.id,
-    leadId,
+    leadId: attribution.attributed ? leadId : (conversation.lead_id ?? leadId),
     campaignId: attributedCampaignId,
     sendingAccountId,
     receivedIso,
@@ -743,28 +864,35 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   });
   if (visibilityError) return { status: "unmatched", reason: visibilityError };
 
-  await db.from("conversation_events").insert({
-    conversation_id: conversation.id,
-    workspace_id: workspaceId,
-    type: "reply_received",
-    detail: `Reply from ${prospect}`,
-    dedupe_key: messageId ? `reply:${messageId}` : null,
-  });
+  if (attribution.attributed) {
+    await db.from("conversation_events").insert({
+      conversation_id: conversation.id,
+      workspace_id: workspaceId,
+      type: "reply_received",
+      detail: `Reply from ${prospect}`,
+      dedupe_key: messageId ? `reply:${messageId}` : null,
+    });
+  }
 
-  await applyReplyAutomation({
-    db,
-    workspaceId,
-    conversationId: conversation.id,
-    leadId,
-    campaignId: attributedCampaignId,
-    campaignMessage: attributedMessage,
-    prospect,
-    subject,
-    detected,
-    receivedIso,
-    dedupeKey: messageId ?? inserted.id,
-    replyBody: body,
-  });
+  // CRM and campaign analytics only ever see confidently attributed replies.
+  // Unrelated mailbox mail stays a plain inbox message: no reply counters, no
+  // contact status change, no campaign association, no automation.
+  if (attribution.attributed) {
+    await applyReplyAutomation({
+      db,
+      workspaceId,
+      conversationId: conversation.id,
+      leadId,
+      campaignId: attributedCampaignId,
+      campaignMessage: attributedMessage,
+      prospect,
+      subject,
+      detected,
+      receivedIso,
+      dedupeKey: messageId ?? inserted.id,
+      replyBody: body,
+    });
+  }
 
   return {
     status: "created",
@@ -774,6 +902,9 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     leadId,
     campaignId: attributedCampaignId,
     sendingAccountId,
+    attributed: attribution.attributed,
+    attributionEvidence: attribution.evidence,
+    ...(attribution.attributed ? {} : { reason: attribution.reason }),
   };
 }
 
