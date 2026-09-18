@@ -912,6 +912,19 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
       processed_at: new Date().toISOString(),
     })
     .eq("id", jobId);
+  // Internal delivery state: the mailbox accepted the hand-off. This is never
+  // treated as an arrival — only a real confirmation moves it to `delivered`.
+  // Written separately so a pending column migration can never fail a send.
+  await admin
+    .from("warmup_jobs")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ delivery_state: "sent" } as any)
+    .eq("id", jobId)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+
 
   // Classify the send as warmup up-front so provider events can never be
   // attributed to campaign statistics.
