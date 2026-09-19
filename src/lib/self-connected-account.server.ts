@@ -95,14 +95,15 @@ export async function syncSelfConnectedSendingAccounts(
 ): Promise<void> {
   try {
     const base = "workspace_id, email_address, display_name, daily_send_limit, status, is_active";
-    // `mail_host` is additive; before it is deployed the sync still runs without it.
+    // `mail_host` / `auth_status` are additive; before they are deployed the sync
+    // still runs without them.
     let data: unknown[] | null = null;
-    const withHost = await admin
+    const withAuth = await admin
       .from("mailboxes")
-      .select(`${base}, mail_host`)
+      .select(`${base}, mail_host, auth_status`)
       .eq("workspace_id", workspaceId)
       .eq("status", "connected");
-    if (withHost.error) {
+    if (withAuth.error) {
       const fallback = await admin
         .from("mailboxes")
         .select(base)
@@ -110,11 +111,17 @@ export async function syncSelfConnectedSendingAccounts(
         .eq("status", "connected");
       data = fallback.data ?? [];
     } else {
-      data = withHost.data ?? [];
+      data = withAuth.data ?? [];
     }
-    const rows = (data ?? []) as (SelfConnectedMailbox & { is_active: boolean | null })[];
+    const rows = (data ?? []) as (SelfConnectedMailbox & {
+      is_active: boolean | null;
+      auth_status?: string | null;
+    })[];
     for (const row of rows) {
       if (row.is_active === false) continue;
+      // A domain with a definite authentication failure is not added to the
+      // sending pool: sending from it would be filtered and hurt the customer.
+      if (row.auth_status === "fail") continue;
       await ensureSelfConnectedSendingAccount(admin, row);
     }
   } catch {
