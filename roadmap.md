@@ -12,4 +12,4 @@
 - [ ] Eliminate Campaign Overview server-function CPU failures and verify the live page has only bounded HTTP 200 reads (isolated lead and launch-history reads; removed non-Overview initial requests; awaiting live verification)
 - [x] Correct customer Analytics delivery displays and polish Dashboard outbound cards plus Warmup Health only
 - [x] Correct policy-blocked campaign outcomes so valid recipients are not counted or suppressed as bounced
-- [ ] Make Settings → Email & Sending mailbox-first without changing readiness logic or sending behavior
+- [x] Make Settings → Mailboxes & Sending mailbox-first without changing readiness logic or sending behavior

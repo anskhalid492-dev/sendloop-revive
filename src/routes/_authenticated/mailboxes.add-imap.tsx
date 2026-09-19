@@ -138,14 +138,14 @@ function ConnectImapPage() {
       <div className="mx-auto max-w-3xl space-y-6">
         <Tabs defaultValue="single">
           <TabsList>
-            <TabsTrigger value="single">Single Account</TabsTrigger>
+            <TabsTrigger value="single">Single Mailbox</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Imports From CSV</TabsTrigger>
           </TabsList>
 
           <TabsContent value="single" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Single Account</CardTitle>
+                <CardTitle>Single Mailbox</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
