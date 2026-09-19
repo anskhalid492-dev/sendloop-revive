@@ -115,7 +115,9 @@ export function SendingTab({ workspaceId }: { workspaceId: string | null }) {
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link to="/mailboxes">Manage mailboxes</Link>
+            <Link to="/mailboxes" search={{ mailbox: undefined }}>
+              Manage mailboxes
+            </Link>
           </Button>
         </div>
         <SenderStatusList workspaceId={workspaceId} />

@@ -1,72 +1,61 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Loader2, ShieldAlert, ShieldQuestion } from "lucide-react";
+import { CheckCircle2, Loader2, Pause, Play, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getSenderRoutingStatus, type SenderRoutingRow } from "@/lib/sender-status.functions";
+import { bulkSetSendingAccountsPaused } from "@/lib/sending.functions";
+import {
+  mailboxActivityLabel,
+  mailboxReadinessBadges,
+  mailboxWarmupLabel,
+  type MailboxReadinessBadge,
+} from "@/lib/sender-status-view";
 
-function DnsPill({ row }: { row: SenderRoutingRow }) {
-  const map = {
-    verified: { label: "DNS verified", style: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    pending: { label: "DNS pending", style: "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-    failed: { label: "DNS failed", style: "border-destructive/30 bg-destructive/10 text-destructive" },
-    missing: { label: "Domain not added", style: "border-border bg-muted text-muted-foreground" },
-  } as const;
-  const item = map[row.dnsStatus];
-  return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", item.style)}>
-      {item.label}
-    </span>
-  );
-}
+const BADGE_STYLE: Record<MailboxReadinessBadge["tone"], string> = {
+  success: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  warning: "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  danger: "border-destructive/30 bg-destructive/10 text-destructive",
+};
 
-function ConnectionPill({ row }: { row: SenderRoutingRow }) {
-  const map = {
-    verified: {
-      label: "Sending verified",
-      style: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-      Icon: CheckCircle2,
-    },
-    not_verified: {
-      label: "Not verified for sending",
-      style: "border-destructive/30 bg-destructive/10 text-destructive",
-      Icon: ShieldAlert,
-    },
-    unknown: {
-      label: "Verification unknown",
-      style: "border-border bg-muted text-muted-foreground",
-      Icon: ShieldQuestion,
-    },
-    error: {
-      label: "Check failed",
-      style: "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-      Icon: ShieldAlert,
-    },
-  } as const;
-  const item = map[row.providerStatus];
+function ReadinessPill({ badge, detail }: { badge: MailboxReadinessBadge; detail: string }) {
+  const Icon = badge.tone === "success" ? CheckCircle2 : ShieldAlert;
   return (
     <span
-      title={row.providerDetail}
+      title={detail}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
-        item.style,
+        BADGE_STYLE[badge.tone],
       )}
     >
-      <item.Icon className="h-3 w-3" />
-      {item.label}
+      <Icon className="h-3 w-3" />
+      {badge.label}
     </span>
   );
 }
 
 /** Read-only connection status per mailbox — never credentials or vendor identity. */
 export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
+  const queryClient = useQueryClient();
   const fetchStatus = useServerFn(getSenderRoutingStatus);
+  const setPaused = useServerFn(bulkSetSendingAccountsPaused);
   const query = useQuery({
     queryKey: ["sender-routing-status", workspaceId],
     queryFn: () => fetchStatus({ data: { workspaceId } }),
     staleTime: 60_000,
+  });
+  const pauseMutation = useMutation({
+    mutationFn: (input: { id: string; paused: boolean }) =>
+      setPaused({ data: { ids: [input.id], paused: input.paused } }),
+    onSuccess: async (_result, input) => {
+      toast.success(input.paused ? "Mailbox paused" : "Mailbox resumed");
+      await queryClient.invalidateQueries({ queryKey: ["sender-routing-status", workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   if (query.isLoading) {
@@ -94,7 +83,7 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
           Connect your own mailbox to start sending.
         </p>
         <Button asChild variant="outline" size="sm">
-          <Link to="/mailboxes/add">Go to Email Accounts</Link>
+          <Link to="/mailboxes/add">Add a mailbox</Link>
         </Button>
       </div>
     );
@@ -103,16 +92,42 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="divide-y divide-border/60">
       {rows.map((row) => (
-        <div key={row.accountId} className="flex flex-wrap items-center gap-3 px-4 py-3">
-          <div className="min-w-0 flex-1">
+        <div
+          key={row.accountId}
+          className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+        >
+          <div className="min-w-0">
             <p className="truncate text-sm font-medium">{row.fromEmail}</p>
             <p className="text-xs text-muted-foreground">
-              {row.domain} · routed via MunchReach managed sending ·{" "}
-              {row.paused ? "paused" : row.active ? "active" : "inactive"}
+              {row.domain} · MunchReach managed sending · {mailboxActivityLabel(row)}
             </p>
+            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                Limits: {row.dailyLimit}/day · {row.hourlyLimit}/hour
+              </span>
+              <span>Warmup: {mailboxWarmupLabel(row.warmupStatus)}</span>
+              <span>Health: {row.healthScore}/100</span>
+            </div>
           </div>
-          <DnsPill row={row} />
-          <ConnectionPill row={row} />
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {mailboxReadinessBadges(row).map((badge) => (
+              <ReadinessPill key={badge.label} badge={badge} detail={row.providerDetail} />
+            ))}
+            <Button asChild size="sm" variant="outline">
+              <Link to="/mailboxes" search={{ mailbox: row.accountId }}>
+                View details
+              </Link>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={pauseMutation.isPending}
+              onClick={() => pauseMutation.mutate({ id: row.accountId, paused: !row.paused })}
+            >
+              {row.paused ? <Play className="size-4" /> : <Pause className="size-4" />}
+              {row.paused ? "Resume" : "Pause"}
+            </Button>
+          </div>
         </div>
       ))}
     </div>

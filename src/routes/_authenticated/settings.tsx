@@ -68,12 +68,12 @@ export const Route = createFileRoute("/_authenticated/settings")({
       {
         name: "description",
         content:
-          "Manage your MunchReach profile, workspace, team, notifications, sending schedule, security, appearance and billing.",
+          "Manage your MunchReach profile, workspace, team, notifications, mailboxes, sending, security, appearance and billing.",
       },
       { property: "og:title", content: "Settings — MunchReach" },
       {
         property: "og:description",
-        content: "Profile, workspace, team, notifications, sending, security and billing settings.",
+        content: "Profile, workspace, team, notifications, mailboxes, sending, security and billing settings.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -105,7 +105,7 @@ const SECTIONS = [
   { id: "workspace", label: "Workspace", icon: Building2 },
   { id: "team", label: "Team", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "sending", label: "Email & Sending", icon: Send },
+  { id: "sending", label: "Mailboxes & Sending", icon: Send },
   { id: "signature", label: "Email Signature", icon: PenLine },
   { id: "integrations", label: "Integrations", icon: Plug },
   { id: "api", label: "Developer API", icon: KeyRound },

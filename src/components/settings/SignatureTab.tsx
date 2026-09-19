@@ -295,7 +295,7 @@ export function SignatureTab({ workspaceId }: { workspaceId: string | null }) {
             </div>
           ) : mailboxes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Connect a mailbox under Email Accounts first — signatures belong to a mailbox.
+              Connect a mailbox under Mailboxes first — signatures belong to a mailbox.
             </p>
           ) : (
             <>

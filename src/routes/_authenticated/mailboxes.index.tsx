@@ -100,6 +100,9 @@ import {
 } from "@/lib/workspace-mailboxes.functions";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    mailbox: typeof search["mailbox"] === "string" ? search["mailbox"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Mailboxes — MunchReach" },
@@ -126,6 +129,7 @@ type ActiveFilter = "all" | "active" | "inactive";
 
 function MailboxesPage() {
   const { workspace } = useWorkspace();
+  const { mailbox: requestedMailbox } = Route.useSearch();
   const workspaceId = workspace?.id ?? "";
   const queryClient = useQueryClient();
 
@@ -215,6 +219,12 @@ function MailboxesPage() {
 
   const busy = recheck.isPending || setWarmupEnabled.isPending || setActiveState.isPending;
 
+  useEffect(() => {
+    if (!requestedMailbox || detailsRow) return;
+    const requested = rows.find((row) => row.sendingAccountId === requestedMailbox);
+    if (requested) setDetailsRow(requested);
+  }, [detailsRow, requestedMailbox, rows]);
+
   const rowActionProps = (row: WorkspaceMailboxRow) => ({
     row,
     busy,
@@ -227,7 +237,7 @@ function MailboxesPage() {
 
   return (
     <AppShell
-      title="Email Accounts"
+      title="Mailboxes"
       description="The mailboxes you have connected for sending: connection, sending usage, warm-up, health and the campaigns using them."
     >
       <div className="space-y-5">
@@ -337,11 +347,11 @@ function MailboxesPage() {
               resetPage();
             }}
           >
-            <SelectTrigger className="w-[180px]" aria-label="Account status">
+            <SelectTrigger className="w-[180px]" aria-label="Mailbox status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Any account status</SelectItem>
+              <SelectItem value="all">Any mailbox status</SelectItem>
               <SelectItem value="connected">Connected</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="failed">Needs attention</SelectItem>
@@ -444,14 +454,14 @@ function MailboxesPage() {
               <MailPlus className="size-7 text-primary" />
             </div>
             <h2 className="mt-5 text-xl font-semibold tracking-tight">
-              Connect Your First Sending Account
+              Connect Your First Mailbox
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Connect a sending account to start sending campaigns and managing your outreach from
+              Connect a mailbox to start sending campaigns and managing your outreach from
               MunchReach.
             </p>
             <Button asChild className="mt-6">
-              <Link to="/mailboxes/add">+ Add Accounts</Link>
+              <Link to="/mailboxes/add">+ Add Mailbox</Link>
             </Button>
           </div>
         ) : rows.length === 0 ? (
@@ -871,7 +881,7 @@ function RowActions({
               toast.error(
                 row.isActive
                   ? "This mailbox is not connected yet, so a test cannot be sent. Re-check the connection first."
-                  : "This mailbox is paused. Reactivate it under Email Accounts to use it.",
+                  : "This mailbox is paused. Reactivate it under Mailboxes to use it.",
               );
               return;
             }
