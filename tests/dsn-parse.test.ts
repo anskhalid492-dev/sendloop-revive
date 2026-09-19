@@ -32,14 +32,31 @@ describe("delivery reports", () => {
     expect(r.status).toBe("4.4.7");
   });
 
-  it("recognises a policy/spam block as a permanent failure with its reason", () => {
+  it("keeps a policy/spam block as a failed send, not a recipient bounce", () => {
     const r = parseDeliveryReport({
       text: "host mx.example.com said: 550 5.7.1 Message rejected due to sender reputation",
       subject: "Mail delivery failed: returning message to sender",
     });
-    expect(r.kind).toBe("bounced");
+    expect(r.kind).toBe("failed");
     expect(r.status).toBe("5.7.1");
     expect(r.reason).toContain("sender reputation");
+  });
+
+  it("does not bounce or suppress a valid address for the exact CS policy block", () => {
+    const r = parseDeliveryReport({
+      text: "Diagnostic-Code: smtp; 550 5.7.1 [CS] Message blocked. If this is a false positive, please report",
+      subject: "Undelivered Mail Returned to Sender",
+    });
+    expect(r.kind).toBe("failed");
+    expect(r.status).toBe("5.7.1");
+  });
+
+  it("treats an ambiguous bare 550 as failed rather than inventing an invalid recipient", () => {
+    const r = parseDeliveryReport({
+      text: "Diagnostic-Code: smtp; 550",
+      subject: "Undelivered Mail Returned to Sender",
+    });
+    expect(r.kind).toBe("failed");
   });
 
   it("detects a delay report with no status code at all", () => {
@@ -50,9 +67,9 @@ describe("delivery reports", () => {
     expect(r.kind).toBe("delayed");
   });
 
-  it("falls back to the subject when the report carries no detail", () => {
+  it("does not infer an invalid recipient from a generic failure subject", () => {
     const r = parseDeliveryReport({ text: "", subject: "Undelivered Mail Returned to Sender" });
-    expect(r.kind).toBe("bounced");
+    expect(r.kind).toBe("failed");
     expect(r.reason).toBe("Undelivered Mail Returned to Sender");
   });
 });

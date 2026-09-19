@@ -11,3 +11,4 @@
 - [x] Replace the timed-out live campaign summary join for the exact 4,087-lead campaign
 - [ ] Eliminate Campaign Overview server-function CPU failures and verify the live page has only bounded HTTP 200 reads (isolated lead and launch-history reads; removed non-Overview initial requests; awaiting live verification)
 - [x] Correct customer Analytics delivery displays and polish Dashboard outbound cards plus Warmup Health only
+- [ ] Correct policy-blocked campaign outcomes so valid recipients are not counted or suppressed as bounced
