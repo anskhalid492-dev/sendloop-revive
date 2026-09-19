@@ -100,6 +100,9 @@ import {
 } from "@/lib/workspace-mailboxes.functions";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    mailbox: typeof search.mailbox === "string" ? search.mailbox : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Mailboxes — MunchReach" },
@@ -126,6 +129,7 @@ type ActiveFilter = "all" | "active" | "inactive";
 
 function MailboxesPage() {
   const { workspace } = useWorkspace();
+  const { mailbox: requestedMailbox } = Route.useSearch();
   const workspaceId = workspace?.id ?? "";
   const queryClient = useQueryClient();
 
@@ -214,6 +218,12 @@ function MailboxesPage() {
   );
 
   const busy = recheck.isPending || setWarmupEnabled.isPending || setActiveState.isPending;
+
+  useEffect(() => {
+    if (!requestedMailbox || detailsRow) return;
+    const requested = rows.find((row) => row.sendingAccountId === requestedMailbox);
+    if (requested) setDetailsRow(requested);
+  }, [detailsRow, requestedMailbox, rows]);
 
   const rowActionProps = (row: WorkspaceMailboxRow) => ({
     row,

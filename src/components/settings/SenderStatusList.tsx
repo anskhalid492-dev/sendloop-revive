@@ -114,7 +114,9 @@ export function SenderStatusList({ workspaceId }: { workspaceId: string }) {
               <ReadinessPill key={badge.label} badge={badge} detail={row.providerDetail} />
             ))}
             <Button asChild size="sm" variant="outline">
-              <Link to="/mailboxes">View details</Link>
+              <Link to="/mailboxes" search={{ mailbox: row.accountId }}>
+                View details
+              </Link>
             </Button>
             <Button
               size="sm"
