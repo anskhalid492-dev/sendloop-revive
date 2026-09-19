@@ -111,7 +111,7 @@ export const listMailboxSignatures = createServerFn({ method: "POST" })
     let signatures: any[] = [];
     let storageReady = true;
     if (rows.length) {
-      const result = await context.supabase
+      const result = await (context.supabase as any)
         .from("email_signatures")
         .select("id, mailbox_id, name, html_signature, plain_text_signature, enabled, sender_fields, updated_at")
         .eq("workspace_id", data.workspaceId);
@@ -179,7 +179,7 @@ export const saveMailboxSignature = createServerFn({ method: "POST" })
         failed.push({ mailboxId, reason: "Mailbox is not in this workspace" });
         continue;
       }
-      const { error } = await context.supabase.from("email_signatures").upsert(
+      const { error } = await (context.supabase as any).from("email_signatures").upsert(
         {
           workspace_id: data.workspaceId,
           mailbox_id: mailboxId,
@@ -217,7 +217,7 @@ export const setSignatureEnabled = createServerFn({ method: "POST" })
     const allowed = await verifiedMailboxes(context as AuthContext, data.workspaceId, [data.mailboxId]);
     if (!allowed.has(data.mailboxId)) throw new Error("Mailbox is not in this workspace.");
 
-    const { error } = await context.supabase
+    const { error } = await (context.supabase as any)
       .from("email_signatures")
       .update({ enabled: data.enabled })
       .eq("workspace_id", data.workspaceId)
@@ -239,7 +239,7 @@ export const deleteMailboxSignature = createServerFn({ method: "POST" })
     const allowed = await verifiedMailboxes(context as AuthContext, data.workspaceId, [data.mailboxId]);
     if (!allowed.has(data.mailboxId)) throw new Error("Mailbox is not in this workspace.");
 
-    const { error } = await context.supabase
+    const { error } = await (context.supabase as any)
       .from("email_signatures")
       .delete()
       .eq("workspace_id", data.workspaceId)
@@ -340,7 +340,7 @@ export const requestSignatureImageUpload = createServerFn({ method: "POST" })
     const { presignR2Url } = await import("@/lib/r2.server");
     const uploadUrl = await presignR2Url({ key, method: "PUT", expiresInSeconds: 300 });
 
-    await context.supabase.from("files").insert({
+    await (context.supabase as any).from("files").insert({
       user_id: context.userId,
       workspace_id: data.workspaceId,
       type: "signatures",

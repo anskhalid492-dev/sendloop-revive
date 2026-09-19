@@ -13,6 +13,7 @@ import {
   senderFieldsFrom,
   type RenderedSignature,
   type SignatureRow,
+  type SenderFieldsInput,
   type SignatureSenderFields,
 } from "@/lib/signature-model";
 
@@ -60,7 +61,7 @@ function nameParts(displayName: string | null | undefined, fallbackEmail: string
  */
 export function senderFieldsForMailbox(
   mailbox: MailboxRow,
-  stored: Partial<SignatureSenderFields> | null | undefined,
+  stored: SenderFieldsInput,
   fromName?: string | null,
 ): SignatureSenderFields {
   const { first, last } = nameParts(mailbox.display_name ?? fromName ?? null, mailbox.email_address);

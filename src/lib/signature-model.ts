@@ -64,7 +64,7 @@ export type SignatureRow = {
   html_signature?: string | null;
   plain_text_signature?: string | null;
   enabled?: boolean | null;
-  sender_fields?: Partial<SignatureSenderFields> | null;
+  sender_fields?: Partial<Record<keyof SignatureSenderFields, string | null | undefined>> | null;
 };
 
 export type RenderedSignature = { html: string; text: string };
@@ -81,9 +81,12 @@ export function emptySenderFields(): SignatureSenderFields {
   };
 }
 
-export function senderFieldsFrom(
-  partial: Partial<SignatureSenderFields> | null | undefined,
-): SignatureSenderFields {
+export type SenderFieldsInput =
+  | Partial<Record<keyof SignatureSenderFields, string | null | undefined>>
+  | null
+  | undefined;
+
+export function senderFieldsFrom(partial: SenderFieldsInput): SignatureSenderFields {
   const base = emptySenderFields();
   for (const token of SIGNATURE_SENDER_TOKENS) {
     const value = partial?.[token];
@@ -101,13 +104,10 @@ const TOKEN_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|\s*([^}]*?))?\s*\}\}/g;
  * back to the inline default (`{{phone | }}`) and otherwise disappears — a raw
  * token can never reach a recipient.
  */
-export function resolveSignatureTokens(
-  value: string,
-  fields: Partial<SignatureSenderFields>,
-): string {
+export function resolveSignatureTokens(value: string, fields: SenderFieldsInput): string {
   return (value ?? "").replace(TOKEN_RE, (_match, rawToken: string, fallback?: string) => {
     const token = rawToken.toLowerCase() as keyof SignatureSenderFields;
-    const resolved = (fields[token] ?? "").toString().trim();
+    const resolved = ((fields ?? {})[token] ?? "").toString().trim();
     if (resolved) return resolved;
     return (fallback ?? "").trim();
   });
@@ -371,7 +371,7 @@ export function signatureHtmlToText(html: string | null | undefined): string {
  */
 export function renderSignature(
   row: SignatureRow | null | undefined,
-  fields: Partial<SignatureSenderFields>,
+  fields: SenderFieldsInput,
 ): RenderedSignature | null {
   if (!row) return null;
   if (row.enabled === false) return null;
