@@ -300,6 +300,9 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
         dkim: account?.dkim_status ?? null,
         dmarc: account?.dmarc_status ?? null,
         mx: account?.mx_status ?? null,
+        authStatus: auth?.auth_status ?? null,
+        authReason: auth?.auth_reason ?? null,
+        authCheckedAt: auth?.auth_checked_at ?? null,
       };
     });
 
