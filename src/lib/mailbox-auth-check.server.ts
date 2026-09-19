@@ -282,7 +282,10 @@ export async function runMailboxAuthSweep(
       const stored = await persistMailboxAuth(admin, row.id, result, {
         previousStatus: row.auth_status ?? null,
         allowPause: true,
+        workspaceId: row.workspace_id ?? null,
+        emailAddress: row.email_address,
       });
+
       if (stored.paused) paused += 1;
       if (result.overall === "pass") pass += 1;
       else if (result.overall === "warn") warn += 1;
