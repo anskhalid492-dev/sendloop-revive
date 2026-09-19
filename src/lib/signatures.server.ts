@@ -107,7 +107,7 @@ async function loadSignatureRow(
       .eq("workspace_id", workspaceId)
       .eq("mailbox_id", mailboxId)
       .maybeSingle();
-    // Table not deployed yet (or unreadable): sending continues без signature.
+    // Table not deployed yet (or unreadable): sending continues without a signature.
     if (error) return null;
     return (data as SignatureRow | null) ?? null;
   } catch {

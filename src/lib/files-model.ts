@@ -18,6 +18,7 @@ export const FILE_CATEGORIES = [
   "workspace-logos",
   "support",
   "media",
+  "signatures",
 ] as const;
 
 export type FileCategory = (typeof FILE_CATEGORIES)[number];
@@ -68,6 +69,7 @@ export function buildR2Key(input: {
   extension?: string;
   campaignId?: string | null;
   invoiceId?: string | null;
+  workspaceId?: string | null;
   fileName?: string | null;
 }): string {
   const ext = (input.extension ?? "bin").replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin";
@@ -78,6 +80,8 @@ export function buildR2Key(input: {
       return `campaigns/${input.userId}/${input.campaignId ?? "general"}/${randomId()}.${ext}`;
     case "tmp":
       return `tmp/${input.userId}/${randomId()}.tmp`;
+    case "signatures":
+      return `signatures/${input.userId}/${input.workspaceId ?? "workspace"}/${randomId()}-${safeFileName(input.fileName ?? `image.${ext}`)}`;
     case "media":
       return `media/${input.userId}/${randomId()}-${safeFileName(input.fileName ?? `file.${ext}`)}`;
     case "support":
@@ -141,6 +145,28 @@ export const DOCUMENT_MIME_TYPES = [
 ];
 
 export const ALLOWED_MIME_TYPES = [...IMAGE_MIME_TYPES, ...DOCUMENT_MIME_TYPES];
+
+export const SIGNATURE_IMAGE_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
+];
+
+/** Signature logos stay small so every email keeps a light HTML part. */
+export const MAX_SIGNATURE_IMAGE_BYTES = 2 * 1024 * 1024;
+
+export function isSignatureImageMimeType(mime: string): boolean {
+  return SIGNATURE_IMAGE_MIME_TYPES.includes((mime || "").toLowerCase());
+}
+
+/** Stable, email-client friendly URL for a stored signature image. */
+export function signatureImageUrl(key: string, origin?: string | null): string {
+  const path = `/api/public/signature-image/${key.replace(/^signatures\//, "")}`;
+  const base = (origin ?? "").replace(/\/+$/, "");
+  return base ? `${base}${path}` : path;
+}
 
 export function isAllowedMimeType(mime: string): boolean {
   return ALLOWED_MIME_TYPES.includes((mime || "").toLowerCase());

@@ -199,6 +199,7 @@ import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/publ
 import { Route as ApiPublicMarketingUnsubscribeRouteImport } from './routes/api/public/marketing/unsubscribe'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 import { Route as ApiPublicReferralBillingRouteImport } from './routes/api/public/referral/billing'
+import { Route as ApiPublicSignatureImageSplatRouteImport } from './routes/api/public/signature-image.$'
 import { Route as ApiPublicV1AnalyticsRouteImport } from './routes/api/public/v1/analytics'
 import { Route as ApiPublicV1CampaignsRouteImport } from './routes/api/public/v1/campaigns'
 import { Route as ApiPublicV1ContactsRouteImport } from './routes/api/public/v1/contacts'
@@ -1274,6 +1275,12 @@ const ApiPublicReferralBillingRoute =
     path: '/api/public/referral/billing',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSignatureImageSplatRoute =
+  ApiPublicSignatureImageSplatRouteImport.update({
+    id: '/api/public/signature-image/$',
+    path: '/api/public/signature-image/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1AnalyticsRoute = ApiPublicV1AnalyticsRouteImport.update({
   id: '/api/public/v1/analytics',
   path: '/api/public/v1/analytics',
@@ -1606,6 +1613,7 @@ export interface FileRoutesByFullPath {
   '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
+  '/api/public/signature-image/$': typeof ApiPublicSignatureImageSplatRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
   '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
@@ -1819,6 +1827,7 @@ export interface FileRoutesByTo {
   '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
+  '/api/public/signature-image/$': typeof ApiPublicSignatureImageSplatRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
   '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
@@ -2037,6 +2046,7 @@ export interface FileRoutesById {
   '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
   '/api/public/referral/billing': typeof ApiPublicReferralBillingRoute
+  '/api/public/signature-image/$': typeof ApiPublicSignatureImageSplatRoute
   '/api/public/v1/analytics': typeof ApiPublicV1AnalyticsRoute
   '/api/public/v1/campaigns': typeof ApiPublicV1CampaignsRouteWithChildren
   '/api/public/v1/contacts': typeof ApiPublicV1ContactsRouteWithChildren
@@ -2255,6 +2265,7 @@ export interface FileRouteTypes {
     | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
+    | '/api/public/signature-image/$'
     | '/api/public/v1/analytics'
     | '/api/public/v1/campaigns'
     | '/api/public/v1/contacts'
@@ -2468,6 +2479,7 @@ export interface FileRouteTypes {
     | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
+    | '/api/public/signature-image/$'
     | '/api/public/v1/analytics'
     | '/api/public/v1/campaigns'
     | '/api/public/v1/contacts'
@@ -2685,6 +2697,7 @@ export interface FileRouteTypes {
     | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
     | '/api/public/referral/billing'
+    | '/api/public/signature-image/$'
     | '/api/public/v1/analytics'
     | '/api/public/v1/campaigns'
     | '/api/public/v1/contacts'
@@ -2811,6 +2824,7 @@ export interface RootRouteChildren {
   ApiPublicMarketingUnsubscribeRoute: typeof ApiPublicMarketingUnsubscribeRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
   ApiPublicReferralBillingRoute: typeof ApiPublicReferralBillingRoute
+  ApiPublicSignatureImageSplatRoute: typeof ApiPublicSignatureImageSplatRoute
   ApiPublicV1AnalyticsRoute: typeof ApiPublicV1AnalyticsRoute
   ApiPublicV1CampaignsRoute: typeof ApiPublicV1CampaignsRouteWithChildren
   ApiPublicV1ContactsRoute: typeof ApiPublicV1ContactsRouteWithChildren
@@ -4158,6 +4172,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReferralBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/signature-image/$': {
+      id: '/api/public/signature-image/$'
+      path: '/api/public/signature-image/$'
+      fullPath: '/api/public/signature-image/$'
+      preLoaderRoute: typeof ApiPublicSignatureImageSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/analytics': {
       id: '/api/public/v1/analytics'
       path: '/api/public/v1/analytics'
@@ -4857,6 +4878,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketingUnsubscribeRoute: ApiPublicMarketingUnsubscribeRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
   ApiPublicReferralBillingRoute: ApiPublicReferralBillingRoute,
+  ApiPublicSignatureImageSplatRoute: ApiPublicSignatureImageSplatRoute,
   ApiPublicV1AnalyticsRoute: ApiPublicV1AnalyticsRoute,
   ApiPublicV1CampaignsRoute: ApiPublicV1CampaignsRouteWithChildren,
   ApiPublicV1ContactsRoute: ApiPublicV1ContactsRouteWithChildren,
