@@ -37,7 +37,7 @@ export const SUPPORT_GUIDE_GROUPS = [
   {
     slug: "sending",
     label: "Sending",
-    articles: ["how-sending-works", "sending-window", "sending-pacing", "follow-up-scheduling", "why-campaign-not-sending", "sending-troubleshooting"],
+    articles: ["how-sending-works", "how-warmup-works", "sending-window", "sending-pacing", "follow-up-scheduling", "why-campaign-not-sending", "sending-troubleshooting"],
   },
   {
     slug: "inbox",
