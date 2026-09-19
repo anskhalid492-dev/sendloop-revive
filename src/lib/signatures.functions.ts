@@ -370,3 +370,36 @@ export const confirmSignatureImageUpload = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     return { ok: true, url: signatureImageUrl(data.key, SITE_URL) };
   });
+
+/**
+ * The signature a campaign/sequence preview should show: resolved from the
+ * mailbox behind the selected sending account, exactly as the send path does.
+ * Returns empty strings when that mailbox has no active signature.
+ */
+export const getSendingAccountSignature = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ sendingAccountId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: account, error } = await context.supabase
+      .from("sending_accounts")
+      .select("id, workspace_id, from_email, from_name")
+      .eq("id", data.sendingAccountId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!account) return { html: "", text: "", mailbox: null };
+
+    await assertMember(context as AuthContext, account.workspace_id as string);
+
+    const { resolveSignatureForSender } = await import("@/lib/signatures.server");
+    const rendered = await resolveSignatureForSender(
+      context.supabase,
+      account.workspace_id as string,
+      account.from_email as string,
+      account.from_name as string | null,
+    );
+    return {
+      html: rendered?.html ?? "",
+      text: rendered?.text ?? "",
+      mailbox: (account.from_email as string) ?? null,
+    };
+  });
