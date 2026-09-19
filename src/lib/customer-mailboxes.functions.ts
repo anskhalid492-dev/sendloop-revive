@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { MailboxAuthResult } from "@/lib/mailbox-auth-check";
 
 const endpointSchema = z.object({
   host: z.string().trim().min(1),
@@ -44,6 +45,11 @@ export type MailboxConnectionTest = {
 export type MailboxSaveResult = MailboxConnectionTest & {
   mailboxId: string | null;
   status: "pending" | "connected";
+  /**
+   * Authentication verdict for the mailbox's own domain, checked straight after
+   * the logins. Null only when the DNS check itself could not be run.
+   */
+  auth: MailboxAuthResult | null;
 };
 
 /** Confirms the caller belongs to the workspace they claim (RLS-backed). */
@@ -129,7 +135,21 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
 
-    return { ...result, mailboxId: row?.id ?? null, status };
+    // The mailbox's own domain is checked in public DNS right after the logins,
+    // independently of the mail host. A DNS problem never fails the save — it is
+    // reported so the customer can fix it before sending.
+    let auth: MailboxAuthResult | null = null;
+    try {
+      const { checkMailboxDomainAuth, persistMailboxAuth } = await import(
+        "@/lib/mailbox-auth-check.server"
+      );
+      auth = await checkMailboxDomainAuth(data.emailAddress);
+      if (row?.id) await persistMailboxAuth(supabaseAdmin, row.id, auth, { allowPause: false });
+    } catch (authError) {
+      console.error("[mailbox-auth] check after connect failed", authError);
+    }
+
+    return { ...result, mailboxId: row?.id ?? null, status, auth };
   });
 
 export type CustomerMailbox = {

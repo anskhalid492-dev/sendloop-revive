@@ -10,6 +10,9 @@
  * Server-only.
  */
 
+import { effectiveDailyLimit } from "@/lib/mailbox-provider-limits";
+import type { MailHost } from "@/lib/mailbox-auth-check";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
 
@@ -18,7 +21,19 @@ export type SelfConnectedMailbox = {
   email_address: string;
   display_name?: string | null;
   daily_send_limit?: number | null;
+  /** Detected mail host, used to cap volume at what that host tolerates. */
+  mail_host?: string | null;
 };
+
+/**
+ * Daily volume for the bookkeeping row: the customer's own setting, held down to
+ * what their mail host tolerates. This can only ever lower the number.
+ */
+function cappedDailyLimit(row: SelfConnectedMailbox): number | null {
+  const configured = Number(row.daily_send_limit ?? 0);
+  if (!configured) return null;
+  return effectiveDailyLimit(configured, (row.mail_host as MailHost | null) ?? null);
+}
 
 /** Returns the sending_accounts id for this self-connected address. */
 export async function ensureSelfConnectedSendingAccount(
@@ -27,15 +42,25 @@ export async function ensureSelfConnectedSendingAccount(
 ): Promise<string | null> {
   const email = (row.email_address ?? "").trim().toLowerCase();
   if (!row.workspace_id || !email) return null;
+  const dailyLimit = cappedDailyLimit(row);
 
   const { data: existing } = await admin
     .from("sending_accounts")
-    .select("id")
+    .select("id, daily_limit")
     .eq("workspace_id", row.workspace_id)
     .eq("from_email", email)
     .maybeSingle();
-  const existingId = (existing as { id: string } | null)?.id ?? null;
-  if (existingId) return existingId;
+  const existingRow = existing as { id: string; daily_limit: number | null } | null;
+  if (existingRow) {
+    // Keep an already-created row inside the host ceiling, never above it.
+    if (dailyLimit !== null && Number(existingRow.daily_limit ?? 0) > dailyLimit) {
+      await admin
+        .from("sending_accounts")
+        .update({ daily_limit: dailyLimit })
+        .eq("id", existingRow.id);
+    }
+    return existingRow.id;
+  }
 
   const { data: created, error } = await admin
     .from("sending_accounts")
@@ -51,7 +76,7 @@ export async function ensureSelfConnectedSendingAccount(
       status: "verified",
       customer_enabled: true,
       paused: false,
-      ...(row.daily_send_limit ? { daily_limit: row.daily_send_limit } : {}),
+      ...(dailyLimit ? { daily_limit: dailyLimit } : {}),
     })
     .select("id")
     .single();
@@ -69,11 +94,24 @@ export async function syncSelfConnectedSendingAccounts(
   workspaceId: string,
 ): Promise<void> {
   try {
-    const { data } = await admin
+    const base = "workspace_id, email_address, display_name, daily_send_limit, status, is_active";
+    // `mail_host` is additive; before it is deployed the sync still runs without it.
+    let data: unknown[] | null = null;
+    const withHost = await admin
       .from("mailboxes")
-      .select("workspace_id, email_address, display_name, daily_send_limit, status, is_active")
+      .select(`${base}, mail_host`)
       .eq("workspace_id", workspaceId)
       .eq("status", "connected");
+    if (withHost.error) {
+      const fallback = await admin
+        .from("mailboxes")
+        .select(base)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "connected");
+      data = fallback.data ?? [];
+    } else {
+      data = withHost.data ?? [];
+    }
     const rows = (data ?? []) as (SelfConnectedMailbox & { is_active: boolean | null })[];
     for (const row of rows) {
       if (row.is_active === false) continue;
