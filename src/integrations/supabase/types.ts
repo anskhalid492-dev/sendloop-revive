@@ -4654,9 +4654,17 @@ export type Database = {
       }
       mailboxes: {
         Row: {
+          auth_checked_at: string | null
+          auth_detail: Json
+          auth_reason: string | null
+          auth_status: string | null
           created_at: string
           daily_send_limit: number
           display_name: string | null
+          dkim_selector_found: string | null
+          dkim_status: string | null
+          dmarc_policy: string | null
+          dmarc_status: string | null
           email_address: string
           id: string
           imap_host: string
@@ -4668,20 +4676,31 @@ export type Database = {
           last_imap_uid: number | null
           last_spam_imap_uid: number | null
           last_tested_at: string | null
+          mail_host: string | null
+          provider_daily_ceiling: number | null
           smtp_host: string
           smtp_password: string | null
           smtp_port: number
           smtp_secure: boolean
           smtp_username: string
+          spf_status: string | null
           status: string
           updated_at: string
           warmup_enabled: boolean
           workspace_id: string
         }
         Insert: {
+          auth_checked_at?: string | null
+          auth_detail?: Json
+          auth_reason?: string | null
+          auth_status?: string | null
           created_at?: string
           daily_send_limit?: number
           display_name?: string | null
+          dkim_selector_found?: string | null
+          dkim_status?: string | null
+          dmarc_policy?: string | null
+          dmarc_status?: string | null
           email_address: string
           id?: string
           imap_host: string
@@ -4693,20 +4712,31 @@ export type Database = {
           last_imap_uid?: number | null
           last_spam_imap_uid?: number | null
           last_tested_at?: string | null
+          mail_host?: string | null
+          provider_daily_ceiling?: number | null
           smtp_host: string
           smtp_password?: string | null
           smtp_port: number
           smtp_secure?: boolean
           smtp_username: string
+          spf_status?: string | null
           status?: string
           updated_at?: string
           warmup_enabled?: boolean
           workspace_id: string
         }
         Update: {
+          auth_checked_at?: string | null
+          auth_detail?: Json
+          auth_reason?: string | null
+          auth_status?: string | null
           created_at?: string
           daily_send_limit?: number
           display_name?: string | null
+          dkim_selector_found?: string | null
+          dkim_status?: string | null
+          dmarc_policy?: string | null
+          dmarc_status?: string | null
           email_address?: string
           id?: string
           imap_host?: string
@@ -4718,11 +4748,14 @@ export type Database = {
           last_imap_uid?: number | null
           last_spam_imap_uid?: number | null
           last_tested_at?: string | null
+          mail_host?: string | null
+          provider_daily_ceiling?: number | null
           smtp_host?: string
           smtp_password?: string | null
           smtp_port?: number
           smtp_secure?: boolean
           smtp_username?: string
+          spf_status?: string | null
           status?: string
           updated_at?: string
           warmup_enabled?: boolean
