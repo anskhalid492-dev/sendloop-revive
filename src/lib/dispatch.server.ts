@@ -1293,27 +1293,49 @@ export async function dispatchDueMessages(
       (Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking) ||
         Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking) ||
         carriesUnsubscribeLink);
-    let html = shouldSendHtml ? campaignBodyHtml(message.body) : null;
 
+    // Mailbox signature: resolved from the mailbox this email actually leaves
+    // through, server-side, and applied only while composing THIS message. The
+    // stored campaign body is never rewritten, so a retry, a deferral or a
+    // requeue rebuilds the message once and can never stack signatures.
+    const { resolveSignatureForSender } = await import("@/lib/signatures.server");
+    const { composeWithSignature } = await import("@/lib/signature-model");
+    const signature = await resolveSignatureForSender(
+      supabaseAdmin,
+      message.workspace_id as string,
+      account.from_email as string,
+      account.from_name as string | null,
+    );
+    const { applyEmailTracking } = await import("@/lib/email-tracking");
     // First-party open + click tracking, through the one shared step every send
     // path uses. Each part only happens when the campaign's own switch is on AND
     // this email actually has an HTML part — a plain-text email is never
-    // converted to HTML just to carry tracking.
-    if (html) {
-      const { applyEmailTracking } = await import("@/lib/email-tracking");
-      html = applyEmailTracking(html, {
-        target: {
-          workspaceId: message.workspace_id as string,
-          messageKind: "campaign",
-          messageId: message.id as string,
-          campaignId: message.campaign_id as string,
-          leadId: (message.lead_id as string | null) ?? null,
-          email: message.to_email as string,
-        },
-        trackOpens: Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking),
-        trackClicks: Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking),
-      });
-    }
+    // converted to HTML just to carry tracking. Tracking runs before the
+    // signature block is injected, so signature links stay untouched.
+    const composed = composeWithSignature({
+      body: (message.body as string | null) ?? "",
+      signature,
+      ...(shouldSendHtml
+        ? {
+            buildHtml: (body: string) => campaignBodyHtml(body),
+            decorate: (value: string | null) =>
+              applyEmailTracking(value, {
+                target: {
+                  workspaceId: message.workspace_id as string,
+                  messageKind: "campaign",
+                  messageId: message.id as string,
+                  campaignId: message.campaign_id as string,
+                  leadId: (message.lead_id as string | null) ?? null,
+                  email: message.to_email as string,
+                },
+                trackOpens: Boolean((campaignRow as { open_tracking?: boolean | null }).open_tracking),
+                trackClicks: Boolean((campaignRow as { click_tracking?: boolean | null }).click_tracking),
+              }),
+          }
+        : {}),
+    });
+    const finalBody = composed.text;
+    const html = composed.html;
 
     const outboundMessageId = createOutboundRfcMessageId(account.from_email);
 
@@ -1322,7 +1344,7 @@ export async function dispatchDueMessages(
     // Unified Inbox shows when the prospect replies.
     const sentSnapshot = buildSentSnapshot({
       subject: message.subject,
-      body: message.body,
+      body: finalBody,
       html,
       fromEmail: account.from_email,
       fromName: account.from_name,
