@@ -34,6 +34,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import type { AuthCheckState } from "@/lib/mailbox-auth-check";
+import { MAILBOX_HEALTH_CLASS, mailboxHealth } from "@/lib/mailbox-health";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
