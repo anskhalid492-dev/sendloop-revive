@@ -11,6 +11,7 @@ import {
   Monitor,
   Moon,
   Palette,
+  PenLine,
   Plug,
   Send,
   Shield,
