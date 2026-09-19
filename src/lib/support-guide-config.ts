@@ -13,17 +13,17 @@ export const SUPPORT_GUIDE_GROUPS = [
   {
     slug: "getting-started",
     label: "Getting Started",
-    articles: ["quick-start", "how-munchreach-works", "connect-a-mailbox", "verify-a-domain", "import-leads"],
+    articles: ["quick-start", "how-munchreach-works", "connect-a-mailbox", "verify-a-domain", "import-leads", "create-a-campaign", "create-follow-ups", "launch-first-campaign"],
   },
   {
     slug: "campaigns",
     label: "Campaigns",
-    articles: ["create-a-campaign", "add-leads-to-campaign", "configure-sending-days", "configure-sending-hours", "why-campaign-not-sending"],
+    articles: ["add-leads-to-campaign", "configure-sending-days", "configure-sending-hours", "campaign-timezone", "sending-limits", "pause-resume-stop-campaign", "why-campaign-not-sending"],
   },
   {
     slug: "leads",
     label: "Leads",
-    articles: ["csv-import-guide", "csv-column-mapping", "why-import-skipped-rows", "filter-leads", "export-leads"],
+    articles: ["csv-import-guide", "csv-column-mapping", "why-import-skipped-rows", "filter-leads", "export-leads", "suppressed-leads"],
   },
   {
     slug: "email-accounts",
@@ -33,12 +33,12 @@ export const SUPPORT_GUIDE_GROUPS = [
   {
     slug: "ai",
     label: "AI",
-    articles: ["ai-personalization-overview", "how-ai-personalization-works", "generate-opening-lines", "bulk-ai-personalization", "ai-troubleshooting"],
+    articles: ["ai-personalization-overview", "how-ai-personalization-works", "generate-opening-lines", "bulk-ai-personalization", "ai-troubleshooting", "claude-overview", "connect-claude"],
   },
   {
     slug: "sending",
     label: "Sending",
-    articles: ["how-sending-works", "sending-window", "sending-pacing", "follow-up-scheduling", "sending-troubleshooting"],
+    articles: ["how-sending-works", "sending-window", "sending-pacing", "follow-up-scheduling", "why-campaign-not-sending", "sending-troubleshooting"],
   },
   {
     slug: "inbox",
@@ -53,7 +53,7 @@ export const SUPPORT_GUIDE_GROUPS = [
   {
     slug: "domains",
     label: "Domains",
-    articles: ["why-domain-verification-matters", "verify-a-domain", "spf-dkim-dmarc", "dns-propagation", "domain-verification-troubleshooting"],
+    articles: ["why-domain-verification-matters", "verify-a-domain", "spf-dkim-dmarc", "dns-propagation", "tracking-domains", "domain-receiving-setup", "domain-verification-troubleshooting"],
   },
   {
     slug: "analytics",
@@ -68,7 +68,7 @@ export const SUPPORT_GUIDE_GROUPS = [
   {
     slug: "troubleshooting",
     label: "Troubleshooting",
-    articles: ["troubleshooting-start-here", "campaign-not-sending", "campaign-launch-failed", "leads-not-importing", "emails-going-to-spam-quickfix"],
+    articles: ["troubleshooting-start-here", "campaign-not-sending", "campaign-launch-failed", "leads-not-importing", "emails-going-to-spam-quickfix", "cannot-sign-in", "contact-support"],
   },
 ] as const;
 

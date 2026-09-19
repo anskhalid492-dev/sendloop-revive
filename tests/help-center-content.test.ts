@@ -186,6 +186,11 @@ describe("logged-in support guide curation", () => {
     }
   });
 
+  it("includes all 67 requested guide placements", () => {
+    const requestedPlacements = SUPPORT_GUIDE_GROUPS.reduce((count, group) => count + group.articles.length, 0);
+    expect(requestedPlacements).toBe(67);
+  });
+
   it("includes every requested Support category", () => {
     expect(SUPPORT_GUIDE_GROUPS.map((group) => group.slug)).toEqual([
       "getting-started", "campaigns", "leads", "email-accounts", "ai", "sending",

@@ -443,8 +443,8 @@ function HelpCenter({ onContact }: { onContact: () => void }) {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {SUPPORT_GUIDE_GROUPS.map((group) => {
                 const Icon = categoryIcons[group.slug] ?? BookOpen;
-                const featured = resolveSupportArticles(group.articles);
-                const all = HELP_ARTICLES.filter((article) => article.category === group.slug);
+                const all = resolveSupportArticles(group.articles);
+                const featured = all.slice(0, 5);
                 const expanded = expandedCategory === group.slug;
                 const articles = expanded ? all : featured;
                 return (
