@@ -881,7 +881,7 @@ function RowActions({
               toast.error(
                 row.isActive
                   ? "This mailbox is not connected yet, so a test cannot be sent. Re-check the connection first."
-                  : "This mailbox is paused. Reactivate it under Email Accounts to use it.",
+                  : "This mailbox is paused. Reactivate it under Mailboxes to use it.",
               );
               return;
             }
