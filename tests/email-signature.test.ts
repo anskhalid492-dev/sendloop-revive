@@ -108,7 +108,7 @@ describe("final composition", () => {
 
   it("never injects a second html block when one is already present", () => {
     const signature = renderSignature(ROW, FIELDS)!;
-    const first = injectSignatureHtml(campaignBodyHtml("Hello"), signature.html);
+    const first = injectSignatureHtml(campaignBodyHtml(signatureHtmlSource("Hello")), signature.html);
     const second = injectSignatureHtml(first, signature.html);
     expect(second.match(/Anas Khalid/g)).toHaveLength(1);
   });
