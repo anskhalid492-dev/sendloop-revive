@@ -654,6 +654,34 @@ function MailboxCell({ row, onOpen }: { row: WorkspaceMailboxRow; onOpen: () => 
 }
 
 function StatusBadge({ row }: { row: WorkspaceMailboxRow }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <HealthDot row={row} />
+      <ConnectionBadge row={row} />
+    </span>
+  );
+}
+
+/** Green / yellow / red at a glance, from the one shared health rule. */
+function HealthDot({ row }: { row: WorkspaceMailboxRow }) {
+  const health = mailboxHealth({
+    status: row.status,
+    isActive: row.isActive,
+    authStatus: (row.authStatus as AuthCheckState | null) ?? null,
+    authReason: row.authReason,
+    paused: row.paused,
+    pauseReason: row.warmupPauseReason,
+  });
+  return (
+    <span
+      title={`${health.label} — ${health.reason}`}
+      aria-label={`${health.label}. ${health.reason}`}
+      className={cn("inline-block size-2.5 shrink-0 rounded-full", MAILBOX_HEALTH_CLASS[health.colour])}
+    />
+  );
+}
+
+function ConnectionBadge({ row }: { row: WorkspaceMailboxRow }) {
   if (row.status === "failed") return <Badge variant="destructive">Error</Badge>;
   if (row.status === "pending") return <Badge variant="secondary">Pending</Badge>;
   if (!row.isActive) return <Badge variant="secondary">Paused</Badge>;
