@@ -225,6 +225,7 @@ export async function persistMailboxAuth(
 export type MailboxAuthRow = {
   id: string;
   email_address: string;
+  workspace_id?: string | null;
   auth_status?: string | null;
   auth_checked_at?: string | null;
   is_active?: boolean | null;
@@ -242,7 +243,8 @@ export async function mailboxesDueForAuthCheck(
 ): Promise<MailboxAuthRow[] | null> {
   const { data, error } = await admin
     .from("mailboxes")
-    .select("id, email_address, auth_status, auth_checked_at, is_active")
+    .select("id, email_address, workspace_id, auth_status, auth_checked_at, is_active")
+
     .order("auth_checked_at", { ascending: true, nullsFirst: true })
     .limit(limit);
   if (error) {
