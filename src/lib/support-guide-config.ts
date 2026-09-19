@@ -3,7 +3,6 @@ import { getArticle, type HelpArticle } from "./help-center";
 export const SUPPORT_START_HERE = [
   "quick-start",
   "connect-a-mailbox",
-  "verify-a-domain",
   "import-leads",
   "create-a-campaign",
   "launch-first-campaign",
@@ -13,7 +12,7 @@ export const SUPPORT_GUIDE_GROUPS = [
   {
     slug: "getting-started",
     label: "Getting Started",
-    articles: ["quick-start", "how-munchreach-works", "connect-a-mailbox", "verify-a-domain", "import-leads", "create-a-campaign", "create-follow-ups", "launch-first-campaign"],
+    articles: ["quick-start", "how-munchreach-works", "connect-a-mailbox", "import-leads", "create-a-campaign", "create-follow-ups", "launch-first-campaign"],
   },
   {
     slug: "campaigns",
@@ -49,11 +48,6 @@ export const SUPPORT_GUIDE_GROUPS = [
     slug: "warmup",
     label: "Warmup",
     articles: ["how-warmup-works", "start-warmup", "warmup-settings", "warmup-troubleshooting"],
-  },
-  {
-    slug: "domains",
-    label: "Domains",
-    articles: ["why-domain-verification-matters", "verify-a-domain", "spf-dkim-dmarc", "dns-propagation", "tracking-domains", "domain-receiving-setup", "domain-verification-troubleshooting"],
   },
   {
     slug: "analytics",

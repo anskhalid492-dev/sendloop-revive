@@ -14,15 +14,14 @@ export const TROUBLESHOOTING_ARTICLES: HelpArticle[] = [
     related: ["campaign-not-sending", "inbox-missing-replies", "mailbox-troubleshooting", "contact-support"],
     content: `Work through these before anything else. They account for most support tickets.
 
-1. **Is the domain still verified?** Email Accounts → the domain row → **Check DNS**.
-2. **Is at least one mailbox Active?** Warming, Paused and Error mailboxes do not carry campaign volume.
-3. **Is it inside the sending window right now,** in the campaign's timezone?
-4. **Has the daily limit already been used?** Check the mailbox limit popover.
-5. **Is the campaign actually Active,** not Draft, Paused or Completed?
-6. **Are the remaining recipients eligible,** or suppressed and stopped?
+1. **Is at least one mailbox Active?** Open Email Accounts and check its current status.
+2. **Is it inside the sending window right now,** in the campaign's timezone?
+3. **Has the daily limit already been used?** Check the mailbox limit popover.
+4. **Is the campaign actually Active,** not Draft, Paused or Completed?
+5. **Are the remaining recipients eligible,** or suppressed and stopped?
 
 ## Important notes
-Most "nothing is happening" reports are a closed sending window or an unverified domain. Check those two first, every time.`,
+Most "nothing is happening" reports are a closed sending window or no Active mailbox. Check those two first, every time.`,
   },
   {
     slug: "campaign-not-sending",
@@ -41,7 +40,7 @@ The campaign shows Active and the queue has scheduled messages, but nothing goes
 - Daily or hourly limits already consumed for the period
 - All assigned mailboxes are warming, paused or in error
 - No mailbox assigned
-- The domain lost verification
+- Every assigned mailbox requires attention
 - Every remaining recipient is suppressed or stopped
 
 ## How to check
@@ -49,13 +48,12 @@ The campaign shows Active and the queue has scheduled messages, but nothing goes
 2. Campaign → **Queue**: counts by status and the scheduled times.
 3. Campaign → **Email Accounts**: at least one Active mailbox.
 4. Email Accounts page: Errors and Alerts tiles.
-5. Domain row: Ready to send.
 
 ## How to fix
-Open the window, fix or add mailboxes, republish DNS records, or accept that limits are pacing you.
+Open the window, fix or add mailboxes, or accept that limits are pacing you.
 
 ## When to contact support
-Window open, mailboxes Active, domain verified, queue full, nothing sent for hours.`,
+Window open, mailboxes Active, queue full, nothing sent for hours.`,
   },
   {
     slug: "campaign-launch-failed",
@@ -129,7 +127,7 @@ A clean, correctly mapped file under the row limit fails with no reason given.`,
     related: ["spam-placement-first-checks", "deliverability-basics", "reduce-bounce-rate", "warmup-best-practices"],
     content: `## Immediate actions
 1. Pause the campaign. Continuing to send makes it worse.
-2. **Check DNS** on the domain — a changed record is the most common sudden cause.
+2. Check Email Accounts for mailbox errors or health warnings.
 3. Look at bounce and complaint rates for the last few days.
 4. Cut daily volume per mailbox roughly in half before resuming.
 

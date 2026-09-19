@@ -103,10 +103,10 @@ Widening the window is usually a better lever than raising a limit. Same volume,
     keywords: ["capacity", "send more", "scale", "volume", "more mailboxes"],
     related: ["mailbox-limits", "throughput-estimate", "deliverability-basics", "warmup-best-practices"],
     content: `## The right lever: more mailboxes
-Capacity is mailboxes multiplied by per-mailbox limits. Adding mailboxes on healthy, verified domains scales safely. Raising one mailbox's daily limit to compensate does not.
+Capacity is mailboxes multiplied by per-mailbox limits. Adding healthy mailboxes scales safely. Raising one mailbox's daily limit to compensate does not.
 
 ## Steps
-1. Verify an additional domain, or add mailboxes to a verified one.
+1. Connect additional mailboxes.
 2. Let warmup ramp them for a few weeks.
 3. Assign them to the campaign on its **Email Accounts** tab.
 4. Recheck the Throughput estimate on the Schedule tab.
@@ -133,18 +133,17 @@ The campaign is Active, the queue has messages, nothing goes out.
 - Every assigned mailbox is warming, paused or in error
 - No mailbox is assigned to the campaign
 - All remaining recipients are suppressed or already stopped by a stop rule
-- The domain fell out of verification
+- Every assigned mailbox requires attention
 
 ## How to check
 1. Compare the current time in the campaign's timezone with its window.
 2. Campaign → **Queue**: how many scheduled, and for when?
 3. Campaign → **Email Accounts**: is at least one mailbox Active?
 4. Email Accounts page: any Errors or Alerts?
-5. Domain row: still Ready to send?
 
 ## How to fix
 - Wait for the window, or widen it.
-- Fix or add mailboxes; republish any missing DNS record.
+- Fix or add mailboxes using the action shown in mailbox details.
 - Raise the daily limit only if the mailboxes can genuinely support it.
 
 ## When to contact support
@@ -165,7 +164,7 @@ Some messages show Failed or stay in Processing, or the campaign sends less than
 - Invalid recipient addresses rejected at delivery time
 - A mailbox hit an error mid-run and was skipped
 - Limits reached — expected behaviour, not a fault
-- The domain lost verification during the run
+- A mailbox required attention during the run
 - Recipients suppressed after the queue was built
 
 ## How to check
@@ -175,7 +174,7 @@ Some messages show Failed or stay in Processing, or the campaign sends less than
 
 ## How to fix
 - Clean invalid addresses out of the list and re-verify future imports.
-- Resolve the mailbox or domain issue, then let the scheduler retry.
+- Resolve the mailbox issue, then let the scheduler retry.
 - Accept limit-driven pacing; add capacity if you need more.
 
 ## When to contact support

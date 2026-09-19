@@ -111,7 +111,7 @@ There is no legitimate way to send high cold volume from a week-old mailbox. Any
     updated: "2026-09-19",
     popular: true,
     keywords: ["warmup troubleshooting", "warmup error", "paused warmup", "stalled warmup", "warmup not working"],
-    related: ["warmup-statuses", "mailbox-stuck-warming-up", "mailbox-health", "domain-verification-troubleshooting"],
+    related: ["warmup-statuses", "mailbox-stuck-warming-up", "mailbox-health"],
     tldr: [
       "Open Warmup and read the mailbox status before changing any setting.",
       "Fix authentication, bounce, complaint, or connection warnings before resuming a protected mailbox.",
@@ -121,7 +121,7 @@ There is no legitimate way to send high cold volume from a week-old mailbox. Any
     content: `## What you need before starting
 - Access to the workspace that owns the mailbox
 - The mailbox connected and visible under **Email Accounts**
-- Access to the domain's DNS settings if authentication needs attention
+- Access to the mailbox connection if its setup needs attention
 
 ## Step 1: Read the current status
 Go to **Warmup** and find the mailbox. Check its stage, health indicator, current daily volume, and any pause or recovery reason shown in the row.
@@ -129,11 +129,11 @@ Go to **Warmup** and find the mailbox. Check its stage, health indicator, curren
 ## Step 2: Check the mailbox
 Go to **Email Accounts**, open the same mailbox, and confirm it is active, connected, and not showing **Setup required**, **Sending not ready**, **Verification required**, or **Error**.
 
-## Step 3: Check authentication
-In the mailbox details, review authentication. If DNS is not verified, use the existing verification action and follow the records shown for that mailbox. Wait for DNS propagation before checking again.
+## Step 3: Check mailbox readiness
+In the mailbox details, review its status and follow the action shown if setup or sending readiness needs attention.
 
 ## Step 4: Resolve the reason before resuming
-- For an authentication hold, correct the DNS records and verify again.
+- For a setup hold, complete the mailbox action shown and check again.
 - For a bounce or complaint hold, stop campaign traffic from questionable lists and review the affected recipients.
 - For a connection error, reconnect the mailbox and confirm the health check passes.
 - For a slow Ramp Up stage with no warning, leave the ramp unchanged and allow it to progress.
@@ -144,18 +144,18 @@ The mailbox shows a healthy or recovering state, the blocking reason clears, and
 ## Common problems
 - **Warmup is paused again after resuming** — the underlying protection reason was not cleared.
 - **No activity today** — the warmup window may be closed, or campaign traffic may be using the mailbox's available capacity.
-- **DNS still not verified** — records may be missing, duplicated, or still propagating.
+- **Mailbox is not ready** — open its details and complete the required action.
 - **Mailbox looks healthy but does not progress** — confirm it is active and its warmup schedule includes the current day.
 
 ## Quick troubleshooting
 1. Refresh Warmup and read the newest reason.
-2. Open **Email Accounts** and check the mailbox status and authentication.
+2. Open **Email Accounts** and check the mailbox status.
 3. Confirm today's warmup schedule is open.
 4. Resume only after the blocking status has cleared.
-5. Contact Support if the mailbox is active, authentication is verified, the schedule is open, and no progress appears after the next scheduled window.
+5. Contact Support if the mailbox is active, the schedule is open, and no progress appears after the next scheduled window.
 
 ## Related guides
-See **Warmup statuses**, **Mailbox stuck warming up**, **Checking mailbox health and status**, and **Domain verification troubleshooting**.`,
+See **Warmup statuses**, **Mailbox stuck warming up**, and **Checking mailbox health and status**.`,
   },
   {
     slug: "mailbox-stuck-warming-up",
@@ -165,29 +165,29 @@ See **Warmup statuses**, **Mailbox stuck warming up**, **Checking mailbox health
     updated: UPDATED,
     popular: true,
     keywords: ["stuck warming", "no progress", "warmup paused", "not ramping"],
-    related: ["warmup-statuses", "bounce-complaint-protection", "domain-verification-troubleshooting", "mailbox-health"],
+    related: ["warmup-statuses", "bounce-complaint-protection", "mailbox-health"],
     content: `## Problem
 A mailbox stays Warming with no ramp, or is repeatedly auto-paused.
 
 ## Possible causes
 - A safety threshold keeps pausing it — bounces, complaints or authentication
-- The domain fell out of verification
+- The mailbox requires setup or attention
 - The warmup schedule excludes most of the week
 - The mailbox is genuinely early in a Conservative ramp and is fine
 
 ## How to check
 1. Warmup → read the mailbox's status badge; it names the protection that paused it.
-2. Email Accounts → the domain row → **Check DNS**.
+2. Email Accounts → open the mailbox and read its current status.
 3. Open warmup settings and check the schedule days and hours.
 4. Look at the mailbox's health band and recent bounce rate.
 
 ## How to fix
-- Fix authentication and re-verify the domain.
+- Complete the mailbox action shown before resuming warmup.
 - Clean the lead lists causing bounces or complaints before resuming.
 - Widen the warmup schedule.
 - If it is early in a Conservative ramp, leave it alone; slow is the point.
 
 ## When to contact support
-Domain verified, no protection pause recorded, health good, and volume has not moved in over a week.`,
+Mailbox Active, no protection pause recorded, health good, and volume has not moved in over a week.`,
   },
 ];

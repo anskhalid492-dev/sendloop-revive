@@ -33,7 +33,7 @@ export const CAMPAIGN_ARTICLES: HelpArticle[] = [
     category: "campaigns",
     updated: UPDATED,
     keywords: ["campaign options", "settings tab", "tracking", "stop on reply"],
-    related: ["stop-rules", "sending-limits", "tracking-domains", "create-a-campaign"],
+    related: ["stop-rules", "sending-limits", "open-rate-accuracy", "create-a-campaign"],
     content: `## Options
 Behavioural rules for the campaign: whether opens and clicks are tracked, whether follow-ups stay on the same thread, and the stop rules that remove a lead from the remaining steps.
 

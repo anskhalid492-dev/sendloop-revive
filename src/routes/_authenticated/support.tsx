@@ -371,7 +371,7 @@ function HelpCenter({ onContact }: { onContact: () => void }) {
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>Popular searches:</span>
-          {["CSV import", "domain verification", "campaign not sending", "mailbox error", "warmup", "replies", "AI personalization", "billing"].map((term) => (
+          {["CSV import", "campaign not sending", "mailbox error", "warmup", "replies", "AI personalization", "billing"].map((term) => (
             <Button key={term} type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setQuery(term)}>
               {term}
             </Button>

@@ -19,7 +19,6 @@ import { SENDING_ARTICLES } from "./articles/sending";
 import { INBOX_ARTICLES } from "./articles/inbox";
 import { WARMUP_ARTICLES } from "./articles/warmup";
 import { ANALYTICS_ARTICLES } from "./articles/analytics";
-import { DOMAIN_ARTICLES } from "./articles/domains";
 import { DELIVERABILITY_ARTICLES } from "./articles/deliverability";
 import { COMPLIANCE_ARTICLES } from "./articles/compliance";
 import { INTEGRATION_ARTICLES } from "./articles/integrations";
@@ -43,7 +42,6 @@ export const HELP_ARTICLES: HelpArticle[] = [
   ...INBOX_ARTICLES,
   ...WARMUP_ARTICLES,
   ...ANALYTICS_ARTICLES,
-  ...DOMAIN_ARTICLES,
   ...DELIVERABILITY_ARTICLES,
   ...COMPLIANCE_ARTICLES,
   ...INTEGRATION_ARTICLES,

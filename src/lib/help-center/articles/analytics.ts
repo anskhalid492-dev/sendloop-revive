@@ -97,18 +97,18 @@ Tracking also adds a redirect to every link, which very slightly costs deliverab
     category: "analytics",
     updated: UPDATED,
     keywords: ["no opens", "tracking broken", "clicks not recorded", "zero opens"],
-    related: ["tracking-domains", "open-rate-accuracy", "reading-analytics"],
+    related: ["open-rate-accuracy", "reading-analytics", "campaign-settings"],
     content: `## Problem
 Emails send, but opens and clicks stay at zero.
 
 ## Possible causes
-- Tracking is not enabled or the tracking record is unverified
+- Tracking is not enabled for the campaign
 - The campaign was sent before tracking was configured
 - Recipients block images and never click — genuinely zero
 - No links exist in the email to click
 
 ## How to check
-1. Email Accounts → the domain row → **DNS records** → the Tracking section. Is it Verified?
+1. Open the campaign settings and confirm tracking is enabled.
 2. Check whether the campaign's sends predate tracking setup.
 3. Send yourself a test, open it with images enabled and click a link.
 
