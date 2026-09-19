@@ -112,7 +112,23 @@ export async function sendReplyThroughMailbox(args: {
     { extras: senderExtras(account) },
   );
   const subject = rendered.subject.trim() || args.subject;
-  const body = rendered.body;
+  // Mailbox signature for the mailbox this reply actually leaves through. It is
+  // appended to the newly typed reply only — the quoted history the reply
+  // system adds later is never touched, and a retried send rebuilds the same
+  // single signature.
+  const { resolveSignatureForSender } = await import("@/lib/signatures.server");
+  const { applySignatureToText, signatureHtmlSource, injectSignatureHtml, clearSignatureToken } =
+    await import("@/lib/signature-model");
+  const replySignature = await resolveSignatureForSender(
+    supabaseAdmin,
+    conversation.workspace_id as string,
+    account.from_email as string,
+    account.from_name as string | null,
+  );
+  const body = applySignatureToText(rendered.body, replySignature?.text ?? null);
+  const replyHtmlSource = replySignature
+    ? signatureHtmlSource(rendered.body)
+    : clearSignatureToken(rendered.body);
 
   const { data: lastInbound } = await supabase
     .from("conversation_messages")
@@ -206,7 +222,8 @@ export async function sendReplyThroughMailbox(args: {
   const { campaignBodyHtml } = await import("@/lib/email-html");
   const { applyEmailTracking } = await import("@/lib/email-tracking");
   // Same shared tracking step as campaign dispatch and Compose.
-  const replyHtml = applyEmailTracking(campaignBodyHtml(body), {
+  const replyHtml = injectSignatureHtml(
+    applyEmailTracking(campaignBodyHtml(replyHtmlSource), {
     target: {
       workspaceId: conversation.workspace_id as string,
       messageKind: "conversation",
@@ -215,9 +232,11 @@ export async function sendReplyThroughMailbox(args: {
       leadId: (conversation.lead_id as string | null) ?? null,
       email: conversation.prospect_email as string,
     },
-    trackOpens: true,
-    trackClicks: true,
-  });
+      trackOpens: true,
+      trackClicks: true,
+    }),
+    replySignature?.html ?? null,
+  );
 
 
   // ONE message: the prospect on To, any Cc addresses visible to each other,

@@ -11,6 +11,7 @@ import {
   Monitor,
   Moon,
   Palette,
+  PenLine,
   Plug,
   Send,
   Shield,
@@ -57,6 +58,7 @@ import {
   PermissionsTab,
   TeamTab,
 } from "@/routes/_authenticated/workspace";
+import { SignatureTab } from "@/components/settings/SignatureTab";
 import { validatePassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -104,6 +106,7 @@ const SECTIONS = [
   { id: "team", label: "Team", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "sending", label: "Email & Sending", icon: Send },
+  { id: "signature", label: "Email Signature", icon: PenLine },
   { id: "integrations", label: "Integrations", icon: Plug },
   { id: "api", label: "Developer API", icon: KeyRound },
   { id: "security", label: "Security", icon: Shield },
@@ -199,6 +202,7 @@ function Page() {
 
           {section === "notifications" ? <NotificationsTab /> : null}
           {section === "sending" ? <SendingTab workspaceId={workspaceId} /> : null}
+          {section === "signature" ? <SignatureTab workspaceId={workspaceId} /> : null}
           {section === "integrations" ? <IntegrationsTab /> : null}
           {section === "api" ? <ApiKeysTab workspaceId={workspaceId} /> : null}
           {section === "security" ? <SecuritySection /> : null}
