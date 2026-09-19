@@ -66,6 +66,15 @@ export type WorkspaceMailboxRow = {
   dkim: string | null;
   dmarc: string | null;
   mx: string | null;
+
+  /**
+   * Verdict from the last independent DNS check of this mailbox's OWN domain
+   * (pass | warn | fail | unchecked). Null until the check has been deployed
+   * and has run for this mailbox.
+   */
+  authStatus: string | null;
+  authReason: string | null;
+  authCheckedAt: string | null;
 };
 
 export type WorkspaceMailboxSummary = {
