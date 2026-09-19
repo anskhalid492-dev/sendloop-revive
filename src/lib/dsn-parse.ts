@@ -83,8 +83,17 @@ export function parseDeliveryReport(input: {
 
   const permanentCode = code?.startsWith("5") || basic === "5";
   const temporaryCode = code?.startsWith("4") || basic === "4";
+  // RFC 3463 subject class: 1 = address, 2 = mailbox, 4 = network, 7 = policy.
+  // Classification keys off this number, never off one server's wording.
+  const subclass = code?.split(".")[1] ?? null;
 
-  const temporary = temporaryCode || (!permanentCode && DELAY_HINTS.test(text));
+  const invalidRecipientText = INVALID_RECIPIENT_HINTS.test(text);
+  const mailboxOrNetwork = subclass === "2" || subclass === "4";
+
+  const temporary =
+    temporaryCode ||
+    (permanentCode && mailboxOrNetwork && !invalidRecipientText) ||
+    (!permanentCode && DELAY_HINTS.test(text));
 
   const reason =
     detail ??
@@ -93,11 +102,12 @@ export function parseDeliveryReport(input: {
 
   if (temporary) return { kind: "delayed", status: code, reason: reason.slice(0, 500) };
 
-  // A generic 5xx response, and especially 5.7.x, can mean the receiving
-  // server rejected the sender/content while the recipient itself is valid.
-  // Only explicit recipient-invalid evidence is safe to call a bounce and to
-  // place on the workspace suppression list.
-  const invalidRecipient = INVALID_RECIPIENT_HINTS.test(`${text}\n${reason}`);
+  // X.1.x = the address itself (true bounce). X.7.x = sender/policy/reputation
+  // refusal — the recipient may be perfectly valid, so never a bounce and never
+  // suppressed. Anything ambiguous falls to "failed", the safe side.
+  const invalidRecipient =
+    subclass === "1" ||
+    (subclass !== "7" && INVALID_RECIPIENT_HINTS.test(`${text}\n${reason}`));
   return {
     kind: invalidRecipient ? "bounced" : "failed",
     status: code,
