@@ -25,6 +25,8 @@ import {
   testMailboxConnection,
   type MailboxConnectionTest,
 } from "@/lib/customer-mailboxes.functions";
+import type { MailboxAuthResult } from "@/lib/mailbox-auth-check";
+import { checkMailboxAuthentication } from "@/lib/mailbox-auth.functions";
 import { suggestMailboxSettings, type MailSecurity } from "@/lib/mailbox-presets";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/connect")({
