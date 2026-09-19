@@ -61,7 +61,7 @@ export async function applyDeliveryEvent(args: {
   });
   const message = (resolved?.row as CampaignMessageRow | null | undefined) ?? null;
   const workspaceId = message?.workspace_id ?? null;
-  if (!workspaceId) {
+  if (!message || !workspaceId) {
     return {
       status: "unmatched",
       reason: ids.length ? "Provider message ID not found" : "No matching send",
