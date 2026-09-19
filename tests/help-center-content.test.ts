@@ -11,6 +11,11 @@ import {
   relatedArticles,
   searchArticles,
 } from "@/lib/help-center";
+import {
+  SUPPORT_GUIDE_GROUPS,
+  SUPPORT_START_HERE,
+  resolveSupportArticles,
+} from "@/lib/support-guide-config";
 
 /**
  * Customer-facing Help Center content must never name the third-party services
@@ -143,6 +148,10 @@ describe("help center search", () => {
     { query: "invoice", expected: "plans-and-invoices" },
     { query: "unsubscribe", expected: "manage-unsubscribes" },
     { query: "gmail", expected: "supported-account-types" },
+    { query: "mailbox error", expected: "mailbox-troubleshooting" },
+    { query: "campaign not sending", expected: "why-campaign-not-sending" },
+    { query: "replies", expected: "inbox-replies-and-threading" },
+    { query: "billing", expected: "plans-and-invoices" },
   ];
 
   for (const { query, expected } of cases) {
@@ -163,6 +172,25 @@ describe("help center search", () => {
 
   it("returns the whole category when the query is empty", () => {
     expect(searchArticles("", "warmup").length).toBeGreaterThan(0);
+  });
+});
+
+describe("logged-in support guide curation", () => {
+  it("resolves every Start Here guide from the shared Help Center", () => {
+    expect(resolveSupportArticles(SUPPORT_START_HERE)).toHaveLength(SUPPORT_START_HERE.length);
+  });
+
+  it("resolves every featured guide without creating a second article source", () => {
+    for (const group of SUPPORT_GUIDE_GROUPS) {
+      expect(resolveSupportArticles(group.articles), group.slug).toHaveLength(group.articles.length);
+    }
+  });
+
+  it("includes every requested Support category", () => {
+    expect(SUPPORT_GUIDE_GROUPS.map((group) => group.slug)).toEqual([
+      "getting-started", "campaigns", "leads", "email-accounts", "ai", "sending",
+      "inbox", "warmup", "domains", "analytics", "billing", "troubleshooting",
+    ]);
   });
 });
 
