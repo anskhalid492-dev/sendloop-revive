@@ -234,10 +234,39 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     // (campaigns.sending_account_ids) contains the mailbox's sending account.
     const campaignsByAccount = await loadCampaignUsage(client, data.workspaceId, accountIds);
 
+    // Authentication verdicts are read separately so the whole listing still
+    // works before the additive auth columns are deployed.
+    const authByMailbox = new Map<
+      string,
+      { auth_status: string | null; auth_reason: string | null; auth_checked_at: string | null }
+    >();
+    if (mailboxes.length > 0) {
+      const { data: authRows } = await client
+        .from("mailboxes")
+        .select("id, auth_status, auth_reason, auth_checked_at")
+        .in(
+          "id",
+          mailboxes.map((row) => row.id),
+        );
+      for (const authRow of (authRows ?? []) as Array<{
+        id: string;
+        auth_status: string | null;
+        auth_reason: string | null;
+        auth_checked_at: string | null;
+      }>) {
+        authByMailbox.set(authRow.id, {
+          auth_status: authRow.auth_status ?? null,
+          auth_reason: authRow.auth_reason ?? null,
+          auth_checked_at: authRow.auth_checked_at ?? null,
+        });
+      }
+    }
+
     const dayStart = mailboxWindowStart();
     const rows: WorkspaceMailboxRow[] = mailboxes.map((row) => {
       const account = byEmail.get(row.email_address.toLowerCase()) ?? null;
       const warmup = account ? warmupByAccount.get(account.id) ?? null : null;
+      const auth = authByMailbox.get(row.id) ?? null;
       return {
         id: row.id,
         email: row.email_address,
