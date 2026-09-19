@@ -185,6 +185,7 @@ import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/
 import { Route as ApiPublicCronPollMailboxesRouteImport } from './routes/api/public/cron/poll-mailboxes'
 import { Route as ApiPublicCronProviderHealthRouteImport } from './routes/api/public/cron/provider-health'
 import { Route as ApiPublicCronRecheckDomainsRouteImport } from './routes/api/public/cron/recheck-domains'
+import { Route as ApiPublicCronRecheckMailboxAuthRouteImport } from './routes/api/public/cron/recheck-mailbox-auth'
 import { Route as ApiPublicCronReconcileDeliveryRouteImport } from './routes/api/public/cron/reconcile-delivery'
 import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/public/cron/retry-inbound'
 import { Route as ApiPublicCronRunAiPersonalizationRouteImport } from './routes/api/public/cron/run-ai-personalization'
@@ -1192,6 +1193,12 @@ const ApiPublicCronRecheckDomainsRoute =
     path: '/api/public/cron/recheck-domains',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronRecheckMailboxAuthRoute =
+  ApiPublicCronRecheckMailboxAuthRouteImport.update({
+    id: '/api/public/cron/recheck-mailbox-auth',
+    path: '/api/public/cron/recheck-mailbox-auth',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronReconcileDeliveryRoute =
   ApiPublicCronReconcileDeliveryRouteImport.update({
     id: '/api/public/cron/reconcile-delivery',
@@ -1585,6 +1592,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/poll-mailboxes': typeof ApiPublicCronPollMailboxesRoute
   '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
+  '/api/public/cron/recheck-mailbox-auth': typeof ApiPublicCronRecheckMailboxAuthRoute
   '/api/public/cron/reconcile-delivery': typeof ApiPublicCronReconcileDeliveryRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
@@ -1797,6 +1805,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/poll-mailboxes': typeof ApiPublicCronPollMailboxesRoute
   '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
+  '/api/public/cron/recheck-mailbox-auth': typeof ApiPublicCronRecheckMailboxAuthRoute
   '/api/public/cron/reconcile-delivery': typeof ApiPublicCronReconcileDeliveryRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
@@ -2014,6 +2023,7 @@ export interface FileRoutesById {
   '/api/public/cron/poll-mailboxes': typeof ApiPublicCronPollMailboxesRoute
   '/api/public/cron/provider-health': typeof ApiPublicCronProviderHealthRoute
   '/api/public/cron/recheck-domains': typeof ApiPublicCronRecheckDomainsRoute
+  '/api/public/cron/recheck-mailbox-auth': typeof ApiPublicCronRecheckMailboxAuthRoute
   '/api/public/cron/reconcile-delivery': typeof ApiPublicCronReconcileDeliveryRoute
   '/api/public/cron/retry-inbound': typeof ApiPublicCronRetryInboundRoute
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
@@ -2231,6 +2241,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/poll-mailboxes'
     | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
+    | '/api/public/cron/recheck-mailbox-auth'
     | '/api/public/cron/reconcile-delivery'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
@@ -2443,6 +2454,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/poll-mailboxes'
     | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
+    | '/api/public/cron/recheck-mailbox-auth'
     | '/api/public/cron/reconcile-delivery'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
@@ -2659,6 +2671,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/poll-mailboxes'
     | '/api/public/cron/provider-health'
     | '/api/public/cron/recheck-domains'
+    | '/api/public/cron/recheck-mailbox-auth'
     | '/api/public/cron/reconcile-delivery'
     | '/api/public/cron/retry-inbound'
     | '/api/public/cron/run-ai-personalization'
@@ -2784,6 +2797,7 @@ export interface RootRouteChildren {
   ApiPublicCronPollMailboxesRoute: typeof ApiPublicCronPollMailboxesRoute
   ApiPublicCronProviderHealthRoute: typeof ApiPublicCronProviderHealthRoute
   ApiPublicCronRecheckDomainsRoute: typeof ApiPublicCronRecheckDomainsRoute
+  ApiPublicCronRecheckMailboxAuthRoute: typeof ApiPublicCronRecheckMailboxAuthRoute
   ApiPublicCronReconcileDeliveryRoute: typeof ApiPublicCronReconcileDeliveryRoute
   ApiPublicCronRetryInboundRoute: typeof ApiPublicCronRetryInboundRoute
   ApiPublicCronRunAiPersonalizationRoute: typeof ApiPublicCronRunAiPersonalizationRoute
@@ -4046,6 +4060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRecheckDomainsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/recheck-mailbox-auth': {
+      id: '/api/public/cron/recheck-mailbox-auth'
+      path: '/api/public/cron/recheck-mailbox-auth'
+      fullPath: '/api/public/cron/recheck-mailbox-auth'
+      preLoaderRoute: typeof ApiPublicCronRecheckMailboxAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/reconcile-delivery': {
       id: '/api/public/cron/reconcile-delivery'
       path: '/api/public/cron/reconcile-delivery'
@@ -4820,6 +4841,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronPollMailboxesRoute: ApiPublicCronPollMailboxesRoute,
   ApiPublicCronProviderHealthRoute: ApiPublicCronProviderHealthRoute,
   ApiPublicCronRecheckDomainsRoute: ApiPublicCronRecheckDomainsRoute,
+  ApiPublicCronRecheckMailboxAuthRoute: ApiPublicCronRecheckMailboxAuthRoute,
   ApiPublicCronReconcileDeliveryRoute: ApiPublicCronReconcileDeliveryRoute,
   ApiPublicCronRetryInboundRoute: ApiPublicCronRetryInboundRoute,
   ApiPublicCronRunAiPersonalizationRoute:

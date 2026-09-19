@@ -271,6 +271,22 @@ export async function lookupPublicMx(domain: string): Promise<MxRecordValue[]> {
 }
 
 /**
+ * Reads the TXT values published at a name, normalised (quotes stripped,
+ * lowercased). Throws `TransientDnsError` when no resolver could answer, so a
+ * resolver outage is never mistaken for "the record is missing".
+ */
+export async function lookupPublicTxt(name: string): Promise<string[]> {
+  const answers = await resolve(name.toLowerCase().replace(/^\.+|\.+$/g, ""), "TXT");
+  return answers.map((a) => clean(a.data));
+}
+
+/** Reads the CNAME targets published at a name (empty when there are none). */
+export async function lookupPublicCname(name: string): Promise<string[]> {
+  const answers = await resolve(name.toLowerCase().replace(/^\.+|\.+$/g, ""), "CNAME");
+  return answers.map((a) => clean(a.data).replace(/\.$/, ""));
+}
+
+/**
  * Reads the MX records EACH resolver serves, without merging them.
  *
  * While an MX change propagates, one recursive resolver can still be serving the

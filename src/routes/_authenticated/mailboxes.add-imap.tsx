@@ -102,12 +102,16 @@ function ConnectImapPage() {
               }`;
             }
           }
+          // The domain's authentication verdict is reported per row so a bulk
+          // import never hides a domain that is not ready to send.
+          const authNote =
+            saved.auth && saved.auth.overall !== "pass" ? ` ${saved.auth.reason}` : "";
           collected.push({
             email: label,
-            ok: saved.status === "connected",
+            ok: saved.status === "connected" && saved.auth?.overall !== "fail",
             message:
               saved.status === "connected"
-                ? `Connected.${warmupNote}`
+                ? `Connected.${warmupNote}${authNote}`
                 : `SMTP: ${saved.smtp.message} IMAP: ${saved.imap.message}`,
           });
         } catch (error) {

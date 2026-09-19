@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { BackLink } from "@/components/app/BackLink";
+import { MailboxAuthPanel } from "@/components/sending/MailboxAuthPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ import {
   testMailboxConnection,
   type MailboxConnectionTest,
 } from "@/lib/customer-mailboxes.functions";
+import type { MailboxAuthResult } from "@/lib/mailbox-auth-check";
+import { checkMailboxAuthentication } from "@/lib/mailbox-auth.functions";
 import { suggestMailboxSettings, type MailSecurity } from "@/lib/mailbox-presets";
 
 export const Route = createFileRoute("/_authenticated/mailboxes/connect")({
@@ -88,9 +91,12 @@ function ConnectMailboxPage() {
   const { workspace } = useWorkspace();
   const runTest = useServerFn(testMailboxConnection);
   const runSave = useServerFn(saveMailboxConnection);
+  const runAuthCheck = useServerFn(checkMailboxAuthentication);
 
   const [form, setForm] = useState<FormState>(EMPTY);
   const [result, setResult] = useState<MailboxConnectionTest | null>(null);
+  const [auth, setAuth] = useState<MailboxAuthResult | null>(null);
+  const [mailboxId, setMailboxId] = useState<string | null>(null);
   const [presetNote, setPresetNote] = useState<string | null>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -158,6 +164,8 @@ function ConnectMailboxPage() {
       runSave({ data: { ...payload, dailySendLimit: 50, warmupEnabled: false } }),
     onSuccess: (data) => {
       setResult(data);
+      setAuth(data.auth);
+      setMailboxId(data.mailboxId);
       if (data.status === "connected") {
         toast.success("Mailbox connected and saved.");
         setForm((current) => ({ ...current, smtpPassword: "", imapPassword: "" }));
@@ -165,6 +173,20 @@ function ConnectMailboxPage() {
         toast.error("Saved as pending — the logins did not both pass.");
       }
     },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /** Re-reads the domain's public DNS after the customer adds a missing record. */
+  const recheck = useMutation({
+    mutationFn: () =>
+      runAuthCheck({
+        data: {
+          workspaceId: workspace?.id ?? "",
+          emailAddress: payload.emailAddress,
+          ...(mailboxId ? { mailboxId } : {}),
+        },
+      }),
+    onSuccess: (data) => setAuth(data),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -351,6 +373,14 @@ function ConnectMailboxPage() {
                 <ResultRow label="SMTP" ok={result.smtp.ok} message={result.smtp.message} />
                 <ResultRow label="IMAP" ok={result.imap.ok} message={result.imap.message} />
               </div>
+            ) : null}
+
+            {auth ? (
+              <MailboxAuthPanel
+                result={auth}
+                rechecking={recheck.isPending}
+                onRecheck={() => recheck.mutate()}
+              />
             ) : null}
 
             <div className="flex flex-wrap gap-2">

@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
+import { MailboxAuthPanel } from "@/components/sending/MailboxAuthPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   saveMailboxConnection,
   type MailboxSaveResult,
 } from "@/lib/customer-mailboxes.functions";
+import { checkMailboxAuthentication } from "@/lib/mailbox-auth.functions";
 import type { MailSecurity } from "@/lib/mailbox-presets";
 
 export type MailboxServerSettings = {
@@ -43,6 +45,7 @@ export function GuidedMailboxForm({
 }) {
   const { workspace } = useWorkspace();
   const runSave = useServerFn(saveMailboxConnection);
+  const runAuthCheck = useServerFn(checkMailboxAuthentication);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -87,6 +90,20 @@ export function GuidedMailboxForm({
         toast.error("Saved as pending — the logins did not both pass.");
       }
     },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /** Re-reads the domain's public DNS after the customer adds a missing record. */
+  const recheck = useMutation({
+    mutationFn: () =>
+      runAuthCheck({
+        data: {
+          workspaceId: workspace?.id ?? "",
+          emailAddress: address,
+          ...(result?.mailboxId ? { mailboxId: result.mailboxId } : {}),
+        },
+      }),
+    onSuccess: (auth) => setResult((current) => (current ? { ...current, auth } : current)),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -148,6 +165,14 @@ export function GuidedMailboxForm({
             <ResultRow label="SMTP" ok={result.smtp.ok} message={result.smtp.message} />
             <ResultRow label="IMAP" ok={result.imap.ok} message={result.imap.message} />
           </div>
+        ) : null}
+
+        {result?.auth ? (
+          <MailboxAuthPanel
+            result={result.auth}
+            rechecking={recheck.isPending}
+            onRecheck={() => recheck.mutate()}
+          />
         ) : null}
 
         <Button type="button" disabled={!ready || save.isPending} onClick={() => save.mutate()}>
