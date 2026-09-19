@@ -126,7 +126,7 @@ The receiving server accepted the connection and refused the message on policy g
 
 ## Possible causes
 - The sending mailbox has a setup or policy issue
-- The sending domain or its infrastructure is on a blocklist
+- The sending mailbox or its infrastructure is on a blocklist
 - The recipient's organisation blocks external cold mail
 - Volume from your domain tripped the receiver's rate policy
 - The content matched a filtering rule
