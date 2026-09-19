@@ -51,6 +51,7 @@ export type Campaign = {
 };
 
 /** A workspace-authored personalization token, defined per campaign. */
+import { SENDER_SIGNATURE_TOKEN } from "@/lib/signature-model";
 export type CustomVariable = {
   token: string;
   label: string;
@@ -274,6 +275,7 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
     variables: [
       { token: "sender_name", label: "Sender name" },
       { token: "sender_email", label: "Sender email" },
+      { token: SENDER_SIGNATURE_TOKEN, label: "Sender signature" },
     ],
   },
   {
@@ -304,6 +306,7 @@ export const SYSTEM_VARIABLES = new Set([
   "unsubscribe_link",
   "sender_name",
   "sender_email",
+  SENDER_SIGNATURE_TOKEN,
   AI_VARIABLE_TOKEN,
   ...PAIN_POINT_TOKENS,
 ]);
@@ -389,6 +392,10 @@ export function renderTemplate(
   return template.replace(VARIABLE_RE, (_m, token: string, fallback?: string) => {
     const extra = extras[token];
     if (typeof extra === "string") return extra;
+    // The mailbox signature is resolved during final composition, from the
+    // mailbox the email actually leaves through — so the token survives
+    // materialisation untouched instead of being rendered away here.
+    if (token === SENDER_SIGNATURE_TOKEN) return _m;
     const value = leadValue(lead, token);
     if (value) return value;
     const trimmed = (fallback ?? "").trim();
