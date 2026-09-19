@@ -10,6 +10,7 @@
  *   and/or mailbox, always with a human-readable reason.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { isSenderPolicyFailure } from "@/lib/dsn-parse";
 
 /** Rolling window used for every rate calculation. */
 export const GUARD_WINDOW_HOURS = 24;
@@ -215,6 +216,9 @@ export async function runDeliverabilityGuard(args: {
     // "delayed" is transient (greylisting/deferral) and never restricts a contact.
     if (args.kind === "delayed") return;
     if (args.kind === "failed") {
+      // A sender/content policy refusal does not prove that the recipient is
+      // unreachable. Never build recipient suppression from those failures.
+      if (isSenderPolicyFailure(args.detail)) return;
       await flagRepeatedSoftFailures({
         workspaceId: args.workspaceId,
         email: args.email,

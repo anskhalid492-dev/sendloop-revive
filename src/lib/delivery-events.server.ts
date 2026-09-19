@@ -6,6 +6,7 @@
  * campaign automation instead.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { normalizeReportedDeliveryKind } from "@/lib/dsn-parse";
 
 export type DeliveryOutcome = {
   status: "applied" | "unmatched";
@@ -41,6 +42,7 @@ export async function applyDeliveryEvent(args: {
   const db = supabaseAdmin;
   const nowIso = args.occurredAt ?? new Date().toISOString();
   const email = args.email?.toLowerCase() ?? null;
+  const kind = normalizeReportedDeliveryKind(args.kind, args.reason);
 
   if (!args.providerMessageId) {
     const { isWarmupPeerAddress } = await import("@/lib/message-classification.server");
@@ -59,7 +61,7 @@ export async function applyDeliveryEvent(args: {
   });
   const message = (resolved?.row as CampaignMessageRow | null | undefined) ?? null;
   const workspaceId = message?.workspace_id ?? null;
-  if (!workspaceId) {
+  if (!message || !workspaceId) {
     return {
       status: "unmatched",
       reason: ids.length ? "Provider message ID not found" : "No matching send",
@@ -71,8 +73,8 @@ export async function applyDeliveryEvent(args: {
   // idempotent), so campaign metrics always reflect the real provider outcome.
   const { applyDeliveryState } = await import("@/lib/delivery-state.server");
   await applyDeliveryState({
-    message: message!,
-    state: args.kind,
+    message,
+    state: kind,
     detail: args.reason,
     occurredAt: nowIso,
     source: args.source ?? "webhook",
@@ -81,8 +83,8 @@ export async function applyDeliveryEvent(args: {
   const { runDeliverabilityGuard } = await import("@/lib/deliverability-guard.server");
 
   // Soft delays and delivered receipts need no suppression or lead changes.
-  if (args.kind === "sent" || args.kind === "delivered" || args.kind === "delayed") {
-    if (args.kind === "delayed") {
+  if (kind === "sent" || kind === "delivered" || kind === "delayed") {
+    if (kind === "delayed") {
       await runDeliverabilityGuard({
         kind: "delayed",
         workspaceId,
@@ -101,7 +103,7 @@ export async function applyDeliveryEvent(args: {
     };
   }
 
-  if (args.kind === "failed") {
+  if (kind === "failed") {
     if (message?.campaign_id && message.lead_id) {
       await db
         .from("campaign_recipients")
@@ -110,7 +112,7 @@ export async function applyDeliveryEvent(args: {
         .eq("lead_id", message.lead_id);
     }
     await runDeliverabilityGuard({
-      kind: "failed",
+      kind,
       workspaceId,
       campaignId: message?.campaign_id ?? null,
       sendingAccountId: message?.sending_account_id ?? null,
@@ -132,14 +134,14 @@ export async function applyDeliveryEvent(args: {
     await suppressEmail({
       workspaceId,
       email,
-      reason: args.kind === "bounced" ? "bounced" : args.kind === "complained" ? "complained" : "unsubscribed",
+      reason: kind === "bounced" ? "bounced" : kind === "complained" ? "complained" : "unsubscribed",
       source: "provider",
       detail: args.reason,
     });
   }
 
   const leadStatus =
-    args.kind === "bounced" ? "bounced" : args.kind === "unsubscribed" ? "unsubscribed" : "not_interested";
+    kind === "bounced" ? "bounced" : kind === "unsubscribed" ? "unsubscribed" : "not_interested";
 
   const leadId = message?.lead_id ?? null;
   if (leadId) {
@@ -148,8 +150,8 @@ export async function applyDeliveryEvent(args: {
       lead_id: leadId,
       workspace_id: workspaceId,
       campaign_id: message?.campaign_id ?? null,
-      type: args.kind,
-      detail: args.reason ?? `Email ${args.kind}`,
+      type: kind,
+      detail: args.reason ?? `Email ${kind}`,
     });
   }
 
@@ -157,9 +159,9 @@ export async function applyDeliveryEvent(args: {
   // is persisted on every cancelled message so the bounce/unsubscribe is still
   // counted everywhere instead of disappearing into the Cancelled bucket.
   const cancelledReason =
-    args.kind === "bounced"
+    kind === "bounced"
       ? "recipient_bounced"
-      : args.kind === "complained"
+      : kind === "complained"
         ? "recipient_complained"
         : "recipient_unsubscribed";
 
@@ -167,11 +169,11 @@ export async function applyDeliveryEvent(args: {
     await db
       .from("campaign_recipients")
       .update({
-        status: args.kind === "bounced" ? "bounced" : "unsubscribed",
+        status: kind === "bounced" ? "bounced" : "unsubscribed",
         next_send_at: null,
         last_error: args.reason,
         // Why the bounce happened, kept on the recipient as well as the email.
-        ...(args.kind === "bounced"
+        ...(kind === "bounced"
           ? { bounce_reason: args.reason?.slice(0, 500) ?? null, bounced_at: nowIso }
           : {}),
       } as never)
@@ -187,7 +189,7 @@ export async function applyDeliveryEvent(args: {
   }
 
   // Also stop every other campaign in the workspace for this address.
-  if (email && (args.kind === "bounced" || args.kind === "unsubscribed")) {
+  if (email && (kind === "bounced" || kind === "unsubscribed")) {
     await db
       .from("campaign_messages")
       .update({ status: "cancelled", cancelled_reason: cancelledReason } as never)
@@ -203,8 +205,8 @@ export async function applyDeliveryEvent(args: {
   const rowsToInsert = (members ?? []).map((m) => ({
     user_id: m.user_id,
     workspace_id: workspaceId,
-    type: args.kind,
-    title: `${email ?? "A recipient"} ${args.kind}`,
+    type: kind,
+    title: `${email ?? "A recipient"} ${kind}`,
     message: args.reason,
     entity_type: "lead",
     entity_id: leadId,
@@ -213,7 +215,7 @@ export async function applyDeliveryEvent(args: {
 
   // High bounce / complaint rates pause the campaign and mailbox, with reason.
   await runDeliverabilityGuard({
-    kind: args.kind,
+    kind,
     workspaceId,
     campaignId: message?.campaign_id ?? null,
     sendingAccountId: message?.sending_account_id ?? null,

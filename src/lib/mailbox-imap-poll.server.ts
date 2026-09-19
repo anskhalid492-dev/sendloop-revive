@@ -189,9 +189,9 @@ async function processFolderMessages(
           );
           continue;
         }
-        // The report itself says whether the failure was permanent (bad address,
-        // blocked) or only a temporary deferral. A deferral must never be
-        // recorded as a bounce or suppress a perfectly valid address.
+        // Only explicit invalid-recipient evidence is a bounce. Sender-policy
+        // refusals (including 550 5.7.x) are failed sends: the reason is kept,
+        // but a valid recipient is not labelled or suppressed as bounced.
         const report = parseDeliveryReport({ text: body.text, subject: message.subject });
         const applied = await applyDeliveryEvent({
           kind: report.kind,
