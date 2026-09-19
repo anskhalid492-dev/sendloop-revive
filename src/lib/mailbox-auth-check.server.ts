@@ -127,17 +127,56 @@ function missingColumn(error: { code?: string | null } | null): boolean {
 }
 
 export type MailboxAuthPersistOptions = {
-  /** Previous stored status, used so a first sweep can report without pausing. */
+  /** Previous stored status, used so a first sweep can report without alerting twice. */
   previousStatus?: string | null;
-  /** When true, a repeated hard failure switches the mailbox off. */
+  /** When true, a repeated hard failure alerts the workspace. */
   allowPause?: boolean;
+  /** Used to notify the workspace when a domain stops authenticating. */
+  workspaceId?: string | null;
+  /** Shown in the alert. */
+  emailAddress?: string | null;
 };
+
+/** Tells the workspace, in plain language, that a mailbox is held out of sending. */
+async function notifyAuthHold(
+  admin: Admin,
+  workspaceId: string,
+  mailboxId: string,
+  emailAddress: string | null,
+  reason: string,
+): Promise<void> {
+  try {
+    const { data: members } = await admin
+      .from("workspace_members")
+      .select("user_id")
+      .eq("workspace_id", workspaceId);
+    const rows = ((members ?? []) as { user_id: string }[]).map((member) => ({
+      user_id: member.user_id,
+      workspace_id: workspaceId,
+      type: "mailbox",
+      title: `${emailAddress ?? "A mailbox"} is paused for sending`,
+      message: `${reason} Replies still arrive in your inbox. Fix the records, then re-check the mailbox.`.slice(
+        0,
+        500,
+      ),
+      entity_type: "mailbox",
+      entity_id: mailboxId,
+    }));
+    if (rows.length) await admin.from("notifications").insert(rows);
+  } catch (error) {
+    console.error("[mailbox-auth] could not notify workspace", error);
+  }
+}
 
 /**
  * Stores the result on the mailbox row.
  *
  * Tolerant of the auth columns not being deployed yet: the check still runs and
  * is returned to the caller, it just is not persisted.
+ *
+ * A failing domain is held out of campaign sending through `auth_status` only —
+ * the mailbox connection itself stays active so replies and bounces keep syncing
+ * into the Unified Inbox — and the workspace is told why.
  */
 export async function persistMailboxAuth(
   admin: Admin,
@@ -163,7 +202,6 @@ export async function persistMailboxAuth(
     provider_daily_ceiling: limit.dailyCeiling,
     auth_detail: result as unknown as Record<string, unknown>,
     auth_checked_at: result.checkedAt,
-    ...(pause ? { is_active: false } : {}),
   };
 
   const { error } = await admin.from("mailboxes").update(patch).eq("id", mailboxId);
@@ -171,12 +209,23 @@ export async function persistMailboxAuth(
     if (missingColumn(error)) return { stored: false, paused: false };
     throw new Error(error.message);
   }
+  if (pause && options.workspaceId) {
+    await notifyAuthHold(
+      admin,
+      options.workspaceId,
+      mailboxId,
+      options.emailAddress ?? null,
+      result.reason,
+    );
+  }
   return { stored: true, paused: pause };
 }
+
 
 export type MailboxAuthRow = {
   id: string;
   email_address: string;
+  workspace_id?: string | null;
   auth_status?: string | null;
   auth_checked_at?: string | null;
   is_active?: boolean | null;
@@ -194,7 +243,8 @@ export async function mailboxesDueForAuthCheck(
 ): Promise<MailboxAuthRow[] | null> {
   const { data, error } = await admin
     .from("mailboxes")
-    .select("id, email_address, auth_status, auth_checked_at, is_active")
+    .select("id, email_address, workspace_id, auth_status, auth_checked_at, is_active")
+
     .order("auth_checked_at", { ascending: true, nullsFirst: true })
     .limit(limit);
   if (error) {
@@ -232,7 +282,10 @@ export async function runMailboxAuthSweep(
       const stored = await persistMailboxAuth(admin, row.id, result, {
         previousStatus: row.auth_status ?? null,
         allowPause: true,
+        workspaceId: row.workspace_id ?? null,
+        emailAddress: row.email_address,
       });
+
       if (stored.paused) paused += 1;
       if (result.overall === "pass") pass += 1;
       else if (result.overall === "warn") warn += 1;
