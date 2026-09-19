@@ -123,8 +123,24 @@ export async function composeAndSend(input: ComposeInput) {
   const outboundRowId = randomUUID();
   const { campaignBodyHtml } = await import("@/lib/email-html");
   const { applyEmailTracking } = await import("@/lib/email-tracking");
+  // Mailbox signature, resolved server-side from the mailbox this email leaves
+  // through — the same shared composition layer campaigns and replies use.
+  const { resolveSignatureForSender } = await import("@/lib/signatures.server");
+  const { applySignatureToText, signatureHtmlSource, injectSignatureHtml, clearSignatureToken } =
+    await import("@/lib/signature-model");
+  const composeSignature = await resolveSignatureForSender(
+    supabaseAdmin,
+    input.workspaceId,
+    account.from_email as string,
+    account.from_name as string | null,
+  );
+  const composedBody = applySignatureToText(input.body, composeSignature?.text ?? null);
+  const composeHtmlSource = composeSignature
+    ? signatureHtmlSource(input.body)
+    : clearSignatureToken(input.body);
   // Same shared tracking step as campaign dispatch and inbox replies.
-  const composeHtml = applyEmailTracking(campaignBodyHtml(input.body), {
+  const composeHtml = injectSignatureHtml(
+    applyEmailTracking(campaignBodyHtml(composeHtmlSource), {
     target: {
       workspaceId: input.workspaceId,
       messageKind: "conversation",
@@ -132,9 +148,11 @@ export async function composeAndSend(input: ComposeInput) {
       leadId,
       email: to,
     },
-    trackOpens: true,
-    trackClicks: true,
-  });
+      trackOpens: true,
+      trackClicks: true,
+    }),
+    composeSignature?.html ?? null,
+  );
 
 
   // ONE message, delivered to every recipient: To + Cc + Bcc on the envelope.
@@ -143,7 +161,7 @@ export async function composeAndSend(input: ComposeInput) {
     to,
     envelopeTo: [to, ...input.cc, ...input.bcc],
     subject: input.subject,
-    text: input.body,
+    text: composedBody,
     html: composeHtml,
     fromName: account.from_name,
     headers,
@@ -241,7 +259,7 @@ export async function composeAndSend(input: ComposeInput) {
       cc_emails: input.cc,
       bcc_emails: input.bcc,
       subject: input.subject,
-      body: input.body,
+      body: composedBody,
       message_id: stripAngle(outboundMessageId),
       reference_ids: [],
       sending_account_id: account.id,
