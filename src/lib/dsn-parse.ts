@@ -7,7 +7,8 @@
  * the machine-readable part of the report so the real outcome is recorded:
  *
  *   - `Status: 4.x.x`, "will retry", "delayed"  -> temporary, NOT a bounce
- *   - `Status: 5.x.x`                            -> permanent bounce
+ *   - explicit invalid-recipient evidence       -> permanent bounce
+ *   - policy/reputation/authentication refusal   -> failed send
  *
  * Pure text parsing, no I/O, so it is fully unit tested.
  */
@@ -37,6 +38,14 @@ export function isSenderPolicyFailure(value: string | null | undefined): boolean
   return /(5\.7\.\d{1,3}\b|message\s+(blocked|rejected)|sender\s+reputation|spam(?:my)?\s*(policy|content)?|policy\s+(block|rejection|violation)|authentication\s+(required|failed)|spf\s+(fail|failure)|dkim\s+(fail|failure)|dmarc\s+(fail|failure)|relay\s+(denied|not\s+permitted)|access\s+denied|not\s+authorized|blacklist|blocklist)/i.test(
     text,
   );
+}
+
+/** Normalizes direct provider events through the same safety rule as DSNs. */
+export function normalizeReportedDeliveryKind<T extends string>(
+  kind: T,
+  detail: string | null | undefined,
+): T | "failed" {
+  return kind === "bounced" && isSenderPolicyFailure(detail) ? "failed" : kind;
 }
 
 function firstMatch(text: string, pattern: RegExp): string | null {

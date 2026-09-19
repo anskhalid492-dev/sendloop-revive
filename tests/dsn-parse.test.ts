@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseDeliveryReport } from "../src/lib/dsn-parse";
+import { normalizeReportedDeliveryKind, parseDeliveryReport } from "../src/lib/dsn-parse";
 
 describe("delivery reports", () => {
   it("reads a permanent failure and keeps the server's own words", () => {
@@ -49,6 +49,12 @@ describe("delivery reports", () => {
     });
     expect(r.kind).toBe("failed");
     expect(r.status).toBe("5.7.1");
+    expect(normalizeReportedDeliveryKind("bounced", r.reason)).toBe("failed");
+  });
+
+  it("normalizes a direct provider policy bounce to failed", () => {
+    expect(normalizeReportedDeliveryKind("bounced", "550 5.7.1 [CS] Message blocked.")).toBe("failed");
+    expect(normalizeReportedDeliveryKind("bounced", "550 5.1.1 No such user")).toBe("bounced");
   });
 
   it("treats an ambiguous bare 550 as failed rather than inventing an invalid recipient", () => {
