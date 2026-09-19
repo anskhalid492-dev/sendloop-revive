@@ -133,7 +133,10 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
         providerStatus,
         providerDetail,
         provider,
-        active: account.status === "active" && account.customer_enabled,
+        active:
+          (account.status === "active" || account.status === "verified") &&
+          account.customer_enabled &&
+          !account.paused,
         paused: account.paused || !account.customer_enabled,
         ready: dnsStatus === "verified" && providerStatus !== "not_verified" && providerStatus !== "error",
         dailyLimit: account.daily_limit,
