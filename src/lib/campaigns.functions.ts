@@ -1109,6 +1109,17 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
       }
     }
 
+    // A test email must render exactly like a real send: same mailbox, same
+    // signature, resolved server-side from that mailbox.
+    const { resolveSignatureForSender } = await import("@/lib/signatures.server");
+    const { composeWithSignature } = await import("@/lib/signature-model");
+    const testSignature = await resolveSignatureForSender(
+      supabaseAdmin,
+      account.workspace_id as string,
+      account.from_email as string,
+      account.from_name as string | null,
+    );
+
     // Test emails must render exactly like a real send, unsubscribe link included.
     const unsubscribeEnabled =
       (campaign as { unsubscribe_enabled?: boolean | null }).unsubscribe_enabled !== false;
@@ -1121,8 +1132,17 @@ export const sendCampaignTestEmail = createServerFn({ method: "POST" })
             recipientId: null,
           })
         : "";
-      const text = url ? applyUnsubscribeUrl(body, url) : body;
-      return { text, html: campaignBodyHtml(text), url: text.includes(url) ? url : "" };
+      const withUnsub = url ? applyUnsubscribeUrl(body, url) : body;
+      const composed = composeWithSignature({
+        body: withUnsub,
+        signature: testSignature,
+        buildHtml: (value: string) => campaignBodyHtml(value),
+      });
+      return {
+        text: composed.text,
+        html: composed.html ?? campaignBodyHtml(composed.text),
+        url: composed.text.includes(url) ? url : "",
+      };
     };
 
 
