@@ -419,21 +419,30 @@ export const recheckWorkspaceMailbox = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    // RLS proves membership before any credential is read.
-    const { data: row, error } = await client
+    // RLS proves membership first. The member-scoped client only ever reads
+    // non-credential columns; login details are read server-side afterwards.
+    const { data: member, error } = await client
+      .from("mailboxes")
+      .select("id, workspace_id, email_address")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!member) throw new Error("Mailbox not found");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error: credError } = await supabaseAdmin
       .from("mailboxes")
       .select(
         "id, workspace_id, email_address, smtp_host, smtp_port, smtp_secure, smtp_username, smtp_password, imap_host, imap_port, imap_secure, imap_username, imap_password",
       )
-      .eq("id", data.id)
+      .eq("id", member.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (credError) throw new Error(credError.message);
     if (!row) throw new Error("Mailbox not found");
     if (!row.smtp_host || !row.imap_host) {
       throw new Error("This mailbox has no saved server details to re-check.");
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const readSecret = async (id: string | null) => {
       if (!id) return null;
       const { data: value } = await supabaseAdmin.rpc("mailbox_read_secret", { _id: id });
