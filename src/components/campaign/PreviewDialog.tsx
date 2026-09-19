@@ -46,6 +46,8 @@ import {
   previewAiPersonalization,
 } from "@/lib/ai-personalization.functions";
 import { listCampaignTestDiagnostics, sendCampaignTestEmail } from "@/lib/campaigns.functions";
+import { getSendingAccountSignature } from "@/lib/signatures.functions";
+import { SENDER_SIGNATURE_TOKEN } from "@/lib/signature-model";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const SAMPLE: LeadLike = {
@@ -112,6 +114,7 @@ function useResolved(
   variantIndex = -1,
   aiSnippet?: string | null,
   previewLead?: AiPersonalizationCoverageLead | null,
+  signatureText?: string | null,
 ) {
   const step = builder.steps[stepIndex];
   const customVariables = builder.settings?.customVariables ?? [];
@@ -138,6 +141,9 @@ function useResolved(
   const extras = {
     ...senderExtras(account as never),
     ...(aiSnippet ? { [AI_VARIABLE_TOKEN]: aiSnippet } : {}),
+    // The signature of the mailbox this campaign sends from, resolved
+    // server-side. No signature -> the token renders as nothing, never as text.
+    [SENDER_SIGNATURE_TOKEN]: signatureText ?? "",
   };
   // One resolver for preview, test send and real delivery.
   const { subject, body } = renderEmailForLead(
@@ -255,6 +261,20 @@ export function PreviewDialog({
   }, [usesAi, leadId, aiCoverage.data?.sampleLeadId]);
 
   const ai = useAiSnippet(builder, leadId, usesAi);
+
+  const account =
+    builder.accounts.find((a) => builder.settings?.sendingAccountIds.includes(a.id)) ??
+    builder.accounts[0];
+
+  // The real mailbox signature for the representative sending mailbox.
+  const fetchSignature = useServerFn(getSendingAccountSignature);
+  const signature = useQuery({
+    queryKey: ["sending-account-signature", account?.id ?? ""],
+    queryFn: () => fetchSignature({ data: { sendingAccountId: account!.id } }),
+    enabled: open && Boolean(account?.id),
+    staleTime: 60_000,
+  });
+
   const { step, subject, body, rawSubject, rawBody, extras } = useResolved(
     builder,
     stepIndex,
@@ -262,11 +282,8 @@ export function PreviewDialog({
     variantIndex,
     ai.content,
     aiCoverage.data?.sampleLead ?? null,
+    signature.data?.text ?? "",
   );
-
-  const account =
-    builder.accounts.find((a) => builder.settings?.sendingAccountIds.includes(a.id)) ??
-    builder.accounts[0];
   const variants = step?.variants ?? [];
   const unsubscribe = builder.settings?.unsubscribeEnabled;
 
