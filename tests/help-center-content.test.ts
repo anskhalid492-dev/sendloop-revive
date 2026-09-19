@@ -186,7 +186,7 @@ describe("logged-in support guide curation", () => {
 
   it("includes all requested guides, including intentional cross-category links", () => {
     const placements = SUPPORT_GUIDE_GROUPS.flatMap((group) => [...group.articles]);
-    expect(placements).toHaveLength(62);
+    expect(placements).toHaveLength(63);
     expect(new Set(placements).size).toBe(60);
   });
 
