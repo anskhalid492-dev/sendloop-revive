@@ -1384,7 +1384,7 @@ export async function dispatchDueMessages(
           to: message.to_email as string,
           subject: message.subject as string,
           html,
-          text: message.body,
+          text: finalBody,
           fromName: account.from_name,
           ...(replyTo ? { headers: { ...outboundHeaders, "Reply-To": replyTo } } : { headers: outboundHeaders }),
         });
@@ -1518,7 +1518,7 @@ export async function dispatchDueMessages(
         fromName: account.from_name,
         toEmail: message.to_email,
         subject: message.subject,
-        body: message.body,
+        body: finalBody,
         html,
         messageId: send.rfcMessageId ?? outboundMessageId,
         providerMessageId: send.messageId ?? null,
