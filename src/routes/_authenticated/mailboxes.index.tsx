@@ -101,7 +101,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/mailboxes/")({
   validateSearch: (search: Record<string, unknown>) => ({
-    mailbox: typeof search.mailbox === "string" ? search.mailbox : undefined,
+    mailbox: typeof search["mailbox"] === "string" ? search["mailbox"] : undefined,
   }),
   head: () => ({
     meta: [
