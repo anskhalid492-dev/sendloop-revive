@@ -56,9 +56,17 @@ declare
     'public_auth_settings','public_platform_config','public_platform_flags',
     'public_review_stats','referral_program_public'
   ];
+  trigger_fns text[] := array[
+    'admin_audit_log_append_only','admin_security_events_append_only','credit_ledger_immutable',
+    'enforce_managed_sending','ensure_workspace_owner_member','handle_new_user',
+    'log_workspace_invitation_activity','log_workspace_member_activity',
+    'mark_conversation_direction','mark_conversation_outbound','notify_support_reply',
+    'notify_support_ticket_status','record_blog_slug_change','set_updated_at',
+    'update_updated_at_column','validate_testimonial','set_lead_retention'
+  ];
 begin
   for fn in
-    select p.oid::regprocedure::text as sig
+    select p.oid::regprocedure::text as sig, p.proname, p.prorettype = 'trigger'::regtype as is_trigger
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
@@ -71,8 +79,14 @@ begin
     while not done and attempt < 5 loop
       attempt := attempt + 1;
       begin
-        execute format('revoke execute on function %s from anon', fn.sig);
+        -- Remove the blanket PUBLIC/anon grant, then hand execute back only to
+        -- the roles that actually call the function. Triggers fire as the table
+        -- owner and need no direct grant at all.
         execute format('revoke execute on function %s from public', fn.sig);
+        execute format('revoke execute on function %s from anon', fn.sig);
+        if not (fn.is_trigger or fn.proname = any (trigger_fns)) then
+          execute format('grant execute on function %s to authenticated, service_role', fn.sig);
+        end if;
         done := true;
       exception
         when lock_not_available or deadlock_detected then
