@@ -186,9 +186,10 @@ describe("logged-in support guide curation", () => {
     }
   });
 
-  it("includes all 67 requested guide placements", () => {
-    const requestedPlacements = SUPPORT_GUIDE_GROUPS.reduce((count, group) => count + group.articles.length, 0);
-    expect(requestedPlacements).toBe(67);
+  it("includes all requested guides, including intentional cross-category links", () => {
+    const placements = SUPPORT_GUIDE_GROUPS.flatMap((group) => [...group.articles]);
+    expect(placements).toHaveLength(70);
+    expect(new Set(placements).size).toBe(67);
   });
 
   it("includes every requested Support category", () => {
