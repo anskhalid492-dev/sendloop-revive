@@ -23,6 +23,10 @@ export type SenderRoutingRow = {
   active: boolean;
   paused: boolean;
   ready: boolean;
+  dailyLimit: number;
+  hourlyLimit: number;
+  warmupStatus: string;
+  healthScore: number;
 };
 
 export const getSenderRoutingStatus = createServerFn({ method: "GET" })
@@ -39,7 +43,9 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
     const [{ data: accounts, error: aErr }, { data: domains, error: dErr }] = await Promise.all([
       context.supabase
         .from("sending_accounts")
-        .select("id, label, from_email, provider, provider_id, status, paused, customer_enabled")
+        .select(
+          "id, label, from_email, provider, provider_id, status, paused, customer_enabled, daily_limit, hourly_limit, warmup_status, health_score",
+        )
         .eq("workspace_id", data.workspaceId)
         .order("from_email"),
       context.supabase
@@ -75,6 +81,10 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
       status: string;
       paused: boolean;
       customer_enabled: boolean;
+      daily_limit: number;
+      hourly_limit: number;
+      warmup_status: string;
+      health_score: number;
     }>) {
       const domain = senderDomain(account.from_email);
       const dnsRow = domainMap.get(domain);
@@ -126,6 +136,10 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
         active: account.status === "active" && account.customer_enabled,
         paused: account.paused || !account.customer_enabled,
         ready: dnsStatus === "verified" && providerStatus !== "not_verified" && providerStatus !== "error",
+        dailyLimit: account.daily_limit,
+        hourlyLimit: account.hourly_limit,
+        warmupStatus: account.warmup_status,
+        healthScore: account.health_score,
       });
     }
 
