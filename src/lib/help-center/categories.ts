@@ -62,11 +62,6 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     description: "Campaign metrics, the conversion funnel, drill-downs and exports.",
   },
   {
-    slug: "domains",
-    name: "Domains & DNS",
-    description: "Domain verification, SPF, DKIM, DMARC, tracking and propagation.",
-  },
-  {
     slug: "deliverability",
     name: "Deliverability",
     description: "Inbox placement, reputation, bounces, spam complaints and volume.",

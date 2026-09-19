@@ -111,19 +111,18 @@ Views reflect status, so a mislabelled conversation disappears from the queue it
     updated: UPDATED,
     popular: true,
     keywords: ["no replies", "missing replies", "not receiving", "inbox empty"],
-    related: ["domain-receiving-setup", "inbox-replies-and-threading", "spam-placement-first-checks"],
+    related: ["inbox-replies-and-threading", "spam-placement-first-checks", "mailbox-troubleshooting"],
     content: `## Problem
 People are replying — or you expect them to be — but the inbox is empty.
 
 ## Possible causes
-- The domain's receiving records are missing or conflicting, so replies never arrive
-- Receiving was never enabled for the domain
+- The receiving mailbox has a setup or connection problem
 - The campaign genuinely has not sent yet, or has sent very little
 - Emails are landing in spam, so nobody is replying
 - You are looking at a filtered view
 
 ## How to check
-1. Email Accounts → the domain row → **DNS records** → **Check DNS**, and compare Current MX against Required MX.
+1. Email Accounts → open the receiving mailbox and check its status.
 2. Confirm receiving is enabled for the domain.
 3. Send a test to your own mailbox and reply to it.
 4. Clear inbox filters and check All mail.

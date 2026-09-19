@@ -6,41 +6,40 @@ export const EMAIL_ACCOUNT_ARTICLES: HelpArticle[] = [
   {
     slug: "connect-a-mailbox",
     title: "How to connect an email account",
-    description: "Create a sending mailbox on a verified domain — no credentials to paste.",
+    description: "Connect a mailbox and prepare it for sending.",
     category: "email-accounts",
     updated: UPDATED,
     popular: true,
     gettingStarted: true,
     keywords: ["connect mailbox", "email account", "sending account", "add mailbox", "smtp"],
-    related: ["supported-account-types", "verify-a-domain", "mailbox-limits", "mailbox-health"],
+    related: ["supported-account-types", "mailbox-limits", "mailbox-health"],
     content: `## Short answer
-Verify your domain first, then create the mailbox in MunchReach. There are no server settings, passwords or API keys to enter.
+Connect your mailbox from Email Accounts, then confirm its status is Active before assigning it to a campaign.
 
 ## Steps
 1. Go to **Email Accounts**.
-2. Click **Connect email account** (or **Connect mailbox** on a domain row).
-3. Choose the **Verified domain**. Only domains that reached Ready to send appear here.
-4. Enter the **Mailbox address** — the part before the @ — and the **Sender name** recipients will see.
-5. Set the **Daily limit** (default 50) and the **Hourly limit** (default 20).
+2. Click **Connect email account**.
+3. Follow the connection steps shown for your mailbox.
+4. Enter the **Sender name** recipients will see when prompted.
+5. Set the **Daily limit** and **Hourly limit**.
 6. Leave **Start warmup** on unless you have a specific reason not to.
-7. Click **Connect mailbox**.
+7. Finish the connection and confirm the mailbox appears in Email Accounts.
 
 ## Important notes
-- MunchReach runs the sending infrastructure for you, which is why there is nothing to configure and no keys to paste.
-- A mailbox cannot be created on a domain that has not passed verification. If your domain is not in the picker, finish its DNS setup first.
+- The mailbox details page shows any setup action still required before sending.
 - Warmup starts immediately and carries very little campaign volume for the first weeks. That is intended.
 
 ## Common problems
-- **The domain picker is empty** — no domain has reached Ready to send yet.
+- **Setup is incomplete** — open the mailbox details and follow the action shown there.
 - **Address already exists** — that mailbox is already connected in this workspace.`,
     faqs: [
       {
         q: "Can I connect my existing Gmail or Outlook mailbox?",
-        a: "No. MunchReach creates sending mailboxes on domains you verify inside the platform; there is no Google or Microsoft mailbox connection flow. Use a dedicated outreach domain and create mailboxes on it.",
+        a: "Use the connection options shown under Email Accounts. The available flow depends on the mailbox type supported by your workspace.",
       },
       {
         q: "Do I need SMTP details from my host?",
-        a: "No. Sending and receiving are handled by MunchReach's infrastructure once your domain's DNS records are published and verified.",
+        a: "Follow the connection steps shown in Email Accounts. The mailbox details page will show whether anything else is required.",
       },
     ],
   },
@@ -51,9 +50,9 @@ Verify your domain first, then create the mailbox in MunchReach. There are no se
     category: "email-accounts",
     updated: UPDATED,
     keywords: ["supported", "gmail", "google workspace", "outlook", "microsoft", "oauth", "imap"],
-    related: ["connect-a-mailbox", "verify-a-domain", "recommended-setup"],
+    related: ["connect-a-mailbox", "recommended-setup"],
     content: `## What is supported
-Mailboxes created inside MunchReach on a sending domain you have verified. MunchReach handles sending and inbound receiving for those mailboxes.
+Use the mailbox connection options shown under **Email Accounts**. MunchReach then shows the mailbox's sending status and any action it needs.
 
 ## What is not supported today
 - Connecting an existing Google Workspace / Gmail mailbox by OAuth
@@ -63,7 +62,7 @@ Mailboxes created inside MunchReach on a sending domain you have verified. Munch
 If those flows matter to your setup, tell support — but do not plan around them being available.
 
 ## What this means in practice
-Buy or reuse a domain for outreach, point its DNS at the records MunchReach shows you, verify it, and create two to four mailboxes on it. Replies to those mailboxes arrive in the unified inbox.
+Connect the mailboxes you plan to use, confirm they are Active, warm them gradually, and assign them to campaigns from the **Email Accounts** tab.
 
 ## Important notes
 Keeping outreach on a separate domain also protects your main corporate domain if reputation suffers.`,
@@ -153,7 +152,7 @@ Volume is spread across the selected mailboxes rather than exhausting one at a t
 Pause a mailbox from the Email Accounts page to take it out of rotation. Campaigns continue on the remaining mailboxes; scheduled messages are re-planned.
 
 ## Re-check
-If a mailbox has fallen into an error state, fix the underlying cause — usually the domain's DNS — and re-run the checks from the mailbox or the domain row.
+If a mailbox has fallen into an error state, open its details, follow the action shown, and re-run the mailbox check.
 
 ## Remove
 Removing a mailbox permanently stops it sending and receiving. Replies already threaded in the unified inbox stay there.
@@ -168,28 +167,28 @@ Do not remove and recreate a mailbox to "reset" it. Its reputation history goes 
     category: "email-accounts",
     updated: UPDATED,
     keywords: ["mailbox error", "not sending", "disconnected", "auto paused", "authentication failed"],
-    related: ["mailbox-health", "domain-verification-troubleshooting", "campaign-not-sending", "bounce-complaint-protection"],
+    related: ["mailbox-health", "campaign-not-sending", "bounce-complaint-protection"],
     content: `## Problem
 A mailbox shows Error or Paused, or a campaign is skipping it.
 
 ## Possible causes
-- The sending domain fell out of verification — a DNS record was changed or removed
+- The mailbox requires setup or attention
 - Bounce-rate or complaint-rate protection paused the mailbox
 - The daily or hourly limit is already used up for the period
 - Warmup auto-paused the mailbox on poor health
 
 ## How to check
 1. Email Accounts → open the mailbox and read its timeline; the reason is recorded there.
-2. Open the domain's **DNS records** dialog and click **Check DNS**.
+2. Open the mailbox details and read the setup or error action shown.
 3. Check the mailbox's Sent today against its Limit.
 4. Open Warmup and look at the row's status badge.
 
 ## How to fix
-- Republish any missing DNS record, then click **Verify domain** and re-check.
+- Complete the mailbox action shown, then re-check its status.
 - If protection paused the mailbox, clean the list before resuming; resuming into the same list repeats the problem.
 - If limits are simply exhausted, nothing is broken. Add mailboxes for more capacity.
 
 ## When to contact support
-The mailbox shows Error with a verified domain, healthy bounce rates and no protection block recorded on its timeline.`,
+The mailbox shows Error with no setup action, healthy bounce rates and no protection block recorded on its timeline.`,
   },
 ];

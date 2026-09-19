@@ -11,11 +11,11 @@ export const DELIVERABILITY_ARTICLES: HelpArticle[] = [
     updated: UPDATED,
     popular: true,
     keywords: ["deliverability", "inbox placement", "reputation", "spam folder"],
-    related: ["spam-placement-first-checks", "improve-reply-rate-safely", "warmup-best-practices", "spf-dkim-dmarc"],
+    related: ["spam-placement-first-checks", "improve-reply-rate-safely", "warmup-best-practices"],
     content: `Delivery is not the same as placement. A message can be accepted and still land in spam.
 
 ## What receivers weigh
-- **Authentication** — SPF, DKIM and DMARC must pass
+- **Mailbox health** — setup and recent sending behaviour must be healthy
 - **Reputation** — of your domain and of each mailbox, built over time
 - **List quality** — bounces and spam complaints are the fastest way down
 - **Engagement** — replies and opens versus deletions and complaints
@@ -23,7 +23,7 @@ export const DELIVERABILITY_ARTICLES: HelpArticle[] = [
 - **Content** — link count, images, attachments, and how templated it reads
 
 ## The practical order of work
-1. Verify the domain properly.
+1. Confirm each sending mailbox is Active and healthy.
 2. Warm the mailboxes.
 3. Clean the list before you send to it.
 4. Keep volume modest per mailbox and add mailboxes to scale.
@@ -40,12 +40,12 @@ No tool can make a bad list deliverable. Most "deliverability problems" are list
     updated: UPDATED,
     popular: true,
     keywords: ["spam folder", "junk", "placement", "not in inbox", "filtered"],
-    related: ["deliverability-basics", "domain-verification-troubleshooting", "reduce-bounce-rate", "warmup-best-practices"],
+    related: ["deliverability-basics", "reduce-bounce-rate", "warmup-best-practices"],
     content: `## Problem
 Mail is delivered but lands in spam or promotions.
 
 ## Possible causes
-- Authentication is failing or partially failing
+- A sending mailbox has a setup or health warning
 - The domain or mailbox is too new for the volume being sent
 - Bounce or complaint rates are elevated
 - The copy is heavily templated, link-stuffed or image-heavy
@@ -53,20 +53,20 @@ Mail is delivered but lands in spam or promotions.
 - The domain has been used for aggressive sending before
 
 ## How to check
-1. Domain row → **DNS records** → **Check DNS**. All of SPF, DKIM and DMARC must be Verified.
+1. Open **Email Accounts** and confirm each sending mailbox is Active without a health warning.
 2. Analytics → bounce rate and unsubscribe rate for the period placement dropped.
 3. Warmup → mailbox health bands.
 4. Send yourself a test at a couple of different providers and see where it lands.
 
 ## How to fix
-- Repair authentication first; nothing else matters until it passes.
+- Resolve mailbox setup and health warnings first.
 - Cut daily volume per mailbox, and widen the sending window.
 - Clean and re-verify the list; remove anything that bounced.
 - Reduce links to one, drop images and attachments from the first email, and shorten it.
 - Let warmup run longer before pushing volume again.
 
 ## When to contact support
-Authentication passes, bounce rate is low, mailboxes are warm and modest volume still lands in spam consistently.`,
+Mailbox health is good, bounce rate is low, mailboxes are warm and modest volume still lands in spam consistently.`,
   },
   {
     slug: "reduce-bounce-rate",
@@ -117,7 +117,7 @@ Repeated soft bounces to the same address eventually behave like a hard bounce. 
     updated: UPDATED,
     popular: true,
     keywords: ["550", "5.7.1", "rejected", "blocked", "policy", "smtp error"],
-    related: ["hard-vs-soft-bounces", "spam-placement-first-checks", "spf-dkim-dmarc", "sending-troubleshooting"],
+    related: ["hard-vs-soft-bounces", "spam-placement-first-checks", "sending-troubleshooting"],
     content: `## Problem
 Messages are rejected with a 550 5.7.1 or a similar policy error.
 
@@ -125,7 +125,7 @@ Messages are rejected with a 550 5.7.1 or a similar policy error.
 The receiving server accepted the connection and refused the message on policy grounds — not because the address is wrong.
 
 ## Possible causes
-- Authentication failed: SPF, DKIM or DMARC did not pass
+- The sending mailbox has a setup or policy issue
 - The sending domain or its infrastructure is on a blocklist
 - The recipient's organisation blocks external cold mail
 - Volume from your domain tripped the receiver's rate policy
@@ -133,11 +133,11 @@ The receiving server accepted the connection and refused the message on policy g
 
 ## How to check
 1. Read the exact text of the rejection on the failed message; receivers usually say why.
-2. Re-run **Check DNS** on the domain and confirm all three authentication records are Verified.
+2. Open **Email Accounts** and check the sending mailbox for setup or policy warnings.
 3. Look at whether the rejections are concentrated at one recipient domain or spread across many.
 
 ## How to fix
-- Fix authentication and re-verify the domain.
+- Resolve the mailbox action shown before sending again.
 - If it is one recipient domain only, that organisation is blocking you; remove those leads.
 - If it is widespread, reduce volume per mailbox, pause the campaign, and let warmup and reputation recover before resuming.
 

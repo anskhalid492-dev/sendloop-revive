@@ -58,7 +58,7 @@ function haystack(): { slug: string; text: string }[] {
 describe("help center integrity", () => {
   it("has a substantial knowledge base", () => {
     expect(HELP_ARTICLES.length).toBeGreaterThanOrEqual(90);
-    expect(HELP_CATEGORIES.length).toBe(19);
+    expect(HELP_CATEGORIES.length).toBe(18);
   });
 
   it("has unique article slugs", () => {
@@ -136,8 +136,6 @@ describe("help center integrity", () => {
 
 describe("help center search", () => {
   const cases: { query: string; expected: string }[] = [
-    { query: "spf", expected: "spf-dkim-dmarc" },
-    { query: "dkim record failing", expected: "spf-dkim-dmarc" },
     { query: "csv import", expected: "csv-import-guide" },
     { query: "claude", expected: "claude-overview" },
     { query: "anthropic key", expected: "connect-claude" },
@@ -188,15 +186,23 @@ describe("logged-in support guide curation", () => {
 
   it("includes all requested guides, including intentional cross-category links", () => {
     const placements = SUPPORT_GUIDE_GROUPS.flatMap((group) => [...group.articles]);
-    expect(placements).toHaveLength(70);
-    expect(new Set(placements).size).toBe(67);
+    expect(placements).toHaveLength(61);
+    expect(new Set(placements).size).toBe(59);
   });
 
   it("includes every requested Support category", () => {
     expect(SUPPORT_GUIDE_GROUPS.map((group) => group.slug)).toEqual([
       "getting-started", "campaigns", "leads", "email-accounts", "ai", "sending",
-      "inbox", "warmup", "domains", "analytics", "billing", "troubleshooting",
+      "inbox", "warmup", "analytics", "billing", "troubleshooting",
     ]);
+  });
+
+  it("does not expose domain verification or sending-domain guides", () => {
+    const text = HELP_ARTICLES.map((article) => `${article.slug} ${article.title} ${article.description} ${article.content}`).join("\n").toLowerCase();
+    expect(HELP_CATEGORIES.map((category) => category.slug)).not.toContain("domains");
+    expect(text).not.toContain("domain verification");
+    expect(text).not.toContain("verify domain");
+    expect(text).not.toContain("sending domain");
   });
 });
 

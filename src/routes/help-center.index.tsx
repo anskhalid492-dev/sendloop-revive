@@ -32,7 +32,7 @@ export const Route = createFileRoute("/help-center/")({
   head: () =>
     metaFor(
       "MunchReach Help Center — Guides & Answers",
-      "Guides for campaigns, leads, mailboxes, domains and DNS, AI personalization, Claude, warmup, the inbox, analytics, API, billing and troubleshooting.",
+      "Guides for campaigns, leads, mailboxes, AI personalization, Claude, warmup, the inbox, analytics, API, billing and troubleshooting.",
       "/help-center",
     ),
   component: HelpCenter,
@@ -68,7 +68,7 @@ function ArticleCard({ article }: { article: HelpArticle }) {
 
 const relatedResources = [
   { to: "/cold-email-templates" as const, label: "Cold Email Templates", text: "A full sequence you can copy: opener, bump, proof and breakup.", icon: FileText },
-  { to: "/deliverability-guide" as const, label: "Deliverability Guide", text: "Domain setup, SPF/DKIM/DMARC, warmup and volume pacing.", icon: ShieldCheck },
+  { to: "/deliverability-guide" as const, label: "Deliverability Guide", text: "Mailbox health, warmup, list quality and volume pacing.", icon: ShieldCheck },
   { to: "/product/campaigns" as const, label: "Campaigns", text: "Sequences, schedules, stop rules and launch readiness.", icon: Send },
   { to: "/product/warmup" as const, label: "Warmup", text: "How MunchReach ramps a mailbox before campaign traffic.", icon: Flame },
   { to: "/product/email-accounts" as const, label: "Email Accounts", text: "Connect mailboxes and monitor sending health.", icon: Mailbox },
@@ -103,7 +103,7 @@ function HelpCenter() {
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
             {HELP_ARTICLES.length} articles across {HELP_CATEGORIES.length} topics — campaigns,
-            leads, mailboxes, domains, AI personalization, deliverability, the API and billing.
+            leads, mailboxes, AI personalization, deliverability, the API and billing.
           </p>
 
           <div className="relative mt-8">
@@ -130,7 +130,7 @@ function HelpCenter() {
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
             <span>Try:</span>
-            {["warmup", "SPF", "CSV import", "Claude", "spam", "API key", "invoice"].map((s) => (
+            {["warmup", "CSV import", "Claude", "spam", "API key", "invoice"].map((s) => (
               <button
                 key={s}
                 type="button"

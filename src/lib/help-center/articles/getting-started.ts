@@ -303,17 +303,17 @@ Do not judge copy on fewer than a few hundred sends. Small samples move wildly.
     category: "getting-started",
     updated: UPDATED,
     keywords: ["best practice setup", "before sending", "preparation", "recommended"],
-    related: ["spf-dkim-dmarc", "how-warmup-works", "deliverability-basics"],
+    related: ["mailbox-health", "how-warmup-works", "deliverability-basics"],
     content: `## Short answer
-Send from mailboxes on a separate domain, keep their authentication in order, warm them up, and start slow.
+Use healthy mailboxes, warm them up, and start slow.
 
 ## Recommended
-1. **Use a secondary domain** for outreach, not your main company domain. If reputation suffers, your corporate mail is unaffected.
-2. **Keep SPF, DKIM and DMARC in order** at your mail provider so your mailboxes are properly authenticated.
-3. **Two to four mailboxes per domain**, not one mailbox pushed hard.
+1. **Use dedicated outreach mailboxes** rather than your team's everyday inboxes.
+2. **Confirm every mailbox is Active** and has no health warning before assigning it.
+3. **Spread volume across mailboxes**, rather than pushing one mailbox hard.
 4. **Leave warmup on** and give it at least two weeks before real volume.
-5. **Cap each mailbox at 30–50 campaign emails a day** once warm. Scale by adding mailboxes.
-6. **Verify your list** before importing. Bounces are the fastest way to damage a new domain.
+5. **Keep each mailbox's campaign volume modest.** Scale by adding mailboxes.
+6. **Verify your list** before importing. Bounces damage sending reputation quickly.
 7. **Set a realistic sending window** in your prospects' timezone with pacing delays between messages.
 
 ## Important notes
