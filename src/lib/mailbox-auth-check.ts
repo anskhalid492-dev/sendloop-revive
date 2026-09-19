@@ -197,9 +197,15 @@ export function evaluateSpf(txtValues: string[] | null): AuthRecordResult {
       observed: null,
     };
   }
-  const records = txtValues
-    .map((value) => value.trim().toLowerCase())
-    .filter((value) => value.startsWith("v=spf1"));
+  // Identical values are collapsed first: several resolvers answering the same
+  // record must never be reported to the customer as a duplicate record.
+  const records = Array.from(
+    new Set(
+      txtValues
+        .map((value) => value.trim().toLowerCase().replace(/\s+/g, " "))
+        .filter((value) => value.startsWith("v=spf1")),
+    ),
+  );
 
   if (records.length === 0) {
     return {
@@ -312,9 +318,14 @@ export function evaluateDmarc(
       policy: null,
     };
   }
-  const records = txtValues
-    .map((value) => value.trim())
-    .filter((value) => value.toLowerCase().startsWith("v=dmarc1"));
+  // Identical values collapse first — see the note in `evaluateSpf`.
+  const records = Array.from(
+    new Set(
+      txtValues
+        .map((value) => value.trim().replace(/\s+/g, " "))
+        .filter((value) => value.toLowerCase().startsWith("v=dmarc1")),
+    ),
+  );
 
   if (records.length === 0) {
     const stray = txtValues.find((value) => value.toLowerCase().includes("dmarc"));
