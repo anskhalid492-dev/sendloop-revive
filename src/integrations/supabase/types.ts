@@ -3584,6 +3584,63 @@ export type Database = {
         }
         Relationships: []
       }
+      email_signatures: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          html_signature: string
+          id: string
+          mailbox_id: string
+          metadata: Json
+          name: string
+          plain_text_signature: string
+          sender_fields: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          html_signature?: string
+          id?: string
+          mailbox_id: string
+          metadata?: Json
+          name?: string
+          plain_text_signature?: string
+          sender_fields?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          html_signature?: string
+          id?: string
+          mailbox_id?: string
+          metadata?: Json
+          name?: string
+          plain_text_signature?: string
+          sender_fields?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_signatures_mailbox_id_fkey"
+            columns: ["mailbox_id"]
+            isOneToOne: true
+            referencedRelation: "mailboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_signatures_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_suppressions: {
         Row: {
           created_at: string
