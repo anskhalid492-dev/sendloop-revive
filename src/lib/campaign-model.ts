@@ -1,3 +1,5 @@
+import { SENDER_SIGNATURE_TOKEN } from "@/lib/signature-model";
+
 export type CampaignStatus =
   | "draft"
   | "scheduled"
@@ -51,7 +53,6 @@ export type Campaign = {
 };
 
 /** A workspace-authored personalization token, defined per campaign. */
-import { SENDER_SIGNATURE_TOKEN } from "@/lib/signature-model";
 export type CustomVariable = {
   token: string;
   label: string;
