@@ -61,10 +61,13 @@ async function run(request: Request) {
 
   const only = url.searchParams.get("campaignId");
   const now = new Date().toISOString();
+  // Lifecycle eligibility comes from the shared rule, so a draft campaign with
+  // a fully built queue can never be picked up for sending.
+  const { SCHEDULER_SENDABLE_STATUSES } = await import("@/lib/campaign-status-sync");
   let query = supabaseAdmin
     .from("campaigns")
     .select("id, name")
-    .in("status", ["active", "scheduled"])
+    .in("status", [...SCHEDULER_SENDABLE_STATUSES])
     .or(`status.eq.active,start_at.is.null,start_at.lte.${now}`);
   if (only) query = query.eq("id", only);
   const { data: campaigns, error } = await query.limit(50);

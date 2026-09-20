@@ -15,6 +15,7 @@ import {
   updateCampaign,
 } from "@/lib/campaigns.functions";
 import { getCampaign } from "@/lib/campaign-read.functions";
+import { canLaunchCampaign, launchSucceededDespiteError } from "@/lib/campaign-status-sync";
 import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import { listLeadLists } from "@/lib/leads.functions";
 import { listMySendingAccounts } from "@/lib/sending.functions";
@@ -179,13 +180,10 @@ export function useCampaignBuilder(
       if (/not found|permission|denied|unauthor|forbidden|row-level|PGRST202/i.test(error.message)) return false;
       return attempt < 2;
     },
-    // On Overview the readiness bar and the Launch button guard only matter
-    // while the campaign is still launchable, so fetch it there for draft and
-    // scheduled campaigns instead of skipping the tab entirely.
-    enabled:
-      activeTab !== "Overview" ||
-      campaignQuery.data?.campaign.status === "draft" ||
-      campaignQuery.data?.campaign.status === "scheduled",
+    // Readiness only describes a campaign that can still be launched. Once the
+    // database says the campaign is active (or paused/completed), the readiness
+    // snapshot is meaningless and must never render alongside the live status.
+    enabled: canLaunchCampaign(campaignQuery.data?.campaign.status),
   });
   const accountsQuery = useQuery({
     queryKey: ["sending-accounts"],
@@ -371,6 +369,16 @@ export function useCampaignBuilder(
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
+  const refreshLifecycle = useCallback(async () => {
+    hydratedFor.current = null;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] }),
+      queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] }),
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
+      queryClient.invalidateQueries({ queryKey: ["analytics"] }),
+    ]);
+  }, [campaignId, queryClient]);
+
   const launch = useMutation({
     mutationFn: async () => {
       await save.mutateAsync();
@@ -378,17 +386,38 @@ export function useCampaignBuilder(
       // out of time. Each call resumes where the last one stopped.
       let queued = 0;
       let total = 0;
-      let result = await launchFn({ data: { id: campaignId } });
+      // A launch pass can finalize on the server and still fail on the wire
+      // (dropped connection, gateway timeout). The campaign row is the arbiter:
+      // if it is already active, the launch did complete and the UI must not be
+      // left showing Draft.
+      const pass = async () => {
+        try {
+          return await launchFn({ data: { id: campaignId } });
+        } catch (error) {
+          const snapshot = await fetchCampaign({ data: { id: campaignId } }).catch(() => null);
+          if (snapshot && launchSucceededDespiteError(snapshot.campaign.status)) {
+            return {
+              queued: 0,
+              total: snapshot.leadTotal ?? 0,
+              firstSendAt: snapshot.queue?.nextSendAt ?? new Date().toISOString(),
+              heldForAi: 0,
+              done: true as const,
+            };
+          }
+          throw error;
+        }
+      };
+      let result = await pass();
       queued += result.queued;
       total = Math.max(total, result.total, queued);
-      for (let pass = 0; pass < 60 && !result.done; pass += 1) {
+      for (let attempt = 0; attempt < 60 && !result.done; attempt += 1) {
         toast.loading(
           total > 0
             ? `Preparing your campaign… ${queued.toLocaleString()} of ${total.toLocaleString()} emails queued`
             : "Preparing your campaign…",
           { id: "campaign-launch-progress" },
         );
-        result = await launchFn({ data: { id: campaignId } });
+        result = await pass();
         queued += result.queued;
         total = Math.max(total, result.total, queued);
       }
@@ -400,16 +429,15 @@ export function useCampaignBuilder(
       toast.success(
         `Queued ${result.queued} leads. First send ${new Date(result.firstSendAt).toLocaleString()}.`,
       );
-      hydratedFor.current = null;
-      await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+      await refreshLifecycle();
       await queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
-      await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
     },
     onError: async (e: Error) => {
       toast.error(e.message);
-      // A blocked attempt is recorded server-side; refresh the trail.
+      // A failed attempt may still have changed the campaign server-side, so the
+      // lifecycle state is re-read instead of leaving a stale badge on screen.
+      await refreshLifecycle();
       await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
     },
 
@@ -418,11 +446,7 @@ export function useCampaignBuilder(
   const toggleStatus = useMutation({
     mutationFn: (status: "active" | "paused" | "archived" | "draft") =>
       statusFn({ data: { id: campaignId, status } }),
-    onSuccess: async () => {
-      hydratedFor.current = null;
-      await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-    },
+    onSuccess: refreshLifecycle,
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -450,6 +474,19 @@ export function useCampaignBuilder(
         "postgres_changes",
         { event: "*", schema: "public", table: "campaign_recipients", filter: `campaign_id=eq.${campaignId}` },
         refresh,
+      )
+      // Lifecycle changes (launch, pause, resume, automatic pause/complete) can
+      // happen on another page, through the API or in the scheduler. The open
+      // campaign page follows the campaign row itself so its status badge and
+      // action buttons never drift from the database.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "campaigns", filter: `id=eq.${campaignId}` },
+        () => {
+          hydratedFor.current = null;
+          void queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+          void queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
+        },
       )
       .subscribe();
     return () => {

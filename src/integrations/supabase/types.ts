@@ -4295,6 +4295,110 @@ export type Database = {
           },
         ]
       }
+      lead_import_jobs: {
+        Row: {
+          attempts: number
+          byte_offset: number
+          created_at: string
+          created_by: string
+          duplicate_rows: number
+          error_message: string | null
+          errors: Json
+          failed_rows: number
+          file_id: string | null
+          file_name: string | null
+          file_size: number
+          finished_at: string | null
+          headers: Json
+          id: string
+          imported_rows: number
+          invalid_rows: number
+          lease_until: string | null
+          list_id: string | null
+          list_verified: boolean
+          mapping: Json
+          processed_rows: number
+          r2_key: string
+          skipped_rows: number
+          started_at: string | null
+          status: string
+          tags: string[]
+          total_rows: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          byte_offset?: number
+          created_at?: string
+          created_by: string
+          duplicate_rows?: number
+          error_message?: string | null
+          errors?: Json
+          failed_rows?: number
+          file_id?: string | null
+          file_name?: string | null
+          file_size?: number
+          finished_at?: string | null
+          headers?: Json
+          id?: string
+          imported_rows?: number
+          invalid_rows?: number
+          lease_until?: string | null
+          list_id?: string | null
+          list_verified?: boolean
+          mapping?: Json
+          processed_rows?: number
+          r2_key: string
+          skipped_rows?: number
+          started_at?: string | null
+          status?: string
+          tags?: string[]
+          total_rows?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          byte_offset?: number
+          created_at?: string
+          created_by?: string
+          duplicate_rows?: number
+          error_message?: string | null
+          errors?: Json
+          failed_rows?: number
+          file_id?: string | null
+          file_name?: string | null
+          file_size?: number
+          finished_at?: string | null
+          headers?: Json
+          id?: string
+          imported_rows?: number
+          invalid_rows?: number
+          lease_until?: string | null
+          list_id?: string | null
+          list_verified?: boolean
+          mapping?: Json
+          processed_rows?: number
+          r2_key?: string
+          skipped_rows?: number
+          started_at?: string | null
+          status?: string
+          tags?: string[]
+          total_rows?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_import_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_lists: {
         Row: {
           created_at: string
