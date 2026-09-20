@@ -475,6 +475,19 @@ export function useCampaignBuilder(
         { event: "*", schema: "public", table: "campaign_recipients", filter: `campaign_id=eq.${campaignId}` },
         refresh,
       )
+      // Lifecycle changes (launch, pause, resume, automatic pause/complete) can
+      // happen on another page, through the API or in the scheduler. The open
+      // campaign page follows the campaign row itself so its status badge and
+      // action buttons never drift from the database.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "campaigns", filter: `id=eq.${campaignId}` },
+        () => {
+          hydratedFor.current = null;
+          void queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+          void queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
