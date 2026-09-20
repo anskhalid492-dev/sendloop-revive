@@ -122,6 +122,12 @@ const secondaryProducts: Card[] = [
     text: "Manage teams and outreach.",
     icon: Building2,
   },
+  {
+    label: "Email Signature",
+    to: "/products/email-signature",
+    text: "Professional signatures for every mailbox and email.",
+    icon: PenLine,
+  },
 ];
 
 const resourceCards: Card[] = [
@@ -212,6 +218,7 @@ const ICONS: Record<string, LucideIcon> = {
   Gift,
   GraduationCap,
   Sparkles,
+  PenLine,
 };
 
 type NavRow = {
@@ -276,7 +283,18 @@ export function SiteHeader() {
     },
   ];
   const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
-  const moreCards = adminMoreCards.filter((c) => !guaranteedHrefs.has(c.to));
+  const emailSignatureCard: Card = {
+    label: "Email Signature",
+    to: "/products/email-signature",
+    text: "Professional signatures for every mailbox and email.",
+    icon: PenLine,
+  };
+  const moreCards = [
+    ...adminMoreCards.filter(
+      (c) => !guaranteedHrefs.has(c.to) && c.to !== emailSignatureCard.to,
+    ),
+    emailSignatureCard,
+  ];
   // Every core product card gets a link to its own page, labelled after the product.
   const withCta = (card: Card): Card => ({
     ...card,
