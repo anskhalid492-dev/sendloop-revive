@@ -38,6 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+import { avatarImageUrl } from "@/lib/files-model";
   adminGetWorkspace,
   adminListWorkspaces,
   adminSetWorkspaceSuspended,
@@ -491,7 +492,7 @@ function WorkspaceDetailSheet({
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar className="size-7">
-                              {m.avatarUrl ? <AvatarImage src={m.avatarUrl} alt="" /> : null}
+                              {avatarImageUrl(m.avatarUrl) ? <AvatarImage src={avatarImageUrl(m.avatarUrl) ?? ""} alt="" /> : null}
                               <AvatarFallback className="text-[10px]">
                                 {(m.name ?? m.email ?? "?").slice(0, 2).toUpperCase()}
                               </AvatarFallback>
