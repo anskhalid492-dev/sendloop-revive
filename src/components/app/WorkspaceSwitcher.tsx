@@ -10,10 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useStorageImage } from "@/hooks/useStorageImage";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 export function WorkspaceSwitcher() {
   const { workspace, workspaces, selectWorkspace, isLoading } = useWorkspace();
+  const logo = useStorageImage("workspace-logos", workspace?.logo_url);
 
   if (isLoading) {
     return <div className="h-9 w-40 animate-pulse rounded-md bg-muted" />;
@@ -24,7 +26,15 @@ export function WorkspaceSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="max-w-52 justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2">
-            <Building2 className="size-4 shrink-0 text-muted-foreground" />
+            {logo ? (
+              <img
+                src={logo}
+                alt=""
+                className="size-5 shrink-0 rounded-sm border border-border/60 bg-background object-contain"
+              />
+            ) : (
+              <Building2 className="size-4 shrink-0 text-muted-foreground" />
+            )}
             <span className="truncate">{workspace?.name ?? "No workspace"}</span>
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
