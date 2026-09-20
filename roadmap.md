@@ -5,3 +5,6 @@
 - [x] Update existing articles and add only missing guides with practical step-by-step content.
 - [x] Verify complete Help Center search, ticket separation, responsive layout, metadata, type-check, and focused tests.
 - [x] Remove domain-verification and sending-domain articles from the public Help Center and logged-in Support.
+- [ ] Create the public Email Signature product page using only existing feature capabilities.
+- [ ] Add Email Signature to the existing Products menu and footer without duplicates.
+- [ ] Verify metadata, internal links, tests, and responsive rendering.
