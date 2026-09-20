@@ -429,16 +429,15 @@ export function useCampaignBuilder(
       toast.success(
         `Queued ${result.queued} leads. First send ${new Date(result.firstSendAt).toLocaleString()}.`,
       );
-      hydratedFor.current = null;
-      await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
+      await refreshLifecycle();
       await queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
-      await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
     },
     onError: async (e: Error) => {
       toast.error(e.message);
-      // A blocked attempt is recorded server-side; refresh the trail.
+      // A failed attempt may still have changed the campaign server-side, so the
+      // lifecycle state is re-read instead of leaving a stale badge on screen.
+      await refreshLifecycle();
       await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
     },
 
@@ -447,11 +446,7 @@ export function useCampaignBuilder(
   const toggleStatus = useMutation({
     mutationFn: (status: "active" | "paused" | "archived" | "draft") =>
       statusFn({ data: { id: campaignId, status } }),
-    onSuccess: async () => {
-      hydratedFor.current = null;
-      await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-    },
+    onSuccess: refreshLifecycle,
     onError: (e: Error) => toast.error(e.message),
   });
 
