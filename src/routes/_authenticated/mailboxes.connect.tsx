@@ -169,7 +169,7 @@ function ConnectMailboxPage() {
       setMailboxId(data.mailboxId);
       if (data.status === "connected") {
         toast.success("Mailbox connected and saved.");
-        void navigate({ to: "/mailboxes" });
+        void navigate({ to: "/mailboxes", search: { mailbox: undefined } });
       } else {
         toast.error("Saved as pending — the logins did not both pass.");
       }
