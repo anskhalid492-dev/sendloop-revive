@@ -6,6 +6,7 @@ import { Download, Filter, Loader2, Plus, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { ImportProgressPanel } from "@/components/leads/ImportProgressPanel";
 import { ImportWizard } from "@/components/leads/ImportWizard";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { LeadFiltersPanel } from "@/components/leads/LeadFiltersPanel";
@@ -317,6 +318,7 @@ function LeadsPage() {
         />
 
         <div className="min-w-0 space-y-4">
+          <ImportProgressPanel workspaceId={workspaceId} />
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

@@ -154,6 +154,7 @@ async function signedFetch(options: {
   query?: Record<string, string>;
   body?: Uint8Array | ArrayBuffer | null;
   contentType?: string | null;
+  extraHeaders?: Record<string, string>;
 }): Promise<Response> {
   const config = r2Config();
   const host = `${config.accountId}.r2.cloudflarestorage.com`;
@@ -167,6 +168,9 @@ async function signedFetch(options: {
     "x-amz-date": amzDate,
   };
   if (options.contentType) headers["content-type"] = options.contentType;
+  for (const [name, value] of Object.entries(options.extraHeaders ?? {})) {
+    headers[name.toLowerCase()] = value;
+  }
 
   const signedHeaderNames = Object.keys(headers).sort();
   const canonicalHeaders = signedHeaderNames.map((n) => `${n}:${headers[n]}\n`).join("");
@@ -224,6 +228,27 @@ export async function putR2Object(
 export async function getR2Object(key: string): Promise<Response> {
   const config = r2Config();
   return signedFetch({ method: "GET", path: `/${config.bucket}/${encodeObjectKey(key)}` });
+}
+
+/**
+ * Byte range of a stored object. The chunked lead importer reads large CSVs this
+ * way so a single request never has to hold the whole file.
+ */
+export async function getR2ObjectRange(
+  key: string,
+  start: number,
+  endInclusive: number,
+): Promise<{ ok: boolean; status: number; bytes: Uint8Array }> {
+  const config = r2Config();
+  const response = await signedFetch({
+    method: "GET",
+    path: `/${config.bucket}/${encodeObjectKey(key)}`,
+    extraHeaders: { range: `bytes=${start}-${endInclusive}` },
+  });
+  if (!response.ok) {
+    return { ok: false, status: response.status, bytes: new Uint8Array() };
+  }
+  return { ok: true, status: response.status, bytes: new Uint8Array(await response.arrayBuffer()) };
 }
 
 export async function headR2Object(key: string): Promise<{ exists: boolean; size: number }> {

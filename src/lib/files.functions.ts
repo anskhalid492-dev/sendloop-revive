@@ -18,6 +18,8 @@ import {
   buildR2Key,
   fileExtension,
   isAllowedMimeType,
+  isLeadImportMimeType,
+  MAX_LEAD_IMPORT_BYTES,
   isValidR2Key,
   ownerFromKey,
   safeFileName,
@@ -68,7 +70,7 @@ export const requestFileUpload = createServerFn({ method: "POST" })
         category: categorySchema,
         fileName: z.string().trim().min(1).max(255),
         mimeType: z.string().trim().max(160).default("application/octet-stream"),
-        size: z.number().int().nonnegative().max(MAX_UPLOAD_BYTES),
+        size: z.number().int().nonnegative().max(MAX_LEAD_IMPORT_BYTES),
         workspaceId: z.string().uuid().nullish(),
         campaignId: z.string().uuid().nullish(),
         invoiceId: z.string().uuid().nullish(),
@@ -79,7 +81,15 @@ export const requestFileUpload = createServerFn({ method: "POST" })
     await assertPresignRateLimit(context as AuthContext, "upload");
 
     const mimeType = (data.mimeType || "application/octet-stream").toLowerCase();
-    if (data.size > MAX_UPLOAD_BYTES) throw new Error("Files must be 50 MB or smaller");
+    // Lead CSVs are processed in chunks straight from storage, so they are
+    // allowed to be much larger than an attachment.
+    const isLeadImport = data.category === "imports" && isLeadImportMimeType(mimeType);
+    const sizeCeiling = isLeadImport ? MAX_LEAD_IMPORT_BYTES : MAX_UPLOAD_BYTES;
+    if (data.size > sizeCeiling) {
+      throw new Error(
+        isLeadImport ? "Lead files must be 512 MB or smaller" : "Files must be 50 MB or smaller",
+      );
+    }
     if (!isAllowedMimeType(mimeType)) throw new Error(`Unsupported file type: ${mimeType}`);
 
     const key = buildR2Key({
@@ -92,7 +102,12 @@ export const requestFileUpload = createServerFn({ method: "POST" })
     });
 
     const { presignR2Url } = await import("@/lib/r2.server");
-    const uploadUrl = await presignR2Url({ key, method: "PUT", expiresInSeconds: 300 });
+    // A large lead file needs longer than the default window to finish uploading.
+    const uploadUrl = await presignR2Url({
+      key,
+      method: "PUT",
+      expiresInSeconds: isLeadImport ? 3600 : 300,
+    });
 
     const expiresAt =
       data.category === "tmp" ? new Date(Date.now() + TMP_TTL_HOURS * 3600_000).toISOString() : null;
@@ -114,7 +129,7 @@ export const requestFileUpload = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    return { fileId: row.id as string, key, uploadUrl, expiresIn: 300 };
+    return { fileId: row.id as string, key, uploadUrl, expiresIn: isLeadImport ? 3600 : 300 };
   });
 
 export const confirmFileUpload = createServerFn({ method: "POST" })
@@ -123,7 +138,7 @@ export const confirmFileUpload = createServerFn({ method: "POST" })
     z
       .object({
         fileId: z.string().uuid(),
-        size: z.number().int().nonnegative().max(MAX_UPLOAD_BYTES).optional(),
+        size: z.number().int().nonnegative().max(MAX_LEAD_IMPORT_BYTES).optional(),
         status: z.enum(["ready", "failed"]).default("ready"),
       })
       .parse(input),

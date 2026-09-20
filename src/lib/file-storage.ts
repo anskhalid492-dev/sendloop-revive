@@ -10,7 +10,7 @@ import {
   requestFileUpload,
   requestSharedFileDownload,
 } from "@/lib/files.functions";
-import { MAX_UPLOAD_BYTES, type FileCategory } from "@/lib/files-model";
+import { MAX_LEAD_IMPORT_BYTES, MAX_UPLOAD_BYTES, type FileCategory } from "@/lib/files-model";
 
 export type UploadedFile = {
   fileId: string;
@@ -20,6 +20,39 @@ export type UploadedFile = {
   mimeType: string;
 };
 
+/**
+ * PUTs the file straight to R2. XHR is used instead of fetch purely because it
+ * reports upload progress, which matters for a multi-hundred-MB lead file.
+ */
+function putToR2(
+  url: string,
+  file: File,
+  mimeType: string,
+  onProgress?: (percent: number) => void,
+): Promise<boolean> {
+  if (typeof XMLHttpRequest === "undefined") {
+    return fetch(url, { method: "PUT", body: file, headers: { "Content-Type": mimeType } }).then(
+      (response) => response.ok,
+    );
+  }
+  return new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", url, true);
+    request.setRequestHeader("Content-Type", mimeType);
+    if (onProgress) {
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable && event.total > 0) {
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      };
+    }
+    request.onload = () => resolve(request.status >= 200 && request.status < 300);
+    request.onerror = () => resolve(false);
+    request.onabort = () => resolve(false);
+    request.send(file);
+  });
+}
+
 export async function uploadFileToR2(
   file: File,
   options: {
@@ -28,9 +61,11 @@ export async function uploadFileToR2(
     campaignId?: string | null;
     invoiceId?: string | null;
     maxBytes?: number;
+    /** Called with 0-100 while the bytes travel to R2. */
+    onProgress?: (percent: number) => void;
   },
 ): Promise<UploadedFile> {
-  const maxBytes = Math.min(options.maxBytes ?? MAX_UPLOAD_BYTES, MAX_UPLOAD_BYTES);
+  const maxBytes = Math.min(options.maxBytes ?? MAX_UPLOAD_BYTES, MAX_LEAD_IMPORT_BYTES);
   if (file.size > maxBytes) {
     throw new Error(`Files must be ${Math.round(maxBytes / (1024 * 1024))} MB or smaller`);
   }
@@ -48,13 +83,9 @@ export async function uploadFileToR2(
     },
   });
 
-  const response = await fetch(prepared.uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": mimeType },
-  });
+  const ok = await putToR2(prepared.uploadUrl, file, mimeType, options.onProgress);
 
-  if (!response.ok) {
+  if (!ok) {
     await confirmFileUpload({ data: { fileId: prepared.fileId, status: "failed" } }).catch(() => undefined);
     throw new Error("Upload failed — please try again");
   }
