@@ -43,6 +43,7 @@ import {
   type AdminUserRow,
 } from "@/lib/admin-directory.functions";
 import { WorkspacePlanPanel } from "@/components/admin/WorkspacePlanPanel";
+import { avatarImageUrl } from "@/lib/files-model";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/users")({
   head: () => ({
@@ -329,7 +330,7 @@ function AdminUsersPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="size-8">
-                        {u.avatarUrl ? <AvatarImage src={u.avatarUrl} alt="" /> : null}
+                        {avatarImageUrl(u.avatarUrl) ? <AvatarImage src={avatarImageUrl(u.avatarUrl) ?? ""} alt="" /> : null}
                         <AvatarFallback className="text-xs">
                           {initials(u.fullName, u.email)}
                         </AvatarFallback>

@@ -288,11 +288,15 @@ function ProfileSection() {
    * storage upload itself had already succeeded.
    */
   async function setAvatarPath(userId: string, avatarPath: string | null) {
-    const { error } = await supabase
+    // The updated row is read back so a write that changed nothing surfaces as
+    // an error instead of a picture that silently reverts on the next load.
+    const { data, error } = await supabase
       .from("profiles")
       .update({ avatar_url: avatarPath })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select("id, avatar_url");
     if (error) throw new Error(error.message);
+    if (!data || data.length === 0) throw new Error("Could not save your picture, please try again");
   }
 
   function refreshAvatarQueries() {
@@ -360,7 +364,7 @@ function ProfileSection() {
         <div>
           <h2 className="text-base font-semibold">Profile picture</h2>
           <p className="text-sm text-muted-foreground">
-            JPG, PNG or WebP up to 3 MB. Only you can access your uploaded file.
+            JPG, PNG or WebP up to 3 MB. Shown in your account and to teammates in your workspace.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
