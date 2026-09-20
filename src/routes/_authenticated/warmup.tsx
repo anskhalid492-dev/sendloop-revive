@@ -179,6 +179,18 @@ function WarmupPage() {
     >
       <TooltipProvider delayDuration={150}>
       <div className="space-y-5">
+        {plan.gates && !plan.warmupAllowed ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+            <p className="text-sm text-muted-foreground">
+              {plan.warmupReason ??
+                `Warmup isn't available on the ${plan.planName ?? "current"} plan.`}
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/billing">Upgrade plan</Link>
+            </Button>
+          </div>
+        ) : null}
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <Stat label="Active warmups" value={totals.active} />
           <Stat label="Healthy" value={totals.healthy} />
