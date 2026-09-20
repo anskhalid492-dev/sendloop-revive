@@ -25,6 +25,23 @@ export type FileCategory = (typeof FILE_CATEGORIES)[number];
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
+/**
+ * Lead CSVs get their own ceiling: a 500k-row export is far larger than any
+ * attachment, and the importer never holds the file in memory anyway.
+ */
+export const MAX_LEAD_IMPORT_BYTES = 512 * 1024 * 1024;
+
+export function isLeadImportMimeType(mime: string): boolean {
+  const value = (mime || "").toLowerCase();
+  return (
+    value === "text/csv" ||
+    value === "application/csv" ||
+    value === "text/plain" ||
+    value === "application/vnd.ms-excel" ||
+    value === "application/octet-stream"
+  );
+}
+
 /** Temporary artefacts are swept by the R2 lifecycle rule on the tmp/ prefix. */
 export const TMP_TTL_HOURS = 24;
 
