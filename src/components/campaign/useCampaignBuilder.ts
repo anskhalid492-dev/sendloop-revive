@@ -15,6 +15,7 @@ import {
   updateCampaign,
 } from "@/lib/campaigns.functions";
 import { getCampaign } from "@/lib/campaign-read.functions";
+import { canLaunchCampaign, launchSucceededDespiteError } from "@/lib/campaign-status-sync";
 import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import { listLeadLists } from "@/lib/leads.functions";
 import { listMySendingAccounts } from "@/lib/sending.functions";
@@ -179,13 +180,10 @@ export function useCampaignBuilder(
       if (/not found|permission|denied|unauthor|forbidden|row-level|PGRST202/i.test(error.message)) return false;
       return attempt < 2;
     },
-    // On Overview the readiness bar and the Launch button guard only matter
-    // while the campaign is still launchable, so fetch it there for draft and
-    // scheduled campaigns instead of skipping the tab entirely.
-    enabled:
-      activeTab !== "Overview" ||
-      campaignQuery.data?.campaign.status === "draft" ||
-      campaignQuery.data?.campaign.status === "scheduled",
+    // Readiness only describes a campaign that can still be launched. Once the
+    // database says the campaign is active (or paused/completed), the readiness
+    // snapshot is meaningless and must never render alongside the live status.
+    enabled: canLaunchCampaign(campaignQuery.data?.campaign.status),
   });
   const accountsQuery = useQuery({
     queryKey: ["sending-accounts"],
