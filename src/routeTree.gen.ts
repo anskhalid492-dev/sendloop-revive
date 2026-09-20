@@ -180,6 +180,7 @@ import { Route as AuthenticatedMranuskhalidMarketingSettingsRouteImport } from '
 import { Route as AuthenticatedMranuskhalidMarketingSubscribersRouteImport } from './routes/_authenticated/mranuskhalid/marketing/subscribers'
 import { Route as AuthenticatedMranuskhalidMarketingTemplatesRouteImport } from './routes/_authenticated/mranuskhalid/marketing/templates'
 import { Route as ApiPublicAutomationsTokenRouteImport } from './routes/api/public/automations/$token'
+import { Route as ApiPublicAvatarImageSplatRouteImport } from './routes/api/public/avatar-image.$'
 import { Route as ApiPublicBillingLemonsqueezyRouteImport } from './routes/api/public/billing/lemonsqueezy'
 import { Route as ApiPublicBillingPaddleRouteImport } from './routes/api/public/billing/paddle'
 import { Route as ApiPublicBillingStripeRouteImport } from './routes/api/public/billing/stripe'
@@ -1167,6 +1168,12 @@ const ApiPublicAutomationsTokenRoute =
     path: '/api/public/automations/$token',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAvatarImageSplatRoute =
+  ApiPublicAvatarImageSplatRouteImport.update({
+    id: '/api/public/avatar-image/$',
+    path: '/api/public/avatar-image/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBillingLemonsqueezyRoute =
   ApiPublicBillingLemonsqueezyRouteImport.update({
     id: '/api/public/billing/lemonsqueezy',
@@ -1607,6 +1614,7 @@ export interface FileRoutesByFullPath {
   '/mranuskhalid/marketing/subscribers': typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
   '/mranuskhalid/marketing/templates': typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
+  '/api/public/avatar-image/$': typeof ApiPublicAvatarImageSplatRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
@@ -1823,6 +1831,7 @@ export interface FileRoutesByTo {
   '/mranuskhalid/marketing/subscribers': typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
   '/mranuskhalid/marketing/templates': typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
+  '/api/public/avatar-image/$': typeof ApiPublicAvatarImageSplatRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
@@ -2044,6 +2053,7 @@ export interface FileRoutesById {
   '/_authenticated/mranuskhalid/marketing/subscribers': typeof AuthenticatedMranuskhalidMarketingSubscribersRoute
   '/_authenticated/mranuskhalid/marketing/templates': typeof AuthenticatedMranuskhalidMarketingTemplatesRoute
   '/api/public/automations/$token': typeof ApiPublicAutomationsTokenRoute
+  '/api/public/avatar-image/$': typeof ApiPublicAvatarImageSplatRoute
   '/api/public/billing/lemonsqueezy': typeof ApiPublicBillingLemonsqueezyRoute
   '/api/public/billing/paddle': typeof ApiPublicBillingPaddleRoute
   '/api/public/billing/stripe': typeof ApiPublicBillingStripeRoute
@@ -2265,6 +2275,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/marketing/subscribers'
     | '/mranuskhalid/marketing/templates'
     | '/api/public/automations/$token'
+    | '/api/public/avatar-image/$'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
@@ -2481,6 +2492,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/marketing/subscribers'
     | '/mranuskhalid/marketing/templates'
     | '/api/public/automations/$token'
+    | '/api/public/avatar-image/$'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
@@ -2701,6 +2713,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mranuskhalid/marketing/subscribers'
     | '/_authenticated/mranuskhalid/marketing/templates'
     | '/api/public/automations/$token'
+    | '/api/public/avatar-image/$'
     | '/api/public/billing/lemonsqueezy'
     | '/api/public/billing/paddle'
     | '/api/public/billing/stripe'
@@ -2830,6 +2843,7 @@ export interface RootRouteChildren {
   BlogAuthorSlugRoute: typeof BlogAuthorSlugRoute
   BlogCategorySlugRoute: typeof BlogCategorySlugRoute
   ApiPublicAutomationsTokenRoute: typeof ApiPublicAutomationsTokenRoute
+  ApiPublicAvatarImageSplatRoute: typeof ApiPublicAvatarImageSplatRoute
   ApiPublicBillingLemonsqueezyRoute: typeof ApiPublicBillingLemonsqueezyRoute
   ApiPublicBillingPaddleRoute: typeof ApiPublicBillingPaddleRoute
   ApiPublicBillingStripeRoute: typeof ApiPublicBillingStripeRoute
@@ -4066,6 +4080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAutomationsTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/avatar-image/$': {
+      id: '/api/public/avatar-image/$'
+      path: '/api/public/avatar-image/$'
+      fullPath: '/api/public/avatar-image/$'
+      preLoaderRoute: typeof ApiPublicAvatarImageSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/billing/lemonsqueezy': {
       id: '/api/public/billing/lemonsqueezy'
       path: '/api/public/billing/lemonsqueezy'
@@ -4898,6 +4919,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogAuthorSlugRoute: BlogAuthorSlugRoute,
   BlogCategorySlugRoute: BlogCategorySlugRoute,
   ApiPublicAutomationsTokenRoute: ApiPublicAutomationsTokenRoute,
+  ApiPublicAvatarImageSplatRoute: ApiPublicAvatarImageSplatRoute,
   ApiPublicBillingLemonsqueezyRoute: ApiPublicBillingLemonsqueezyRoute,
   ApiPublicBillingPaddleRoute: ApiPublicBillingPaddleRoute,
   ApiPublicBillingStripeRoute: ApiPublicBillingStripeRoute,
