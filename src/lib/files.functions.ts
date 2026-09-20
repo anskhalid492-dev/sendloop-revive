@@ -18,6 +18,8 @@ import {
   buildR2Key,
   fileExtension,
   isAllowedMimeType,
+  isLeadImportMimeType,
+  MAX_LEAD_IMPORT_BYTES,
   isValidR2Key,
   ownerFromKey,
   safeFileName,
@@ -100,7 +102,12 @@ export const requestFileUpload = createServerFn({ method: "POST" })
     });
 
     const { presignR2Url } = await import("@/lib/r2.server");
-    const uploadUrl = await presignR2Url({ key, method: "PUT", expiresInSeconds: 300 });
+    // A large lead file needs longer than the default window to finish uploading.
+    const uploadUrl = await presignR2Url({
+      key,
+      method: "PUT",
+      expiresInSeconds: isLeadImport ? 3600 : 300,
+    });
 
     const expiresAt =
       data.category === "tmp" ? new Date(Date.now() + TMP_TTL_HOURS * 3600_000).toISOString() : null;
@@ -122,7 +129,7 @@ export const requestFileUpload = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    return { fileId: row.id as string, key, uploadUrl, expiresIn: 300 };
+    return { fileId: row.id as string, key, uploadUrl, expiresIn: isLeadImport ? 3600 : 300 };
   });
 
 export const confirmFileUpload = createServerFn({ method: "POST" })
