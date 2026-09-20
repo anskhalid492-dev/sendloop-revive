@@ -15,7 +15,8 @@ export type SenderRoutingRow = {
   fromEmail: string;
   label: string;
   domain: string;
-  dnsStatus: "verified" | "pending" | "failed" | "missing";
+  /** "unchecked" = customer-connected mailbox whose domain records were not checked yet. */
+  dnsStatus: "verified" | "pending" | "failed" | "missing" | "unchecked";
   dnsVerifiedAt: string | null;
   providerStatus: "verified" | "not_verified" | "unknown" | "error";
   providerDetail: string;
