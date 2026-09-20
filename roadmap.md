@@ -8,3 +8,9 @@
 - [x] Create the public Email Signature product page using only existing feature capabilities.
 - [x] Add Email Signature to the existing Products menu and footer without duplicates.
 - [x] Verify metadata, internal links, tests, and responsive rendering.
+
+## Plan entitlement enforcement (done)
+- Central gates: src/lib/billing/gates.server.ts (mailbox capacity, warmup, contacts, campaigns, team, AI, sending).
+- Enforced at: mailbox connection (customer-mailboxes), setMailboxWarmup, bulkSetWarmup, saveWarmupSettings, runWarmupNow, warmup runner (schedule + queued job + manual run).
+- Mailbox count is now the union of mailboxes + sending_accounts addresses, used by both the gate and the Billing usage panel.
+- Over-limit workspaces keep their data; further mailboxes/warmup are refused.
