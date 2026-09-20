@@ -32,6 +32,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { usePlanGates } from "@/hooks/usePlanGates";
+import { Link } from "@tanstack/react-router";
 import { listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +97,9 @@ function WarmupPage() {
   const [runningId, setRunningId] = useState<string | null>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const { connected: liveConnected } = useWarmupRealtime();
+  const { workspace } = useWorkspace();
+  // UX only — saveWarmupSettings / runWarmupNow re-check the plan server-side.
+  const plan = usePlanGates(workspace?.id);
 
   const accountsQuery = useQuery({
     queryKey: ["warmup-accounts"],
@@ -115,8 +121,14 @@ function WarmupPage() {
   };
 
   const toggleMutation = useMutation({
-    mutationFn: (vars: { accountId: string; enabled: boolean }) =>
-      saveFn({ data: { accountId: vars.accountId, enabled: vars.enabled, resume: vars.enabled } }),
+    mutationFn: (vars: { accountId: string; enabled: boolean }) => {
+      if (vars.enabled && !plan.warmupAllowed) {
+        return Promise.reject(
+          new Error(plan.warmupReason ?? "Warmup isn't available on your current plan."),
+        );
+      }
+      return saveFn({ data: { accountId: vars.accountId, enabled: vars.enabled, resume: vars.enabled } });
+    },
     onSuccess: async (result: { blocked?: boolean; message?: string }, vars) => {
       // Resume never overrides an active safety block — say so plainly instead
       // of flipping the mailbox back to blocked a moment later.
@@ -167,6 +179,18 @@ function WarmupPage() {
     >
       <TooltipProvider delayDuration={150}>
       <div className="space-y-5">
+        {plan.gates && !plan.warmupAllowed ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+            <p className="text-sm text-muted-foreground">
+              {plan.warmupReason ??
+                `Warmup isn't available on the ${plan.planName ?? "current"} plan.`}
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/billing">Upgrade plan</Link>
+            </Button>
+          </div>
+        ) : null}
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <Stat label="Active warmups" value={totals.active} />
           <Stat label="Healthy" value={totals.healthy} />
@@ -392,9 +416,15 @@ function WarmupPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={toggleMutation.isPending || !row.resumable}
+                          disabled={
+                            toggleMutation.isPending ||
+                            !row.resumable ||
+                            (!plan.warmupAllowed && !row.warmup_enabled)
+                          }
                           title={
-                            !row.resumable
+                            !plan.warmupAllowed
+                              ? (plan.warmupReason ?? undefined)
+                              : !row.resumable
                               ? `${row.block_reason ?? "Resume cannot override this safety block."} Resume becomes available as soon as the condition clears (next check ${new Date(row.next_evaluation_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).`
                               : undefined
                           }

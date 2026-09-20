@@ -421,8 +421,8 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     if (!account) throw new Error("Mailbox not found");
 
     // Warmup is a plan feature; enforced here so API callers cannot enable it.
-    const { requireEntitlement } = await import("@/lib/billing/usage.server");
-    await requireEntitlement(account.workspace_id as string, "warmup");
+    const { requireWarmup } = await import("@/lib/billing/gates.server");
+    await requireWarmup(account.workspace_id as string);
 
     const { data: existing } = await client
       .from("warmup_settings")
@@ -546,9 +546,18 @@ export const bulkSetWarmup = createServerFn({ method: "POST" })
       .in("id", data.ids);
     if (error) throw new Error(error.message);
 
+    const rows = (accounts ?? []) as Array<{ id: string; workspace_id: string }>;
+    // Same plan gate as the single-mailbox action — a bulk call is not a bypass.
+    if (data.enabled) {
+      const { requireWarmup } = await import("@/lib/billing/gates.server");
+      for (const workspaceId of new Set(rows.map((r) => r.workspace_id))) {
+        await requireWarmup(workspaceId);
+      }
+    }
+
     const now = new Date().toISOString();
     let changed = 0;
-    for (const account of (accounts ?? []) as Array<{ id: string; workspace_id: string }>) {
+    for (const account of rows) {
       const { data: existing } = await client
         .from("warmup_settings")
         .select("id, started_at")
@@ -1175,8 +1184,8 @@ export const runWarmupNow = createServerFn({ method: "POST" })
       throw new Error(PAUSED_MAILBOX_MESSAGE);
     }
 
-    const { requireEntitlement } = await import("@/lib/billing/usage.server");
-    await requireEntitlement(account.workspace_id as string, "warmup");
+    const { requireWarmup } = await import("@/lib/billing/gates.server");
+    await requireWarmup(account.workspace_id as string);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { runWarmupForAccount } = await import("@/lib/warmup-engine.server");

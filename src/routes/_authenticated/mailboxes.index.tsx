@@ -72,6 +72,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
+import { usePlanGates } from "@/hooks/usePlanGates";
 import {
   Table,
   TableBody,
@@ -132,6 +133,8 @@ function MailboxesPage() {
   const { mailbox: requestedMailbox } = Route.useSearch();
   const workspaceId = workspace?.id ?? "";
   const queryClient = useQueryClient();
+  // UX only — the server enforces both of these again on write.
+  const plan = usePlanGates(workspaceId);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -172,7 +175,14 @@ function MailboxesPage() {
   });
 
   const setWarmupEnabled = useMutation({
-    mutationFn: (input: { ids: string[]; enabled: boolean }) => runWarmup({ data: input }),
+    mutationFn: (input: { ids: string[]; enabled: boolean }) => {
+      if (input.enabled && !plan.warmupAllowed) {
+        return Promise.reject(
+          new Error(plan.warmupReason ?? "Warmup isn't available on your current plan."),
+        );
+      }
+      return runWarmup({ data: input });
+    },
     onSuccess: (_result, input) => {
       toast.success(input.enabled ? "Warm-up enabled." : "Warm-up turned off.");
       void invalidate();
@@ -282,12 +292,23 @@ function MailboxesPage() {
               )}
               Refresh
             </Button>
-            <Button asChild>
-              <Link to="/mailboxes/add">
-                <MailPlus className="mr-2 size-4" />
-                Add Mailbox
-              </Link>
-            </Button>
+            {plan.canAddMailbox ? (
+              <Button asChild>
+                <Link to="/mailboxes/add">
+                  <MailPlus className="mr-2 size-4" />
+                  Add Mailbox
+                </Link>
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                  {plan.mailboxReason}
+                </span>
+                <Button asChild variant="outline">
+                  <Link to="/billing">Upgrade plan</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

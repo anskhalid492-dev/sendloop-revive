@@ -774,6 +774,16 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
     const mailboxes = (rows ?? []) as Row[];
     if (mailboxes.length === 0) throw new Error("Mailbox not found");
 
+    // Warmup is a plan feature. Checked per workspace before anything is
+    // written, so no route, bulk action or API caller can switch it on without
+    // the entitlement.
+    if (data.enabled) {
+      const { requireWarmup } = await import("@/lib/billing/gates.server");
+      for (const workspaceId of new Set(mailboxes.map((row) => row.workspace_id))) {
+        await requireWarmup(workspaceId);
+      }
+    }
+
     if (data.enabled) {
       const unusable = mailboxes.filter(
         (row) => row.status !== "connected" || row.is_active === false,
