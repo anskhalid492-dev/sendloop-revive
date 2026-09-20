@@ -56,12 +56,12 @@ ALTER TABLE public.lead_import_jobs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "lead_import_jobs_select_member" ON public.lead_import_jobs;
 CREATE POLICY "lead_import_jobs_select_member"
   ON public.lead_import_jobs FOR SELECT TO authenticated
-  USING (public.is_workspace_member(workspace_id));
+  USING (public.is_workspace_member(workspace_id, auth.uid()));
 
 DROP POLICY IF EXISTS "lead_import_jobs_insert_member" ON public.lead_import_jobs;
 CREATE POLICY "lead_import_jobs_insert_member"
   ON public.lead_import_jobs FOR INSERT TO authenticated
-  WITH CHECK (public.is_workspace_member(workspace_id) AND created_by = auth.uid());
+  WITH CHECK (public.is_workspace_member(workspace_id, auth.uid()) AND created_by = auth.uid());
 
 -- Members may only cancel/retry their workspace's jobs; the worker itself runs
 -- as service_role, so counters can never be edited from the browser beyond the
@@ -69,8 +69,8 @@ CREATE POLICY "lead_import_jobs_insert_member"
 DROP POLICY IF EXISTS "lead_import_jobs_update_member" ON public.lead_import_jobs;
 CREATE POLICY "lead_import_jobs_update_member"
   ON public.lead_import_jobs FOR UPDATE TO authenticated
-  USING (public.is_workspace_member(workspace_id))
-  WITH CHECK (public.is_workspace_member(workspace_id));
+  USING (public.is_workspace_member(workspace_id, auth.uid()))
+  WITH CHECK (public.is_workspace_member(workspace_id, auth.uid()));
 
 DROP TRIGGER IF EXISTS lead_import_jobs_set_updated_at ON public.lead_import_jobs;
 CREATE TRIGGER lead_import_jobs_set_updated_at
