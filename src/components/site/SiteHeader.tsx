@@ -122,6 +122,12 @@ const secondaryProducts: Card[] = [
     text: "Manage teams and outreach.",
     icon: Building2,
   },
+  {
+    label: "Email Signature",
+    to: "/products/email-signature",
+    text: "Professional signatures for every mailbox and email.",
+    icon: PenLine,
+  },
 ];
 
 const resourceCards: Card[] = [
@@ -212,6 +218,7 @@ const ICONS: Record<string, LucideIcon> = {
   Gift,
   GraduationCap,
   Sparkles,
+  PenLine,
 };
 
 type NavRow = {
@@ -276,7 +283,18 @@ export function SiteHeader() {
     },
   ];
   const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
-  const moreCards = adminMoreCards.filter((c) => !guaranteedHrefs.has(c.to));
+  const emailSignatureCard: Card = {
+    label: "Email Signature",
+    to: "/products/email-signature",
+    text: "Professional signatures for every mailbox and email.",
+    icon: PenLine,
+  };
+  const moreCards = [
+    ...adminMoreCards.filter(
+      (c) => !guaranteedHrefs.has(c.to) && c.to !== emailSignatureCard.to,
+    ),
+    emailSignatureCard,
+  ];
   // Every core product card gets a link to its own page, labelled after the product.
   const withCta = (card: Card): Card => ({
     ...card,
@@ -390,7 +408,7 @@ export function SiteHeader() {
           <BrandLogo className="h-7 max-w-[168px]" />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {leadNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
           ))}
@@ -414,7 +432,7 @@ export function SiteHeader() {
         </nav>
 
 
-        <div className="hidden shrink-0 items-center gap-2 md:flex">
+        <div className="hidden shrink-0 items-center gap-2 lg:flex">
           {signedIn ? (
             <Button size="sm" asChild>
               <Link to="/dashboard">Go to dashboard</Link>
@@ -432,7 +450,7 @@ export function SiteHeader() {
         </div>
 
         <button
-          className="inline-flex size-11 items-center justify-center rounded-md border border-border md:hidden"
+          className="inline-flex size-11 items-center justify-center rounded-md border border-border lg:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle navigation"
           aria-expanded={open}
@@ -447,7 +465,7 @@ export function SiteHeader() {
           <motion.div
             {...panelMotion}
             onMouseEnter={() => openMenu(menu)}
-            className="absolute inset-x-0 top-full hidden px-4 pb-6 md:block"
+            className="absolute inset-x-0 top-full hidden px-4 pb-6 lg:block"
           >
             <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-border/70 bg-background/98 shadow-[0_36px_80px_-40px_rgba(15,23,42,0.55)] backdrop-blur-xl">
               {menu === "products" ? (
@@ -467,7 +485,7 @@ export function SiteHeader() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-2 overflow-hidden rounded-3xl border border-border/70 bg-background shadow-[0_28px_60px_-30px_rgba(15,23,42,0.5)] md:hidden"
+            className="mt-2 overflow-hidden rounded-3xl border border-border/70 bg-background shadow-[0_28px_60px_-30px_rgba(15,23,42,0.5)] lg:hidden"
           >
             <div className="mx-auto flex max-h-[calc(100dvh-7.5rem)] max-w-7xl flex-col gap-1 overflow-y-auto overscroll-contain px-4 py-4">
 

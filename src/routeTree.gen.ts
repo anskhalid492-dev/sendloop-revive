@@ -96,6 +96,7 @@ import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unifie
 import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
 import { Route as ProductsAiCampaignWriterRouteImport } from './routes/products.ai-campaign-writer'
+import { Route as ProductsEmailSignatureRouteImport } from './routes/products.email-signature'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as SolutionsIndexRouteImport } from './routes/solutions.index'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
@@ -670,6 +671,11 @@ const ProductsAiCampaignWriterRoute =
     path: '/products/ai-campaign-writer',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProductsEmailSignatureRoute = ProductsEmailSignatureRouteImport.update({
+  id: '/products/email-signature',
+  path: '/products/email-signature',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
@@ -1508,6 +1514,7 @@ export interface FileRoutesByFullPath {
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
+  '/products/email-signature': typeof ProductsEmailSignatureRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
@@ -1723,6 +1730,7 @@ export interface FileRoutesByTo {
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
+  '/products/email-signature': typeof ProductsEmailSignatureRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
@@ -1941,6 +1949,7 @@ export interface FileRoutesById {
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
+  '/products/email-signature': typeof ProductsEmailSignatureRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
@@ -2160,6 +2169,7 @@ export interface FileRouteTypes {
     | '/product/warmup'
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
+    | '/products/email-signature'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
@@ -2375,6 +2385,7 @@ export interface FileRouteTypes {
     | '/product/warmup'
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
+    | '/products/email-signature'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog'
@@ -2592,6 +2603,7 @@ export interface FileRouteTypes {
     | '/product/warmup'
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
+    | '/products/email-signature'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
@@ -2793,6 +2805,7 @@ export interface RootRouteChildren {
   ProductWarmupRoute: typeof ProductWarmupRoute
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   ProductsAiCampaignWriterRoute: typeof ProductsAiCampaignWriterRoute
+  ProductsEmailSignatureRoute: typeof ProductsEmailSignatureRoute
   RCodeRoute: typeof RCodeRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -3449,6 +3462,13 @@ declare module '@tanstack/react-router' {
       path: '/products/ai-campaign-writer'
       fullPath: '/products/ai-campaign-writer'
       preLoaderRoute: typeof ProductsAiCampaignWriterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/email-signature': {
+      id: '/products/email-signature'
+      path: '/products/email-signature'
+      fullPath: '/products/email-signature'
+      preLoaderRoute: typeof ProductsEmailSignatureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/r/$code': {
@@ -4845,6 +4865,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductWarmupRoute: ProductWarmupRoute,
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   ProductsAiCampaignWriterRoute: ProductsAiCampaignWriterRoute,
+  ProductsEmailSignatureRoute: ProductsEmailSignatureRoute,
   RCodeRoute: RCodeRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,

@@ -49,6 +49,7 @@ const fallbackColumns = [
       { label: "Analytics", href: "/product/analytics" },
       { label: "Workspaces", href: "/product/workspaces" },
       { label: "Templates", href: "/product/templates" },
+      { label: "Email Signature", href: "/products/email-signature" },
     ],
   },
   {
@@ -124,6 +125,7 @@ const productIcons: Record<string, typeof Send> = {
   Analytics: BarChart3,
   Workspaces: LayoutGrid,
   Templates: FileText,
+  "Email Signature": PenLine,
 };
 
 /**
@@ -217,9 +219,8 @@ export function SiteFooter() {
           : [...legal.slice(0, privacyIndex + 1), entry, ...legal.slice(privacyIndex + 1)];
       groups.set("Legal", legal);
     }
-    // AI Writer is a core product page and must always be listed under
-    // Products, even if the admin-managed footer list omits it.
-  const products = groups.get("Products") ?? [];
+    // Core product pages must remain available even if the admin-managed list omits them.
+    let products = groups.get("Products") ?? [];
     if (!products.some((l) => l.href === "/ai-campaign-writer")) {
       // Sits right after AI Personalization ("AI") to match the header order.
       const aiIndex = products.findIndex((l) => l.href === "/ai-personalized-outreach");
@@ -228,8 +229,12 @@ export function SiteFooter() {
         aiIndex === -1
           ? [...products, entry]
           : [...products.slice(0, aiIndex + 1), entry, ...products.slice(aiIndex + 1)];
-      groups.set("Products", next);
+      products = next;
     }
+    if (!products.some((l) => l.href === "/products/email-signature")) {
+      products = [...products, { label: "Email Signature", href: "/products/email-signature" }];
+    }
+    groups.set("Products", products);
     // Fixed menu names for the AI products, matching the header exactly.
     groups.set("Products", withProductLabels(groups.get("Products") ?? []));
     if (!legal.some((l) => l.href === "/compliance")) {
