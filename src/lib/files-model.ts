@@ -140,6 +140,23 @@ export function legacyKeyToR2(bucket: string, path: string): string {
   return clean.startsWith(`${prefix}/`) ? clean : `${prefix}/${clean}`;
 }
 
+/**
+ * Stable in-app URL for a stored profile picture.
+ *
+ * Absolute URLs (social sign-in pictures) are returned untouched, session-only
+ * blob/data previews are rejected so a preview is never mistaken for a saved
+ * picture, and a stored key is served through the app's avatar image route.
+ */
+export function avatarImageUrl(path: string | null | undefined): string | null {
+  const value = (path ?? "").trim();
+  if (!value) return null;
+  if (value.startsWith("blob:") || value.startsWith("data:")) return null;
+  if (value.startsWith("http") || value.startsWith("/")) return value;
+  if (value.includes("..")) return null;
+  const key = legacyKeyToR2("avatars", value);
+  return `/api/public/avatar-image/${key.replace(/^avatars\//, "")}`;
+}
+
 export const IMAGE_MIME_TYPES = [
   "image/png",
   "image/jpeg",
