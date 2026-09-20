@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { canLaunchCampaign, showsLaunchReadiness } from "@/lib/campaign-status-sync";
 import { LaunchReadinessBar } from "./LaunchReadinessBar";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
@@ -177,7 +178,7 @@ export function CampaignHeader({
               )}
               Launch campaign
             </Button>
-          )}
+          ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8" aria-label="More actions">
@@ -196,7 +197,7 @@ export function CampaignHeader({
         </div>
       </div>
 
-      {status === "draft" || status === "scheduled" ? (
+      {showsLaunchReadiness(status) ? (
         <LaunchReadinessBar
           readiness={readiness}
           loading={readinessLoading}
