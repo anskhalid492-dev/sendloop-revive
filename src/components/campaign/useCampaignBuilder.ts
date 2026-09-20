@@ -369,6 +369,16 @@ export function useCampaignBuilder(
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
+  const refreshLifecycle = useCallback(async () => {
+    hydratedFor.current = null;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] }),
+      queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] }),
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
+      queryClient.invalidateQueries({ queryKey: ["analytics"] }),
+    ]);
+  }, [campaignId, queryClient]);
+
   const launch = useMutation({
     mutationFn: async () => {
       await save.mutateAsync();
@@ -376,17 +386,38 @@ export function useCampaignBuilder(
       // out of time. Each call resumes where the last one stopped.
       let queued = 0;
       let total = 0;
-      let result = await launchFn({ data: { id: campaignId } });
+      // A launch pass can finalize on the server and still fail on the wire
+      // (dropped connection, gateway timeout). The campaign row is the arbiter:
+      // if it is already active, the launch did complete and the UI must not be
+      // left showing Draft.
+      const pass = async () => {
+        try {
+          return await launchFn({ data: { id: campaignId } });
+        } catch (error) {
+          const snapshot = await fetchCampaign({ data: { id: campaignId } }).catch(() => null);
+          if (snapshot && launchSucceededDespiteError(snapshot.campaign.status)) {
+            return {
+              queued: 0,
+              total: snapshot.leadTotal ?? 0,
+              firstSendAt: snapshot.queue?.nextSendAt ?? new Date().toISOString(),
+              heldForAi: 0,
+              done: true as const,
+            };
+          }
+          throw error;
+        }
+      };
+      let result = await pass();
       queued += result.queued;
       total = Math.max(total, result.total, queued);
-      for (let pass = 0; pass < 60 && !result.done; pass += 1) {
+      for (let attempt = 0; attempt < 60 && !result.done; attempt += 1) {
         toast.loading(
           total > 0
             ? `Preparing your campaign… ${queued.toLocaleString()} of ${total.toLocaleString()} emails queued`
             : "Preparing your campaign…",
           { id: "campaign-launch-progress" },
         );
-        result = await launchFn({ data: { id: campaignId } });
+        result = await pass();
         queued += result.queued;
         total = Math.max(total, result.total, queued);
       }
