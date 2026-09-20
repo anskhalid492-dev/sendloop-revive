@@ -192,6 +192,7 @@ import { Route as ApiPublicCronRetryInboundRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronRunAiPersonalizationRouteImport } from './routes/api/public/cron/run-ai-personalization'
 import { Route as ApiPublicCronRunAutomationsRouteImport } from './routes/api/public/cron/run-automations'
 import { Route as ApiPublicCronRunCampaignsRouteImport } from './routes/api/public/cron/run-campaigns'
+import { Route as ApiPublicCronRunLeadImportsRouteImport } from './routes/api/public/cron/run-lead-imports'
 import { Route as ApiPublicCronRunTransactionalEmailRouteImport } from './routes/api/public/cron/run-transactional-email'
 import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/cron/run-warmup'
 import { Route as ApiPublicCronRunWebhooksRouteImport } from './routes/api/public/cron/run-webhooks'
@@ -1236,6 +1237,12 @@ const ApiPublicCronRunCampaignsRoute =
     path: '/api/public/cron/run-campaigns',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronRunLeadImportsRoute =
+  ApiPublicCronRunLeadImportsRouteImport.update({
+    id: '/api/public/cron/run-lead-imports',
+    path: '/api/public/cron/run-lead-imports',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRunTransactionalEmailRoute =
   ApiPublicCronRunTransactionalEmailRouteImport.update({
     id: '/api/public/cron/run-transactional-email',
@@ -1612,6 +1619,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-lead-imports': typeof ApiPublicCronRunLeadImportsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
@@ -1827,6 +1835,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-lead-imports': typeof ApiPublicCronRunLeadImportsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
@@ -2047,6 +2056,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-ai-personalization': typeof ApiPublicCronRunAiPersonalizationRoute
   '/api/public/cron/run-automations': typeof ApiPublicCronRunAutomationsRoute
   '/api/public/cron/run-campaigns': typeof ApiPublicCronRunCampaignsRoute
+  '/api/public/cron/run-lead-imports': typeof ApiPublicCronRunLeadImportsRoute
   '/api/public/cron/run-transactional-email': typeof ApiPublicCronRunTransactionalEmailRoute
   '/api/public/cron/run-warmup': typeof ApiPublicCronRunWarmupRoute
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
@@ -2267,6 +2277,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-lead-imports'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
     | '/api/public/cron/run-webhooks'
@@ -2482,6 +2493,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-lead-imports'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
     | '/api/public/cron/run-webhooks'
@@ -2701,6 +2713,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-ai-personalization'
     | '/api/public/cron/run-automations'
     | '/api/public/cron/run-campaigns'
+    | '/api/public/cron/run-lead-imports'
     | '/api/public/cron/run-transactional-email'
     | '/api/public/cron/run-warmup'
     | '/api/public/cron/run-webhooks'
@@ -2829,6 +2842,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunAiPersonalizationRoute: typeof ApiPublicCronRunAiPersonalizationRoute
   ApiPublicCronRunAutomationsRoute: typeof ApiPublicCronRunAutomationsRoute
   ApiPublicCronRunCampaignsRoute: typeof ApiPublicCronRunCampaignsRoute
+  ApiPublicCronRunLeadImportsRoute: typeof ApiPublicCronRunLeadImportsRoute
   ApiPublicCronRunTransactionalEmailRoute: typeof ApiPublicCronRunTransactionalEmailRoute
   ApiPublicCronRunWarmupRoute: typeof ApiPublicCronRunWarmupRoute
   ApiPublicCronRunWebhooksRoute: typeof ApiPublicCronRunWebhooksRoute
@@ -4136,6 +4150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRunCampaignsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/run-lead-imports': {
+      id: '/api/public/cron/run-lead-imports'
+      path: '/api/public/cron/run-lead-imports'
+      fullPath: '/api/public/cron/run-lead-imports'
+      preLoaderRoute: typeof ApiPublicCronRunLeadImportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/run-transactional-email': {
       id: '/api/public/cron/run-transactional-email'
       path: '/api/public/cron/run-transactional-email'
@@ -4890,6 +4911,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicCronRunAiPersonalizationRoute,
   ApiPublicCronRunAutomationsRoute: ApiPublicCronRunAutomationsRoute,
   ApiPublicCronRunCampaignsRoute: ApiPublicCronRunCampaignsRoute,
+  ApiPublicCronRunLeadImportsRoute: ApiPublicCronRunLeadImportsRoute,
   ApiPublicCronRunTransactionalEmailRoute:
     ApiPublicCronRunTransactionalEmailRoute,
   ApiPublicCronRunWarmupRoute: ApiPublicCronRunWarmupRoute,

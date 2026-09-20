@@ -10,6 +10,14 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isValidR2Key, ownerFromKey } from "@/lib/files-model";
+import type { LeadImportJob } from "@/lib/lead-import";
+
+/**
+ * The import-job table is created by the additive manual migration, so the
+ * generated database types do not describe it yet. Reads/writes still go through
+ * the caller's own client, so row-level security applies unchanged.
+ */
+type LooseClient = { from: (table: string) => any };
 
 const JOB_COLUMNS =
   "id, workspace_id, file_name, file_size, status, list_id, total_rows, processed_rows, imported_rows, skipped_rows, duplicate_rows, invalid_rows, failed_rows, byte_offset, error_message, errors, created_at, finished_at";
@@ -58,7 +66,8 @@ export const startLeadImport = createServerFn({ method: "POST" })
 
     // Written through the caller's own client: workspace membership is enforced
     // by the existing row-level rules, not by this code.
-    const { data: row, error } = await context.supabase
+    const db = context.supabase as unknown as LooseClient;
+    const { data: row, error } = await db
       .from("lead_import_jobs")
       .insert({
         workspace_id: data.workspaceId,
@@ -93,27 +102,29 @@ export const listLeadImportJobs = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const db = context.supabase as unknown as LooseClient;
+    const { data: rows, error } = await db
       .from("lead_import_jobs")
       .select(JOB_COLUMNS)
       .eq("workspace_id", data.workspaceId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (error) throw new Error(error.message);
-    return { jobs: rows ?? [] };
+    return { jobs: (rows ?? []) as LeadImportJob[] };
   });
 
 export const getLeadImportJob = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const db = context.supabase as unknown as LooseClient;
+    const { data: row, error } = await db
       .from("lead_import_jobs")
       .select(JOB_COLUMNS)
       .eq("id", data.jobId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return { job: row ?? null };
+    return { job: (row ?? null) as LeadImportJob | null };
   });
 
 export const cancelLeadImport = createServerFn({ method: "POST" })
@@ -121,7 +132,8 @@ export const cancelLeadImport = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     // Leads already imported stay imported; the worker stops at its next chunk.
-    const { error } = await context.supabase
+    const db = context.supabase as unknown as LooseClient;
+    const { error } = await db
       .from("lead_import_jobs")
       .update({ status: "cancelled", lease_until: null, finished_at: new Date().toISOString() })
       .eq("id", data.jobId)
@@ -138,7 +150,8 @@ export const retryLeadImport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const db = context.supabase as unknown as LooseClient;
+    const { data: row, error } = await db
       .from("lead_import_jobs")
       .update({ status: "uploaded", error_message: null, lease_until: null, finished_at: null })
       .eq("id", data.jobId)
