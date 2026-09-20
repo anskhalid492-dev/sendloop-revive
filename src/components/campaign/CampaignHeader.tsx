@@ -163,7 +163,7 @@ export function CampaignHeader({
             <Button size="sm" onClick={() => toggleStatus.mutate("active")}>
               <Play className="mr-1.5 size-3.5" /> Resume campaign
             </Button>
-          ) : (
+          ) : canLaunchCampaign(status) ? (
             <Button
               size="sm"
               onClick={onLaunch}
