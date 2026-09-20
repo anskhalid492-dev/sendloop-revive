@@ -168,6 +168,9 @@ async function signedFetch(options: {
     "x-amz-date": amzDate,
   };
   if (options.contentType) headers["content-type"] = options.contentType;
+  for (const [name, value] of Object.entries(options.extraHeaders ?? {})) {
+    headers[name.toLowerCase()] = value;
+  }
 
   const signedHeaderNames = Object.keys(headers).sort();
   const canonicalHeaders = signedHeaderNames.map((n) => `${n}:${headers[n]}\n`).join("");
