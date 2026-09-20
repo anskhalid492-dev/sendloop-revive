@@ -10,6 +10,8 @@ export type Workspace = {
   owner_id: string;
   created_at: string;
   outreach_type: string | null;
+  /** Storage key (or absolute URL) of the workspace logo, if uploaded. */
+  logo_url: string | null;
   /** True once someone dismissed the guided-setup card for this workspace. */
   checklist_dismissed: boolean;
   role: string;
@@ -23,7 +25,7 @@ export const getMyWorkspaces = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("workspaces")
       .select(
-        "id, name, slug, owner_id, created_at, outreach_type, checklist_dismissed, workspace_members!inner(role, user_id)",
+        "id, name, slug, owner_id, created_at, outreach_type, logo_url, checklist_dismissed, workspace_members!inner(role, user_id)",
       )
       .eq("workspace_members.user_id", context.userId)
       .order("created_at", { ascending: true });

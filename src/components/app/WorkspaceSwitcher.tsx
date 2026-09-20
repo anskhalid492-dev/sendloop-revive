@@ -10,10 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useStorageImage } from "@/hooks/useStorageImage";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 export function WorkspaceSwitcher() {
   const { workspace, workspaces, selectWorkspace, isLoading } = useWorkspace();
+  const logo = useStorageImage("workspace-logos", workspace?.logo_url);
 
   if (isLoading) {
     return <div className="h-9 w-40 animate-pulse rounded-md bg-muted" />;
