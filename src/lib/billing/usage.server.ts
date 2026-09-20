@@ -173,8 +173,12 @@ export async function getUsage(workspaceId: string, resource: UsageResource): Pr
       // Only campaigns that are actually consuming an active slot. Completed,
       // archived, paused and draft campaigns release the slot immediately.
       return countRows("campaigns", workspaceId, (q) => q.in("status", ["active", "scheduled"]));
-    case "sending_accounts":
-      return countRows("sending_accounts", workspaceId);
+    case "sending_accounts": {
+      // Counted across both mailbox tables so the figure matches what the
+      // customer actually has connected, and matches the add-mailbox gate.
+      const { countMailboxes } = await import("@/lib/billing/gates.server");
+      return countMailboxes(workspaceId);
+    }
     case "domains":
       return countRows("sending_domains", workspaceId);
     case "team_members":

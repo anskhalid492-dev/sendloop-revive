@@ -87,6 +87,25 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<MailboxSaveResult> => {
     await assertMember(context.supabase, data.workspaceId);
 
+    const email = data.emailAddress.toLowerCase();
+
+    // Plan enforcement happens BEFORE any login test or credential storage, so a
+    // refused connection never leaves a half-created mailbox behind. Re-saving a
+    // mailbox the workspace already has is an edit, not a new mailbox.
+    const { supabaseAdmin: gateAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: already } = await gateAdmin
+      .from("mailboxes")
+      .select("id")
+      .eq("workspace_id", data.workspaceId)
+      .eq("email_address", email)
+      .maybeSingle();
+    const { requireMailboxCapacity, canUseWarmup } = await import("@/lib/billing/gates.server");
+    if (!already) await requireMailboxCapacity(data.workspaceId, 1);
+
+    // Warmup must never arrive through mailbox creation on a plan without it.
+    const warmupGate = await canUseWarmup(data.workspaceId);
+    const warmupEnabled = data.warmupEnabled && warmupGate.allowed;
+
     const { testMailboxEndpoints } = await import("@/lib/mailbox-connection.server");
     const result = await testMailboxEndpoints(data.smtp, data.imap);
 
@@ -111,7 +130,7 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
       .upsert(
         {
           workspace_id: data.workspaceId,
-          email_address: data.emailAddress.toLowerCase(),
+          email_address: email,
           display_name: data.displayName ?? null,
           smtp_host: data.smtp.host,
           smtp_port: data.smtp.port,
@@ -124,7 +143,7 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
           imap_username: data.imap.username,
           imap_password: imapSecretId,
           daily_send_limit: data.dailySendLimit,
-          warmup_enabled: data.warmupEnabled,
+          warmup_enabled: warmupEnabled,
           status,
           last_tested_at: result.testedAt,
         },
