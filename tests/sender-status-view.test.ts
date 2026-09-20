@@ -4,6 +4,7 @@ import {
   mailboxActivityLabel,
   mailboxReadinessBadges,
   mailboxWarmupLabel,
+  selfConnectedReadiness,
 } from "@/lib/sender-status-view";
 
 describe("mailboxReadinessBadges", () => {
@@ -45,5 +46,64 @@ describe("mailbox list labels", () => {
     expect(mailboxWarmupLabel("completed")).toBe("Complete");
     expect(mailboxWarmupLabel("hold")).toBe("Paused");
     expect(mailboxWarmupLabel("off")).toBe("Off");
+  });
+});
+describe("customer-connected mailbox readiness", () => {
+  const passing = {
+    status: "connected",
+    is_active: true,
+    auth_status: "pass",
+    auth_reason: "SPF, DKIM and DMARC are all published correctly for this domain.",
+    auth_checked_at: "2026-09-19T17:12:30.317Z",
+  };
+
+  it("reports a verified, active mailbox as verified and ready", () => {
+    const r = selfConnectedReadiness(passing, "verified");
+    expect(r.dnsStatus).toBe("verified");
+    expect(r.providerStatus).toBe("verified");
+    expect(r.dnsVerifiedAt).toBe("2026-09-19T17:12:30.317Z");
+    expect(mailboxReadinessBadges(r)).toEqual([
+      { label: "DNS Verified", tone: "success" },
+      { label: "Sending Ready", tone: "success" },
+    ]);
+  });
+
+  it("never shows Setup Required for a connected mailbox whose records are unchecked", () => {
+    const r = selfConnectedReadiness(
+      { status: "connected", is_active: true, auth_status: null, auth_reason: null, auth_checked_at: null },
+      "verified",
+    );
+    expect(r.dnsStatus).toBe("unchecked");
+    expect(r.providerStatus).toBe("verified");
+    expect(mailboxReadinessBadges(r)).toEqual([
+      { label: "Sending Ready", tone: "success" },
+      { label: "DNS Not Checked", tone: "warning" },
+    ]);
+  });
+
+  it("treats a DMARC-only warning as verified", () => {
+    expect(selfConnectedReadiness({ ...passing, auth_status: "warn" }, "verified").dnsStatus).toBe(
+      "verified",
+    );
+  });
+
+  it("surfaces a failed authentication check as an error", () => {
+    const r = selfConnectedReadiness({ ...passing, auth_status: "fail" }, "verified");
+    expect(r.dnsStatus).toBe("failed");
+    expect(mailboxReadinessBadges(r)).toEqual([{ label: "Error", tone: "danger" }]);
+  });
+
+  it("asks for setup only when the mailbox itself is not connected", () => {
+    const r = selfConnectedReadiness(
+      { status: "pending", is_active: false, auth_status: null, auth_reason: null, auth_checked_at: null },
+      "pending",
+    );
+    expect(r.providerStatus).toBe("not_verified");
+    expect(mailboxReadinessBadges(r)).toEqual([{ label: "Setup Required", tone: "warning" }]);
+  });
+
+  it("falls back to the sending account status when no mailbox record exists", () => {
+    expect(selfConnectedReadiness(null, "verified").providerStatus).toBe("verified");
+    expect(selfConnectedReadiness(null, "failed").providerStatus).toBe("not_verified");
   });
 });
