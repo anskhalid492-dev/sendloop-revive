@@ -42,28 +42,28 @@ const job = (over: Partial<LeadImportJob>): LeadImportJob =>
 describe("csv chunk parsing", () => {
   it("leaves a partial trailing row unconsumed so the next chunk resumes cleanly", () => {
     const chunk = "a@x.com,Ann\nb@x.com,Bo\nc@x.com,Par";
-    const result = parseCsvChunk(chunk, false);
+    const result = parseCsvChunk(chunk);
     expect(result.rows).toHaveLength(2);
-    expect(result.consumedBytes).toBe(utf8Length("a@x.com,Ann\nb@x.com,Bo\n"));
-  });
-
-  it("consumes the final row when the file has ended", () => {
-    const chunk = "a@x.com,Ann\nb@x.com,Bo";
-    const result = parseCsvChunk(chunk, true);
-    expect(result.rows).toHaveLength(2);
-    expect(result.consumedBytes).toBe(utf8Length(chunk));
+    expect(result.consumed).toBe(utf8Length("a@x.com,Ann\nb@x.com,Bo\n"));
   });
 
   it("keeps quoted commas and newlines inside one field", () => {
-    const chunk = '"Smith, Ann","line1\nline2"\n';
-    const result = parseCsvChunk(chunk, true);
+    const result = parseCsvChunk('"Smith, Ann","line1\nline2"\n');
     expect(result.rows[0]).toEqual(["Smith, Ann", "line1\nline2"]);
   });
 
-  it("reads the header row and reports its byte length", () => {
-    const header = parseCsvHeader("email,first name,company\nrow\n");
-    expect(header?.headers).toEqual(["email", "first name", "company"]);
-    expect(header?.consumedBytes).toBe(utf8Length("email,first name,company\n"));
+  it("counts multi-byte characters by their byte length, not their character count", () => {
+    const result = parseCsvChunk("é@x.com,Ann\n");
+    expect(result.consumed).toBe(utf8Length("é@x.com,Ann\n"));
+    expect(result.consumed).toBe(13);
+  });
+
+  it("reads the header row", () => {
+    expect(parseCsvHeader("email,first name,company\nrow\n")).toEqual([
+      "email",
+      "first name",
+      "company",
+    ]);
   });
 
   it("uses a chunk size that never loads the whole file", () => {
@@ -73,56 +73,65 @@ describe("csv chunk parsing", () => {
 
 describe("row mapping", () => {
   const headers = ["Email", "Name", "Website", "Notes"];
-  const mapping = {
+  const mapping: Record<string, string> = {
     Email: "email",
     Name: MAP_SPLIT_NAME,
     Website: "website",
     Notes: MAP_IGNORE,
   };
+  const map = (values: string[], over?: Record<string, string>, cols?: string[]) =>
+    mapCsvRow({
+      headers: cols ?? headers,
+      values,
+      mapping: over ?? mapping,
+      rowNumber: 1,
+    });
 
   it("maps a valid row and normalises the email", () => {
-    const result = mapCsvRow(["  ANN@X.com ", "Ann Smith", "example.com", "ignored"], headers, mapping);
+    const result = map(["  ANN@X.com ", "Ann Smith", "example.com", "ignored"]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.lead.email).toBe("ann@x.com");
-    expect(result.lead.first_name).toBe("Ann");
-    expect(result.lead.last_name).toBe("Smith");
-    expect(result.lead.website).toBeTruthy();
+    expect(result.email).toBe("ann@x.com");
+    expect(result.record["first_name"]).toBe("Ann");
+    expect(result.record["last_name"]).toBe("Smith");
+    expect(result.record["website"]).toBeTruthy();
   });
 
   it("rejects a missing or malformed email", () => {
-    expect(mapCsvRow(["", "Ann", "", ""], headers, mapping).ok).toBe(false);
-    expect(mapCsvRow(["nope", "Ann", "", ""], headers, mapping).ok).toBe(false);
+    expect(map(["", "Ann", "", ""]).ok).toBe(false);
+    expect(map(["nope", "Ann", "", ""]).ok).toBe(false);
   });
 
-  it("rejects an invalid website rather than silently dropping it", () => {
-    const result = mapCsvRow(["a@x.com", "Ann", "javascript:alert(1)", ""], headers, mapping);
-    expect(result.ok).toBe(false);
+  it("rejects an invalid website rather than silently importing it", () => {
+    expect(map(["a@x.com", "Ann", "javascript:alert(1)", ""]).ok).toBe(false);
   });
 
-  it("takes only the first word for first-name-only mapping", () => {
-    const result = mapCsvRow(["a@x.com", "Ann Smith"], ["Email", "Name"], {
-      Email: "email",
-      Name: MAP_FIRST_ONLY,
-    });
+  it("takes the whole value for first-name-only mapping", () => {
+    const result = map(
+      ["a@x.com", "Ann Smith"],
+      { Email: "email", Name: MAP_FIRST_ONLY },
+      ["Email", "Name"],
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.lead.first_name).toBe("Ann Smith");
-    expect(result.lead.last_name).toBeUndefined();
+    expect(result.record["first_name"]).toBe("Ann Smith");
+    expect(result.record["last_name"]).toBeUndefined();
   });
 
   it("stores custom columns as custom fields", () => {
-    const result = mapCsvRow(["a@x.com", "gold"], ["Email", "Tier"], {
-      Email: "email",
-      Tier: MAP_CUSTOM,
-    });
+    const result = map(
+      ["a@x.com", "gold"],
+      { Email: "email", Tier: MAP_CUSTOM },
+      ["Email", "Tier"],
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.lead.custom?.["Tier"]).toBe("gold");
+    expect((result.record["custom_fields"] as Record<string, string>)["Tier"]).toBe("gold");
   });
 
   it("always scopes the inserted row to the importing workspace", () => {
-    const row = leadInsertRow({ email: "a@x.com" }, {
+    const row = leadInsertRow({
+      record: { email: "A@x.com" },
       workspaceId: "ws-1",
       listId: null,
       tags: ["q1"],
