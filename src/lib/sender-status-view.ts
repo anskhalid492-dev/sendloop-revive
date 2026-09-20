@@ -1,7 +1,14 @@
 import type { SenderRoutingRow } from "@/lib/sender-status.functions";
 
 export type MailboxReadinessBadge = {
-  label: "DNS Verified" | "Sending Ready" | "Setup Required" | "Verification Required" | "Sending Not Ready" | "Error";
+  label:
+    | "DNS Verified"
+    | "Sending Ready"
+    | "Setup Required"
+    | "Verification Required"
+    | "Sending Not Ready"
+    | "DNS Not Checked"
+    | "Error";
   tone: "success" | "warning" | "danger";
 };
 
@@ -11,6 +18,17 @@ export function mailboxReadinessBadges(
 ): MailboxReadinessBadge[] {
   if (row.dnsStatus === "failed" || row.providerStatus === "error") {
     return [{ label: "Error", tone: "danger" }];
+  }
+
+  // A connected mailbox is ready to send even before its domain records are
+  // checked — it is not a setup problem, so it never reads "Setup Required".
+  if (row.dnsStatus === "unchecked") {
+    return row.providerStatus === "not_verified"
+      ? [{ label: "Setup Required", tone: "warning" }]
+      : [
+          { label: "Sending Ready", tone: "success" },
+          { label: "DNS Not Checked", tone: "warning" },
+        ];
   }
 
   if (row.dnsStatus === "missing") {
