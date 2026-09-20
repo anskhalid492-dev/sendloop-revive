@@ -174,11 +174,37 @@ export function utf8Length(text: string): number {
 
 /** Header row of a CSV buffer, or null when there is no readable header. */
 export function parseCsvHeader(text: string): string[] | null {
-  const { rows } = parseCsvChunk(text);
-  const header = rows[0];
-  if (!header) return null;
-  const cleaned = header.map((h) => h.trim()).filter((h) => h.length > 0);
-  return cleaned.length ? header.map((h) => h.trim()) : null;
+  const first = parseCsvFirstRow(text);
+  if (!first) return null;
+  const trimmed = first.values.map((h) => h.trim());
+  return trimmed.some((h) => h.length > 0) ? trimmed : null;
+}
+
+/**
+ * First complete row of a buffer plus the bytes it occupies, so the worker can
+ * skip exactly past the header before it starts importing.
+ */
+export function parseCsvFirstRow(text: string): { values: string[]; consumed: number } | null {
+  let end = -1;
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (quoted && text[i + 1] === '"') i += 1;
+      else quoted = !quoted;
+      continue;
+    }
+    if (ch === "\n" && !quoted) {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return null;
+  const line = text.slice(0, end + 1);
+  const { rows } = parseCsvChunk(line);
+  const values = rows[0];
+  if (!values) return null;
+  return { values, consumed: utf8Length(line) };
 }
 
 /* ------------------------------------------------------- mapping + validation */
