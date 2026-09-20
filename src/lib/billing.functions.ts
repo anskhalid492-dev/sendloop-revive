@@ -183,6 +183,22 @@ export const getWorkspaceEntitlement = createServerFn({ method: "GET" })
     return getEntitlement(data.workspaceId);
   });
 
+/**
+ * Plan gates for the current workspace: what the customer may do right now and
+ * why not, resolved from the same service the server mutations enforce with.
+ * The UI uses this to disable actions and show upgrade prompts; it is never the
+ * authority.
+ */
+export const getPlanGates = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspaceId: string }) => workspaceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertWorkspaceMember } = await import("@/lib/billing/access.server");
+    const { getWorkspaceGates } = await import("@/lib/billing/gates.server");
+    await assertWorkspaceMember(context, data.workspaceId);
+    return getWorkspaceGates(data.workspaceId);
+  });
+
 /** Credit balance + recent ledger for a workspace the caller belongs to. */
 export const getWorkspaceCredits = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

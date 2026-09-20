@@ -43,10 +43,6 @@ export async function loadCustomerBilling(workspaceId: string) {
   const settings = await getBillingSettings();
   const entitlement = await getEntitlement(workspaceId);
 
-  const monthStart = new Date();
-  monthStart.setUTCDate(1);
-  monthStart.setUTCHours(0, 0, 0, 0);
-
   const { getPlanUsageForBilling } = await import("@/lib/billing/gates.server");
 
   const [sub, invoices, transactions, planUsage] = await Promise.all([
