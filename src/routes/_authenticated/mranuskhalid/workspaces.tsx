@@ -38,12 +38,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-import { avatarImageUrl } from "@/lib/files-model";
   adminGetWorkspace,
   adminListWorkspaces,
   adminSetWorkspaceSuspended,
   type AdminWorkspaceRow,
 } from "@/lib/admin-directory.functions";
+import { avatarImageUrl } from "@/lib/files-model";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/workspaces")({
   head: () => ({
