@@ -44,7 +44,7 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
       context.supabase
         .from("sending_accounts")
         .select(
-          "id, label, from_email, provider, provider_id, status, paused, customer_enabled, daily_limit, hourly_limit, warmup_status, health_score",
+          "id, label, from_email, provider, provider_id, connection_method, status, paused, customer_enabled, daily_limit, hourly_limit, warmup_status, health_score",
         )
         .eq("workspace_id", data.workspaceId)
         .order("from_email"),
@@ -55,6 +55,43 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
     ]);
     if (aErr) throw new Error(aErr.message);
     if (dErr) throw new Error(dErr.message);
+
+    // Customer-connected mailboxes are the mailbox-first path: they never get a
+    // `sending_domains` row, so their readiness comes from the mailbox record
+    // and its own authentication check — not from managed domain verification.
+    const mailboxByEmail = new Map<
+      string,
+      {
+        status: string;
+        is_active: boolean | null;
+        auth_status: string | null;
+        auth_reason: string | null;
+        auth_checked_at: string | null;
+      }
+    >();
+    {
+      const { data: mailboxRows } = await context.supabase
+        .from("mailboxes")
+        .select("email_address, status, is_active, auth_status, auth_reason, auth_checked_at")
+        .eq("workspace_id", data.workspaceId)
+        .limit(2000);
+      for (const row of (mailboxRows ?? []) as unknown as Array<{
+        email_address: string;
+        status: string;
+        is_active: boolean | null;
+        auth_status: string | null;
+        auth_reason: string | null;
+        auth_checked_at: string | null;
+      }>) {
+        mailboxByEmail.set(row.email_address.toLowerCase(), {
+          status: row.status,
+          is_active: row.is_active,
+          auth_status: row.auth_status ?? null,
+          auth_reason: row.auth_reason ?? null,
+          auth_checked_at: row.auth_checked_at ?? null,
+        });
+      }
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { checkSenderDomainVerification, resolveManagedProvider, senderDomain } = await import(
