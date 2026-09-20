@@ -803,6 +803,26 @@ async function processJob(admin: Admin, job: Record<string, unknown>, summary: R
   };
 
   if (!account) return fail("Mailbox no longer exists", false);
+
+  // A job queued before the plan changed must still not send. The entitlement is
+  // re-resolved here, at the last point before the message leaves.
+  const { canUseWarmup } = await import("@/lib/billing/gates.server");
+  const planGate = await canUseWarmup(workspaceId);
+  if (!planGate.allowed) {
+    const reason = planGate.reason ?? "Warmup is not included in this plan.";
+    await haltWarmupForPlan(admin, { accountId, reason });
+    await admin
+      .from("warmup_jobs")
+      .update({
+        status: "cancelled",
+        locked_by: null,
+        locked_at: null,
+        processed_at: new Date().toISOString(),
+        error: reason.slice(0, 500),
+      })
+      .eq("id", jobId);
+    return;
+  }
   if (account.paused || !account.customer_enabled) {
     await admin
       .from("warmup_jobs")
@@ -1775,6 +1795,66 @@ async function applySafety(
 
 /* -------------------------------------------------------------- run entry */
 
+/**
+ * Warmup entitlement for a set of workspaces, resolved once per run.
+ *
+ * A workspace whose plan does not include warmup is stopped safely: its
+ * settings stay on record, the mailbox is marked paused-by-system with the
+ * reason, and any queued job is cancelled so nothing can still go out. Nothing
+ * is deleted, so re-enabling after an upgrade restores the mailbox as it was.
+ */
+async function warmupEntitlementMap(
+  admin: Admin,
+  workspaceIds: string[],
+): Promise<Map<string, { allowed: boolean; reason: string | null }>> {
+  const { canUseWarmup } = await import("@/lib/billing/gates.server");
+  const map = new Map<string, { allowed: boolean; reason: string | null }>();
+  for (const workspaceId of new Set(workspaceIds)) {
+    try {
+      const gate = await canUseWarmup(workspaceId);
+      map.set(workspaceId, { allowed: gate.allowed, reason: gate.reason });
+    } catch (error) {
+      // An entitlement lookup failure must never hand out warmup sending.
+      map.set(workspaceId, {
+        allowed: false,
+        reason: error instanceof Error ? error.message : "Plan could not be verified.",
+      });
+    }
+  }
+  return map;
+}
+
+/** Stops warmup for one mailbox without discarding its configuration. */
+async function haltWarmupForPlan(
+  admin: Admin,
+  args: { settingsId?: string | null; accountId: string; reason: string },
+) {
+  const now = new Date().toISOString();
+  const patch = {
+    paused_by_system: true,
+    pause_reason: "plan_entitlement",
+    last_run_reason: args.reason.slice(0, 500),
+    last_run_at: now,
+  };
+  if (args.settingsId) {
+    await admin.from("warmup_settings").update(patch).eq("id", args.settingsId);
+  } else {
+    await admin.from("warmup_settings").update(patch).eq("sending_account_id", args.accountId);
+  }
+  // Anything already queued must not leave after the plan check.
+  await admin
+    .from("warmup_jobs")
+    .update({
+      status: "cancelled",
+      locked_by: null,
+      locked_at: null,
+      processed_at: now,
+      error: args.reason.slice(0, 500),
+    })
+    .eq("sending_account_id", args.accountId)
+    .in("status", ["queued", "processing"]);
+}
+
 export async function runWarmupCycle(admin: Admin, options?: { limit?: number }): Promise<RunSummary> {
   const summary = emptySummary();
   const owner = `worker_${crypto.randomUUID().slice(0, 8)}`;
@@ -1810,13 +1890,36 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
       const accounts = (accountRows ?? []) as AccountRow[];
       const byId = new Map(accounts.map((a) => [a.id, a]));
 
+      // One entitlement read per workspace, before any scheduling. A workspace
+      // without the warmup feature is skipped and stopped safely; every other
+      // workspace in the run continues normally.
+      const entitlements = await warmupEntitlementMap(
+        admin,
+        accounts.map((a) => a.workspace_id),
+      );
+
       const eligible = accounts.filter(
-        (a) => !a.paused && a.customer_enabled && a.status !== "disabled",
+        (a) =>
+          !a.paused &&
+          a.customer_enabled &&
+          a.status !== "disabled" &&
+          entitlements.get(a.workspace_id)?.allowed !== false,
       );
 
       for (const setting of settings) {
         const account = byId.get(setting.sending_account_id);
         if (!account) continue;
+        const gate = entitlements.get(account.workspace_id);
+        if (gate && !gate.allowed) {
+          const reason = gate.reason ?? "Warmup is not included in this plan.";
+          await haltWarmupForPlan(admin, {
+            settingsId: setting.id,
+            accountId: account.id,
+            reason,
+          });
+          summary.skippedPlan = (summary.skippedPlan ?? 0) + 1;
+          continue;
+        }
         if (account.paused || !account.customer_enabled) {
           await recordRunReason(admin, setting.id, "Mailbox sending is paused or switched off.");
           continue;
@@ -1928,6 +2031,16 @@ export async function runWarmupForAccount(
     .maybeSingle();
   if (!setting || !setting.enabled) {
     return { ...summary, ok: false, accountId, reason: "Warmup is switched off for this mailbox." };
+  }
+
+  {
+    const { canUseWarmup } = await import("@/lib/billing/gates.server");
+    const gate = await canUseWarmup(account.workspace_id as string);
+    if (!gate.allowed) {
+      const reason = gate.reason ?? "Warmup is not included in this plan.";
+      await haltWarmupForPlan(admin, { settingsId: setting.id as string, accountId, reason });
+      return { ...summary, ok: false, accountId, reason };
+    }
   }
   if (setting.paused_by_system) {
     return { ...summary, ok: false, accountId, reason: "Warmup is paused by the safety system." };
