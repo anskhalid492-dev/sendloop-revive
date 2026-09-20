@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   AlignCenter,
   AlignLeft,
@@ -43,7 +44,7 @@ function WindowBar({ title }: { title: string }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>

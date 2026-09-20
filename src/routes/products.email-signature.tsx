@@ -3,8 +3,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Inbox,
-  Mail,
-  MessagesSquare,
   PenLine,
   Repeat2,
   Send,
@@ -160,18 +158,12 @@ function EmailSignatureProductPage() {
             <p className="mt-1 text-sm text-muted-foreground">Create the message, personalize it, and handle replies in one workspace.</p>
           </div>
           <nav aria-label="Related MunchReach products" className="flex flex-wrap justify-center gap-2">
-            {[
-              ["Campaigns", "/product/campaigns"],
-              ["Mailboxes", "/product/email-accounts"],
-              ["Unified Inbox", "/product/unified-inbox"],
-              ["Templates", "/product/templates"],
-              ["AI Personalization", "/ai-personalized-outreach"],
-              ["Pricing", "/pricing"],
-            ].map(([label, to]) => (
-              <a key={to} href={to} className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">
-                {label}
-              </a>
-            ))}
+            <Link to="/product/campaigns" className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">Campaigns</Link>
+            <Link to="/product/email-accounts" className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">Mailboxes</Link>
+            <Link to="/product/unified-inbox" className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">Unified Inbox</Link>
+            <Link to="/product/templates" className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">Templates</Link>
+            <Link to="/ai-personalized-outreach" className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">AI Personalization</Link>
+            <Link to="/pricing" className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">Pricing</Link>
           </nav>
         </div>
       </section>
