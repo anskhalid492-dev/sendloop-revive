@@ -154,6 +154,7 @@ async function signedFetch(options: {
   query?: Record<string, string>;
   body?: Uint8Array | ArrayBuffer | null;
   contentType?: string | null;
+  extraHeaders?: Record<string, string>;
 }): Promise<Response> {
   const config = r2Config();
   const host = `${config.accountId}.r2.cloudflarestorage.com`;
