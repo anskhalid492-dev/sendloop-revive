@@ -58,6 +58,8 @@ export type RunSummary = {
   healthUpdated: number;
   paused: string[];
   errors: string[];
+  /** Mailboxes stopped this run because the plan does not include warmup. */
+  skippedPlan?: number;
 };
 
 function emptySummary(): RunSummary {
