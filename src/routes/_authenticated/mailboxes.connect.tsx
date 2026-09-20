@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
@@ -89,6 +89,7 @@ const EMPTY: FormState = {
 
 function ConnectMailboxPage() {
   const { workspace } = useWorkspace();
+  const navigate = useNavigate();
   const runTest = useServerFn(testMailboxConnection);
   const runSave = useServerFn(saveMailboxConnection);
   const runAuthCheck = useServerFn(checkMailboxAuthentication);
@@ -168,7 +169,7 @@ function ConnectMailboxPage() {
       setMailboxId(data.mailboxId);
       if (data.status === "connected") {
         toast.success("Mailbox connected and saved.");
-        setForm((current) => ({ ...current, smtpPassword: "", imapPassword: "" }));
+        void navigate({ to: "/mailboxes" });
       } else {
         toast.error("Saved as pending — the logins did not both pass.");
       }
@@ -395,13 +396,13 @@ function ConnectMailboxPage() {
               </Button>
               <Button type="button" disabled={!complete || busy} onClick={() => save.mutate()}>
                 {save.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Save mailbox
+                Connect mailbox
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Saving re-tests both logins. The mailbox is only marked connected when SMTP and IMAP
-              both succeed; otherwise it stays pending with the errors shown above. Passwords are
-              stored encrypted and never shown again.
+              Connecting re-tests both logins. The mailbox is only marked connected when SMTP and
+              IMAP both succeed; otherwise it stays pending with the errors shown above. Passwords
+              are stored encrypted and never shown again.
             </p>
           </CardContent>
         </Card>
