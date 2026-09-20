@@ -6,6 +6,7 @@ export const SUPPORT_START_HERE = [
   "import-leads",
   "create-a-campaign",
   "launch-first-campaign",
+  "reading-analytics",
 ] as const;
 
 export const SUPPORT_GUIDE_GROUPS = [
