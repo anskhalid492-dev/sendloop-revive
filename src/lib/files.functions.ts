@@ -138,7 +138,7 @@ export const confirmFileUpload = createServerFn({ method: "POST" })
     z
       .object({
         fileId: z.string().uuid(),
-        size: z.number().int().nonnegative().max(MAX_UPLOAD_BYTES).optional(),
+        size: z.number().int().nonnegative().max(MAX_LEAD_IMPORT_BYTES).optional(),
         status: z.enum(["ready", "failed"]).default("ready"),
       })
       .parse(input),
