@@ -124,7 +124,7 @@ const secondaryProducts: Card[] = [
   },
   {
     label: "Email Signature",
-    to: "/products/email-signature",
+    to: "/product/email-signature",
     text: "Professional signatures for every mailbox and email.",
     icon: PenLine,
   },
@@ -285,7 +285,7 @@ export function SiteHeader() {
   const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
   const emailSignatureCard: Card = {
     label: "Email Signature",
-    to: "/products/email-signature",
+    to: "/product/email-signature",
     text: "Professional signatures for every mailbox and email.",
     icon: PenLine,
   };

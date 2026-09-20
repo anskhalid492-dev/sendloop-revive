@@ -90,13 +90,13 @@ import { Route as ProductAnalyticsRouteImport } from './routes/product.analytics
 import { Route as ProductCampaignsRouteImport } from './routes/product.campaigns'
 import { Route as ProductCrmRouteImport } from './routes/product.crm'
 import { Route as ProductEmailAccountsRouteImport } from './routes/product.email-accounts'
+import { Route as ProductEmailSignatureRouteImport } from './routes/product.email-signature'
 import { Route as ProductFollowUpsRouteImport } from './routes/product.follow-ups'
 import { Route as ProductTemplatesRouteImport } from './routes/product.templates'
 import { Route as ProductUnifiedInboxRouteImport } from './routes/product.unified-inbox'
 import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
 import { Route as ProductsAiCampaignWriterRouteImport } from './routes/products.ai-campaign-writer'
-import { Route as ProductsEmailSignatureRouteImport } from './routes/products.email-signature'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as SolutionsIndexRouteImport } from './routes/solutions.index'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
@@ -640,6 +640,11 @@ const ProductEmailAccountsRoute = ProductEmailAccountsRouteImport.update({
   path: '/product/email-accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductEmailSignatureRoute = ProductEmailSignatureRouteImport.update({
+  id: '/product/email-signature',
+  path: '/product/email-signature',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductFollowUpsRoute = ProductFollowUpsRouteImport.update({
   id: '/product/follow-ups',
   path: '/product/follow-ups',
@@ -671,11 +676,6 @@ const ProductsAiCampaignWriterRoute =
     path: '/products/ai-campaign-writer',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ProductsEmailSignatureRoute = ProductsEmailSignatureRouteImport.update({
-  id: '/products/email-signature',
-  path: '/products/email-signature',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
@@ -1508,13 +1508,13 @@ export interface FileRoutesByFullPath {
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
   '/product/email-accounts': typeof ProductEmailAccountsRoute
+  '/product/email-signature': typeof ProductEmailSignatureRoute
   '/product/follow-ups': typeof ProductFollowUpsRoute
   '/product/templates': typeof ProductTemplatesRoute
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
-  '/products/email-signature': typeof ProductsEmailSignatureRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
@@ -1724,13 +1724,13 @@ export interface FileRoutesByTo {
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
   '/product/email-accounts': typeof ProductEmailAccountsRoute
+  '/product/email-signature': typeof ProductEmailSignatureRoute
   '/product/follow-ups': typeof ProductFollowUpsRoute
   '/product/templates': typeof ProductTemplatesRoute
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
-  '/products/email-signature': typeof ProductsEmailSignatureRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
@@ -1943,13 +1943,13 @@ export interface FileRoutesById {
   '/product/campaigns': typeof ProductCampaignsRoute
   '/product/crm': typeof ProductCrmRoute
   '/product/email-accounts': typeof ProductEmailAccountsRoute
+  '/product/email-signature': typeof ProductEmailSignatureRoute
   '/product/follow-ups': typeof ProductFollowUpsRoute
   '/product/templates': typeof ProductTemplatesRoute
   '/product/unified-inbox': typeof ProductUnifiedInboxRoute
   '/product/warmup': typeof ProductWarmupRoute
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
-  '/products/email-signature': typeof ProductsEmailSignatureRoute
   '/r/$code': typeof RCodeRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
@@ -2163,13 +2163,13 @@ export interface FileRouteTypes {
     | '/product/campaigns'
     | '/product/crm'
     | '/product/email-accounts'
+    | '/product/email-signature'
     | '/product/follow-ups'
     | '/product/templates'
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
-    | '/products/email-signature'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
@@ -2379,13 +2379,13 @@ export interface FileRouteTypes {
     | '/product/campaigns'
     | '/product/crm'
     | '/product/email-accounts'
+    | '/product/email-signature'
     | '/product/follow-ups'
     | '/product/templates'
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
-    | '/products/email-signature'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog'
@@ -2597,13 +2597,13 @@ export interface FileRouteTypes {
     | '/product/campaigns'
     | '/product/crm'
     | '/product/email-accounts'
+    | '/product/email-signature'
     | '/product/follow-ups'
     | '/product/templates'
     | '/product/unified-inbox'
     | '/product/warmup'
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
-    | '/products/email-signature'
     | '/r/$code'
     | '/solutions/$slug'
     | '/blog/'
@@ -2799,13 +2799,13 @@ export interface RootRouteChildren {
   ProductCampaignsRoute: typeof ProductCampaignsRoute
   ProductCrmRoute: typeof ProductCrmRoute
   ProductEmailAccountsRoute: typeof ProductEmailAccountsRoute
+  ProductEmailSignatureRoute: typeof ProductEmailSignatureRoute
   ProductFollowUpsRoute: typeof ProductFollowUpsRoute
   ProductTemplatesRoute: typeof ProductTemplatesRoute
   ProductUnifiedInboxRoute: typeof ProductUnifiedInboxRoute
   ProductWarmupRoute: typeof ProductWarmupRoute
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   ProductsAiCampaignWriterRoute: typeof ProductsAiCampaignWriterRoute
-  ProductsEmailSignatureRoute: typeof ProductsEmailSignatureRoute
   RCodeRoute: typeof RCodeRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -3422,6 +3422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductEmailAccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/product/email-signature': {
+      id: '/product/email-signature'
+      path: '/product/email-signature'
+      fullPath: '/product/email-signature'
+      preLoaderRoute: typeof ProductEmailSignatureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/product/follow-ups': {
       id: '/product/follow-ups'
       path: '/product/follow-ups'
@@ -3462,13 +3469,6 @@ declare module '@tanstack/react-router' {
       path: '/products/ai-campaign-writer'
       fullPath: '/products/ai-campaign-writer'
       preLoaderRoute: typeof ProductsAiCampaignWriterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products/email-signature': {
-      id: '/products/email-signature'
-      path: '/products/email-signature'
-      fullPath: '/products/email-signature'
-      preLoaderRoute: typeof ProductsEmailSignatureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/r/$code': {
@@ -4859,13 +4859,13 @@ const rootRouteChildren: RootRouteChildren = {
   ProductCampaignsRoute: ProductCampaignsRoute,
   ProductCrmRoute: ProductCrmRoute,
   ProductEmailAccountsRoute: ProductEmailAccountsRoute,
+  ProductEmailSignatureRoute: ProductEmailSignatureRoute,
   ProductFollowUpsRoute: ProductFollowUpsRoute,
   ProductTemplatesRoute: ProductTemplatesRoute,
   ProductUnifiedInboxRoute: ProductUnifiedInboxRoute,
   ProductWarmupRoute: ProductWarmupRoute,
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   ProductsAiCampaignWriterRoute: ProductsAiCampaignWriterRoute,
-  ProductsEmailSignatureRoute: ProductsEmailSignatureRoute,
   RCodeRoute: RCodeRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,

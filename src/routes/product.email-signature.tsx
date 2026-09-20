@@ -50,12 +50,12 @@ const setupSteps = [
   { number: "03", title: "Save and use it across your outreach", text: "MunchReach adds it to email sent from that mailbox." },
 ];
 
-export const Route = createFileRoute("/products/email-signature")({
+export const Route = createFileRoute("/product/email-signature")({
   head: () =>
     metaFor(
       "Email Signature Software for Cold Outreach | MunchReach",
       "Create professional email signatures for every MunchReach mailbox and automatically use them across campaigns, follow-ups, manual emails, and inbox replies.",
-      "/products/email-signature",
+      "/product/email-signature",
     ),
   component: EmailSignatureProductPage,
 });

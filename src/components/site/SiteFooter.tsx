@@ -49,7 +49,7 @@ const fallbackColumns = [
       { label: "Analytics", href: "/product/analytics" },
       { label: "Workspaces", href: "/product/workspaces" },
       { label: "Templates", href: "/product/templates" },
-      { label: "Email Signature", href: "/products/email-signature" },
+      { label: "Email Signature", href: "/product/email-signature" },
     ],
   },
   {
@@ -231,8 +231,8 @@ export function SiteFooter() {
           : [...products.slice(0, aiIndex + 1), entry, ...products.slice(aiIndex + 1)];
       products = next;
     }
-    if (!products.some((l) => l.href === "/products/email-signature")) {
-      products = [...products, { label: "Email Signature", href: "/products/email-signature" }];
+    if (!products.some((l) => l.href === "/product/email-signature")) {
+      products = [...products, { label: "Email Signature", href: "/product/email-signature" }];
     }
     groups.set("Products", products);
     // Fixed menu names for the AI products, matching the header exactly.
