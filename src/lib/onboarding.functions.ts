@@ -83,32 +83,57 @@ export const completeOnboarding = createServerFn({ method: "POST" })
         .slice(0, 40) || "workspace";
     const slug = `${base}-${Math.random().toString(36).slice(2, 7)}`;
 
-    const { data: workspace, error } = await context.supabase
-      .from("workspaces")
-      .insert({
-        name: data.workspaceName,
-        slug,
-        owner_id: context.userId,
-        company_name: data.companyName || null,
-        logo_url: data.logoUrl || null,
-        persona: data.persona || null,
-        team_size: data.teamSize || null,
-        outreach_goal: data.goal || null,
-        onboarding_completed: true,
-      })
-      .select("id, name, slug")
-      .single();
-    if (error) throw new Error(error.message);
+    const profileFields = {
+      name: data.workspaceName,
+      company_name: data.companyName || null,
+      logo_url: data.logoUrl || null,
+      persona: data.persona || null,
+      team_size: data.teamSize || null,
+      outreach_goal: data.goal || null,
+      onboarding_completed: true,
+    };
 
-    // A database trigger already seeds the owner membership; upsert keeps this
-    // idempotent instead of failing on the unique (workspace_id, user_id) key.
-    const { error: memberError } = await context.supabase
-      .from("workspace_members")
-      .upsert(
-        { workspace_id: workspace.id, user_id: context.userId, role: "owner" },
-        { onConflict: "workspace_id,user_id" },
-      );
-    if (memberError) throw new Error(memberError.message);
+    // Re-running onboarding (page refresh, a second Finish click) must not
+    // create a second workspace for the same owner: reuse the one they own.
+    const { data: owned, error: ownedError } = await context.supabase
+      .from("workspaces")
+      .select("id, name, slug")
+      .eq("owner_id", context.userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (ownedError) throw new Error(ownedError.message);
+
+    let workspace: { id: string; name: string; slug: string };
+    if (owned) {
+      const { data: updated, error: updateError } = await context.supabase
+        .from("workspaces")
+        .update(profileFields)
+        .eq("id", owned.id)
+        .select("id, name, slug")
+        .single();
+      if (updateError) throw new Error(updateError.message);
+      workspace = updated;
+    } else {
+      const { data: created, error } = await context.supabase
+        .from("workspaces")
+        .insert({ ...profileFields, slug, owner_id: context.userId })
+        .select("id, name, slug")
+        .single();
+      if (error) throw new Error(error.message);
+      workspace = created;
+    }
+
+    // The workspaces trigger already seeds the owner membership. Never UPDATE
+    // that row from the client — owner rows are intentionally not editable
+    // under `members_update_admin`, so an upsert here fails RLS. See
+    // src/lib/workspace-onboarding.ts.
+    const { ensureOwnerMembership } = await import("@/lib/workspace-onboarding");
+    await ensureOwnerMembership(
+      context.supabase as unknown as import("@/lib/workspace-onboarding").MembershipClient,
+      workspace.id,
+      context.userId,
+    );
 
     const { error: profileError } = await context.supabase
       .from("profiles")
