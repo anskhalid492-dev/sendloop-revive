@@ -71,6 +71,8 @@ import {
   testMailboxConnection,
 } from "@/lib/mailboxes.functions";
 import { bulkSetWarmup } from "@/lib/warmup.functions";
+import { usePlanGates } from "@/hooks/usePlanGates";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   ACCOUNT_STATUS_LABEL,
   ACCOUNT_STATUS_STYLE,
@@ -153,6 +155,11 @@ function EmailAccountsPage() {
   const fetchDomains = useServerFn(listSendingDomains);
   const bulkTestFn = useServerFn(bulkTestMailboxes);
   const bulkWarmupFn = useServerFn(bulkSetWarmup);
+  const { workspace } = useWorkspace();
+  // UX only — both warmup actions are re-checked against the plan server-side.
+  const plan = usePlanGates(workspace?.id);
+  const warmupBlocked = () =>
+    Promise.reject(new Error(plan.warmupReason ?? "Warmup isn't available on your current plan."));
 
   const [filters, setFilters] = useState<EmailAccountFilters>(defaultFilters);
   const [searchInput, setSearchInput] = useState("");
@@ -264,7 +271,8 @@ function EmailAccountsPage() {
   });
 
   const warmupMutation = useMutation({
-    mutationFn: (vars: { id: string; enabled: boolean }) => warmupFn({ data: vars }),
+    mutationFn: (vars: { id: string; enabled: boolean }) =>
+      vars.enabled && !plan.warmupAllowed ? warmupBlocked() : warmupFn({ data: vars }),
     onSuccess: async (result) => {
       toast.success(result.enabled ? "Warmup started" : "Warmup stopped");
       await invalidate();
@@ -287,7 +295,8 @@ function EmailAccountsPage() {
   });
 
   const bulkWarmupMutation = useMutation({
-    mutationFn: (vars: { ids: string[]; enabled: boolean }) => bulkWarmupFn({ data: vars }),
+    mutationFn: (vars: { ids: string[]; enabled: boolean }) =>
+      vars.enabled && !plan.warmupAllowed ? warmupBlocked() : bulkWarmupFn({ data: vars }),
     onSuccess: async (_result, vars) => {
       toast.success(vars.enabled ? "Warmup started for selected mailboxes" : "Warmup stopped");
       await invalidate();
