@@ -23,7 +23,8 @@ export type CampaignLifecycleStatus =
 const LAUNCHABLE = new Set<string>(["draft", "scheduled"]);
 
 /** Statuses the scheduler is allowed to send from. */
-const SENDABLE = new Set<string>(["active", "scheduled"]);
+export const SCHEDULER_SENDABLE_STATUSES = ["active", "scheduled"] as const;
+const SENDABLE = new Set<string>(SCHEDULER_SENDABLE_STATUSES);
 
 /**
  * Is the Launch action available? Uses the authoritative status only — never
