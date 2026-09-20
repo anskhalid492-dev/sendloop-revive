@@ -68,7 +68,7 @@ export const requestFileUpload = createServerFn({ method: "POST" })
         category: categorySchema,
         fileName: z.string().trim().min(1).max(255),
         mimeType: z.string().trim().max(160).default("application/octet-stream"),
-        size: z.number().int().nonnegative().max(MAX_UPLOAD_BYTES),
+        size: z.number().int().nonnegative().max(MAX_LEAD_IMPORT_BYTES),
         workspaceId: z.string().uuid().nullish(),
         campaignId: z.string().uuid().nullish(),
         invoiceId: z.string().uuid().nullish(),
@@ -79,7 +79,15 @@ export const requestFileUpload = createServerFn({ method: "POST" })
     await assertPresignRateLimit(context as AuthContext, "upload");
 
     const mimeType = (data.mimeType || "application/octet-stream").toLowerCase();
-    if (data.size > MAX_UPLOAD_BYTES) throw new Error("Files must be 50 MB or smaller");
+    // Lead CSVs are processed in chunks straight from storage, so they are
+    // allowed to be much larger than an attachment.
+    const isLeadImport = data.category === "imports" && isLeadImportMimeType(mimeType);
+    const sizeCeiling = isLeadImport ? MAX_LEAD_IMPORT_BYTES : MAX_UPLOAD_BYTES;
+    if (data.size > sizeCeiling) {
+      throw new Error(
+        isLeadImport ? "Lead files must be 512 MB or smaller" : "Files must be 50 MB or smaller",
+      );
+    }
     if (!isAllowedMimeType(mimeType)) throw new Error(`Unsupported file type: ${mimeType}`);
 
     const key = buildR2Key({
