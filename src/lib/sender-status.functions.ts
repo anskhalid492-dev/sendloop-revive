@@ -141,29 +141,11 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
       if (selfConnected) {
         // Mailbox-first readiness: the mailbox connection decides whether it can
         // send, and the mailbox authentication check decides the DNS verdict.
-        const auth = mailbox?.auth_status ?? null;
-        dnsStatus =
-          auth === "pass" || auth === "warn"
-            ? "verified"
-            : auth === "fail"
-              ? "failed"
-              : "unchecked";
-        dnsVerifiedAt = dnsStatus === "verified" ? mailbox?.auth_checked_at ?? null : null;
-
-        const connected = mailbox
-          ? (mailbox.status === "connected" || mailbox.status === "verified") &&
-            mailbox.is_active !== false
-          : account.status === "verified" || account.status === "active";
-
-        providerStatus = connected ? "verified" : "not_verified";
-        providerDetail = !connected
-          ? "This mailbox is not connected yet. Finish the mailbox setup to start sending."
-          : dnsStatus === "verified"
-            ? mailbox?.auth_reason ?? "This mailbox is connected and ready to send."
-            : dnsStatus === "failed"
-              ? mailbox?.auth_reason ??
-                "This mailbox is connected, but its domain records need attention."
-              : "This mailbox is connected and ready to send. Its domain records have not been checked yet.";
+        const resolved = selfConnectedReadiness(mailbox, account.status);
+        dnsStatus = resolved.dnsStatus;
+        dnsVerifiedAt = resolved.dnsVerifiedAt;
+        providerStatus = resolved.providerStatus;
+        providerDetail = resolved.providerDetail;
       } else {
         dnsStatus = !dnsRow
           ? "missing"
