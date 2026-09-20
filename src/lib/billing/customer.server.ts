@@ -47,7 +47,9 @@ export async function loadCustomerBilling(workspaceId: string) {
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
 
-  const [sub, invoices, transactions, accounts, leads, campaigns, members, sent] = await Promise.all([
+  const { getPlanUsageForBilling } = await import("@/lib/billing/gates.server");
+
+  const [sub, invoices, transactions, planUsage] = await Promise.all([
     db
       .from("billing_subscriptions")
       .select("*")
@@ -70,16 +72,7 @@ export async function loadCustomerBilling(workspaceId: string) {
       .eq("environment", settings.environment)
       .order("occurred_at", { ascending: false })
       .limit(50),
-    db.from("sending_accounts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-    db.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-    db.from("campaigns").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-    db.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-    db
-      .from("campaign_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .eq("status", "sent")
-      .gte("sent_at", monthStart.toISOString()),
+    getPlanUsageForBilling(workspaceId),
   ]);
 
   const row = sub.data;
@@ -105,20 +98,10 @@ export async function loadCustomerBilling(workspaceId: string) {
     accessUntil: row?.access_until ?? null,
     graceUntil: row?.grace_until ?? null,
     canManagePaymentMethod: Boolean(row?.external_customer_id || row?.external_subscription_id),
-    usage: {
-      emailsThisMonth: sent.count ?? 0,
-      sendingAccounts: accounts.count ?? 0,
-      leads: leads.count ?? 0,
-      campaigns: campaigns.count ?? 0,
-      users: members.count ?? 0,
-    },
-    limits: {
-      emailsMonthly: entitlement.limits.max_emails_monthly,
-      sendingAccounts: entitlement.limits.max_sending_accounts,
-      leads: entitlement.limits.max_leads,
-      campaigns: entitlement.limits.max_campaigns,
-      users: entitlement.limits.max_users,
-    },
+    // Real counts and real plan caps, both from the one usage/entitlement
+    // service the mutations use — never "1 / 1" just because the plan allows 1.
+    usage: planUsage.usage,
+    limits: planUsage.limits,
     invoices: invoices.data ?? [],
     transactions: transactions.data ?? [],
   };
