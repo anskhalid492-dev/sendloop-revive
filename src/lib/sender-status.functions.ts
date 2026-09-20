@@ -115,6 +115,7 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
       from_email: string;
       provider: string;
       provider_id: string | null;
+      connection_method: string | null;
       status: string;
       paused: boolean;
       customer_enabled: boolean;
@@ -125,39 +126,73 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
     }>) {
       const domain = senderDomain(account.from_email);
       const dnsRow = domainMap.get(domain);
-      const dnsStatus: SenderRoutingRow["dnsStatus"] = !dnsRow
-        ? "missing"
-        : dnsRow.dns_status === "verified"
-          ? "verified"
-          : dnsRow.dns_status === "failed"
-            ? "failed"
-            : "pending";
+      const mailbox = mailboxByEmail.get(account.from_email.toLowerCase()) ?? null;
+      const selfConnected = account.connection_method === "self_connected" || mailbox !== null;
 
+      let dnsStatus: SenderRoutingRow["dnsStatus"];
+      let dnsVerifiedAt: string | null = null;
       // Customers only ever see MunchReach's managed sending — never a provider
       // name, raw provider error text, or credential state.
       let providerStatus: SenderRoutingRow["providerStatus"] = "unknown";
       let providerDetail = "Sending infrastructure is being prepared for this domain.";
       const provider: string | null = "MunchReach managed sending";
 
-      try {
-        const managed = await resolveManagedProvider(supabaseAdmin as never, account);
-        if (managed) {
-          const check = await checkSenderDomainVerification(
-            managed.provider,
-            managed.credentials,
-            domain,
-          );
-          providerStatus = check.status;
-          providerDetail =
-            check.status === "verified"
-              ? "This domain is ready to send through MunchReach."
-              : check.status === "not_verified"
-                ? "This domain is not ready to send yet. Complete the DNS verification."
-                : "Sending readiness for this domain could not be confirmed right now.";
+      if (selfConnected) {
+        // Mailbox-first readiness: the mailbox connection decides whether it can
+        // send, and the mailbox authentication check decides the DNS verdict.
+        const auth = mailbox?.auth_status ?? null;
+        dnsStatus =
+          auth === "pass" || auth === "warn"
+            ? "verified"
+            : auth === "fail"
+              ? "failed"
+              : "unchecked";
+        dnsVerifiedAt = dnsStatus === "verified" ? mailbox?.auth_checked_at ?? null : null;
+
+        const connected = mailbox
+          ? (mailbox.status === "connected" || mailbox.status === "verified") &&
+            mailbox.is_active !== false
+          : account.status === "verified" || account.status === "active";
+
+        providerStatus = connected ? "verified" : "not_verified";
+        providerDetail = !connected
+          ? "This mailbox is not connected yet. Finish the mailbox setup to start sending."
+          : dnsStatus === "verified"
+            ? mailbox?.auth_reason ?? "This mailbox is connected and ready to send."
+            : dnsStatus === "failed"
+              ? mailbox?.auth_reason ??
+                "This mailbox is connected, but its domain records need attention."
+              : "This mailbox is connected and ready to send. Its domain records have not been checked yet.";
+      } else {
+        dnsStatus = !dnsRow
+          ? "missing"
+          : dnsRow.dns_status === "verified"
+            ? "verified"
+            : dnsRow.dns_status === "failed"
+              ? "failed"
+              : "pending";
+        dnsVerifiedAt = dnsRow?.verified_at ?? null;
+
+        try {
+          const managed = await resolveManagedProvider(supabaseAdmin as never, account);
+          if (managed) {
+            const check = await checkSenderDomainVerification(
+              managed.provider,
+              managed.credentials,
+              domain,
+            );
+            providerStatus = check.status;
+            providerDetail =
+              check.status === "verified"
+                ? "This domain is ready to send through MunchReach."
+                : check.status === "not_verified"
+                  ? "This domain is not ready to send yet. Complete the DNS verification."
+                  : "Sending readiness for this domain could not be confirmed right now.";
+          }
+        } catch {
+          providerStatus = "error";
+          providerDetail = "Sending readiness for this domain could not be confirmed right now.";
         }
-      } catch {
-        providerStatus = "error";
-        providerDetail = "Sending readiness for this domain could not be confirmed right now.";
       }
 
       rows.push({
@@ -166,7 +201,7 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
         label: account.label,
         domain,
         dnsStatus,
-        dnsVerifiedAt: dnsRow?.verified_at ?? null,
+        dnsVerifiedAt,
         providerStatus,
         providerDetail,
         provider,
@@ -175,7 +210,10 @@ export const getSenderRoutingStatus = createServerFn({ method: "GET" })
           account.customer_enabled &&
           !account.paused,
         paused: account.paused || !account.customer_enabled,
-        ready: dnsStatus === "verified" && providerStatus !== "not_verified" && providerStatus !== "error",
+        ready:
+          (dnsStatus === "verified" || dnsStatus === "unchecked") &&
+          providerStatus !== "not_verified" &&
+          providerStatus !== "error",
         dailyLimit: account.daily_limit,
         hourlyLimit: account.hourly_limit,
         warmupStatus: account.warmup_status,
