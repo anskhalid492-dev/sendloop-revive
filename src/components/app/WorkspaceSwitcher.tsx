@@ -26,7 +26,15 @@ export function WorkspaceSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="max-w-52 justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2">
-            <Building2 className="size-4 shrink-0 text-muted-foreground" />
+            {logo ? (
+              <img
+                src={logo}
+                alt=""
+                className="size-5 shrink-0 rounded-sm border border-border/60 bg-background object-contain"
+              />
+            ) : (
+              <Building2 className="size-4 shrink-0 text-muted-foreground" />
+            )}
             <span className="truncate">{workspace?.name ?? "No workspace"}</span>
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
