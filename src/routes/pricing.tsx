@@ -4,8 +4,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   Check,
   Minus,
-  HelpCircle,
-  ArrowRight,
   Sparkles,
   Zap,
   Building2,
@@ -24,7 +22,8 @@ import {
 import { MarketingLayout, PageHero, Section, FaqBlock } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { isLifetimePlan } from "@/lib/billing/lifetime";
-import { getPlans, type Plan, type PlanFeature } from "@/lib/plans.functions";
+import { getPlans, type Plan } from "@/lib/plans.functions";
+import { PRICING_COMPARISON, type ComparisonValue } from "@/lib/pricing-comparison";
 import { cn } from "@/lib/utils";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { supabase } from "@/integrations/supabase/client";
@@ -230,7 +229,7 @@ function PricingCard({
   const limits = [
     { icon: Building2, label: "Workspaces", value: plan.max_workspaces },
     { icon: Users, label: "Team members", value: plan.max_users },
-    { icon: Zap, label: "Sending accounts", value: plan.max_sending_accounts },
+    { icon: Zap, label: "Email Accounts", value: plan.max_sending_accounts },
   ];
 
   const cta = isTrial ? "Start Free Trial" : "Get Started";
@@ -325,107 +324,80 @@ function displayFeatures(plan: Plan) {
 }
 
 function ComparisonTable({ plans }: { plans: Plan[] }) {
-  const categoryOrder = [
-    "Workspace & users",
-    "Leads & sending",
-    "Deliverability",
-    "Product",
-    "Support",
-  ];
-  const found = Array.from(new Set(plans.flatMap((p) => displayFeatures(p).map((f) => f.category))));
-  const categories = [
-    ...categoryOrder.filter((c) => found.includes(c)),
-    ...found.filter((c) => !categoryOrder.includes(c)),
-  ];
-
   return (
     <div>
-      <p className="mb-2 text-center text-xs text-muted-foreground md:hidden">
-        Swipe the table sideways to compare all plans
-      </p>
-      <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-border bg-card">
-        <table className="w-full min-w-[640px] text-sm">
-
-        <thead>
-          <tr className="border-b border-border">
-            <th className="px-6 py-4 text-left font-medium text-muted-foreground">Feature</th>
-            {plans.map((p) => (
-              <th key={p.id} className="px-6 py-4 text-center font-semibold">
-                {p.name}
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          Limits reflect the current plan configuration.
+        </p>
+        <p className="shrink-0 text-xs font-medium text-muted-foreground md:hidden">
+          Swipe to compare →
+        </p>
+      </div>
+      <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-card shadow-sm">
+        <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
+          <thead className="sticky top-0 z-20 bg-card">
+            <tr>
+              <th className="sticky left-0 z-30 w-[260px] min-w-[260px] border-b border-r border-border bg-card px-5 py-5 text-left text-xs font-semibold uppercase text-muted-foreground">
+                Feature
               </th>
+              {plans.map((plan) => (
+                <th key={plan.id} className="min-w-[128px] border-b border-border px-4 py-5 text-center">
+                  <span className="block font-semibold text-foreground">{plan.name}</span>
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                    {plan.monthly_price === 0 ? "Free" : `$${(plan.monthly_price / 100).toFixed(0)}/mo`}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {PRICING_COMPARISON.map((category) => (
+              <ComparisonGroup key={category.name} category={category} plans={plans} />
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((category) => {
-            const base = plans[0] ? displayFeatures(plans[0]) : [];
-            const rows = base.filter((f) => f.category === category);
-            return (
-              <FragmentGroup
-                key={category}
-                category={category}
-                rows={rows}
-                plans={plans}
-              />
-            );
-          })}
-        </tbody>
+          </tbody>
         </table>
       </div>
     </div>
   );
-
 }
 
-function FragmentGroup({
+function ComparisonGroup({
   category,
-  rows,
   plans,
 }: {
-  category: string;
-  rows: PlanFeature[];
+  category: (typeof PRICING_COMPARISON)[number];
   plans: Plan[];
 }) {
   return (
     <>
-      <tr className="bg-secondary/40">
+      <tr>
         <td
           colSpan={plans.length + 1}
-          className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          className="border-b border-border bg-secondary/60 px-5 py-3 text-xs font-bold uppercase text-foreground"
         >
-          {category}
+          {category.name}
         </td>
       </tr>
-      {rows.map((row) => (
-        <tr key={row.name} className="border-b border-border/60 last:border-0">
-          <td className="px-6 py-3.5">
-            <TooltipProvider delayDuration={200}>
+      {category.rows.map((row) => (
+        <tr key={`${category.name}-${row.label}`} className="group">
+          <td className="sticky left-0 z-10 border-b border-r border-border/70 bg-card px-5 py-3.5 group-hover:bg-secondary/30">
+            <TooltipProvider delayDuration={150}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="inline-flex cursor-help items-center gap-1.5">
-                    {row.name}
-                    <HelpCircle className="size-3.5 text-muted-foreground" />
+                  <span className="cursor-help font-medium text-foreground underline decoration-border underline-offset-4">
+                    {row.label}
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <p>Included on plans where marked.</p>
-                </TooltipContent>
+                <TooltipContent side="top" className="max-w-xs"><p>{row.description}</p></TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </td>
           {plans.map((plan) => {
-            const feature = displayFeatures(plan).find((f) => f.name === row.name);
+            const value = row.value(plan);
             return (
-              <td key={plan.id} className="px-6 py-3.5 text-center">
-                {feature?.included ? (
-                  feature.value ? (
-                    <span className="font-semibold text-foreground">{feature.value}</span>
-                  ) : (
-                    <Check className="mx-auto size-5 text-primary" />
-                  )
-                ) : (
-                  <Minus className="mx-auto size-4 text-muted-foreground/60" />
-                )}
+              <td key={plan.id} className="border-b border-border/70 px-3 py-3.5 text-center group-hover:bg-secondary/20">
+                <ComparisonCell value={value} label={row.label} />
               </td>
             );
           })}
@@ -433,6 +405,16 @@ function FragmentGroup({
       ))}
     </>
   );
+}
+
+function ComparisonCell({ value, label }: { value: ComparisonValue; label: string }) {
+  if (value === true) {
+    return <Check className="mx-auto size-5 text-primary" aria-label={`${label} included`} />;
+  }
+  if (value === false) {
+    return <Minus className="mx-auto size-4 text-muted-foreground/60" aria-label={`${label} unavailable`} />;
+  }
+  return <span className="font-semibold text-foreground">{value}</span>;
 }
 
 const pricingFaqs = [

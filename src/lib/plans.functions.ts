@@ -34,8 +34,13 @@ export type Plan = {
   max_users: number | null;
   max_leads: number | null;
   max_campaigns: number | null;
+  max_active_campaigns: number | null;
   max_emails_monthly: number | null;
+  max_emails_daily: number | null;
   max_sending_accounts: number | null;
+  max_ai_monthly: number | null;
+  max_automations: number | null;
+  max_warmup_daily: number | null;
   warmup_enabled: boolean;
   unified_inbox_enabled: boolean;
   analytics_enabled: boolean;
