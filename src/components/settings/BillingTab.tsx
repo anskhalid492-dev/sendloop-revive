@@ -275,7 +275,7 @@ export function BillingTab({
   /** No paid subscription and no lifetime purchase — free / trial-less state. */
   const hasSubscription = Boolean(billing.interval) || billing.amountCents > 0;
 
-  const periodSuffix = billing.interval === "yearly" ? "/yr" : "/mo";
+  const periodSuffix = billing.interval === "yearly" ? "/year" : "/mo";
   const billingTypeLabel = isLifetime
     ? "One-time payment"
     : billing.interval === "yearly"
