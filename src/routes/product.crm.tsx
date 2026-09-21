@@ -68,7 +68,7 @@ const faqs = [
 export const Route = createFileRoute("/product/crm")({
   head: () =>
     metaFor(
-      "MunchReach CRM — Turn Outbound Leads Into Organized Opportunities",
+      "Built-In CRM for Cold Email Outreach | MunchReach",
       "Contacts, activity, tasks and pipeline in one workspace. See every lead's outreach history, owner, status and next action beside your campaigns and inbox.",
       "/product/crm",
       faqs,
