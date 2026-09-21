@@ -22,8 +22,8 @@
 - Over-limit workspaces keep their data; further mailboxes/warmup are refused.
 
 ## Pricing and plan limits update
-- [ ] Inspect existing pricing, grants, checkout mappings, period metering, and limit gates.
-- [ ] Update existing plan records and feature rows without creating a second pricing system.
-- [ ] Keep Free Trial unchanged and preserve existing customer subscriptions/campaigns.
-- [ ] Update pricing and lifetime pages/comparison copy.
-- [ ] Verify backend limits, yearly monthly allowances, lifetime monthly sends, and focused tests.
+- [x] Inspect existing pricing, grants, checkout mappings, period metering, and limit gates.
+- [x] Update existing plan records and feature rows without creating a second pricing system.
+- [x] Keep Free Trial unchanged and preserve existing customer subscriptions/campaigns.
+- [x] Update pricing and lifetime pages/comparison copy.
+- [x] Verify backend limits, yearly monthly allowances, lifetime monthly sends, and focused tests.
