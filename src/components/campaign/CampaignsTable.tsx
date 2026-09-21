@@ -48,7 +48,7 @@ import {
 } from "@/lib/campaign-overview";
 import { DailyLimitPopover } from "@/components/campaign/DailyLimitPopover";
 
-type SortKey = "name" | "leads" | "sent" | "status";
+type SortKey = "name" | "leads" | "openRate" | "reached" | "dailyCap" | "sent" | "status";
 
 const PAGE_SIZE = 10;
 
@@ -248,12 +248,18 @@ export function CampaignsTable({
                 <SortButton label="Campaign" sortKey="name" active={sortKey === "name"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[18%]">Sending Account</TableHead>
-              <TableHead className="w-[9%] text-right">
+              <TableHead className="w-[8%] text-right">
                 <SortButton label="Leads" sortKey="leads" active={sortKey === "leads"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="w-[11%] text-right">Daily Limit</TableHead>
-              <TableHead className="w-[9%] text-right">Sent Today</TableHead>
-              <TableHead className="w-[9%] text-right">Remaining Today</TableHead>
+              <TableHead className="w-[8%] text-right">
+                <SortButton label="Opened" sortKey="openRate" active={sortKey === "openRate"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="w-[9%] text-right">
+                <SortButton label="Reached" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="w-[11%] text-right">
+                <SortButton label="Today Sends" sortKey="dailyCap" active={sortKey === "dailyCap"} dir={dir} onSort={onSort} />
+              </TableHead>
               <TableHead className="w-[9%] text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
               </TableHead>
@@ -314,6 +320,18 @@ export function CampaignsTable({
                   >
                     {numberFmt.format(row.leads)}
                   </TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title={`${numberFmt.format(row.opened)} opened from ${numberFmt.format(row.reached)} reached`}
+                  >
+                    {row.openRate.toFixed(1)}%
+                  </TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title="Emails accepted for sending minus confirmed bounces"
+                  >
+                    {numberFmt.format(row.reached)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <DailyLimitPopover
                       row={row}
@@ -329,15 +347,6 @@ export function CampaignsTable({
                         </button>
                       }
                     />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.sentToday)}</TableCell>
-                  <TableCell
-                    className="text-right tabular-nums"
-                    title="Daily sending limit minus emails sent today"
-                  >
-                    {row.dailyCap > 0
-                      ? numberFmt.format(Math.max(0, row.dailyCap - row.sentToday))
-                      : "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
                   <TableCell>

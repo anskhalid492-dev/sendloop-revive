@@ -1,9 +1,11 @@
 /**
  * Pure aggregation for the Campaigns listing table.
  *
- * All numbers come from real rows (recipients, messages, replies, CRM stages)
+ * All numbers come from real rows (recipients, messages, events, replies, CRM stages)
  * so the table never shows synthetic statistics.
  */
+
+import { deliveredCount, openRatePercent } from "@/lib/engagement-rates";
 
 export type CampaignOverviewAccount = {
   id: string;
@@ -29,6 +31,12 @@ export type CampaignOverviewRow = {
   accountCount: number;
   leads: number;
   sent: number;
+  /** Emails accepted for sending minus confirmed bounces. */
+  reached: number;
+  /** Unique recipients/people with a real open signal. */
+  opened: number;
+  /** Opened divided by reachable emails, using the shared engagement formula. */
+  openRate: number;
   /** Bounces (bounced_at set) — never included in `failed`. */
   bounced: number;
   /** Internal send failures only — never includes bounces. */
@@ -64,7 +72,11 @@ type Inputs = {
     campaign_id: string;
     status: string;
     to_email: string | null;
+    recipient_id?: string | null;
+    lead_id?: string | null;
     sent_at?: string | null;
+    delivered_at?: string | null;
+    opened_at?: string | null;
     bounced_at?: string | null;
   }>;
   replies: Array<{ campaign_id: string | null; lead_id: string | null; from_email: string; sentiment: string }>;
@@ -106,7 +118,7 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
   return input.campaigns.map((c) => {
     const recipients = input.recipients.filter((r) => r.campaign_id === c.id);
     const messages = input.messages.filter((m) => m.campaign_id === c.id);
-    const sent = messages.filter((m) => m.status === "sent").length;
+    const sent = messages.filter((m) => m.status === "sent" || m.sent_at).length;
     const dayStart = new Date();
     dayStart.setHours(0, 0, 0, 0);
     const sentToday = messages.filter(
@@ -116,6 +128,13 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
     // bounced_at. They are reported separately and never counted as failed.
     const bounced = messages.filter((m) => m.bounced_at != null).length;
     const failed = messages.filter((m) => m.status === "failed" && m.bounced_at == null).length;
+    const confirmedDelivered = messages.filter((m) => m.delivered_at != null && m.bounced_at == null).length;
+    const opened = new Set(
+      messages
+        .filter((m) => m.opened_at != null)
+        .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:open`),
+    ).size;
+    const reached = deliveredCount({ sent, bounced, confirmedDelivered });
 
     const replyKeys = new Set(
       input.replies
@@ -149,6 +168,9 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       accountCount: (c.sending_account_ids ?? []).length,
       leads: recipients.length,
       sent,
+      reached,
+      opened,
+      openRate: openRatePercent(opened, { sent, bounced }),
       bounced,
       failed,
       replies: replyKeys.size,
@@ -168,14 +190,19 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
 /** Per-campaign totals aggregated by `campaign_overview_rollup` in Postgres. */
 export type CampaignRollupRow = {
   campaign_id: string;
-  leads: number;
-  sent: number;
-  sent_today: number;
-  bounced: number;
-  failed: number;
-  replies: number;
-  positive_replies: number;
-  meetings: number;
+  leads?: number | null;
+  sent?: number | null;
+  sent_today?: number | null;
+  delivered?: number | null;
+  reached?: number | null;
+  opened?: number | null;
+  bounced?: number | null;
+  failed?: number | null;
+  replies?: number | null;
+  replied?: number | null;
+  positive_replies?: number | null;
+  positive_replied?: number | null;
+  meetings?: number | null;
 };
 
 /**
@@ -195,14 +222,27 @@ export function applyCampaignRollup(
   for (const row of rows) {
     const hit = byId.get(row.id);
     if (!hit) continue;
-    row.leads = n(hit.leads);
-    row.sent = n(hit.sent);
-    row.sentToday = n(hit.sent_today);
-    row.bounced = n(hit.bounced);
-    row.failed = n(hit.failed);
-    row.replies = n(hit.replies);
-    row.positiveReplies = n(hit.positive_replies);
-    row.meetings = n(hit.meetings);
+    if (hit.leads != null) row.leads = n(hit.leads);
+    if (hit.sent != null) row.sent = n(hit.sent);
+    if (hit.sent_today != null) row.sentToday = n(hit.sent_today);
+    if (hit.bounced != null) row.bounced = n(hit.bounced);
+    if (hit.reached != null || hit.delivered != null) {
+      row.reached = n(hit.reached ?? deliveredCount({
+        sent: row.sent,
+        bounced: row.bounced,
+        confirmedDelivered: n(hit.delivered),
+      }));
+    } else {
+      row.reached = deliveredCount({ sent: row.sent, bounced: row.bounced });
+    }
+    if (hit.opened != null) row.opened = n(hit.opened);
+    row.openRate = openRatePercent(row.opened, { sent: row.sent, bounced: row.bounced });
+    if (hit.failed != null) row.failed = n(hit.failed);
+    if (hit.replies != null || hit.replied != null) row.replies = n(hit.replies ?? hit.replied);
+    if (hit.positive_replies != null || hit.positive_replied != null) {
+      row.positiveReplies = n(hit.positive_replies ?? hit.positive_replied);
+    }
+    if (hit.meetings != null) row.meetings = n(hit.meetings);
     row.replyRate = row.sent > 0 ? (row.replies / row.sent) * 100 : 0;
     row.displayStatus = displayStatus(row.status, row.sent, row.failed);
   }

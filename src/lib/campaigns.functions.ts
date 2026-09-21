@@ -126,40 +126,61 @@ export const listCampaignsOverview = createServerFn({ method: "GET" })
     });
 
     if (ws) {
-      const { data: rollup, error: rollupError } = await context.supabase.rpc(
-        "campaign_overview_rollup",
-        { _workspace_id: ws },
-      );
-      if (rollupError && rollupError.code !== "PGRST202") {
-        console.error("[campaigns.overview] campaign_overview_rollup failed", {
-          workspaceId: ws,
-          code: rollupError.code,
-          databaseError: rollupError.message,
-          timestamp: new Date().toISOString(),
-        });
-        throw new Error(
-          `Could not load campaign totals (${rollupError.code ?? "error"}): ${rollupError.message}`,
+      const campaignIds = rows.map((r) => r.id);
+      if (campaignIds.length) {
+        const { data: rollup, error: rollupError } = await context.supabase.rpc(
+          "campaign_overview_rollup",
+          { _workspace_id: ws },
         );
-      }
-      if (rollupError) {
-        // The connected database has not received the aggregate yet. Fall back
-        // to bounded database-side counts rather than failing the whole page
-        // with a generic "Internal server error".
-        console.error("[campaigns.overview] campaign_overview_rollup unavailable; using bounded fallback", {
-          workspaceId: ws,
-          code: rollupError.code,
-        });
-        const { campaignOverviewRollupFallback } = await import("@/lib/campaign-overview-rollup.server");
-        const dayStart = new Date();
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const fallback = await campaignOverviewRollupFallback(
-          context.supabase,
-          rows.map((r) => r.id),
-          dayStart.toISOString(),
+        if (rollupError && rollupError.code !== "PGRST202") {
+          console.error("[campaigns.overview] campaign_overview_rollup failed", {
+            workspaceId: ws,
+            code: rollupError.code,
+            databaseError: rollupError.message,
+            timestamp: new Date().toISOString(),
+          });
+          throw new Error(
+            `Could not load campaign totals (${rollupError.code ?? "error"}): ${rollupError.message}`,
+          );
+        }
+        if (rollupError) {
+          // The connected database has not received the aggregate yet. Fall back
+          // to bounded database-side counts rather than failing the whole page
+          // with a generic "Internal server error".
+          console.error("[campaigns.overview] campaign_overview_rollup unavailable; using bounded fallback", {
+            workspaceId: ws,
+            code: rollupError.code,
+          });
+          const { campaignOverviewRollupFallback } = await import("@/lib/campaign-overview-rollup.server");
+          const dayStart = new Date();
+          dayStart.setUTCHours(0, 0, 0, 0);
+          const fallback = await campaignOverviewRollupFallback(
+            context.supabase,
+            rows.map((r) => r.id),
+            dayStart.toISOString(),
+          );
+          applyCampaignRollup(rows, fallback as never, deriveDisplayStatus);
+        } else {
+          applyCampaignRollup(rows, (rollup ?? []) as never, deriveDisplayStatus);
+        }
+
+        const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
+        const stats = await fetchCampaignStats(context.supabase, { workspaceId: ws, campaignIds });
+        applyCampaignRollup(
+          rows,
+          Array.from(stats.byCampaign.values()).map((s) => ({
+            campaign_id: s.campaignId,
+            leads: s.leads,
+            sent: s.sent,
+            reached: s.delivered,
+            opened: s.opened,
+            bounced: s.bounced,
+            failed: s.failed,
+            replied: s.replied,
+            positive_replied: s.positiveReplied,
+          })),
+          deriveDisplayStatus,
         );
-        applyCampaignRollup(rows, fallback as never, deriveDisplayStatus);
-      } else {
-        applyCampaignRollup(rows, (rollup ?? []) as never, deriveDisplayStatus);
       }
     }
 

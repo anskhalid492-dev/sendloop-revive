@@ -80,6 +80,9 @@ function CampaignsPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "campaign_messages" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "email_engagement_events" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "campaign_replies" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       })

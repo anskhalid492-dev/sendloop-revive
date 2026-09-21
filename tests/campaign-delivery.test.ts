@@ -129,8 +129,8 @@ describe("campaign overview aggregation", () => {
       { campaign_id: "c1", lead_id: "l2" },
     ],
     messages: [
-      { campaign_id: "c1", status: "sent", to_email: "l1@x.com" },
-      { campaign_id: "c1", status: "sent", to_email: "l2@x.com" },
+      { campaign_id: "c1", status: "sent", to_email: "l1@x.com", opened_at: "2026-01-03" },
+      { campaign_id: "c1", status: "sent", to_email: "l2@x.com", bounced_at: "2026-01-03" },
       { campaign_id: "c1", status: "pending", to_email: "l3@x.com" },
     ],
     replies: [
@@ -148,6 +148,9 @@ describe("campaign overview aggregation", () => {
     const row = rows[0]!;
     expect(row.leads).toBe(2);
     expect(row.sent).toBe(2);
+    expect(row.reached).toBe(1);
+    expect(row.opened).toBe(1);
+    expect(row.openRate).toBe(100);
     expect(row.replies).toBe(1);
     expect(row.positiveReplies).toBe(1);
     expect(row.meetings).toBe(1);
