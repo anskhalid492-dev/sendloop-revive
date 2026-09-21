@@ -100,7 +100,7 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
   const resetLabel = data.period.resets
     ? data.period.end
       ? `Resets ${new Date(data.period.end).toLocaleDateString(undefined, { month: "short", day: "numeric" })} — ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
-      : "Resets each billing cycle"
+      : "Resets monthly"
     : "Total trial allowance — does not reset";
 
   return (
@@ -119,7 +119,7 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
               {data.period.resets
-                ? `Billing cycle started ${new Date(data.period.start).toLocaleDateString()}`
+                ? `Usage period started ${new Date(data.period.start).toLocaleDateString()}`
                 : "Free trial — fixed lead and email allowance"}
             </p>
             {data.plan.inGrace && data.plan.accessUntil ? (
