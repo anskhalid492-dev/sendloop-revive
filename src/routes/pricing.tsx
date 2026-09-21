@@ -22,7 +22,6 @@ import {
 import { MarketingLayout, PageHero, Section, FaqBlock } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { isLifetimePlan } from "@/lib/billing/lifetime";
-import { formatMoney } from "@/lib/billing/model";
 import { getPlans, type Plan } from "@/lib/plans.functions";
 import { PRICING_COMPARISON, type ComparisonValue } from "@/lib/pricing-comparison";
 import { cn } from "@/lib/utils";
@@ -57,6 +56,16 @@ function useSignedIn() {
 function planCtaHref(signedIn: boolean | null, planSlug?: string) {
   const billing = planSlug ? `/billing?plan=${encodeURIComponent(planSlug)}` : "/billing";
   return signedIn ? billing : `/signup?redirect=${encodeURIComponent(billing)}`;
+}
+
+function formatPlanPrice(cents: number) {
+  const dollars = cents / 100;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: Number.isInteger(dollars) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(dollars);
 }
 
 const PRICING_TITLE = "MunchReach Pricing — Plans From Free to Agency";
@@ -259,7 +268,7 @@ function PricingCard({
 
       <div className="flex items-baseline gap-1">
         <span className="text-4xl font-extrabold tracking-tight">
-          {formatMoney(displayPrice)}
+          {formatPlanPrice(displayPrice)}
         </span>
         <span className="text-sm text-muted-foreground">{priceSuffix}</span>
       </div>

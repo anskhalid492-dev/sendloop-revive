@@ -23,24 +23,61 @@ const FREE = {
   active: true,
 };
 
-const PAID = {
-  planName: "Growth",
-  planId: "growth-plan",
+const STARTER = {
+  planName: "Starter",
+  planId: "starter-plan",
   limits: {
     max_sending_accounts: null,
-    max_users: 10,
-    max_leads: 150000,
+    max_users: 3,
+    max_workspaces: 3,
+    max_leads: 30000,
     max_campaigns: null,
     max_active_campaigns: null,
-    max_emails_monthly: 100000,
+    max_emails_monthly: 20000,
     max_ai_monthly: null,
   },
   features: { warmup: true, campaigns: true, ai_personalization: true },
   active: true,
 };
 
+const GROWTH = {
+  ...STARTER,
+  planName: "Growth",
+  planId: "growth-plan",
+  limits: {
+    ...STARTER.limits,
+    max_leads: 200000,
+    max_emails_monthly: 125000,
+  },
+};
+
+const SCALE = {
+  ...STARTER,
+  planName: "Scale",
+  planId: "scale-plan",
+  limits: {
+    ...STARTER.limits,
+    max_leads: 600000,
+    max_emails_monthly: 500000,
+  },
+};
+
+const LIFETIME = {
+  ...STARTER,
+  planName: "Lifetime",
+  planId: "lifetime-plan",
+  limits: {
+    ...STARTER.limits,
+    max_sending_accounts: 10,
+    max_users: 2,
+    max_workspaces: 2,
+    max_leads: 15000,
+    max_emails_monthly: 15000,
+  },
+};
+
 const state: {
-  entitlement: typeof FREE | typeof PAID;
+  entitlement: typeof FREE | typeof STARTER | typeof GROWTH | typeof SCALE | typeof LIFETIME;
   mailboxes: string[];
   accounts: string[];
 } = { entitlement: FREE, mailboxes: [], accounts: [] };
@@ -170,7 +207,7 @@ describe("free plan mailbox allowance", () => {
   });
 
   it("leaves an unlimited paid plan untouched", async () => {
-    state.entitlement = PAID;
+    state.entitlement = STARTER;
     state.mailboxes = ["a@x.com", "b@x.com", "c@x.com"];
     const { canAddMailbox, mailboxCapacity } = await gates();
     await expect(canAddMailbox("w1")).resolves.toMatchObject({ allowed: true });
@@ -194,7 +231,7 @@ describe("warmup entitlement", () => {
   });
 
   it("is allowed on a plan that includes it", async () => {
-    state.entitlement = PAID;
+    state.entitlement = STARTER;
     const { canUseWarmup } = await gates();
     await expect(canUseWarmup("w1")).resolves.toMatchObject({ allowed: true });
   });
@@ -202,7 +239,7 @@ describe("warmup entitlement", () => {
   it("becomes available after an upgrade and blocked again after a downgrade", async () => {
     const { canUseWarmup } = await gates();
     expect((await canUseWarmup("w1")).allowed).toBe(false);
-    state.entitlement = PAID;
+    state.entitlement = GROWTH;
     expect((await canUseWarmup("w1")).allowed).toBe(true);
     state.entitlement = FREE;
     expect((await canUseWarmup("w1")).allowed).toBe(false);
@@ -236,11 +273,18 @@ describe("other free plan allowances", () => {
   });
 
   it("allows the same actions on a paid plan", async () => {
-    state.entitlement = PAID;
+    state.entitlement = GROWTH;
     const { canAddContact, canCreateCampaign, canInviteTeamMember, canUseAI } = await gates();
     for (const gate of [canAddContact, canCreateCampaign, canInviteTeamMember, canUseAI]) {
       await expect(gate("w1")).resolves.toMatchObject({ allowed: true });
     }
+  });
+
+  it("uses the new paid lead and monthly send allowances", () => {
+    expect(STARTER.limits).toMatchObject({ max_leads: 30000, max_emails_monthly: 20000, max_workspaces: 3, max_users: 3 });
+    expect(GROWTH.limits).toMatchObject({ max_leads: 200000, max_emails_monthly: 125000, max_workspaces: 3, max_users: 3 });
+    expect(SCALE.limits).toMatchObject({ max_leads: 600000, max_emails_monthly: 500000, max_workspaces: 3, max_users: 3 });
+    expect(LIFETIME.limits).toMatchObject({ max_leads: 15000, max_emails_monthly: 15000 });
   });
 });
 
