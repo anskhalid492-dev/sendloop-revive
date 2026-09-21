@@ -51,7 +51,7 @@ export const PRICING_COMPARISON: PricingComparisonCategory[] = [
     rows: [
       { label: "Workspaces", description: "Separate spaces for teams, clients or brands.", value: (plan) => number(plan.max_workspaces) },
       { label: "Team members", description: "People who can collaborate in a workspace.", value: (plan) => number(plan.max_users) },
-      { label: "Roles & permissions", description: "Workspace access levels for team members.", value: (plan) => featureValue(plan, "Roles & permissions", plan.max_users > 1) },
+      { label: "Roles & permissions", description: "Workspace access levels for team members.", value: (plan) => featureValue(plan, "Roles & permissions", plan.max_users === null || plan.max_users > 1) },
       { label: "Multiple workspaces", description: "Manage more than one workspace from the same account.", value: (plan) => plan.max_workspaces === null || plan.max_workspaces > 1 },
     ],
   },
