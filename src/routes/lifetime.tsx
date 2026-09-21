@@ -734,7 +734,14 @@ function LifetimePage() {
         )}
       >
         <div className="mx-auto mb-4 flex w-[min(64rem,calc(100%-1.5rem))] flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background/95 px-5 py-3 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] backdrop-blur-xl">
-          <p className="text-sm font-semibold">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <img
+              src={brandFavicon()}
+              alt=""
+              className="size-5 rounded-md object-contain"
+              loading="eager"
+              decoding="async"
+            />
             MunchReach Lifetime — {formatMoney(priceCents)} one-time
           </p>
           <Button size="sm" asChild>
