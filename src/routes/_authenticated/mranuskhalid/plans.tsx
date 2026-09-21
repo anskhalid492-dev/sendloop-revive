@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/mranuskhalid/plans")({
 
 const NUMBER_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "monthly_price", label: "Monthly price (cents)" },
-  { key: "yearly_price", label: "Annual price (cents)" },
+  { key: "yearly_price", label: "Yearly monthly-equivalent price (cents)" },
   { key: "one_time_price", label: "One-time price (cents)", hint: "Lifetime plans only." },
   { key: "compare_at_price", label: "Compare-at price (cents)", hint: "Crossed-out reference price." },
   { key: "monthly_credits", label: "Credits included / month" },
@@ -172,7 +172,7 @@ function AdminPlansPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-border/60 text-left text-xs uppercase text-muted-foreground">
               <tr>
-                {["Plan", "Status", "Monthly", "Annual", "Credits", "Limits", "Subscribers", "MRR", ""].map(
+                {["Plan", "Status", "Monthly", "Yearly eq.", "Credits", "Limits", "Subscribers", "MRR", ""].map(
                   (h) => (
                     <th key={h} className="px-4 py-3 font-medium">
                       {h}

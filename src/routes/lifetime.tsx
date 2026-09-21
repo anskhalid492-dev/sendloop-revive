@@ -75,11 +75,11 @@ const FAQS = [
   },
   {
     q: "How many emails are included?",
-    a: "10,000 emails per month, every month, with no recurring bill.",
+    a: "15,000 emails per month, every month, with no recurring bill.",
   },
   {
     q: "Can I connect my own sending accounts?",
-    a: "Yes. You connect your own mailboxes and sending domains — up to 10 connected email accounts on the lifetime plan.",
+    a: "Yes. You connect your own mailboxes — up to 10 connected email accounts on the lifetime plan.",
   },
   {
     q: "Does this include warmup?",
@@ -103,7 +103,7 @@ const FAQS = [
   },
   {
     q: "What happens if I reach my plan limits?",
-    a: "Usage is metered per billing cycle. When you reach a limit, sending or importing pauses for that resource until the cycle resets — or you can upgrade to a larger plan.",
+    a: "The email allowance resets monthly. Fixed storage limits, such as contacts and connected email accounts, do not reset; when a limit is reached, that action pauses until you free capacity or upgrade.",
   },
   {
     q: "How does the Stripe payment work?",
@@ -117,7 +117,7 @@ const FAQS = [
 
 const INCLUDED: { label: string; value: string }[] = [
   { label: "Contacts stored", value: "15,000" },
-  { label: "Emails per month", value: "10,000" },
+  { label: "Emails per month", value: "15,000" },
   { label: "Connected email accounts", value: "10" },
   { label: "Campaigns", value: "Unlimited" },
   { label: "Sequences & follow-ups", value: "Unlimited" },

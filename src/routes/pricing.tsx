@@ -22,6 +22,7 @@ import {
 import { MarketingLayout, PageHero, Section, FaqBlock } from "@/components/site/MarketingPage";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { isLifetimePlan } from "@/lib/billing/lifetime";
+import { formatMoney } from "@/lib/billing/model";
 import { getPlans, type Plan } from "@/lib/plans.functions";
 import { PRICING_COMPARISON, type ComparisonValue } from "@/lib/pricing-comparison";
 import { cn } from "@/lib/utils";
@@ -162,7 +163,7 @@ function PricingPage() {
           </span>
           {yearly && (
             <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/15">
-              Save up to 20%
+              20% yearly discount
             </Badge>
           )}
         </div>
@@ -222,9 +223,10 @@ function PricingCard({
   yearly: boolean;
   signedIn: boolean | null;
 }) {
-  const price = yearly ? plan.yearly_price : plan.monthly_price;
-  const yearlyTotal = plan.yearly_price * 12;
   const isTrial = plan.monthly_price === 0;
+  const yearlyTotal = plan.yearly_price * 12;
+  const displayPrice = yearly && !isTrial ? yearlyTotal : plan.monthly_price;
+  const priceSuffix = isTrial ? "free trial" : yearly ? "/year" : "/mo";
 
   const limits = [
     { icon: Building2, label: "Workspaces", value: plan.max_workspaces },
@@ -257,13 +259,13 @@ function PricingCard({
 
       <div className="flex items-baseline gap-1">
         <span className="text-4xl font-extrabold tracking-tight">
-          ${(price / 100).toFixed(0)}
+          {formatMoney(displayPrice)}
         </span>
-        <span className="text-sm text-muted-foreground">/mo</span>
+        <span className="text-sm text-muted-foreground">{priceSuffix}</span>
       </div>
-      {yearly && price > 0 && (
+      {yearly && !isTrial && (
         <p className="mt-1 text-xs text-muted-foreground">
-          ${(yearlyTotal / 100).toLocaleString()} billed yearly
+          Paid annually · 20% yearly discount
         </p>
       )}
 
@@ -271,8 +273,8 @@ function PricingCard({
         <a href={planCtaHref(signedIn, plan.slug)}>{cta}</a>
       </Button>
 
-      {/* Leads are a fixed capacity; emails are an allowance that resets each
-          billing cycle (a one-time total on the free trial). */}
+      {/* Leads are a fixed capacity; emails are a monthly allowance on paid
+          plans and a one-time total on the free trial. */}
       <div className="mt-6 grid grid-cols-2 gap-3 border-t border-border pt-6">
         <div className="rounded-xl bg-secondary/40 p-3">
           <p className="text-lg font-bold leading-tight">
@@ -424,7 +426,7 @@ const pricingFaqs = [
     },
     {
       q: "How are lead and email limits different?",
-      a: "Leads are a fixed storage capacity — the total number of contacts your workspace can hold at once. Emails are an allowance that resets at the start of every billing cycle.",
+      a: "Leads are a fixed storage capacity — the total number of contacts your workspace can hold at once. Paid plans include a monthly email allowance; the free trial includes a one-time email allowance.",
     },
     {
       q: "Do I need my own SMTP or email API?",

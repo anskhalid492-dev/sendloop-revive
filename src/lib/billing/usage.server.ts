@@ -52,7 +52,7 @@ export function periodStart(date = new Date()) {
 }
 
 /** Anchor used for allowances that never reset (free trial totals). */
-const LIFETIME_ANCHOR = "1970-01-01";
+const FREE_TRIAL_ANCHOR = "1970-01-01";
 
 export type MeteringPeriod = {
   /** `period_start` key used in workspace_usage_counters. */
@@ -64,9 +64,9 @@ export type MeteringPeriod = {
 };
 
 /**
- * Email/AI allowances reset on the BILLING CYCLE, not the calendar month.
- * Paid workspaces are metered against the subscription period; free-trial
- * workspaces get a single lifetime bucket that never resets.
+ * Email/AI allowances use the same period semantics as the database meter:
+ * free trial is one fixed bucket, monthly subscriptions use the provider cycle,
+ * and yearly/lifetime plans reset on each UTC calendar month.
  */
 export async function getMeteringPeriod(workspaceId: string): Promise<MeteringPeriod> {
   const db = await admin();
@@ -74,27 +74,43 @@ export async function getMeteringPeriod(workspaceId: string): Promise<MeteringPe
   const settings = await getBillingSettings();
   const { data: sub } = await db
     .from("billing_subscriptions")
-    .select("status, current_period_start, current_period_end, plan_id")
+    .select("status, current_period_start, current_period_end, plan_id, billing_interval")
     .eq("workspace_id", workspaceId)
     .eq("environment", settings.environment)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  // A free plan is always metered as a single lifetime allowance, even once a
+  // A free plan is always metered as a single fixed allowance, even once a
   // subscription row exists — otherwise the trial cap would silently reset.
   let freePlan = true;
+  let lifetimePlan = false;
+  let yearlyPlan = false;
   if (sub?.plan_id) {
     const { data: plan } = await db
       .from("plans")
-      .select("monthly_price")
+      .select("monthly_price, billing_type")
       .eq("id", sub.plan_id as string)
       .maybeSingle();
-    freePlan = Number(plan?.monthly_price ?? 0) === 0;
+    lifetimePlan = plan?.billing_type === "lifetime" || sub.billing_interval === "lifetime";
+    yearlyPlan = sub.billing_interval === "yearly";
+    freePlan = !lifetimePlan && Number(plan?.monthly_price ?? 0) === 0;
   }
 
   const paidStates = ["trialing", "active", "past_due", "payment_failed", "paused"];
-  if (sub && !freePlan && paidStates.includes(String(sub.status)) && sub.current_period_start) {
+  if (sub && !freePlan && paidStates.includes(String(sub.status))) {
+    if (lifetimePlan || yearlyPlan || !sub.current_period_start) {
+      const now = new Date();
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+      return {
+        key: start.toISOString().slice(0, 10),
+        start: start.toISOString(),
+        end: end.toISOString(),
+        resets: true,
+      };
+    }
+
 
     const start = new Date(sub.current_period_start as string);
     const end = sub.current_period_end ? new Date(sub.current_period_end as string) : null;
@@ -112,8 +128,8 @@ export async function getMeteringPeriod(workspaceId: string): Promise<MeteringPe
 
   // No paid subscription → free trial: fixed total allowance, never resets.
   return {
-    key: LIFETIME_ANCHOR,
-    start: `${LIFETIME_ANCHOR}T00:00:00.000Z`,
+    key: FREE_TRIAL_ANCHOR,
+    start: `${FREE_TRIAL_ANCHOR}T00:00:00.000Z`,
     end: null,
     resets: false,
   };

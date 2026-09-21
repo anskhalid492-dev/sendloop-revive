@@ -482,7 +482,7 @@ export function BillingTab({
               const price = planIsLifetime
                 ? lifetimePriceCents(plan)
                 : interval === "yearly"
-                  ? ((plan as any).yearly_price ?? 0)
+                  ? ((plan as any).yearly_price ?? 0) * 12
                   : plan.monthly_price;
               const current = plan.id === billing.planId;
               const picked = Boolean(highlightPlanSlug) && plan.slug === highlightPlanSlug;
@@ -518,9 +518,12 @@ export function BillingTab({
                   <p className="mt-2 text-2xl font-bold tracking-tight">
                     {formatMoney(price)}
                     <span className="text-sm font-normal text-muted-foreground">
-                      {planIsLifetime ? " one-time" : `/${interval === "yearly" ? "yr" : "mo"}`}
+                      {planIsLifetime ? " one-time" : `/${interval === "yearly" ? "year" : "mo"}`}
                     </span>
                   </p>
+                  {interval === "yearly" && !planIsLifetime ? (
+                    <p className="mt-1 text-xs text-muted-foreground">Paid annually · 20% yearly discount</p>
+                  ) : null}
                   <ul className="mt-4 flex-1 space-y-2 text-sm">
                     {limits.map((l) => {
                       const unlimited = l.value === null || l.value === undefined || l.value < 0;
