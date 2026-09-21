@@ -34,7 +34,7 @@ const sections = [
     id: "purpose",
     heading: "1. Purpose",
     body: [
-      "This Acceptable Use Policy (\"AUP\") sets out the rules for sending email through MunchReach. It exists to protect the deliverability and reputation of shared sending infrastructure for every customer, and to keep recipients' inboxes free of unwanted or unlawful email.",
+      "This Acceptable Use Policy (\"AUP\") sets out the rules for using MunchReach Email Accounts, Connected Mailboxes, Campaigns, Sequences and other Email Sending features. It exists to protect Recipients, sender reputation, connected accounts and the platform from unwanted, abusive or unlawful activity.",
       "This AUP is part of, and incorporated into, our Terms of Service.",
     ],
   },
@@ -45,7 +45,7 @@ const sections = [
       "Business-to-business outreach with a lawful basis and a genuine offer relevant to the recipient.",
       "Recruiting outreach to candidates whose professional contact details are publicly available or were provided directly to you.",
       "Follow-ups to prospects who have engaged with your product or previously opted in, and who have not opted out.",
-      "Verified lists that you or your organisation sourced, enriched, or collected directly, with an accurate record of provenance.",
+      "Contact lists that you or your organisation sourced, enriched or collected lawfully, with an accurate record of provenance.",
     ],
   },
   {
@@ -80,7 +80,7 @@ const sections = [
     heading: "6. Prohibited content",
     body: [
       "Phishing, malware, or messages designed to harvest credentials or install software without consent.",
-      "Cryptocurrency solicitation, get-rich-quick schemes, adult content, or the sale of illegal goods or services.",
+      "Fraudulent financial solicitation, get-rich-quick schemes, harmful or illegal content, or the sale of illegal goods or services.",
       "Content that is defamatory, harassing, discriminatory, or that promotes violence or self-harm.",
       "Deceptive subject lines, forged headers, or sender identities designed to impersonate another person or organisation.",
     ],
@@ -90,16 +90,19 @@ const sections = [
     heading: "7. Prohibited sending practices",
     body: [
       "Ignoring opt-out requests, re-adding suppressed addresses, or removing unsubscribe links from templates.",
-      "Sending at volume to catch-all domains, role addresses without a legitimate business purpose, or known spam-trap domains.",
-      "Sharing a workspace with unrelated third parties, or splitting sends across multiple accounts, to evade volume limits or suppression rules.",
-      "Using open or misconfigured relays, or spoofing domains you do not own or have authorization to send from.",
+      "Sending at volume to unverified, invalid, indiscriminate or known spam-trap addresses.",
+      "Sharing a workspace with unrelated third parties, or splitting sends across multiple Email Accounts, to evade Sending Limits or suppression rules.",
+      "Connecting or sending from Email Accounts, Mailboxes, sender addresses or identities you do not control or have permission to use.",
+      "Attempting to bypass Mailbox, Sending Account, Campaign, workspace or plan limits.",
+      "Abusing Mailbox connections, sending infrastructure, APIs, integrations or authentication systems.",
+      "Creating or using another account or workspace to evade a restriction, suspension or termination.",
     ],
   },
   {
     id: "lists",
     heading: "8. List quality and sourcing",
     body: [
-      "Lists must be verified for basic deliverability (valid syntax, active MX records) before the first send.",
+      "Customers must take reasonable steps to validate recipient addresses and remove invalid, stale, duplicate or suppressed records before sending.",
       "We reserve the right to request evidence of list provenance, and to pause sending pending review where a list shows abnormal bounce or complaint rates.",
       "Scraped consumer email addresses obtained without a lawful basis, and purchased lists of unknown origin, are not permitted under any circumstances.",
     ],
@@ -108,16 +111,16 @@ const sections = [
     id: "limits",
     heading: "9. Volume limits and warmup",
     body: [
-      "New mailboxes are subject to automatic warmup schedules that gradually increase daily send volume to protect domain reputation.",
-      "Plan-level sending limits are documented in your workspace settings and may be adjusted based on account health and provider capacity.",
+      "New or recovering Mailboxes may be subject to warmup schedules and lower Sending Limits that increase gradually based on available health signals.",
+      "Plan-level and mailbox-level Sending Limits are shown in the platform and may be adjusted based on account health, bounce and complaint activity, capacity and abuse risk.",
     ],
   },
   {
     id: "monitoring",
     heading: "10. Monitoring and thresholds",
     body: [
-      "We continuously monitor bounce rates, spam-complaint rates, spam-trap hits, and authentication failures (SPF/DKIM/DMARC) at the workspace and mailbox level.",
-      "Crossing a defined risk threshold automatically pauses affected campaigns and notifies workspace owners with the reason and a remediation path.",
+      "We may monitor bounce rates, spam complaints, unsubscribe behavior, repeated failures, Mailbox Authentication and other Sending Activity at the workspace, Campaign and Mailbox level.",
+      "Risk signals may cause affected Campaigns or Mailboxes to be paused or restricted while the issue is reviewed or corrected.",
     ],
   },
   {
@@ -160,7 +163,7 @@ function Aup() {
         eyebrow="Legal"
         title="Acceptable"
         highlight="Use Policy"
-        description="Last updated: August 17, 2026. These rules keep shared sending infrastructure healthy for every customer."
+        description="Last updated: August 17, 2026. These rules protect Recipients, connected Email Accounts, sender reputation and responsible Email Sending."
         primaryCta="Contact Compliance"
       />
       <Section>
@@ -192,7 +195,7 @@ function Aup() {
           ))}
         </div>
       </Section>
-      <CtaBlock title="Sending responsibly starts here" description="Create a free workspace and let our warmup and suppression tools do the heavy lifting." cta="Start for Free" />
+      <CtaBlock title="Sending responsibly starts here" description="Create a free workspace and use warmup, suppression and sending controls to support responsible outreach." cta="Start for Free" />
     </MarketingLayout>
   );
 }

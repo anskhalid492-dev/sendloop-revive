@@ -50,7 +50,7 @@ const sections = [
     body: [
       "Yearly plans are eligible for a refund within 14 days of the initial purchase or renewal, provided you have not launched any outbound campaign during that period.",
       "If a campaign has been launched, messages have been sent, or the account has been used to send email through MunchReach, the yearly fee is no longer refundable.",
-      "This policy exists because sending email consumes deliverability infrastructure and provider resources that cannot be recovered once used.",
+      "This policy exists because launching Campaigns and sending Email Messages consumes service capacity that cannot be recovered once used.",
     ],
   },
   {
@@ -85,7 +85,7 @@ const sections = [
     body: [
       "Fees are not refundable when the refund window has expired.",
       "Fees are not refundable if the account has been suspended or terminated for violating the Terms of Service or Acceptable Use Policy.",
-      "Overage charges, add-on purchases, and third-party provider fees are not refundable.",
+      "Overage charges, add-on purchases and other usage-based charges are not refundable once incurred.",
       "Refunds are not issued for poor campaign performance, low reply rates, or deliverability outcomes, as these depend on factors outside MunchReach's control.",
     ],
   },

@@ -35,7 +35,7 @@ const sections = [
     id: "agreement",
     heading: "1. Agreement to terms",
     body: [
-      "By creating an account, accessing, or using MunchReach (the \"Service\"), you agree to these Terms of Service on behalf of yourself and any organisation you represent. If you do not agree, you may not use the Service.",
+      "MunchReach is an email outreach and campaign management platform for managing Leads and Contacts, Email Accounts, Connected Mailboxes, Campaigns, Sequences, follow-ups, Email Messages, AI Personalization, Analytics and a Unified Inbox (the \"Service\"). By creating an account, accessing or using the Service, you agree to these Terms of Service on behalf of yourself and any organisation you represent. If you do not agree, you may not use the Service.",
       "These terms incorporate by reference our Privacy Policy and Acceptable Use Policy.",
     ],
   },
@@ -44,7 +44,7 @@ const sections = [
     heading: "2. Accounts and eligibility",
     body: [
       "You must be at least 18 years old and capable of forming a binding contract to create an account.",
-      "You are responsible for maintaining the confidentiality of your credentials and for all activity that occurs in workspaces you own or administer.",
+      "You are responsible for maintaining the confidentiality of your credentials and for all activity that occurs in workspaces you own or administer, including activity by team members and connected integrations.",
       "You must provide accurate registration information and keep it up to date.",
     ],
   },
@@ -70,16 +70,17 @@ const sections = [
     id: "use",
     heading: "5. Acceptable use",
     body: [
-      "You must comply with our Acceptable Use Policy, including CAN-SPAM, GDPR, CASL and equivalent laws in the recipient's jurisdiction.",
-      "You must have a lawful basis to contact every prospect you import and must honour opt-out requests within the timeframe required by applicable law.",
-      "You may not use the Service to send unlawful, deceptive, or harmful content, or to circumvent sending limits by operating multiple linked accounts without disclosure.",
+      "You must comply with our Acceptable Use Policy, Sending Policy and all laws that apply to your Recipients, Leads and Contacts, Campaigns and Email Sending.",
+      "You are responsible for the Email Accounts and Connected Mailboxes you connect, your authorization to use them, the Leads and Contacts you upload, the Recipients you contact, and the Campaigns, Sequences and Email Messages you send.",
+      "You must establish any required lawful basis, use accurate sender information, honour unsubscribe requests, maintain suppression requirements and comply with applicable privacy, data-protection and anti-spam laws.",
+      "You may not send unlawful, deceptive or harmful content; use an Email Account without permission; or circumvent Mailbox, Sending Account, Campaign or workspace limits.",
     ],
   },
   {
     id: "content",
     heading: "6. Your content and licence",
     body: [
-      "You retain ownership of the leads, templates and campaign content you upload to the Service (\"Your Content\").",
+      "You retain ownership of the Leads and Contacts, templates, Campaign content, Email Messages and other data you upload to or create in the Service (\"Your Content\").",
       "You grant MunchReach a limited, worldwide, non-exclusive licence to host, process and transmit Your Content solely to operate and support the Service for you.",
       "You represent that you have all rights necessary to grant this licence and that Your Content does not infringe any third party's rights.",
     ],
@@ -99,14 +100,14 @@ const sections = [
       "We target 99.9% monthly uptime for the core application, measured as availability of the login and campaign-sending endpoints, excluding scheduled maintenance.",
       "Scheduled maintenance is announced at least 24 hours in advance where practical and performed during low-traffic windows.",
       "Paid plans with a written SLA agreement may be eligible for service credits for downtime exceeding the committed threshold, subject to a claim submitted within 30 days.",
-      "Third-party email providers, DNS registrars, and inbox providers may impose limits or experience outages outside our control, and are excluded from any uptime commitment.",
+      "Third-party services used for Email Account connections, mailbox access, delivery, billing or integrations may impose limits or experience outages outside our control, and are excluded from any uptime commitment.",
     ],
   },
   {
     id: "suspension",
     heading: "9. Suspension and termination",
     body: [
-      "We may suspend or terminate a workspace that violates these terms or the Acceptable Use Policy, generates excessive spam complaints, or puts shared sending infrastructure at risk.",
+      "We may suspend or terminate a workspace that violates these terms, the Sending Policy or the Acceptable Use Policy; generates excessive bounces or complaints; repeatedly ignores unsubscribe or suppression requirements; or puts Recipients, Connected Mailboxes or sending infrastructure at risk.",
       "Where practical, we will provide notice and an opportunity to remedy the issue before suspension, except where immediate action is necessary to protect the Service or other users.",
       "You may cancel at any time from workspace settings; your data remains available for export for 30 days after cancellation, after which it is deleted per our retention schedule.",
     ],

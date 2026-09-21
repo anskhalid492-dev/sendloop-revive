@@ -19,22 +19,22 @@ const sections = [
     heading: "1. Definitions",
     body: [
       "\"Customer\" means the organisation or individual that has an account with MunchReach. \"MunchReach\", \"we\" or \"us\" means the provider of the MunchReach platform.",
-      "\"Personal data\" means information relating to an identified or identifiable person that the Customer uploads to, or generates in, the platform. \"Processing\" means any operation performed on personal data. \"Subprocessor\" means a third party engaged by MunchReach to process personal data on the Customer's behalf.",
+      "\"Customer Data\" means personal data and other information that the Customer uploads to, connects to, sends through or generates in the platform. \"Personal data\" means information relating to an identified or identifiable person. \"Processing\" means any operation performed on personal data. \"Subprocessor\" means a third party engaged by MunchReach to process personal data on the Customer's behalf.",
       "\"Agreement\" means the MunchReach Terms of Service. This Data Processing Agreement (\"DPA\") forms part of it.",
     ],
   },
   {
     heading: "2. Scope",
     body: [
-      "This DPA applies whenever MunchReach processes personal data on behalf of the Customer in the course of providing the platform: contact records, campaign content, email events, replies and account information.",
+      "This DPA applies whenever MunchReach processes Customer Data on behalf of the Customer while providing the platform, including lead and contact records, Campaign data, Email Messages, Connected Mailbox data, Sending Activity, replies, conversations and Analytics.",
       "It does not apply to data MunchReach processes for its own purposes, such as billing records and account administration, which are covered by the Privacy Policy.",
     ],
   },
   {
     heading: "3. Roles of the parties",
     body: [
-      "The Customer is the controller of the contact and recipient data it uploads and of the emails it sends. The Customer decides what data to collect, who to contact and what to say.",
-      "MunchReach is the processor for that data and acts on the Customer's documented instructions. For its own account, billing and security records MunchReach acts as a controller.",
+      "The Customer is the controller of the Leads and Contacts it uploads, the Recipients it selects, the Connected Mailboxes it authorizes and the Email Messages it sends. The Customer decides what data to process, who to contact and what to say.",
+      "MunchReach is the processor for that Customer Data and acts on the Customer's documented instructions. For its own account administration, billing, security, fraud-prevention and support records, MunchReach acts as a controller where applicable.",
     ],
   },
   {
@@ -48,8 +48,10 @@ const sections = [
   {
     heading: "5. Personal data processed",
     body: [
-      "Contact and lead records supplied by the Customer, typically name, email address, company, job title and any custom fields the Customer chooses to import.",
-      "Email content authored by the Customer, and the delivery, open, click, bounce, unsubscribe and reply events generated when those emails are sent.",
+      "Lead and contact records supplied by the Customer, including email addresses, names, company information, job details, lists, suppression status and custom fields the Customer chooses to import or create.",
+      "Campaign and Sequence data, including Recipients, templates, personalized content, schedules and Email Messages authored or approved by the Customer.",
+      "Connected Mailbox and Sending Account data needed to authenticate connections, send Email Messages and synchronize replies and conversations.",
+      "Sending Activity and Analytics, including delivery evidence, opens, clicks, bounces, complaints, unsubscribes, replies, conversation history and campaign performance.",
       "Account data for the Customer's own users: name, email address, role, workspace membership and authentication metadata.",
     ],
   },
@@ -99,7 +101,7 @@ const sections = [
   {
     heading: "12. Data subject requests",
     body: [
-      "The Customer can access, export, correct and delete contact records directly in the platform, which is the fastest way to satisfy a request from one of its recipients.",
+      "The Customer can access, export, correct and delete supported Lead and Contact records directly in the platform, which is generally the fastest way to satisfy a request from one of its Recipients.",
       "If a data subject contacts MunchReach directly, we will refer them to the relevant Customer unless legally required to respond, and will assist the Customer in responding where the request concerns data we hold.",
       "Individuals can submit a request through the Remove My Data page.",
     ],
@@ -107,7 +109,8 @@ const sections = [
   {
     heading: "13. Retention and deletion",
     body: [
-      "Customer personal data is retained while the account is active. Contacts, campaigns and messages deleted in the product are removed from the live database.",
+      "Customer personal data is retained while the account is active. Leads and Contacts, Campaigns, Email Messages, conversation data and Connected Mailbox data are deleted or disconnected through the applicable product and support workflows.",
+      "At the Customer's choice, and subject to applicable law, MunchReach will delete or return Customer Data at the end of the Service. Data that cannot reasonably be returned through product export may be deleted instead.",
       "After an account is closed, remaining customer data is deleted or anonymised within a reasonable period, except where a record must be kept for billing, tax, fraud prevention or legal reasons.",
       "The Customer can request deletion at any time through Contact Support or the Remove My Data page.",
     ],
