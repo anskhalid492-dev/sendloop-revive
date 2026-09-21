@@ -235,7 +235,7 @@ const followUpFlow = [
   { label: "Reply received", meta: "Sequence stops" },
 ];
 
-const HOME_TITLE = "MunchReach: The All-in-One Cold Outreach Platform";
+const HOME_TITLE = "MunchReach | AI Cold Emailing Platform for Agencies";
 const HOME_DESCRIPTION =
   "Build targeted cold email campaigns, automate follow-ups, manage leads and replies, and grow your pipeline with MunchReach, all in one platform.";
 
