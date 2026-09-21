@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { buildCampaignOverview, accountOnline, deriveDisplayStatus } from "../src/lib/campaign-overview";
+import { applyCampaignRollup, buildCampaignOverview, accountOnline, deriveDisplayStatus } from "../src/lib/campaign-overview";
 import { correlateTestSend, pickEvent } from "../src/lib/test-send-status";
 import { variableResolutionReport } from "../src/lib/campaign-model";
 
@@ -129,8 +129,8 @@ describe("campaign overview aggregation", () => {
       { campaign_id: "c1", lead_id: "l2" },
     ],
     messages: [
-      { campaign_id: "c1", status: "sent", to_email: "l1@x.com" },
-      { campaign_id: "c1", status: "sent", to_email: "l2@x.com" },
+      { campaign_id: "c1", status: "sent", to_email: "l1@x.com", opened_at: "2026-01-03" },
+      { campaign_id: "c1", status: "sent", to_email: "l2@x.com", bounced_at: "2026-01-03" },
       { campaign_id: "c1", status: "pending", to_email: "l3@x.com" },
     ],
     replies: [
@@ -148,6 +148,9 @@ describe("campaign overview aggregation", () => {
     const row = rows[0]!;
     expect(row.leads).toBe(2);
     expect(row.sent).toBe(2);
+    expect(row.reached).toBe(1);
+    expect(row.opened).toBe(1);
+    expect(row.openRate).toBe(100);
     expect(row.replies).toBe(1);
     expect(row.positiveReplies).toBe(1);
     expect(row.meetings).toBe(1);
@@ -166,6 +169,28 @@ describe("campaign overview aggregation", () => {
     expect(deriveDisplayStatus("active", 0, 3)).toBe("failed");
     expect(deriveDisplayStatus("active", 5, 1)).toBe("active");
     expect(deriveDisplayStatus("paused", 0, 0)).toBe("paused");
+  });
+
+  it("merges real analytics without losing today's configured send data", () => {
+    const row = { ...rows[0]!, sentToday: 12, dailyCap: 700 };
+    applyCampaignRollup([row], [
+      {
+        campaign_id: "c1",
+        leads: 120,
+        sent: 100,
+        reached: 95,
+        opened: 65,
+        bounced: 5,
+        failed: 0,
+        replied: 8,
+        positive_replied: 3,
+      },
+    ]);
+
+    expect(row.sentToday).toBe(12);
+    expect(row.dailyCap).toBe(700);
+    expect(row.reached).toBe(95);
+    expect(row.openRate).toBeCloseTo(68.4);
   });
 });
 
