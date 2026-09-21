@@ -35,7 +35,7 @@ export const RESOURCE_CATALOG: ResourceDefinition[] = [
   { key: "campaigns", label: "Campaigns", limitKey: "max_campaigns", kind: "derived", period: "total", unit: "campaigns" },
   { key: "active_campaigns", label: "Active campaigns", limitKey: "max_active_campaigns", kind: "derived", period: "total", unit: "campaigns" },
   { key: "sending_accounts", label: "Email accounts", limitKey: "max_sending_accounts", kind: "derived", period: "total", unit: "mailboxes" },
-  { key: "domains", label: "Sending domains", limitKey: "max_domains", kind: "derived", period: "total", unit: "domains" },
+  { key: "domains", label: "Mailbox connection limits", limitKey: "max_domains", kind: "derived", period: "total", unit: "mailboxes" },
   { key: "team_members", label: "Team members", limitKey: "max_users", kind: "derived", period: "total", unit: "members" },
   { key: "automations", label: "Automations", limitKey: "max_automations", kind: "derived", period: "total", unit: "automations" },
   { key: "emails_monthly", label: "Emails sent", limitKey: "max_emails_monthly", kind: "metered", period: "month", unit: "emails" },
@@ -54,7 +54,7 @@ export function resourceDefinition(key: UsageResource): ResourceDefinition {
 /**
  * Customer-facing copy for a blocked action. Never leak technical detail.
  * Email sends get their own wording because that allowance resets with the
- * billing cycle, and this exact string is shown everywhere sending is blocked
+ * monthly usage period, and this exact string is shown everywhere sending is blocked
  * (queue, bulk send, scheduled jobs, inbox replies, test sends).
  */
 export function limitMessage(label: string, planName: string, used: number, limit: number) {
