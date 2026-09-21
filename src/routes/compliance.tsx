@@ -30,7 +30,7 @@ const toc = [
   { id: "bounce-complaint", label: "Bounce and Complaint Protection" },
   { id: "responsible-sending", label: "Responsible Sending" },
   { id: "message-quality", label: "Message Quality" },
-  { id: "infrastructure", label: "Sending Infrastructure and Providers" },
+  { id: "infrastructure", label: "Email Accounts and Mailbox Authentication" },
   { id: "monitoring", label: "Campaign Monitoring" },
   { id: "restrictions", label: "When MunchReach May Restrict Sending" },
   { id: "responsibilities", label: "User Responsibilities" },
@@ -71,7 +71,7 @@ const faqs = [
   },
   {
     q: "What happens after a hard bounce?",
-    a: "A hard bounce indicates a likely permanent failure — typically the address does not exist. The address should be suppressed rather than retried. Repeated sending to addresses that hard-bounce is one of the fastest ways to damage a sending domain, and MunchReach may restrict sending when it sees that pattern.",
+    a: "A hard bounce indicates a likely permanent failure — typically the address does not exist. The address should be suppressed rather than retried. Repeated sending to addresses that hard-bounce damages sender reputation, and MunchReach may restrict sending when it sees that pattern.",
   },
   {
     q: "What happens after a spam complaint?",
@@ -79,7 +79,7 @@ const faqs = [
   },
   {
     q: "Can MunchReach pause my campaign?",
-    a: "Yes. When sending behaviour creates significant risk to recipients, to your own domains, to other customers, or to the infrastructure MunchReach relies on, campaigns or mailboxes may be paused or restricted. Restrictions may be temporary while a problem is investigated and corrected.",
+    a: "Yes. When Sending Activity creates significant risk to Recipients, Connected Mailboxes, other customers or the infrastructure MunchReach relies on, Campaigns or Mailboxes may be paused or restricted. Restrictions may be temporary while a problem is investigated and corrected.",
   },
   {
     q: "Does unsubscribing from marketing emails disable account notifications?",
@@ -264,8 +264,8 @@ function Compliance() {
                 Responsible outreach protects far more than a single campaign. It protects the
                 recipients, who should only be receiving messages that are relevant to them. It
                 protects your business, because reputation damage caused by careless sending is slow
-                and expensive to undo. It protects your sender reputation, your sending domains and
-                the individual mailboxes attached to them. It protects the third-party email
+                and expensive to undo. It protects your sender reputation and the individual
+                Mailboxes you connect. It protects the email
                 infrastructure MunchReach depends on, along with the provider relationships that
                 keep that infrastructure available. And it protects other MunchReach customers,
                 since sending behaviour on shared infrastructure is never entirely private in its
@@ -275,7 +275,7 @@ function Compliance() {
                 The consequences of poor practice tend to arrive in a predictable order. First
                 bounces rise, because the list contains addresses that no longer exist. Then
                 complaints appear, because the messages are landing with people who have no reason
-                to care. Unsubscribes climb. Filtering systems begin treating the sending domain
+                to care. Unsubscribes climb. Filtering systems begin treating the sender and Mailbox
                 with suspicion, so open and reply rates fall even for the recipients who would have
                 been interested. At that point providers may apply their own restrictions, campaigns
                 may be paused, and in serious cases sending access can be limited or withdrawn
@@ -286,7 +286,7 @@ function Compliance() {
                 sending too much, too fast, to people chosen too loosely. It is also why volume is a
                 poor measure of a campaign. Ten thousand emails to a badly assembled list will
                 produce fewer conversations than five hundred emails to people who genuinely fit
-                what you are offering, and the ten thousand will leave your domain in a worse state
+                what you are offering, and the ten thousand will leave your sender reputation in a worse state
                 afterwards.
               </p>
               <p>
@@ -367,7 +367,7 @@ function Compliance() {
                 actually allow. Some are assembled carefully and kept current. Many are years old,
                 heavily duplicated, full of addresses that no longer resolve, and licensed under
                 terms that do not cover bulk outreach at all. Importing one of those without review
-                puts your own domain at risk long before anyone reviews your messaging.
+                puts your own Sending Accounts at risk long before anyone reviews your messaging.
               </p>
               <p>
                 It is also worth separating two ideas that are often confused. Finding an email
@@ -404,8 +404,8 @@ function Compliance() {
               <p>
                 List hygiene is unglamorous and it decides more outcomes than copywriting does.
                 Every message that fails, lands on the wrong person, or arrives at an address nobody
-                reads is a small negative signal, and those signals accumulate against the domain
-                you send from.
+                reads is a small negative signal, and those signals accumulate against the Email
+                Account and sender identity you use.
               </p>
               <p>The recurring problems are consistent:</p>
               <Bullets
@@ -449,7 +449,7 @@ function Compliance() {
               <p>
                 Verification is the cheapest protection available to an outbound team. It filters
                 out a large share of the addresses that would otherwise bounce, and bounces are the
-                single fastest route to a damaged sending domain.
+                single fastest routes to damaged sender reputation.
               </p>
               <p>Verification typically looks at several layers:</p>
               <Bullets
@@ -588,8 +588,8 @@ function Compliance() {
               <p>
                 MunchReach tracks delivery outcomes and applies platform-level protections when
                 sending behaviour starts to look risky. These controls exist because bounce and
-                complaint signals are how receiving systems judge a sender, and a domain can lose
-                standing in days if those signals are ignored.
+                complaint signals are how receiving systems judge a sender, and a Mailbox can lose
+                standing quickly if those signals are ignored.
               </p>
               <H3>Hard Bounces</H3>
               <p>
@@ -627,15 +627,14 @@ function Compliance() {
                   "Poor list quality, typically an unverified or stale import",
                   "Poor targeting, where the audience does not match the message",
                   "Incorrect campaign setup, such as broken personalisation or the wrong segment",
-                  "Problematic sending infrastructure, including domain authentication that is missing or misconfigured",
+                  "A Connected Mailbox with missing or misconfigured authentication",
                   "Irrelevant messaging that recipients have no reason to welcome",
                 ]}
               />
               <p>
                 Affected campaigns, mailboxes, or sending infrastructure may be paused or restricted
                 when necessary. That is deliberately conservative: pausing a campaign for a few hours
-                is recoverable, whereas a domain that has lost its reputation takes far longer to
-                rebuild.
+                is recoverable, whereas damaged sender reputation takes far longer to rebuild.
               </p>
               <Callout tone="principle">
                 MunchReach's protections are designed to reduce risk, but they cannot replace
@@ -647,12 +646,12 @@ function Compliance() {
               <p>
                 Sending patterns matter as much as content. Receiving systems build a picture of a
                 sender over time, and sudden changes in that picture are treated with suspicion —
-                particularly from domains and mailboxes with little history.
+                particularly from Mailboxes and sender identities with little history.
               </p>
               <p>The practices that keep sending healthy are straightforward:</p>
               <Bullets
                 items={[
-                  "Start with reasonable sending volumes, especially on a new domain or mailbox",
+                  "Start with reasonable sending volumes, especially on a new or recently connected Mailbox",
                   "Increase volume gradually, in steady increments rather than jumps",
                   "Monitor sending health continuously instead of reviewing it at the end of a campaign",
                   "Avoid sudden unexplained volume spikes, including adding many mailboxes at once",
@@ -675,7 +674,7 @@ function Compliance() {
               <p>
                 It is tempting to treat emails sent as a measure of effort, but volume on its own
                 predicts nothing about revenue. Sending more messages to a weak list produces more
-                bounces, more complaints and a worse domain — which then reduces results for the
+                bounces, more complaints and worse sender reputation — which then reduces results for the
                 well-targeted messages that would otherwise have worked.
               </p>
               <p>A healthy campaign is measured by:</p>
@@ -684,7 +683,7 @@ function Compliance() {
                   "Relevant contacts who plausibly need what you offer",
                   "Appropriate targeting at the right person in the right company",
                   "Useful messaging that stands on its own without pressure",
-                  "Reasonable volume matched to the capacity of the domain and mailboxes",
+                  "Reasonable volume matched to the capacity and health of the Connected Mailboxes",
                   "Positive engagement, especially replies that lead somewhere",
                   "Low complaint rates sustained across the whole sequence",
                   "Sustainable sending behaviour you could repeat next quarter",
@@ -760,47 +759,39 @@ function Compliance() {
               </p>
             </Doc>
 
-            <Doc id="infrastructure" title="Third-Party Email Providers and Sending Infrastructure">
+            <Doc id="infrastructure" title="Email Accounts and Mailbox Authentication">
               <p>
-                MunchReach may rely on third-party email infrastructure and providers to deliver
-                messages. That means your sending sits inside a chain of systems, each of which
-                applies its own rules, and compliance means satisfying all of them rather than only
-                the MunchReach guidance on this page.
+                MunchReach sends Campaigns through Email Accounts and Mailboxes that customers
+                connect and authorize. Customers must control those accounts, keep access secure and
+                follow the sending rules and limits that apply to each account.
               </p>
-              <p>In general terms:</p>
+              <p>Responsible Email Account use includes:</p>
               <Bullets
                 items={[
-                  "Email providers maintain their own acceptable-use and sending policies, which can change",
-                  "Sending limits may apply, including per-hour, per-day and per-account caps",
-                  "Provider reputation matters, and behaviour that harms it can affect access for everyone using that route",
-                  "Provider systems may reject or defer messages at their discretion",
-                  "Provider access can be restricted if sending behaviour creates unacceptable risk",
-                  "MunchReach cannot override third-party provider policies, decisions, or filtering",
+                  "Connect only Email Accounts you control or have permission to use",
+                  "Keep Mailbox credentials and authorization secure",
+                  "Use accurate sender and reply information",
+                  "Respect per-Mailbox, daily and plan Sending Limits",
+                  "Review Mailbox health, bounce, complaint and authentication signals",
+                  "Pause or reduce Sending Activity when a Mailbox shows elevated risk",
                 ]}
               />
               <p>
-                Practically, this means two sets of requirements apply to your campaigns: the
-                MunchReach rules described here, and the requirements of whichever providers are
-                involved in delivery. Where the two differ, the stricter one governs what actually
-                happens to your mail. If a provider restricts a sending behaviour, MunchReach may
-                have to restrict or suspend the related activity in order to keep the route
-                available.
+                Connected Mailboxes remain subject to the terms, limits, availability and filtering
+                decisions of the services that operate them. MunchReach cannot override those rules
+                or guarantee that a message will be accepted or placed in an inbox.
               </p>
-              <H3>Domain authentication</H3>
+              <H3>Mailbox Authentication</H3>
               <p>
-                Authentication is how a receiving system checks that mail claiming to come from your
-                domain really does. Three records do most of the work. SPF lists which servers are
-                allowed to send for the domain. DKIM adds a cryptographic signature so the receiver
-                can confirm the message was not altered and was sent with your authority. DMARC ties
-                those together, tells receivers what to do when a check fails, and can send you
-                reports about attempts to use your domain.
+                MunchReach may check whether a Connected Mailbox can sign in, send and receive, and
+                whether common email-authentication signals are present. Some authentication checks
+                depend on domain-level records such as SPF, DKIM and DMARC; those references are
+                relevant to email security, but configuring DNS is not the primary MunchReach workflow.
               </p>
               <p>
-                Getting these right removes an entire category of avoidable failure, and missing or
-                inconsistent records are a common cause of mail being rejected or filtered. What
-                authentication does not do is guarantee placement. It establishes that you are who
-                you claim to be; whether a message reaches a main inbox still depends on reputation,
-                recipient behaviour and receiver-side policy, none of which any sender controls.
+                Authentication status and a successful connection do not guarantee delivery or inbox
+                placement. Outcomes also depend on Recipient data, message quality, sender reputation,
+                Sending Activity and receiver-side decisions.
               </p>
               <p>
                 Infrastructure credentials, API keys and internal technical details are never shared
@@ -935,8 +926,8 @@ function Compliance() {
                   statements about your product, results and customers are accurate.
                 </li>
                 <li>
-                  <span className="text-foreground/90">Your sending domains</span> — registration,
-                  authentication records and ongoing configuration.
+                  <span className="text-foreground/90">Your Email Accounts and Mailboxes</span> —
+                  authorization, security, Mailbox Authentication and ongoing connection health.
                 </li>
                 <li>
                   <span className="text-foreground/90">Your account security</span> — access
@@ -981,8 +972,8 @@ function Compliance() {
               />
               <p>
                 Alongside these, some activity is not automatically prohibited but carries elevated
-                risk and attracts closer monitoring: sending at high volume from a brand-new domain,
-                importing very large lists that have never been verified, running many mailboxes with
+                risk and attracts closer monitoring: sending at high volume from a newly connected Mailbox,
+                importing very large lists that have never been verified, running many Mailboxes with
                 near-identical content, and sequences with unusually aggressive follow-up. None of
                 these are forbidden, but each raises the chance of triggering protective measures.
               </p>
@@ -1015,8 +1006,8 @@ function Compliance() {
                   title="Before launching"
                   items={[
                     "Email addresses are verified.",
-                    "Sending domains are properly configured.",
-                    "SPF, DKIM and DMARC have been reviewed where applicable.",
+                    "Every Connected Mailbox is authorized and ready to send.",
+                    "Mailbox Authentication has been reviewed, including domain-level records where applicable.",
                     "My message clearly identifies the sender.",
                     "My message is relevant to the recipient.",
                     "My unsubscribe process works.",

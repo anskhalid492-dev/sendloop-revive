@@ -25,7 +25,7 @@ const sections = [
   {
     heading: "Essential cookies",
     body: [
-      "MunchReach sets a small number of strictly necessary cookies and local storage entries. They keep your sign-in session active, protect forms against cross-site request forgery, and remember basic interface preferences such as the sidebar state.",
+      "MunchReach sets a small number of strictly necessary cookies and local storage entries. They keep your authentication session active, protect forms and requests against abuse, and remember basic interface preferences such as the sidebar state.",
       "These cannot be switched off from inside the product, because the application cannot keep you signed in without them. Blocking them in your browser will sign you out and break parts of the dashboard.",
     ],
   },
@@ -33,7 +33,7 @@ const sections = [
     heading: "Analytics cookies",
     body: [
       "MunchReach does not run third-party advertising or behavioural analytics scripts on the marketing website or in the application. Product usage counters (for example emails sent against your plan allowance) are recorded in your account, not through browser cookies.",
-      "If we introduce an analytics provider in the future, this page will be updated before it is enabled and the provider will be listed on the Subprocessors page.",
+      "If we introduce non-essential analytics technologies in the future, this page will be updated before they are enabled and relevant third parties will be listed on the Subprocessors page.",
     ],
   },
   {
@@ -60,8 +60,8 @@ const sections = [
   {
     heading: "Third-party services",
     body: [
-      "Some cookies and storage entries are set by the infrastructure providers that run MunchReach — for example the authentication and database platform that issues your session token, and the hosting/CDN layer that serves the site.",
-      "The current list of providers, what they process and where they are located is published on the Subprocessors page.",
+      "Some essential cookies and storage entries may be set by services that support authentication, security and website delivery.",
+      "The current list of relevant third parties, what they process and where they are located is published on the Subprocessors page.",
     ],
   },
   {

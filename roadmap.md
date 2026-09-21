@@ -11,6 +11,9 @@
 - [x] Replace pricing-page sending-capacity wording with Email Accounts.
 - [x] Rebuild the existing pricing comparison from verified product capabilities and live plan limits.
 - [x] Verify pricing comparison tests and responsive rendering.
+- [x] Audit all nine existing legal pages for legacy domain and DNS framing.
+- [x] Update legal content around connected mailboxes, email sending, customer data, and compliance.
+- [x] Verify all legal routes, links, terminology, and provider-name exclusions.
 
 ## Plan entitlement enforcement (done)
 - Central gates: src/lib/billing/gates.server.ts (mailbox capacity, warmup, contacts, campaigns, team, AI, sending).

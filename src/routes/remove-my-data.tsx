@@ -67,7 +67,7 @@ function RemoveMyDataPage() {
         eyebrow="Privacy"
         title="Remove"
         highlight="my data"
-        description="Submit a privacy request and the MunchReach team will review it, verify who you are, and confirm the outcome by email."
+        description="Request access, correction or removal of account, contact, campaign, conversation, mailbox-related or activity data associated with you."
       />
 
       <Section>
@@ -79,7 +79,7 @@ function RemoveMyDataPage() {
                 <h2 className="mt-4 text-xl font-semibold">Request received</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                   We log every privacy request for review. Nothing is deleted automatically — we
-                  verify the request first and email you once it has been processed.
+                   verify your identity and authority first, then email you once it has been processed.
                 </p>
                 <Button className="mt-6" variant="outline" onClick={() => setDone(false)}>
                   Submit another request
@@ -134,7 +134,7 @@ function RemoveMyDataPage() {
                     rows={6}
                     minLength={10}
                     maxLength={4000}
-                    placeholder="Tell us which email addresses or records the request covers, and where you were contacted from if you received an email."
+                    placeholder="Tell us which account, email address, lead/contact record, campaign, conversation, connected mailbox or activity record the request covers."
                   />
                 </div>
                 <Button type="submit" size="lg" disabled={pending}>
@@ -154,19 +154,30 @@ function RemoveMyDataPage() {
               <h2 className="mt-3 text-base font-semibold">What happens next</h2>
               <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>1. Your request is logged for review — nothing is deleted immediately.</li>
-                <li>2. We verify the request comes from you or concerns data we hold.</li>
-                <li>3. We action it and email you a confirmation of the outcome.</li>
+                <li>2. We verify your identity and, where relevant, your authority over the workspace or data.</li>
+                <li>3. We locate applicable account, lead/contact, campaign, conversation, mailbox-related and activity data.</li>
+                <li>4. We action the request and email you a confirmation of the outcome.</li>
               </ol>
             </div>
             <div className="rounded-2xl border border-border bg-card p-6">
               <Mail className="size-5 text-primary" />
               <h2 className="mt-3 text-base font-semibold">Contacted by a MunchReach customer?</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                MunchReach customers send their own campaigns and control their own contact lists.
-                For those emails we act as the processor, so we may need to forward your request to
-                the sender — tell us which email you received and we will handle it.
+                 MunchReach customers choose their Recipients, connect their own Email Accounts and
+                 send their own Campaigns. For that data we generally act as the processor, so we may
+                 need to refer the request to the responsible customer. Tell us which message and
+                 sender address are involved so we can identify the correct workspace.
               </p>
             </div>
+             <div className="rounded-2xl border border-border bg-card p-6">
+               <ShieldCheck className="size-5 text-primary" />
+               <h2 className="mt-3 text-base font-semibold">What may be retained</h2>
+               <p className="mt-2 text-sm text-muted-foreground">
+                 We may retain limited billing, tax, fraud-prevention, security, dispute or legal
+                 records where required or permitted by law. Suppression records may also be retained
+                 so an unsubscribe, complaint or other do-not-contact request remains effective.
+               </p>
+             </div>
             <div className="rounded-2xl border border-border bg-card p-6">
               <ShieldCheck className="size-5 text-primary" />
               <h2 className="mt-3 text-base font-semibold">Related pages</h2>
