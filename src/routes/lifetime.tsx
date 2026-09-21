@@ -40,6 +40,7 @@ import {
 import { formatMoney } from "@/lib/billing/model";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { brandFavicon } from "@/lib/branding";
 
 /**
  * Lifetime Deal sales page.
