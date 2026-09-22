@@ -30,6 +30,22 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { BRAND_NAME } from "@/lib/branding";
 
 /**
+ * The Company column is fixed in code, in this order, so it stays complete even
+ * when the admin-managed footer omits an entry. Features lives here instead of
+ * the main header navigation; its page and URL are unchanged.
+ */
+const COMPANY_LINKS = [
+  { label: "About MunchReach", href: "/about" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "Why MunchReach", href: "/why-munchreach" },
+  { label: "Features", href: "/features" },
+  { label: "Contact", href: "/contact" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Customer Reviews", href: "/customer-reviews" },
+  { label: "Referral Program", href: "/referral" },
+];
+
+/**
  * Fallback footer. The live footer is managed in Admin → Footer; if that
  * content hasn't loaded yet (or fails to load) the site still renders these
  * links so no visitor ever sees an empty footer.
