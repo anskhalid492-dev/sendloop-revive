@@ -52,12 +52,22 @@ async function findOrCreateProduct(env: BillingEnvironment, plan: PlanRow) {
   try {
     const found = await stripeCall(
       env,
-      `products/search?query=${encodeURIComponent(query)}&limit=1`,
+      `products/search?query=${encodeURIComponent(query)}&limit=10`,
       undefined,
       "GET",
     );
-    const hit = found?.data?.[0];
-    if (hit?.id) return hit.id as string;
+    const hits = (found?.data ?? []) as Array<{ id?: string; active?: boolean }>;
+    const active = hits.find((hit) => hit?.id && hit.active === true);
+    if (active?.id) return active.id as string;
+    // An archived product cannot be purchased, and neither can any price that
+    // belongs to it — Stripe rejects the session with "its product is not
+    // active". Reactivating the plan's own product keeps the existing catalogue
+    // and price history intact instead of orphaning it.
+    const archived = hits.find((hit) => hit?.id);
+    if (archived?.id) {
+      await stripeCall(env, `products/${archived.id}`, { active: "true" });
+      return archived.id as string;
+    }
   } catch {
     /* search is unavailable on very old accounts — fall through to create */
   }
@@ -76,8 +86,19 @@ async function existingPriceIsValid(
   interval: BillingInterval,
 ) {
   try {
-    const price = await stripeCall(env, `prices/${priceId}`, undefined, "GET");
+    const price = await stripeCall(
+      env,
+      `prices/${priceId}?expand[]=product`,
+      undefined,
+      "GET",
+    );
     if (price?.active !== true || price?.unit_amount !== amountCents) return false;
+    // A price on an archived product is unusable: Stripe refuses the checkout
+    // session even though the price itself still reads as active.
+    const product = price?.product;
+    const productActive =
+      typeof product === "object" && product !== null ? product.active === true : true;
+    if (!productActive) return false;
     if (interval === "lifetime") return !price?.recurring;
     return price?.recurring?.interval === (interval === "yearly" ? "year" : "month");
   } catch {

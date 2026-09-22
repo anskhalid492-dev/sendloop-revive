@@ -308,6 +308,11 @@ export async function applyBillingEvent(
     const resolved = await resolvePlanId(provider, env, s.priceId);
     planId = resolved.planId ?? planId ?? existing?.plan_id ?? null;
     if (!resolved.planId && planId && s.priceId) {
+      // Backfill only when this plan/cycle has no mapping yet. Legacy
+      // subscribers still bill on older (often archived) prices; overwriting the
+      // current mapping with one of those would point new checkouts back at a
+      // price that can no longer be purchased. Their renewals keep resolving
+      // through the existing subscription row above.
       await db.from("billing_plan_prices").upsert(
         {
           plan_id: planId,
@@ -317,7 +322,7 @@ export async function applyBillingEvent(
           external_price_id: s.priceId,
           currency: (s.currency ?? "usd").toLowerCase(),
         },
-        { onConflict: "plan_id,provider,environment,billing_interval" },
+        { onConflict: "plan_id,provider,environment,billing_interval", ignoreDuplicates: true },
       );
     }
     const interval = s.interval ?? resolved.interval ?? existing?.billing_interval ?? "monthly";

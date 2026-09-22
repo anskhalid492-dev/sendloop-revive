@@ -485,6 +485,9 @@ export function BillingTab({
                   ? ((plan as any).yearly_price ?? 0) * 12
                   : plan.monthly_price;
               const current = plan.id === billing.planId;
+              // A $0 plan has no price to charge, so it is never a checkout
+              // target — it is the state a workspace starts in.
+              const freePlan = !planIsLifetime && (plan.monthly_price ?? 0) <= 0;
               const picked = Boolean(highlightPlanSlug) && plan.slug === highlightPlanSlug;
               // Most important limits first, real values only.
               const limits = [
@@ -547,6 +550,7 @@ export function BillingTab({
                     variant={current ? "outline" : "default"}
                     disabled={
                       current ||
+                      freePlan ||
                       checkoutMutation.isPending ||
                       (available.length === 0 &&
                         !(hasRecurringSubscription && !planIsLifetime))
@@ -555,7 +559,9 @@ export function BillingTab({
                   >
                     {current
                       ? "Current plan"
-                      : checkoutMutation.isPending
+                      : freePlan
+                        ? "Included free"
+                        : checkoutMutation.isPending
                         ? hasRecurringSubscription && !planIsLifetime
                           ? "Updating plan…"
                           : "Starting checkout…"
