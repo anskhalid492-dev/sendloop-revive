@@ -39,6 +39,8 @@ export async function sendReplyThroughMailbox(args: {
   conversationId: string;
   subject: string;
   body: string;
+  /** Optional formatted body from the composer (bold/italic/underline/links). */
+  bodyHtml?: string | null;
   cc: string[];
   attachments: OutboundAttachment[];
 }) {
@@ -126,9 +128,22 @@ export async function sendReplyThroughMailbox(args: {
     account.from_name as string | null,
   );
   const body = applySignatureToText(rendered.body, replySignature?.text ?? null);
+  // A formatted reply carries its own HTML through the same signature and
+  // tracking steps; a plain reply keeps the existing text-to-HTML rendering.
+  const { sanitizeComposerHtml } = await import("@/lib/rich-text");
+  const richSource = args.bodyHtml
+    ? sanitizeComposerHtml(
+        renderEmailForLead(
+          { subject: args.subject, body: args.bodyHtml },
+          (replyLead ?? { email: conversation.prospect_email }) as never,
+          { extras: senderExtras(account) },
+        ).body,
+      )
+    : "";
+  const htmlBodySource = richSource || rendered.body;
   const replyHtmlSource = replySignature
-    ? signatureHtmlSource(rendered.body)
-    : clearSignatureToken(rendered.body);
+    ? signatureHtmlSource(htmlBodySource)
+    : clearSignatureToken(htmlBodySource);
 
   const { data: lastInbound } = await supabase
     .from("conversation_messages")
@@ -219,11 +234,13 @@ export async function sendReplyThroughMailbox(args: {
   // this exact reply before it is sent.
   const { randomUUID } = await import("crypto");
   const outboundRowId = randomUUID();
-  const { campaignBodyHtml } = await import("@/lib/email-html");
+  const { campaignBodyHtml, richBodyHtml } = await import("@/lib/email-html");
   const { applyEmailTracking } = await import("@/lib/email-tracking");
   // Same shared tracking step as campaign dispatch and Compose.
   const replyHtml = injectSignatureHtml(
-    applyEmailTracking(campaignBodyHtml(replyHtmlSource), {
+    applyEmailTracking(
+      richSource ? richBodyHtml(replyHtmlSource) : campaignBodyHtml(replyHtmlSource),
+      {
     target: {
       workspaceId: conversation.workspace_id as string,
       messageKind: "conversation",
@@ -234,7 +251,8 @@ export async function sendReplyThroughMailbox(args: {
     },
       trackOpens: true,
       trackClicks: true,
-    }),
+    },
+    ),
     replySignature?.html ?? null,
   );
 
@@ -275,6 +293,8 @@ export async function sendReplyThroughMailbox(args: {
       cc_emails: args.cc,
       subject: subject,
       body: body,
+      // The formatted version is stored so the thread shows what was sent.
+      html: richSource ? replyHtml : null,
       message_id: stripAngle(outboundMessageId),
       in_reply_to: (lastInbound?.message_id as string | undefined) ?? null,
       reference_ids: references,
