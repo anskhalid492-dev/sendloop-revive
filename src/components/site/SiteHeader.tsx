@@ -685,6 +685,45 @@ function ProductsPanel({ core, more, useCases }: { core: Card[]; more: Card[]; u
   );
 }
 
+/**
+ * Solutions mega menu. Every entry comes from the existing solution pages, so
+ * the menu can never link to an audience that has no page behind it.
+ */
+function SolutionsPanel({ useCases }: { useCases: Card[] }) {
+  return (
+    <div>
+      <div className="grid gap-6 p-6 lg:grid-cols-[1.35fr_1fr]">
+        <div>
+          <PanelHeading>By use case</PanelHeading>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {useCases.map((card) => (
+              <CompactCard key={card.to} card={card} />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-secondary/40 to-background p-5">
+          <div>
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Users className="size-5" />
+            </span>
+            <h3 className="mt-4 text-base font-bold">Built for your team</h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              See how agencies, sales teams, recruiters, founders and consultants run outreach in
+              MunchReach — with the workflow that matches how your team works.
+            </p>
+          </div>
+          <Button size="sm" className="mt-5 w-full" asChild>
+            <Link to="/solutions">
+              View all solutions
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResourcesPanel({ cards }: { cards: Card[] }) {
   return (
     <div className="grid gap-6 p-6 lg:grid-cols-[1.3fr_1fr]">
