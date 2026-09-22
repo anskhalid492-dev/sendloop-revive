@@ -484,19 +484,14 @@ export function SiteHeader() {
           >
             <div className="mx-auto flex max-h-[calc(100dvh-7.5rem)] max-w-7xl flex-col gap-1 overflow-y-auto overscroll-contain px-4 py-4">
 
-              {leadNav.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-secondary"
-                >
-                  {link.label}
-                </Link>
-              ))}
               <MobileGroup
                 label="Products"
                 cards={[...coreCards, ...moreCards]}
+                onNavigate={() => setOpen(false)}
+              />
+              <MobileGroup
+                label="Solutions"
+                cards={useCaseLinks}
                 onNavigate={() => setOpen(false)}
               />
               <MobileGroup
@@ -504,12 +499,7 @@ export function SiteHeader() {
                 cards={resourceLinks}
                 onNavigate={() => setOpen(false)}
               />
-              <MobileGroup
-                label="By use case"
-                cards={useCaseLinks}
-                onNavigate={() => setOpen(false)}
-              />
-              {[...midNav, ...topNav].map((link) => (
+              {midNav.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
