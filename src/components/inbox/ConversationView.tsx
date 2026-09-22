@@ -74,7 +74,7 @@ import { ProspectPanel } from "@/components/inbox/ProspectPanel";
 import { replyPreview, splitReplyBody } from "@/lib/email-body";
 import { RichTextEditor } from "@/components/inbox/RichTextEditor";
 import { AiReplyButton } from "@/components/inbox/AiReplyButton";
-import { composerHtmlToText, textToComposerHtml } from "@/lib/rich-text";
+import { composerHtmlToText, sanitizeComposerHtml, textToComposerHtml } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 
 function snoozeOptions() {
@@ -206,7 +206,14 @@ function MessageRow({
             </dl>
           ) : null}
 
-          {parts.reply ? (
+          {message.html ? (
+            // Sent with formatting: show what the recipient received. The HTML
+            // was sanitized to the email allow-list before it was stored.
+            <div
+              className="mt-3 max-w-[76ch] break-words text-[15px] leading-7 text-foreground [&_a]:text-primary [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: sanitizeComposerHtml(message.html) }}
+            />
+          ) : parts.reply ? (
             <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
               {parts.reply}
             </div>
@@ -236,7 +243,7 @@ function MessageRow({
             </div>
           ) : null}
 
-          {!parts.reply && !parts.signature && !parts.quoted ? (
+          {!message.html && !parts.reply && !parts.signature && !parts.quoted ? (
             <p className="mt-3 text-sm text-muted-foreground">No message content.</p>
           ) : null}
 
