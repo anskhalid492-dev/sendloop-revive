@@ -22,6 +22,8 @@ export type ComposeInput = {
   bcc: string[];
   subject: string;
   body: string;
+  /** Optional formatted body from the composer (bold/italic/underline/links). */
+  bodyHtml?: string | null;
   leadId: string | null;
   attachments: OutboundAttachment[];
 };
@@ -121,7 +123,7 @@ export async function composeAndSend(input: ComposeInput) {
   // this exact message before it is sent.
   const { randomUUID } = await import("crypto");
   const outboundRowId = randomUUID();
-  const { campaignBodyHtml } = await import("@/lib/email-html");
+  const { campaignBodyHtml, richBodyHtml } = await import("@/lib/email-html");
   const { applyEmailTracking } = await import("@/lib/email-tracking");
   // Mailbox signature, resolved server-side from the mailbox this email leaves
   // through — the same shared composition layer campaigns and replies use.
@@ -135,12 +137,19 @@ export async function composeAndSend(input: ComposeInput) {
     account.from_name as string | null,
   );
   const composedBody = applySignatureToText(input.body, composeSignature?.text ?? null);
+  // A formatted message keeps its own HTML through signature + tracking; plain
+  // text keeps the existing rendering.
+  const { sanitizeComposerHtml } = await import("@/lib/rich-text");
+  const richSource = input.bodyHtml ? sanitizeComposerHtml(input.bodyHtml) : "";
+  const htmlBodySource = richSource || input.body;
   const composeHtmlSource = composeSignature
-    ? signatureHtmlSource(input.body)
-    : clearSignatureToken(input.body);
+    ? signatureHtmlSource(htmlBodySource)
+    : clearSignatureToken(htmlBodySource);
   // Same shared tracking step as campaign dispatch and inbox replies.
   const composeHtml = injectSignatureHtml(
-    applyEmailTracking(campaignBodyHtml(composeHtmlSource), {
+    applyEmailTracking(
+      richSource ? richBodyHtml(composeHtmlSource) : campaignBodyHtml(composeHtmlSource),
+      {
     target: {
       workspaceId: input.workspaceId,
       messageKind: "conversation",
@@ -150,7 +159,8 @@ export async function composeAndSend(input: ComposeInput) {
     },
       trackOpens: true,
       trackClicks: true,
-    }),
+    },
+    ),
     composeSignature?.html ?? null,
   );
 
@@ -260,6 +270,7 @@ export async function composeAndSend(input: ComposeInput) {
       bcc_emails: input.bcc,
       subject: input.subject,
       body: composedBody,
+      html: richSource || null,
       message_id: stripAngle(outboundMessageId),
       reference_ids: [],
       sending_account_id: account.id,

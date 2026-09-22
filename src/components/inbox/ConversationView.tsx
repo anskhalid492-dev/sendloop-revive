@@ -72,6 +72,9 @@ import { renderEmailForLead, senderExtras } from "@/lib/campaign-model";
 import { listTemplates } from "@/lib/templates.functions";
 import { ProspectPanel } from "@/components/inbox/ProspectPanel";
 import { replyPreview, splitReplyBody } from "@/lib/email-body";
+import { RichTextEditor } from "@/components/inbox/RichTextEditor";
+import { AiReplyButton } from "@/components/inbox/AiReplyButton";
+import { composerHtmlToText, sanitizeComposerHtml, textToComposerHtml } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 
 function snoozeOptions() {
@@ -99,6 +102,8 @@ type ThreadMessage = {
   to_email: string;
   subject: string;
   body: string;
+  /** Formatted copy when the message was written with the rich composer. */
+  html?: string | null;
   occurred_at: string;
   opened_at?: string | null;
   clicked_at?: string | null;
@@ -203,7 +208,14 @@ function MessageRow({
             </dl>
           ) : null}
 
-          {parts.reply ? (
+          {message.html ? (
+            // Sent with formatting: show what the recipient received. The HTML
+            // was sanitized to the email allow-list before it was stored.
+            <div
+              className="mt-3 max-w-[76ch] break-words text-[15px] leading-7 text-foreground [&_a]:text-primary [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: sanitizeComposerHtml(message.html) }}
+            />
+          ) : parts.reply ? (
             <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
               {parts.reply}
             </div>
@@ -233,7 +245,7 @@ function MessageRow({
             </div>
           ) : null}
 
-          {!parts.reply && !parts.signature && !parts.quoted ? (
+          {!message.html && !parts.reply && !parts.signature && !parts.quoted ? (
             <p className="mt-3 text-sm text-muted-foreground">No message content.</p>
           ) : null}
 
@@ -340,6 +352,9 @@ export function ConversationView({
   const templates = templateData?.templates ?? [];
 
   const [body, setBody] = useState("");
+  // Formatted source of truth for the composer; `body` stays the plain-text
+  // equivalent the existing send pipeline has always used.
+  const [bodyHtml, setBodyHtml] = useState("");
   const [subject, setSubject] = useState("");
   const [cc, setCc] = useState("");
   const [attachments, setAttachments] = useState<OutboundAttachment[]>([]);
@@ -360,6 +375,7 @@ export function ConversationView({
     const base = conversation.subject.replace(/^(\s*re\s*:\s*)+/i, "");
     setSubject(`Re: ${base}`);
     setBody("");
+    setBodyHtml("");
     setCc("");
     setAttachments([]);
     setComposerOpen(false);
@@ -415,6 +431,7 @@ export function ConversationView({
           conversationId,
           subject,
           body,
+          ...(bodyHtml.trim() ? { bodyHtml } : {}),
           cc: cc
             .split(/[,;\s]+/)
             .map((v) => v.trim())
@@ -426,6 +443,7 @@ export function ConversationView({
     onSuccess: () => {
       toast.success("Reply sent");
       setBody("");
+      setBodyHtml("");
       setAttachments([]);
       setSendKey(crypto.randomUUID());
       void queryClient.invalidateQueries({ queryKey });
@@ -755,6 +773,7 @@ export function ConversationView({
                       );
                       setSubject(personalized.subject);
                       setBody(personalized.body);
+                      setBodyHtml(textToComposerHtml(personalized.body));
                     }}
                   >
                     <SelectTrigger className="h-8 w-40" aria-label="Insert saved template">
@@ -769,12 +788,15 @@ export function ConversationView({
                     </SelectContent>
                   </Select>
                 </div>
-                <Textarea
-                  value={body}
-                  onChange={(event) => setBody(event.target.value)}
-                  rows={5}
+                <RichTextEditor
+                  value={bodyHtml}
+                  onChange={(html) => {
+                    setBodyHtml(html);
+                    setBody(composerHtmlToText(html));
+                  }}
+                  minHeight={120}
                   placeholder="Write your reply…"
-                  aria-label="Reply body"
+                  ariaLabel="Reply body"
                 />
                 {attachments.length ? (
                   <ul className="flex flex-wrap gap-2">
@@ -826,11 +848,22 @@ export function ConversationView({
                       event.target.value = "";
                     }}
                   />
-                  <span className="text-xs text-muted-foreground">
-                    Sending from {data.account?.from_email ?? "your assigned mailbox"}
-                  </span>
+                  <AiReplyButton
+                    conversationId={conversationId}
+                    onDraft={(text) => {
+                      setBody(text);
+                      setBodyHtml(textToComposerHtml(text));
+                    }}
+                  />
                   <div className="ml-auto flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setBody("")}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setBody("");
+                        setBodyHtml("");
+                      }}
+                    >
                       Discard
                     </Button>
                     <Button

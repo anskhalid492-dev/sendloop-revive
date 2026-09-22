@@ -57,8 +57,22 @@ function paragraphs(text: string): string {
     .join("");
 }
 
+/** Shared document shell, so every outgoing email renders identically. */
+export function emailDocument(content: string): string {
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111827;">${content}</div></body></html>`;
+}
+
 /** Full HTML document used for outgoing campaign emails. */
 export function campaignBodyHtml(text: string): string {
   const content = paragraphs(text) || `<p>${linkifyEmailHtml(escapeEmailHtml(text))}</p>`;
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111827;">${content}</div></body></html>`;
+  return emailDocument(content);
+}
+
+/**
+ * Document for a body the human composer already wrote as (sanitized) HTML.
+ * Bold/italic/underline/links the customer applied survive untouched — nothing
+ * is re-escaped here, so the recipient never sees raw tags.
+ */
+export function richBodyHtml(inlineHtml: string): string {
+  return emailDocument(inlineHtml);
 }

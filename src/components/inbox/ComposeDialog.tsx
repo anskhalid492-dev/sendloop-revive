@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/inbox/RichTextEditor";
+import { composerHtmlToText, textToComposerHtml } from "@/lib/rich-text";
 import { listComposeMailboxes, saveDraft, sendComposedEmail } from "@/lib/inbox.functions";
 import { isMailboxLimitError, mailboxLimitMessage } from "@/lib/mailbox-capacity";
 import {
@@ -81,6 +82,8 @@ export function ComposeDialog({
   const [bcc, setBcc] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  // Formatted source of truth; `body` stays the plain-text equivalent.
+  const [bodyHtml, setBodyHtml] = useState("");
   const [draftId, setDraftId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<OutboundAttachment[]>([]);
   // Identifies this send attempt. If the request is replayed (slow network, an
@@ -108,6 +111,7 @@ export function ComposeDialog({
     setBcc(seed?.bcc ?? "");
     setSubject(seed?.subject ?? "");
     setBody(seed?.body ?? "");
+    setBodyHtml(textToComposerHtml(seed?.body ?? ""));
     setDraftId(seed?.draftId ?? null);
     setAccountId(seed?.sendingAccountId ?? "");
     setAttachments([]);
@@ -167,6 +171,7 @@ export function ComposeDialog({
           bcc: splitEmails(bcc),
           subject: subject.trim(),
           body: body.trim(),
+          ...(bodyHtml.trim() ? { bodyHtml } : {}),
           draftId,
           attachments,
           sendKey,
@@ -386,11 +391,15 @@ export function ComposeDialog({
 
           <div className="grid gap-1.5">
             <Label htmlFor="compose-body">Message</Label>
-            <Textarea
+            <RichTextEditor
               id="compose-body"
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              rows={10}
+              value={bodyHtml}
+              onChange={(html) => {
+                setBodyHtml(html);
+                setBody(composerHtmlToText(html));
+              }}
+              minHeight={200}
+              ariaLabel="Message"
             />
           </div>
 
@@ -490,20 +499,20 @@ export function ComposeDialog({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() =>
+            onClick={() => {
+              const token = `{{${SENDER_SIGNATURE_TOKEN}}}`;
               setBody((current) =>
-                current.includes(`{{${SENDER_SIGNATURE_TOKEN}}}`)
-                  ? current
-                  : `${current.replace(/\s+$/, "")}\n\n{{${SENDER_SIGNATURE_TOKEN}}}`,
-              )
-            }
+                current.includes(token) ? current : `${current.replace(/\s+$/, "")}\n\n${token}`,
+              );
+              setBodyHtml((current) =>
+                current.includes(token) ? current : `${current}<p>${token}</p>`,
+              );
+            }}
           >
             Signature
           </Button>
-          <span className="ml-auto min-w-0 truncate text-[11px] text-muted-foreground">
-            {selected ? `Sending from ${selected.from_email}` : "Choose a mailbox"}
-          </span>
           <Button
+            className="ml-auto"
             variant="outline"
             size="sm"
             onClick={() => draftMutation.mutate()}

@@ -579,6 +579,8 @@ export const sendConversationReply = createServerFn({ method: "POST" })
         conversationId: z.string().uuid(),
         subject: z.string().trim().min(1).max(300),
         body: z.string().trim().min(1).max(50000),
+        /** Formatted body from the composer; sanitized again server-side. */
+        bodyHtml: z.string().trim().max(200000).optional(),
         cc: z.array(z.string().email()).max(10).default([]),
         attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
         /** Identifies this send ATTEMPT so a replayed request never sends twice. */
@@ -748,6 +750,8 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
         bcc: z.array(z.string().email()).max(10).default([]),
         subject: z.string().trim().min(1).max(300),
         body: z.string().trim().min(1).max(50000),
+        /** Formatted body from the composer; sanitized again server-side. */
+        bodyHtml: z.string().trim().max(200000).optional(),
         leadId: z.string().uuid().nullish(),
         draftId: z.string().uuid().nullish(),
         attachments: z.array(attachmentInput).max(MAX_ATTACHMENTS_PER_MESSAGE).default([]),
@@ -784,6 +788,7 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
         bcc: data.bcc,
         subject: data.subject,
         body: data.body,
+        bodyHtml: data.bodyHtml ?? null,
         leadId: data.leadId ?? null,
         attachments: data.attachments,
       })) as ComposeResult;
