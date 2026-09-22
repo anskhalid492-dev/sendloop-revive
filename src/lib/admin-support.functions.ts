@@ -364,3 +364,115 @@ export const getAdminAttachmentUrl = createServerFn({ method: "POST" })
     const key = legacyKeyToR2("support-attachments", data.path);
     return { url: await presignR2Url({ key, method: "GET", expiresInSeconds: 300 }) };
   });
+
+/* -------------------------------------------------------------------------- */
+/* Bug reports                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type AdminBugReport = {
+  id: string;
+  details: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  screenshot_path: string | null;
+  screenshot_name: string | null;
+  screenshot_size: number | null;
+  admin_note: string | null;
+  user_id: string;
+  workspace_id: string | null;
+  customer_email: string | null;
+  customer_name: string | null;
+  workspace_name: string | null;
+};
+
+const BUG_COLUMNS =
+  "id, details, status, created_at, updated_at, screenshot_path, screenshot_name, screenshot_size, admin_note, user_id, workspace_id";
+
+/** Full bug queue for staff, with the reporter and workspace resolved by name. */
+export const listAdminBugReports = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        search: z.string().trim().max(120).optional(),
+        status: z.string().optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<AdminBugReport[]> => {
+    await assertStaff(context);
+
+    let query = context.supabase
+      .from("bug_reports")
+      .select(BUG_COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (data.status && data.status !== "all") query = query.eq("status", data.status);
+    if (data.search) query = query.ilike("details", `%${data.search}%`);
+
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    const bugs = (rows ?? []) as unknown as Array<
+      Omit<AdminBugReport, "customer_email" | "customer_name" | "workspace_name">
+    >;
+    if (bugs.length === 0) return [];
+
+    const userIds = Array.from(new Set(bugs.map((b) => b.user_id)));
+    const workspaceIds = Array.from(
+      new Set(bugs.map((b) => b.workspace_id).filter(Boolean) as string[]),
+    );
+    const [profiles, workspaces] = await Promise.all([
+      context.supabase.from("profiles").select("id, email, full_name").in("id", userIds),
+      workspaceIds.length
+        ? context.supabase.from("workspaces").select("id, name").in("id", workspaceIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const profileMap = new Map(
+      ((profiles.data ?? []) as Array<{ id: string; email: string | null; full_name: string | null }>).map(
+        (p) => [p.id, p],
+      ),
+    );
+    const workspaceMap = new Map(
+      ((workspaces.data ?? []) as Array<{ id: string; name: string }>).map((w) => [w.id, w.name]),
+    );
+
+    return bugs.map((bug) => ({
+      ...bug,
+      customer_email: profileMap.get(bug.user_id)?.email ?? null,
+      customer_name: profileMap.get(bug.user_id)?.full_name ?? null,
+      workspace_name: bug.workspace_id ? (workspaceMap.get(bug.workspace_id) ?? null) : null,
+    }));
+  });
+
+export const updateAdminBugReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["new", "in_progress", "resolved", "closed"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { error } = await context.supabase
+      .from("bug_reports")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Short-lived private link to a reported screenshot, staff only. */
+export const getAdminBugScreenshotUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ path: z.string().trim().min(3).max(400) }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { legacyKeyToR2 } = await import("@/lib/files-model");
+    const { presignR2Url } = await import("@/lib/r2.server");
+    const key = legacyKeyToR2("support", data.path);
+    return { url: await presignR2Url({ key, method: "GET", expiresInSeconds: 300 }) };
+  });
