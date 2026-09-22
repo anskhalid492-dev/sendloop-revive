@@ -31,4 +31,4 @@
 ## Founder-led About page rebuild
 - [x] Replace the existing `/about` content with the supplied company-voice founder story.
 - [x] Preserve the route, global header, footer, typography, branding, and design system.
-- [ ] Verify desktop and mobile rendering, metadata, links, and factual guardrails.
+- [x] Verify desktop and mobile rendering, metadata, links, and factual guardrails.
