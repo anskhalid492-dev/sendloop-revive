@@ -80,12 +80,7 @@ const fallbackColumns = [
   },
   {
     title: "Company",
-    links: [
-      { label: "Contact", href: "/contact" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Customer Reviews", href: "/customer-reviews" },
-      { label: "Referral Program", href: "/referral" },
-    ],
+    links: [...COMPANY_LINKS],
   },
   {
     title: "Legal",
