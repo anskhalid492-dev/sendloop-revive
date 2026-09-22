@@ -29,8 +29,8 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { Button } from "@/components/ui/button";
-import dashboardPreviewAsset from "@/assets/munchreach-dashboard.png.asset.json";
-const dashboardPreview = dashboardPreviewAsset.url;
+import dashboardOverviewAsset from "@/assets/munchreach-dashboard-overview.jpg.asset.json";
+const dashboardPreview = dashboardOverviewAsset.url;
 import inboxPreview from "@/assets/munchreach-unified-inbox-light.png";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { applySeoOverrides } from "@/lib/page-seo";
@@ -456,16 +456,14 @@ function Home() {
               </div>
 
               <Reveal delay={120}>
-                <div className="browser-frame">
-                  <img
-                    src={dashboardPreview}
-                    alt="MunchReach workspace with campaigns, prospects and performance in one view"
-                    width={1600}
-                    height={1008}
-                    loading="lazy"
-                    className="w-full"
-                  />
-                </div>
+                <img
+                  src={dashboardPreview}
+                  alt="MunchReach dashboard overview with sends, replies and blockers on one screen"
+                  width={1920}
+                  height={1080}
+                  loading="lazy"
+                  className="w-full rounded-2xl border border-border/60 shadow-xl"
+                />
               </Reveal>
 
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
