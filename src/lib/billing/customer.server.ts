@@ -109,6 +109,13 @@ async function priceFor(
   planId: string,
   interval: BillingInterval,
 ) {
+  // Stripe prices are immutable and can be archived in the dashboard, so the
+  // stored mapping is verified (and repaired) before checkout instead of letting
+  // Stripe reject the session with a stale price id.
+  if (provider === "stripe") {
+    const { ensureStripePrice } = await import("@/lib/billing/stripe-sync.server");
+    return ensureStripePrice(environment, planId, interval);
+  }
   const db = await admin();
   const { data } = await db
     .from("billing_plan_prices")
