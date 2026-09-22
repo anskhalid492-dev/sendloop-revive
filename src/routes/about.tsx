@@ -421,12 +421,11 @@ function About() {
             <Reveal>
               <aside className="mx-auto max-w-5xl border-l-2 border-primary py-4 pl-6 sm:py-8 sm:pl-10">
                 <BrainCircuit className="size-7 text-primary" />
+                <p className="mt-6 text-xs font-bold text-primary uppercase">A MUNCHREACH STATEMENT</p>
                 <p className="mt-6 text-2xl leading-snug font-semibold text-balance sm:text-4xl lg:text-5xl">
-                  “MunchReach was built from years of working directly in outbound and seeing how much
-                  unnecessary complexity businesses had to manage.”
+                  MunchReach was built from years of working directly in outbound and seeing how much
+                  unnecessary complexity businesses had to manage.
                 </p>
-                <p className="mt-6 text-sm font-semibold">Anas Khalid</p>
-                <p className="mt-1 text-sm text-muted-foreground">Founder, MunchReach</p>
               </aside>
             </Reveal>
           </div>
