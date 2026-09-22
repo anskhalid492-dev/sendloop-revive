@@ -40,7 +40,7 @@ export async function sendReplyThroughMailbox(args: {
   subject: string;
   body: string;
   /** Optional formatted body from the composer (bold/italic/underline/links). */
-  bodyHtml?: string | null;
+  bodyHtml?: string | null | undefined;
   cc: string[];
   attachments: OutboundAttachment[];
 }) {

@@ -57,7 +57,7 @@ export const draftAiReply = createServerFn({ method: "POST" })
     // RLS decides whether the caller may read this conversation at all.
     const { data: conversation } = await context.supabase
       .from("conversations")
-      .select("id, workspace_id, subject, prospect_email, prospect_name, lead_id")
+      .select("id, workspace_id, subject, prospect_email, lead_id")
       .eq("id", data.conversationId)
       .maybeSingle();
     if (!conversation) throw new Error("Conversation not found.");
@@ -101,7 +101,7 @@ export const draftAiReply = createServerFn({ method: "POST" })
       .join("\n\n---\n\n");
 
     const facts = [
-      `Prospect: ${conversation.prospect_name || conversation.prospect_email}`,
+      `Prospect: ${conversation.prospect_email}`,
       lead?.company ? `Company: ${lead.company}` : "",
       lead?.job_title ? `Role: ${lead.job_title}` : "",
       conversation.subject ? `Subject: ${conversation.subject}` : "",
