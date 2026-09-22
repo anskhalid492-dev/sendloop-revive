@@ -11,6 +11,7 @@ import { z } from "zod";
 import { deliveredCount } from "@/lib/engagement-rates";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SubjectLineRow } from "@/lib/analytics-subject";
 import type {
   AnalyticsAccountRow,
   AnalyticsCampaignRow,
@@ -646,6 +647,92 @@ export const getAnalyticsSequence = createServerFn({ method: "POST" })
     }
 
     return steps.map((step) => ({ ...step, name: names.get(step.step) ?? null }));
+  });
+
+/* ------------------------------------------------------------------------ */
+/* Subject line performance                                                  */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * Unique-open performance per subject line for the selected range and filters.
+ *
+ * The subject text is read from the sequence definition (step, or its A/B
+ * variant), so personalisation variables are shown exactly as the author wrote
+ * them. Counting reuses the shared de-duplicated message units, so the numbers
+ * match every other section of the page.
+ */
+export const getSubjectLinePerformance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => rangeInput.parse(input))
+  .handler(async ({ data, context }): Promise<SubjectLineRow[]> => {
+    const client = context.supabase as Client;
+    const { computeSubjectLineStats } = await import("@/lib/analytics-subject");
+    const { units, bundle, from, to } = await loadUnits(client, data);
+
+    const campaignIds = Array.from(
+      new Set(units.map((u) => u.campaignId).filter((id): id is string => !!id)),
+    );
+    if (campaignIds.length === 0) return [];
+
+    // Subject text comes from the sequence definition, workspace-scoped, in
+    // two small bounded reads rather than one row per sent message.
+    const [steps, variants, campaigns] = await Promise.all([
+      client
+        .from("campaign_steps")
+        .select("campaign_id, step_order, subject")
+        .eq("workspace_id", data.workspaceId)
+        .in("campaign_id", campaignIds),
+      client
+        .from("campaign_step_variants")
+        .select("id, subject")
+        .eq("workspace_id", data.workspaceId)
+        .in("campaign_id", campaignIds),
+      client
+        .from("campaigns")
+        .select("id, name, open_tracking")
+        .eq("workspace_id", data.workspaceId)
+        .in("id", campaignIds),
+    ]);
+
+    const stepSubjects = new Map<string, string>();
+    for (const row of (steps.data ?? []) as Array<Record<string, unknown>>) {
+      const subject = String(row["subject"] ?? "").trim();
+      if (subject) {
+        stepSubjects.set(`${String(row["campaign_id"])}|${Number(row["step_order"] ?? 0)}`, subject);
+      }
+    }
+    const variantSubjects = new Map<string, string>();
+    for (const row of (variants.data ?? []) as Array<Record<string, unknown>>) {
+      const subject = String(row["subject"] ?? "").trim();
+      if (subject) variantSubjects.set(String(row["id"]), subject);
+    }
+    const campaignNames = new Map<string, string>();
+    const trackingOff = new Set<string>();
+    for (const row of (campaigns.data ?? []) as Array<Record<string, unknown>>) {
+      const id = String(row["id"]);
+      campaignNames.set(id, String(row["name"] ?? "") || "Untitled campaign");
+      if (row["open_tracking"] === false) trackingOff.add(id);
+    }
+    // Names from the stats bundle fill any gap (same source as the campaign table).
+    for (const [id, stats] of bundle.byCampaign) {
+      if (!campaignNames.has(id)) campaignNames.set(id, stats.name || "Untitled campaign");
+    }
+
+    return computeSubjectLineStats(units, {
+      from,
+      to,
+      campaignNames,
+      trackingOff,
+      subjectFor: (unit) => {
+        if (unit.variantId) {
+          const fromVariant = variantSubjects.get(unit.variantId);
+          if (fromVariant) return fromVariant;
+        }
+        return (
+          stepSubjects.get(`${unit.campaignId ?? ""}|${Math.max(1, unit.step || 1)}`) ?? null
+        );
+      },
+    });
   });
 
 /* ------------------------------------------------------------------------ */

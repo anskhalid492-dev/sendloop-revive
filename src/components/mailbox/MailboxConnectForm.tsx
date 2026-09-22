@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, ExternalLink, Info, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { ProviderLogo } from "@/components/mailbox/ProviderLogo";
@@ -148,7 +148,7 @@ export function MailboxConnectForm({ mode }: { mode: "simple" | "advanced" }) {
 
   const complete =
     Boolean(workspace?.id) &&
-    Boolean(providerId) &&
+    (advanced ? Boolean(providerId) : true) &&
     address.includes("@") &&
     limitValid &&
     [payload.smtp, payload.imap].every(
@@ -229,8 +229,8 @@ export function MailboxConnectForm({ mode }: { mode: "simple" | "advanced" }) {
   });
 
   const busy = test.isPending || save.isPending;
-  /** Custom Domain needs its servers typed in even in the simple flow. */
-  const showServers = advanced || provider?.manual === true;
+  // The provider picker lives in Advanced Setup only; Single Mailbox asks for
+  // the account details and the mail server settings directly.
 
   const endpointFields = (
     which: "smtp" | "imap",
@@ -402,7 +402,8 @@ export function MailboxConnectForm({ mode }: { mode: "simple" | "advanced" }) {
         </div>
       </section>
 
-      {/* ---------- Provider ---------- */}
+      {/* ---------- Provider (Advanced Setup only) ---------- */}
+      {advanced ? (
       <section className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold">Email provider</h2>
@@ -441,29 +442,19 @@ export function MailboxConnectForm({ mode }: { mode: "simple" | "advanced" }) {
           </div>
         ) : null}
       </section>
+      ) : null}
 
       {/* ---------- Mail server settings ---------- */}
-      {showServers ? (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold">Mail server settings</h2>
-          {!advanced ? (
-            <p className="text-xs text-muted-foreground">
-              Enter the server details from your email host.
-            </p>
-          ) : null}
-          {endpointFields("imap", imap, setImap)}
-          {endpointFields("smtp", smtp, setSmtp)}
-        </section>
-      ) : provider ? (
-        <p className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/20 p-3.5 text-xs text-muted-foreground">
-          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>
-            We will use {provider.displayName}&apos;s recommended servers ({provider.imapHost} for
-            incoming, {provider.smtpHost} for outgoing). Need different settings? Use Advanced
-            Setup.
-          </span>
-        </p>
-      ) : null}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold">Mail server settings</h2>
+        {!advanced ? (
+          <p className="text-xs text-muted-foreground">
+            Enter the incoming and outgoing server details from your email host.
+          </p>
+        ) : null}
+        {endpointFields("imap", imap, setImap)}
+        {endpointFields("smtp", smtp, setSmtp)}
+      </section>
 
       {/* ---------- Sending controls ---------- */}
       <section className="grid gap-4 sm:grid-cols-2">

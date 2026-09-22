@@ -151,8 +151,8 @@ function ConnectImapPage() {
               </CardHeader>
               <CardContent>
                 <p className="mb-5 text-sm text-muted-foreground">
-                  Enter your mailbox details, pick your email provider, and we will use its
-                  recommended server settings.
+                  Enter your mailbox details and the incoming and outgoing server settings from
+                  your email host.
                 </p>
                 <MailboxConnectForm mode="simple" />
               </CardContent>

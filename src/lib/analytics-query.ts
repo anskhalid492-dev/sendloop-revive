@@ -32,6 +32,8 @@ export const analyticsKeys = {
     [ANALYTICS_ROOT, "accounts", workspaceId, from, to, ...filters] as const,
   sequence: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
     [ANALYTICS_ROOT, "sequence", workspaceId, from, to, ...filters] as const,
+  subjectLines: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
+    [ANALYTICS_ROOT, "subject-lines", workspaceId, from, to, ...filters] as const,
   replies: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
     [ANALYTICS_ROOT, "replies", workspaceId, from, to, ...filters] as const,
   deliverability: (workspaceId: string | null, from: string, to: string, ...filters: unknown[]) =>
