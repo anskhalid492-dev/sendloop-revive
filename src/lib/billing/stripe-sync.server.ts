@@ -86,6 +86,72 @@ async function existingPriceIsValid(
 }
 
 /**
+ * Returns a Stripe price id that is guaranteed to exist, be active and match the
+ * plan's current amount/cycle for this environment — repairing the mapping when
+ * the stored price was archived, deleted or repriced in Stripe. Without this a
+ * stale mapping makes Stripe reject the checkout session ("No such price"),
+ * which the customer only sees as a generic payment failure.
+ */
+export async function ensureStripePrice(
+  environment: BillingEnvironment,
+  planId: string,
+  interval: BillingInterval,
+): Promise<string> {
+  const db = await admin();
+  const { data: plan } = await db
+    .from("plans")
+    .select(
+      "id, name, slug, description, monthly_price, yearly_price, is_active, sort_order, billing_type, one_time_price",
+    )
+    .eq("id", planId)
+    .maybeSingle();
+  if (!plan) throw new Error("This plan is not available right now.");
+
+  const amountCents = amountFor(plan as PlanRow, interval);
+  if (amountCents <= 0)
+    throw new Error("This plan is not available for checkout yet. Please contact support.");
+
+  const { data: mapping } = await db
+    .from("billing_plan_prices")
+    .select("external_price_id")
+    .eq("plan_id", planId)
+    .eq("provider", "stripe")
+    .eq("environment", environment)
+    .eq("billing_interval", interval)
+    .maybeSingle();
+
+  if (
+    mapping?.external_price_id &&
+    (await existingPriceIsValid(environment, mapping.external_price_id, amountCents, interval))
+  )
+    return mapping.external_price_id as string;
+
+  const productId = await findOrCreateProduct(environment, plan as PlanRow);
+  const price = await stripeCall(environment, "prices", {
+    product: productId,
+    currency: "usd",
+    unit_amount: amountCents,
+    ...(interval === "lifetime"
+      ? {}
+      : { recurring: { interval: interval === "yearly" ? "year" : "month" } }),
+    metadata: { munchreach_plan_id: plan.id, munchreach_interval: interval },
+  });
+
+  await db.from("billing_plan_prices").upsert(
+    {
+      plan_id: plan.id,
+      provider: "stripe",
+      environment,
+      billing_interval: interval,
+      external_price_id: price.id,
+      currency: "usd",
+    },
+    { onConflict: "plan_id,provider,environment,billing_interval" },
+  );
+  return price.id as string;
+}
+
+/**
  * Makes the Stripe catalogue match the MunchReach plan table for one
  * environment. Existing prices are reused whenever they still match the plan's
  * amount and cycle; Stripe prices are immutable, so a changed amount creates a
