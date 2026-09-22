@@ -13,7 +13,7 @@ import {
   Workflow,
 } from "lucide-react";
 
-import dashboardAsset from "@/assets/munchreach-dashboard.png.asset.json";
+import analyticsAsset from "@/assets/munchreach-analytics.jpg.asset.json";
 import inboxAsset from "@/assets/munchreach-unified-inbox.png.asset.json";
 import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
 import { Reveal } from "@/components/site/Reveal";
@@ -398,8 +398,8 @@ function About() {
             <Reveal delay={100}>
               <div className="mt-12 overflow-hidden rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-glow)] sm:p-5">
                 <img
-                  src={dashboardAsset.url}
-                  alt="MunchReach workspace showing campaigns and outbound activity"
+                  src={analyticsAsset.url}
+                  alt="MunchReach analytics view tracking sends, replies, positive replies, bounces and meetings per campaign"
                   className="aspect-[16/9] w-full rounded-md object-cover object-top"
                 />
               </div>
