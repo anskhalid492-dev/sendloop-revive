@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Paperclip, Send, Save, X } from "lucide-react";
+import {
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Paperclip,
+  PenLine,
+  Save,
+  Send,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,6 +37,8 @@ import {
   type OutboundAttachment,
 } from "@/lib/mail-attachments";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SENDER_SIGNATURE_TOKEN } from "@/lib/signature-model";
+import { cn } from "@/lib/utils";
 import { AlertTriangle } from "lucide-react";
 
 export type ComposeSeed = {
@@ -84,6 +88,10 @@ export function ComposeDialog({
   const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
   const [reading, setReading] = useState(false);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
+  // Floating window chrome: the compose panel never takes over the inbox.
+  const [expanded, setExpanded] = useState(false);
+  const [minimized, setMinimized] = useState(false);
+  const [showCc, setShowCc] = useState(false);
 
   const mailboxesQuery = useQuery({
     queryKey: ["compose-mailboxes", workspaceId],
@@ -105,6 +113,8 @@ export function ComposeDialog({
     setAttachments([]);
     setSendKey(crypto.randomUUID());
     setLimitNotice(null);
+    setMinimized(false);
+    setShowCc(Boolean(seed?.cc || seed?.bcc));
   }, [open, seed]);
 
   const eligible = useMemo(() => mailboxes.filter((m) => m.available), [mailboxes]);
@@ -222,16 +232,65 @@ export function ComposeDialog({
     Boolean(body.trim()) &&
     !reading;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>New email</DialogTitle>
-          <DialogDescription>
-            Sends from one of your managed mailboxes and starts a tracked conversation.
-          </DialogDescription>
-        </DialogHeader>
+  if (!open) return null;
 
+  return (
+    <div
+      role="dialog"
+      aria-label="New email"
+      aria-modal="false"
+      className={cn(
+        "fixed z-50 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-lg",
+        "inset-x-2 bottom-2 top-2 sm:inset-x-auto sm:top-auto sm:right-4 sm:bottom-4",
+        minimized
+          ? "sm:h-12 sm:w-[360px]"
+          : expanded
+            ? "sm:h-[86vh] sm:w-[min(880px,calc(100vw-2rem))]"
+            : "sm:h-[560px] sm:w-[540px]",
+      )}
+    >
+      <header className="flex items-center gap-2 border-b border-border bg-muted/40 px-3 py-2">
+        <PenLine className="h-4 w-4 shrink-0 text-primary" />
+        <p className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+          {subject.trim() || "New email"}
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="hidden h-7 w-7 sm:inline-flex"
+          aria-label={minimized ? "Restore compose window" : "Minimize compose window"}
+          onClick={() => setMinimized((v) => !v)}
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="hidden h-7 w-7 sm:inline-flex"
+          aria-label={expanded ? "Shrink compose window" : "Expand compose window"}
+          onClick={() => {
+            setMinimized(false);
+            setExpanded((v) => !v);
+          }}
+        >
+          {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          aria-label="Close compose window"
+          onClick={() => onOpenChange(false)}
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </header>
+
+      {minimized ? null : (
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
         {limitNotice ? (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -295,6 +354,7 @@ export function ComposeDialog({
             />
           </div>
 
+          {showCc ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="compose-cc">Cc</Label>
@@ -305,6 +365,15 @@ export function ComposeDialog({
               <Input id="compose-bcc" value={bcc} onChange={(e) => setBcc(e.target.value)} />
             </div>
           </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCc(true)}
+              className="w-fit text-xs font-medium text-primary hover:underline"
+            >
+              Add Cc / Bcc
+            </button>
+          )}
 
           <div className="grid gap-1.5">
             <Label htmlFor="compose-subject">Subject</Label>
@@ -385,9 +454,58 @@ export function ComposeDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
+      </div>
+      )}
+
+      {minimized ? null : (
+        <footer className="flex items-center gap-2 border-t border-border bg-muted/30 px-3 py-2">
+          <Button
+            size="sm"
+            onClick={() => sendMutation.mutate()}
+            disabled={!canSend || sendMutation.isPending}
+          >
+            {sendMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
+            Send
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label="Attach files"
+            disabled={reading}
+            onClick={() => document.getElementById("compose-files")?.click()}
+          >
+            {reading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Paperclip className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setBody((current) =>
+                current.includes(`{{${SENDER_SIGNATURE_TOKEN}}}`)
+                  ? current
+                  : `${current.replace(/\s+$/, "")}\n\n{{${SENDER_SIGNATURE_TOKEN}}}`,
+              )
+            }
+          >
+            Signature
+          </Button>
+          <span className="ml-auto min-w-0 truncate text-[11px] text-muted-foreground">
+            {selected ? `Sending from ${selected.from_email}` : "Choose a mailbox"}
+          </span>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => draftMutation.mutate()}
             disabled={draftMutation.isPending || !workspaceId}
           >
@@ -396,18 +514,10 @@ export function ComposeDialog({
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            Save draft
+            Draft
           </Button>
-          <Button onClick={() => sendMutation.mutate()} disabled={!canSend || sendMutation.isPending}>
-            {sendMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="mr-2 h-4 w-4" />
-            )}
-            Send
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </footer>
+      )}
+    </div>
   );
 }
