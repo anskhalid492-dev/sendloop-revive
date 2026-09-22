@@ -27,3 +27,8 @@
 - [x] Keep Free Trial unchanged and preserve existing customer subscriptions/campaigns.
 - [x] Update pricing and lifetime pages/comparison copy.
 - [x] Verify backend limits, yearly monthly allowances, lifetime monthly sends, and focused tests.
+
+## Founder-led About page rebuild
+- [x] Replace the existing `/about` content with the supplied first-person founder story.
+- [x] Preserve the route, global header, footer, typography, branding, and design system.
+- [ ] Verify desktop and mobile rendering, metadata, links, and factual guardrails.
