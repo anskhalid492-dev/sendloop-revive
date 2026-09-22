@@ -66,20 +66,30 @@ function makeDb() {
           filters.push((row) => values.includes(row[column]));
           return api;
         },
+        // Lazy, like PostgREST: the patch only lands once every filter in the
+        // chain has been applied.
         update(patch: Row) {
-          const matched = rows.filter((row) => filters.every((f) => f(row)));
-          matched.forEach((row) => Object.assign(row, patch));
-          const result = { data: matched[0] ?? null, error: null };
-          return {
-            ...api,
-            eq: api["eq"],
-            in: api["in"],
-            select: () => ({
-              maybeSingle: async () => result,
-              single: async () => result,
-            }),
-            then: (resolve: (v: unknown) => void) => resolve({ data: matched, error: null }),
+          const apply = () => {
+            const matched = rows.filter((row) => filters.every((f) => f(row)));
+            matched.forEach((row) => Object.assign(row, patch));
+            return matched;
           };
+          const updater: Record<string, unknown> = {
+            eq(column: string, value: unknown) {
+              filters.push((row) => row[column] === value);
+              return updater;
+            },
+            in(column: string, values: unknown[]) {
+              filters.push((row) => values.includes(row[column]));
+              return updater;
+            },
+            select: () => ({
+              maybeSingle: async () => ({ data: apply()[0] ?? null, error: null }),
+              single: async () => ({ data: apply()[0] ?? null, error: null }),
+            }),
+            then: (resolve: (v: unknown) => void) => resolve({ data: apply(), error: null }),
+          };
+          return updater;
         },
         insert(row: Row | Row[]) {
           (Array.isArray(row) ? row : [row]).forEach((r) => rows.push({ ...r }));
