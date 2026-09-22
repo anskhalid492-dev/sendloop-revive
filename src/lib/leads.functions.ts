@@ -449,14 +449,32 @@ export const updateLead = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const patch = { ...data.patch };
     if (patch.email) patch.email = patch.email.toLowerCase();
-    const { error } = await context.supabase
-      .from("leads")
-      .update(patch as never)
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    if (patch.status) {
-      const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
-      await syncLeadReplySentiment(context.supabase, data.id, patch.status);
+    // A status change goes through the shared transition service so the CRM
+    // stage, timeline and automations follow; the rest is a plain field edit.
+    const status = patch.status;
+    delete patch.status;
+    // The Leads detail sheet still offers the older stage names; they resolve to
+    // the real pipeline stage instead of being written as loose text.
+    const legacyStage = (patch as { crm_stage?: string }).crm_stage;
+    delete (patch as { crm_stage?: string }).crm_stage;
+    const { STAGE_KEY_FOR_LEGACY_CRM_STAGE } = await import("@/lib/lead-stage-map");
+    const stageKey = legacyStage ? STAGE_KEY_FOR_LEGACY_CRM_STAGE[legacyStage] : undefined;
+    if (Object.keys(patch).length) {
+      const { error } = await context.supabase
+        .from("leads")
+        .update(patch as never)
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+    }
+    if (status || stageKey) {
+      const { applyLeadTransition } = await import("@/lib/lead-transition.server");
+      await applyLeadTransition(context.supabase, {
+        leadId: data.id,
+        ...(status ? { status } : {}),
+        ...(stageKey ? { stageKey } : {}),
+        actorId: context.userId,
+        source: "leads",
+      });
     }
     return { ok: true };
   });
@@ -607,16 +625,45 @@ export const bulkLeadAction = createServerFn({ method: "POST" })
       if (!data.status) throw new Error("Pick a status first");
       let affected = 0;
       const touched: string[] = [];
+      // Same status → stage mapping as every other entry point, resolved once
+      // for the workspace so a bulk change lands on the CRM board too.
+      const { resolveStageForStatus, stagePatchForStatus } = await import(
+        "@/lib/lead-transition.server"
+      );
+      const { data: firstLead } = await supabase
+        .from("leads")
+        .select(sel("workspace_id"))
+        .eq("id", ids[0] as string)
+        .maybeSingle();
+      const workspaceId = (firstLead as { workspace_id?: string } | null)?.workspace_id ?? null;
+      const stage = workspaceId
+        ? await resolveStageForStatus(supabase, workspaceId, data.status)
+        : null;
+      const statusPatch = stagePatchForStatus(data.status, stage);
       for (const chunk of chunks) {
         const { data: rows, error } = await supabase
           .from("leads")
-          .update({ status: data.status })
+          .update(statusPatch as never)
           .in("id", chunk)
           .select(sel("id"))
           .returns<Array<{ id: string }>>();
         if (error) throw new Error(error.message);
         affected += (rows ?? []).length;
         for (const r of rows ?? []) touched.push(r.id);
+      }
+      if (workspaceId && touched.length) {
+        const detail = stage
+          ? `Lead status set to ${data.status} and moved to ${stage.name} (via Leads bulk action)`
+          : `Lead status set to ${data.status} (via Leads bulk action)`;
+        for (let i = 0; i < touched.length; i += 200) {
+          const rows = touched.slice(i, i + 200).map((leadId) => ({
+            lead_id: leadId,
+            workspace_id: workspaceId,
+            type: "status_changed",
+            detail,
+          }));
+          await supabase.from("lead_activities").insert(rows as never);
+        }
       }
       const { sentimentForStatus } = await import("@/lib/positive-reply-sentiment");
       if (touched.length && sentimentForStatus(data.status)) {

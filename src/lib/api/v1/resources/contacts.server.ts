@@ -154,17 +154,41 @@ export async function updateContact(ctx: ApiContext) {
   if (Object.keys(patch).length === 0) {
     throw new ApiError("invalid_request", "Provide at least one field to update.");
   }
-  const { data, error } = await ctx.admin
-    .from("leads")
-    .update(patch)
-    .eq("id", id)
-    .eq("workspace_id", ctx.auth.workspaceId)
-    .select(FIELDS)
-    .single();
-  if (error) throw new ApiError("invalid_request", "The contact could not be updated.", {
-    details: { reason: error.message },
-  });
-  return { data: serializeContact(data) };
+  // Status and stage go through the shared transition service, so an API change
+  // lands on the CRM board, the timeline and automations exactly like a UI one.
+  const status = patch["status"] as string | undefined;
+  const stageId = patch["stage_id"] as string | undefined;
+  delete patch["status"];
+  delete patch["stage_id"];
+
+  if (Object.keys(patch).length > 0) {
+    const { error } = await ctx.admin
+      .from("leads")
+      .update(patch)
+      .eq("id", id)
+      .eq("workspace_id", ctx.auth.workspaceId);
+    if (error) throw new ApiError("invalid_request", "The contact could not be updated.", {
+      details: { reason: error.message },
+    });
+  }
+
+  if (status || stageId) {
+    const { applyLeadTransition } = await import("@/lib/lead-transition.server");
+    try {
+      await applyLeadTransition(ctx.admin, {
+        leadId: id,
+        ...(status ? { status } : {}),
+        ...(stageId ? { stageId } : {}),
+        source: "api",
+      });
+    } catch (error) {
+      throw new ApiError("invalid_request", "The contact could not be updated.", {
+        details: { reason: error instanceof Error ? error.message : "transition failed" },
+      });
+    }
+  }
+
+  return { data: serializeContact(await loadContact(ctx, id)) };
 }
 
 export async function deleteContact(ctx: ApiContext) {

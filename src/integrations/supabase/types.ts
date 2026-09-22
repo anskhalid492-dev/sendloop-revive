@@ -4290,6 +4290,7 @@ export type Database = {
       }
       lead_activities: {
         Row: {
+          actor_id: string | null
           campaign_id: string | null
           created_at: string
           detail: string | null
@@ -4299,6 +4300,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          actor_id?: string | null
           campaign_id?: string | null
           created_at?: string
           detail?: string | null
@@ -4308,6 +4310,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          actor_id?: string | null
           campaign_id?: string | null
           created_at?: string
           detail?: string | null

@@ -400,6 +400,21 @@ export function ConversationView({
     onError: () => toast.error("That change couldn’t be saved. Please try again."),
   });
 
+  // A status change is a CRM change, so the pipeline, contact list and lead
+  // views are refreshed from the confirmed server state, never optimistically.
+  const statusMutate = useMutation({
+    mutationFn: (status: string) => update({ data: { id: conversationId, status } as never }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ["crm-contacts"] });
+      void queryClient.invalidateQueries({ queryKey: ["crm-contact"] });
+      void queryClient.invalidateQueries({ queryKey: ["crm-stages"] });
+      void queryClient.invalidateQueries({ queryKey: ["leads"] });
+      onChanged();
+    },
+    onError: () => toast.error("Couldn’t update lead status. Please try again."),
+  });
+
   const onPickReplyFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     const picked = Array.from(files);
@@ -519,10 +534,15 @@ export function ConversationView({
 
         <Select
           value={conversation.status}
-          onValueChange={(value) => mutate.mutate({ status: value })}
+          disabled={statusMutate.isPending}
+          onValueChange={(value) => statusMutate.mutate(value)}
         >
           <SelectTrigger className="h-8 w-[150px] shrink-0" aria-label="Conversation status">
-            <SelectValue />
+            {statusMutate.isPending ? (
+              <span className="text-muted-foreground">Updating…</span>
+            ) : (
+              <SelectValue />
+            )}
           </SelectTrigger>
           <SelectContent>
             {CONVERSATION_STATUSES.map((status) => (

@@ -268,57 +268,15 @@ export const moveCrmContact = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const client = context.supabase as Client;
-
-    // RLS guarantees both rows belong to a workspace the caller is in; the
-    // explicit workspace comparison stops cross-workspace stage assignment.
-    const [{ data: lead }, { data: stage }] = await Promise.all([
-      client
-        .from("leads")
-        .select(sel("id, workspace_id, stage_id"))
-        .eq("id", data.leadId)
-        .maybeSingle(),
-      client
-        .from("crm_stages")
-        .select(sel("id, workspace_id, name"))
-        .eq("id", data.stageId)
-        .maybeSingle(),
-    ]);
-    if (!lead || !stage) throw new Error("Contact or stage not found");
-    if (lead.workspace_id !== stage.workspace_id) {
-      throw new Error("That stage belongs to another workspace");
-    }
-    if (lead.stage_id === data.stageId) return { ok: true };
-
-    const now = new Date().toISOString();
-    const { error } = await client
-      .from("leads")
-      .update({ stage_id: data.stageId, last_activity_at: now })
-      .eq("id", data.leadId);
-    if (error) throw new Error(error.message);
-
-    await client.from("lead_activities").insert({
-      lead_id: data.leadId,
-      workspace_id: lead.workspace_id,
-      type: "stage_changed",
-      detail: `Moved to ${stage.name}`,
-      created_at: now,
+    // One shared transition service keeps the lead status, the pipeline stage,
+    // the timeline and automation events in step on every entry point.
+    const { applyLeadTransition } = await import("@/lib/lead-transition.server");
+    return applyLeadTransition(context.supabase as Client, {
+      leadId: data.leadId,
+      stageId: data.stageId,
+      actorId: context.userId,
+      source: "crm_board",
     });
-
-    try {
-      const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
-      await emitAutomationEvent({
-        workspaceId: lead.workspace_id,
-        type: "crm.stage_changed",
-        leadId: data.leadId,
-        idempotencyKey: `crm.stage_changed:${data.leadId}:${data.stageId}:${now}`,
-        payload: { stageId: data.stageId, stageName: stage.name },
-      });
-    } catch {
-      /* automations never block a pipeline move */
-    }
-
-    return { ok: true };
   });
 
 /** Moves many contacts at once; the RPC re-checks workspace membership. */
@@ -387,12 +345,25 @@ export const upsertCrmContact = createServerFn({ method: "POST" })
     };
     if (data.dealValue !== undefined) patch["deal_value"] = data.dealValue;
     if (data.ownerId !== undefined) patch["owner_id"] = data.ownerId;
-    if (data.stageId) patch["stage_id"] = data.stageId;
     if (data.tags) patch["tags"] = data.tags;
+
+    // The stage is never patched inline: it goes through the shared transition
+    // service so status, timeline and automations stay in step with the board.
+    const moveStage = async (leadId: string) => {
+      if (!data.stageId) return;
+      const { applyLeadTransition } = await import("@/lib/lead-transition.server");
+      await applyLeadTransition(client, {
+        leadId,
+        stageId: data.stageId,
+        actorId: context.userId,
+        source: "crm_drawer",
+      });
+    };
 
     if (data.id) {
       const { error } = await client.from("leads").update(patch).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await moveStage(data.id);
       return { id: data.id, created: false };
     }
 
@@ -406,6 +377,7 @@ export const upsertCrmContact = createServerFn({ method: "POST" })
     if (existing) {
       const { error } = await client.from("leads").update(patch).eq("id", existing.id);
       if (error) throw new Error(error.message);
+      await moveStage(existing.id as string);
       return { id: existing.id as string, created: false };
     }
 
@@ -415,6 +387,7 @@ export const upsertCrmContact = createServerFn({ method: "POST" })
       .select(sel("id"))
       .single();
     if (error) throw new Error(error.message);
+    await moveStage(created.id as string);
 
     await client.from("lead_activities").insert({
       lead_id: created.id,
