@@ -176,7 +176,7 @@ export async function createCheckoutSession(input: {
 
   const base = appUrl();
   const adapter = getBillingAdapter(input.provider);
-  const result = await adapter.createCheckout({
+  const checkoutArgs = {
     environment: settings.environment,
     priceId,
     workspaceId: input.workspaceId,
@@ -187,7 +187,38 @@ export async function createCheckoutSession(input: {
     customerId: customer?.external_customer_id ?? null,
     successUrl: `${base}/settings?tab=billing&checkout=success${lifetime ? "&lifetime=1" : ""}`,
     cancelUrl: `${base}/settings?tab=billing&checkout=cancelled`,
-  });
+  };
+
+  let result: { url: string };
+  try {
+    result = await adapter.createCheckout(checkoutArgs);
+  } catch (error: any) {
+    // A stored provider customer created in the other mode (or since deleted)
+    // makes the session fail; retrying without it lets checkout collect a fresh
+    // customer instead of dead-ending the purchase.
+    const detail = String(error?.detail ?? error?.message ?? "");
+    console.error("[billing] checkout failed", {
+      provider: input.provider,
+      environment: settings.environment,
+      planId: input.planId,
+      interval,
+      priceId,
+      detail,
+    });
+    if (checkoutArgs.customerId && /customer/i.test(detail)) {
+      result = await adapter.createCheckout({ ...checkoutArgs, customerId: null });
+    } else {
+      await writeAudit({
+        workspaceId: input.workspaceId,
+        userId: input.userId,
+        provider: input.provider,
+        environment: settings.environment,
+        action: "checkout.failed",
+        detail: { planId: input.planId, interval, priceId, error: detail },
+      });
+      throw error;
+    }
+  }
 
   await writeAudit({
     workspaceId: input.workspaceId,
