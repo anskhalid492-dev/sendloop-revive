@@ -240,7 +240,7 @@ function toCards(rows: NavRow[], group: string, fallback: Card[]): Card[] {
   }));
 }
 
-type MenuKey = "products" | "resources";
+type MenuKey = "products" | "solutions" | "resources";
 
 const panelMotion = {
   initial: { opacity: 0, y: -8, scale: 0.99 },
