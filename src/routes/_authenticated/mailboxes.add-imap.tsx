@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, Upload, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { MailboxConnectForm } from "@/components/mailbox/MailboxConnectForm";
 import { BackLink } from "@/components/app/BackLink";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,10 +136,11 @@ function ConnectImapPage() {
   return (
     <AppShell title="IMAP / SMTP" description="Connect one mailbox or import many from a CSV">
       <BackLink to="/mailboxes/add" />
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
         <Tabs defaultValue="single">
           <TabsList>
             <TabsTrigger value="single">Single Mailbox</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced Setup</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Imports From CSV</TabsTrigger>
           </TabsList>
 
@@ -147,14 +149,27 @@ function ConnectImapPage() {
               <CardHeader>
                 <CardTitle>Single Mailbox</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Enter your outgoing and incoming server details, test both logins, and save the
-                  mailbox.
+              <CardContent>
+                <p className="mb-5 text-sm text-muted-foreground">
+                  Enter your mailbox details, pick your email provider, and we will use its
+                  recommended server settings.
                 </p>
-                <Button asChild>
-                  <Link to="/mailboxes/connect">Open the connect form</Link>
-                </Button>
+                <MailboxConnectForm mode="simple" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="advanced" className="pt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Setup</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-5 text-sm text-muted-foreground">
+                  Configure the incoming and outgoing servers yourself. Selecting a provider fills
+                  in its recommended settings, and every field stays editable.
+                </p>
+                <MailboxConnectForm mode="advanced" />
               </CardContent>
             </Card>
           </TabsContent>
