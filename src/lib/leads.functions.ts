@@ -453,6 +453,12 @@ export const updateLead = createServerFn({ method: "POST" })
     // stage, timeline and automations follow; the rest is a plain field edit.
     const status = patch.status;
     delete patch.status;
+    // The Leads detail sheet still offers the older stage names; they resolve to
+    // the real pipeline stage instead of being written as loose text.
+    const legacyStage = (patch as { crm_stage?: string }).crm_stage;
+    delete (patch as { crm_stage?: string }).crm_stage;
+    const { STAGE_KEY_FOR_LEGACY_CRM_STAGE } = await import("@/lib/lead-stage-map");
+    const stageKey = legacyStage ? STAGE_KEY_FOR_LEGACY_CRM_STAGE[legacyStage] : undefined;
     if (Object.keys(patch).length) {
       const { error } = await context.supabase
         .from("leads")
