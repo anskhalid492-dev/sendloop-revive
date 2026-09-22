@@ -102,6 +102,8 @@ type ThreadMessage = {
   to_email: string;
   subject: string;
   body: string;
+  /** Formatted copy when the message was written with the rich composer. */
+  html?: string | null;
   occurred_at: string;
   opened_at?: string | null;
   clicked_at?: string | null;
