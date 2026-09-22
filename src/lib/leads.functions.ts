@@ -466,11 +466,12 @@ export const updateLead = createServerFn({ method: "POST" })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
     }
-    if (status) {
+    if (status || stageKey) {
       const { applyLeadTransition } = await import("@/lib/lead-transition.server");
       await applyLeadTransition(context.supabase, {
         leadId: data.id,
-        status,
+        ...(status ? { status } : {}),
+        ...(stageKey ? { stageKey } : {}),
         actorId: context.userId,
         source: "leads",
       });
