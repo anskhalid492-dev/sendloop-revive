@@ -29,6 +29,7 @@ import {
   listConversations,
   listDrafts,
   markAllConversationsRead,
+  updateConversation,
 } from "@/lib/inbox.functions";
 import { ComposeDialog, type ComposeSeed } from "@/components/inbox/ComposeDialog";
 import { ConversationList } from "@/components/inbox/ConversationList";
@@ -94,6 +95,7 @@ function Page() {
   const markAllRead = useServerFn(markAllConversationsRead);
   const fetchDrafts = useServerFn(listDrafts);
   const removeDraft = useServerFn(deleteDraft);
+  const patchConversation = useServerFn(updateConversation);
 
 
   const [navOpen, setNavOpen] = useState(true);
@@ -250,6 +252,20 @@ function Page() {
 
   const facets = facetsQuery.data;
 
+  // Single-select campaign dropdown on top of the existing multi-select filter.
+  const campaignValue = filters.campaignIds[0] ?? "all";
+  const onCampaignChange = (value: string) =>
+    setFilters((prev) => ({ ...prev, campaignIds: value === "all" ? [] : [value] }));
+
+  const toggleStar = (item: { id: string; starred: boolean }) => {
+    patchConversation({ data: { id: item.id, starred: !item.starred } })
+      .then(() => {
+        void listQuery.refetch();
+        void countsQuery.refetch();
+      })
+      .catch(() => toast.error("Couldn’t update that conversation."));
+  };
+
   const draftsPane = (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -321,6 +337,10 @@ function Page() {
       onSearch={setSearchInput}
       onSelect={setSelectedId}
       onOpenFilters={() => setFiltersOpen(true)}
+      onToggleStar={toggleStar}
+      campaigns={facets?.campaigns ?? []}
+      campaignId={campaignValue}
+      onCampaignChange={onCampaignChange}
       onRefresh={() => {
         void listQuery.refetch();
         void countsQuery.refetch();
