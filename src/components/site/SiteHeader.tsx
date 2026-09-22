@@ -404,13 +404,15 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {leadNav.map((link) => (
-            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
-          ))}
           <Trigger
             label="Products"
             active={menu === "products"}
             onOpen={() => openMenu("products")}
+          />
+          <Trigger
+            label="Solutions"
+            active={menu === "solutions"}
+            onOpen={() => openMenu("solutions")}
           />
           {midNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
@@ -420,9 +422,6 @@ export function SiteHeader() {
             active={menu === "resources"}
             onOpen={() => openMenu("resources")}
           />
-          {topNav.map((link) => (
-            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
-          ))}
           <LifetimeDealLink onHover={() => setMenu(null)} />
         </nav>
 
