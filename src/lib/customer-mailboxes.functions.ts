@@ -31,6 +31,8 @@ const testSchema = z.object({
 const saveSchema = testSchema.extend({
   emailAddress: z.string().trim().email(),
   displayName: z.string().trim().max(120).optional(),
+  /** Name recipients see. Falls back to the display name when omitted. */
+  fromName: z.string().trim().max(120).optional(),
   dailySendLimit: z.number().int().min(1).max(2000).default(50),
   warmupEnabled: z.boolean().default(false),
 });
@@ -131,7 +133,9 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
         {
           workspace_id: data.workspaceId,
           email_address: email,
-          display_name: data.displayName ?? null,
+          // The stored name is what recipients see on outgoing mail, so an
+          // explicit "from name" wins over the display label.
+          display_name: data.fromName ?? data.displayName ?? null,
           smtp_host: data.smtp.host,
           smtp_port: data.smtp.port,
           smtp_secure: data.smtp.security === "ssl",
@@ -153,6 +157,18 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw new Error(error.message);
+
+    // A mailbox that already has a warm-up / sending bookkeeping row keeps its
+    // sender name in step. No row is created here — that stays owned by the
+    // existing warm-up and sending services.
+    const senderName = data.fromName ?? data.displayName ?? null;
+    if (senderName) {
+      await supabaseAdmin
+        .from("sending_accounts")
+        .update({ from_name: senderName })
+        .eq("workspace_id", data.workspaceId)
+        .eq("from_email", email);
+    }
 
     // The mailbox's own domain is checked in public DNS right after the logins,
     // independently of the mail host. A DNS problem never fails the save — it is
