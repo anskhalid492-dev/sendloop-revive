@@ -248,6 +248,14 @@ export function SiteFooter() {
     groups.set("Products", products);
     // Fixed menu names for the AI products, matching the header exactly.
     groups.set("Products", withProductLabels(groups.get("Products") ?? []));
+    // Company is the fixed information-architecture column: the eight entries
+    // above, in order, plus anything extra staff added in Admin → Footer.
+    const company = groups.get("Company") ?? [];
+    const canonical = new Set(COMPANY_LINKS.map((l) => l.href));
+    groups.set("Company", [
+      ...COMPANY_LINKS,
+      ...company.filter((l) => !canonical.has(l.href)),
+    ]);
     if (!legal.some((l) => l.href === "/compliance")) {
       groups.set("Legal", [...legal, { label: "Compliance", href: "/compliance" }]);
     }
