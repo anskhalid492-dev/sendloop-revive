@@ -48,7 +48,7 @@ import {
 } from "@/lib/campaign-overview";
 import { DailyLimitPopover } from "@/components/campaign/DailyLimitPopover";
 
-type SortKey = "name" | "leads" | "openRate" | "reached" | "dailyCap" | "sent" | "status";
+type SortKey = "name" | "leads" | "openRate" | "reached" | "sentToday" | "sent" | "status";
 
 const PAGE_SIZE = 10;
 
