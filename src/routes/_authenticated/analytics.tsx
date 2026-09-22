@@ -23,6 +23,7 @@ import { EngagementOverview } from "@/components/analytics/EngagementOverview";
 import { FunnelDrilldownDialog } from "@/components/analytics/FunnelDrilldownDialog";
 import { ReplyIntelligence } from "@/components/analytics/ReplyIntelligence";
 import { SequencePerformance } from "@/components/analytics/SequencePerformance";
+import { SubjectLinePerformance } from "@/components/analytics/SubjectLinePerformance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -612,6 +613,8 @@ function AnalyticsPage() {
             )}
           </div>
         </div>
+
+        <SubjectLinePerformance filters={filters} />
 
         <DeliverabilityPanel filters={filters} />
 
