@@ -46,7 +46,10 @@ export const CONVERSATION_STATUS_STYLES: Record<string, string> = {
 export const INBOX_FOLDERS = [
   { id: "inbox", label: "Inbox" },
   { id: "unread", label: "Unread" },
+  { id: "replied", label: "Replied" },
+  { id: "auto_replies", label: "Auto-replies" },
   { id: "sent", label: "Sent" },
+  { id: "starred", label: "Starred" },
   { id: "drafts", label: "Drafts" },
   { id: "interested", label: "Interested" },
   { id: "meeting_booked", label: "Meeting booked" },
@@ -80,6 +83,7 @@ export type ConversationRow = {
   unread: boolean;
   archived: boolean;
   snoozed_until: string | null;
+  starred: boolean;
   message_count: number;
   last_message_at: string;
   last_direction: string;
