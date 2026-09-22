@@ -294,7 +294,7 @@ export async function sendReplyThroughMailbox(args: {
       subject: subject,
       body: body,
       // The formatted version is stored so the thread shows what was sent.
-      html: richSource ? replyHtml : null,
+      html: richSource || null,
       message_id: stripAngle(outboundMessageId),
       in_reply_to: (lastInbound?.message_id as string | undefined) ?? null,
       reference_ids: references,
