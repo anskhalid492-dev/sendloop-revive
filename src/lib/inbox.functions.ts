@@ -16,6 +16,7 @@ import {
   type ConversationMessage,
   type ConversationNote,
 } from "@/lib/inbox-model";
+import { TRANSITION_FOR_CONVERSATION_STATUS } from "@/lib/lead-stage-map";
 import {
   MAX_ATTACHMENTS_PER_MESSAGE,
   MAX_TOTAL_ATTACHMENT_BYTES,
@@ -433,42 +434,27 @@ export const updateConversation = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    // Status changes belong on the CRM record too, not just the inbox.
+    // An inbox status change is a CRM change: it moves the contact's lead
+    // status AND its pipeline stage through the one shared transition service,
+    // so "Won" here is the same Won the CRM board shows. Failures surface.
+    let lead: { status: string; stageId: string | null; stageName: string | null } | null = null;
     if (data.status && updated.lead_id) {
-      const leadStatus: Record<string, string> = {
-        interested: "interested",
-        not_interested: "not_interested",
-        meeting_booked: "meeting",
-        meeting_completed: "meeting",
-        won: "completed",
-        unsubscribed: "unsubscribed",
-        bounced: "bounced",
-        ooo: "replied",
-        lead: "replied",
-      };
-      const crmStage: Record<string, string> = {
-        interested: "engaged",
-        meeting_booked: "opportunity",
-        meeting_completed: "opportunity",
-        won: "customer",
-        not_interested: "lost",
-      };
-      const leadPatch: Record<string, unknown> = { last_activity_at: new Date().toISOString() };
-      if (leadStatus[data.status]) leadPatch["status"] = leadStatus[data.status];
-      if (crmStage[data.status]) leadPatch["crm_stage"] = crmStage[data.status];
-      await context.supabase.from("leads").update(leadPatch as never).eq("id", updated.lead_id);
-
-      // Marking a conversation Interested / booked / won makes the underlying
-      // reply a positive reply, which is what analytics counts.
-      const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
-      await syncLeadReplySentiment(context.supabase, updated.lead_id, data.status);
-
-      await context.supabase.from("lead_activities").insert({
-        lead_id: updated.lead_id,
-        workspace_id: updated.workspace_id,
-        type: "status_changed",
-        detail: `Inbox status set to ${data.status}`,
-      });
+      const mapped = TRANSITION_FOR_CONVERSATION_STATUS[data.status];
+      if (mapped) {
+        const { applyLeadTransition } = await import("@/lib/lead-transition.server");
+        const result = await applyLeadTransition(context.supabase, {
+          leadId: updated.lead_id,
+          status: mapped.status,
+          ...(mapped.stageKey ? { stageKey: mapped.stageKey } : {}),
+          actorId: context.userId,
+          source: "inbox",
+        });
+        lead = {
+          status: result.status,
+          stageId: result.stageId,
+          stageName: result.stageName,
+        };
+      }
     }
 
     await context.supabase.from("conversation_events").insert({
@@ -479,7 +465,9 @@ export const updateConversation = createServerFn({ method: "POST" })
       actor_id: context.userId,
     });
 
-    return { ok: true };
+    // The confirmed server state goes back to the caller so the UI shows the
+    // real value instead of an optimistic guess.
+    return { ok: true, lead };
   });
 
 export const markAllConversationsRead = createServerFn({ method: "POST" })

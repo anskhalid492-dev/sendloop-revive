@@ -112,6 +112,11 @@ export function useInboxRealtime({ workspaceId, selectedId, onNewReply }: Option
           schedule(row?.conversation_id ?? null);
         },
       )
+      // A CRM stage or status change made elsewhere (board, drawer, Leads) must
+      // show up in the open thread's contact panel too.
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads", filter }, () =>
+        schedule(selectedRef.current),
+      )
       .subscribe((state) => {
         if (state === "SUBSCRIBED") setStatus("live");
         else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT" || state === "CLOSED")
