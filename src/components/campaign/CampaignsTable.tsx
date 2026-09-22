@@ -258,7 +258,7 @@ export function CampaignsTable({
                 <SortButton label="Reached" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[11%] text-right">
-                <SortButton label="Today Sends" sortKey="dailyCap" active={sortKey === "dailyCap"} dir={dir} onSort={onSort} />
+                <SortButton label="Today Sends" sortKey="sentToday" active={sortKey === "sentToday"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[9%] text-right">
                 <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
@@ -342,7 +342,12 @@ export function CampaignsTable({
                           className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm tabular-nums transition-colors hover:bg-muted"
                         >
                           <Gauge className="size-3.5 text-muted-foreground" />
-                          {row.dailyCap > 0 ? `${numberFmt.format(row.dailyCap)}/day` : "Not set"}
+                          <span className="font-medium">{numberFmt.format(row.sentToday)}</span>
+                          {row.dailyCap > 0 ? (
+                            <span className="text-muted-foreground">
+                              / {numberFmt.format(row.dailyCap)}
+                            </span>
+                          ) : null}
                           <span className="sr-only">Edit daily sending limit for {row.name}</span>
                         </button>
                       }
