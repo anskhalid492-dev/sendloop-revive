@@ -22,7 +22,7 @@ import {
 } from "@/lib/mail-attachments";
 
 const CONVERSATION_COLUMNS =
-  "id, workspace_id, lead_id, campaign_id, sending_account_id, subject, prospect_email, status, assigned_to, tags, unread, archived, snoozed_until, message_count, last_message_at, last_direction, last_preview";
+  "id, workspace_id, lead_id, campaign_id, sending_account_id, subject, prospect_email, status, assigned_to, tags, unread, archived, snoozed_until, starred, message_count, last_message_at, last_direction, last_preview";
 
 /**
  * A manual-send attachment: the file's own bytes as base64 (`content`), or a
@@ -84,6 +84,21 @@ export const listConversations = createServerFn({ method: "GET" })
         break;
       case "unread":
         query = query.eq("has_inbound", true).eq("archived", false).eq("unread", true);
+        break;
+      case "replied":
+        // The prospect replied and we answered after that reply.
+        query = query
+          .eq("has_inbound", true)
+          .eq("has_outbound", true)
+          .eq("archived", false)
+          .eq("last_direction", "outbound");
+        break;
+      case "auto_replies":
+        // Automatic/out-of-office responses detected during inbound processing.
+        query = query.eq("has_inbound", true).eq("archived", false).eq("status", "ooo");
+        break;
+      case "starred":
+        query = query.eq("starred", true);
         break;
       case "sent":
       case "drafts":
@@ -200,10 +215,14 @@ export const getInboxCounts = createServerFn({ method: "GET" })
       assigned_to: string | null;
       has_inbound: boolean;
       has_outbound: boolean;
+      starred: boolean;
+      last_direction: string;
     }>(() =>
       context.supabase
         .from("conversations")
-        .select("status, unread, archived, snoozed_until, assigned_to, has_inbound, has_outbound")
+        .select(
+          "status, unread, archived, snoozed_until, assigned_to, has_inbound, has_outbound, starred, last_direction",
+        )
         .eq("workspace_id", data.workspaceId),
     );
     const now = Date.now();
@@ -214,6 +233,7 @@ export const getInboxCounts = createServerFn({ method: "GET" })
     for (const row of rows ?? []) {
       const snoozed = row.snoozed_until ? new Date(row.snoozed_until).getTime() > now : false;
       bump("all");
+      if (row.starred) bump("starred");
       // Sent counts every thread we have emailed, replied to or not.
       if (row.has_outbound && !row.archived) bump("sent");
       // Everything else is reply-driven: no inbound message, no inbox entry.
@@ -228,6 +248,8 @@ export const getInboxCounts = createServerFn({ method: "GET" })
       }
       bump("inbox");
       if (row.unread) bump("unread");
+      if (row.status === "ooo") bump("auto_replies");
+      if (row.has_outbound && row.last_direction === "outbound") bump("replied");
       if (row.assigned_to === context.userId) bump("assigned_to_me");
       bump(row.status);
     }
@@ -248,7 +270,7 @@ export const getInboxFacets = createServerFn({ method: "GET" })
         .limit(200),
       context.supabase
         .from("sending_accounts")
-        .select("id, from_email, label")
+        .select("id, from_email, label, status, paused, customer_enabled, warmup_status")
         .eq("workspace_id", data.workspaceId)
         .limit(200),
       context.supabase
@@ -386,6 +408,7 @@ const updateSchema = z.object({
   snoozedUntil: z.string().max(40).nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(30).optional(),
   unread: z.boolean().optional(),
+  starred: z.boolean().optional(),
 });
 
 export const updateConversation = createServerFn({ method: "POST" })
@@ -399,6 +422,7 @@ export const updateConversation = createServerFn({ method: "POST" })
     if (data.snoozedUntil !== undefined) patch["snoozed_until"] = data.snoozedUntil;
     if (data.tags !== undefined) patch["tags"] = data.tags;
     if (data.unread !== undefined) patch["unread"] = data.unread;
+    if (data.starred !== undefined) patch["starred"] = data.starred;
     if (!Object.keys(patch).length) return { ok: true };
 
     const { data: updated, error } = await context.supabase
