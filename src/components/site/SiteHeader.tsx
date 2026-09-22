@@ -465,6 +465,7 @@ export function SiteHeader() {
               {menu === "products" ? (
                 <ProductsPanel core={coreCards} more={moreCards} useCases={useCaseLinks} />
               ) : null}
+              {menu === "solutions" ? <SolutionsPanel useCases={useCaseLinks} /> : null}
               {menu === "resources" ? <ResourcesPanel cards={resourceLinks} /> : null}
             </div>
           </motion.div>
