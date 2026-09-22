@@ -240,7 +240,7 @@ function toCards(rows: NavRow[], group: string, fallback: Card[]): Card[] {
   }));
 }
 
-type MenuKey = "products" | "resources";
+type MenuKey = "products" | "solutions" | "resources";
 
 const panelMotion = {
   initial: { opacity: 0, y: -8, scale: 0.99 },
@@ -331,18 +331,13 @@ export function SiteHeader() {
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
-  const allTopNav = (
-    topLinks.length
-      ? topLinks
-      : [
-          { label: "Features", to: "/features" },
-          { label: "Pricing", to: "/pricing" },
-        ]
-  ).filter((l) => ["/features", "/pricing"].includes(l.to));
-  // Order: Features · Products · Pricing · Resources · Lifetime Deal.
-  const leadNav = allTopNav.filter((l) => l.to === "/features");
-  const midNav = allTopNav.filter((l) => l.to === "/pricing");
-  const topNav = allTopNav.filter((l) => l.to !== "/features" && l.to !== "/pricing");
+  // Order: Products · Solutions · Pricing · Resources · Lifetime Deal.
+  // Features keeps its page and its URL, but it lives in the footer under
+  // Company rather than in the main navigation.
+  const allTopNav = (topLinks.length ? topLinks : [{ label: "Pricing", to: "/pricing" }]).filter(
+    (l) => l.to === "/pricing",
+  );
+  const midNav = allTopNav.length ? allTopNav : [{ label: "Pricing", to: "/pricing" }];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
@@ -409,13 +404,15 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {leadNav.map((link) => (
-            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
-          ))}
           <Trigger
             label="Products"
             active={menu === "products"}
             onOpen={() => openMenu("products")}
+          />
+          <Trigger
+            label="Solutions"
+            active={menu === "solutions"}
+            onOpen={() => openMenu("solutions")}
           />
           {midNav.map((link) => (
             <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
@@ -425,9 +422,6 @@ export function SiteHeader() {
             active={menu === "resources"}
             onOpen={() => openMenu("resources")}
           />
-          {topNav.map((link) => (
-            <TopLink key={link.to} to={link.to} label={link.label} onHover={() => setMenu(null)} />
-          ))}
           <LifetimeDealLink onHover={() => setMenu(null)} />
         </nav>
 
@@ -471,6 +465,7 @@ export function SiteHeader() {
               {menu === "products" ? (
                 <ProductsPanel core={coreCards} more={moreCards} useCases={useCaseLinks} />
               ) : null}
+              {menu === "solutions" ? <SolutionsPanel useCases={useCaseLinks} /> : null}
               {menu === "resources" ? <ResourcesPanel cards={resourceLinks} /> : null}
             </div>
           </motion.div>
@@ -489,19 +484,14 @@ export function SiteHeader() {
           >
             <div className="mx-auto flex max-h-[calc(100dvh-7.5rem)] max-w-7xl flex-col gap-1 overflow-y-auto overscroll-contain px-4 py-4">
 
-              {leadNav.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-secondary"
-                >
-                  {link.label}
-                </Link>
-              ))}
               <MobileGroup
                 label="Products"
                 cards={[...coreCards, ...moreCards]}
+                onNavigate={() => setOpen(false)}
+              />
+              <MobileGroup
+                label="Solutions"
+                cards={useCaseLinks}
                 onNavigate={() => setOpen(false)}
               />
               <MobileGroup
@@ -509,12 +499,7 @@ export function SiteHeader() {
                 cards={resourceLinks}
                 onNavigate={() => setOpen(false)}
               />
-              <MobileGroup
-                label="By use case"
-                cards={useCaseLinks}
-                onNavigate={() => setOpen(false)}
-              />
-              {[...midNav, ...topNav].map((link) => (
+              {midNav.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
@@ -695,6 +680,45 @@ function ProductsPanel({ core, more, useCases }: { core: Card[]; more: Card[]; u
         >
           View all solutions
         </Link>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Solutions mega menu. Every entry comes from the existing solution pages, so
+ * the menu can never link to an audience that has no page behind it.
+ */
+function SolutionsPanel({ useCases }: { useCases: Card[] }) {
+  return (
+    <div>
+      <div className="grid gap-6 p-6 lg:grid-cols-[1.35fr_1fr]">
+        <div>
+          <PanelHeading>By use case</PanelHeading>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {useCases.map((card) => (
+              <CompactCard key={card.to} card={card} />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-secondary/40 to-background p-5">
+          <div>
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Users className="size-5" />
+            </span>
+            <h3 className="mt-4 text-base font-bold">Built for your team</h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              See how agencies, sales teams, recruiters, founders and consultants run outreach in
+              MunchReach — with the workflow that matches how your team works.
+            </p>
+          </div>
+          <Button size="sm" className="mt-5 w-full" asChild>
+            <Link to="/solutions">
+              View all solutions
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );
