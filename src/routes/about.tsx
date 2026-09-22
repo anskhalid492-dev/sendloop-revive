@@ -13,7 +13,7 @@ import {
   Workflow,
 } from "lucide-react";
 
-import dashboardAsset from "@/assets/munchreach-dashboard.png.asset.json";
+import analyticsAsset from "@/assets/munchreach-analytics.jpg.asset.json";
 import inboxAsset from "@/assets/munchreach-unified-inbox.png.asset.json";
 import { MarketingLayout, metaFor } from "@/components/site/MarketingPage";
 import { Reveal } from "@/components/site/Reveal";
