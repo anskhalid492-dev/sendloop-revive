@@ -331,18 +331,13 @@ export function SiteHeader() {
   const topLinks = headerRows
     .filter((r) => (r.group_label ?? "") === "top")
     .map((r) => ({ label: r.label, to: r.href }));
-  const allTopNav = (
-    topLinks.length
-      ? topLinks
-      : [
-          { label: "Features", to: "/features" },
-          { label: "Pricing", to: "/pricing" },
-        ]
-  ).filter((l) => ["/features", "/pricing"].includes(l.to));
-  // Order: Features · Products · Pricing · Resources · Lifetime Deal.
-  const leadNav = allTopNav.filter((l) => l.to === "/features");
-  const midNav = allTopNav.filter((l) => l.to === "/pricing");
-  const topNav = allTopNav.filter((l) => l.to !== "/features" && l.to !== "/pricing");
+  // Order: Products · Solutions · Pricing · Resources · Lifetime Deal.
+  // Features keeps its page and its URL, but it lives in the footer under
+  // Company rather than in the main navigation.
+  const allTopNav = (topLinks.length ? topLinks : [{ label: "Pricing", to: "/pricing" }]).filter(
+    (l) => l.to === "/pricing",
+  );
+  const midNav = allTopNav.length ? allTopNav : [{ label: "Pricing", to: "/pricing" }];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
