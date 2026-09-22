@@ -2822,6 +2822,7 @@ export type Database = {
           prospect_email: string
           sending_account_id: string | null
           snoozed_until: string | null
+          starred: boolean
           status: string
           subject: string
           tags: string[]
@@ -2847,6 +2848,7 @@ export type Database = {
           prospect_email: string
           sending_account_id?: string | null
           snoozed_until?: string | null
+          starred?: boolean
           status?: string
           subject?: string
           tags?: string[]
@@ -2872,6 +2874,7 @@ export type Database = {
           prospect_email?: string
           sending_account_id?: string | null
           snoozed_until?: string | null
+          starred?: boolean
           status?: string
           subject?: string
           tags?: string[]
