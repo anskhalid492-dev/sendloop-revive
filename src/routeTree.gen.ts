@@ -65,6 +65,7 @@ import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedMranuskhalidRouteRouteImport } from './routes/_authenticated/mranuskhalid/route'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated/referrals'
+import { Route as AuthenticatedReportBugRouteImport } from './routes/_authenticated/report-bug'
 import { Route as AuthenticatedSendingRouteImport } from './routes/_authenticated/sending'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
@@ -509,6 +510,11 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
 const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
   id: '/referrals',
   path: '/referrals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportBugRoute = AuthenticatedReportBugRouteImport.update({
+  id: '/report-bug',
+  path: '/report-bug',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSendingRoute = AuthenticatedSendingRouteImport.update({
@@ -1500,6 +1506,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/referrals': typeof AuthenticatedReferralsRoute
+  '/report-bug': typeof AuthenticatedReportBugRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/setup': typeof AuthenticatedSetupRoute
@@ -1718,6 +1725,7 @@ export interface FileRoutesByTo {
   '/leads': typeof AuthenticatedLeadsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/referrals': typeof AuthenticatedReferralsRoute
+  '/report-bug': typeof AuthenticatedReportBugRoute
   '/sending': typeof AuthenticatedSendingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/setup': typeof AuthenticatedSetupRoute
@@ -1939,6 +1947,7 @@ export interface FileRoutesById {
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
+  '/_authenticated/report-bug': typeof AuthenticatedReportBugRoute
   '/_authenticated/sending': typeof AuthenticatedSendingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
@@ -2161,6 +2170,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/onboarding'
     | '/referrals'
+    | '/report-bug'
     | '/sending'
     | '/settings'
     | '/setup'
@@ -2379,6 +2389,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/onboarding'
     | '/referrals'
+    | '/report-bug'
     | '/sending'
     | '/settings'
     | '/setup'
@@ -2599,6 +2610,7 @@ export interface FileRouteTypes {
     | '/_authenticated/leads'
     | '/_authenticated/onboarding'
     | '/_authenticated/referrals'
+    | '/_authenticated/report-bug'
     | '/_authenticated/sending'
     | '/_authenticated/settings'
     | '/_authenticated/setup'
@@ -3273,6 +3285,13 @@ declare module '@tanstack/react-router' {
       path: '/referrals'
       fullPath: '/referrals'
       preLoaderRoute: typeof AuthenticatedReferralsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/report-bug': {
+      id: '/_authenticated/report-bug'
+      path: '/report-bug'
+      fullPath: '/report-bug'
+      preLoaderRoute: typeof AuthenticatedReportBugRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sending': {
@@ -4653,6 +4672,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedReferralsRoute: typeof AuthenticatedReferralsRoute
+  AuthenticatedReportBugRoute: typeof AuthenticatedReportBugRoute
   AuthenticatedSendingRoute: typeof AuthenticatedSendingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
@@ -4685,6 +4705,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedReferralsRoute: AuthenticatedReferralsRoute,
+  AuthenticatedReportBugRoute: AuthenticatedReportBugRoute,
   AuthenticatedSendingRoute: AuthenticatedSendingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,

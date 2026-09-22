@@ -15,3 +15,18 @@ export async function uploadSupportAttachment(file: File): Promise<UploadedAttac
   });
   return { path: uploaded.key, name: file.name.slice(0, 200), size: file.size };
 }
+
+/**
+ * Bug-report screenshot upload. Same private bucket and presign flow as support
+ * attachments, with the tighter 5 MB image rules of the bug form.
+ */
+export async function uploadBugScreenshot(file: File): Promise<UploadedAttachment> {
+  const { bugScreenshotError, MAX_BUG_SCREENSHOT_BYTES } = await import("@/lib/bug-report-model");
+  const problem = bugScreenshotError(file);
+  if (problem) throw new Error(problem);
+  const uploaded = await uploadFileToR2(file, {
+    category: "support",
+    maxBytes: MAX_BUG_SCREENSHOT_BYTES,
+  });
+  return { path: uploaded.key, name: file.name.slice(0, 200), size: file.size };
+}

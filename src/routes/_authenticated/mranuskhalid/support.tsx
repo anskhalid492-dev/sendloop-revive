@@ -6,6 +6,8 @@ import { Loader2, Lock, Paperclip, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/app/AdminShell";
+import { BugReportsPanel } from "@/components/admin/BugReportsPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +112,17 @@ function Page() {
       title="Support Tickets"
       description="Every customer ticket, with assignment, status control and private internal notes"
     >
+      <Tabs defaultValue="tickets" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="tickets">Tickets</TabsTrigger>
+          <TabsTrigger value="bugs">Bugs</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bugs" className="mt-0">
+          <BugReportsPanel />
+        </TabsContent>
+
+        <TabsContent value="tickets" className="mt-0">
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-4">
           {[
@@ -305,6 +318,8 @@ function Page() {
           )}
         </div>
       </div>
+        </TabsContent>
+      </Tabs>
     </AdminShell>
   );
 }

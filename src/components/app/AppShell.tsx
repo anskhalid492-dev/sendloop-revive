@@ -28,6 +28,7 @@ import {
   Users,
   Workflow,
   X,
+  Bug,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +109,7 @@ const navGroups = [
     items: [
       { to: "/settings", label: "Settings", icon: Settings },
       { to: "/support", label: "Support", icon: LifeBuoy },
+      { to: "/report-bug", label: "Report a bug", icon: Bug },
     ],
   },
 ] as const;

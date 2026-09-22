@@ -1706,6 +1706,48 @@ export type Database = {
           },
         ]
       }
+      bug_reports: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          details: string
+          id: string
+          screenshot_name: string | null
+          screenshot_path: string | null
+          screenshot_size: number | null
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          details: string
+          id?: string
+          screenshot_name?: string | null
+          screenshot_path?: string | null
+          screenshot_size?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          details?: string
+          id?: string
+          screenshot_name?: string | null
+          screenshot_path?: string | null
+          screenshot_size?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       campaign_launch_events: {
         Row: {
           active_mailboxes: number
