@@ -21,12 +21,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  CRM_STAGES,
   LEAD_STATUSES,
   LEAD_STATUS_LABELS,
   LEAD_STATUS_STYLES,
   leadName,
 } from "@/lib/lead-model";
+import {
+  CANONICAL_STAGE_KEYS,
+  STAGE_KEY_FOR_LEGACY_CRM_STAGE,
+  STAGE_KEY_LABELS,
+} from "@/lib/lead-stage-map";
 import {
   addLeadNote,
   addLeadTask,
