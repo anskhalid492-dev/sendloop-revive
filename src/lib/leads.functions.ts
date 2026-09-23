@@ -8,6 +8,7 @@ import {
   validateWebsite,
   type LeadRow,
 } from "@/lib/lead-model";
+import { CANONICAL_STAGE_KEYS } from "@/lib/lead-stage-map";
 
 export { LEAD_FIELDS };
 export type { LeadRow };
@@ -398,6 +399,8 @@ const leadWriteSchema = z.object({
   country: z.string().trim().max(80).optional().nullable(),
   status: z.string().trim().max(40).optional(),
   crm_stage: z.string().trim().max(40).optional(),
+  /** Canonical pipeline stage key — the only supported way to move a contact. */
+  stage_key: z.enum(CANONICAL_STAGE_KEYS).optional(),
   tags: z.array(z.string().trim().max(40)).max(30).optional(),
   list_id: z.string().uuid().nullable().optional(),
   custom_fields: z.record(z.string(), z.string()).optional(),
@@ -451,14 +454,21 @@ export const updateLead = createServerFn({ method: "POST" })
     if (patch.email) patch.email = patch.email.toLowerCase();
     // A status change goes through the shared transition service so the CRM
     // stage, timeline and automations follow; the rest is a plain field edit.
-    const status = patch.status;
+    const status = patch.status as string | undefined;
     delete patch.status;
-    // The Leads detail sheet still offers the older stage names; they resolve to
-    // the real pipeline stage instead of being written as loose text.
+    // Stage moves always name a real pipeline stage. `stage_key` is the supported
+    // input; older `crm_stage` text (API callers) is translated, and an unknown
+    // value fails loudly instead of silently saving nothing.
+    const stageKeyInput = (patch as { stage_key?: string }).stage_key;
+    delete (patch as { stage_key?: string }).stage_key;
     const legacyStage = (patch as { crm_stage?: string }).crm_stage;
     delete (patch as { crm_stage?: string }).crm_stage;
     const { STAGE_KEY_FOR_LEGACY_CRM_STAGE } = await import("@/lib/lead-stage-map");
-    const stageKey = legacyStage ? STAGE_KEY_FOR_LEGACY_CRM_STAGE[legacyStage] : undefined;
+    let stageKey = stageKeyInput as (typeof CANONICAL_STAGE_KEYS)[number] | undefined;
+    if (!stageKey && legacyStage) {
+      stageKey = STAGE_KEY_FOR_LEGACY_CRM_STAGE[legacyStage];
+      if (!stageKey) throw new Error(`Unknown CRM stage "${legacyStage}"`);
+    }
     if (Object.keys(patch).length) {
       const { error } = await context.supabase
         .from("leads")
