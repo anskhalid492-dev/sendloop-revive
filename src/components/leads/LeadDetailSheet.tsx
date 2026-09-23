@@ -80,7 +80,7 @@ export function LeadDetailSheet({
   };
 
   const setField = useMutation({
-    mutationFn: (patch: { status?: string; crm_stage?: string }) =>
+    mutationFn: (patch: { status?: string; stage_key?: string }) =>
       updateFn({ data: { id: leadId!, patch } }),
     onSuccess: () => {
       toast.success("Lead updated");
@@ -194,16 +194,16 @@ export function LeadDetailSheet({
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase text-muted-foreground">CRM stage</Label>
                 <Select
-                  value={lead.crm_stage || "none"}
-                  onValueChange={(value) => setField.mutate({ crm_stage: value })}
+                  value={STAGE_KEY_FOR_LEGACY_CRM_STAGE[lead.crm_stage] ?? ""}
+                  onValueChange={(value) => setField.mutate({ stage_key: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select a stage" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CRM_STAGES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
+                    {CANONICAL_STAGE_KEYS.map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {STAGE_KEY_LABELS[key]}
                       </SelectItem>
                     ))}
                   </SelectContent>
