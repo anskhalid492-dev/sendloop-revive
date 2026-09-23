@@ -8,6 +8,7 @@ import {
   validateWebsite,
   type LeadRow,
 } from "@/lib/lead-model";
+import { CANONICAL_STAGE_KEYS } from "@/lib/lead-stage-map";
 
 export { LEAD_FIELDS };
 export type { LeadRow };
