@@ -24,6 +24,16 @@ export const CANONICAL_STAGE_KEYS = [
 
 export type StageKey = (typeof CANONICAL_STAGE_KEYS)[number];
 
+/** Human labels for the canonical pipeline stages, used wherever a stage is picked. */
+export const STAGE_KEY_LABELS: Record<StageKey, string> = {
+  new: "New",
+  contacted: "Contacted",
+  replied: "Replied",
+  meeting_booked: "Meeting booked",
+  won: "Won",
+  lost: "Lost",
+};
+
 /** Lead status → pipeline stage. Statuses that say nothing about the pipeline
  *  (bounced, unsubscribed, paused) are deliberately absent: they must not move
  *  a contact out of the column the user put it in. */

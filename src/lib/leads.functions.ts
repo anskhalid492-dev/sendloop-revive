@@ -398,6 +398,8 @@ const leadWriteSchema = z.object({
   country: z.string().trim().max(80).optional().nullable(),
   status: z.string().trim().max(40).optional(),
   crm_stage: z.string().trim().max(40).optional(),
+  /** Canonical pipeline stage key — the only supported way to move a contact. */
+  stage_key: z.enum(CANONICAL_STAGE_KEYS).optional(),
   tags: z.array(z.string().trim().max(40)).max(30).optional(),
   list_id: z.string().uuid().nullable().optional(),
   custom_fields: z.record(z.string(), z.string()).optional(),
