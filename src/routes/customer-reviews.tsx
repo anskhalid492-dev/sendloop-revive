@@ -54,12 +54,14 @@ function CustomerReviewsPage() {
   const { reviews, stats } = Route.useLoaderData();
   const cards = reviews.slice(0, 9);
   const spotlight = reviews.find((r) => r.featured) ?? reviews[0];
+  void stats;
   const metrics = [
-    { label: "Cold emails sent", value: Math.max(stats.emailsSent, 30_000_000) },
-    { label: "Campaigns created", value: stats.campaigns },
-    { label: "Teams on MunchReach", value: stats.customers },
-    { label: "Customer reviews", value: stats.reviews },
-  ].filter((m) => m.value > 0);
+    { label: "Cold emails sent", value: "30M+" },
+    { label: "Campaigns created", value: "3k+" },
+    { label: "Teams on MunchReach", value: "231" },
+    { label: "Customer Reviews", value: "10" },
+  ];
+  const fmt = (v: string) => v;
 
   return (
     <MarketingLayout>
