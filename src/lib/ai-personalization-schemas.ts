@@ -25,6 +25,8 @@ export const configSchema = z.object({
   fallbackText: z.string().max(600),
   // Which connected AI provider generates this campaign's lines.
   provider: z.enum(["openai", "anthropic"]).nullable().optional(),
+  // Exact model id for that provider, as returned by its Models API.
+  model: z.string().trim().max(200).nullable().optional(),
 });
 
 export const campaignInput = z.object({ campaignId: z.string().uuid() });

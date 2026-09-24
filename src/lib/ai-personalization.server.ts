@@ -86,6 +86,42 @@ function provider(credentials: WorkspaceAiCredentials) {
   });
 }
 
+/**
+ * OpenAI chat call with the customer's exact model. Some OpenAI models reject
+ * sampling/length parameters; when the provider says so we retry ONCE with the
+ * same model and without them — the model itself is never changed.
+ */
+async function generateWithOpenAi(
+  credentials: WorkspaceAiCredentials,
+  input: { system: string; prompt: string; temperature?: number; maxTokens?: number },
+): Promise<string> {
+  const model = provider(credentials)(credentials.model);
+  try {
+    const result = await generateText({
+      model,
+      system: input.system,
+      prompt: input.prompt,
+      temperature: input.temperature,
+      maxOutputTokens: input.maxTokens,
+      maxRetries: 0,
+    });
+    return (result.text ?? "").trim();
+  } catch (error) {
+    const raw = error as { statusCode?: number; message?: string; responseBody?: string };
+    const detail = `${raw?.message ?? ""} ${raw?.responseBody ?? ""}`;
+    if (raw?.statusCode === 400 && /unsupported (parameter|value)/i.test(detail)) {
+      const result = await generateText({
+        model,
+        system: input.system,
+        prompt: input.prompt,
+        maxRetries: 0,
+      });
+      return (result.text ?? "").trim();
+    }
+    throw error;
+  }
+}
+
 export function vendorOf(credentials: Pick<WorkspaceAiCredentials, "provider">): string {
   return aiProvider(credentials?.provider).vendor;
 }
@@ -448,14 +484,7 @@ export async function generateWithWorkspaceAi(input: {
         temperature,
       });
     }
-    const result = await generateText({
-      model: provider(credentials)(credentials.model),
-      system,
-      prompt,
-      temperature,
-      maxOutputTokens: maxTokens,
-    });
-    return (result.text ?? "").trim();
+    return await generateWithOpenAi(credentials, { system, prompt, temperature, maxTokens });
   } catch (error) {
     throw mapGatewayError(error, vendorOf(credentials), credentials.model);
   }
@@ -516,13 +545,7 @@ export async function generatePersonalization(
         prompt,
       });
     } else {
-      const result = await generateText({
-        model: provider(credentials)(credentials.model),
-        system,
-        prompt,
-        temperature: 0.6,
-      });
-      text = (result.text ?? "").trim();
+      text = await generateWithOpenAi(credentials, { system, prompt, temperature: 0.6 });
     }
   } catch (error) {
     throw mapGatewayError(error, vendorOf(credentials), credentials.model);
