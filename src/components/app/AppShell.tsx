@@ -55,6 +55,7 @@ import { AnnouncementBar } from "@/components/platform/AnnouncementBar";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { BRAND_NAME } from "@/lib/branding";
+import { DEFAULT_COMMUNITY } from "@/lib/community-model";
 
 /**
  * Customer navigation only. Sending infrastructure (providers, pool,
@@ -228,6 +229,18 @@ export function AppShell({
                 ) : null}
               </Link>
             ))}
+            {group.label === "Settings" ? (
+              <a
+                href={DEFAULT_COMMUNITY.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className={linkClass("__external_community__")}
+              >
+                <Users className="size-4" />
+                <span className="flex-1 truncate text-left">Join Community</span>
+              </a>
+            ) : null}
           </div>
         ))}
       </nav>
