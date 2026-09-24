@@ -402,14 +402,14 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-16 border-r border-sidebar-border bg-sidebar lg:block">
+      <aside className="fixed inset-y-3 left-3 z-40 hidden w-16 overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar shadow-sm lg:block">
         {rail}
         {tip ? (
           <span
             key={tip.label}
             aria-hidden="true"
             style={{ top: tip.top }}
-            className="pointer-events-none fixed left-[76px] z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs font-medium text-popover-foreground shadow-md animate-in fade-in slide-in-from-left-1 duration-150"
+            className="pointer-events-none fixed left-[88px] z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs font-medium text-popover-foreground shadow-md animate-in fade-in slide-in-from-left-1 duration-150"
           >
             {tip.label}
           </span>
@@ -425,7 +425,7 @@ export function AppShell({
         </div>
       ) : null}
 
-      <div className="lg:pl-16">
+      <div className="lg:pl-[88px]">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/85 px-4 backdrop-blur sm:px-6">
           <button
             className="inline-flex size-9 items-center justify-center rounded-md border border-border lg:hidden"
