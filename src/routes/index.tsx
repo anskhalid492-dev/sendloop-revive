@@ -32,7 +32,7 @@ import dashboardOverviewAsset from "@/assets/munchreach-dashboard-overview.jpg.a
 import sequencesAsset from "@/assets/sequences-mockup.jpg.asset.json";
 import analyticsAsset from "@/assets/analytics-2.jpg.asset.json";
 import automationsAsset from "@/assets/automations-mockup.jpg.asset.json";
-import inboxPreview from "@/assets/munchreach-unified-inbox-light.png";
+import aiPersonalizationAsset from "@/assets/ai-personalization-mockup.jpg.asset.json";
 import { applySeoOverrides } from "@/lib/page-seo";
 import { SITE_URL } from "@/lib/seo";
 
@@ -127,7 +127,7 @@ const audiences: { label: string; slug?: string }[] = [
 const showcase = [
   { id: "dashboard", label: "Dashboard", src: dashboardOverviewAsset.url, alt: "MunchReach dashboard overview" },
   { id: "sequences", label: "Sequences", src: sequencesAsset.url, alt: "MunchReach sequence builder" },
-  { id: "inbox", label: "Unified Inbox", src: inboxPreview, alt: "MunchReach unified inbox" },
+  { id: "ai", label: "AI Personalization", src: aiPersonalizationAsset.url, alt: "MunchReach AI personalization" },
   { id: "automations", label: "Automations", src: automationsAsset.url, alt: "MunchReach automations builder" },
   { id: "analytics", label: "Analytics", src: analyticsAsset.url, alt: "MunchReach analytics dashboard" },
 ];
@@ -420,8 +420,8 @@ function Home() {
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-4 px-4 py-6 text-muted-foreground sm:flex-row sm:gap-10 sm:px-6">
             <span className="text-xs font-medium tracking-[0.18em] uppercase">Find MunchReach on</span>
             <div className="flex items-center gap-8 text-foreground/80">
-              <TrustpilotMark />
-              <CapterraMark />
+              <a href="https://www.trustpilot.com/review/munchreach.com" target="_blank" rel="noopener noreferrer" aria-label="MunchReach on Trustpilot" className="transition-opacity hover:opacity-70"><TrustpilotMark /></a>
+              <a href="https://www.capterra.com/p/10186302/MunchReach/pricing/" target="_blank" rel="noopener noreferrer" aria-label="MunchReach on Capterra" className="transition-opacity hover:opacity-70"><CapterraMark /></a>
             </div>
           </div>
         </section>
