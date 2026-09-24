@@ -723,15 +723,15 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
      */
     const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
     const credsByWorkspace = new Map<string, WorkspaceAiCredentials | null>();
-    const credsKey = (workspaceId: string, provider: string | null) =>
-      `${workspaceId}::${provider ?? "default"}`;
+    const credsKey = (workspaceId: string, provider: string | null, model: string | null) =>
+      `${workspaceId}::${provider ?? "default"}::${model ?? ""}`;
     for (const campaign of campaignRows) {
-      const provider = normalizeAiConfig(campaign.ai_config).provider;
-      const key = credsKey(campaign.workspace_id, provider);
+      const { provider, model } = normalizeAiConfig(campaign.ai_config);
+      const key = credsKey(campaign.workspace_id, provider, model);
       if (credsByWorkspace.has(key)) continue;
       credsByWorkspace.set(
         key,
-        await workspaceAiCredentials(admin, campaign.workspace_id, provider),
+        await workspaceAiCredentials(admin, campaign.workspace_id, provider, model),
       );
     }
     /**
