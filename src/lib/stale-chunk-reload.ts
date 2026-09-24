@@ -36,7 +36,12 @@ export function isStaleChunkError(error: unknown): boolean {
     lower.includes("importing a module script failed") ||
     // Safari / Firefox wording for a chunk that no longer exists.
     (lower.includes("dynamically imported module") && lower.includes("module")) ||
-    lower.includes("unable to preload css")
+    lower.includes("unable to preload css") ||
+    // A lazy route chunk from a different deploy resolves without the
+    // expected export, so TanStack's lazyRouteComponent reads `.component`
+    // of undefined. Same root cause: old page open against a new build.
+    (lower.includes("cannot read properties of undefined") && lower.includes("'component'")) ||
+    lower.includes("undefined is not an object (evaluating") && lower.includes("component")
   );
 }
 
