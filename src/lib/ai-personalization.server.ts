@@ -128,7 +128,7 @@ async function generateWithAnthropic(input: {
       detail = "";
     }
     throw new AiGatewayError(
-      anthropicFailure(res.status, detail || `Claude returned HTTP ${res.status}.`),
+      anthropicFailure(res.status, detail || `Claude returned HTTP ${res.status}.`, input.model),
     );
   }
   const body = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
@@ -139,7 +139,30 @@ async function generateWithAnthropic(input: {
     .trim();
 }
 
-function anthropicFailure(status: number, message: string): GatewayFailure {
+/** Exact message when the chosen model is not usable — never auto-substituted. */
+export function modelUnavailableMessage(vendor: string, model: string): string {
+  return `The selected ${vendor} model "${model}" is not available to your API key. Open AI Personalization or Integrations, click Refresh models and choose another model.`;
+}
+
+function looksLikeMissingModel(status: number, message: string): boolean {
+  if (status === 404) return true;
+  return (status === 400 || status === 403) && /model/i.test(message) && /(not[ _]found|does not exist|not available|no access|do not have access|invalid model)/i.test(message);
+}
+
+/** Refuse to call a provider without an explicitly selected model. */
+export function assertModelSelected(credentials: WorkspaceAiCredentials): void {
+  if (!credentials?.model?.trim()) {
+    throw new AiGatewayError({
+      status: 409,
+      message: `No ${aiProvider(credentials?.provider).label} model is selected. Open AI Personalization or Integrations, click Refresh models and choose a model.`,
+      retryable: false,
+    });
+  }
+}
+
+function anthropicFailure(status: number, message: string, model = ""): GatewayFailure {
+  if (looksLikeMissingModel(status, message))
+    return { status: 404, message: modelUnavailableMessage("Anthropic", model), retryable: false };
   if (status === 401 || status === 403)
     return {
       status,
@@ -353,11 +376,13 @@ function parseStructured(raw: string): {
 }
 
 
-function mapGatewayError(error: unknown, vendor = "OpenAI"): AiGatewayError {
+function mapGatewayError(error: unknown, vendor = "OpenAI", model = ""): AiGatewayError {
   if (error instanceof AiGatewayError) return error;
-  const raw = error as { statusCode?: number; status?: number; message?: string };
+  const raw = error as { statusCode?: number; status?: number; message?: string; responseBody?: string };
   const status = raw?.statusCode ?? raw?.status ?? 0;
   const message = raw?.message ?? "AI generation failed.";
+  if (looksLikeMissingModel(status, `${message} ${raw?.responseBody ?? ""}`))
+    return new AiGatewayError({ status: 404, message: modelUnavailableMessage(vendor, model), retryable: false });
   if (status === 402 || status === 429)
     return new AiGatewayError({
       status,
@@ -405,6 +430,7 @@ export async function generateWithWorkspaceAi(input: {
   const { credentials, system, prompt } = input;
   const maxTokens = input.maxTokens ?? 1200;
   const temperature = input.temperature ?? 0.6;
+  assertModelSelected(credentials);
   try {
     if (credentials.provider === "anthropic") {
       if (!credentials.apiKey)
@@ -431,7 +457,7 @@ export async function generateWithWorkspaceAi(input: {
     });
     return (result.text ?? "").trim();
   } catch (error) {
-    throw mapGatewayError(error, vendorOf(credentials));
+    throw mapGatewayError(error, vendorOf(credentials), credentials.model);
   }
 }
 
@@ -473,6 +499,7 @@ export async function generatePersonalization(
   if (facts.length === 0) return safeFallback();
 
   const { system, prompt } = buildPrompt(config, facts);
+  assertModelSelected(credentials);
   let text: string;
   try {
     if (credentials.provider === "anthropic") {
@@ -498,7 +525,7 @@ export async function generatePersonalization(
       text = (result.text ?? "").trim();
     }
   } catch (error) {
-    throw mapGatewayError(error, vendorOf(credentials));
+    throw mapGatewayError(error, vendorOf(credentials), credentials.model);
   }
 
   const structured = parseStructured(text);
