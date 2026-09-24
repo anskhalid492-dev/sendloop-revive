@@ -404,6 +404,16 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-16 border-r border-sidebar-border bg-sidebar lg:block">
         {rail}
+        {tip ? (
+          <span
+            key={tip.label}
+            aria-hidden="true"
+            style={{ top: tip.top }}
+            className="pointer-events-none fixed left-[76px] z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs font-medium text-popover-foreground shadow-md animate-in fade-in slide-in-from-left-1 duration-150"
+          >
+            {tip.label}
+          </span>
+        ) : null}
       </aside>
 
       {open ? (
