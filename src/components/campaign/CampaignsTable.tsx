@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
-  Gauge,
   MoreHorizontal,
   Pause,
   Pencil,
@@ -43,12 +42,11 @@ import {
 } from "@/components/ui/table";
 import {
   CAMPAIGN_STATUS_STYLES,
-  accountOnline,
   type CampaignOverviewRow,
 } from "@/lib/campaign-overview";
 import { DailyLimitPopover } from "@/components/campaign/DailyLimitPopover";
 
-type SortKey = "name" | "leads" | "openRate" | "reached" | "sentToday" | "sent" | "status";
+type SortKey = "name" | "leads" | "openRate" | "replies" | "reached" | "sent" | "status";
 
 const PAGE_SIZE = 10;
 
@@ -231,10 +229,10 @@ export function CampaignsTable({
         </div>
       ) : null}
 
-<div className="surface-card overflow-x-auto">
-        <Table className="min-w-[1040px]">
+      <div className="surface-card overflow-x-auto">
+        <Table className="min-w-[960px] table-fixed">
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               {onBulkAction ? (
                 <TableHead className="w-10">
                   <Checkbox
@@ -244,37 +242,41 @@ export function CampaignsTable({
                   />
                 </TableHead>
               ) : null}
-              <TableHead className="w-[24%]">
-                <SortButton label="Campaign" sortKey="name" active={sortKey === "name"} dir={dir} onSort={onSort} />
+              <TableHead className="w-[35%]">
+                <SortButton label="Campaign Name" sortKey="name" active={sortKey === "name"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="w-[18%]">Sending Account</TableHead>
+              <TableHead className="w-[15%]">
+                <SortButton label="Progress" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
+              </TableHead>
               <TableHead className="w-[8%] text-right">
                 <SortButton label="Leads" sortKey="leads" active={sortKey === "leads"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[8%] text-right">
                 <SortButton label="Opened" sortKey="openRate" active={sortKey === "openRate"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="w-[9%] text-right">
+              <TableHead className="w-[8%] text-right">
+                <SortButton label="Replied" sortKey="replies" active={sortKey === "replies"} dir={dir} onSort={onSort} />
+              </TableHead>
+              <TableHead className="w-[8%] text-right">
                 <SortButton label="Reached" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="w-[11%] text-right">
-                <SortButton label="Today Sends" sortKey="sentToday" active={sortKey === "sentToday"} dir={dir} onSort={onSort} />
-              </TableHead>
-              <TableHead className="w-[9%] text-right">
-                <SortButton label="Emails Sent" sortKey="sent" active={sortKey === "sent"} dir={dir} onSort={onSort} />
-              </TableHead>
-              <TableHead className="w-[8%]">
+              <TableHead className="w-[9%] pl-6">
                 <SortButton label="Status" sortKey="status" active={sortKey === "status"} dir={dir} onSort={onSort} />
               </TableHead>
-              <TableHead className="w-[12%] text-right">Actions</TableHead>
+              <TableHead className="w-[9%] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paged.map((row) => {
-              const online = accountOnline(row.account);
               const paused = row.displayStatus === "paused";
+              const pct =
+                row.leads > 0 ? Math.min(100, Math.round((row.sent / row.leads) * 100)) : 0;
+              const created = row.createdAt ? new Date(row.createdAt) : null;
               return (
-                <TableRow key={row.id} className={busyId === row.id ? "opacity-60" : undefined}>
+                <TableRow
+                  key={row.id}
+                  className={`transition-colors hover:bg-muted/40 ${busyId === row.id ? "opacity-60" : ""}`}
+                >
                   {onBulkAction ? (
                     <TableCell>
                       <Checkbox
@@ -284,79 +286,68 @@ export function CampaignsTable({
                       />
                     </TableCell>
                   ) : null}
-                  <TableCell className="w-[24%] max-w-[24%]">
+                  <TableCell className="min-w-0">
                     <Link
                       to="/campaigns/$campaignId"
                       params={{ campaignId: row.id }}
-                      className="block truncate font-semibold text-primary hover:underline"
+                      className="block truncate font-semibold text-foreground hover:text-primary"
                     >
                       {row.name}
                     </Link>
                     <p className="truncate text-xs text-muted-foreground">
                       {row.category || row.description || "No category"}
+                      {created && !Number.isNaN(created.getTime())
+                        ? ` · Created ${created.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                        : ""}
                     </p>
                   </TableCell>
                   <TableCell>
-                    {row.account ? (
-                      <span className="flex min-w-0 items-center gap-2 text-sm">
-                        <span
-                          className={`size-2 shrink-0 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/50"}`}
-                          title={online ? "Mailbox online" : "Mailbox paused or unverified"}
+                    <div
+                      className="space-y-1"
+                      title={
+                        row.leads > 0
+                          ? `${numberFmt.format(row.sent)} emails sent to ${numberFmt.format(row.leads)} leads`
+                          : "No leads added yet"
+                      }
+                    >
+                      <div className="flex items-baseline justify-between gap-2 text-xs tabular-nums">
+                        <span className="font-semibold text-foreground">{pct}%</span>
+                        <span className="text-muted-foreground">
+                          {numberFmt.format(row.sent)} / {numberFmt.format(row.leads)}
+                        </span>
+                      </div>
+                      <div
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${row.name} progress`}
+                      >
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+                          style={{ width: `${pct}%` }}
                         />
-                        <span className="truncate">{row.account.from_email}</span>
-                        {row.accountCount > 1 ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            +{row.accountCount - 1}
-                          </span>
-                        ) : null}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No mailbox</span>
-                    )}
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell
-                    className="text-right tabular-nums"
-                    title={`${numberFmt.format(Math.max(0, row.leads - row.sent))} pending`}
-                  >
-                    {numberFmt.format(row.leads)}
-                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
                   <TableCell
                     className="text-right tabular-nums"
                     title={`${numberFmt.format(row.opened)} opened from ${numberFmt.format(row.reached)} reached`}
                   >
                     {row.openRate.toFixed(1)}%
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.replies)}</TableCell>
                   <TableCell
                     className="text-right tabular-nums"
                     title="Emails accepted for sending minus confirmed bounces"
                   >
                     {numberFmt.format(row.reached)}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    <DailyLimitPopover
-                      row={row}
-                      trigger={
-                        <button
-                          type="button"
-                          title="Edit daily email sending limit"
-                          className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm tabular-nums transition-colors hover:bg-muted"
-                        >
-                          <Gauge className="size-3.5 text-muted-foreground" />
-                          <span className="font-medium">{numberFmt.format(row.sentToday)}</span>
-                          {row.dailyCap > 0 ? (
-                            <span className="text-muted-foreground">
-                              / {numberFmt.format(row.dailyCap)}
-                            </span>
-                          ) : null}
-                          <span className="sr-only">Edit daily sending limit for {row.name}</span>
-                        </button>
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{numberFmt.format(row.sent)}</TableCell>
-                  <TableCell>
+                  <TableCell className="pl-6">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${CAMPAIGN_STATUS_STYLES[row.displayStatus]}`}
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${CAMPAIGN_STATUS_STYLES[row.displayStatus]}`}
                     >
                       {row.displayStatus}
                     </span>
@@ -420,7 +411,7 @@ export function CampaignsTable({
             })}
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={onBulkAction ? 10 : 9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={onBulkAction ? 9 : 8} className="py-10 text-center text-sm text-muted-foreground">
                   No campaigns match this search.
                 </TableCell>
               </TableRow>
