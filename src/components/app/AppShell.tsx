@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -62,6 +62,9 @@ import { DEFAULT_COMMUNITY } from "@/lib/community-model";
  * assignment) is MunchReach-managed and lives in the separate staff area,
  * which is never linked from the customer dashboard.
  */
+/** Survives page changes so the clicked label stays visible after navigating. */
+let lastFlash: { key: string; at: number } | null = null;
+
 const navGroups = [
   {
     label: null,
@@ -130,9 +133,17 @@ export function AppShell({
 }) {
 
   const [open, setOpen] = useState(false);
-  const [flashKey, setFlashKey] = useState<string | null>(null);
+  const [flashKey, setFlashKey] = useState<string | null>(() =>
+    lastFlash && Date.now() - lastFlash.at < 1600 ? lastFlash.key : null,
+  );
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!flashKey || !lastFlash) return;
+    const t = setTimeout(() => setFlashKey(null), Math.max(0, 1600 - (Date.now() - lastFlash.at)));
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const flash = (key: string) => {
+    lastFlash = { key, at: Date.now() };
     setFlashKey(key);
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setFlashKey(null), 1600);
