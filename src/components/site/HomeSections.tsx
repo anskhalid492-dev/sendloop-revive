@@ -349,7 +349,7 @@ export function WorkspaceSection() {
               const d = `M ${p.x < 50 ? p.x + 6 : p.x - 6} ${ty} C ${(p.x + tx) / 2} ${ty}, ${(p.x + tx) / 2} ${cy}, ${tx} ${cy}`;
               return (
                 <g key={i}>
-                  <path d={d} fill="none" stroke="var(--primary)" strokeOpacity="0.25" strokeWidth="0.15" vectorEffect="non-scaling-stroke" />
+                  <path d={d} fill="none" stroke="var(--primary)" strokeOpacity="0.35" strokeWidth="1" vectorEffect="non-scaling-stroke" />
                   <path d={d} fill="none" stroke="var(--primary)" strokeOpacity="0.6" strokeWidth="1.2" strokeDasharray="4 60" vectorEffect="non-scaling-stroke" className="mr-flow" style={{ animationDelay: `${i * 0.9}s` }} />
                 </g>
               );
@@ -381,7 +381,7 @@ export function WorkspaceSection() {
                   </span>
                   <div className="leading-tight">
                     <p className="text-sm font-semibold">{m.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{m.note}</p>
+                    <p className="whitespace-nowrap text-[11px] text-muted-foreground">{m.note}</p>
                   </div>
                 </div>
               </div>
