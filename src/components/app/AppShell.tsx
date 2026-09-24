@@ -291,9 +291,7 @@ export function AppShell({
             {open ? <X className="size-4" /> : <Menu className="size-4" />}
           </button>
 
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-semibold">{title}</h1>
-          </div>
+          <div className="min-w-0 flex-1" data-page-title={title} />
 
           <div className="hidden md:block">
             <WorkspaceSwitcher />
