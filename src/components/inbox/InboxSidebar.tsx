@@ -194,53 +194,7 @@ export function InboxSidebar({
           ) : null}
         </div>
 
-        {accounts.length ? (
-          <div>
-            <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Mailboxes
-            </p>
-            <div className="space-y-0.5">
-              {accounts.map((account) => {
-                const active = selectedAccountIds.includes(account.id);
-                const state = accountState(account);
-                return (
-                  <button
-                    key={account.id}
-                    type="button"
-                    onClick={() => onToggleAccount?.(account.id)}
-                    aria-pressed={active}
-                    title={`${account.from_email} · ${state.label}`}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
-                      active
-                        ? "bg-primary/10 font-medium text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", state.tone)} />
-                    <span className="truncate">{account.from_email}</span>
-                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide opacity-70">
-                      {state.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
       </div>
-
-      {userEmail ? (
-        <div className="flex items-center gap-2 border-t border-border px-3 py-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-            {(userName || userEmail).slice(0, 2).toUpperCase()}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-medium">{userName || "Signed in"}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{userEmail}</p>
-          </div>
-        </div>
-      ) : null}
     </nav>
   );
 }
