@@ -294,6 +294,15 @@ export const getLeadDetail = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!lead) throw new Error("Lead not found");
 
+    // The real pipeline stage (stage_id), not the lossy legacy crm_stage mirror.
+    const { data: stageRow } = await context.supabase
+      .from("leads")
+      .select(sel("crm_stages(key)"))
+      .eq("id", data.id)
+      .maybeSingle()
+      .returns<{ crm_stages: { key: string } | null }>();
+    const stageKey = stageRow?.crm_stages?.key ?? null;
+
     const [{ data: recipients }, { data: activities }, { data: notes }, { data: tasks }] =
       await Promise.all([
         context.supabase
@@ -375,7 +384,7 @@ export const getLeadDetail = createServerFn({ method: "POST" })
       >();
 
     return {
-      lead: lead as unknown as LeadRow,
+      lead: { ...(lead as unknown as LeadRow), stage_key: stageKey },
       campaigns: recipients ?? [],
       activities: activities ?? [],
       notes: notes ?? [],

@@ -198,7 +198,7 @@ export function LeadDetailSheet({
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase text-muted-foreground">CRM stage</Label>
                 <Select
-                  value={STAGE_KEY_FOR_LEGACY_CRM_STAGE[lead.crm_stage] ?? ""}
+                  value={lead.stage_key ?? STAGE_KEY_FOR_LEGACY_CRM_STAGE[lead.crm_stage] ?? ""}
                   onValueChange={(value) => setField.mutate({ stage_key: value })}
                 >
                   <SelectTrigger>
