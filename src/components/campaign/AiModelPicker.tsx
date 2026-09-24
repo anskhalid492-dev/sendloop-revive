@@ -139,7 +139,7 @@ export function AiModelPicker({
       ) : (
         <>
           <Select
-            value={controlled && !value && allowConnectionDefault ? DEFAULT : current || undefined}
+            value={controlled && !value && allowConnectionDefault ? DEFAULT : current}
             onValueChange={(next) => {
               if (controlled) onChange!(next === DEFAULT ? null : next);
               else save.mutate(next);

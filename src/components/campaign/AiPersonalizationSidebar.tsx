@@ -335,7 +335,7 @@ export function AiPersonalizationSidebar({
                 <div className="space-y-1.5">
                   <Label className="text-xs">AI Provider</Label>
                   <Select
-                    value={config.provider ?? undefined}
+                    value={config.provider ?? ""}
                     onValueChange={(value) =>
                       // Switching provider clears the model: a model id belongs to one provider.
                       patch({ provider: value as "openai" | "anthropic", model: null })

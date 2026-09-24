@@ -101,8 +101,8 @@ async function generateWithOpenAi(
       model,
       system: input.system,
       prompt: input.prompt,
-      temperature: input.temperature,
-      maxOutputTokens: input.maxTokens,
+      ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+      ...(input.maxTokens !== undefined ? { maxOutputTokens: input.maxTokens } : {}),
       maxRetries: 0,
     });
     return (result.text ?? "").trim();
