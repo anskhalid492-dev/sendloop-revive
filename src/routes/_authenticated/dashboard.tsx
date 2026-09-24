@@ -161,25 +161,6 @@ function DashboardPage() {
     <AppShell
       title={workspace ? workspace.name : "Dashboard"}
       description="Outbound command center"
-      actions={
-        <>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 text-xs"
-            onClick={() => command.refetch()}
-            disabled={command.isFetching}
-          >
-            <RefreshCw className={command.isFetching ? "size-3.5 animate-spin" : "size-3.5"} />
-            Refresh
-          </Button>
-          <Button asChild size="sm">
-            <Link to="/campaigns">
-              <Send className="size-4" /> New campaign
-            </Link>
-          </Button>
-        </>
-      }
     >
       <div className="mx-auto max-w-[1400px] space-y-10 pb-6">
         {/* 1. Header */}
