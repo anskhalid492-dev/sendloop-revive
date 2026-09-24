@@ -78,9 +78,6 @@ function ChooseProviderPage() {
               <h2 className="mt-6 text-lg font-semibold tracking-tight text-foreground">
                 {option.title}
               </h2>
-              <p className="mt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {option.company}
-              </p>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 {option.description}
               </p>
