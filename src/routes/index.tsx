@@ -3,241 +3,149 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   BarChart3,
-  Briefcase,
-  Building2,
-  CalendarCheck,
+  Check,
   Flame,
   Inbox,
   Layers,
-  LineChart,
   PlayCircle,
   Repeat,
-  Rocket,
   Send,
-  ShieldCheck,
   Sparkles,
-  Target,
   Upload,
   Users,
   Workflow,
 } from "lucide-react";
 
-import { FaqBlock, MockBars, MockPanel, MockRows } from "@/components/site/MarketingPage";
 import { HeroProductVisual } from "@/components/site/HeroProductVisual";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
+import { PageFaqs } from "@/components/site/PageFaqs";
+import { AiPersonalizationScreen } from "@/components/site/AiPersonalizationProductMocks";
+import { SequenceMock } from "@/components/site/CampaignsProductMocks";
+import { CrmTableMock } from "@/components/site/CrmProductMocks";
+import { UniboxMock } from "@/components/site/UniboxProductMocks";
+import { WarmupDashboardMock } from "@/components/site/WarmupProductMocks";
 import { Button } from "@/components/ui/button";
 import dashboardOverviewAsset from "@/assets/munchreach-dashboard-overview.jpg.asset.json";
-const dashboardPreview = dashboardOverviewAsset.url;
+import sequencesAsset from "@/assets/sequences-mockup.jpg.asset.json";
+import analyticsAsset from "@/assets/analytics-2.jpg.asset.json";
+import automationsAsset from "@/assets/automations-mockup.jpg.asset.json";
 import inboxPreview from "@/assets/munchreach-unified-inbox-light.png";
-import { PageFaqs } from "@/components/site/PageFaqs";
 import { applySeoOverrides } from "@/lib/page-seo";
 import { SITE_URL } from "@/lib/seo";
 
 const faqs = [
   {
     q: "What is MunchReach?",
-    a: "MunchReach is a cold email platform. You build campaigns, automate follow-ups, manage every reply in one inbox and track your outreach — all from a single workspace.",
+    a: "MunchReach is a workspace for running B2B cold email. You import your prospects, build multi-step campaigns, personalize messages, follow up automatically, and manage replies, CRM stages, and analytics in one place.",
   },
   {
-    q: "How does MunchReach handle email sending?",
-    a: "Sending is fully managed. Once you launch a campaign, MunchReach queues and delivers your emails in the background, respecting daily limits, delays and your sending window.",
+    q: "How does MunchReach work?",
+    a: "Create a workspace, connect your mailbox, import prospects from a CSV, build a campaign with follow-up steps and a sending schedule, then launch. Replies land in the Unified Inbox and move into your CRM.",
   },
   {
-    q: "Do I need my own SMTP or email API?",
-    a: "No. You don't need to connect your own email provider. MunchReach manages the sending infrastructure behind the scenes, so there is nothing technical for you to configure.",
+    q: "Do I need my own mailbox?",
+    a: "Yes. Campaigns send from mailboxes you connect to your workspace. MunchReach does not sell mailboxes or send on a shared address for you.",
   },
   {
-    q: "How do I start a campaign?",
-    a: "Create your workspace, import your prospects, write your first email, add follow-up steps, choose a schedule and launch. It takes minutes, not days.",
+    q: "Can I connect Gmail or Google Workspace?",
+    a: "Yes. You can connect Gmail and Google Workspace mailboxes from the Email Accounts page.",
+  },
+  {
+    q: "Can I connect Microsoft 365 or Outlook?",
+    a: "Yes. Microsoft 365 and Outlook mailboxes can be connected from the Email Accounts page.",
+  },
+  {
+    q: "Can I connect IMAP/SMTP mailboxes?",
+    a: "Yes. Any provider that supports IMAP and SMTP can be connected with its server details, so you can send and receive replies from it.",
+  },
+  {
+    q: "How do I import leads?",
+    a: "Upload a CSV, map its columns to lead fields, and MunchReach handles duplicates during the import. Leads are organized into lists you can filter and update in bulk.",
   },
   {
     q: "Can I automate follow-ups?",
-    a: "Yes. Add as many follow-up steps as you like with your own delays. MunchReach sends them automatically and stops the sequence the moment a prospect replies.",
+    a: "Yes. Add follow-up steps with your own delays. They send automatically within your sending window and stop when a prospect replies.",
+  },
+  {
+    q: "How does AI personalization work?",
+    a: "Use lead variables like first name, company, and industry in your emails, and let the AI campaign writer draft personalized copy you can review and edit before sending.",
+  },
+  {
+    q: "Can I use Claude for AI personalization?",
+    a: "Yes. You can add your own OpenAI or Claude key to your workspace. The key is stored encrypted, and AI drafts are never sent without your review.",
+  },
+  {
+    q: "How does warmup work?",
+    a: "Warmup gradually builds sending activity on your connected mailboxes, tracks mailbox health, and warns you about deliverability problems. It improves your odds but cannot guarantee inbox placement.",
   },
   {
     q: "Can I manage replies in one inbox?",
-    a: "Every reply lands in the unified inbox where you can classify it, assign it to a teammate, add internal notes and see the full conversation and campaign history.",
+    a: "Yes. Replies from every connected mailbox land in the Unified Inbox, where you can classify them, assign them to teammates, add internal notes, and see the full conversation history.",
   },
   {
-    q: "Does MunchReach include warmup?",
-    a: "Yes. MunchReach gradually builds sending activity, monitors mailbox health and flags deliverability issues before they hurt your campaigns.",
-  },
-  {
-    q: "Can I use MunchReach with a team?",
-    a: "Invite teammates to your workspace with roles such as admin, campaign manager, inbox manager or analyst, and assign conversations between them.",
-  },
-  {
-    q: "Does MunchReach include a CRM?",
-    a: "Yes. Prospects move through pipeline stages from new to contacted, replied, interested, meeting and won, connected to the conversation that created them.",
+    q: "Does MunchReach include CRM?",
+    a: "Yes. Contacts move through pipeline stages from New to Won or Lost. Stages stay in sync with the inbox and are linked to the conversation that created them.",
   },
   {
     q: "How does pricing work?",
-    a: "Start free, then pick a monthly or yearly plan based on how many prospects, campaigns and emails you need. Full details are on the pricing page.",
+    a: "Start with a 14-day free trial, then choose a monthly or yearly plan. Yearly plans are 20% off. Full details are on the pricing page.",
   },
 ];
 
-const workflowSteps = [
-  {
-    icon: Target,
-    title: "Find Prospects",
-    text: "Build targeted prospect lists and focus your outreach on the people most likely to buy.",
-  },
-  {
-    icon: Sparkles,
-    title: "Personalize",
-    text: "Use AI to create relevant personalization for every prospect without writing every email manually.",
-  },
-  {
-    icon: Send,
-    title: "Launch Campaigns",
-    text: "Create multi-step cold email campaigns and send them through your connected mailboxes.",
-  },
-  {
-    icon: Repeat,
-    title: "Follow Up",
-    text: "Automatically send the right follow-up at the right time without manually tracking prospects.",
-  },
-  {
-    icon: Inbox,
-    title: "Manage Replies",
-    text: "Bring replies into one inbox, organize conversations, and keep every prospect easy to manage.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Book Meetings",
-    text: "Track positive replies and meetings so users can see which campaigns actually produce results.",
-  },
+const problems = [
+  "I'm using too many tools to run outbound.",
+  "Personalizing every email takes forever.",
+  "Follow-ups are easy to forget.",
+  "Replies are scattered across different inboxes.",
+  "I can't clearly see which campaigns are actually working.",
+  "My outreach data lives in too many places.",
 ];
 
-/**
- * Premium 6-step outbound workflow directly below the hero. The connecting
- * line and the soft "active step" pulse only show on wide screens where the
- * steps sit horizontally; on mobile the steps stack with no line.
- */
-function WorkflowSection() {
-  const [active, setActive] = useState(0);
+const flow = ["Leads", "Campaigns", "AI Campaign Writer", "Follow-ups", "Sending", "Replies", "CRM", "Analytics"];
 
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (media.matches) return;
-    const id = window.setInterval(() => {
-      setActive((prev) => (prev + 1) % workflowSteps.length);
-    }, 2000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  return (
-    <section className="relative mx-auto max-w-7xl px-4 pt-28 pb-20 sm:px-6 sm:pt-36">
-      <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-          Everything you need to run outbound
-        </span>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-          From first prospect to booked meeting — all in one place.
-        </h2>
-        <p className="mt-3 text-muted-foreground">
-          Find the right prospects, personalize every message, send safely from your mailboxes,
-          manage replies, and track what turns into revenue.
-        </p>
-      </div>
-
-      <div className="relative mt-14 lg:mt-16">
-        {/* Connecting progress line — only spans the icon row on wide screens */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-10 top-[26px] hidden h-px bg-gradient-to-r from-primary/0 via-primary/35 to-primary/0 lg:block"
-        />
-        {/* Moving active-step dot along the line */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute top-[22px] hidden size-2 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_12px_2px_var(--primary)] transition-[left] duration-700 ease-in-out lg:block"
-          style={{ left: `calc(${(active + 0.5) * (100 / workflowSteps.length)}%)` }}
-        />
-
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6 lg:gap-5">
-          {workflowSteps.map((step, i) => {
-            const isActive = active === i;
-            return (
-              <li
-                key={step.title}
-                className="relative flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all duration-500 lg:p-6"
-                style={{
-                  borderColor: isActive
-                    ? "var(--primary)"
-                    : "var(--border)",
-                  boxShadow: isActive
-                    ? "0 18px 45px -28px oklch(0.685 0.145 231 / 0.55)"
-                    : undefined,
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className="relative flex size-11 items-center justify-center rounded-xl border border-border/70 bg-primary/10 text-primary transition-colors duration-500"
-                    style={
-                      isActive ? { background: "var(--primary)", color: "var(--primary-foreground)" } : undefined
-                    }
-                  >
-                    <step.icon className="size-5" />
-                  </span>
-                  <span className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">
-                    {`0${i + 1}`}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-sm font-semibold sm:text-base">{step.title}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
-                  {step.text}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-const coreValues = [
-  { icon: Layers, title: "Campaigns", text: "Build multi-step cold email sequences." },
-  { icon: Repeat, title: "Follow-Ups", text: "Automatically follow up until prospects respond." },
-  { icon: Inbox, title: "Unified Inbox", text: "Manage every reply from one place." },
-  { icon: Flame, title: "Warmup", text: "Protect and improve sending reputation." },
-  { icon: Users, title: "CRM", text: "Turn conversations into opportunities." },
-  { icon: BarChart3, title: "Analytics", text: "Know exactly what's working." },
-];
-
-const audiences = [
-  { icon: Target, title: "Lead Generation Agencies", text: "Run every client list from a separate workspace." },
-  { icon: Briefcase, title: "Sales Teams", text: "A repeatable outbound motion the whole team follows." },
-  { icon: Rocket, title: "SaaS Companies", text: "Test positioning and turn replies into demos." },
-  { icon: Users, title: "Recruiting Agencies", text: "Reach candidates and clients before competitors." },
-  { icon: Sparkles, title: "Marketing Agencies", text: "Add outbound to the services you already sell." },
-  { icon: Building2, title: "Consultants", text: "Keep the calendar full between projects." },
-  { icon: CalendarCheck, title: "Appointment Setters", text: "Book meetings from replies in one inbox." },
-  { icon: ShieldCheck, title: "B2B Service Companies", text: "Consistent outreach without technical setup." },
+const workspaceAreas = [
+  { icon: Users, label: "Leads" },
+  { icon: Layers, label: "Campaigns" },
+  { icon: Repeat, label: "Sequences" },
+  { icon: Sparkles, label: "AI" },
+  { icon: Inbox, label: "Inbox" },
+  { icon: Flame, label: "Warmup" },
+  { icon: Workflow, label: "CRM" },
+  { icon: BarChart3, label: "Analytics" },
 ];
 
 const howItWorks = [
-  { n: "01", title: "Create your workspace", text: "Name it, invite your team and you're set up." },
-  { n: "02", title: "Add your prospects", text: "Import a CSV, map fields and drop duplicates." },
-  { n: "03", title: "Build your campaign", text: "Write the first email, then add follow-up steps." },
-  { n: "04", title: "Launch and manage replies", text: "MunchReach sends; replies land in your inbox." },
+  { n: "01", title: "Create your workspace", text: "Name it, invite your team, and connect your mailbox." },
+  { n: "02", title: "Import your prospects", text: "Upload a CSV, map the fields, and skip duplicates." },
+  { n: "03", title: "Build your campaign", text: "Write the first email, then add follow-up steps and a schedule." },
+  { n: "04", title: "Launch and manage replies", text: "Emails send on schedule. Replies land in one inbox." },
 ];
 
-const followUpFlow = [
-  { label: "Initial email", meta: "Day 0" },
-  { label: "Wait 2 days", meta: "No reply" },
-  { label: "Follow-up", meta: "Day 2" },
-  { label: "Wait 3 days", meta: "No reply" },
-  { label: "Final follow-up", meta: "Day 5" },
-  { label: "Reply received", meta: "Sequence stops" },
+const audiences: { label: string; slug?: string }[] = [
+  { label: "Agencies", slug: "agencies" },
+  { label: "Sales Teams", slug: "sales-teams" },
+  { label: "SaaS Companies", slug: "saas" },
+  { label: "Recruiting", slug: "recruiting" },
+  { label: "Consultants", slug: "consultants" },
+  { label: "Founders", slug: "founders" },
+  { label: "Marketing Agencies", slug: "marketing-agencies" },
+  { label: "B2B Service Companies" },
+];
+
+const showcase = [
+  { id: "dashboard", label: "Dashboard", src: dashboardOverviewAsset.url, alt: "MunchReach dashboard overview" },
+  { id: "sequences", label: "Sequences", src: sequencesAsset.url, alt: "MunchReach sequence builder" },
+  { id: "inbox", label: "Unified Inbox", src: inboxPreview, alt: "MunchReach unified inbox" },
+  { id: "automations", label: "Automations", src: automationsAsset.url, alt: "MunchReach automations builder" },
+  { id: "analytics", label: "Analytics", src: analyticsAsset.url, alt: "MunchReach analytics dashboard" },
 ];
 
 const HOME_TITLE = "MunchReach | AI Cold Emailing Platform for Agencies";
 const HOME_DESCRIPTION =
-  "Build targeted cold email campaigns, automate follow-ups, manage leads and replies, and grow your pipeline with MunchReach, all in one platform.";
+  "Import prospects, build personalized cold email campaigns, automate follow-ups, and manage replies, CRM, and analytics in one outbound workspace.";
 
 export const Route = createFileRoute("/")({
   head: () =>
@@ -267,12 +175,7 @@ export const Route = createFileRoute("/")({
         },
         {
           type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: "MunchReach",
-            url: SITE_URL,
-          }),
+          children: JSON.stringify({ "@context": "https://schema.org", "@type": "WebSite", name: "MunchReach", url: SITE_URL }),
         },
         {
           type: "application/ld+json",
@@ -288,42 +191,194 @@ export const Route = createFileRoute("/")({
         },
       ],
     }),
-
   component: Home,
 });
 
-function SectionHead({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-}) {
+/* ------------------------------------------------------------ primitives */
+
+function Eyebrow({ children }: { children: string }) {
+  return <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">{children}</span>;
+}
+
+function SectionHead({ eyebrow, title, description }: { eyebrow?: string; title: string; description?: string }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      {eyebrow ? (
-        <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-          {eyebrow}
-        </span>
-      ) : null}
-      <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
-      {description ? <p className="mt-3 text-muted-foreground">{description}</p> : null}
+      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
+      <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-5xl">{title}</h2>
+      {description ? <p className="mt-4 text-lg text-muted-foreground">{description}</p> : null}
     </div>
   );
 }
 
-function ExploreLink({ to, children }: { to: string; children: string }) {
+function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <Button variant="outline" className="mt-7 group" asChild>
-      <Link to={to}>
-        {children}
-        <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-      </Link>
-    </Button>
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_30px_60px_-40px_color-mix(in_oklab,var(--foreground)_35%,transparent)]">
+      <div className="flex items-center gap-1.5 border-b border-border/60 bg-muted/40 px-4 py-2.5">
+        <span className="size-2.5 rounded-full bg-border" />
+        <span className="size-2.5 rounded-full bg-border" />
+        <span className="size-2.5 rounded-full bg-border" />
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
   );
 }
+
+function FrameImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Frame>
+      <img src={src} alt={alt} loading="lazy" className="block h-auto w-full" />
+    </Frame>
+  );
+}
+
+function FeatureStory({
+  id,
+  label,
+  title,
+  body,
+  benefits,
+  cta,
+  visual,
+  reverse = false,
+}: {
+  id: string;
+  label: string;
+  title: string;
+  body: string;
+  benefits: string[];
+  cta?: { to: string; text: string };
+  visual: React.ReactNode;
+  reverse?: boolean;
+}) {
+  return (
+    <section id={id} className="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-24">
+      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <Reveal className={reverse ? "lg:order-2" : ""}>
+          <Eyebrow>{label}</Eyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-4xl">{title}</h2>
+          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{body}</p>
+          <ul className="mt-6 space-y-3">
+            {benefits.map((b) => (
+              <li key={b} className="flex items-start gap-3 text-sm sm:text-base">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                  <Check className="size-3" />
+                </span>
+                {b}
+              </li>
+            ))}
+          </ul>
+          {cta ? (
+            <Button variant="outline" className="group mt-8 rounded-xl" asChild>
+              <Link to={cta.to}>
+                {cta.text}
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </Button>
+          ) : null}
+        </Reveal>
+        <Reveal delay={120} className={`min-w-0 ${reverse ? "lg:order-1" : ""}`}>
+          {visual}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function LeadListMock() {
+  const rows = [
+    { name: "First Name, Last Name", company: "Company", status: "New" },
+    { name: "First Name, Last Name", company: "Company", status: "Contacted" },
+    { name: "First Name, Last Name", company: "Company", status: "Replied" },
+    { name: "First Name, Last Name", company: "Company", status: "Interested" },
+  ];
+  return (
+    <Frame>
+      <div className="p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold">Lead list</p>
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1 text-xs">
+            <Upload className="size-3.5 text-primary" /> Import CSV
+          </span>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-dashed border-border p-3 text-[0.7rem] text-muted-foreground">
+          <span>email → Email</span>
+          <span>company → Company</span>
+          <span>Duplicates skipped</span>
+        </div>
+        <div className="mt-4 divide-y divide-border/60 rounded-xl border border-border/60">
+          {rows.map((r, i) => (
+            <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 text-xs sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <span className="truncate font-medium">{r.name}</span>
+              <span className="hidden truncate text-muted-foreground sm:block">{r.company}</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-medium text-primary">{r.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function TrustpilotMark() {
+  return (
+    <span className="inline-flex items-center gap-2 text-base font-semibold tracking-tight">
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <path fill="#00B67A" d="M12 1.5l2.9 7.6H23l-6.5 4.8 2.5 7.8L12 16.9l-7 4.8 2.5-7.8L1 9.1h8.1z" />
+      </svg>
+      Trustpilot
+    </span>
+  );
+}
+
+function CapterraMark() {
+  return (
+    <span className="inline-flex items-center gap-2 text-base font-semibold tracking-tight">
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <path fill="#FF9D28" d="M2 9.5l9.2 0 2.8-8.5-12 8.5z" />
+        <path fill="#68C5ED" d="M14 1l-2.8 8.5H22z" />
+        <path fill="#044D80" d="M11.2 9.5L22 9.5 8 23z" />
+        <path fill="#E54747" d="M2 9.5h9.2L8 23z" />
+      </svg>
+      Capterra
+    </span>
+  );
+}
+
+function ShowcaseTabs() {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setActive((p) => (p + 1) % showcase.length), 5000);
+    return () => window.clearInterval(id);
+  }, []);
+  const current = showcase[active]!;
+  return (
+    <div>
+      <div role="tablist" className="mx-auto flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border/70 bg-card p-1 sm:w-fit">
+        {showcase.map((s, i) => (
+          <button
+            key={s.id}
+            role="tab"
+            aria-selected={i === active}
+            onClick={() => setActive(i)}
+            className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              i === active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-8">
+        <div key={current.id} className="animate-in fade-in duration-500">
+          <FrameImage src={current.src} alt={current.alt} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ page */
 
 function Home() {
   return (
@@ -331,54 +386,30 @@ function Home() {
       <SiteHeader />
 
       <main>
-        {/* ---------------------------------------------------------- Hero */}
-        <section className="hero-glow relative overflow-hidden">
-          {/* Subtle blue/sky ambience + soft glow behind the headline */}
+        {/* Hero */}
+        <section className="relative overflow-hidden">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.16),transparent_70%)]"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--primary)_7%,transparent),transparent_70%)]"
           />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-24 size-[34rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]"
-          />
-
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,hsl(var(--foreground))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--foreground))_1px,transparent_1px)] [background-size:44px_44px]"
-          />
-
-          <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 pt-10 pb-10 sm:px-6 sm:pt-14 sm:pb-14 lg:grid-cols-[43fr_57fr] lg:gap-8 lg:pt-12 lg:pb-12">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 lg:grid-cols-[45fr_55fr] lg:pt-24 lg:pb-24">
             <div className="text-center lg:text-left">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-medium uppercase tracking-wide text-primary sm:text-xs">
-                <Sparkles className="size-4 shrink-0" />
-                The outbound platform built for real conversations
-              </span>
-              <h2 className="mt-6 text-[2.1rem] font-extrabold leading-[1.08] tracking-tight text-balance sm:text-[3rem] sm:leading-[1.05] lg:text-[3.4rem]">
-                Your Next Customer{" "}
-                <span className="text-gradient">Could Be One Email Away.</span>
-              </h2>
-              <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground lg:mx-0 sm:mt-6 sm:text-lg">
-                Find the right prospects, personalize every message, automate follow-ups, and manage
-                replies — all from one simple outbound platform.
+              <Eyebrow>The all-in-one cold outreach platform</Eyebrow>
+              <h1 className="mt-5 text-[2.3rem] font-extrabold leading-[1.05] tracking-tight text-balance sm:text-[3.2rem] lg:text-[3.6rem]">
+                Your Next Customer Could Be <span className="text-primary">One Email Away.</span>
+              </h1>
+              <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0">
+                Find the right prospects, personalize every message, automate follow-ups, and manage replies, all from
+                one simple outbound platform.
               </p>
-              <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-start">
-                <Button
-                  size="lg"
-                  className="w-full rounded-xl px-8 shadow-lg shadow-primary/20 sm:w-auto"
-                  asChild
-                >
+              <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start">
+                <Button size="lg" className="rounded-xl px-7" asChild>
                   <Link to="/signup">
                     Start Sending Free
                     <Send className="size-4" />
                   </Link>
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full rounded-xl bg-card px-8 sm:w-auto"
-                  asChild
-                >
+                <Button size="lg" variant="outline" className="rounded-xl bg-card px-7" asChild>
                   <a href="#how-it-works">
                     See How It Works
                     <PlayCircle className="size-4" />
@@ -389,497 +420,292 @@ function Home() {
                 14-day free trial · No credit card required · Cancel anytime
               </p>
             </div>
-
-            <div className="relative pb-4 lg:pb-0">
+            <div className="min-w-0">
               <HeroProductVisual />
             </div>
           </div>
         </section>
 
+        {/* Trust strip */}
+        <section className="border-y border-border/60">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-4 px-4 py-6 text-muted-foreground sm:flex-row sm:gap-10 sm:px-6">
+            <span className="text-xs font-medium tracking-[0.18em] uppercase">Find MunchReach on</span>
+            <div className="flex items-center gap-8 text-foreground/80">
+              <TrustpilotMark />
+              <CapterraMark />
+            </div>
+          </div>
+        </section>
 
-        {/* ------------------------------- Workflow: prospect → meeting */}
-        <WorkflowSection />
-
-{/* ------------------------------------------- Everything you need */}
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+        {/* Problem */}
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
           <Reveal>
-            <SectionHead
-              eyebrow="The platform"
-              title="Everything You Need to Run Cold Email"
-              description="From finding the right prospects to managing replies, MunchReach gives your team one place to run outbound."
-            />
+            <SectionHead eyebrow="The problem" title="Running Outbound Shouldn't Feel This Scattered" />
           </Reveal>
-          <div className="mt-12 grid gap-4 md:grid-cols-6">
-            {coreValues.map((f, i) => (
-              <Reveal
-                key={f.title}
-                delay={i * 60}
-                className={i === 0 || i === 3 ? "md:col-span-4" : "md:col-span-2"}
-              >
-                <div className="surface-card h-full p-6">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
-                    <f.icon className="size-5" />
-                  </span>
-                  <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{f.text}</p>
-                </div>
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {problems.map((p, i) => (
+              <Reveal key={p} delay={i * 60}>
+                <blockquote className="h-full rounded-2xl border border-border/70 bg-card p-6 text-lg font-medium leading-snug">
+                  <span className="text-primary">“</span>
+                  {p}
+                  <span className="text-primary">”</span>
+                </blockquote>
               </Reveal>
             ))}
           </div>
-        </section>
-
-        {/* ------------------------------------------------- One workspace */}
-        <section className="border-y border-border/60 bg-secondary/30 py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <Reveal>
-              <SectionHead
-                eyebrow="One place"
-                title="One Workspace For Your Entire Outreach"
-                description="Campaigns, leads, inbox, warmup, CRM and analytics all feed each other — nothing lives in a separate tool."
-              />
-            </Reveal>
-
-            <div className="mt-12 grid items-center gap-6 lg:grid-cols-[1fr_2fr_1fr]">
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                {[
-                  { icon: Layers, label: "Campaigns" },
-                  { icon: Users, label: "Leads" },
-                  { icon: Inbox, label: "Inbox" },
-                ].map((x, i) => (
-                  <Reveal key={x.label} delay={i * 80}>
-                    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium">
-                      <x.icon className="size-4 text-primary" />
-                      {x.label}
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
-
-              <Reveal delay={120}>
-                <img
-                  src={dashboardPreview}
-                  alt="MunchReach dashboard overview with sends, replies and blockers on one screen"
-                  width={1920}
-                  height={1080}
-                  loading="lazy"
-                  className="w-full rounded-2xl border border-border/60 shadow-xl"
-                />
-              </Reveal>
-
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                {[
-                  { icon: Flame, label: "Warmup" },
-                  { icon: Target, label: "CRM" },
-                  { icon: LineChart, label: "Analytics" },
-                ].map((x, i) => (
-                  <Reveal key={x.label} delay={i * 80}>
-                    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium">
-                      <x.icon className="size-4 text-primary" />
-                      {x.label}
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ----------------------------------------------------- Campaigns */}
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-            <Reveal>
-              <div>
-                <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                  Campaigns
-                </span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Build Campaigns Without The Busywork
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  Create personalized cold email sequences, add follow-ups, test different messages,
-                  and launch campaigns in minutes.
-                </p>
-                <ul className="mt-6 grid gap-2.5 text-sm text-muted-foreground">
-                  {[
-                    "Multi-step sequences with your own delays",
-                    "Personalization variables with safe fallbacks",
-                    "Message variants to test what lands",
-                    "Sending windows, days and daily caps",
-                    "Pause, resume and stop conditions",
-                  ].map((b) => (
-                    <li key={b} className="flex gap-3">
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <ExploreLink to="/product/campaigns">Explore Campaigns</ExploreLink>
-              </div>
-            </Reveal>
-            <Reveal delay={100}>
-              <MockPanel title="Campaign — Q3 Agency Outreach">
-                <MockRows
-                  rows={[
-                    { left: "Step 1 · Intro email", muted: "Sent immediately", badge: "Active" },
-                    { left: "Step 2 · Follow-up", muted: "Wait 2 days", right: "No reply" },
-                    { left: "Step 3 · Case study", muted: "Wait 3 days", right: "No reply" },
-                    { left: "Step 4 · Final nudge", muted: "Wait 4 days", right: "No reply" },
-                  ]}
-                />
-                <div className="mt-4">
-                  <MockBars
-                    bars={[
-                      { label: "Delivered", value: 96, caption: "1,842" },
-                      { label: "Replies", value: 34, caption: "128" },
-                      { label: "Positive replies", value: 18, caption: "57" },
-                    ]}
-                  />
-                </div>
-              </MockPanel>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ----------------------------------------------------- Follow-ups */}
-        <section className="border-y border-border/60 bg-secondary/30 py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <Reveal>
-              <SectionHead
-                eyebrow="Follow-ups"
-                title="Follow Up Automatically Without Chasing Leads"
-                description="MunchReach handles the follow-up process automatically while stopping outreach when prospects respond."
-              />
-            </Reveal>
-
-            <Reveal delay={100}>
-              <ol className="mx-auto mt-12 max-w-md space-y-0">
-                {followUpFlow.map((step, i) => (
-                  <li key={step.label}>
-                    <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4">
-                      <span className="text-sm font-medium">{step.label}</span>
-                      <span className="text-xs text-muted-foreground">{step.meta}</span>
-                    </div>
-                    {i < followUpFlow.length - 1 ? (
-                      <div aria-hidden="true" className="mx-auto h-7 w-0.5 flow-line" />
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            </Reveal>
-
-            <div className="mt-10 text-center">
-              <ExploreLink to="/product/follow-ups">Explore Follow-Ups</ExploreLink>
-            </div>
-          </div>
-        </section>
-
-        {/* --------------------------------------------------- Unified inbox */}
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-            <Reveal className="lg:order-2">
-              <div>
-                <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                  Unified inbox
-                </span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Every Reply. One Inbox.
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  Stop jumping between mailboxes and campaigns. Manage conversations, classify
-                  replies, assign conversations, add notes, and keep your entire team on the same
-                  page.
-                </p>
-                <ul className="mt-6 grid gap-2.5 text-sm text-muted-foreground">
-                  {[
-                    "Reply classification: interested, not now, out of office",
-                    "Assign conversations to the right teammate",
-                    "Internal notes and mentions",
-                    "Saved replies for fast responses",
-                    "Full conversation and campaign history",
-                    "Prospect and CRM details beside the thread",
-                  ].map((b) => (
-                    <li key={b} className="flex gap-3">
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <ExploreLink to="/product/unified-inbox">Explore Unified Inbox</ExploreLink>
-              </div>
-            </Reveal>
-            <Reveal delay={100} className="lg:order-1">
-              <div className="browser-frame">
-                <img
-                  src={inboxPreview}
-                  alt="MunchReach unified inbox with labelled replies, conversation thread and prospect details"
-                  width={1102}
-                  height={717}
-                  loading="lazy"
-                  className="w-full"
-                />
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* -------------------------------------------------------- Warmup */}
-        <section className="border-y border-border/60 bg-secondary/30 py-20">
-          <div className="mx-auto max-w-6xl grid items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-14">
-            <Reveal>
-              <div>
-                <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                  Warmup
-                </span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Protect Your Sending Reputation
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  MunchReach helps you gradually build sending activity, monitor mailbox health, and
-                  identify deliverability problems before they hurt your campaigns.
-                </p>
-                <ul className="mt-6 grid gap-2.5 text-sm text-muted-foreground">
-                  {[
-                    "Gradual warmup ramp for every mailbox",
-                    "Mailbox health scoring",
-                    "Sending activity tracking",
-                    "Reputation monitoring",
-                    "Alerts when something looks wrong",
-                  ].map((b) => (
-                    <li key={b} className="flex gap-3">
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <ExploreLink to="/product/warmup">Explore Warmup</ExploreLink>
-              </div>
-            </Reveal>
-            <Reveal delay={100}>
-              <MockPanel title="Mailbox health">
-                <MockBars
-                  bars={[
-                    { label: "sales@yourdomain.com", value: 94, caption: "Healthy" },
-                    { label: "outreach@yourdomain.com", value: 81, caption: "Warming" },
-                    { label: "hello@yourdomain.com", value: 62, caption: "Warming" },
-                  ]}
-                />
-                <div className="mt-4">
-                  <MockRows
-                    rows={[
-                      { left: "Daily warmup target", right: "38 / 40" },
-                      { left: "Spam placement", right: "0.4%" },
-                      { left: "Bounce rate", right: "1.1%" },
-                    ]}
-                  />
-                </div>
-              </MockPanel>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ----------------------------------------------------------- CRM */}
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-            <Reveal className="lg:order-2">
-              <div>
-                <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                  CRM
-                </span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Turn Replies Into Opportunities
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  Keep prospect information, conversations, tasks, and opportunities connected to
-                  your outreach.
-                </p>
-                <ExploreLink to="/product/crm">Explore CRM</ExploreLink>
-              </div>
-            </Reveal>
-            <Reveal delay={100} className="lg:order-1">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {["New", "Contacted", "Replied", "Interested", "Meeting", "Won"].map((stage, i) => (
-                  <div
-                    key={stage}
-                    className="rounded-xl border border-border bg-card p-4 text-center"
-                  >
-                    <div className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-                      {`0${i + 1}`}
-                    </div>
-                    <div className="mt-2 text-sm font-medium">{stage}</div>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ----------------------------------------------------- Analytics */}
-        <section className="border-y border-border/60 bg-secondary/30 py-20">
-          <div className="mx-auto max-w-6xl grid items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-14">
-            <Reveal>
-              <div>
-                <span className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                  Analytics
-                </span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Know What&apos;s Actually Working
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  See which campaigns, messages, and sequences are creating real conversations.
-                </p>
-                <ul className="mt-6 grid gap-2.5 text-sm text-muted-foreground">
-                  {[
-                    "Emails sent, replies and positive replies",
-                    "Meetings created from outreach",
-                    "Campaign and sequence performance",
-                    "Step-by-step breakdown of what converts",
-                    "Sending performance over time",
-                  ].map((b) => (
-                    <li key={b} className="flex gap-3">
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <ExploreLink to="/product/analytics">Explore Analytics</ExploreLink>
-              </div>
-            </Reveal>
-            <Reveal delay={100}>
-              <MockPanel title="Campaign performance">
-                <MockBars
-                  bars={[
-                    { label: "Step 1 · Intro", value: 62, caption: "Reply 4.1%" },
-                    { label: "Step 2 · Follow-up", value: 78, caption: "Reply 6.8%" },
-                    { label: "Step 3 · Case study", value: 44, caption: "Reply 3.2%" },
-                    { label: "Step 4 · Final nudge", value: 31, caption: "Reply 2.4%" },
-                  ]}
-                />
-              </MockPanel>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* --------------------------------------------- Managed sending */}
-        <section className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
           <Reveal>
-            <SectionHead
-              eyebrow="Managed sending"
-              title="We Handle The Complicated Part"
-              description="You shouldn't need to understand email infrastructure just to run a cold email campaign. MunchReach manages the sending layer behind the scenes so you can focus on your leads, messages, and conversations."
-            />
-          </Reveal>
-          <Reveal delay={100}>
-            <ol className="mx-auto mt-12 max-w-sm">
-              {[
-                { label: "Your workspace", text: "Leads, campaigns, sequences" },
-                { label: "MunchReach", text: "Scheduling, throttling, retries" },
-                { label: "Managed sending infrastructure", text: "Fully handled for you" },
-                { label: "Your prospects", text: "Replies land in your inbox" },
-              ].map((node, i, arr) => (
-                <li key={node.label}>
-                  <div className="surface-card px-5 py-4 text-center">
-                    <div className="text-sm font-semibold">{node.label}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{node.text}</div>
-                  </div>
-                  {i < arr.length - 1 ? (
-                    <div aria-hidden="true" className="mx-auto h-8 w-0.5 flow-line" />
-                  ) : null}
-                </li>
-              ))}
-            </ol>
+            <p className="mt-16 text-center text-2xl font-bold tracking-tight sm:text-4xl">
+              One workspace. <span className="text-primary">One outbound workflow.</span>
+            </p>
           </Reveal>
         </section>
 
-        {/* ------------------------------------------------------ Who it's for */}
-        <section className="border-y border-border/60 bg-secondary/30 py-20">
+        {/* Solution flow */}
+        <section className="border-y border-border/60 bg-secondary/30 py-20 sm:py-28">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <Reveal>
               <SectionHead
-                eyebrow="Who it's for"
-                title="Built For Teams That Rely On Outbound"
-                description="If new conversations drive your revenue, MunchReach is the workspace your team runs them from."
+                eyebrow="How MunchReach fits together"
+                title="From First Import to Closed Deal"
+                description="Every step of outbound runs in the same workspace, on the same data."
               />
             </Reveal>
-            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {audiences.map((a, i) => (
-                <Reveal key={a.title} delay={(i % 4) * 60}>
-                  <div className="h-full rounded-2xl border border-border bg-card p-5">
-                    <a.icon className="size-5 text-primary" />
-                    <h3 className="mt-3 text-sm font-semibold">{a.title}</h3>
-                    <p className="mt-1.5 text-xs text-muted-foreground">{a.text}</p>
-                  </div>
-                </Reveal>
+            <ol className="mt-12 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              {flow.map((f, i) => (
+                <li key={f} className="flex items-center gap-2 sm:gap-3">
+                  <span className="rounded-xl border border-border/70 bg-card px-3 py-2 text-sm font-medium shadow-sm sm:px-4">
+                    <span className="mr-2 text-xs text-primary tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                    {f}
+                  </span>
+                  {i < flow.length - 1 ? <ArrowRight className="size-4 text-muted-foreground" /> : null}
+                </li>
               ))}
-            </div>
+            </ol>
+            <Reveal className="mt-14">
+              <FrameImage src={dashboardOverviewAsset.url} alt="MunchReach dashboard overview with sends, replies and blockers on one screen" />
+            </Reveal>
           </div>
         </section>
 
-        {/* -------------------------------------------------- How it works */}
-        <section id="how-it-works" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6">
+        {/* Feature stories */}
+        <FeatureStory
+          id="leads"
+          label="Lead management"
+          title="Bring Your Prospects Into One Workspace"
+          body="Import the prospects you already have and keep them organized. Map CSV columns to lead fields, drop duplicates, and track every lead's status as it moves through your outreach."
+          benefits={["CSV import with field mapping", "Duplicate handling on import", "Lead lists and lead statuses", "Bulk actions across selected leads"]}
+          cta={{ to: "/features", text: "Explore Lead Management" }}
+          visual={<LeadListMock />}
+        />
+        <FeatureStory
+          id="campaigns"
+          reverse
+          label="Campaigns & sequences"
+          title="Build Outreach Campaigns Without The Busywork"
+          body="Create multi-step sequences with delays between steps, then control exactly when and how much you send."
+          benefits={["Multi-step sequences and follow-ups", "Sending windows and sending days", "Daily sending limits", "Pause and resume any campaign"]}
+          cta={{ to: "/product/campaigns", text: "Explore Campaigns" }}
+          visual={<FrameImage src={sequencesAsset.url} alt="MunchReach sequence builder with multiple steps" />}
+        />
+        <FeatureStory
+          id="ai"
+          label="AI personalization"
+          title="Make Every Email Feel Personal"
+          body="Use lead variables like first name, company, and industry, and let the AI campaign writer draft openings you review before anything is sent. Connect your own OpenAI or Claude key."
+          benefits={["Lead variables in every step", "AI-drafted personalized copy", "OpenAI and Claude support", "You review before sending"]}
+          cta={{ to: "/products/ai-campaign-writer", text: "Explore AI Personalization" }}
+          visual={<AiPersonalizationScreen />}
+        />
+        <FeatureStory
+          id="follow-ups"
+          reverse
+          label="Follow-ups"
+          title="Follow Up Automatically"
+          body="Follow-up steps send on the delays you set and move each prospect forward automatically. When someone replies, their sequence stops."
+          benefits={["Multi-step follow-ups", "Custom delays between steps", "Stops when a prospect replies", "Automatic progression"]}
+          cta={{ to: "/product/follow-ups", text: "Explore Follow-ups" }}
+          visual={<SequenceMock />}
+        />
+        <FeatureStory
+          id="inbox"
+          label="Unified inbox"
+          title="Every Reply. One Inbox."
+          body="Replies from every connected mailbox arrive in one place, threaded with the full conversation and the lead's CRM context."
+          benefits={["Replies from all mailboxes in one view", "Reply classification", "Assignments and internal notes", "Conversation history with CRM context"]}
+          cta={{ to: "/product/unified-inbox", text: "Explore Unified Inbox" }}
+          visual={<UniboxMock />}
+        />
+        <FeatureStory
+          id="warmup"
+          reverse
+          label="Warmup"
+          title="Protect Your Sending Reputation"
+          body="Warmup builds sending activity gradually on your connected mailboxes and keeps an eye on mailbox health, so problems show up before they hurt your campaigns."
+          benefits={["Mailbox warmup", "Health monitoring and warmup status", "Sending activity tracking", "Deliverability warnings"]}
+          cta={{ to: "/product/warmup", text: "Explore Warmup" }}
+          visual={<WarmupDashboardMock />}
+        />
+        <FeatureStory
+          id="crm"
+          label="CRM"
+          title="Turn Replies Into Opportunities"
+          body="Contacts move through pipeline stages that stay in sync with your inbox, so every opportunity is linked to the conversation that created it."
+          benefits={["Contacts and pipeline stages", "Tasks and conversation history", "Stages synced with the inbox", "Opportunity tracking to Won or Lost"]}
+          cta={{ to: "/product/crm", text: "Explore CRM" }}
+          visual={<CrmTableMock compact />}
+        />
+        <FeatureStory
+          id="analytics"
+          reverse
+          label="Analytics"
+          title="Know What's Actually Working"
+          body="See sends, deliveries, opens, replies, positive replies, bounces, and meetings across campaigns and sequences, based on your real sending data."
+          benefits={["Sent, delivered, opens, and replies", "Positive replies and bounces", "Campaign and sequence performance", "Meeting tracking"]}
+          cta={{ to: "/product/analytics", text: "Explore Analytics" }}
+          visual={<FrameImage src={analyticsAsset.url} alt="MunchReach analytics dashboard" />}
+        />
+
+        {/* One workspace (dark) */}
+        <section className="bg-foreground py-20 text-background sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <Reveal>
+              <div className="mx-auto max-w-2xl text-center">
+                <Eyebrow>One workspace</Eyebrow>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-5xl">
+                  One Workspace For Your Entire Outbound
+                </h2>
+                <p className="mt-4 text-lg text-background/70">
+                  Leads, campaigns, replies, and pipeline share the same workspace and the same data, so nothing has to be
+                  copied between tools.
+                </p>
+              </div>
+            </Reveal>
+            <div className="relative mx-auto mt-14 max-w-4xl">
+              <svg aria-hidden className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <line x1="12" y1="25" x2="88" y2="25" stroke="var(--primary)" strokeOpacity="0.4" strokeWidth="0.3" strokeDasharray="1 1.5">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="3s" repeatCount="indefinite" />
+                </line>
+                <line x1="12" y1="75" x2="88" y2="75" stroke="var(--primary)" strokeOpacity="0.4" strokeWidth="0.3" strokeDasharray="1 1.5">
+                  <animate attributeName="stroke-dashoffset" from="0" to="10" dur="3s" repeatCount="indefinite" />
+                </line>
+              </svg>
+              <div className="relative grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-y-16">
+                {workspaceAreas.map((a, i) => (
+                  <Reveal key={a.label} delay={i * 60}>
+                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-background/15 bg-foreground p-5 text-center">
+                      <span className="grid size-10 place-items-center rounded-xl bg-primary/20 text-primary">
+                        <a.icon className="size-5" />
+                      </span>
+                      <span className="text-sm font-semibold">{a.label}</span>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
+            <Reveal className="mx-auto mt-16 max-w-5xl">
+              <FrameImage src={automationsAsset.url} alt="MunchReach automations connecting workspace events to actions" />
+            </Reveal>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section id="how-it-works" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-28">
           <Reveal>
-            <SectionHead
-              eyebrow="Getting started"
-              title="Start Sending In Minutes"
-              description="Four steps from signing up to managing your first replies."
-            />
+            <SectionHead eyebrow="Getting started" title="Four Steps To Your First Replies" />
           </Reveal>
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {howItWorks.map((s, i) => (
               <Reveal key={s.n} delay={i * 80}>
-                <div className="surface-card h-full p-6">
-                  <span className="text-2xl font-extrabold tracking-tight text-primary/40">
-                    {s.n}
-                  </span>
-                  <h3 className="mt-3 text-base font-semibold">{s.title}</h3>
+                <div className="h-full rounded-2xl border border-border/70 bg-card p-6">
+                  <span className="text-3xl font-extrabold tracking-tight text-primary/40">{s.n}</span>
+                  <h3 className="mt-4 text-lg font-semibold">{s.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{s.text}</p>
                 </div>
               </Reveal>
             ))}
           </div>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button size="lg" asChild>
-              <Link to="/signup">
-                Start for Free
-                <Upload className="size-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/pricing">View Pricing</Link>
-            </Button>
+        </section>
+
+        {/* Use cases */}
+        <section className="border-y border-border/60 bg-secondary/30 py-20 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <Reveal>
+              <SectionHead eyebrow="Use cases" title="Built For Teams That Rely On Outbound" />
+            </Reveal>
+            <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {audiences.map((a) => {
+                const inner = (
+                  <>
+                    <span className="font-semibold">{a.label}</span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                  </>
+                );
+                const cls =
+                  "group flex items-center justify-between rounded-2xl border border-border/70 bg-card px-5 py-5 transition-colors hover:border-primary/40";
+                return a.slug ? (
+                  <Link key={a.label} to="/solutions/$slug" params={{ slug: a.slug }} className={cls}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <Link key={a.label} to="/solutions" className={cls}>
+                    {inner}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        {/* ---------------------------------------------------- Testimonials */}
+        {/* Product showcase */}
+        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <Reveal>
+            <SectionHead eyebrow="Inside MunchReach" title="See The Product" description="The screens your team works in every day." />
+          </Reveal>
+          <div className="mt-10">
+            <ShowcaseTabs />
+          </div>
+        </section>
+
+        {/* Testimonials (real only, from content) */}
         <div className="border-y border-border/60 bg-secondary/30">
-          <TestimonialCarousel page="home" title="Loved By Outreach Teams" />
+          <TestimonialCarousel page="home" title="What Customers Say" />
         </div>
 
-        {/* ------------------------------------------------------------- FAQ */}
-        <section id="faq" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+        {/* FAQ */}
+        <section id="faq" className="mx-auto max-w-4xl px-4 py-20 sm:px-6 sm:py-28">
           <PageFaqs
-            page="home" defaults={faqs}
+            page="home"
+            defaults={faqs}
             title="Frequently Asked Questions"
             description="Everything you need to know about MunchReach."
           />
         </section>
 
-        {/* ------------------------------------------------------- Final CTA */}
+        {/* Final CTA */}
         <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6">
-          <div className="hero-glow surface-card px-6 py-16 text-center">
-            <Workflow className="mx-auto size-6 text-primary" />
-            <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready To Turn Cold Email Into Conversations?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Create your workspace, launch your first campaign, and let MunchReach handle the rest.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button size="lg" asChild>
-                <Link to="/signup">Start for Free</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/pricing">View Pricing</Link>
-              </Button>
+          <div className="relative overflow-hidden rounded-3xl bg-foreground px-6 py-20 text-center text-background sm:py-24">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,color-mix(in_oklab,var(--primary)_35%,transparent),transparent_70%)]"
+            />
+            <div className="relative">
+              <h2 className="mx-auto max-w-3xl text-3xl font-bold tracking-tight text-balance sm:text-5xl">
+                Ready To Turn Cold Email Into Conversations?
+              </h2>
+              <p className="mx-auto mt-5 max-w-xl text-lg text-background/70">
+                Bring your prospects, build your campaigns, and manage every conversation from one workspace.
+              </p>
+              <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+                <Button size="lg" className="rounded-xl px-7" asChild>
+                  <Link to="/signup">
+                    Start Sending Free
+                    <Send className="size-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="secondary" className="rounded-xl px-7" asChild>
+                  <Link to="/pricing">View Pricing</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
