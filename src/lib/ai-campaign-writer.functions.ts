@@ -72,10 +72,16 @@ async function writerContext(
       ? ((campaign.ai_config as Record<string, unknown>)["provider"] as string)
       : null;
   const wanted = (preferredProvider || configProvider) ?? "";
+  const configModel =
+    typeof (campaign.ai_config as Record<string, unknown> | null)?.["model"] === "string"
+      ? ((campaign.ai_config as Record<string, unknown>)["model"] as string)
+      : null;
   const credentials = await workspaceAiCredentials(
     supabaseAdmin,
     workspaceId,
     wanted === "anthropic" ? "anthropic" : wanted === "openai" ? "openai" : undefined,
+    // The campaign's model belongs to the campaign's provider only.
+    wanted && wanted === configProvider ? configModel : null,
   );
   if (!credentials)
     return {

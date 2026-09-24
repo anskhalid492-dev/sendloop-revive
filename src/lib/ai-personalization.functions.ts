@@ -89,12 +89,15 @@ export const previewAiPersonalization = createServerFn({ method: "POST" })
       supabaseAdmin,
       campaign.workspace_id,
       config.provider,
+      config.model,
     );
     if (!credentials) {
       return {
         ok: false as const,
         leadId: data.leadId,
-        message: "Connect an AI provider key (OpenAI or Claude) to generate personalization.",
+        message: config.provider
+          ? `Connect your ${config.provider === "anthropic" ? "Claude (Anthropic)" : "ChatGPT (OpenAI)"} API key to generate with the provider this campaign selected.`
+          : "Connect an AI provider key (ChatGPT or Claude) to generate personalization.",
         status: 401,
       };
     }
