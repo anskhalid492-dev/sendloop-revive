@@ -133,6 +133,7 @@ export function AppShell({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const currentHash = useRouterState({ select: (s) => s.location.hash });
   const { theme, setTheme } = useTheme();
   // Attributes a referred signup the first time the customer reaches the app.
   useReferralClaim(true);
@@ -166,12 +167,19 @@ export function AppShell({
     .join("")
     .toUpperCase();
 
-  const linkClass = (to: string) =>
+  const isActive = (to: string, hash?: string) => {
+    const onRoute = pathname === to || pathname.startsWith(`${to}/`);
+    if (!onRoute) return false;
+    if (to !== "/crm") return true;
+    return (hash ?? "") === (currentHash ?? "");
+  };
+
+  const linkClass = (to: string, hash?: string) =>
     cn(
-      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-      pathname === to
-        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-        : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors duration-150",
+      isActive(to, hash)
+        ? "bg-primary/10 font-medium text-primary"
+        : "text-foreground/70 hover:bg-muted hover:text-foreground",
     );
 
   const sidebar = (
@@ -201,11 +209,11 @@ export function AppShell({
         <WorkspaceSwitcher />
       </div>
 
-      <nav className="flex-1 space-y-4 p-3">
+      <nav className="flex-1 space-y-5 px-3 py-4">
         {navGroups.map((group, i) => (
-          <div key={group.label ?? `group-${i}`} className="space-y-1">
+          <div key={group.label ?? `group-${i}`} className="space-y-0.5">
             {group.label ? (
-              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              <p className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
                 {group.label}
               </p>
             ) : null}
@@ -215,9 +223,10 @@ export function AppShell({
                 to={item.to}
                 {...("hash" in item && item.hash ? { hash: item.hash } : {})}
                 onClick={() => setOpen(false)}
-                className={linkClass(item.to)}
+                className={linkClass(item.to, "hash" in item ? item.hash : undefined)}
+                aria-current={isActive(item.to, "hash" in item ? item.hash : undefined) ? "page" : undefined}
               >
-                <item.icon className="size-4" />
+                <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 truncate text-left">{item.label}</span>
                 {item.to === "/support" && supportUnread > 0 ? (
                   <span
@@ -237,7 +246,7 @@ export function AppShell({
                 onClick={() => setOpen(false)}
                 className={linkClass("__external_community__")}
               >
-                <Users className="size-4" />
+                <Users className="size-[18px] shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 truncate text-left">Join Community</span>
               </a>
             ) : null}
