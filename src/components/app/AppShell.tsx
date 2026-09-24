@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -62,6 +62,9 @@ import { DEFAULT_COMMUNITY } from "@/lib/community-model";
  * assignment) is MunchReach-managed and lives in the separate staff area,
  * which is never linked from the customer dashboard.
  */
+/** Survives page changes so the clicked label stays visible after navigating. */
+let lastFlash: { key: string; at: number } | null = null;
+
 const navGroups = [
   {
     label: null,
@@ -130,6 +133,21 @@ export function AppShell({
 }) {
 
   const [open, setOpen] = useState(false);
+  const [flashKey, setFlashKey] = useState<string | null>(() =>
+    lastFlash && Date.now() - lastFlash.at < 1600 ? lastFlash.key : null,
+  );
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!flashKey || !lastFlash) return;
+    const t = setTimeout(() => setFlashKey(null), Math.max(0, 1600 - (Date.now() - lastFlash.at)));
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const flash = (key: string) => {
+    lastFlash = { key, at: Date.now() };
+    setFlashKey(key);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashKey(null), 1600);
+  };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -275,10 +293,102 @@ export function AppShell({
     </div>
   );
 
+  const railItem = (
+    key: string,
+    label: string,
+    Icon: typeof Users,
+    active: boolean,
+    content: (cls: string, inner: ReactNode) => ReactNode,
+    badge?: ReactNode,
+  ) => {
+    const shown = flashKey === key;
+    const cls = cn(
+      "group/rail relative flex size-10 items-center justify-center rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      active ? "bg-primary/10 text-primary" : "text-foreground/60 hover:bg-muted hover:text-foreground",
+    );
+    const inner = (
+      <>
+        <Icon className="size-[18px]" strokeWidth={1.75} />
+        {badge}
+        <span className="sr-only">{label}</span>
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs font-medium text-popover-foreground shadow-md transition-all duration-150",
+            shown
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-1 opacity-0 group-hover/rail:translate-x-0 group-hover/rail:opacity-100 group-focus-visible/rail:translate-x-0 group-focus-visible/rail:opacity-100",
+          )}
+        >
+          {label}
+        </span>
+      </>
+    );
+    return <div key={key}>{content(cls, inner)}</div>;
+  };
+
+  const rail = (
+    <div className="flex h-full flex-col items-center gap-1 py-3">
+      <Link to="/dashboard" aria-label={BRAND_NAME} className="mb-2 flex size-10 items-center justify-center">
+        <img src="/favicon.png" alt="" className="size-7 rounded-md" />
+      </Link>
+      <nav className="flex flex-1 flex-col items-center gap-1" aria-label="Main navigation">
+        {navGroups.map((group, i) => (
+          <div key={group.label ?? `rail-${i}`} className="flex flex-col items-center gap-0.5">
+            {i > 0 ? <div className="my-1.5 h-px w-6 bg-sidebar-border" /> : null}
+            {group.items.map((item) => {
+              const hash = "hash" in item ? item.hash : undefined;
+              const key = `${item.to}-${item.label}`;
+              return railItem(
+                key,
+                item.label,
+                item.icon,
+                isActive(item.to, hash),
+                (cls, inner) => (
+                  <Link
+                    to={item.to}
+                    {...(hash ? { hash } : {})}
+                    onClick={() => flash(key)}
+                    className={cls}
+                    aria-label={item.label}
+                    aria-current={isActive(item.to, hash) ? "page" : undefined}
+                  >
+                    {inner}
+                  </Link>
+                ),
+                item.to === "/support" && supportUnread > 0 ? (
+                  <span className="absolute right-1 top-1 size-2 rounded-full bg-primary" aria-label={`${supportUnread} unread support updates`} />
+                ) : null,
+              );
+            })}
+            {group.label === "Settings"
+              ? railItem("community", "Join Community", Users, false, (cls, inner) => (
+                  <a
+                    href={DEFAULT_COMMUNITY.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cls}
+                    aria-label="Join Community"
+                  >
+                    {inner}
+                  </a>
+                ))
+              : null}
+          </div>
+        ))}
+      </nav>
+      {railItem("upgrade", "Upgrade plan", Sparkles, isActive("/billing"), (cls, inner) => (
+        <Link to="/billing" onClick={() => flash("upgrade")} className={cls} aria-label="Upgrade plan">
+          {inner}
+        </Link>
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 hidden w-60 border-r border-sidebar-border bg-sidebar lg:block">
-        {sidebar}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-16 border-r border-sidebar-border bg-sidebar lg:block">
+        {rail}
       </aside>
 
       {open ? (
@@ -290,7 +400,7 @@ export function AppShell({
         </div>
       ) : null}
 
-      <div className="lg:pl-60">
+      <div className="lg:pl-16">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/85 px-4 backdrop-blur sm:px-6">
           <button
             className="inline-flex size-9 items-center justify-center rounded-md border border-border lg:hidden"
