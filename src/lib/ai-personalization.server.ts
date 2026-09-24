@@ -866,11 +866,15 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       } catch (error) {
         // Nothing was charged unless a generation actually completed.
         const failure =
-          error instanceof AiGatewayError ? error : mapGatewayError(error, vendorOf(credentials));
+          error instanceof AiGatewayError
+            ? error
+            : mapGatewayError(error, vendorOf(credentials), credentials.model);
 
         // Key, credit and rate-limit problems belong to the workspace, not the
         // lead: park the workspace and keep every one of its leads queued.
-        const workspaceLevel = [401, 402, 403, 429].includes(failure.status);
+        // A missing/unavailable model (404/409) is a settings problem too: the
+        // leads wait until the customer refreshes models and picks another.
+        const workspaceLevel = [401, 402, 403, 404, 409, 429].includes(failure.status);
         if (workspaceLevel) {
           blockedWorkspaces.set(settings.workspaceId, failure.message);
           result.skipped = failure.message;
