@@ -63,7 +63,7 @@ export type InboxAccount = {
   customer_enabled?: boolean | null;
 };
 
-function accountState(account: InboxAccount): { label: string; tone: string } {
+export function accountState(account: InboxAccount): { label: string; tone: string } {
   if (account.paused || account.customer_enabled === false) {
     return { label: "Paused", tone: "bg-amber-500" };
   }
