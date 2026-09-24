@@ -25,9 +25,9 @@ import { PageFaqs } from "@/components/site/PageFaqs";
 import { AiPersonalizationScreen } from "@/components/site/AiPersonalizationProductMocks";
 import { SequenceMock } from "@/components/site/CampaignsProductMocks";
 import { CrmTableMock } from "@/components/site/CrmProductMocks";
-import { UniboxMock } from "@/components/site/UniboxProductMocks";
 import { WarmupDashboardMock } from "@/components/site/WarmupProductMocks";
 import { Button } from "@/components/ui/button";
+import { InboxSection, StackSection, WorkspaceSection } from "@/components/site/HomeSections";
 import dashboardOverviewAsset from "@/assets/munchreach-dashboard-overview.jpg.asset.json";
 import sequencesAsset from "@/assets/sequences-mockup.jpg.asset.json";
 import analyticsAsset from "@/assets/analytics-2.jpg.asset.json";
@@ -105,17 +105,6 @@ const problems = [
 ];
 
 const flow = ["Leads", "Campaigns", "AI Campaign Writer", "Follow-ups", "Sending", "Replies", "CRM", "Analytics"];
-
-const workspaceAreas = [
-  { icon: Users, label: "Leads" },
-  { icon: Layers, label: "Campaigns" },
-  { icon: Repeat, label: "Sequences" },
-  { icon: Sparkles, label: "AI" },
-  { icon: Inbox, label: "Inbox" },
-  { icon: Flame, label: "Warmup" },
-  { icon: Workflow, label: "CRM" },
-  { icon: BarChart3, label: "Analytics" },
-];
 
 const howItWorks = [
   { n: "01", title: "Create your workspace", text: "Name it, invite your team, and connect your mailbox." },
@@ -526,15 +515,7 @@ function Home() {
           cta={{ to: "/product/follow-ups", text: "Explore Follow-ups" }}
           visual={<SequenceMock />}
         />
-        <FeatureStory
-          id="inbox"
-          label="Unified inbox"
-          title="Every Reply. One Inbox."
-          body="Replies from every connected mailbox arrive in one place, threaded with the full conversation and the lead's CRM context."
-          benefits={["Replies from all mailboxes in one view", "Reply classification", "Assignments and internal notes", "Conversation history with CRM context"]}
-          cta={{ to: "/product/unified-inbox", text: "Explore Unified Inbox" }}
-          visual={<UniboxMock />}
-        />
+        <InboxSection />
         <FeatureStory
           id="warmup"
           reverse
@@ -565,48 +546,9 @@ function Home() {
           visual={<FrameImage src={analyticsAsset.url} alt="MunchReach analytics dashboard" />}
         />
 
-        {/* One workspace (dark) */}
-        <section className="bg-foreground py-20 text-background sm:py-28">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <Reveal>
-              <div className="mx-auto max-w-2xl text-center">
-                <Eyebrow>One workspace</Eyebrow>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-5xl">
-                  One Workspace For Your Entire Outbound
-                </h2>
-                <p className="mt-4 text-lg text-background/70">
-                  Leads, campaigns, replies, and pipeline share the same workspace and the same data, so nothing has to be
-                  copied between tools.
-                </p>
-              </div>
-            </Reveal>
-            <div className="relative mx-auto mt-14 max-w-4xl">
-              <svg aria-hidden className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block" preserveAspectRatio="none" viewBox="0 0 100 100">
-                <line x1="12" y1="25" x2="88" y2="25" stroke="var(--primary)" strokeOpacity="0.4" strokeWidth="0.3" strokeDasharray="1 1.5">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="3s" repeatCount="indefinite" />
-                </line>
-                <line x1="12" y1="75" x2="88" y2="75" stroke="var(--primary)" strokeOpacity="0.4" strokeWidth="0.3" strokeDasharray="1 1.5">
-                  <animate attributeName="stroke-dashoffset" from="0" to="10" dur="3s" repeatCount="indefinite" />
-                </line>
-              </svg>
-              <div className="relative grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-y-16">
-                {workspaceAreas.map((a, i) => (
-                  <Reveal key={a.label} delay={i * 60}>
-                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-background/15 bg-foreground p-5 text-center">
-                      <span className="grid size-10 place-items-center rounded-xl bg-primary/20 text-primary">
-                        <a.icon className="size-5" />
-                      </span>
-                      <span className="text-sm font-semibold">{a.label}</span>
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
-            </div>
-            <Reveal className="mx-auto mt-16 max-w-5xl">
-              <FrameImage src={automationsAsset.url} alt="MunchReach automations connecting workspace events to actions" />
-            </Reveal>
-          </div>
-        </section>
+        <WorkspaceSection />
+
+        <StackSection />
 
         {/* How it works */}
         <section id="how-it-works" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-28">
