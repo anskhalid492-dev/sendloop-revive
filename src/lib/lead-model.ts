@@ -89,6 +89,8 @@ export type LeadRow = {
   country: string | null;
   status: string;
   crm_stage: string;
+  /** Real pipeline stage key from stage_id (detail view only). */
+  stage_key?: string | null;
   tags: string[];
   custom_fields: Record<string, string>;
   last_activity_at: string | null;
