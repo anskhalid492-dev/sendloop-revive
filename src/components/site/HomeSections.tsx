@@ -372,7 +372,7 @@ export function WorkspaceSection() {
             <div
               key={m.label}
               className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${nodePos[i].x}%`, top: `${nodePos[i].y}%` }}
+              style={{ left: `${nodePos[i]!.x}%`, top: `${nodePos[i]!.y}%` }}
             >
               <div className="mr-float" style={{ animationDelay: `${i * 0.5}s` }}>
                 <div className="flex items-center gap-2.5 rounded-xl border border-border/70 bg-card/95 py-2 pl-2 pr-3.5 shadow-[0_12px_30px_-18px_color-mix(in_oklab,var(--foreground)_40%,transparent)] backdrop-blur transition-transform hover:scale-105">

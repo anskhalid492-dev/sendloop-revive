@@ -25,7 +25,6 @@ import { PageFaqs } from "@/components/site/PageFaqs";
 import { AiPersonalizationScreen } from "@/components/site/AiPersonalizationProductMocks";
 import { SequenceMock } from "@/components/site/CampaignsProductMocks";
 import { CrmTableMock } from "@/components/site/CrmProductMocks";
-import { UniboxMock } from "@/components/site/UniboxProductMocks";
 import { WarmupDashboardMock } from "@/components/site/WarmupProductMocks";
 import { Button } from "@/components/ui/button";
 import { InboxSection, StackSection, WorkspaceSection } from "@/components/site/HomeSections";
@@ -106,17 +105,6 @@ const problems = [
 ];
 
 const flow = ["Leads", "Campaigns", "AI Campaign Writer", "Follow-ups", "Sending", "Replies", "CRM", "Analytics"];
-
-const workspaceAreas = [
-  { icon: Users, label: "Leads" },
-  { icon: Layers, label: "Campaigns" },
-  { icon: Repeat, label: "Sequences" },
-  { icon: Sparkles, label: "AI" },
-  { icon: Inbox, label: "Inbox" },
-  { icon: Flame, label: "Warmup" },
-  { icon: Workflow, label: "CRM" },
-  { icon: BarChart3, label: "Analytics" },
-];
 
 const howItWorks = [
   { n: "01", title: "Create your workspace", text: "Name it, invite your team, and connect your mailbox." },
