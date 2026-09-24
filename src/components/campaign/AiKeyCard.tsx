@@ -142,6 +142,9 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
               )}
               Disconnect
             </Button>
+            <div className="w-full">
+              <AiModelPicker workspaceId={workspaceId} provider={row.provider} />
+            </div>
           </div>
         ))}
 

@@ -52,6 +52,7 @@ import {
   saveAiSettings,
 } from "@/lib/ai-personalization.functions";
 import { listWorkspaceAiKeys } from "@/lib/ai-keys.functions";
+import { AiModelPicker } from "@/components/campaign/AiModelPicker";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: string }) {
@@ -131,8 +132,9 @@ export function AiPersonalizationSidebar({
     connectedProviders.find((row) => row.status === "verified") ??
     connectedProviders[0] ??
     null;
+  const activeModel = config.provider && config.model ? config.model : activeProvider?.model || "";
   const activeProviderLabel = activeProvider
-    ? `${activeProvider.providerLabel} · ${activeProvider.model}`
+    ? `${activeProvider.providerLabel} · ${activeModel || "no model selected"}`
     : "no provider connected";
 
   const patch = (values: Partial<AiPersonalizationConfig>) =>
@@ -330,26 +332,38 @@ export function AiPersonalizationSidebar({
             </div>
             {connectedProviders.length ? (
               <>
-                <Select
-                  value={config.provider ?? "auto"}
-                  onValueChange={(value) =>
-                    patch({ provider: value === "auto" ? null : (value as "openai" | "anthropic") })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">
-                      Automatic — use my connected provider
-                    </SelectItem>
-                    {connectedProviders.map((row) => (
-                      <SelectItem key={row.provider} value={row.provider}>
-                        {row.providerLabel} · {row.model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">AI Provider</Label>
+                  <Select
+                    value={config.provider ?? undefined}
+                    onValueChange={(value) =>
+                      // Switching provider clears the model: a model id belongs to one provider.
+                      patch({ provider: value as "openai" | "anthropic", model: null })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose ChatGPT or Claude" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {connectedProviders.map((row) => (
+                        <SelectItem key={row.provider} value={row.provider}>
+                          {row.providerLabel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {config.provider ? (
+                  <AiModelPicker
+                    key={config.provider}
+                    workspaceId={workspaceId}
+                    provider={config.provider}
+                    label="AI Model"
+                    value={config.model}
+                    onChange={(model) => patch({ model })}
+                    allowConnectionDefault
+                  />
+                ) : null}
                 <p className="text-[11px] text-muted-foreground">
                   This campaign&apos;s lines are written by the provider you choose here, using your
                   own key. Changing it only affects lines generated from now on — regenerate if you
@@ -358,8 +372,8 @@ export function AiPersonalizationSidebar({
               </>
             ) : (
               <p className="text-xs text-muted-foreground">
-                No AI provider is connected yet. Add your OpenAI or Claude key in Settings →
-                Sending to choose a provider here.
+                No AI provider is connected yet. Connect ChatGPT or Claude in Settings →
+                Integrations to choose a provider here.
               </p>
             )}
           </section>
