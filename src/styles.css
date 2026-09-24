@@ -528,3 +528,15 @@
 .cms-content .callout strong {
   color: var(--foreground);
 }
+
+@keyframes mr-spin { to { transform: rotate(360deg); } }
+@keyframes mr-dash-move { to { stroke-dashoffset: -40; } }
+@keyframes mr-flow-move { from { stroke-dashoffset: 64; } to { stroke-dashoffset: 0; } }
+@keyframes mr-float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.mr-orbit { animation: mr-spin 90s linear infinite; }
+.mr-dash { animation: mr-dash-move 12s linear infinite; }
+.mr-flow { animation: mr-flow-move 7.2s linear infinite; }
+.mr-float { animation: mr-float-y 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mr-orbit, .mr-dash, .mr-flow, .mr-float { animation: none; }
+}
