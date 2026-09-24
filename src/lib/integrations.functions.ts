@@ -174,6 +174,18 @@ export const connectIntegration = createServerFn({ method: "POST" })
     if (!verified.ok) return { ok: false, message: verified.message };
 
     config["events"] = meta.events;
+    // AI integrations: keep the customer's selected model across key updates.
+    // It is re-checked live against the new key in the model picker — never swapped.
+    if (data.slug === "openai" || data.slug === "claude") {
+      const { data: prev } = await supabaseAdmin
+        .from("integration_connections")
+        .select("config")
+        .eq("workspace_id", data.workspaceId)
+        .eq("slug", data.slug)
+        .maybeSingle();
+      const prevModel = ((prev as { config?: Record<string, unknown> } | null)?.config ?? {})["model"];
+      if (typeof prevModel === "string" && prevModel.trim()) config["model"] = prevModel.trim();
+    }
     if (meta.inbound) config["inbound_token"] = crypto.randomUUID().replace(/-/g, "");
 
     const { data: upserted, error } = await supabaseAdmin
