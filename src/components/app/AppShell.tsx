@@ -64,6 +64,8 @@ import { DEFAULT_COMMUNITY } from "@/lib/community-model";
  */
 /** Survives page changes so the clicked label stays visible after navigating. */
 let lastFlash: { key: string; at: number } | null = null;
+/** Screen position of the last clicked rail icon, so its label can reappear there. */
+let lastFlashTip: { key: string; label: string; top: number } | null = null;
 
 const navGroups = [
   {
@@ -133,6 +135,7 @@ export function AppShell({
 }) {
 
   const [open, setOpen] = useState(false);
+  const [hoverTip, setHoverTip] = useState<{ label: string; top: number } | null>(null);
   const [flashKey, setFlashKey] = useState<string | null>(() =>
     lastFlash && Date.now() - lastFlash.at < 1600 ? lastFlash.key : null,
   );
@@ -301,9 +304,8 @@ export function AppShell({
     content: (cls: string, inner: ReactNode) => ReactNode,
     badge?: ReactNode,
   ) => {
-    const shown = flashKey === key;
     const cls = cn(
-      "group/rail relative flex size-10 items-center justify-center rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "relative flex size-10 items-center justify-center rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       active ? "bg-primary/10 text-primary" : "text-foreground/60 hover:bg-muted hover:text-foreground",
     );
     const inner = (
@@ -311,28 +313,41 @@ export function AppShell({
         <Icon className="size-[18px]" strokeWidth={1.75} />
         {badge}
         <span className="sr-only">{label}</span>
-        <span
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs font-medium text-popover-foreground shadow-md transition-all duration-150",
-            shown
-              ? "translate-x-0 opacity-100"
-              : "-translate-x-1 opacity-0 group-hover/rail:translate-x-0 group-hover/rail:opacity-100 group-focus-visible/rail:translate-x-0 group-focus-visible/rail:opacity-100",
-          )}
-        >
-          {label}
-        </span>
       </>
     );
-    return <div key={key}>{content(cls, inner)}</div>;
+    const posOf = (el: HTMLElement) => {
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2;
+    };
+    return (
+      <div
+        key={key}
+        onMouseEnter={(e) => setHoverTip({ label, top: posOf(e.currentTarget) })}
+        onMouseLeave={() => setHoverTip(null)}
+        onFocus={(e) => setHoverTip({ label, top: posOf(e.currentTarget) })}
+        onBlur={() => setHoverTip(null)}
+        onClickCapture={(e) => {
+          lastFlashTip = { key, label, top: posOf(e.currentTarget) };
+        }}
+      >
+        {content(cls, inner)}
+      </div>
+    );
   };
+
+  const flashTip = flashKey && lastFlashTip?.key === flashKey ? lastFlashTip : null;
+  const tip = hoverTip ?? flashTip;
 
   const rail = (
     <div className="flex h-full flex-col items-center gap-1 py-3">
-      <Link to="/dashboard" aria-label={BRAND_NAME} className="mb-2 flex size-10 items-center justify-center">
+      <Link to="/dashboard" aria-label={BRAND_NAME} className="mb-2 flex size-10 shrink-0 items-center justify-center">
         <img src="/favicon.png" alt="" className="size-7 rounded-md" />
       </Link>
-      <nav className="flex flex-1 flex-col items-center gap-1" aria-label="Main navigation">
+      <nav
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden [scrollbar-width:thin]"
+        aria-label="Main navigation"
+        onScroll={() => setHoverTip(null)}
+      >
         {navGroups.map((group, i) => (
           <div key={group.label ?? `rail-${i}`} className="flex flex-col items-center gap-0.5">
             {i > 0 ? <div className="my-1.5 h-px w-6 bg-sidebar-border" /> : null}
