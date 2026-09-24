@@ -28,10 +28,10 @@ describe("AI provider catalogue", () => {
     expect(aiProvider("openai").keyPattern.test("sk-abcdefghijklmnopqrstuvwx")).toBe(true);
   });
 
-  it("never lets a model leak across providers", () => {
-    expect(resolveAiModel("anthropic", "gpt-4o")).toBe(aiProvider("anthropic").defaultModel);
-    expect(resolveAiModel("anthropic", "claude-sonnet-4-5")).toBe("claude-sonnet-4-5");
-    expect(resolveAiModel("openai", null)).toBe("gpt-4o-mini");
+  it("never substitutes a model — the stored id is used exactly or not at all", () => {
+    expect(resolveAiModel(" claude-sonnet-4-5 ")).toBe("claude-sonnet-4-5");
+    expect(resolveAiModel(null)).toBe("");
+    expect(resolveAiModel("some-unknown-model")).toBe("some-unknown-model");
   });
 });
 
