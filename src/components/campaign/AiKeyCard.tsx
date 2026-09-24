@@ -7,7 +7,7 @@
  * A workspace can keep one key per provider, so campaigns can choose which one
  * generates their personalization.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, ExternalLink, KeyRound, Loader2, ShieldCheck, Trash2 } from "lucide-react";
@@ -18,19 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { AiModelPicker } from "@/components/campaign/AiModelPicker";
 import {
   deleteWorkspaceAiKeyFn,
   listWorkspaceAiKeys,
   saveWorkspaceAiKeyFn,
 } from "@/lib/ai-keys.functions";
-import { AI_PROVIDERS, aiProvider, resolveAiModel, type AiProviderId } from "@/lib/ai-providers";
+import { AI_PROVIDERS, aiProvider, type AiProviderId } from "@/lib/ai-providers";
 
 export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefined }) {
   const queryClient = useQueryClient();
@@ -40,7 +34,6 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
 
   const [providerId, setProviderId] = useState<AiProviderId>("openai");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState(aiProvider("openai").defaultModel);
 
   const meta = aiProvider(providerId);
 
@@ -58,14 +51,8 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const connections = (keysQuery.data ?? []).filter((row) => row.connected);
   const current = connections.find((row) => row.provider === providerId) ?? null;
 
-  useEffect(() => {
-    if (!current) return;
-    setModel(resolveAiModel(providerId, current.model));
-  }, [current, providerId]);
-
   const chooseProvider = (next: AiProviderId) => {
     setProviderId(next);
-    setModel(aiProvider(next).defaultModel);
     setApiKey("");
   };
 
@@ -76,12 +63,13 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
   const save = useMutation({
     mutationFn: () =>
       saveKey({
-        data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), model, provider: providerId },
+        data: { workspaceId: workspaceId!, apiKey: apiKey.trim(), provider: providerId },
       }),
     onSuccess: async () => {
       setApiKey("");
-      toast.success(`${meta.label} connected`);
+      toast.success(`${meta.label} connected — now choose a model`);
       await refresh();
+      await queryClient.invalidateQueries({ queryKey: ["ai-provider-models", workspaceId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -138,10 +126,7 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
                 />
                 {row.providerLabel} connected — key ending •••• {row.last4 ?? "----"}
               </p>
-              <p className="text-muted-foreground">
-                Model: {row.model}
-                {row.lastError ? ` — ${row.lastError}` : ""}
-              </p>
+              {row.lastError ? <p className="text-destructive">{row.lastError}</p> : null}
             </div>
             <Button
               type="button"
@@ -157,6 +142,9 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
               )}
               Disconnect
             </Button>
+            <div className="w-full">
+              <AiModelPicker workspaceId={workspaceId} provider={row.provider} />
+            </div>
           </div>
         ))}
 
@@ -181,35 +169,21 @@ export function AiKeyCard({ workspaceId }: { workspaceId: string | null | undefi
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_260px]">
-          <div className="space-y-2">
-            <Label htmlFor="ai-key">{current ? "Replace API key" : meta.keyLabel}</Label>
-            <Input
-              id="ai-key"
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={meta.keyPlaceholder}
-              value={apiKey}
-              onChange={(event) => setApiKey(event.target.value)}
-            />
-            {keyError ? <p className="text-xs text-destructive">{keyError}</p> : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ai-model">Model</Label>
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger id="ai-model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {meta.models.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="ai-key">{current ? "Replace API key" : meta.keyLabel}</Label>
+          <Input
+            id="ai-key"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={meta.keyPlaceholder}
+            value={apiKey}
+            onChange={(event) => setApiKey(event.target.value)}
+          />
+          {keyError ? <p className="text-xs text-destructive">{keyError}</p> : null}
+          <p className="text-xs text-muted-foreground">
+            After the key is verified, MunchReach loads the models your {meta.vendor} account can use.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

@@ -56,14 +56,14 @@ describe("workspace AI credentials", () => {
     expect(openai?.provider).toBe("openai");
   });
 
-  it("falls back to a connected provider when the selected one has no key", async () => {
+  it("never switches provider when the selected one has no key", async () => {
     const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
     const { encryptCredentials } = await import("@/lib/provider-credentials.server");
     const onlyOpenAi = [
       { ...rows[0]!, key_ciphertext: encryptCredentials({ api_key: "key-openai" }) },
     ];
     const creds = await workspaceAiCredentials(adminWith(onlyOpenAi), "w1", "anthropic");
-    expect(creds?.provider).toBe("openai");
+    expect(creds).toBeNull();
   });
 
   it("returns null when nothing is connected", async () => {

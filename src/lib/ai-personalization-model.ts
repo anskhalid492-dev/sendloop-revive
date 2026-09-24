@@ -66,6 +66,11 @@ export type AiPersonalizationConfig = {
    */
   provider: "openai" | "anthropic" | null;
   /**
+   * Exact model id (as returned by the provider's Models API) for `provider`.
+   * `null` = use the model saved on that provider's connection. Never guessed.
+   */
+  model: string | null;
+  /**
    * How many pain points the AI writes for EACH lead (0 = none). Filled into
    * `{{pain_point}}`, `{{pain_point_2}}` … at send time, per lead.
    */
@@ -239,6 +244,7 @@ export function defaultAiConfig(): AiPersonalizationConfig {
     fallbackMode: "fallback_text",
     fallbackText: "I came across your team and wanted to reach out.",
     provider: null,
+    model: null,
     painPointsPerLead: 0,
     painPointFallback: "",
   };
@@ -288,6 +294,12 @@ export function normalizeAiConfig(raw: unknown): AiPersonalizationConfig {
     provider:
       v["provider"] === "openai" || v["provider"] === "anthropic"
         ? (v["provider"] as "openai" | "anthropic")
+        : null,
+    model:
+      (v["provider"] === "openai" || v["provider"] === "anthropic") &&
+      typeof v["model"] === "string" &&
+      v["model"].trim()
+        ? (v["model"] as string).trim().slice(0, 200)
         : null,
     painPointsPerLead:
       typeof v["painPointsPerLead"] === "number" && Number.isFinite(v["painPointsPerLead"])

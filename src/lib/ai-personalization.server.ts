@@ -86,6 +86,42 @@ function provider(credentials: WorkspaceAiCredentials) {
   });
 }
 
+/**
+ * OpenAI chat call with the customer's exact model. Some OpenAI models reject
+ * sampling/length parameters; when the provider says so we retry ONCE with the
+ * same model and without them — the model itself is never changed.
+ */
+async function generateWithOpenAi(
+  credentials: WorkspaceAiCredentials,
+  input: { system: string; prompt: string; temperature?: number; maxTokens?: number },
+): Promise<string> {
+  const model = provider(credentials)(credentials.model);
+  try {
+    const result = await generateText({
+      model,
+      system: input.system,
+      prompt: input.prompt,
+      ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+      ...(input.maxTokens !== undefined ? { maxOutputTokens: input.maxTokens } : {}),
+      maxRetries: 0,
+    });
+    return (result.text ?? "").trim();
+  } catch (error) {
+    const raw = error as { statusCode?: number; message?: string; responseBody?: string };
+    const detail = `${raw?.message ?? ""} ${raw?.responseBody ?? ""}`;
+    if (raw?.statusCode === 400 && /unsupported (parameter|value)/i.test(detail)) {
+      const result = await generateText({
+        model,
+        system: input.system,
+        prompt: input.prompt,
+        maxRetries: 0,
+      });
+      return (result.text ?? "").trim();
+    }
+    throw error;
+  }
+}
+
 export function vendorOf(credentials: Pick<WorkspaceAiCredentials, "provider">): string {
   return aiProvider(credentials?.provider).vendor;
 }
@@ -128,7 +164,7 @@ async function generateWithAnthropic(input: {
       detail = "";
     }
     throw new AiGatewayError(
-      anthropicFailure(res.status, detail || `Claude returned HTTP ${res.status}.`),
+      anthropicFailure(res.status, detail || `Claude returned HTTP ${res.status}.`, input.model),
     );
   }
   const body = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
@@ -139,7 +175,30 @@ async function generateWithAnthropic(input: {
     .trim();
 }
 
-function anthropicFailure(status: number, message: string): GatewayFailure {
+/** Exact message when the chosen model is not usable — never auto-substituted. */
+export function modelUnavailableMessage(vendor: string, model: string): string {
+  return `The selected ${vendor} model "${model}" is not available to your API key. Open AI Personalization or Integrations, click Refresh models and choose another model.`;
+}
+
+function looksLikeMissingModel(status: number, message: string): boolean {
+  if (status === 404) return true;
+  return (status === 400 || status === 403) && /model/i.test(message) && /(not[ _]found|does not exist|not available|no access|do not have access|invalid model)/i.test(message);
+}
+
+/** Refuse to call a provider without an explicitly selected model. */
+export function assertModelSelected(credentials: WorkspaceAiCredentials): void {
+  if (!credentials?.model?.trim()) {
+    throw new AiGatewayError({
+      status: 409,
+      message: `No ${aiProvider(credentials?.provider).label} model is selected. Open AI Personalization or Integrations, click Refresh models and choose a model.`,
+      retryable: false,
+    });
+  }
+}
+
+function anthropicFailure(status: number, message: string, model = ""): GatewayFailure {
+  if (looksLikeMissingModel(status, message))
+    return { status: 404, message: modelUnavailableMessage("Anthropic", model), retryable: false };
   if (status === 401 || status === 403)
     return {
       status,
@@ -353,11 +412,13 @@ function parseStructured(raw: string): {
 }
 
 
-function mapGatewayError(error: unknown, vendor = "OpenAI"): AiGatewayError {
+function mapGatewayError(error: unknown, vendor = "OpenAI", model = ""): AiGatewayError {
   if (error instanceof AiGatewayError) return error;
-  const raw = error as { statusCode?: number; status?: number; message?: string };
+  const raw = error as { statusCode?: number; status?: number; message?: string; responseBody?: string };
   const status = raw?.statusCode ?? raw?.status ?? 0;
   const message = raw?.message ?? "AI generation failed.";
+  if (looksLikeMissingModel(status, `${message} ${raw?.responseBody ?? ""}`))
+    return new AiGatewayError({ status: 404, message: modelUnavailableMessage(vendor, model), retryable: false });
   if (status === 402 || status === 429)
     return new AiGatewayError({
       status,
@@ -405,6 +466,7 @@ export async function generateWithWorkspaceAi(input: {
   const { credentials, system, prompt } = input;
   const maxTokens = input.maxTokens ?? 1200;
   const temperature = input.temperature ?? 0.6;
+  assertModelSelected(credentials);
   try {
     if (credentials.provider === "anthropic") {
       if (!credentials.apiKey)
@@ -422,16 +484,9 @@ export async function generateWithWorkspaceAi(input: {
         temperature,
       });
     }
-    const result = await generateText({
-      model: provider(credentials)(credentials.model),
-      system,
-      prompt,
-      temperature,
-      maxOutputTokens: maxTokens,
-    });
-    return (result.text ?? "").trim();
+    return await generateWithOpenAi(credentials, { system, prompt, temperature, maxTokens });
   } catch (error) {
-    throw mapGatewayError(error, vendorOf(credentials));
+    throw mapGatewayError(error, vendorOf(credentials), credentials.model);
   }
 }
 
@@ -473,6 +528,7 @@ export async function generatePersonalization(
   if (facts.length === 0) return safeFallback();
 
   const { system, prompt } = buildPrompt(config, facts);
+  assertModelSelected(credentials);
   let text: string;
   try {
     if (credentials.provider === "anthropic") {
@@ -489,16 +545,10 @@ export async function generatePersonalization(
         prompt,
       });
     } else {
-      const result = await generateText({
-        model: provider(credentials)(credentials.model),
-        system,
-        prompt,
-        temperature: 0.6,
-      });
-      text = (result.text ?? "").trim();
+      text = await generateWithOpenAi(credentials, { system, prompt, temperature: 0.6 });
     }
   } catch (error) {
-    throw mapGatewayError(error, vendorOf(credentials));
+    throw mapGatewayError(error, vendorOf(credentials), credentials.model);
   }
 
   const structured = parseStructured(text);
@@ -673,15 +723,15 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
      */
     const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
     const credsByWorkspace = new Map<string, WorkspaceAiCredentials | null>();
-    const credsKey = (workspaceId: string, provider: string | null) =>
-      `${workspaceId}::${provider ?? "default"}`;
+    const credsKey = (workspaceId: string, provider: string | null, model: string | null) =>
+      `${workspaceId}::${provider ?? "default"}::${model ?? ""}`;
     for (const campaign of campaignRows) {
-      const provider = normalizeAiConfig(campaign.ai_config).provider;
-      const key = credsKey(campaign.workspace_id, provider);
+      const { provider, model } = normalizeAiConfig(campaign.ai_config);
+      const key = credsKey(campaign.workspace_id, provider, model);
       if (credsByWorkspace.has(key)) continue;
       credsByWorkspace.set(
         key,
-        await workspaceAiCredentials(admin, campaign.workspace_id, provider),
+        await workspaceAiCredentials(admin, campaign.workspace_id, provider, model),
       );
     }
     /**
@@ -741,7 +791,7 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       }
 
       const credentials =
-        credsByWorkspace.get(credsKey(settings.workspaceId, settings.config.provider)) ?? null;
+        credsByWorkspace.get(credsKey(settings.workspaceId, settings.config.provider, settings.config.model)) ?? null;
       if (!credentials) {
         const reason = "No AI provider key is connected for this workspace.";
         blockedWorkspaces.set(settings.workspaceId, reason);
@@ -816,11 +866,15 @@ export async function processAiPersonalizationBatch(worker: string): Promise<Wor
       } catch (error) {
         // Nothing was charged unless a generation actually completed.
         const failure =
-          error instanceof AiGatewayError ? error : mapGatewayError(error, vendorOf(credentials));
+          error instanceof AiGatewayError
+            ? error
+            : mapGatewayError(error, vendorOf(credentials), credentials.model);
 
         // Key, credit and rate-limit problems belong to the workspace, not the
         // lead: park the workspace and keep every one of its leads queued.
-        const workspaceLevel = [401, 402, 403, 429].includes(failure.status);
+        // A missing/unavailable model (404/409) is a settings problem too: the
+        // leads wait until the customer refreshes models and picks another.
+        const workspaceLevel = [401, 402, 403, 404, 409, 429].includes(failure.status);
         if (workspaceLevel) {
           blockedWorkspaces.set(settings.workspaceId, failure.message);
           result.skipped = failure.message;

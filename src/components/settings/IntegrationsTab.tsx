@@ -30,6 +30,8 @@ import { Switch } from "@/components/ui/switch";
 import { BrandGlyph, brandIcon } from "@/components/site/BrandGlyph";
 import { CopyButton } from "@/components/site/CopyButton";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { AiModelPicker } from "@/components/campaign/AiModelPicker";
+import { aiProviderForSlug } from "@/lib/ai-providers";
 import {
   GOOGLE_SHEETS_APPS_SCRIPT,
   GOOGLE_SHEETS_SETUP_STEPS,
@@ -805,6 +807,16 @@ export function IntegrationsTab() {
                       The script creates a “MunchReach” tab with column headers automatically the
                       first time an event arrives. No Google sign-in or API keys needed.
                     </p>
+                  </div>
+                ) : null}
+
+                {(openMeta.slug === "openai" || openMeta.slug === "claude") && openItem.connected ? (
+                  <div className="rounded-lg border border-border/70 p-3">
+                    <AiModelPicker
+                      workspaceId={workspaceId}
+                      provider={aiProviderForSlug(openMeta.slug)!}
+                      label="Model"
+                    />
                   </div>
                 ) : null}
 
