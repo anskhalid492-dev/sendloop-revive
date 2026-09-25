@@ -10,6 +10,7 @@ import { generateText } from "ai";
 
 import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import { aiProvider } from "@/lib/ai-providers";
+import { extractSignals, isBlankValue, roleFamily, ROLE_GUIDANCE } from "@/lib/ai-lead-signals";
 import {
   AI_TOKEN,
   PAIN_POINT_MAX,
