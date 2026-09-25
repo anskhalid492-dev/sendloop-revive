@@ -58,6 +58,8 @@ export const MARKETING_EVENTS = [
   "marketing_email_delivered",
   "marketing_email_opened",
   "marketing_email_clicked",
+  "marketing_email_opened_machine",
+  "marketing_email_replied",
   "marketing_email_bounced",
   "marketing_email_complained",
   "marketing_email_unsubscribed",

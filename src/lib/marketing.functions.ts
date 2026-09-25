@@ -932,12 +932,41 @@ export const marketingAnalytics = createServerFn({ method: "GET" })
     const [{ data: events }, { data: campaigns }, { data: subscribers }] = await Promise.all([
       db
         .from("marketing_email_events")
-        .select("event_type, created_at, campaign_id, automation_id")
-        .gte("created_at", since),
+        .select("event_type, created_at, campaign_id, automation_id, metadata")
+        .gte("created_at", since)
+        .limit(50000),
       db.from("marketing_campaigns").select("id, name, stats, status"),
       db.from("marketing_subscribers").select("status, created_at").gte("created_at", since),
     ]);
-    const rows = (events ?? []) as { event_type: string; created_at: string }[];
+    const rows = (events ?? []) as {
+      event_type: string;
+      created_at: string;
+      metadata: Record<string, unknown> | null;
+    }[];
+    type Perf = { key: string; sent: number; opened: number; replied: number };
+    const byTemplate = new Map<string, Perf>();
+    const bySubject = new Map<string, Perf>();
+    const bump = (map: Map<string, Perf>, key: unknown, field: "sent" | "opened" | "replied") => {
+      if (typeof key !== "string" || !key) return;
+      const entry = map.get(key) ?? { key, sent: 0, opened: 0, replied: 0 };
+      entry[field] += 1;
+      map.set(key, entry);
+    };
+    for (const row of rows) {
+      const field =
+        row.event_type === "marketing_email_sent"
+          ? "sent"
+          : row.event_type === "marketing_email_opened"
+            ? "opened"
+            : row.event_type === "marketing_email_replied"
+              ? "replied"
+              : null;
+      if (!field) continue;
+      bump(byTemplate, row.metadata?.["template"], field);
+      bump(bySubject, row.metadata?.["subject"], field);
+    }
+    const rank = (map: Map<string, Perf>) =>
+      [...map.values()].sort((a, b) => b.replied - a.replied || b.opened - a.opened).slice(0, 25);
     const byDay = new Map<string, Record<string, number>>();
     for (const row of rows) {
       const day = row.created_at.slice(0, 10);
@@ -956,6 +985,8 @@ export const marketingAnalytics = createServerFn({ method: "GET" })
       }, {}),
       campaigns: campaigns ?? [],
       growth: (subscribers ?? []).length,
+      byTemplate: rank(byTemplate),
+      bySubject: rank(bySubject),
     };
   });
 
