@@ -200,6 +200,7 @@ import { Route as ApiPublicCronRunWarmupRouteImport } from './routes/api/public/
 import { Route as ApiPublicCronRunWebhooksRouteImport } from './routes/api/public/cron/run-webhooks'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound/email'
 import { Route as ApiPublicIntegrationsSlugRouteImport } from './routes/api/public/integrations/$slug'
+import { Route as ApiPublicMarketingOpenRouteImport } from './routes/api/public/marketing/open'
 import { Route as ApiPublicMarketingPreferencesRouteImport } from './routes/api/public/marketing/preferences'
 import { Route as ApiPublicMarketingUnsubscribeRouteImport } from './routes/api/public/marketing/unsubscribe'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
@@ -1285,6 +1286,11 @@ const ApiPublicIntegrationsSlugRoute =
     path: '/api/public/integrations/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMarketingOpenRoute = ApiPublicMarketingOpenRouteImport.update({
+  id: '/api/public/marketing/open',
+  path: '/api/public/marketing/open',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMarketingPreferencesRoute =
   ApiPublicMarketingPreferencesRouteImport.update({
     id: '/api/public/marketing/preferences',
@@ -1647,6 +1653,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/open': typeof ApiPublicMarketingOpenRoute
   '/api/public/marketing/preferences': typeof ApiPublicMarketingPreferencesRoute
   '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -1866,6 +1873,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/open': typeof ApiPublicMarketingOpenRoute
   '/api/public/marketing/preferences': typeof ApiPublicMarketingPreferencesRoute
   '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -2090,6 +2098,7 @@ export interface FileRoutesById {
   '/api/public/cron/run-webhooks': typeof ApiPublicCronRunWebhooksRoute
   '/api/public/inbound/email': typeof ApiPublicInboundEmailRoute
   '/api/public/integrations/$slug': typeof ApiPublicIntegrationsSlugRoute
+  '/api/public/marketing/open': typeof ApiPublicMarketingOpenRoute
   '/api/public/marketing/preferences': typeof ApiPublicMarketingPreferencesRoute
   '/api/public/marketing/unsubscribe': typeof ApiPublicMarketingUnsubscribeRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
@@ -2314,6 +2323,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/open'
     | '/api/public/marketing/preferences'
     | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
@@ -2533,6 +2543,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/open'
     | '/api/public/marketing/preferences'
     | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
@@ -2756,6 +2767,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/run-webhooks'
     | '/api/public/inbound/email'
     | '/api/public/integrations/$slug'
+    | '/api/public/marketing/open'
     | '/api/public/marketing/preferences'
     | '/api/public/marketing/unsubscribe'
     | '/api/public/media/$'
@@ -2887,6 +2899,7 @@ export interface RootRouteChildren {
   ApiPublicCronRunWebhooksRoute: typeof ApiPublicCronRunWebhooksRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicIntegrationsSlugRoute: typeof ApiPublicIntegrationsSlugRoute
+  ApiPublicMarketingOpenRoute: typeof ApiPublicMarketingOpenRoute
   ApiPublicMarketingPreferencesRoute: typeof ApiPublicMarketingPreferencesRoute
   ApiPublicMarketingUnsubscribeRoute: typeof ApiPublicMarketingUnsubscribeRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
@@ -4246,6 +4259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/marketing/open': {
+      id: '/api/public/marketing/open'
+      path: '/api/public/marketing/open'
+      fullPath: '/api/public/marketing/open'
+      preLoaderRoute: typeof ApiPublicMarketingOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/marketing/preferences': {
       id: '/api/public/marketing/preferences'
       path: '/api/public/marketing/preferences'
@@ -4982,6 +5002,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRunWebhooksRoute: ApiPublicCronRunWebhooksRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicIntegrationsSlugRoute: ApiPublicIntegrationsSlugRoute,
+  ApiPublicMarketingOpenRoute: ApiPublicMarketingOpenRoute,
   ApiPublicMarketingPreferencesRoute: ApiPublicMarketingPreferencesRoute,
   ApiPublicMarketingUnsubscribeRoute: ApiPublicMarketingUnsubscribeRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,

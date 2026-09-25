@@ -19,6 +19,8 @@ export type RenderInput = {
   variables?: RenderVariables;
   unsubscribeUrl: string;
   preferencesUrl?: string;
+  /** Per-send open pixel; omitted for test sends. */
+  openPixelUrl?: string | null;
   footerAddress?: string;
   brandName?: string;
 };
@@ -249,7 +251,11 @@ export function renderMarketingEmail(input: RenderInput): RenderedEmail {
     `<p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED}"><strong style="color:${INK}">${escapeHtml(brand)}</strong> · <a href="${SITE}/privacy" style="${STYLES.footerLink}">Privacy</a> · <a href="${SITE}/terms" style="${STYLES.footerLink}">Terms</a></p>`,
     "</td></tr></table>",
     `<p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#93a2b3;font-family:${FONT}">© ${new Date().getUTCFullYear()} ${escapeHtml(brand)}. All rights reserved.</p>`,
-    "</td></tr></table></body></html>",
+    "</td></tr></table>",
+    input.openPixelUrl
+      ? `<img src="${escapeHtml(input.openPixelUrl)}" alt="" width="1" height="1" border="0" style="display:block;width:1px;height:1px;border:0;opacity:0" />`
+      : "",
+    "</body></html>",
   ]
     .filter(Boolean)
     .join("\n");

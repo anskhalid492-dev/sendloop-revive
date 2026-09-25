@@ -28,6 +28,7 @@ import {
 } from "./subscribers.server";
 import { builtInTemplate } from "./template-library";
 import { marketingPreferencesUrl, marketingUnsubscribeUrl } from "./unsubscribe.server";
+import { marketingOpenPixelUrl } from "./engagement-tracking";
 import type {
   MarketingSettings,
   MarketingSubscriber,
@@ -169,7 +170,16 @@ export async function deliverMarketingEmail(input: SendOneInput): Promise<SendOn
   };
   const unsubscribeUrl = marketingUnsubscribeUrl(target);
   const names = await resolveSubscriberName(input.subscriber);
+  const sendEventId = crypto.randomUUID();
+  const replyTo = input.replyTo ?? input.template.replyTo ?? null;
   const rendered = renderMarketingEmail({
+    openPixelUrl: marketingOpenPixelUrl({
+      sendEventId,
+      subscriberId: input.subscriber.id,
+      email: input.subscriber.email,
+      campaignId: input.campaignId ?? null,
+      automationId: input.automationId ?? null,
+    }),
     subject: input.subjectOverride?.trim() || input.template.subject,
     previewText: input.template.previewText,
     body: input.template.body,
@@ -186,7 +196,7 @@ export async function deliverMarketingEmail(input: SendOneInput): Promise<SendOn
   const result = await sendThroughMarketingProvider(input.providerId, {
     fromName: input.fromName,
     fromEmail: input.fromEmail,
-    replyTo: input.replyTo ?? input.template.replyTo ?? null,
+    replyTo,
     to: input.subscriber.email,
     subject: rendered.subject,
     text: rendered.text,
@@ -195,6 +205,12 @@ export async function deliverMarketingEmail(input: SendOneInput): Promise<SendOn
   });
 
   await recordMarketingEvent({
+    id: result.ok ? sendEventId : undefined,
+    metadata: {
+      template: input.template.label,
+      subject: rendered.subject,
+      reply_to: replyTo ? replyTo.trim().toLowerCase() : null,
+    },
     eventType: result.ok ? "marketing_email_sent" : "marketing_email_failed",
     subscriberId: input.subscriber.id,
     email: input.subscriber.email,
@@ -217,6 +233,7 @@ export async function deliverMarketingEmail(input: SendOneInput): Promise<SendOn
 }
 
 export async function recordMarketingEvent(args: {
+  id?: string | undefined;
   eventType: string;
   subscriberId?: string | null;
   email: string;
@@ -229,6 +246,7 @@ export async function recordMarketingEvent(args: {
   metadata?: Record<string, string | number | boolean | null>;
 }): Promise<void> {
   await supabaseAdmin.from("marketing_email_events").insert({
+    ...(args.id ? { id: args.id } : {}),
     event_type: args.eventType,
     subscriber_id: args.subscriberId ?? null,
     email: args.email,
@@ -475,6 +493,7 @@ export async function refreshCampaignStats(campaignId: string) {
       stats: {
         ...stats,
         opened: counts["marketing_email_opened"] ?? 0,
+        replied: counts["marketing_email_replied"] ?? 0,
         clicked: counts["marketing_email_clicked"] ?? 0,
         bounced: counts["marketing_email_bounced"] ?? 0,
         unsubscribed: counts["marketing_email_unsubscribed"] ?? 0,

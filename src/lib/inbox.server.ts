@@ -558,6 +558,21 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     : receivedAt.toISOString();
   const messageId = stripAngle(email.messageId);
 
+  // Marketing reply attribution: side-effect only, never changes ingestion.
+  try {
+    const { matchMarketingReply } = await import("@/lib/marketing/engagement.server");
+    await matchMarketingReply({
+      from: prospect,
+      mailboxes: [mailbox, lower(email.deliveredTo ?? "")],
+      subject: email.subject ?? null,
+      messageId,
+      receivedIso,
+      headers: email.headers ?? null,
+    });
+  } catch (error) {
+    console.warn("[marketing-reply] attribution failed", error);
+  }
+
   // Routing token if one is present, but it is only a shortcut — a plain reply
   // to a normal mailbox threads just as reliably through headers below.
   const { resolveRouteFromAddress } = await import("@/lib/inbound-routing.server");
