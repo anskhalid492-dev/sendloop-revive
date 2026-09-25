@@ -63,6 +63,18 @@ export const REFINEMENTS = [
   { key: "premium", label: "Make more premium", instruction: "Sound more premium and considered, never salesy." },
   { key: "concise", label: "Make more concise", instruction: "Cut length hard. Keep only what earns a reply." },
   { key: "angle", label: "Try another angle", instruction: "Use a clearly different messaging angle than before." },
+  { key: "improve", label: "Improve", instruction: "Tighten relevance, clarity and specificity. Remove anything generic." },
+  {
+    key: "cta",
+    label: "Improve CTA",
+    instruction: "Make the single call to action lower-friction and easier to answer, e.g. a yes/no interest question.",
+  },
+  {
+    key: "personalization",
+    label: "Improve personalization",
+    instruction:
+      "Use the available personalization variables more meaningfully so each one gives a reason for the email. Never add fake personalization.",
+  },
 ] as const;
 
 export type RefinementKey = (typeof REFINEMENTS)[number]["key"];
@@ -123,6 +135,12 @@ export const strategySchema = z.object({
   personalization: z.array(z.string()).default([]),
   objections: z.array(z.string()).default([]),
   proofStatus: z.string().default(""),
+  /** The opening hook used in email one. */
+  hook: z.string().default(""),
+  /** How the sequence progresses step to step. */
+  sequenceStrategy: z.string().default(""),
+  /** Follow-ups the strategist recommends for this objective (advisory). */
+  recommendedFollowUps: z.number().int().min(0).max(MAX_FOLLOW_UPS).nullable().default(null),
 });
 
 export type WriterStrategy = z.infer<typeof strategySchema>;
@@ -149,7 +167,72 @@ export const writerStepSchema = z.object({
   subject: z.string(),
   body: z.string(),
   waitDays: z.number().int().min(0).max(30).default(3),
+  /** Alternative subject lines the customer can pick from. */
+  subjectOptions: z.array(z.string()).default([]),
 });
+
+/** Phrases that make cold email read as generic, spammy or AI-written. */
+export const WEAK_PHRASES = [
+  "i hope you're doing well",
+  "i hope you are doing well",
+  "i hope this email finds you well",
+  "hope this finds you well",
+  "revolutionize",
+  "unlock your potential",
+  "exclusive opportunity",
+  "limited time offer",
+  "act now",
+  "game-changer",
+  "game changer",
+  "cutting-edge",
+  "synergy",
+  "leverage our",
+  "world-class",
+  "best-in-class",
+  "guaranteed",
+  "i came across your profile and was impressed",
+  "just following up",
+  "just checking in",
+  "circling back",
+];
+
+const WORD_LIMIT: Record<Style, number> = { Short: 90, Balanced: 140, Detailed: 220 };
+
+/**
+ * Deterministic self-review of one generated email. Returns concrete problems;
+ * an empty list means it passes. Used to trigger one rewrite before returning.
+ */
+export function lintStep(
+  step: { subject: string; body: string },
+  opts: { style: Style; previous?: Array<{ body: string }> },
+): string[] {
+  const issues: string[] = [];
+  const body = step.body.toLowerCase();
+  const subject = step.subject.toLowerCase();
+  for (const phrase of WEAK_PHRASES) {
+    if (body.includes(phrase) || subject.includes(phrase)) issues.push(`Remove the phrase "${phrase}".`);
+  }
+  const words = step.body.split(/\s+/).filter(Boolean).length;
+  if (words > WORD_LIMIT[opts.style]) issues.push(`Too long (${words} words); keep it under ${WORD_LIMIT[opts.style]}.`);
+  if (step.subject.split(/\s+/).filter(Boolean).length > 8) issues.push("Subject line is too long; keep it under 8 words.");
+  if (/!{1,}/.test(step.subject)) issues.push("No exclamation marks in the subject.");
+  const questions = (step.body.match(/\?/g) ?? []).length;
+  if (questions > 2) issues.push("Too many questions — keep one clear call to action.");
+  const longParagraph = step.body.split(/\n\s*\n/).some((p) => p.split(/\s+/).length > 60);
+  if (longParagraph) issues.push("Break up long paragraphs; keep each to two or three short sentences.");
+  for (const prev of opts.previous ?? []) {
+    const a = new Set(prev.body.toLowerCase().split(/\W+/).filter((w) => w.length > 4));
+    const b = body.split(/\W+/).filter((w) => w.length > 4);
+    if (b.length > 15 && a.size) {
+      const overlap = b.filter((w) => a.has(w)).length / b.length;
+      if (overlap > 0.6) {
+        issues.push("Too similar to an earlier email — use a different angle.");
+        break;
+      }
+    }
+  }
+  return issues;
+}
 
 export type WriterStep = z.infer<typeof writerStepSchema>;
 

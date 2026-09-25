@@ -10,6 +10,7 @@ import { generateText } from "ai";
 
 import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import { aiProvider } from "@/lib/ai-providers";
+import { extractSignals, isBlankValue, roleFamily, ROLE_GUIDANCE } from "@/lib/ai-lead-signals";
 import {
   AI_TOKEN,
   PAIN_POINT_MAX,
@@ -308,18 +309,36 @@ export function leadFacts(
   ];
 
   const out = candidates
-    .filter((c) => fields.includes(c.field) && c.value && String(c.value).trim())
+    .filter((c) => fields.includes(c.field) && !isBlankValue(c.value))
     .map((c) => ({ label: c.label, value: String(c.value).trim().slice(0, 400) }));
 
   if (fields.includes("custom_fields")) {
+    // Recognised firmographic signals (funding, revenue, tech stack, headcount…)
+    // come first so the field limit never cuts the strongest reasons to write.
+    const { signals, consumedKeys } = extractSignals(custom);
+    const signalFacts = signals.map((s) => ({
+      label: s.handling === "indirect" ? `${s.label} (sensitive — reference indirectly only)` : s.label,
+      value: s.value,
+    }));
+    const rest: Array<{ label: string; value: string }> = [];
     for (const [key, value] of Object.entries(custom)) {
+      if (consumedKeys.has(key)) continue;
       if (["industry", "company_description", "description", "notes"].includes(key)) continue;
-      if (!value || !String(value).trim()) continue;
-      out.push({ label: key.replace(/_/g, " "), value: String(value).trim().slice(0, 200) });
+      if (isBlankValue(value)) continue;
+      rest.push({ label: key.replace(/_/g, " "), value: String(value).trim().slice(0, 200) });
     }
+    const limit = LEVEL_FIELD_LIMIT[level];
+    return [...out, ...signalFacts, ...rest].slice(0, Math.max(limit, out.length + signalFacts.length));
   }
 
   return out.slice(0, LEVEL_FIELD_LIMIT[level]);
+}
+
+/** Role steering for the prompt, derived only from the lead's real job title. */
+export function roleHint(facts: Array<{ label: string; value: string }>): string | null {
+  const title = facts.find((f) => f.label === "Job title")?.value;
+  if (!title) return null;
+  return ROLE_GUIDANCE[roleFamily(title)];
 }
 
 const LENGTH_RULE: Record<AiPersonalizationConfig["length"], string> = {
@@ -345,6 +364,14 @@ export function buildPrompt(
     `- Angle: ${frameworkGuidance(config.framework)}`,
     `- ${LENGTH_RULE[config.length]}`,
     "- Thin data is normal. With only a name, or only a company, write a short, conservative, truthful line using just that. Never refuse.",
+    "- Pick the 1–3 strongest facts that give a real reason for this email. Never force every fact in; never restate a field just to show you have it (bad: 'I saw you are the CEO of ABC').",
+    "- If a website or company description is given, summarise what they do in your own words and connect it to the campaign. Never copy its text.",
+    "- Funding: mention only if listed AND relevant to the campaign. Never invent a round, amount, investor or date.",
+    "- Revenue or funding amounts marked sensitive: never quote the figure; at most refer to scale indirectly (e.g. 'at your stage').",
+    "- Technology: only name tools listed in the facts, and only when they connect to the offer.",
+    "- If facts look contradictory or unreliable, do not state them confidently — use another angle.",
+    "- Sound like a sharp salesperson who did basic research: plain, specific, no flattery, no buzzwords, no 'I hope you're doing well'.",
+    "- Before answering, silently check the line for invented facts, flattery and filler, and rewrite it if any are present.",
     "",
     'Reply with JSON only, in this exact shape: {"personalization": string, "confidence": "high" | "medium" | "low", "data_used": string[]}',
     '"data_used" lists the fact labels you actually used. "personalization" must never be empty.',
@@ -369,6 +396,7 @@ export function buildPrompt(
       ? `Example of the desired style (do not copy its facts):\n${config.exampleOutput.trim()}`
       : "",
     `Known facts about the prospect:\n${factLines}`,
+    roleHint(facts) ? `Role angle: ${roleHint(facts)}` : "",
     "Return only the JSON object.",
   ]
     .filter(Boolean)
