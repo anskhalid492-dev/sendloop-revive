@@ -169,9 +169,9 @@ function blocksToHtml(blocks: Block[]): string {
             .map((item) => `<li style="${STYLES.li}">${escapeHtml(item)}</li>`)
             .join("")}</ul>`;
         case "button":
-          return `<p style="margin:8px 0 20px;"><a href="${escapeHtml(
+          return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 20px"><tr><td align="center" bgcolor="${BRAND_COLOR}" style="border-radius:10px;background:${BRAND_COLOR};"><a href="${escapeHtml(
             safeUrl(block.url),
-          )}" style="${STYLES.button}">${escapeHtml(block.label)}</a></p>`;
+          )}" style="${STYLES.button}">${escapeHtml(block.label)}</a></td></tr></table>`;
         case "divider":
           return `<hr style="${STYLES.divider}" />`;
       }
@@ -227,19 +227,29 @@ export function renderMarketingEmail(input: RenderInput): RenderedEmail {
     "<!doctype html>",
     '<html lang="en"><head><meta charset="utf-8" />',
     '<meta name="viewport" content="width=device-width,initial-scale=1" />',
+    '<meta name="x-apple-disable-message-reformatting" />',
+    '<meta name="color-scheme" content="light only" />',
     `<title>${escapeHtml(subject)}</title></head>`,
     `<body style="${STYLES.body}">`,
     preview ? `<div style="${STYLES.preheader}">${escapeHtml(preview)}</div>` : "",
-    `<div style="${STYLES.wrap}"><div style="${STYLES.card}">`,
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f8;padding:32px 12px"><tr><td align="center">',
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;border:1px solid #e2e9f1;overflow:hidden;font-family:${FONT}">`,
+    `<tr><td style="height:4px;line-height:4px;font-size:0;background:${BRAND_COLOR}">&nbsp;</td></tr>`,
+    `<tr><td style="padding:24px 32px 20px;border-bottom:1px solid #eef2f6"><a href="${SITE}" style="text-decoration:none;color:${INK}"><img src="${LOGO_URL}" width="150" height="32" alt="${escapeHtml(brand)}" style="display:block;border:0;outline:none;height:32px;width:auto;max-width:180px" /></a></td></tr>`,
+    '<tr><td style="padding:32px 32px 8px">',
     blocksToHtml(blocks),
-    "</div>",
-    `<div style="${STYLES.footer}">`,
-    `<p style="margin:0 0 6px;">You are receiving this because you subscribed to ${escapeHtml(
-      brand,
-    )} updates.</p>`,
-    `<p style="margin:0 0 6px;">${footerLinks}</p>`,
-    input.footerAddress ? `<p style="margin:0;">${escapeHtml(input.footerAddress)}</p>` : "",
-    "</div></div></body></html>",
+    "</td></tr>",
+    '<tr><td style="padding:4px 32px 28px">',
+    '<hr style="border:none;border-top:1px solid #eef2f6;margin:0 0 18px" />',
+    `<p style="margin:0 0 10px;font-size:12px;line-height:1.6;color:${MUTED}">You are receiving this because you subscribed to ${escapeHtml(brand)} updates.</p>`,
+    `<p style="margin:0 0 10px;font-size:12px;line-height:1.6;color:${MUTED}">${footerLinks}</p>`,
+    input.footerAddress
+      ? `<p style="margin:0 0 10px;font-size:12px;line-height:1.6;color:${MUTED}">${escapeHtml(input.footerAddress)}</p>`
+      : "",
+    `<p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED}"><strong style="color:${INK}">${escapeHtml(brand)}</strong> · <a href="${SITE}/privacy" style="${STYLES.footerLink}">Privacy</a> · <a href="${SITE}/terms" style="${STYLES.footerLink}">Terms</a></p>`,
+    "</td></tr></table>",
+    `<p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#93a2b3;font-family:${FONT}">© ${new Date().getUTCFullYear()} ${escapeHtml(brand)}. All rights reserved.</p>`,
+    "</td></tr></table></body></html>",
   ]
     .filter(Boolean)
     .join("\n");
