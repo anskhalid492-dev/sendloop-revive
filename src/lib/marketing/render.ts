@@ -131,25 +131,27 @@ export function parseBlocks(body: string): Block[] {
   return blocks;
 }
 
+/** Same brand shell as MunchReach system (transactional) emails. */
+const BRAND_COLOR = "#44A6DD";
+const INK = "#0F172A";
+const MUTED = "#5b6b7c";
+const SITE = "https://munchreach.com";
+const LOGO_URL = "https://munchreach.com/brand/munchreach-logo.png";
+const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+
 const STYLES = {
-  body: "margin:0;padding:0;background-color:#f5f6f8;",
-  wrap: "width:100%;background-color:#f5f6f8;padding:32px 12px;",
-  card:
-    "max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:14px;padding:32px;" +
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1c2333;",
-  h1: "margin:0 0 16px;font-size:24px;line-height:1.3;font-weight:700;color:#111827;",
-  h2: "margin:24px 0 10px;font-size:18px;line-height:1.4;font-weight:600;color:#111827;",
-  p: "margin:0 0 16px;font-size:15px;line-height:1.65;color:#374151;",
-  li: "margin:0 0 8px;font-size:15px;line-height:1.6;color:#374151;",
+  body: "margin:0;padding:0;background:#eef3f8;-webkit-font-smoothing:antialiased;",
+  h1: `margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:700;letter-spacing:-0.3px;color:${INK};`,
+  h2: `margin:24px 0 10px;font-size:18px;line-height:1.4;font-weight:600;color:${INK};`,
+  p: `margin:0 0 16px;font-size:15px;line-height:1.65;color:${INK};`,
+  li: `margin:0 0 6px;font-size:15px;line-height:1.7;color:${INK};`,
   button:
-    "display:inline-block;padding:12px 22px;border-radius:10px;background-color:#111827;" +
-    "color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;",
-  divider: "border:0;border-top:1px solid #e5e7eb;margin:24px 0;",
-  footer:
-    "max-width:600px;margin:16px auto 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI'," +
-    "Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;",
-  footerLink: "color:#6b7280;text-decoration:underline;",
-  preheader: "display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;",
+    "display:inline-block;padding:14px 30px;font-size:15px;font-weight:600;color:#ffffff;" +
+    "text-decoration:none;border-radius:10px;",
+  divider: "border:none;border-top:1px solid #eef2f6;margin:24px 0;",
+  footerLink: `color:${MUTED};text-decoration:underline;`,
+  preheader:
+    "display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;",
 };
 
 function blocksToHtml(blocks: Block[]): string {
