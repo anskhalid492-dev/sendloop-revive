@@ -231,7 +231,12 @@ describe("unresolved variable report", () => {
 
 describe("A/B campaign variable rendering", () => {
   const variants = [
-    { id: "variant-b", subject: "For {{company}}", body: "Hi {{first_name | there}}", weight: 50 },
+    {
+      id: "variant-b",
+      subject: "For {{company}}",
+      body: "Hi {{first_name | there}} — about {{offer | your outreach}}",
+      weight: 50,
+    },
   ];
 
   it("selects the same variant deterministically for the same recipient and step", () => {
@@ -247,7 +252,10 @@ describe("A/B campaign variable rendering", () => {
       company: "MunchReach",
       custom_fields: { offer: "outbound campaigns" },
     });
-    expect(rendered).toEqual({ subject: "For MunchReach", body: "Hi Anas" });
+    expect(rendered).toEqual({
+      subject: "For MunchReach",
+      body: "Hi Anas — about outbound campaigns",
+    });
   });
 
   it("keeps the original as the remainder of a weighted split", () => {
