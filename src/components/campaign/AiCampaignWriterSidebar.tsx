@@ -901,6 +901,30 @@ export function AiCampaignWriterSidebar({
                         setSteps(next);
                       }}
                     />
+                    {(step.subjectOptions ?? []).length > 1 ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Subject line options">
+                        {(step.subjectOptions ?? []).map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              const next = steps.slice();
+                              next[index] = { ...step, subject: option };
+                              setSteps(next);
+                              save.mutate({ steps: next });
+                            }}
+                            className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+                              option === step.subject
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
                     <Textarea
                       className="mt-2"
                       rows={8}
