@@ -18,6 +18,7 @@ import {
   campaignLimitColumnsAvailable,
   withCampaignDefaults,
   renderEmailForLead,
+  selectCampaignVariant,
   senderExtras,
   type Campaign,
   type CustomVariable,
@@ -108,6 +109,11 @@ export async function launchCampaignService(
     if (!firstStep || !firstStep.subject.trim() || !firstStep.body.trim()) {
       throw new Error("The first email step needs a subject and a body before launching.");
     }
+    const { data: firstStepVariants, error: variantErr } = await supabase
+      .from("campaign_step_variants")
+      .select("id, subject, body, weight")
+      .eq("step_id", firstStep.id);
+    if (variantErr) throw new Error(variantErr.message);
 
     const { data: accounts, error: aErr } = await supabase
       .from("sending_accounts")
@@ -302,17 +308,24 @@ export async function launchCampaignService(
           linkedin_url: row["linkedin_url"],
           custom_fields: row["custom_fields"],
         };
+        const selectedVariant = selectCampaignVariant(
+          firstStepVariants ?? [],
+          recipientId,
+          firstStep.id,
+        );
+        const selectedCopy = selectedVariant ?? firstStep;
         messages.push({
           workspace_id: c.workspace_id,
           campaign_id: c.id,
           recipient_id: recipientId,
           lead_id: leadId,
           step_id: firstStep.id,
+          variant_id: selectedVariant?.id ?? null,
           sending_account_id: accountId,
           step_order: 1,
           status: "scheduled" as const,
           to_email: lead.email,
-          ...renderEmailForLead(firstStep, lead as never, {
+          ...renderEmailForLead(selectedCopy, lead as never, {
             customVariables: campaignVariables,
             extras: {
               ...senderExtras(accountById.get(accountId) as never),

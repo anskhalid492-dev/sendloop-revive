@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import { applyCampaignRollup, buildCampaignOverview, accountOnline, deriveDisplayStatus } from "../src/lib/campaign-overview";
 import { correlateTestSend, pickEvent } from "../src/lib/test-send-status";
-import { variableResolutionReport } from "../src/lib/campaign-model";
+import {
+  renderEmailForLead,
+  selectCampaignVariant,
+  variableResolutionReport,
+} from "../src/lib/campaign-model";
 
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
@@ -222,5 +226,35 @@ describe("unresolved variable report", () => {
     ]);
     expect(report[0]!.source).toBe("custom_default");
     expect(report[0]!.value).toBe("a demo");
+  });
+});
+
+describe("A/B campaign variable rendering", () => {
+  const variants = [
+    { id: "variant-b", subject: "For {{company}}", body: "Hi {{first_name | there}}", weight: 50 },
+  ];
+
+  it("selects the same variant deterministically for the same recipient and step", () => {
+    const first = selectCampaignVariant(variants, "recipient-1", "step-1");
+    const second = selectCampaignVariant(variants, "recipient-1", "step-1");
+    expect(second?.id ?? null).toBe(first?.id ?? null);
+  });
+
+  it("resolves lead and custom-field variables in selected variant copy", () => {
+    const rendered = renderEmailForLead(variants[0]!, {
+      email: "anas@example.com",
+      first_name: "Anas",
+      company: "MunchReach",
+      custom_fields: { offer: "outbound campaigns" },
+    });
+    expect(rendered).toEqual({ subject: "For MunchReach", body: "Hi Anas" });
+  });
+
+  it("keeps the original as the remainder of a weighted split", () => {
+    const selected = Array.from({ length: 200 }, (_, index) =>
+      selectCampaignVariant(variants, `recipient-${index}`, "step-1"),
+    );
+    expect(selected.some((variant) => variant === null)).toBe(true);
+    expect(selected.some((variant) => variant?.id === "variant-b")).toBe(true);
   });
 });

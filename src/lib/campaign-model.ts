@@ -102,6 +102,43 @@ export type CampaignStepVariant = {
   weight: number;
 };
 
+export type WeightedCampaignVariant = Pick<
+  CampaignStepVariant,
+  "id" | "subject" | "body" | "weight"
+>;
+
+/**
+ * Deterministically choose the A/B copy for one recipient and one step.
+ * Variant weights consume their percentage of the 100-point split and the
+ * original (A) receives the remainder. When variant weights exceed 100 they
+ * are normalised, so malformed historical campaigns still choose valid copy.
+ */
+export function selectCampaignVariant(
+  variants: WeightedCampaignVariant[],
+  recipientKey: string,
+  stepKey: string,
+): WeightedCampaignVariant | null {
+  const weighted = variants.filter((variant) => Number.isFinite(variant.weight) && variant.weight > 0);
+  if (!weighted.length) return null;
+
+  let hash = 2166136261;
+  for (const character of `${recipientKey}:${stepKey}`) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  const bucket = (hash >>> 0) / 4294967296;
+  const variantTotal = weighted.reduce((sum, variant) => sum + variant.weight, 0);
+  const scale = variantTotal > 100 ? 100 / variantTotal : 1;
+  let cursor = Math.max(0, 100 - variantTotal * scale) / 100;
+
+  if (bucket < cursor) return null;
+  for (const variant of weighted) {
+    cursor += (variant.weight * scale) / 100;
+    if (bucket < cursor) return variant;
+  }
+  return weighted[weighted.length - 1] ?? null;
+}
+
 export type CampaignStep = {
   id: string;
   step_order: number;
