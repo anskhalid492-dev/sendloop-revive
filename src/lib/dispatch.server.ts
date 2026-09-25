@@ -35,6 +35,7 @@ import {
 } from "@/lib/unsubscribe";
 import {
   renderEmailForLead,
+  selectCampaignVariant,
   senderExtras,
   resolveSpintax,
 
@@ -149,6 +150,14 @@ type StepRow = {
   step_type: StepType;
 };
 
+type StepVariantRow = {
+  id: string;
+  step_id: string;
+  subject: string;
+  body: string;
+  weight: number;
+};
+
 type CampaignDispatchRow = {
   id: string;
   workspace_id: string;
@@ -255,6 +264,12 @@ export async function ensureInitialCampaignMessages(
     (step) => step.step_type === "email" && step.subject.trim() && step.body.trim(),
   );
   if (!firstStep) return 0;
+  const { data: firstStepVariantRows, error: variantError } = await supabase
+    .from("campaign_step_variants")
+    .select("id, step_id, subject, body, weight")
+    .eq("step_id", firstStep.id);
+  if (variantError) throw new Error(variantError.message);
+  const firstStepVariants = (firstStepVariantRows ?? []) as StepVariantRow[];
 
   const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
   const pendingRecipients = await fetchAllRows<InitialRecipientRow>(() =>
@@ -359,6 +374,12 @@ export async function ensureInitialCampaignMessages(
       ? aiExtras(aiConfig, aiContent.get(recipient.lead_id) ?? null)
       : { extras: {} as Record<string, string>, hold: false };
     if (ai.hold || (aiEnabled && aiPending.has(recipient.lead_id))) continue;
+    const selectedVariant = selectCampaignVariant(
+      firstStepVariants,
+      recipient.id,
+      firstStep.id,
+    );
+    const selectedCopy = selectedVariant ?? firstStep;
 
     inserts.push({
       workspace_id: campaign.workspace_id,
@@ -366,11 +387,12 @@ export async function ensureInitialCampaignMessages(
       recipient_id: recipient.id,
       lead_id: recipient.lead_id,
       step_id: firstStep.id,
+      variant_id: selectedVariant?.id ?? null,
       sending_account_id: accountId,
       step_order: firstStep.step_order,
       status: "scheduled",
       to_email: lead.email,
-      ...renderEmailForLead(firstStep, lead as never, {
+      ...renderEmailForLead(selectedCopy, lead as never, {
         customVariables: variables,
         extras: {
           ...senderExtras(account as never),
@@ -428,6 +450,20 @@ export async function scheduleFollowUps(
     .order("step_order", { ascending: true });
   const steps = (stepRows ?? []) as StepRow[];
   if (steps.length < 2) return { scheduled: 0, completed: 0 };
+  const stepIds = steps.map((step) => step.id);
+  const { data: variantRows, error: variantError } = stepIds.length
+    ? await supabase
+        .from("campaign_step_variants")
+        .select("id, step_id, subject, body, weight")
+        .in("step_id", stepIds)
+    : { data: [] as StepVariantRow[], error: null };
+  if (variantError) throw new Error(variantError.message);
+  const variantsByStep = new Map<string, StepVariantRow[]>();
+  for (const variant of (variantRows ?? []) as StepVariantRow[]) {
+    const variants = variantsByStep.get(variant.step_id) ?? [];
+    variants.push(variant);
+    variantsByStep.set(variant.step_id, variants);
+  }
 
   // Paged + chunked: a plain select() stops at 1,000 rows and a single
   // `in.(...)` filter with ~1,000 UUIDs is rejected as a bad request, so large
@@ -588,6 +624,12 @@ export async function scheduleFollowUps(
       : { extras: {} as Record<string, string>, hold: false };
     // "hold" keeps the follow-up unqueued until its personalization lands.
     if (ai.hold || (aiEnabled && aiPending.has(recipient.lead_id))) continue;
+    const selectedVariant = selectCampaignVariant(
+      variantsByStep.get(next.id) ?? [],
+      recipient.id,
+      next.id,
+    );
+    const selectedCopy = selectedVariant ?? next;
 
 
     inserts.push({
@@ -596,11 +638,12 @@ export async function scheduleFollowUps(
       recipient_id: recipient.id,
       lead_id: recipient.lead_id,
       step_id: next.id,
+      variant_id: selectedVariant?.id ?? null,
       sending_account_id: recipient.sending_account_id,
       step_order: next.step_order,
       status: "scheduled",
       to_email: (lead as unknown as { email: string }).email,
-      ...renderEmailForLead(next, lead as never, {
+      ...renderEmailForLead(selectedCopy, lead as never, {
         customVariables: variables,
         extras: {
           ...senderExtras(senderById.get(recipient.sending_account_id ?? "") as never),

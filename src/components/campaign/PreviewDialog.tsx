@@ -247,7 +247,10 @@ export function PreviewDialog({
   const [leadId, setLeadId] = useState("__sample__");
   const [variantIndex, setVariantIndex] = useState(-1);
   const rawStep = builder.steps[stepIndex];
-  const usesAi = `${rawStep?.subject ?? ""} ${rawStep?.body ?? ""}`.includes(AI_VARIABLE_TOKEN);
+  const selectedRawCopy = variantIndex >= 0 ? rawStep?.variants[variantIndex] : rawStep;
+  const usesAi = `${selectedRawCopy?.subject ?? ""} ${selectedRawCopy?.body ?? ""}`.includes(
+    AI_VARIABLE_TOKEN,
+  );
   const fetchAiCoverage = useServerFn(getAiPersonalizationCoverage);
   const aiCoverage = useQuery({
     queryKey: ["ai-personalization-coverage", builder.campaignId],
