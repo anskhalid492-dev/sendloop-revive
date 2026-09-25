@@ -308,18 +308,36 @@ export function leadFacts(
   ];
 
   const out = candidates
-    .filter((c) => fields.includes(c.field) && c.value && String(c.value).trim())
+    .filter((c) => fields.includes(c.field) && !isBlankValue(c.value))
     .map((c) => ({ label: c.label, value: String(c.value).trim().slice(0, 400) }));
 
   if (fields.includes("custom_fields")) {
+    // Recognised firmographic signals (funding, revenue, tech stack, headcount…)
+    // come first so the field limit never cuts the strongest reasons to write.
+    const { signals, consumedKeys } = extractSignals(custom);
+    const signalFacts = signals.map((s) => ({
+      label: s.handling === "indirect" ? `${s.label} (sensitive — reference indirectly only)` : s.label,
+      value: s.value,
+    }));
+    const rest: Array<{ label: string; value: string }> = [];
     for (const [key, value] of Object.entries(custom)) {
+      if (consumedKeys.has(key)) continue;
       if (["industry", "company_description", "description", "notes"].includes(key)) continue;
-      if (!value || !String(value).trim()) continue;
-      out.push({ label: key.replace(/_/g, " "), value: String(value).trim().slice(0, 200) });
+      if (isBlankValue(value)) continue;
+      rest.push({ label: key.replace(/_/g, " "), value: String(value).trim().slice(0, 200) });
     }
+    const limit = LEVEL_FIELD_LIMIT[level];
+    return [...out, ...signalFacts, ...rest].slice(0, Math.max(limit, out.length + signalFacts.length));
   }
 
   return out.slice(0, LEVEL_FIELD_LIMIT[level]);
+}
+
+/** Role steering for the prompt, derived only from the lead's real job title. */
+export function roleHint(facts: Array<{ label: string; value: string }>): string | null {
+  const title = facts.find((f) => f.label === "Job title")?.value;
+  if (!title) return null;
+  return ROLE_GUIDANCE[roleFamily(title)];
 }
 
 const LENGTH_RULE: Record<AiPersonalizationConfig["length"], string> = {
