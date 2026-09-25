@@ -74,6 +74,17 @@ function AnalyticsPage() {
           tone="positive"
         />
         <MarketingStat
+          label="Replies"
+          value={totals["marketing_email_replied"] ?? 0}
+          hint={rate(totals["marketing_email_replied"] ?? 0)}
+          tone="positive"
+        />
+        <MarketingStat
+          label="Machine opens"
+          value={totals["marketing_email_opened_machine"] ?? 0}
+          hint="Apple privacy prefetch, not counted as opens"
+        />
+        <MarketingStat
           label="Clicks"
           value={totals["marketing_email_clicked"] ?? 0}
           hint={rate(totals["marketing_email_clicked"] ?? 0)}
@@ -98,6 +109,17 @@ function AnalyticsPage() {
         <MarketingStat label="Suppressed sends" value={totals["marketing_email_suppressed"] ?? 0} />
         <MarketingStat label="New subscribers" value={data.growth} />
       </div>
+
+      <PerformanceTable
+        title="By template"
+        description="Which templates earn opens and replies. Only emails sent since tracking was added are attributed."
+        rows={data.byTemplate}
+      />
+      <PerformanceTable
+        title="By subject line"
+        description="Replies come from mailboxes you've connected and set as the reply-to address."
+        rows={data.bySubject}
+      />
 
       <MarketingPanel title="Daily activity" description={`Marketing email events over the last ${data.days} days.`}>
         {data.timeline.length === 0 ? (
@@ -158,5 +180,54 @@ function AnalyticsPage() {
         )}
       </MarketingPanel>
     </div>
+  );
+}
+
+type PerfRow = { key: string; sent: number; opened: number; replied: number };
+
+function PerformanceTable({
+  title,
+  description,
+  rows,
+}: {
+  title: string;
+  description: string;
+  rows: PerfRow[];
+}) {
+  const pct = (value: number, sent: number) =>
+    sent ? `${Math.round((value / sent) * 1000) / 10}%` : "—";
+  return (
+    <MarketingPanel title={title} description={description}>
+      {rows.length === 0 ? (
+        <MarketingEmpty title="No tracked sends in this window" />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="py-2 pr-4">{title.replace("By ", "")}</th>
+                <th className="py-2">Sent</th>
+                <th className="py-2">Opens</th>
+                <th className="py-2">Open rate</th>
+                <th className="py-2">Replies</th>
+                <th className="py-2">Reply rate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((row) => (
+                <tr key={row.key}>
+                  <td className="max-w-xs truncate py-2 pr-4" title={row.key}>{row.key}</td>
+                  <td className="py-2 tabular-nums">{row.sent}</td>
+                  <td className="py-2 tabular-nums">{row.opened}</td>
+                  <td className="py-2 tabular-nums">{pct(row.opened, row.sent)}</td>
+                  <td className="py-2 tabular-nums">{row.replied}</td>
+                  <td className="py-2 tabular-nums">{pct(row.replied, row.sent)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </MarketingPanel>
   );
 }
