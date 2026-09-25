@@ -25,19 +25,24 @@ import {
   type WriterStep,
   type WriterStrategy,
   sanitizeVariables,
+  lintStep,
 } from "@/lib/ai-campaign-writer-model";
 
 /** Only variables MunchReach actually supports may appear in generated copy. */
 const SUPPORTED_TOKENS = LEAD_VARIABLES.map((v) => `{{${v.token}}}`);
 
 const GROUND_RULES = [
-  "You write B2B cold outreach for a real sending platform.",
-  "Never invent customer results, testimonials, statistics, guarantees, certifications, awards or business claims. If proof was not provided, say proof is missing instead of creating any.",
-  `The only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}, plus the AI pain point variables {{pain_point}} to {{pain_point_5}}. Never invent other variables.`,
-  "Only use a pain point variable when the campaign was set up to generate pain points per lead.",
-  "Use at most one or two variables per email — personalization must feel natural, not stuffed.",
+  "You are an experienced B2B outbound strategist and copywriter writing for a real sending platform.",
+  "Write like a smart salesperson who personally wrote this after basic research: relevant, specific, credible, conversational.",
+  "Short sentences. One clear idea per email. One primary, low-friction call to action. Low cognitive load. A clear reason for reaching out.",
+  "Never: generic introductions, 'I hope you're doing well', fake compliments, corporate fluff, buzzwords, stacked adjectives, long company descriptions, big paragraphs, fake urgency or scarcity, multiple competing CTAs, or promises of guaranteed replies or meetings.",
+  "Never invent customer results, testimonials, statistics, guarantees, certifications, awards, company facts, funding, revenue, technologies or achievements. If proof was not provided, say proof is missing instead of creating any.",
+  `The only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}. Never invent other variables.`,
+  "Use a variable only where it gives the sentence a real reason to exist — never stuff them in. Every variable may be empty for some leads, so the sentence must still read naturally.",
+  "Adapt pain point, vocabulary, proof and CTA to the target role (a CFO cares about cost and risk, a VP Sales about pipeline, a CTO about reliability and engineering time).",
+  "Prefer CTAs like 'Open to taking a look?', 'Worth a quick chat?', 'Want me to send an example?' over asking for a 30-minute meeting, unless the brief asks for one.",
   "Never expose your reasoning. Return only the requested JSON.",
-  "No spam words, no fake urgency, no walls of text, no emoji.",
+  "No spam words, no emoji, no clickbait subject lines.",
 ].join("\n");
 
 function briefBlock(brief: WriterBrief): string {
@@ -134,8 +139,10 @@ export async function generateStrategy(input: {
     "Work out the strategy for one cold outreach campaign, then return it.",
     "First think privately about: the target customer, their role, their current situation, the real problem, the outcome they want, how this offer solves it, the strongest differentiator, how strong the offer is, why they might hesitate, likely objections, which proof is genuinely available, the best call to action and where personalization would help.",
     "Then return ONLY this JSON:",
-    `{"angle":"...","valueProposition":"...","painPoint":"...","offer":"...","ctaStrategy":"...","tone":"...","messagingStyle":"...","personalization":["..."],"objections":["..."],"proofStatus":"..."}`,
+    `{"angle":"...","valueProposition":"...","painPoint":"...","hook":"...","sequenceStrategy":"...","recommendedFollowUps":3,"offer":"...","ctaStrategy":"...","tone":"...","messagingStyle":"...","personalization":["..."],"objections":["..."],"proofStatus":"..."}`,
     "Each string is one short sentence or phrase — no explanations of your thinking. proofStatus says what proof exists, or states plainly that no proof was provided.",
+    "hook is the opening idea of email one. sequenceStrategy describes how each follow-up adds something new. recommendedFollowUps (0-9) is how many follow-ups this objective genuinely needs — do not default to the maximum.",
+    "personalization lists which lead signals (job title, company, website/description, industry, funding, tech stack, location…) would make the strongest reason to write, in priority order.",
     "",
     "Customer information:",
     briefBlock(input.brief),
@@ -221,8 +228,10 @@ export async function generateStep(input: {
     input.index === input.total - 1 && input.total > 1
       ? "This is the final follow-up: low pressure, permission-based close."
       : "",
-    `Return ONLY this JSON: {"purpose":"...","subject":"...","body":"...","waitDays":3}`,
+    `Return ONLY this JSON: {"purpose":"...","subject":"...","subjectOptions":["...","...","..."],"body":"...","waitDays":3}`,
     "waitDays is days to wait before this step (0 for the first step). Body is plain text with line breaks, no signature block, no HTML.",
+    "subject and subjectOptions: short (2-6 words), natural, relevant, lower-key, never clickbait. subjectOptions gives three genuinely different alternatives.",
+    input.index > 0 ? "Follow-ups may keep the thread feel; a follow-up can be very short (2-4 sentences)." : "",
     "",
     "Campaign strategy:",
     `Angle: ${input.strategy.angle}`,
@@ -260,11 +269,39 @@ export async function generateStep(input: {
     .join("\n");
   const parsed = writerStepSchema.safeParse(parseJsonObject(await call(input.credentials, prompt, 900)));
   if (!parsed.success) throw malformed();
+  let step = parsed.data;
+
+  // Self-review: if the draft fails a major quality check, rewrite it once
+  // with the concrete problems before returning. Only the result is returned.
+  const issues = lintStep(step, { style: input.controls.style, previous: input.previous });
+  if (issues.length) {
+    const rewritePrompt = [
+      prompt,
+      "",
+      "Your draft failed these quality checks. Rewrite it so none apply, keeping the same purpose:",
+      ...issues.map((i) => `- ${i}`),
+      "Draft:",
+      `Subject: ${step.subject}\n${step.body}`,
+    ].join("\n");
+    try {
+      const retry = writerStepSchema.safeParse(
+        parseJsonObject(await call(input.credentials, rewritePrompt, 900)),
+      );
+      if (retry.success) step = retry.data;
+    } catch (error) {
+      // Keep the first draft on a malformed rewrite; surface real provider errors.
+      if (!(error instanceof AiGatewayError) || error.status !== 502) throw error;
+    }
+  }
+
   return {
-    ...parsed.data,
-    subject: sanitizeVariables(parsed.data.subject).slice(0, 200),
-    body: sanitizeVariables(parsed.data.body),
-    waitDays: input.index === 0 ? 0 : Math.max(1, parsed.data.waitDays),
+    ...step,
+    subject: sanitizeVariables(step.subject).slice(0, 200),
+    subjectOptions: Array.from(
+      new Set([step.subject, ...step.subjectOptions].map((s) => sanitizeVariables(s).trim().slice(0, 200)).filter(Boolean)),
+    ).slice(0, 4),
+    body: sanitizeVariables(step.body),
+    waitDays: input.index === 0 ? 0 : Math.max(1, step.waitDays),
   };
 }
 
