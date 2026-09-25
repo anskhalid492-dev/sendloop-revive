@@ -168,6 +168,7 @@ export async function deliverMarketingEmail(input: SendOneInput): Promise<SendOn
     automationId: input.automationId ?? null,
   };
   const unsubscribeUrl = marketingUnsubscribeUrl(target);
+  const names = await resolveSubscriberName(input.subscriber);
   const rendered = renderMarketingEmail({
     subject: input.subjectOverride?.trim() || input.template.subject,
     previewText: input.template.previewText,
@@ -175,11 +176,10 @@ export async function deliverMarketingEmail(input: SendOneInput): Promise<SendOn
     unsubscribeUrl,
     preferencesUrl: marketingPreferencesUrl(target),
     variables: {
-      first_name: input.subscriber.firstName ?? "there",
-      last_name: input.subscriber.lastName ?? "",
+      first_name: names.firstName || "there",
+      last_name: names.lastName,
       email: input.subscriber.email,
-      full_name:
-        [input.subscriber.firstName, input.subscriber.lastName].filter(Boolean).join(" ") || "there",
+      full_name: [names.firstName, names.lastName].filter(Boolean).join(" ") || "there",
     },
   });
 
@@ -492,12 +492,35 @@ export async function sendMarketingTestEmail(args: {
   fromEmail: string;
   providerId: string;
 }): Promise<{ ok: boolean; message: string }> {
+  // Test sends behave exactly like real ones: the recipient's real name and a
+  // working, signed unsubscribe link for that address.
+  const email = args.to.trim().toLowerCase();
+  const { data: row } = await supabaseAdmin
+    .from("marketing_subscribers")
+    .select("id, first_name, last_name, user_id")
+    .eq("email", email)
+    .maybeSingle();
+  const sub = row as { id: string; first_name: string | null; last_name: string | null; user_id: string | null } | null;
+  const names = await resolveSubscriberName({
+    email,
+    firstName: sub?.first_name ?? null,
+    lastName: sub?.last_name ?? null,
+    userId: sub?.user_id ?? null,
+  });
+  const target = { subscriberId: sub?.id ?? `test:${email}`, email };
+  const unsubscribeUrl = marketingUnsubscribeUrl(target);
   const rendered = renderMarketingEmail({
     subject: `[TEST] ${args.subjectOverride?.trim() || args.template.subject}`,
     previewText: args.template.previewText,
     body: args.template.body,
-    unsubscribeUrl: `${process.env["SITE_URL"] ?? "https://munchreach.com"}/`,
-    variables: { first_name: "there", email: args.to, full_name: "there" },
+    unsubscribeUrl,
+    preferencesUrl: marketingPreferencesUrl(target),
+    variables: {
+      first_name: names.firstName || "there",
+      last_name: names.lastName,
+      email: args.to,
+      full_name: [names.firstName, names.lastName].filter(Boolean).join(" ") || "there",
+    },
   });
   const result = await sendThroughMarketingProvider(args.providerId, {
     fromName: args.fromName,
@@ -506,6 +529,37 @@ export async function sendMarketingTestEmail(args: {
     subject: rendered.subject,
     text: rendered.text,
     html: rendered.html,
+    headers: marketingHeaders(unsubscribeUrl, "test.marketing.munchreach.com"),
   });
   return { ok: result.ok, message: result.message };
+}
+
+
+/**
+ * The subscriber's real name for greetings. Uses the subscriber record first,
+ * then the linked (or same-email) MunchReach account's profile name. Returns
+ * empty strings only when no name exists anywhere — never an invented one.
+ */
+export async function resolveSubscriberName(sub: {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  userId?: string | null;
+}): Promise<{ firstName: string; lastName: string }> {
+  const first = (sub.firstName ?? "").trim();
+  if (first) return { firstName: first, lastName: (sub.lastName ?? "").trim() };
+  try {
+    const query = supabaseAdmin.from("profiles").select("full_name");
+    const { data } = sub.userId
+      ? await query.eq("id", sub.userId).maybeSingle()
+      : await query.eq("email", sub.email.trim().toLowerCase()).limit(1).maybeSingle();
+    const full = ((data as { full_name?: string | null } | null)?.full_name ?? "").trim();
+    if (full && !full.includes("@")) {
+      const [f, ...rest] = full.split(/\s+/);
+      return { firstName: f ?? "", lastName: rest.join(" ") };
+    }
+  } catch {
+    // Name lookup is best-effort; the greeting falls back safely.
+  }
+  return { firstName: "", lastName: (sub.lastName ?? "").trim() };
 }
