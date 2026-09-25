@@ -145,7 +145,7 @@ export async function suppressEmail(args: {
   detail?: string;
 }): Promise<void> {
   const email = normalizeEmail(args.email);
-  await supabaseAdmin.from("marketing_suppression").upsert(
+  const { error: suppressionError } = await supabaseAdmin.from("marketing_suppression").upsert(
     {
       email,
       reason: args.reason,
@@ -154,6 +154,7 @@ export async function suppressEmail(args: {
     },
     { onConflict: "email" },
   );
+  if (suppressionError) throw new Error(`Could not record opt-out: ${suppressionError.message}`);
   const status: SubscriberStatus =
     args.reason === "bounce"
       ? "bounced"
@@ -162,10 +163,11 @@ export async function suppressEmail(args: {
         : args.reason === "unsubscribe"
           ? "unsubscribed"
           : "suppressed";
-  await supabaseAdmin
+  const { error: subscriberError } = await supabaseAdmin
     .from("marketing_subscribers")
     .update({ status, unsubscribed_at: new Date().toISOString() })
     .eq("email", email);
+  if (subscriberError) throw new Error(`Could not update subscriber: ${subscriberError.message}`);
 }
 
 /** Explicit opt-back-in; only ever triggered by the subscriber or an admin. */
