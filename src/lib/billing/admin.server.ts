@@ -135,13 +135,23 @@ export async function savePlanPrice(
   // saving a recurring price here would silently turn the deal into a
   // subscription at checkout.
   if (input.provider === "stripe" && input.interval === "lifetime") {
-    const { stripeCall } = await import("@/lib/billing/providers.server");
-    const price = await stripeCall(
-      input.environment,
-      `prices/${encodeURIComponent(input.externalPriceId)}`,
-      undefined,
-      "GET",
-    );
+    const { stripeCall, BillingError } = await import("@/lib/billing/providers.server");
+    let price: { recurring?: unknown; active?: boolean } | null = null;
+    try {
+      price = await stripeCall(
+        input.environment,
+        `prices/${encodeURIComponent(input.externalPriceId)}`,
+        undefined,
+        "GET",
+      );
+    } catch (err) {
+      const detail = err instanceof BillingError ? err.detail : String(err);
+      if (/no such price/i.test(detail))
+        throw new Error(
+          `Stripe can't find this price in your ${input.environment} account. Check it was created with the same Stripe account and ${input.environment === "test" ? "test" : "live"} mode as the saved secret key.`,
+        );
+      throw new Error(`Stripe rejected this price: ${detail.slice(0, 300)}`);
+    }
     if (price?.recurring)
       throw new Error(
         "That Stripe price is recurring. The lifetime plan needs a one-time (non-recurring) price.",
