@@ -40,8 +40,17 @@ export const redeemAppSumoCode = createServerFn({ method: "POST" })
       _user_agent: userAgent,
     });
     if (error) throw new Error("We couldn't redeem that code right now. Please try again.");
-    const r = result as { ok: boolean; reason?: string };
+    const r = result as { ok: boolean; reason?: string; subscription_id?: string };
     if (!r.ok) return { ok: false as const, message: publicMessageFor(r.reason ?? "") };
+    if (r.subscription_id && settings.environment) {
+      const { activateAppSumoEntitlement } = await import("@/lib/appsumo.server");
+      try {
+        await activateAppSumoEntitlement(db, data.workspaceId, r.subscription_id);
+      } catch (e) {
+        console.error("[appsumo] entitlement activation failed", e);
+        throw new Error("Your code was accepted but access is still activating. Please contact support.");
+      }
+    }
     return { ok: true as const };
   });
 

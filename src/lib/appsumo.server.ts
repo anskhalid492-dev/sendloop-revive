@@ -53,3 +53,43 @@ export async function assertRedeemRateLimit(db: any, userId: string, ip: string 
 export function toAppSumoCsv(codes: string[]) {
   return codes.filter((c) => c && c.trim()).map((c) => c.trim()).join("\n");
 }
+
+/**
+ * Makes a redeemed AppSumo code actually grant access. The redemption routine
+ * records the billing subscription, but plan entitlement is read from
+ * `workspace_subscriptions`, so it must be updated too — the same way a
+ * confirmed Stripe Lifetime purchase does. Never touches Stripe.
+ */
+export async function activateAppSumoEntitlement(db: any, workspaceId: string, subscriptionId: string) {
+  const { data: sub } = await db
+    .from("billing_subscriptions")
+    .select("plan_id, external_subscription_id, current_period_start")
+    .eq("id", subscriptionId)
+    .maybeSingle();
+  if (!sub?.plan_id) throw new Error("appsumo_subscription_missing");
+  const { error } = await db.from("workspace_subscriptions").upsert(
+    {
+      workspace_id: workspaceId,
+      plan_id: sub.plan_id,
+      status: "active",
+      payment_status: "paid",
+      billing_interval: "lifetime",
+      external_customer_id: null,
+      external_subscription_id: sub.external_subscription_id,
+      current_period_end: null,
+      trial_ends_at: null,
+    },
+    { onConflict: "workspace_id" },
+  );
+  if (error) throw new Error(error.message);
+  try {
+    const { allocatePlanCredits } = await import("@/lib/billing/credits.server");
+    await allocatePlanCredits({
+      workspaceId,
+      planId: sub.plan_id,
+      periodStart: sub.current_period_start ?? new Date().toISOString(),
+    });
+  } catch {
+    /* credit grant must never block access */
+  }
+}

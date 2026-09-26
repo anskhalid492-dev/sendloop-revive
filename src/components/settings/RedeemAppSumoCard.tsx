@@ -24,7 +24,7 @@ export function RedeemAppSumoCard({ workspaceId }: { workspaceId: string }) {
         return;
       }
       setError(null);
-      toast.success("AppSumo code redeemed — Lifetime access is active.");
+      toast.success("AppSumo code redeemed successfully. Your Lifetime access is now active.");
       qc.invalidateQueries();
       navigate({ to: "/dashboard" });
     },
