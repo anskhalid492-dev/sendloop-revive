@@ -10,7 +10,7 @@
 export const LIFETIME_PLAN_SLUG = "lifetime";
 
 /** Fallback used only when the plan row has no `one_time_price` column/value. */
-export const LIFETIME_PRICE_CENTS = 13900;
+export const LIFETIME_PRICE_CENTS = 9900;
 export const LIFETIME_COMPARE_AT_CENTS = 56400;
 
 type PlanLike = {

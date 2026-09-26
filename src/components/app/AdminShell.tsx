@@ -162,6 +162,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/mranuskhalid/analytics", label: "Platform Analytics", icon: BarChart3 },
       { to: "/mranuskhalid/plans", label: "Plans & Pricing", icon: CreditCard },
+      { to: "/mranuskhalid/appsumo", label: "AppSumo Codes", icon: Gift },
       { to: "/mranuskhalid/features", label: "Feature Manager", icon: Settings },
       { to: "/mranuskhalid/subscriptions", label: "Subscriptions", icon: CreditCard },
       { to: "/mranuskhalid/payments", label: "Billing & Payments", icon: CreditCard },
