@@ -54,6 +54,19 @@ async function run(request: Request) {
 
   try {
     const { pollConnectedMailboxes } = await import("@/lib/mailbox-imap-poll.server");
+    // The scheduler hangs up after ~5 seconds, and the runtime cancels work
+    // still running when the caller disconnects — so mailboxes late in the list
+    // were never read. Scheduled runs are handed to the platform to finish in
+    // the background; manual runs (`?wait=1`) still wait for the summary.
+    if (url.searchParams.get("wait") !== "1") {
+      const { keepAlive } = await import("@/lib/background.server");
+      const work = pollConnectedMailboxes().catch((error) =>
+        console.error("mailbox polling failed", error),
+      );
+      if (await keepAlive(work)) return json({ ok: true, accepted: true }, 202);
+      await work;
+      return json({ ok: true }, 200);
+    }
     const summary = await pollConnectedMailboxes();
     return json({ ok: true, ...summary }, 200);
   } catch (error) {
