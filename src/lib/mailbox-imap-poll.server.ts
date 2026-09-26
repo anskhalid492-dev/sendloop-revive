@@ -67,6 +67,7 @@ export type MailboxPollSummary = {
 };
 
 const MAILBOX_BATCH = 100;
+const POLL_CONCURRENCY = 6;
 
 /** Turns one relay message into the shape the Unified Inbox ingestion expects. */
 export function inboundFromRelayMessage(message: RelayCheckedMessage, mailbox: string) {
@@ -416,15 +417,24 @@ export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<Mai
     results: [],
   };
 
-  for (const row of rows) {
-    const outcome = await pollMailbox(supabaseAdmin, row);
-    summary.results.push(outcome);
-    summary.replies += outcome.replies;
-    summary.warmup += outcome.warmup;
-    summary.bounces += outcome.bounces;
-    summary.skipped += outcome.skipped;
-    if (!outcome.ok) summary.failures += 1;
-  }
+  // Mailboxes are read several at a time so one slow mail server can never
+  // hold up the rest, and the whole run finishes well within the time the
+  // platform allows. Previously they were read one by one and mailboxes at the
+  // end of the list (the newest ones) were never reached.
+  let next = 0;
+  const worker = async () => {
+    while (next < rows.length) {
+      const row = rows[next++]!;
+      const outcome = await pollMailbox(supabaseAdmin, row);
+      summary.results.push(outcome);
+      summary.replies += outcome.replies;
+      summary.warmup += outcome.warmup;
+      summary.bounces += outcome.bounces;
+      summary.skipped += outcome.skipped;
+      if (!outcome.ok) summary.failures += 1;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(POLL_CONCURRENCY, rows.length) }, worker));
 
   return summary;
 }
