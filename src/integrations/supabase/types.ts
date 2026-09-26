@@ -541,6 +541,111 @@ export type Database = {
           },
         ]
       }
+      appsumo_codes: {
+        Row: {
+          batch: string
+          code: string
+          created_at: string | null
+          id: string
+          plan: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+          redeemed_email: string | null
+          redeemed_workspace_id: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          status: string
+          subscription_id: string | null
+        }
+        Insert: {
+          batch?: string
+          code: string
+          created_at?: string | null
+          id?: string
+          plan?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          redeemed_email?: string | null
+          redeemed_workspace_id?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Update: {
+          batch?: string
+          code?: string
+          created_at?: string | null
+          id?: string
+          plan?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          redeemed_email?: string | null
+          redeemed_workspace_id?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appsumo_codes_redeemed_workspace_id_fkey"
+            columns: ["redeemed_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appsumo_codes_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appsumo_redemption_logs: {
+        Row: {
+          action: string | null
+          code: string | null
+          code_id: string | null
+          created_at: string | null
+          email: string | null
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          code?: string | null
+          code_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          code?: string | null
+          code_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       automation_events: {
         Row: {
           campaign_id: string | null
@@ -10167,6 +10272,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      generate_appsumo_codes: {
+        Args: { _batch?: string; _count: number }
+        Returns: number
+      }
       has_admin_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean
@@ -10242,6 +10351,18 @@ export type Database = {
         }[]
       }
       publish_due_blog_posts: { Args: never; Returns: number }
+      redeem_appsumo_code: {
+        Args: {
+          _code: string
+          _email: string
+          _environment: Database["public"]["Enums"]["billing_environment"]
+          _ip: string
+          _user_agent: string
+          _user_id: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       referral_dashboard_stats: {
         Args: never
         Returns: {
@@ -10346,6 +10467,10 @@ export type Database = {
         }[]
       }
       reserve_campaign_send: { Args: { _campaign_id: string }; Returns: Json }
+      revoke_appsumo_code: {
+        Args: { _actor: string; _code_id: string }
+        Returns: Json
+      }
       revoke_workspace_invitation: {
         Args: { _invitation_id: string }
         Returns: undefined
@@ -10436,7 +10561,12 @@ export type Database = {
       app_role: "admin" | "support" | "user"
       billing_environment: "test" | "live"
       billing_interval: "monthly" | "yearly" | "lifetime"
-      billing_provider: "stripe" | "paddle" | "lemonsqueezy" | "manual"
+      billing_provider:
+        | "stripe"
+        | "paddle"
+        | "lemonsqueezy"
+        | "manual"
+        | "appsumo"
       billing_sub_status:
         | "trialing"
         | "active"
@@ -10630,7 +10760,13 @@ export const Constants = {
       app_role: ["admin", "support", "user"],
       billing_environment: ["test", "live"],
       billing_interval: ["monthly", "yearly", "lifetime"],
-      billing_provider: ["stripe", "paddle", "lemonsqueezy", "manual"],
+      billing_provider: [
+        "stripe",
+        "paddle",
+        "lemonsqueezy",
+        "manual",
+        "appsumo",
+      ],
       billing_sub_status: [
         "trialing",
         "active",
