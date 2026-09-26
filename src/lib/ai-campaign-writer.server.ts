@@ -288,9 +288,10 @@ export async function generateStep(input: {
         parseJsonObject(await call(input.credentials, rewritePrompt, 900)),
       );
       if (retry.success) step = retry.data;
-    } catch (error) {
-      // Keep the first draft on a malformed rewrite; surface real provider errors.
-      if (!(error instanceof AiGatewayError) || error.status !== 502) throw error;
+    } catch {
+      // The rewrite is optional: any failure (rate limit, quota, malformed
+      // output, provider error) keeps the valid first draft. The next real
+      // generation call will surface persistent key/quota problems.
     }
   }
 
