@@ -124,6 +124,8 @@ export const revokeAppSumoCode = createServerFn({ method: "POST" })
     const db = await guard(context, true);
     const { data: r, error } = await db.rpc("revoke_appsumo_code", { _code_id: data.codeId, _actor: context.userId });
     if (error) throw new Error(error.message);
+    const { revokeAppSumoEntitlement } = await import("@/lib/appsumo.server");
+    await revokeAppSumoEntitlement(db, data.codeId);
     return r as { ok: boolean };
   });
 
