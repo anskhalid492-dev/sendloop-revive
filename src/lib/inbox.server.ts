@@ -909,6 +909,18 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     });
   }
 
+  // Every new email that lands in the Unified Inbox notifies the workspace —
+  // not only campaign-attributed replies. Bounce reports stay quiet.
+  if (detected !== "bounced") {
+    await notifyWorkspaceMembers(db, workspaceId, {
+      type: "reply",
+      title: `New reply from ${prospect}`,
+      message: subject || null,
+      entity_type: "conversation",
+      entity_id: conversation.id,
+    });
+  }
+
   return {
     status: "created",
     conversationId: conversation.id,
@@ -923,7 +935,31 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   };
 }
 
-/** Lead status, activity, follow-up stop and notifications for a fresh reply. */
+/** Insert one bell notification per workspace member. Never throws. */
+export async function notifyWorkspaceMembers(
+  db: Db,
+  workspaceId: string,
+  n: { type: string; title: string; message: string | null; entity_type: string; entity_id: string },
+) {
+  try {
+    const { data: members } = await db
+      .from("workspace_members")
+      .select("user_id")
+      .eq("workspace_id", workspaceId);
+    const rows = (members ?? []).map((m: { user_id: string }) => ({
+      user_id: m.user_id,
+      workspace_id: workspaceId,
+      ...n,
+    }));
+    if (!rows.length) return;
+    const { error } = await db.from("notifications").insert(rows);
+    if (error) console.warn("[notifications] insert failed:", error.message);
+  } catch (error) {
+    console.warn("[notifications] failed:", error instanceof Error ? error.message : error);
+  }
+}
+
+/** Lead status, activity and follow-up stop for a fresh reply. */
 async function applyReplyAutomation(args: {
   db: Db;
   workspaceId: string;
@@ -1126,21 +1162,6 @@ async function applyReplyAutomation(args: {
     }
   }
 
-  // One notification per workspace member, deduplicated by the source email.
-  const { data: members } = await db
-    .from("workspace_members")
-    .select("user_id")
-    .eq("workspace_id", workspaceId);
-  const rows = (members ?? []).map((m) => ({
-    user_id: m.user_id,
-    workspace_id: workspaceId,
-    type: "reply",
-    title: `New reply from ${args.prospect}`,
-    message: args.subject || null,
-    entity_type: "conversation",
-    entity_id: conversationId,
-  }));
-  if (rows.length) await db.from("notifications").insert(rows);
 
   // Fan the reply out to every connected integration that subscribes to it.
   try {
