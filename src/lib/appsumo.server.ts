@@ -93,3 +93,45 @@ export async function activateAppSumoEntitlement(db: any, workspaceId: string, s
     /* credit grant must never block access */
   }
 }
+
+/**
+ * Undoes activateAppSumoEntitlement after a code is revoked. Only touches the
+ * workspace's plan when it is still the one granted by this AppSumo
+ * subscription, so a later Stripe purchase or staff plan is never overwritten.
+ */
+export async function revokeAppSumoEntitlement(db: any, codeId: string) {
+  const { data: code } = await db
+    .from("appsumo_codes")
+    .select("workspace_id, subscription_id")
+    .eq("id", codeId)
+    .maybeSingle();
+  if (!code?.workspace_id || !code?.subscription_id) return { downgraded: false };
+  const { data: sub } = await db
+    .from("billing_subscriptions")
+    .select("external_subscription_id")
+    .eq("id", code.subscription_id)
+    .maybeSingle();
+  const { data: free } = await db
+    .from("plans")
+    .select("id")
+    .eq("monthly_price", 0)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!sub?.external_subscription_id || !free?.id) throw new Error("appsumo_revoke_lookup_failed");
+  const { data: rows, error } = await db
+    .from("workspace_subscriptions")
+    .update({
+      plan_id: free.id,
+      status: "active",
+      payment_status: null,
+      billing_interval: "monthly",
+      external_subscription_id: null,
+      current_period_end: null,
+    })
+    .eq("workspace_id", code.workspace_id)
+    .eq("external_subscription_id", sub.external_subscription_id)
+    .select("workspace_id");
+  if (error) throw new Error(error.message);
+  return { downgraded: (rows ?? []).length > 0 };
+}
