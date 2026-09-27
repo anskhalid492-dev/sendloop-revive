@@ -617,6 +617,18 @@ export const sendConversationReply = createServerFn({ method: "POST" })
         ...data,
       });
       if (claim?.proceed) await claim.finish(sent);
+      await context.supabase
+        .from("notifications")
+        .insert({
+          user_id: context.userId,
+          workspace_id: conversation?.workspace_id ?? null,
+          type: "email_sent",
+          title: "Reply sent",
+          message: data.subject,
+          entity_type: "conversation",
+          entity_id: data.conversationId,
+        })
+        .then(({ error }) => error && console.warn("[notifications]", error.message));
       return sent;
     } catch (error) {
       if (claim?.proceed) await claim.release();
@@ -789,6 +801,18 @@ export const sendComposedEmail = createServerFn({ method: "POST" })
     if (data.draftId) {
       await context.supabase.from("email_drafts").delete().eq("id", data.draftId);
     }
+    await context.supabase
+      .from("notifications")
+      .insert({
+        user_id: context.userId,
+        workspace_id: data.workspaceId,
+        type: "email_sent",
+        title: `Email sent to ${data.to}`,
+        message: data.subject,
+        entity_type: "conversation",
+        entity_id: result.conversationId ?? null,
+      })
+      .then(({ error }) => error && console.warn("[notifications]", error.message));
     return result;
   });
 
