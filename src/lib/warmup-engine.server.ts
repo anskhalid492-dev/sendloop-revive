@@ -640,31 +640,13 @@ async function scheduleAccount(
     }
   }
 
-  // Observable peers come first: network mailboxes whose inbox we actually
-  // read (connected incoming mail) or whose domain routes receiving to us.
-  // Only these sends can ever be confirmed as arrived; pool seed addresses are
-  // unreadable and would stay "unconfirmed" forever. Pool and unobservable
-  // peers remain the fallback so warmup never stops.
-  const [observableAddresses, observableDomains] = await Promise.all([
-    observableRecipientAddresses(admin),
-    observableRecipientDomains(admin),
-  ]);
-  const isObservable = (email: string | null | undefined) => {
-    const value = (email ?? "").trim().toLowerCase();
-    return !!value && (observableAddresses.has(value) || observableDomains.has(recipientDomain(value)));
-  };
-  let observablePeers = peers.filter((p) => isObservable(p.from_email));
-  const freshPeers = observablePeers.filter((p) => !used.has((p.from_email ?? "").toLowerCase()));
-  if (freshPeers.length > 0) observablePeers = freshPeers;
-
-  const recipients: Target[] =
-    observablePeers.length > 0
-      ? observablePeers.map((p) => ({ kind: "peer" as const, account: p }))
-      : pool.length > 0
-        ? pool
-        : peers.length > 0
-          ? peers.map((p) => ({ kind: "peer" as const, account: p }))
-          : [{ kind: "peer" as const, account }];
+  // Warmup emails go ONLY to the admin-managed seed list. No peer mailboxes,
+  // no solo self-sends. With no active seed address, nothing is scheduled.
+  void peers;
+  if (pool.length === 0) {
+    return { scheduled: 0, reason: "No active addresses in the admin warmup seed list." };
+  }
+  const recipients: Target[] = pool;
 
   const decision = await resolveDailyTarget(admin, account, settings);
   const target = decision.target;
