@@ -170,6 +170,7 @@ async function processFolderMessages(
         // Which folder this run is reading: warmup records real placement.
         folder: placement,
         source: "imap_arrival",
+        receivingMailbox: mailbox,
         receivedAt: message.date ? new Date(message.date).toISOString() : null,
       });
       if (warmupClaimed) {

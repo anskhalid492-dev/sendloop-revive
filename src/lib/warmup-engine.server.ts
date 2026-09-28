@@ -1365,6 +1365,8 @@ export async function applyWarmupInbound(input: {
   source?: "inbound_arrival" | "imap_arrival";
   /** Provider time of arrival, when reported. */
   receivedAt?: string | null;
+  /** Address of the mailbox we actually read the message from (IMAP). */
+  receivingMailbox?: string | null;
 }): Promise<boolean> {
   const token = warmupTokenFrom(input);
   if (!token) return false;
@@ -1373,11 +1375,21 @@ export async function applyWarmupInbound(input: {
   const { data: job } = await supabaseAdmin
     .from("warmup_jobs")
     .select(
-      "id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id, pool_recipient_id",
+      "id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id, pool_recipient_id, to_email",
     )
     .eq("warmup_token", token)
     .maybeSingle();
   if (!job) return false;
+
+  // The token alone is not enough: the message must have been read from the
+  // mailbox it was addressed to. A forwarded or copied warmup email seen in
+  // some other mailbox is claimed (kept out of the inbox) but never confirms.
+  const reader = (input.receivingMailbox ?? input.to ?? "").trim().toLowerCase();
+  const intended = String((job as Record<string, unknown>)["to_email"] ?? "").trim().toLowerCase();
+  if (reader && intended && reader !== intended) {
+    console.warn(`[warmup] token ${token} read at ${reader}, addressed to ${intended}; not confirming`);
+    return true;
+  }
 
   const spam = spamVerdict(input);
   const placement =
