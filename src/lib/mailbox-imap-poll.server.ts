@@ -286,6 +286,9 @@ export async function pollMailbox(
 
   // ---- main inbox -------------------------------------------------------
   let messages: RelayCheckedMessage[] = [];
+  // Stamp the poll time so the batch rotates: the cron orders by this column,
+  // and without it mailboxes beyond the first batch would never be checked.
+  await admin.from("mailboxes").update({ last_tested_at: new Date().toISOString() }).eq("id", row.id);
   try {
     const result = await readFolder(admin, row, row.last_imap_uid ?? null);
     if (!result.ok) {

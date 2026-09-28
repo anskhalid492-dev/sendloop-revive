@@ -94,7 +94,7 @@ export const getAppSumoAdmin = createServerFn({ method: "GET" })
     if (data.batch !== "all") q = q.eq("batch", data.batch);
     const s = data.search?.trim();
     if (s) {
-      const safe = s.replace(/[%,()]/g, "");
+      const safe = s.replace(/[%_,()\\]/g, "");
       q = q.or(`code.ilike.%${safe.toUpperCase()}%,redeemed_email.ilike.%${safe}%`);
     }
     const { data: rows, count: filtered, error } = await q;
