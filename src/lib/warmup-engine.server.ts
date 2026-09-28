@@ -1384,7 +1384,7 @@ export async function applyWarmupInbound(input: {
   // The token alone is not enough: the message must have been read from the
   // mailbox it was addressed to. A forwarded or copied warmup email seen in
   // some other mailbox is claimed (kept out of the inbox) but never confirms.
-  const reader = (input.receivingMailbox ?? input.to ?? "").trim().toLowerCase();
+  const reader = (input.receivingMailbox ?? "").trim().toLowerCase();
   const intended = String((job as Record<string, unknown>)["to_email"] ?? "").trim().toLowerCase();
   if (reader && intended && reader !== intended) {
     console.warn(`[warmup] token ${token} read at ${reader}, addressed to ${intended}; not confirming`);
