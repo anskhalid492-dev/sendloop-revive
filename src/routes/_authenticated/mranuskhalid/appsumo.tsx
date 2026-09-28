@@ -56,7 +56,10 @@ function AppSumoAdminPage() {
   });
   const revokeM = useMutation({
     mutationFn: (codeId: string) => revoke({ data: { codeId } }),
-    onSuccess: () => { toast.success("Code revoked"); refresh(); },
+    onSuccess: (res: any) => {
+      if (res?.warning) toast.warning(res.warning); else toast.success("Code revoked");
+      refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const expM = useMutation({
