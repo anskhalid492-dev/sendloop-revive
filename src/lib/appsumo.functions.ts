@@ -125,8 +125,19 @@ export const revokeAppSumoCode = createServerFn({ method: "POST" })
     const { data: r, error } = await db.rpc("revoke_appsumo_code", { _code_id: data.codeId, _actor: context.userId });
     if (error) throw new Error(error.message);
     const { revokeAppSumoEntitlement } = await import("@/lib/appsumo.server");
-    await revokeAppSumoEntitlement(db, data.codeId);
-    return r as { ok: boolean };
+    // The code is already revoked; a downgrade problem must not report the
+    // revoke itself as failed. Surface it as a warning instead.
+    try {
+      const res = await revokeAppSumoEntitlement(db, data.codeId);
+      return { ...(r as { ok: boolean }), downgraded: res.downgraded, warning: null as string | null };
+    } catch (e) {
+      console.error("[appsumo] entitlement downgrade failed after revoke", e);
+      return {
+        ...(r as { ok: boolean }),
+        downgraded: false,
+        warning: "Code revoked, but the workspace plan could not be downgraded automatically. Change it manually." as string | null,
+      };
+    }
   });
 
 export const exportAppSumoCodes = createServerFn({ method: "POST" })

@@ -291,16 +291,9 @@ export async function pollMailbox(
     if (!result.ok) {
       outcome.error = result.message;
       console.warn(`[imap-poll] ${row.email_address}: check failed — ${result.message}`);
-      // A rejected login never fixes itself: mark the mailbox as needing a
-      // reconnect so the owner sees it and it stops being re-polled forever.
-      if (/AUTHENTICATIONFAILED|authentication failed|invalid credentials|login failed.*NO/i.test(result.message)) {
-        const { error: markError } = await admin
-          .from("mailboxes")
-          .update({ status: "failed" })
-          .eq("id", row.id)
-          .eq("status", "connected");
-        if (markError) console.warn(`[imap-poll] ${row.email_address}: could not flag mailbox — ${markError.message}`);
-      }
+      // Never change mailboxes.status here: sending (SMTP) only uses
+      // status='connected', and an incoming-mail login problem must not
+      // switch off outbound sending for this mailbox.
       return outcome;
     }
     messages = result.messages;
