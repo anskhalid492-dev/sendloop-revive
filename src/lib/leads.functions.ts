@@ -428,6 +428,7 @@ export const createLead = createServerFn({ method: "POST" })
     const { data: existing } = await context.supabase
       .from("leads")
       .select(sel("id"))
+      .eq("workspace_id", data.workspaceId)
       .eq("email", data.lead.email.toLowerCase())
       .maybeSingle();
     if (existing) throw new Error("A lead with that email already exists in this workspace");
@@ -502,8 +503,13 @@ export const deleteLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("leads").delete().eq("id", data.id);
+    const { data: gone, error } = await context.supabase
+      .from("leads")
+      .delete()
+      .eq("id", data.id)
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!gone || gone.length === 0) throw new Error("This lead could not be deleted. It may already be gone or you don't have access.");
     return { ok: true };
   });
 
