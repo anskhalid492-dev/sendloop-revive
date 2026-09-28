@@ -110,7 +110,7 @@ export const listConversations = createServerFn({ method: "GET" })
         query = query.eq("has_inbound", true).eq("archived", true);
         break;
       case "snoozed":
-        query = query.eq("has_inbound", true).gt("snoozed_until", nowIso);
+        query = query.eq("has_inbound", true).eq("archived", false).gt("snoozed_until", nowIso);
         break;
       case "assigned_to_me":
         query = query.eq("has_inbound", true).eq("archived", false).eq("assigned_to", context.userId);
@@ -139,7 +139,7 @@ export const listConversations = createServerFn({ method: "GET" })
     if (data.search) {
       // Full-text-ish search across the conversation and the bodies of its
       // messages, resolved in the database so it covers unloaded rows too.
-      const term = data.search.replace(/[%,()]/g, " ").trim();
+      const term = data.search.replace(/[%_,()\\]/g, " ").trim();
       const like = `%${term}%`;
       const { data: hits } = await context.supabase
         .from("conversation_messages")
