@@ -613,19 +613,19 @@ async function scheduleAccount(
   }));
 
   // Avoid repeating the same sender -> recipient pair within a week.
+  const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const { data: recent } = await admin
+    .from("warmup_jobs")
+    .select("to_email")
+    .eq("sending_account_id", account.id)
+    .gte("created_at", since)
+    .limit(500);
+  const used = new Set(
+    ((recent ?? []) as Array<Record<string, unknown>>).map((r) =>
+      String(r["to_email"] ?? "").toLowerCase(),
+    ),
+  );
   if (pool.length > 1) {
-    const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
-    const { data: recent } = await admin
-      .from("warmup_jobs")
-      .select("to_email")
-      .eq("sending_account_id", account.id)
-      .gte("created_at", since)
-      .limit(500);
-    const used = new Set(
-      ((recent ?? []) as Array<Record<string, unknown>>).map((r) =>
-        String(r["to_email"] ?? "").toLowerCase(),
-      ),
-    );
     const fresh = pool.filter((t) => t.kind === "pool" && !used.has(t.email.toLowerCase()));
     if (fresh.length > 0) pool = fresh;
   }
@@ -640,12 +640,31 @@ async function scheduleAccount(
     }
   }
 
+  // Observable peers come first: network mailboxes whose inbox we actually
+  // read (connected incoming mail) or whose domain routes receiving to us.
+  // Only these sends can ever be confirmed as arrived; pool seed addresses are
+  // unreadable and would stay "unconfirmed" forever. Pool and unobservable
+  // peers remain the fallback so warmup never stops.
+  const [observableAddresses, observableDomains] = await Promise.all([
+    observableRecipientAddresses(admin),
+    observableRecipientDomains(admin),
+  ]);
+  const isObservable = (email: string | null | undefined) => {
+    const value = (email ?? "").trim().toLowerCase();
+    return !!value && (observableAddresses.has(value) || observableDomains.has(recipientDomain(value)));
+  };
+  let observablePeers = peers.filter((p) => isObservable(p.from_email));
+  const freshPeers = observablePeers.filter((p) => !used.has((p.from_email ?? "").toLowerCase()));
+  if (freshPeers.length > 0) observablePeers = freshPeers;
+
   const recipients: Target[] =
-    pool.length > 0
-      ? pool
-      : peers.length > 0
-        ? peers.map((p) => ({ kind: "peer" as const, account: p }))
-        : [{ kind: "peer" as const, account }];
+    observablePeers.length > 0
+      ? observablePeers.map((p) => ({ kind: "peer" as const, account: p }))
+      : pool.length > 0
+        ? pool
+        : peers.length > 0
+          ? peers.map((p) => ({ kind: "peer" as const, account: p }))
+          : [{ kind: "peer" as const, account }];
 
   const decision = await resolveDailyTarget(admin, account, settings);
   const target = decision.target;
