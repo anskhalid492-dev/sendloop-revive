@@ -856,52 +856,125 @@ export const saveCampaignSteps = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error: delErr } = await context.supabase
+    // Steps and variants are updated IN PLACE. Deleting and re-inserting them
+    // nulled step_id/variant_id on every queued message (thousands of rows per
+    // save on large campaigns) — that FK cascade was the slow Save.
+    const t0 = Date.now();
+    const sb = context.supabase;
+    const { data: existingSteps, error: exErr } = await sb
       .from("campaign_steps")
-      .delete()
+      .select("id, step_order")
       .eq("campaign_id", data.campaignId);
-    if (delErr) throw new Error(delErr.message);
-
-    const { data: inserted, error } = await context.supabase
-      .from("campaign_steps")
-      .insert(
-        data.steps.map((s, i) => ({
-          campaign_id: data.campaignId,
-          workspace_id: data.workspaceId,
-          step_order: i + 1,
-          name: s.name ?? "",
-          step_type: s.stepType,
-          subject: s.subject,
-          body: s.body,
-          wait_days: i === 0 ? 0 : s.waitDays,
-          wait_hours: i === 0 ? 0 : s.waitHours,
-          delay_minutes: i === 0 ? 0 : s.delayMinutes,
-          same_thread: i === 0 ? false : s.sameThread,
-          config: s.config as StepConfig,
-        })) as never,
-      )
-      .select("id, step_order");
-    if (error) throw new Error(error.message);
-
-    const variantRows = (inserted ?? []).flatMap((row) => {
-      const draft = data.steps[row.step_order - 1];
-      return (draft?.variants ?? []).map((v) => ({
-        step_id: row.id,
-        campaign_id: data.campaignId,
-        workspace_id: data.workspaceId,
-        label: v.label,
-        subject: v.subject,
-        body: v.body,
-        weight: v.weight,
-      }));
-    });
-    if (variantRows.length) {
-      const { error: vErr } = await context.supabase
-        .from("campaign_step_variants")
-        .insert(variantRows);
-      if (vErr) throw new Error(vErr.message);
+    if (exErr) throw new Error(exErr.message);
+    const byOrder = new Map<number, string>();
+    for (const row of (existingSteps ?? []) as Array<{ id: string; step_order: number }>) {
+      byOrder.set(row.step_order, row.id);
     }
 
+    const rowFor = (s: (typeof data.steps)[number], i: number) => ({
+      campaign_id: data.campaignId,
+      workspace_id: data.workspaceId,
+      step_order: i + 1,
+      name: s.name ?? "",
+      step_type: s.stepType,
+      subject: s.subject,
+      body: s.body,
+      wait_days: i === 0 ? 0 : s.waitDays,
+      wait_hours: i === 0 ? 0 : s.waitHours,
+      delay_minutes: i === 0 ? 0 : s.delayMinutes,
+      same_thread: i === 0 ? false : s.sameThread,
+      config: s.config as StepConfig,
+    });
+
+    // Remove only steps beyond the new sequence length.
+    const extraIds = [...byOrder.entries()]
+      .filter(([order]) => order > data.steps.length)
+      .map(([, id]) => id);
+    if (extraIds.length) {
+      const { error: delErr } = await sb.from("campaign_steps").delete().in("id", extraIds);
+      if (delErr) throw new Error(delErr.message);
+    }
+
+    const stepIds: string[] = [];
+    const toInsert: Array<ReturnType<typeof rowFor>> = [];
+    await Promise.all(
+      data.steps.map(async (s, i) => {
+        const id = byOrder.get(i + 1);
+        if (!id) {
+          toInsert.push(rowFor(s, i));
+          return;
+        }
+        stepIds[i] = id;
+        const { error } = await sb.from("campaign_steps").update(rowFor(s, i) as never).eq("id", id);
+        if (error) throw new Error(error.message);
+      }),
+    );
+    if (toInsert.length) {
+      const { data: inserted, error } = await sb
+        .from("campaign_steps")
+        .insert(toInsert as never)
+        .select("id, step_order");
+      if (error) throw new Error(error.message);
+      for (const row of (inserted ?? []) as Array<{ id: string; step_order: number }>) {
+        stepIds[row.step_order - 1] = row.id;
+      }
+    }
+
+    // Variants: update by (step, label), insert new, delete removed.
+    const activeIds = stepIds.filter(Boolean);
+    const { data: existingVariants, error: evErr } = activeIds.length
+      ? await sb.from("campaign_step_variants").select("id, step_id, label").in("step_id", activeIds)
+      : { data: [], error: null };
+    if (evErr) throw new Error(evErr.message);
+    const variantKey = (stepId: string, label: string) => `${stepId}::${label}`;
+    const existingMap = new Map<string, string>();
+    for (const v of (existingVariants ?? []) as Array<{ id: string; step_id: string; label: string }>) {
+      existingMap.set(variantKey(v.step_id, v.label), v.id);
+    }
+    const keep = new Set<string>();
+    const variantInserts: Array<Record<string, unknown>> = [];
+    const variantUpdates: Array<{ id: string; patch: Record<string, unknown> }> = [];
+    data.steps.forEach((draft, i) => {
+      const stepId = stepIds[i];
+      if (!stepId) return;
+      for (const v of draft.variants ?? []) {
+        const id = existingMap.get(variantKey(stepId, v.label));
+        const patch = { subject: v.subject, body: v.body, weight: v.weight };
+        if (id) {
+          keep.add(id);
+          variantUpdates.push({ id, patch });
+        } else {
+          variantInserts.push({
+            step_id: stepId,
+            campaign_id: data.campaignId,
+            workspace_id: data.workspaceId,
+            label: v.label,
+            ...patch,
+          });
+        }
+      }
+    });
+    const removeVariantIds = [...existingMap.values()].filter((id) => !keep.has(id));
+    await Promise.all([
+      ...variantUpdates.map(async ({ id, patch }) => {
+        const { error } = await sb.from("campaign_step_variants").update(patch as never).eq("id", id);
+        if (error) throw new Error(error.message);
+      }),
+      (async () => {
+        if (!removeVariantIds.length) return;
+        const { error } = await sb.from("campaign_step_variants").delete().in("id", removeVariantIds);
+        if (error) throw new Error(error.message);
+      })(),
+      (async () => {
+        if (!variantInserts.length) return;
+        const { error } = await sb.from("campaign_step_variants").insert(variantInserts as never);
+        if (error) throw new Error(error.message);
+      })(),
+    ]);
+
+    console.log(
+      `[campaign-save] steps ${data.campaignId} · SEQUENCE UPDATE: ${data.steps.length} steps (${toInsert.length} new, ${extraIds.length} removed) · RESCHEDULE REQUIRED: false · TOTAL: ${Date.now() - t0} ms`,
+    );
     return { ok: true };
   });
 
