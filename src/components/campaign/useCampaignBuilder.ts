@@ -408,28 +408,27 @@ export function useCampaignBuilder(
           throw error;
         }
       };
-      let result = await pass();
+      // One short server pass: the campaign is activated and any remaining
+      // queue preparation continues in the background.
+      const result = await pass();
       queued += result.queued;
       total = Math.max(total, result.total, queued);
-      for (let attempt = 0; attempt < 60 && !result.done; attempt += 1) {
-        toast.loading(
-          total > 0
-            ? `Preparing your campaign… ${queued.toLocaleString()} of ${total.toLocaleString()} emails queued`
-            : "Preparing your campaign…",
-          { id: "campaign-launch-progress" },
-        );
-        result = await pass();
-        queued += result.queued;
-        total = Math.max(total, result.total, queued);
-      }
-      toast.dismiss("campaign-launch-progress");
-      if (!result.done) throw new Error("Still preparing this campaign. Click Launch again to continue.");
-      return { ...result, queued: Math.max(queued, result.total) };
+      return {
+        ...result,
+        queued,
+        preparing: "preparing" in result ? Boolean(result.preparing) : false,
+      };
     },
     onSuccess: async (result) => {
-      toast.success(
-        `Queued ${result.queued} leads. First send ${new Date(result.firstSendAt).toLocaleString()}.`,
-      );
+      if (result.preparing) {
+        toast.success("Campaign launched — preparing scheduled emails…", {
+          description: `${result.queued.toLocaleString()} emails scheduled so far. The rest are added in the background.`,
+        });
+      } else {
+        toast.success(
+          `Queued ${result.queued} leads. First send ${new Date(result.firstSendAt ?? Date.now()).toLocaleString()}.`,
+        );
+      }
       await refreshLifecycle();
       await queryClient.invalidateQueries({ queryKey: ["campaign-leads", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-launch-events", campaignId] });
