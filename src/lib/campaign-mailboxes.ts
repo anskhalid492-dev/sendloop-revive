@@ -51,14 +51,18 @@ export async function loadCampaignWorkspaceAccounts(
     .from("sending_accounts")
     .select(ACCOUNT_COLUMNS)
     .eq("workspace_id", workspaceId)
-    .eq("customer_enabled", true)
-    .eq("paused", false)
-    .not("status", "in", "(disabled,disconnected)")
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  const rows = selectCampaignMailboxes((data ?? []) as Array<Record<string, unknown> & { workspace_id?: string | null }>, workspaceId);
+  const all = (data ?? []) as Array<Record<string, unknown> & { workspace_id?: string | null }>;
+  const rows = selectCampaignMailboxes(all, workspaceId);
+  const eligibleIds = new Set(rows.map((r) => r['id']));
+  // Workspace mailboxes that exist but are restricted (paused/disabled/
+  // disconnected). Shown with their status, never selectable.
+  const restricted = all.filter((r) => r.workspace_id === workspaceId && !eligibleIds.has(r['id']));
   return {
     workspaceId,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    restricted: restricted.map((row) => decorate(row as any, null)),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     accounts: rows.map((row) => decorate(row as any, null)),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

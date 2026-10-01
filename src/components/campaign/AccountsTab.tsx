@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
-  const { accounts, settings, patchSettings } = builder;
+  const { accounts, restrictedAccounts, accountsLoading, accountsError, settings, patchSettings } =
+    builder;
   if (!settings) return null;
 
   const selectedIds = settings.sendingAccountIds;
@@ -86,17 +87,34 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
       ) : null}
 
 
-      {accounts.length === 0 ? (
+      {accountsError ? (
+        <div className="surface-card flex flex-col items-center gap-3 p-12 text-center">
+          <AlertTriangle className="size-8 text-destructive" />
+          <div>
+            <p className="font-semibold">Couldn't load your mailboxes</p>
+            <p className="text-sm text-muted-foreground">{accountsError}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void builder.refetchAccounts()}>
+            Try again
+          </Button>
+        </div>
+      ) : accountsLoading ? (
+        <div className="surface-card p-12 text-center text-sm text-muted-foreground">
+          Loading mailboxes…
+        </div>
+      ) : accounts.length === 0 ? (
         <div className="surface-card flex flex-col items-center gap-3 p-12 text-center">
           <Inbox className="size-8 text-muted-foreground" />
           <div>
-            <p className="font-semibold">No email accounts assigned yet</p>
+            <p className="font-semibold">No mailboxes available</p>
             <p className="text-sm text-muted-foreground">
-              Managed mailboxes are assigned to your workspace by MunchReach.
+              {restrictedAccounts.length > 0
+                ? `Your workspace has ${restrictedAccounts.length} mailbox${restrictedAccounts.length === 1 ? "" : "es"}, but none can send right now. Activate an email account to use it for this campaign.`
+                : "Connect or activate an email account to use it for this campaign."}
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link to="/sending">Open Email Accounts</Link>
+            <Link to="/sending">Add Email Account</Link>
           </Button>
         </div>
       ) : (
@@ -157,6 +175,41 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
           })}
         </div>
       )}
+
+      {!accountsError && !accountsLoading && restrictedAccounts.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Unavailable for sending
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {restrictedAccounts.map((account) => (
+              <div
+                key={account.id}
+                className="surface-card flex items-start gap-3 p-4 opacity-70"
+                aria-disabled="true"
+              >
+                <Checkbox checked={false} disabled aria-label={`${account.from_email} unavailable`} className="mt-1" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Mail className="size-3.5 text-muted-foreground" />
+                    <span className="truncate font-medium">{account.from_email}</span>
+                    <Badge variant="outline">
+                      {account.paused
+                        ? "Paused"
+                        : account.customer_enabled === false
+                          ? "Turned off"
+                          : "Disabled"}
+                    </Badge>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    Activate this mailbox in Email Accounts to use it here.
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
