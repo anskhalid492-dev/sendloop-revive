@@ -129,18 +129,16 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
     const client = context.supabase as Client;
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: accounts, error } = await client
+    const { data: rawAccounts, error } = await client
       .from("sending_accounts")
       .select(
         "id, workspace_id, from_email, from_name, provider, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status, mx_status, domain_id, sending_domains(domain)",
       )
       .order("from_email");
     if (error) throw new Error(error.message);
-    {
-      const { withoutDeletedMailboxes } = await import("@/lib/campaign-mailboxes");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (accounts as any) = await withoutDeletedMailboxes(client, (accounts ?? []) as any[]);
-    }
+    const { withoutDeletedMailboxes } = await import("@/lib/campaign-mailboxes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const accounts: any[] = await withoutDeletedMailboxes(client, (rawAccounts ?? []) as any[]);
 
     const ids = (accounts ?? []).map((a: { id: string }) => a.id);
     if (ids.length === 0) return { accounts: [] as WarmupAccountRow[] };
