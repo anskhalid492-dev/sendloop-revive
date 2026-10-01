@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useInboxUnread } from "@/hooks/useInboxUnread";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -164,6 +165,16 @@ export function AppShell({
   const saveProfile = useServerFn(updateProfile);
   const avatarUrl = useAvatarUrl(profile.data?.avatar_url);
   const { supportUnread } = useNotifications();
+  const inboxUnread = useInboxUnread();
+  const inboxBadge =
+    inboxUnread > 0 ? (
+      <span
+        aria-label={`${inboxUnread} unread messages`}
+        className="pointer-events-none absolute -right-1 -top-1 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground"
+      >
+        {inboxUnread > 99 ? "99+" : inboxUnread}
+      </span>
+    ) : null;
 
 
   // The preference is applied instantly and remembered on the account too.
@@ -244,11 +255,15 @@ export function AppShell({
                 to={item.to}
                 {...("hash" in item && item.hash ? { hash: item.hash } : {})}
                 onClick={() => setOpen(false)}
-                className={linkClass(item.to, "hash" in item ? item.hash : undefined)}
+                className={cn(
+                  linkClass(item.to, "hash" in item ? item.hash : undefined),
+                  item.to === "/inbox" && "relative",
+                )}
                 aria-current={isActive(item.to, "hash" in item ? item.hash : undefined) ? "page" : undefined}
               >
                 <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 truncate text-left">{item.label}</span>
+                {item.to === "/inbox" ? inboxBadge : null}
                 {item.to === "/support" && supportUnread > 0 ? (
                   <span
                     aria-label={`${supportUnread} unread support updates`}
@@ -373,6 +388,8 @@ export function AppShell({
                 ),
                 item.to === "/support" && supportUnread > 0 ? (
                   <span className="absolute right-1 top-1 size-2 rounded-full bg-primary" aria-label={`${supportUnread} unread support updates`} />
+                ) : item.to === "/inbox" ? (
+                  inboxBadge
                 ) : null,
               );
             })}
