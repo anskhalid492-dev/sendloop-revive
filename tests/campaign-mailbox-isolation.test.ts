@@ -4,7 +4,7 @@ import { selectCampaignMailboxes, loadCampaignWorkspaceAccounts } from "@/lib/ca
 const A = "aaaaaaaa-0000-0000-0000-000000000000";
 const B = "bbbbbbbb-0000-0000-0000-000000000000";
 const mb = (id: string, ws: string, extra: Record<string, unknown> = {}) => ({
-  id, workspace_id: ws, status: "verified", paused: false, customer_enabled: true, ...extra,
+  id, workspace_id: ws, from_email: `${id}@x.com`, label: id, status: "verified", paused: false, customer_enabled: true, ...extra,
 });
 const rows = [
   mb("a1", A), mb("a2", A), mb("a3", A, { status: "disconnected" }), mb("a4", A, { customer_enabled: false }),
