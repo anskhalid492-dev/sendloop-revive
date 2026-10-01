@@ -45,6 +45,7 @@ import {
   type CampaignOverviewRow,
 } from "@/lib/campaign-overview";
 import { DailyLimitPopover } from "@/components/campaign/DailyLimitPopover";
+import { CategoryPopover } from "@/components/campaign/CategoryPopover";
 
 type SortKey = "name" | "leads" | "openRate" | "replies" | "reached" | "sent" | "status";
 
@@ -295,7 +296,7 @@ export function CampaignsTable({
                       {row.name}
                     </Link>
                     <p className="truncate text-xs text-muted-foreground">
-                      {row.category || row.description || "No category"}
+                      <CategoryPopover campaignId={row.id} category={row.category} />
                       {created && !Number.isNaN(created.getTime())
                         ? ` · Created ${created.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                         : ""}
