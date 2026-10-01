@@ -430,7 +430,7 @@ export const updateConversation = createServerFn({ method: "POST" })
       .from("conversations")
       .update(patch as never)
       .eq("id", data.id)
-      .select("id, workspace_id, lead_id, status")
+      .select("id, workspace_id, lead_id, status, prospect_email")
       .single();
     if (error) throw new Error(error.message);
 
@@ -438,12 +438,48 @@ export const updateConversation = createServerFn({ method: "POST" })
     // status AND its pipeline stage through the one shared transition service,
     // so "Won" here is the same Won the CRM board shows. Failures surface.
     let lead: { status: string; stageId: string | null; stageName: string | null } | null = null;
-    if (data.status && updated.lead_id) {
-      const mapped = TRANSITION_FOR_CONVERSATION_STATUS[data.status];
-      if (mapped) {
+    const mapped = data.status ? TRANSITION_FOR_CONVERSATION_STATUS[data.status] : undefined;
+    let leadId: string | null = (updated.lead_id as string | null) ?? null;
+
+    // Replies from people who were never imported as leads have no CRM
+    // contact yet. Link an existing contact with the same email, or create
+    // one, so the pipeline move actually shows up in the CRM.
+    if (mapped && !leadId && updated.prospect_email) {
+      const email = String(updated.prospect_email).trim().toLowerCase();
+      const { data: existing } = await context.supabase
+        .from("leads")
+        .select("id")
+        .eq("workspace_id", updated.workspace_id)
+        .ilike("email", email.replace(/[\\%_]/g, (c: string) => `\\${c}`))
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        leadId = existing.id as string;
+      } else {
+        const { data: created, error: createError } = await context.supabase
+          .from("leads")
+          .insert({
+            workspace_id: updated.workspace_id,
+            email,
+            status: "replied",
+            lead_source: "inbox",
+          } as never)
+          .select("id")
+          .single();
+        if (createError) throw new Error(`Couldn't add this contact to the CRM: ${createError.message}`);
+        leadId = created.id as string;
+      }
+      await context.supabase
+        .from("conversations")
+        .update({ lead_id: leadId } as never)
+        .eq("id", data.id);
+    }
+
+    if (mapped && leadId) {
+      {
         const { applyLeadTransition } = await import("@/lib/lead-transition.server");
         const result = await applyLeadTransition(context.supabase, {
-          leadId: updated.lead_id,
+          leadId,
           status: mapped.status,
           ...(mapped.stageKey ? { stageKey: mapped.stageKey } : {}),
           actorId: context.userId,
