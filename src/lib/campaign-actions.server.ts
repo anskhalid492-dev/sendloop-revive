@@ -37,13 +37,18 @@ export async function launchCampaignService(
   supabase: Client,
   actorId: string,
   campaignId: string,
-  options: { budgetMs?: number } = {},
+  options: { budgetMs?: number; mode?: "launch" | "continue" } = {},
 ) {
+    const mode = options.mode ?? "launch";
+    const t0 = Date.now();
     // One worker invocation has a hard CPU/time limit, so a large audience is
     // built across several calls. Every step below is idempotent, so the next
     // call resumes exactly where this one stopped.
     const startedAt = Date.now();
-    const budgetMs = options.budgetMs ?? 8_000;
+    // The launch request only does a short first pass; the remaining queue is
+    // built by the background continuation (run-campaigns cron) so Launch
+    // returns in seconds even for 10k-lead campaigns.
+    const budgetMs = options.budgetMs ?? (mode === "launch" ? 4_000 : 8_000);
     const outOfBudget = () => Date.now() - startedAt > budgetMs;
     let incomplete = false;
     const { data: campaign, error } = await supabase
@@ -55,6 +60,18 @@ export async function launchCampaignService(
     if (!campaign) throw new Error("Campaign not found");
     const c = withCampaignDefaults(campaign as unknown as Record<string, unknown>) as unknown as Campaign;
 
+    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent } =
+      await import("@/lib/campaign-launch.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let readiness: any = null;
+    if (mode === "continue") {
+      // Background continuation: the launch already validated this campaign.
+      // Stop preparing campaigns the user has since ended or reverted.
+      if (!["active", "paused", "scheduled"].includes(String(c.status))) {
+        await clearPreparationPending(c.id);
+        return { queued: 0, total: 0, firstSendAt: null, heldForAi: 0, done: true as const, preparing: false };
+      }
+    } else {
     // Plan enforcement before anything is scheduled.
     const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
     await requireEntitlement(c.workspace_id, "campaigns");
@@ -82,10 +99,7 @@ export async function launchCampaignService(
 
 
     // Validate against the persisted audience relationship, never frontend state.
-    const { evaluateLaunchReadiness, persistReadiness, recordLaunchEvent } =
-      await import("@/lib/campaign-launch.server");
-
-    const readiness = await evaluateLaunchReadiness(supabase, c.id);
+    readiness = await evaluateLaunchReadiness(supabase, c.id);
     await persistReadiness(supabase, readiness);
     if (!readiness.ready) {
       // Audit the blocked attempt with the exact reasons before failing.
@@ -98,6 +112,9 @@ export async function launchCampaignService(
       throw new Error(readiness.issues[0]!.message);
     }
 
+
+    }
+    console.log(`[launch] ${mode} ${c.id} VALIDATE: ${Date.now() - t0} ms`);
 
     const { data: steps, error: sErr } = await supabase
       .from("campaign_steps")
@@ -375,14 +392,27 @@ export async function launchCampaignService(
     // Ran out of invocation budget: the queue is partially built and every
     // step is idempotent, so the caller simply calls launch again to continue.
     // The campaign stays out of "active" until the whole audience is queued.
+    console.log(
+      `[launch] ${mode} ${c.id} PREPARE: ${Date.now() - t0} ms queued=${queuedMessages} incomplete=${incomplete}`,
+    );
     if (incomplete) {
-      return {
-        queued: queuedMessages,
-        total: attached,
-        firstSendAt: firstSlot,
-        heldForAi,
-        done: false as const,
-      };
+      // Hand the rest to the background continuation (idempotent, bounded).
+      await markPreparationPending(c.id);
+      if (mode === "continue" || c.status === "active") {
+        return {
+          queued: queuedMessages,
+          total: attached,
+          firstSendAt: firstSlot,
+          heldForAi,
+          done: true as const,
+          preparing: true,
+        };
+      }
+    } else {
+      await clearPreparationPending(c.id);
+      if (mode === "continue") {
+        return { queued: queuedMessages, total: attached, firstSendAt: firstSlot, heldForAi, done: true as const, preparing: false };
+      }
     }
 
     const { error: uErr } = await supabase
@@ -452,5 +482,56 @@ export async function launchCampaignService(
       firstSendAt: firstSlot,
       heldForAi,
       done: true as const,
+      preparing: incomplete,
     };
+}
+
+const PREP_KEY = (id: string) => `campaign_prep:${id}`;
+
+/** Records that a launched campaign still has queue preparation remaining. */
+export async function markPreparationPending(campaignId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("platform_settings")
+    .upsert(
+      { key: PREP_KEY(campaignId), value: { campaignId, at: new Date().toISOString() } } as never,
+      { onConflict: "key" },
+    );
+}
+
+export async function clearPreparationPending(campaignId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("platform_settings").delete().eq("key", PREP_KEY(campaignId));
+}
+
+/**
+ * Background continuation used by the campaign runner: finishes building the
+ * queue for launched campaigns in bounded, idempotent passes.
+ */
+export async function continuePendingPreparations(budgetMs = 15_000) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("platform_settings")
+    .select("key")
+    .like("key", "campaign_prep:%")
+    .limit(5);
+  const startedAt = Date.now();
+  const results: Array<{ campaignId: string; queued: number; preparing: boolean; error?: string }> = [];
+  for (const row of (data ?? []) as Array<{ key: string }>) {
+    const left = budgetMs - (Date.now() - startedAt);
+    if (left < 2_000) break;
+    const campaignId = row.key.slice("campaign_prep:".length);
+    try {
+      const r = await launchCampaignService(supabaseAdmin, "", campaignId, {
+        mode: "continue",
+        budgetMs: Math.min(8_000, left - 1_000),
+      });
+      results.push({ campaignId, queued: r.queued, preparing: Boolean(r.preparing) });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (message === "Campaign not found") await clearPreparationPending(campaignId);
+      results.push({ campaignId, queued: 0, preparing: true, error: message });
+    }
+  }
+  return results;
 }
