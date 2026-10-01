@@ -1,3 +1,4 @@
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -46,7 +47,7 @@ function NotFoundComponent() {
 }
 
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   // A chunk that vanished after a deploy is not a real failure: reload quietly.
   const staleChunk = isStaleChunkError(error);
