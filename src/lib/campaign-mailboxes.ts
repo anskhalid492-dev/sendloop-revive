@@ -49,11 +49,14 @@ export async function loadCampaignWorkspaceAccounts(
   const workspaceId = await campaignWorkspaceFor(client, campaignId, userId);
   const { data, error } = await client
     .from("sending_accounts")
-    .select(ACCOUNT_COLUMNS)
+    .select(`${ACCOUNT_COLUMNS}, provider`)
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  const all = (data ?? []) as Array<Record<string, unknown> & { workspace_id?: string | null }>;
+  const all = await withoutDeletedMailboxes(
+    client,
+    (data ?? []) as Array<Record<string, unknown> & { workspace_id?: string | null }>,
+  );
   const rows = selectCampaignMailboxes(all, workspaceId);
   const eligibleIds = new Set(rows.map((r) => r['id']));
   // Workspace mailboxes that exist but are restricted (paused/disabled/
@@ -83,4 +86,34 @@ export async function assertCampaignMailboxes(
   if (ids.some((id) => !allowed.has(id))) {
     throw new Error("One or more selected mailboxes are unavailable or not in this workspace. Please reselect mailboxes.");
   }
+}
+
+/**
+ * Deleting a self-connected mailbox removes only its `mailboxes` row and keeps
+ * the sending record for history. Such orphaned SMTP records are treated as
+ * deleted and hidden from selectors. Admin-assigned provider accounts (which
+ * never have a `mailboxes` row) are unaffected.
+ */
+export async function withoutDeletedMailboxes<
+  T extends { provider?: unknown; from_email?: unknown; workspace_id?: unknown },
+>(client: Client, rows: T[]): Promise<T[]> {
+  const smtp = rows.filter((r) => r.provider === "smtp");
+  if (smtp.length === 0) return rows;
+  const workspaceIds = [...new Set(smtp.map((r) => String(r.workspace_id ?? "")).filter(Boolean))];
+  if (workspaceIds.length === 0) return rows.filter((r) => r.provider !== "smtp");
+  const { data, error } = await client
+    .from("mailboxes")
+    .select("workspace_id, email_address")
+    .in("workspace_id", workspaceIds);
+  if (error) throw new Error(error.message);
+  const live = new Set(
+    ((data ?? []) as Array<{ workspace_id: string; email_address: string }>).map(
+      (m) => `${m.workspace_id}|${m.email_address.toLowerCase()}`,
+    ),
+  );
+  return rows.filter(
+    (r) =>
+      r.provider !== "smtp" ||
+      live.has(`${String(r.workspace_id)}|${String(r.from_email ?? "").toLowerCase()}`),
+  );
 }
