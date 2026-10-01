@@ -57,6 +57,13 @@ async function run(request: Request) {
     { onConflict: "key" },
   );
 
+  // Finish queue preparation for recently launched campaigns (bounded and
+  // idempotent) before sending, so newly prepared emails go out this tick.
+  const { continuePendingPreparations } = await import("@/lib/campaign-actions.server");
+  const preparation = await continuePendingPreparations().catch((e: unknown) => [
+    { error: e instanceof Error ? e.message : String(e) },
+  ]);
+
   const { runCampaignScheduler } = await import("@/lib/campaign-scheduler.server");
 
   const only = url.searchParams.get("campaignId");
@@ -76,7 +83,7 @@ async function run(request: Request) {
   // Bounded, resumable run: this always answers inside the HTTP timeout and the
   // next cron tick continues wherever this one stopped.
   const summary = await runCampaignScheduler(supabaseAdmin, (campaigns ?? []) as { id: string }[]);
-  return json(summary, 200);
+  return json({ ...summary, preparation }, 200);
 }
 
 export const Route = createFileRoute("/api/public/cron/run-campaigns")({
