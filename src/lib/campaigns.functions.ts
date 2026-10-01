@@ -711,44 +711,63 @@ export const updateCampaign = createServerFn({ method: "POST" })
     }
     if (Object.keys(patch).length === 0) return { ok: true, readiness: null };
 
-    // Changing the sending days / window / timezone / daily limit must re-plan
-    // the queue that was built against the previous settings. Merely including
-    // unchanged scheduling fields in the payload (the automatic save before
-    // Launch sends them all) must NOT trigger a full re-plan — on large
-    // campaigns that replans every pending message and exceeds the CPU limit.
+    const t0 = Date.now();
+    // Schedule-affecting columns: only a real change to one of these re-plans
+    // the queue. Audience-affecting columns: only these recompute readiness.
     const scheduleKeys = [
       "send_days",
       "send_start_hour",
       "send_end_hour",
       "timezone",
       "daily_cap",
+      "max_per_hour",
       "sending_account_ids",
-    ] as const;
-    const touchedScheduleKeys = scheduleKeys.filter((key) => patch[key] !== undefined);
+    ];
+    const audienceKeys = [
+      "list_id",
+      "sending_account_ids",
+      "max_contacts_per_company",
+      "email_send_limit",
+    ];
 
-    let scheduleChanged = false;
-    if (touchedScheduleKeys.length > 0) {
-      // Read the persisted values BEFORE the write so we can compare.
-      const { data: previous } = await context.supabase
-        .from("campaigns")
-        .select(scheduleKeys.join(", "))
-        .eq("id", data.id)
-        .maybeSingle();
-      const prev = (previous ?? {}) as Record<string, unknown>;
-      const normalize = (value: unknown): string => {
-        if (Array.isArray(value)) return JSON.stringify([...value].map(String).sort());
-        if (value === null || value === undefined) return "";
-        return String(value);
-      };
-      scheduleChanged =
-        previous == null ||
-        touchedScheduleKeys.some((key) => normalize(prev[key]) !== normalize(patch[key]));
+    // Compare against the persisted row (server-side) and keep only real changes.
+    const { data: previous, error: prevError } = await context.supabase
+      .from("campaigns")
+      .select(Object.keys(patch).join(", "))
+      .eq("id", data.id)
+      .maybeSingle();
+    if (prevError) throw new Error(prevError.message);
+    if (!previous) throw new Error("We could not save these campaign settings. Please try again.");
+    const prev = previous as unknown as Record<string, unknown>;
+    const normalize = (key: string, value: unknown): string => {
+      if (value === null || value === undefined) return "";
+      if (Array.isArray(value)) {
+        const items = value.map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)));
+        return JSON.stringify(key === "tags" || key === "custom_variables" ? items : [...items].sort());
+      }
+      if (typeof value === "object") return JSON.stringify(value);
+      if (key === "start_at" || key === "end_at") {
+        const t = Date.parse(String(value));
+        return Number.isNaN(t) ? String(value) : String(t);
+      }
+      return String(value);
+    };
+    for (const key of Object.keys(patch)) {
+      if (normalize(key, prev[key]) === normalize(key, patch[key])) delete patch[key];
     }
+    const changedKeys = Object.keys(patch);
+    if (changedKeys.length === 0) {
+      console.log(`[campaign-save] ${data.id} NO CHANGES · TOTAL: ${Date.now() - t0} ms`);
+      return { ok: true, readiness: null };
+    }
+    const scheduleChanged = changedKeys.some((k) => scheduleKeys.includes(k));
+    const audienceChanged = changedKeys.some((k) => audienceKeys.includes(k));
 
     // The write is verified: an update that matches no row (workspace/RLS scope)
     // must fail loudly instead of leaving the UI showing a value that was never
     // stored. `daily_cap` is echoed back so the saved limit is provably the one
     // the customer entered — no silent fallback.
+    const tWrite = Date.now();
     const { data: saved, error } = await context.supabase
       .from("campaigns")
       .update(patch as never)
@@ -763,27 +782,36 @@ export const updateCampaign = createServerFn({ method: "POST" })
     ) {
       throw new Error("The daily sending limit could not be saved. Please try again.");
     }
+    const dbMs = Date.now() - tWrite;
 
+    let rescheduleMs = 0;
     if (scheduleChanged) {
+      const tRe = Date.now();
       try {
+        // Bounded: the existing scheduler continues any remainder later.
         const { rescheduleCampaignQueue } = await import("@/lib/campaign-reschedule.server");
-        await rescheduleCampaignQueue(context.supabase, data.id);
+        await rescheduleCampaignQueue(context.supabase, data.id, new Date(), {
+          deadlineAt: new Date(Date.now() + 8_000),
+        });
       } catch (rescheduleError) {
         console.error("campaign queue reschedule failed", data.id, rescheduleError);
       }
+      rescheduleMs = Date.now() - tRe;
     }
 
-
-
-    // Any edit that can change the audience recomputes and persists the real
-    // eligible recipient count so the readiness bar survives a refresh.
-    const { refreshReadiness } = await import("@/lib/campaign-launch.server");
+    // Only audience-affecting edits recompute the eligible recipient count.
     let readiness = null;
-    try {
-      readiness = await refreshReadiness(context.supabase, data.id);
-    } catch {
-      readiness = null;
+    if (audienceChanged) {
+      const { refreshReadiness } = await import("@/lib/campaign-launch.server");
+      try {
+        readiness = await refreshReadiness(context.supabase, data.id);
+      } catch {
+        readiness = null;
+      }
     }
+    console.log(
+      `[campaign-save] ${data.id} fields=${changedKeys.join(",")} · DB UPDATE: ${dbMs} ms · RESCHEDULE REQUIRED: ${scheduleChanged}${scheduleChanged ? ` (${rescheduleMs} ms)` : ""} · READINESS: ${audienceChanged} · TOTAL: ${Date.now() - t0} ms`,
+    );
     return { ok: true, readiness };
   });
 
