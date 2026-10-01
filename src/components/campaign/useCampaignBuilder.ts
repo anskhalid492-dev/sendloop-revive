@@ -420,6 +420,24 @@ export function useCampaignBuilder(
       };
     },
     onSuccess: async (result) => {
+      // The server confirmed activation: reflect it immediately so the badge
+      // and Launch button switch without waiting for (or racing) a refetch.
+      // Any in-flight read started before the launch is cancelled so it can't
+      // overwrite this with the pre-launch Draft snapshot.
+      await queryClient.cancelQueries({ queryKey: ["campaign", campaignId] });
+      queryClient.setQueryData(["campaign", campaignId], (prev: unknown) => {
+        const p = prev as { campaign?: Record<string, unknown> } | undefined;
+        if (!p?.campaign) return prev;
+        return {
+          ...p,
+          campaign: {
+            ...p.campaign,
+            status: "active",
+            launched_at: (p.campaign["launched_at"] as string | null) ?? new Date().toISOString(),
+          },
+        };
+      });
+      void queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       if (result.preparing) {
         toast.success("Campaign launched — preparing scheduled emails…", {
           description: `${result.queued.toLocaleString()} emails scheduled so far. The rest are added in the background.`,
