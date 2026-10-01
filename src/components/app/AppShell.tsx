@@ -164,6 +164,16 @@ export function AppShell({
   const saveProfile = useServerFn(updateProfile);
   const avatarUrl = useAvatarUrl(profile.data?.avatar_url);
   const { supportUnread } = useNotifications();
+  const inboxUnread = useInboxUnread();
+  const inboxBadge =
+    inboxUnread > 0 ? (
+      <span
+        aria-label={`${inboxUnread} unread messages`}
+        className="pointer-events-none absolute -right-1 -top-1 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground"
+      >
+        {inboxUnread > 99 ? "99+" : inboxUnread}
+      </span>
+    ) : null;
 
 
   // The preference is applied instantly and remembered on the account too.
