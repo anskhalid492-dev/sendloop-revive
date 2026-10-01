@@ -49,7 +49,7 @@ export async function loadCampaignWorkspaceAccounts(
   const workspaceId = await campaignWorkspaceFor(client, campaignId, userId);
   const { data, error } = await client
     .from("sending_accounts")
-    .select(`${ACCOUNT_COLUMNS}, workspace_id`)
+    .select(ACCOUNT_COLUMNS)
     .eq("workspace_id", workspaceId)
     .eq("customer_enabled", true)
     .eq("paused", false)

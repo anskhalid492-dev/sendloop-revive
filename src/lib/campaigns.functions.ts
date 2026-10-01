@@ -760,6 +760,16 @@ export const updateCampaign = createServerFn({ method: "POST" })
       console.log(`[campaign-save] ${data.id} NO CHANGES · TOTAL: ${Date.now() - t0} ms`);
       return { ok: true, readiness: null };
     }
+    // Selected mailboxes must be eligible mailboxes of THIS campaign's workspace.
+    if (patch["sending_account_ids"] !== undefined) {
+      const { assertCampaignMailboxes } = await import("@/lib/campaign-mailboxes");
+      await assertCampaignMailboxes(
+        context.supabase,
+        data.id,
+        context.userId,
+        (patch["sending_account_ids"] as string[]) ?? [],
+      );
+    }
     const scheduleChanged = changedKeys.some((k) => scheduleKeys.includes(k));
     const audienceChanged = changedKeys.some((k) => audienceKeys.includes(k));
 

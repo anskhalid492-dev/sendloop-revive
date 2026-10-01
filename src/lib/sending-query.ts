@@ -279,7 +279,7 @@ export function decorate(
   };
 }
 
-function buildSummary(rows: any[]): EmailAccountSummary {
+export function buildSummary(rows: any[]): EmailAccountSummary {
   const domains = new Set(rows.map((r) => domainOf(r.from_email as string)).filter(Boolean));
   return {
     totalAccounts: rows.length,
