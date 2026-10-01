@@ -1560,15 +1560,16 @@ export const bulkCampaignAction = createServerFn({ method: "POST" })
     }
 
     if (data.action === "delete") {
-      const { data: deleted, error: delError } = await context.supabase
-        .from("campaigns")
-        .delete()
-        .in("id", targets)
-        .select("id");
-      if (delError) throw new Error(delError.message);
-      const done = new Set(((deleted ?? []) as Array<{ id: string }>).map((r) => r.id));
+      // One campaign per statement: deleting many at once cascades through
+      // every message/recipient in a single query and hits the statement timeout.
       for (const id of targets) {
-        if (done.has(id)) succeeded.push(id);
+        const { data: deleted, error: delError } = await context.supabase
+          .from("campaigns")
+          .delete()
+          .eq("id", id)
+          .select("id");
+        if (delError) failed.push({ id, reason: delError.message });
+        else if ((deleted ?? []).length > 0) succeeded.push(id);
         else failed.push({ id, reason: "Delete was blocked by workspace permissions" });
       }
       return { action: data.action, succeeded, failed };

@@ -307,67 +307,72 @@ export async function sendReplyThroughMailbox(args: {
     .single();
   if (insertError) throw new Error("The reply was sent but could not be saved. Refresh to confirm.");
 
-  try {
-    const { registerOutboundMessage } = await import("@/lib/message-classification.server");
-    await registerOutboundMessage({
-      providerMessageId: send.messageId ?? null,
-      messageType: "manual_reply",
-      provider: account.provider,
-      workspaceId: conversation.workspace_id,
-      sendingAccountId: account.id,
-      toEmail: conversation.prospect_email,
-      refTable: "conversation_messages",
-      refId: inserted.id,
-      alternateProviderMessageIds: [outboundMessageId],
-    });
-  } catch {
-    /* classification must never fail an already delivered send */
-  }
+  // The email is already sent and saved; the remaining bookkeeping writes are
+  // independent of each other, so run them together instead of one by one.
+  const classify = (async () => {
+    try {
+      const { registerOutboundMessage } = await import("@/lib/message-classification.server");
+      await registerOutboundMessage({
+        providerMessageId: send.messageId ?? null,
+        messageType: "manual_reply",
+        provider: account.provider,
+        workspaceId: conversation.workspace_id,
+        sendingAccountId: account.id,
+        toEmail: conversation.prospect_email,
+        refTable: "conversation_messages",
+        refId: inserted.id,
+        alternateProviderMessageIds: [outboundMessageId],
+      });
+    } catch {
+      /* classification must never fail an already delivered send */
+    }
+  })();
 
-  await supabase
-    .from("conversations")
-    .update({
-      unread: false,
-      archived: false,
-      snoozed_until: null,
-      message_count: (conversation.message_count ?? 0) + 1,
-      last_message_at: nowIso,
-      last_direction: "outbound",
-      last_preview: previewOf(body),
-    })
-    .eq("id", conversation.id);
-
-  await supabase.from("conversation_events").insert({
-    conversation_id: conversation.id,
-    workspace_id: conversation.workspace_id,
-    type: "reply_sent",
-    detail: `Reply sent from ${account.from_email}`,
-    actor_id: args.userId,
-  });
-
-  await supabase
-    .from("sending_accounts")
-    .update({
-      // Date-aware + clamped: a counter from a previous day restarts at 0 today
-      // and can never be pushed above the mailbox's own daily limit.
-      sent_today: nextStoredSentToday(account, mailboxWindowStart(), 1),
-      last_sent_at: new Date().toISOString(),
-    })
-    .eq("id", account.id);
+  const writes: PromiseLike<unknown>[] = [
+    classify,
+    supabase
+      .from("conversations")
+      .update({
+        unread: false,
+        archived: false,
+        snoozed_until: null,
+        message_count: (conversation.message_count ?? 0) + 1,
+        last_message_at: nowIso,
+        last_direction: "outbound",
+        last_preview: previewOf(body),
+      })
+      .eq("id", conversation.id),
+    supabase.from("conversation_events").insert({
+      conversation_id: conversation.id,
+      workspace_id: conversation.workspace_id,
+      type: "reply_sent",
+      detail: `Reply sent from ${account.from_email}`,
+      actor_id: args.userId,
+    }),
+    supabase
+      .from("sending_accounts")
+      .update({
+        // Date-aware + clamped: a counter from a previous day restarts at 0 today
+        // and can never be pushed above the mailbox's own daily limit.
+        sent_today: nextStoredSentToday(account, mailboxWindowStart(), 1),
+        last_sent_at: new Date().toISOString(),
+      })
+      .eq("id", account.id),
+  ];
 
   if (conversation.lead_id) {
-    await supabase.from("lead_activities").insert({
-      lead_id: conversation.lead_id,
-      workspace_id: conversation.workspace_id,
-      campaign_id: conversation.campaign_id,
-      type: "email_sent",
-      detail: `Manual reply sent from ${account.from_email}`,
-    });
-    await supabase
-      .from("leads")
-      .update({ last_activity_at: nowIso })
-      .eq("id", conversation.lead_id);
+    writes.push(
+      supabase.from("lead_activities").insert({
+        lead_id: conversation.lead_id,
+        workspace_id: conversation.workspace_id,
+        campaign_id: conversation.campaign_id,
+        type: "email_sent",
+        detail: `Manual reply sent from ${account.from_email}`,
+      }),
+      supabase.from("leads").update({ last_activity_at: nowIso }).eq("id", conversation.lead_id),
+    );
   }
+  await Promise.all(writes);
 
   return { ok: true, messageId: inserted.id };
 }
