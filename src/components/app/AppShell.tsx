@@ -262,6 +262,7 @@ export function AppShell({
               >
                 <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 truncate text-left">{item.label}</span>
+                {item.to === "/inbox" ? inboxBadge : null}
                 {item.to === "/support" && supportUnread > 0 ? (
                   <span
                     aria-label={`${supportUnread} unread support updates`}
