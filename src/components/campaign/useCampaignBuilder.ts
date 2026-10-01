@@ -455,6 +455,10 @@ export function useCampaignBuilder(
     () => (accountsQuery.data?.accounts ?? []).filter((a) => a.customer_enabled),
     [accountsQuery.data],
   );
+  const restrictedAccounts = useMemo(
+    () => accountsQuery.data?.restricted ?? [],
+    [accountsQuery.data],
+  );
 
   // Delivery events arrive from the sending infrastructure at any moment, so
   // the builder listens for row changes and refreshes its metrics live.
@@ -517,6 +521,10 @@ export function useCampaignBuilder(
     launch,
     toggleStatus,
     accounts,
+    restrictedAccounts,
+    accountsLoading: accountsQuery.isLoading,
+    accountsError: accountsQuery.error ? (accountsQuery.error as Error).message : null,
+    refetchAccounts: accountsQuery.refetch,
     lists: listsQuery.data ?? [],
     readiness: readinessQuery.data ?? null,
     readinessLoading: readinessQuery.isLoading,
