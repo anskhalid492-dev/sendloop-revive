@@ -258,6 +258,10 @@ export async function processLeadImportJob(
       counters.skipped += invalidInChunk + duplicatesInChunk;
       offset += consumed;
 
+      // On the last chunk, mark the job finished in the same write so the
+      // import never sits in "processing" waiting on follow-up work.
+      const reachedEnd = offset >= fileSize;
+      const hadProblemsNow = counters.invalid > 0 || counters.failed > 0;
       const { data: updated, error: updateError } = await admin
         .from("lead_import_jobs")
         .update({
@@ -268,7 +272,15 @@ export async function processLeadImportJob(
           duplicate_rows: counters.duplicates,
           skipped_rows: counters.skipped,
           errors: errorSample,
-          lease_until: new Date(Date.now() + LEASE_MS).toISOString(),
+          ...(reachedEnd
+            ? {
+                status: hadProblemsNow ? "completed_with_errors" : "completed",
+                total_rows: counters.processed,
+                error_message: null,
+                lease_until: null,
+                finished_at: new Date().toISOString(),
+              }
+            : { lease_until: new Date(Date.now() + LEASE_MS).toISOString() }),
         })
         .eq("id", jobId)
         .eq("status", "processing")
@@ -277,9 +289,22 @@ export async function processLeadImportJob(
       if (updateError) throw new Error(updateError.message);
 
       if (insertedIds.length) {
-        await emitLeadCreated({ workspaceId: job.workspace_id, leadIds: insertedIds }).catch(
+        const emit = emitLeadCreated({ workspaceId: job.workspace_id, leadIds: insertedIds }).catch(
           () => undefined,
         );
+        if (!reachedEnd) await emit;
+        else void emit;
+      }
+
+      if (updated && reachedEnd) {
+        const status = hadProblemsNow ? "completed_with_errors" : "completed";
+        return {
+          jobId,
+          status,
+          processedRows: counters.processed,
+          importedRows: counters.imported,
+          more: false,
+        };
       }
 
       // The row disappeared from "processing": the customer cancelled it.
