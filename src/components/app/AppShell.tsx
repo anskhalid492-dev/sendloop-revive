@@ -254,7 +254,10 @@ export function AppShell({
                 to={item.to}
                 {...("hash" in item && item.hash ? { hash: item.hash } : {})}
                 onClick={() => setOpen(false)}
-                className={linkClass(item.to, "hash" in item ? item.hash : undefined)}
+                className={cn(
+                  linkClass(item.to, "hash" in item ? item.hash : undefined),
+                  item.to === "/inbox" && "relative",
+                )}
                 aria-current={isActive(item.to, "hash" in item ? item.hash : undefined) ? "page" : undefined}
               >
                 <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
@@ -383,6 +386,8 @@ export function AppShell({
                 ),
                 item.to === "/support" && supportUnread > 0 ? (
                   <span className="absolute right-1 top-1 size-2 rounded-full bg-primary" aria-label={`${supportUnread} unread support updates`} />
+                ) : item.to === "/inbox" ? (
+                  inboxBadge
                 ) : null,
               );
             })}
