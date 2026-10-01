@@ -18,7 +18,7 @@ import { getCampaign } from "@/lib/campaign-read.functions";
 import { canLaunchCampaign, launchSucceededDespiteError } from "@/lib/campaign-status-sync";
 import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import { listLeadLists } from "@/lib/leads.functions";
-import { listMySendingAccounts } from "@/lib/sending.functions";
+import { listCampaignSendingAccounts } from "@/lib/sending.functions";
 import type {
   CampaignStep,
   CustomVariable,
@@ -129,7 +129,7 @@ export function useCampaignBuilder(
   const fetchLeads = useServerFn(getCampaignLeads);
   const fetchLists = useServerFn(listLeadLists);
   const fetchReadiness = useServerFn(getCampaignLaunchReadiness);
-  const fetchAccounts = useServerFn(listMySendingAccounts);
+  const fetchAccounts = useServerFn(listCampaignSendingAccounts);
   const updateFn = useServerFn(updateCampaign);
   const saveStepsFn = useServerFn(saveCampaignSteps);
   const launchFn = useServerFn(launchCampaign);
@@ -186,8 +186,9 @@ export function useCampaignBuilder(
     enabled: canLaunchCampaign(campaignQuery.data?.campaign.status),
   });
   const accountsQuery = useQuery({
-    queryKey: ["sending-accounts"],
-    queryFn: () => fetchAccounts(),
+    queryKey: ["sending-accounts", "campaign", campaignId],
+    queryFn: () => fetchAccounts({ data: { campaignId } }),
+    refetchOnWindowFocus: true,
     enabled:
       activeTab === "Overview" ||
       activeTab === "Leads" ||

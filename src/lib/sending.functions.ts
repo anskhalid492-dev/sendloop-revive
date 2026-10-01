@@ -177,3 +177,18 @@ export const listSendingAccountAudit = createServerFn({ method: "GET" })
       actorName: (e.actor_id && names.get(e.actor_id)) || "MunchReach system",
     }));
   });
+
+/**
+ * Mailboxes selectable in one campaign's builder. Scoped to the CAMPAIGN's
+ * workspace (never every workspace RLS lets the caller read — platform admins
+ * can read all mailboxes, which leaked other customers' accounts into the
+ * builder). Membership is verified explicitly, and only campaign-eligible
+ * mailboxes are returned.
+ */
+export const listCampaignSendingAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ campaignId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { loadCampaignWorkspaceAccounts } = await import("@/lib/campaign-mailboxes");
+    return loadCampaignWorkspaceAccounts(context.supabase, data.campaignId, context.userId);
+  });
