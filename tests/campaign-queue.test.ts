@@ -34,7 +34,7 @@ function fakeClient(opts: { leaseHeld?: boolean; openFor?: string[] } = {}) {
             const releasing = new Date(patch.value.expiresAt).getTime() === 0;
             if (releasing) { leaseTaken = false; return chain({ data: [], error: null }); }
             const ok = !leaseTaken;
-            if (ok) leaseTaken = true;
+            if (ok) { leaseTaken = true; jobs.forEach((j) => { if (j.status === "backoff") j.status = "queued"; }); }
             return chain({ data: ok ? [{ key: "x" }] : [], error: null });
           },
           insert: async () => ({ error: { code: "23505" } }),
@@ -42,7 +42,7 @@ function fakeClient(opts: { leaseHeld?: boolean; openFor?: string[] } = {}) {
       }
       if (table === "background_jobs") {
         return {
-          select: () => chain({ data: jobs.filter((j) => ["queued", "running"].includes(j.status)), error: null }),
+          select: () => chain({ data: jobs.filter((j) => ["queued", "running", "backoff"].includes(j.status)), error: null }),
           insert: async (row: Job) => {
             if (jobs.some((j) => j.idempotency_key === row.idempotency_key)) return { error: { code: "23505", message: "dup" } };
             jobs.push({ ...row, id: `job-${jobs.length}`, status: "queued", attempts: 0 });
@@ -61,7 +61,8 @@ function fakeClient(opts: { leaseHeld?: boolean; openFor?: string[] } = {}) {
         return { data: claimed, error: null };
       }
       const job = jobs.find((j) => j.id === args._id)!;
-      job.status = args._ok ? "succeeded" : job.attempts >= 5 ? "dead" : "queued";
+      // Failed jobs wait out their backoff (next_attempt_at) until a later tick.
+      job.status = args._ok ? "succeeded" : job.attempts >= 5 ? "dead" : "backoff";
       finished.push({ id: args._id as string, ok: args._ok as boolean });
       return { error: null };
     },
