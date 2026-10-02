@@ -6,7 +6,10 @@
  * timeline records old → new, closed outcomes stop queued follow-ups, other
  * workspaces are refused and repeated calls stay idempotent.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Automation events use the real server client; never let fixture IDs reach it.
+vi.mock("@/lib/automation-engine.server", () => ({ emitAutomationEvent: vi.fn(async () => ({ runs: 0 })) }));
 
 import { applyLeadTransition } from "@/lib/lead-transition.server";
 import {
