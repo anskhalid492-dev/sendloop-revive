@@ -14,12 +14,17 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
   if (!settings) return null;
 
   const selectedIds = settings.sendingAccountIds;
-  const toggle = (id: string) =>
+  // Any edit drops stale selections (paused, disabled or deleted mailboxes),
+  // which can't be unticked here and would make the save be rejected.
+  const usableIds = new Set(accounts.map((a) => a.id));
+  const toggle = (id: string) => {
+    const current = selectedIds.filter((v) => usableIds.has(v));
     patchSettings({
-      sendingAccountIds: selectedIds.includes(id)
-        ? selectedIds.filter((v) => v !== id)
-        : [...selectedIds, id],
+      sendingAccountIds: current.includes(id)
+        ? current.filter((v) => v !== id)
+        : [...current, id],
     });
+  };
 
   const selected = accounts.filter((a) => selectedIds.includes(a.id));
   const dailyCapacity = selected.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
@@ -40,7 +45,9 @@ export function AccountsTab({ builder }: { builder: CampaignBuilder }) {
       patchSettings({ sendingAccountIds: [] });
       return;
     }
-    const merged = Array.from(new Set([...selectedIds, ...eligibleIds]));
+    const merged = Array.from(
+      new Set([...selectedIds.filter((v) => usableIds.has(v)), ...eligibleIds]),
+    );
     patchSettings({ sendingAccountIds: merged });
   };
 
