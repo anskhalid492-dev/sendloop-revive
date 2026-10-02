@@ -58,7 +58,16 @@ async function run(request: Request) {
   }
 
   try {
-    const summary = await processTransactionalQueue(supabaseAdmin, limit ? { limit } : {});
+    // Queue mode only on an explicit worker_mode.transactional = "queue"; anything
+    // else (missing, unreadable) keeps the legacy runner, so flipping back is the rollback.
+    const { getWorkerMode } = await import("@/lib/worker-mode.server");
+    const summary =
+      (await getWorkerMode(supabaseAdmin, "transactional")) === "queue"
+        ? await (await import("@/lib/transactional-queue.server")).runTransactionalQueue({
+            client: supabaseAdmin,
+            ...(limit ? { limit } : {}),
+          })
+        : await processTransactionalQueue(supabaseAdmin, limit ? { limit } : {});
     // Birthday gifts ride on this existing cron cycle — no second scheduler.
     // The runner is idempotent per user/year, so extra invocations are safe.
     let birthday: unknown = null;

@@ -34,11 +34,11 @@ export const Route = createFileRoute("/_authenticated/mranuskhalid/email-log")({
   component: EmailLogPage,
 });
 
-const STATUSES = ["all", "queued", "retrying", "sending", "sent", "delivered", "failed", "bounced", "complained"];
+const STATUSES = ["all", "queued", "retrying", "sending", "sent", "delivered", "failed", "outcome_unknown", "bounced", "complained"];
 
 function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   if (["sent", "delivered"].includes(status)) return "default";
-  if (["failed", "bounced", "complained"].includes(status)) return "destructive";
+  if (["failed", "outcome_unknown", "bounced", "complained"].includes(status)) return "destructive";
   if (["queued", "retrying", "sending"].includes(status)) return "secondary";
   return "outline";
 }
