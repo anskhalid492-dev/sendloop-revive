@@ -36,8 +36,12 @@ const MAILBOX_LIMIT = 100;
 const CLAIM_BATCH = 4;
 /** Longer than any single mailbox read; an expired lease makes the job reclaimable. */
 const JOB_LEASE_SECONDS = 300;
-/** Stop claiming well inside the run lease. */
-const RUN_BUDGET_MS = 8 * 60_000;
+/**
+ * Background runs are terminated at roughly 30s. A new batch is only claimed
+ * before this much time has elapsed, so the run ends and releases its lease
+ * normally; unclaimed jobs stay queued for the next tick (never failed).
+ */
+export const MAILBOX_RUN_BUDGET_MS = 20_000;
 
 export type MailboxQueueDeps = {
   client: Client;
@@ -55,7 +59,7 @@ export function mailboxJobKey(mailboxId: string, now: Date): string {
 export async function runMailboxQueue(deps: MailboxQueueDeps) {
   const { client } = deps;
   const nowMs = deps.now ?? (() => Date.now());
-  const budgetMs = deps.budgetMs ?? RUN_BUDGET_MS;
+  const budgetMs = deps.budgetMs ?? MAILBOX_RUN_BUDGET_MS;
   const limit = deps.limit ?? MAILBOX_LIMIT;
   const startedAtMs = nowMs();
   const startedAt = new Date(startedAtMs);
@@ -118,8 +122,10 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
     // Never claim more than this run's selection: a job failing mid-run waits
     // out its backoff for a later tick instead of adding IMAP load now.
     let claimBudget = rows.length;
+    let budgetStop = false;
     const seen = new Set<string>();
-    while (claimBudget > 0 && nowMs() - startedAtMs < budgetMs) {
+    while (claimBudget > 0) {
+      if (nowMs() - startedAtMs >= budgetMs) { budgetStop = true; break; }
       const { data: jobs, error: claimError } = await client.rpc("claim_background_jobs", {
         _worker: MAILBOX_WORKER,
         _limit: Math.min(CLAIM_BATCH, claimBudget),
@@ -166,8 +172,8 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
       current_jobs: 0,
       ...(failed > 0 ? { last_failed_at: new Date().toISOString(), last_error: lastError?.slice(0, 1000) } : {}),
     });
-    logWorkerRun({ worker: "mailbox-queue", startedAt: startedAtMs, result: "ok", enqueued, succeeded, failed, replies, bounces });
-    return { mode: "queue", enqueued, succeeded, failed, replies, bounces, warmup };
+    logWorkerRun({ worker: "mailbox-queue", startedAt: startedAtMs, result: "ok", enqueued, succeeded, failed, replies, bounces, budgetStop });
+    return { mode: "queue", enqueued, succeeded, failed, replies, bounces, warmup, budgetStop };
   } catch (error) {
     lastError = error instanceof Error ? error.message : String(error);
     await writeHealth(client, {
