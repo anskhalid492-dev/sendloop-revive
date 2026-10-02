@@ -95,7 +95,7 @@ const SPECS: Spec[] = [
     name: "Getting Started",
     category: "welcome",
     subject: "Your MunchReach setup checklist",
-    preview: "Five steps to a live campaign.",
+    preview: "Four steps to a live campaign.",
     body: lesson(
       "Your setup checklist",
       "Work through these in order — each one unblocks the next.",
