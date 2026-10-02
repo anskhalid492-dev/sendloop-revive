@@ -80,6 +80,15 @@ async function run(request: Request) {
   const { data: campaigns, error } = await query.limit(50);
   if (error) return json({ error: error.message }, 500);
 
+  // Queue mode only on an explicit worker_mode.campaign = "queue"; anything
+  // else (including read errors) runs the legacy scheduler — the rollback.
+  const { getWorkerMode } = await import("@/lib/worker-mode.server");
+  if ((await getWorkerMode(supabaseAdmin, "campaign")) === "queue") {
+    const { runCampaignQueue } = await import("@/lib/campaign-queue.server");
+    const summary = await runCampaignQueue({ client: supabaseAdmin }, (campaigns ?? []) as { id: string }[]);
+    return json({ ...summary, preparation }, 200);
+  }
+
   // Bounded, resumable run: this always answers inside the HTTP timeout and the
   // next cron tick continues wherever this one stopped.
   const summary = await runCampaignScheduler(supabaseAdmin, (campaigns ?? []) as { id: string }[]);
