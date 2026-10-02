@@ -132,10 +132,11 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
     let claimBudget = rows.length;
     let budgetStop = false;
     let drained = false;
+    let handedBack = 0;
     const seen = new Set<string>();
-    const active = new Set<Promise<void>>();
+    const active = new Map<Promise<void>, { id: string; detached: boolean }>();
 
-    const runJob = async (job: { id: string; payload: { mailbox_id?: string } }) => {
+    const runJob = async (job: { id: string; payload: { mailbox_id?: string } }, state: { detached: boolean }) => {
       const mailboxId = job.payload?.mailbox_id;
       try {
         if (mailboxId && !seen.has(mailboxId)) {
@@ -150,9 +151,12 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
             if (!outcome.ok) throw new Error(outcome.error ?? "Mailbox check failed");
           }
         }
+        // Handed back at the deadline: the next cycle owns this job now.
+        if (state.detached) return;
         await client.rpc("finish_background_job", { _id: job.id, _ok: true });
         succeeded += 1;
       } catch (error) {
+        if (state.detached) return;
         failed += 1;
         lastError = error instanceof Error ? error.message : String(error);
         await client.rpc("finish_background_job", { _id: job.id, _ok: false, _error: lastError });
@@ -171,11 +175,37 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
         const job = ((jobs ?? []) as Array<{ id: string; payload: { mailbox_id?: string } }>)[0];
         if (!job) { drained = true; break; }
         claimBudget -= 1;
-        const p: Promise<void> = runJob(job).finally(() => { active.delete(p); });
-        active.add(p);
+        const state = { id: job.id, detached: false };
+        const p: Promise<void> = runJob(job, state).finally(() => { active.delete(p); });
+        active.set(p, state);
       }
       if (active.size === 0) break;
-      await Promise.race(active);
+
+      // Wait for the next read to finish, but never past the run deadline.
+      const remaining = waitDeadlineMs - (nowMs() - startedAtMs);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const deadline = remaining > 0
+        ? new Promise<"deadline">((res) => { timer = setTimeout(() => res("deadline"), remaining); })
+        : Promise.resolve("deadline" as const);
+      const winner = await Promise.race([Promise.race(active.keys()).then(() => "done" as const), deadline]);
+      if (timer) clearTimeout(timer);
+      if (winner === "done") continue;
+
+      // Deadline reached with reads still in flight. The reads are NOT
+      // aborted — they keep running and their messages are processed
+      // idempotently if they finish — but this run stops waiting so it can
+      // release the lock before the ~30s platform cutoff. Each in-flight job
+      // goes back to the queue at the front, without spending an attempt, so
+      // it is never failed/dead for being slow. The mailbox cursor only moves
+      // after messages are handled, so nothing is skipped: the next cycle
+      // re-reads from the saved cursor and Message-ID dedupe prevents doubles.
+      for (const state of active.values()) {
+        state.detached = true;
+        handedBack += 1;
+        await handBackJob(client, state.id);
+      }
+      active.clear();
+      break;
     }
 
     await writeHealth(client, {
