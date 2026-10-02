@@ -30,7 +30,7 @@ export type Admin = any;
 
 const RUNNER_ID = "warmup";
 const LEASE_MS = 5 * 60_000;
-const MAX_JOBS_PER_RUN = 40;
+export const MAX_JOBS_PER_RUN = 40;
 const MAX_ACCOUNTS_PER_RUN = 50;
 /** How long a sent warmup email may take to show up on the receiving side. */
 const PLACEMENT_WINDOW_MS = 45 * 60_000;
@@ -62,7 +62,7 @@ export type RunSummary = {
   skippedPlan?: number;
 };
 
-function emptySummary(): RunSummary {
+export function emptySummary(): RunSummary {
   return {
     ok: true,
     scheduled: 0,
@@ -83,7 +83,7 @@ function today(): string {
 /* ------------------------------------------------------------------ lease */
 
 /** Single-flight lease: a second concurrent run exits instead of double-sending. */
-async function acquireLease(admin: Admin, owner: string) {
+export async function acquireLease(admin: Admin, owner: string) {
   const nowIso = new Date().toISOString();
   const { data: state } = await admin
     .from("warmup_runner_state")
@@ -118,7 +118,7 @@ async function acquireLease(admin: Admin, owner: string) {
   };
 }
 
-async function releaseLease(admin: Admin, result: RunSummary) {
+export async function releaseLease(admin: Admin, result: RunSummary) {
   await admin
     .from("warmup_runner_state")
     .update({ lease_until: null, lease_owner: null, last_result: result })
@@ -758,7 +758,7 @@ async function scheduleAccount(
 
 /* ------------------------------------------------------------------ worker */
 
-async function processJob(admin: Admin, job: Record<string, unknown>, summary: RunSummary) {
+export async function processJob(admin: Admin, job: Record<string, unknown>, summary: RunSummary) {
   const accountId = job["sending_account_id"] as string;
   const workspaceId = job["workspace_id"] as string;
   const jobId = job["id"] as string;
@@ -1483,7 +1483,7 @@ function recipientDomain(email: string | null | undefined): string {
  * Marks sent warmup mail that never showed up on the receiving side. Runs on
  * every cycle so the dashboard never reports a delivery that did not happen.
  */
-async function sweepPlacement(admin: Admin): Promise<number> {
+export async function sweepPlacement(admin: Admin): Promise<number> {
   const cutoff = new Date(Date.now() - PLACEMENT_WINDOW_MS).toISOString();
   const { data: stale } = await admin
     .from("warmup_jobs")
@@ -1870,6 +1870,96 @@ async function haltWarmupForPlan(
     .in("status", ["queued", "processing"]);
 }
 
+/**
+ * Step 1 of a warmup run (shared by legacy and queue mode): turns each enabled
+ * mailbox's schedule/ramp/daily target into due `warmup_jobs`. Legacy passes no
+ * options, so its behaviour is unchanged. Queue mode passes `shouldStop` (time
+ * budget) and `order` (rotation, so a budget stop never starves later mailboxes).
+ */
+export async function scheduleWarmupDue(
+  admin: Admin,
+  summary: RunSummary,
+  opts: { shouldStop?: () => boolean; order?: <T>(rows: T[]) => T[] } = {},
+): Promise<SettingsRow[]> {
+  const order = opts.order ?? (<T,>(rows: T[]) => rows);
+  const { data: settingsRows } = await admin
+    .from("warmup_settings")
+    .select(
+      WARMUP_SETTINGS_COLUMNS,
+    )
+    .eq("enabled", true)
+    .eq("paused_by_system", false)
+    .limit(MAX_ACCOUNTS_PER_RUN);
+
+  const settings = (settingsRows ?? []) as SettingsRow[];
+  if (settings.length) {
+    const ids = settings.map((s) => s.sending_account_id);
+    const { data: accountRows } = await admin
+      .from("sending_accounts")
+      .select(
+        "id, workspace_id, from_name, from_email, provider, provider_id, connection_method, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status",
+      )
+      .in("id", ids);
+    const accounts = (accountRows ?? []) as AccountRow[];
+    const byId = new Map(accounts.map((a) => [a.id, a]));
+
+    // One entitlement read per workspace, before any scheduling. A workspace
+    // without the warmup feature is skipped and stopped safely; every other
+    // workspace in the run continues normally.
+    const entitlements = await warmupEntitlementMap(
+      admin,
+      accounts.map((a) => a.workspace_id),
+    );
+
+    const eligible = accounts.filter(
+      (a) =>
+        !a.paused &&
+        a.customer_enabled &&
+        a.status !== "disabled" &&
+        entitlements.get(a.workspace_id)?.allowed !== false,
+    );
+
+    for (const setting of order(settings)) {
+    if (opts.shouldStop?.()) break;
+      const account = byId.get(setting.sending_account_id);
+      if (!account) continue;
+      const gate = entitlements.get(account.workspace_id);
+      if (gate && !gate.allowed) {
+        const reason = gate.reason ?? "Warmup is not included in this plan.";
+        await haltWarmupForPlan(admin, {
+          settingsId: setting.id,
+          accountId: account.id,
+          reason,
+        });
+        summary.skippedPlan = (summary.skippedPlan ?? 0) + 1;
+        continue;
+      }
+      if (account.paused || !account.customer_enabled) {
+        await recordRunReason(admin, setting.id, "Mailbox sending is paused or switched off.");
+        continue;
+      }
+      const safe = await applySafety(admin, account, setting, summary);
+      if (!safe) continue;
+      const peers = eligible.filter((p) => p.id !== account.id);
+      try {
+        const res = await scheduleAccount(admin, account, setting, peers);
+        summary.scheduled += res.scheduled;
+        await recordRunReason(
+          admin,
+          setting.id,
+          res.scheduled > 0 ? null : (res.reason ?? null),
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "failed";
+        await recordRunReason(admin, setting.id, message);
+        summary.errors.push(`schedule ${account.from_email}: ${message}`);
+      }
+    }
+
+  }
+  return settings;
+}
+
 export async function runWarmupCycle(admin: Admin, options?: { limit?: number }): Promise<RunSummary> {
   const summary = emptySummary();
   const owner = `worker_${crypto.randomUUID().slice(0, 8)}`;
@@ -1884,80 +1974,7 @@ export async function runWarmupCycle(admin: Admin, options?: { limit?: number })
 
   try {
     // 1. Scheduler ---------------------------------------------------------
-    const { data: settingsRows } = await admin
-      .from("warmup_settings")
-      .select(
-        WARMUP_SETTINGS_COLUMNS,
-      )
-      .eq("enabled", true)
-      .eq("paused_by_system", false)
-      .limit(MAX_ACCOUNTS_PER_RUN);
-
-    const settings = (settingsRows ?? []) as SettingsRow[];
-    if (settings.length) {
-      const ids = settings.map((s) => s.sending_account_id);
-      const { data: accountRows } = await admin
-        .from("sending_accounts")
-        .select(
-          "id, workspace_id, from_name, from_email, provider, provider_id, connection_method, status, paused, customer_enabled, health_score, spf_status, dkim_status, dmarc_status",
-        )
-        .in("id", ids);
-      const accounts = (accountRows ?? []) as AccountRow[];
-      const byId = new Map(accounts.map((a) => [a.id, a]));
-
-      // One entitlement read per workspace, before any scheduling. A workspace
-      // without the warmup feature is skipped and stopped safely; every other
-      // workspace in the run continues normally.
-      const entitlements = await warmupEntitlementMap(
-        admin,
-        accounts.map((a) => a.workspace_id),
-      );
-
-      const eligible = accounts.filter(
-        (a) =>
-          !a.paused &&
-          a.customer_enabled &&
-          a.status !== "disabled" &&
-          entitlements.get(a.workspace_id)?.allowed !== false,
-      );
-
-      for (const setting of settings) {
-        const account = byId.get(setting.sending_account_id);
-        if (!account) continue;
-        const gate = entitlements.get(account.workspace_id);
-        if (gate && !gate.allowed) {
-          const reason = gate.reason ?? "Warmup is not included in this plan.";
-          await haltWarmupForPlan(admin, {
-            settingsId: setting.id,
-            accountId: account.id,
-            reason,
-          });
-          summary.skippedPlan = (summary.skippedPlan ?? 0) + 1;
-          continue;
-        }
-        if (account.paused || !account.customer_enabled) {
-          await recordRunReason(admin, setting.id, "Mailbox sending is paused or switched off.");
-          continue;
-        }
-        const safe = await applySafety(admin, account, setting, summary);
-        if (!safe) continue;
-        const peers = eligible.filter((p) => p.id !== account.id);
-        try {
-          const res = await scheduleAccount(admin, account, setting, peers);
-          summary.scheduled += res.scheduled;
-          await recordRunReason(
-            admin,
-            setting.id,
-            res.scheduled > 0 ? null : (res.reason ?? null),
-          );
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "failed";
-          await recordRunReason(admin, setting.id, message);
-          summary.errors.push(`schedule ${account.from_email}: ${message}`);
-        }
-      }
-
-    }
+    const settings = await scheduleWarmupDue(admin, summary);
 
     // 2. Worker ------------------------------------------------------------
     const limit = Math.min(options?.limit ?? MAX_JOBS_PER_RUN, MAX_JOBS_PER_RUN);
