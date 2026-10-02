@@ -355,8 +355,11 @@ describe("transactional queue — crash / timeout safety", () => {
     expect(queued.length).toBeGreaterThan(0);
     expect(s.sent + queued.length).toBe(10);
     expect(db.tables["transactional_emails"]!.some((r) => r["status"] === "failed")).toBe(false);
-    db.advance(60_000);
-    await runTransactionalQueue({ client: db.client, engine: e, now: db.now, budgetMs: 60_000 });
+    // Subsequent minute runs drain the rest (provider-call cutoff still applies).
+    for (let i = 0; i < 5; i += 1) {
+      db.advance(60_000);
+      await runTransactionalQueue({ client: db.client, engine: e, now: db.now });
+    }
     expect(db.tables["transactional_emails"]!.every((r) => r["status"] === "sent")).toBe(true);
   });
 
