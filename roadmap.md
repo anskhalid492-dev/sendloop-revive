@@ -37,5 +37,5 @@
 - [x] Phase A: atomic leases (campaign, transactional, mailbox poll), retry jitter, inbound dead-letter fix, birthday once/day, structured logs, tests.
 - [x] Phase B/D SQL written: supabase/manual/background-jobs.sql, supabase/manual/stagger-cron-schedules.sql.
 - [ ] Apply Phase B/D SQL in production — blocked: needs backups/PITR first and manual run by owner.
-- [ ] Phase C queue mode per worker — blocked on Phase B being applied.
+- [ ] Phase C queue mode per worker: inbound code ready (flag still legacy) — waiting on owner activation; then transactional, warmup, mailbox, campaign.
 - [ ] Phase E admin worker health page — blocked on Phase B tables.
