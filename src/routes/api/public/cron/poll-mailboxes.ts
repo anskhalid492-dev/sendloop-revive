@@ -53,6 +53,21 @@ async function run(request: Request) {
   }
 
   try {
+    // Queue mode only on an explicit worker_mode.mailbox = "queue"; anything
+    // else (including read errors) runs the legacy poller — the rollback.
+    const { getWorkerMode } = await import("@/lib/worker-mode.server");
+    if ((await getWorkerMode(supabaseAdmin, "mailbox")) === "queue") {
+      const { runMailboxQueue } = await import("@/lib/mailbox-queue.server");
+      const queued = runMailboxQueue({ client: supabaseAdmin });
+      if (url.searchParams.get("wait") !== "1") {
+        const { keepAlive } = await import("@/lib/background.server");
+        const work = queued.catch((error) => console.error("mailbox queue failed", error));
+        if (await keepAlive(work)) return json({ ok: true, accepted: true, mode: "queue" }, 202);
+        await work;
+        return json({ ok: true, mode: "queue" }, 200);
+      }
+      return json({ ok: true, ...(await queued) }, 200);
+    }
     const { pollConnectedMailboxes } = await import("@/lib/mailbox-imap-poll.server");
     // The scheduler hangs up after ~5 seconds, and the runtime cancels work
     // still running when the caller disconnects — so mailboxes late in the list
