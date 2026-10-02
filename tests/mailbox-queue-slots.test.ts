@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {} }));
 
-import { runMailboxQueue, MAILBOX_RUN_BUDGET_MS } from "@/lib/mailbox-queue.server";
+import { runMailboxQueue, MAILBOX_RUN_BUDGET_MS, MAILBOX_WAIT_DEADLINE_MS } from "@/lib/mailbox-queue.server";
 import type { MailboxPollOutcome, PollMailboxRow } from "@/lib/mailbox-imap-poll.server";
 
 /** Platform kills background runs at roughly this point. */
@@ -19,7 +19,7 @@ type Job = { id: string; idempotency_key: string; payload: { mailbox_id: string 
 function fakeClient() {
   const jobs: Job[] = [];
   const health: Array<Record<string, unknown>> = [];
-  let leaseTaken = false; let released = 0; let maxClaim = 0;
+  let leaseTaken = false; let released = 0; let maxClaim = 0; let handBacks = 0; let finishCalls = 0;
   const chain = (result: unknown) => {
     const c: Record<string, unknown> = {};
     for (const m of ["eq", "or", "in", "select", "lt", "order", "limit"]) c[m] = () => c;
@@ -37,7 +37,29 @@ function fakeClient() {
         insert: async () => ({ error: { code: "23505" } }),
       };
       if (table === "background_jobs") return {
-        select: () => chain({ data: jobs.filter((j) => ["queued", "running"].includes(j.status)), error: null }),
+        select: (cols?: string) => {
+          if (cols === "attempts") {
+            const f: Record<string, string> = {};
+            const c: Record<string, unknown> = {};
+            c.eq = (k: string, v: string) => { f[k] = v; return c; };
+            c.maybeSingle = async () => ({ data: jobs.find((j) => j.id === f.id && j.status === f.status) ?? null });
+            return c;
+          }
+          return chain({ data: jobs.filter((j) => ["queued", "running"].includes(j.status)), error: null });
+        },
+        update: (patch: Partial<Job> & { next_attempt_at?: string }) => {
+          const f: Record<string, string> = {};
+          const c: Record<string, unknown> = {};
+          c.eq = (k: string, v: string) => {
+            f[k] = v;
+            if (f.id && f.status) {
+              const j = jobs.find((x) => x.id === f.id && x.status === f.status);
+              if (j) { j.status = patch.status!; j.attempts = patch.attempts!; j.lease_until = undefined; handBacks++; }
+            }
+            return c;
+          };
+          return c;
+        },
         insert: async (r: Job) => {
           if (jobs.some((j) => j.idempotency_key === r.idempotency_key)) return { error: { code: "23505", message: "dup" } };
           jobs.push({ ...r, id: `job-${jobs.length}`, status: "queued", attempts: 0 }); return { error: null };
@@ -56,12 +78,13 @@ function fakeClient() {
         claimed.forEach((j) => { j.status = "running"; j.attempts++; j.lease_until = now + (args._lease_seconds as number) * 1000; });
         return { data: claimed, error: null };
       }
+      finishCalls++;
       const j = jobs.find((x) => x.id === args._id)!;
       j.status = args._ok ? "succeeded" : j.attempts >= j.max_attempts ? "dead" : "backoff";
       return { error: null };
     },
   };
-  return { client, jobs, health, released: () => released, isLeaseTaken: () => leaseTaken, maxClaim: () => maxClaim };
+  return { client, jobs, health, released: () => released, isLeaseTaken: () => leaseTaken, maxClaim: () => maxClaim, handBacks: () => handBacks, finishCalls: () => finishCalls };
 }
 
 /** Simulated IMAP reads on a virtual clock: per-mailbox duration, tracks concurrency. */
@@ -197,5 +220,57 @@ describe("mailbox queue: slot scheduler", () => {
     const { res } = await run(f, ["a"], s.poll);
     expect(res.skipped).toBe("lease_held");
     expect(f.jobs.length).toBe(0);
+  });
+
+  describe("run deadline: a read slower than the platform limit", () => {
+    it("deadline leaves headroom under the ~30s cutoff", () => {
+      expect(MAILBOX_WAIT_DEADLINE_MS).toBeLessThanOrEqual(25_000);
+      expect(MAILBOX_WAIT_DEADLINE_MS).toBeGreaterThan(MAILBOX_RUN_BUDGET_MS);
+    });
+
+    it("a 40s read never pushes the run past the deadline; others still finish; lock released", async () => {
+      const f = fakeClient(); const s = simPoll({ [SLOW]: 40_000 });
+      const t0 = Date.now();
+      const p = runMailboxQueue({ client: f.client, now: () => Date.now(), loadMailboxes: async (_l, only) => (only ?? ids16).map(row), poll: s.poll });
+      let doneAt = 0; void p.then(() => { doneAt = Date.now(); });
+      await vi.advanceTimersByTimeAsync(MAILBOX_WAIT_DEADLINE_MS + 1);
+      const res = await p;
+      expect(doneAt - t0).toBeLessThanOrEqual(MAILBOX_WAIT_DEADLINE_MS);
+      expect(doneAt - t0).toBeLessThan(PLATFORM_CUTOFF_MS);
+      expect(res.handedBack).toBe(1);
+      expect(res.failed).toBe(0);
+      expect(res.succeeded).toBeGreaterThan(3); // the slow mailbox did not block others
+      expect(f.released()).toBe(1);
+      expect(f.isLeaseTaken()).toBe(false);
+      // slow job back in the queue, attempt not spent, never failed/dead
+      expect(f.jobs.find((j) => j.payload.mailbox_id === SLOW)).toMatchObject({ status: "queued", attempts: 0 });
+      expect(f.jobs.some((j) => ["running", "backoff", "dead"].includes(j.status))).toBe(false);
+      // The in-flight read was NOT aborted: it completes later, and does not touch the handed-back job.
+      const finishesBefore = f.finishCalls();
+      await vi.runAllTimersAsync();
+      expect(s.log.find((l) => l.id === SLOW)!.end - s.log.find((l) => l.id === SLOW)!.start).toBe(40_000);
+      expect(f.finishCalls()).toBe(finishesBefore);
+      expect(f.jobs.find((j) => j.payload.mailbox_id === SLOW)!.status).toBe("queued");
+    });
+
+    it("next cycle picks the handed-back mailbox up with no duplicate job", async () => {
+      const f = fakeClient(); const s1 = simPoll({ [SLOW]: 40_000 });
+      const p = runMailboxQueue({ client: f.client, now: () => Date.now(), loadMailboxes: async (_l, only) => (only ?? ids16).map(row), poll: s1.poll });
+      await vi.runAllTimersAsync(); await p;
+      vi.setSystemTime(Date.now() + 4 * 60_000);
+      const s2 = simPoll({ [SLOW]: 20_000 });
+      await run(f, ids16, s2.poll);
+      const slowJobs = f.jobs.filter((j) => j.payload.mailbox_id === SLOW);
+      expect(slowJobs.length).toBe(1);
+      expect(slowJobs[0]).toMatchObject({ status: "succeeded", attempts: 1 });
+      expect(new Set(f.jobs.map((j) => j.idempotency_key)).size).toBe(f.jobs.length);
+    });
+
+    it("hand-back never reopens a job that already finished", async () => {
+      const f = fakeClient(); const s = simPoll({});
+      await run(f, ["a", "b"], s.poll);
+      expect(f.handBacks()).toBe(0);
+      expect(f.jobs.every((j) => j.status === "succeeded")).toBe(true);
+    });
   });
 });
