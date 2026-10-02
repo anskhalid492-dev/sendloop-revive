@@ -61,6 +61,13 @@ async function run(request: Request) {
       const single = await runWarmupForAccount(supabaseAdmin, accountId, { max: limit ?? 1 });
       return json(single, 200);
     }
+    // Queue mode only on an explicit worker_mode.warmup = "queue"; anything
+    // else (missing, unreadable) keeps the legacy cycle, so flipping back is the rollback.
+    const { getWorkerMode } = await import("@/lib/worker-mode.server");
+    if ((await getWorkerMode(supabaseAdmin, "warmup")) === "queue") {
+      const { runWarmupQueue } = await import("@/lib/warmup-queue.server");
+      return json(await runWarmupQueue({ client: supabaseAdmin, ...(limit ? { limit } : {}) }), 200);
+    }
     const result = await runWarmupCycle(supabaseAdmin, limit ? { limit } : {});
     return json(result, 200);
   } catch (error) {
