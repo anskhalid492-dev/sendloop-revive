@@ -731,6 +731,7 @@ async function deliver(
   });
 
   if (choice.provider === "maileroo" && maileroo) {
+    await beforeCall();
     const result = await getAdapter("maileroo").sendEmail(maileroo.credentials, message);
     if (!result.ok) {
       console.error(
@@ -759,6 +760,7 @@ async function deliver(
   }
 
   if (choice.provider === "ses" && sesCredentials) {
+    await beforeCall();
     const sesResult = await getAdapter("ses").sendEmail(
       {
         access_key_id: sesCredentials.accessKeyId,
@@ -785,9 +787,10 @@ async function deliver(
     console.warn("[system-email] SES send failed, falling back:", sesResult.message);
   }
 
-  if (!managed) return { ok: false, error: "Sending infrastructure is not configured.", provider: null };
+  if (!managed) return { ok: false, error: await describeNoSystemProvider(admin), provider: null };
 
   const adapter = getAdapter(managed.provider);
+  await beforeCall();
   const result = await adapter.sendEmail(managed.credentials, message);
 
   if (!result.ok) {
