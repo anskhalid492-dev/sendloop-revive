@@ -72,7 +72,14 @@ async function run(request: Request) {
       const daily = await acquireWorkerLease(supabaseAdmin, "birthday_gift_daily", nextMidnight - now.getTime(), now);
       if (daily) {
         const { runBirthdayGiftCycle } = await import("@/lib/birthday-gift.server");
-        birthday = await runBirthdayGiftCycle();
+        try {
+          birthday = await runBirthdayGiftCycle();
+        } catch (error) {
+          // A failed run frees the day so the next tick retries it.
+          const { releaseWorkerLease } = await import("@/lib/worker-lease.server");
+          await releaseWorkerLease(supabaseAdmin, daily);
+          throw error;
+        }
       } else {
         birthday = { skipped: "already ran today" };
       }

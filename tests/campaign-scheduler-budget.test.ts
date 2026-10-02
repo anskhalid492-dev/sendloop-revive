@@ -20,6 +20,32 @@ function fakeSupabase() {
           return builder;
         },
         maybeSingle: async () => ({ data: settings.has(key) ? { value: settings.get(key) } : null }),
+        or: () => builder,
+        update: (value: { value: { expiresAt?: string; token?: string } }) => {
+          const u: any = {
+            eq: (col: string, v: string) => {
+              if (col === "key") key = v;
+              return u;
+            },
+            or: () => u,
+            select: async () => {
+              const cur = settings.get(key) as { expiresAt?: string } | undefined;
+              if (!cur || (cur.expiresAt && new Date(cur.expiresAt).getTime() > Date.now())) return { data: [], error: null };
+              settings.set(key, value.value);
+              return { data: [{ key }], error: null };
+            },
+            then: (res: any) => {
+              settings.set(key, value.value);
+              res({ error: null });
+            },
+          };
+          return u;
+        },
+        insert: async (row: { key: string; value: unknown }) => {
+          if (settings.has(row.key)) return { error: { code: "23505" } };
+          settings.set(row.key, row.value);
+          return { error: null };
+        },
         upsert: async (row: { key: string; value: unknown }) => {
           settings.set(row.key, row.value);
           return { error: null };
