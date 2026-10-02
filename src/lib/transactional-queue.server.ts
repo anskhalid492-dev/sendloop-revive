@@ -208,7 +208,7 @@ export async function recoverStaleSending(client: Client, nowMs: number): Promis
   return { requeued: (requeued ?? []).length, held: (held ?? []).length };
 }
 
-type PendingRow = DeliverRow & { attempts: number; max_attempts: number };
+type PendingRow = DeliverRow & { attempts: number; max_attempts: number; status?: string | null; error?: string | null };
 
 export type TxQueueSummary = {
   mode: "queue";
@@ -310,7 +310,7 @@ export async function runTransactionalQueue(deps: TransactionalQueueDeps): Promi
         const limit = Math.min(Math.max(1, deps.limit ?? settings.batch_size), 100);
         const { data: pendingData, error: pendingError } = await client
           .from("transactional_emails")
-          .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts")
+          .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts, status, error")
           .in("status", ["queued", "retrying"])
           .lte("next_attempt_at", new Date(nowMs()).toISOString())
           .order("queued_at", { ascending: true })
@@ -448,7 +448,7 @@ async function processOne(
     } catch {
       /* classification registry is best-effort, exactly as legacy */
     }
-    return;
+    return false;
   }
 
   const message = (outcome.error ?? "Send failed").slice(0, 1000);
@@ -461,7 +461,7 @@ async function processOne(
       error: `${OUTCOME_UNKNOWN_REASON} Provider said: ${message}`.slice(0, 1000),
       failed_at: new Date(nowMs()).toISOString(),
     });
-    return;
+    return false;
   }
 
   summary.errors.push(`${row.id}: ${message}`.slice(0, 300));
@@ -482,6 +482,7 @@ async function processOne(
       failed_at: new Date(nowMs()).toISOString(),
     });
   }
+  return false;
 }
 
 class PreCallAbort extends Error {}
