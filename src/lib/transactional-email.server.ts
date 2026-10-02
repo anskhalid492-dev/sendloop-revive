@@ -591,19 +591,78 @@ async function releaseLease(admin: Admin) {
   heldLease = null;
 }
 
+/** Shared lease key: legacy and queue transactional runs can never overlap. */
+export const TRANSACTIONAL_LEASE_KEY = TX_LEASE_KEY;
+
+/**
+ * Explains why no system-email provider resolved. A provider that exists but
+ * is marked down by health checks is reported as unavailable — not as
+ * "not configured", which sent admins looking for a missing setup.
+ */
+export async function describeNoSystemProvider(admin: Admin): Promise<string> {
+  try {
+    const { data } = await admin
+      .from("email_providers")
+      .select("provider, health_status, health_reason, is_enabled, system_enabled")
+      .order("priority", { ascending: true });
+    const rows = (data ?? []) as Array<{
+      provider: string;
+      health_status: string | null;
+      health_reason: string | null;
+      is_enabled: boolean | null;
+      system_enabled: boolean | null;
+    }>;
+    const { isProviderEnabledForScope } = await import("@/lib/email-provider-scope");
+    const down = rows.find(
+      (r) => isProviderEnabledForScope(r as never, "system") && r.health_status === "down",
+    );
+    if (down) {
+      const name = down.provider.charAt(0).toUpperCase() + down.provider.slice(1);
+      return `${name} is currently unavailable (marked down by provider health checks${
+        down.health_reason ? `: ${down.health_reason}` : ""
+      }). The email will be retried automatically.`;
+    }
+  } catch {
+    /* fall through to the generic message */
+  }
+  return "Sending infrastructure is not configured.";
+}
+
+export type DeliverRow = {
+  id: string;
+  to_email: string;
+  from_email: string | null;
+  reply_to: string | null;
+  subject: string;
+  html: string | null;
+  text_body: string | null;
+};
+
+export type DeliverHooks = {
+  /**
+   * Called immediately before the external provider request. Throwing aborts
+   * the send without contacting the provider (the queue uses this to record
+   * that the outcome may become unknown from here on).
+   */
+  beforeProviderCall?: () => Promise<void>;
+};
+
+export async function deliverTransactional(
+  admin: Admin,
+  row: DeliverRow,
+  settings: TransactionalSettings,
+  hooks: DeliverHooks = {},
+) {
+  return deliver(admin, row, settings, hooks);
+}
+
 async function deliver(
   admin: Admin,
-  row: {
-    id: string;
-    to_email: string;
-    from_email: string | null;
-    reply_to: string | null;
-    subject: string;
-    html: string | null;
-    text_body: string | null;
-  },
+  row: DeliverRow,
   settings: TransactionalSettings,
+  hooks: DeliverHooks = {},
 ) {
+  const beforeCall = hooks.beforeProviderCall ?? (async () => {});
   const { resolveManagedProvider, recordProviderIncident } = await import("@/lib/managed-sending.server");
   const { getAdapter } = await import("@/lib/providers/adapter.server");
   const { resolveSesCredentials } = await import("@/lib/email-providers/ses-api.server");
@@ -672,6 +731,7 @@ async function deliver(
   });
 
   if (choice.provider === "maileroo" && maileroo) {
+    await beforeCall();
     const result = await getAdapter("maileroo").sendEmail(maileroo.credentials, message);
     if (!result.ok) {
       console.error(
@@ -700,6 +760,7 @@ async function deliver(
   }
 
   if (choice.provider === "ses" && sesCredentials) {
+    await beforeCall();
     const sesResult = await getAdapter("ses").sendEmail(
       {
         access_key_id: sesCredentials.accessKeyId,
@@ -726,9 +787,10 @@ async function deliver(
     console.warn("[system-email] SES send failed, falling back:", sesResult.message);
   }
 
-  if (!managed) return { ok: false, error: "Sending infrastructure is not configured.", provider: null };
+  if (!managed) return { ok: false, error: await describeNoSystemProvider(admin), provider: null };
 
   const adapter = getAdapter(managed.provider);
+  await beforeCall();
   const result = await adapter.sendEmail(managed.credentials, message);
 
   if (!result.ok) {
