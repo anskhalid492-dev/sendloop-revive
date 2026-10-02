@@ -95,12 +95,11 @@ const SPECS: Spec[] = [
     name: "Getting Started",
     category: "welcome",
     subject: "Your MunchReach setup checklist",
-    preview: "Five steps to a live campaign.",
+    preview: "Four steps to a live campaign.",
     body: lesson(
       "Your setup checklist",
       "Work through these in order — each one unblocks the next.",
       [
-        "Add your sending domain and complete SPF, DKIM and DMARC.",
         "Connect at least one mailbox.",
         "Start warmup and leave it running.",
         "Import a list with the fields your templates use.",
@@ -207,7 +206,7 @@ const SPECS: Spec[] = [
       "Cold email fundamentals",
       "Tools change, fundamentals do not:",
       [
-        "Authenticate every sending domain.",
+        "Make sure the domain behind every mailbox has SPF, DKIM and DMARC.",
         "Warm every mailbox before it carries volume.",
         "Keep daily volume per mailbox conservative.",
         "Remove bounces and complaints immediately.",
@@ -226,7 +225,7 @@ const SPECS: Spec[] = [
       "Deliverability basics",
       "Deliverability is mostly discipline, not tricks:",
       [
-        "SPF, DKIM and DMARC on every sending domain.",
+        "SPF, DKIM and DMARC on the domain behind every mailbox.",
         "A warmup ramp that lasts weeks, not days.",
         "Volume split across mailboxes with per-mailbox caps.",
         "Clean lists — verified addresses, no scraped junk.",
@@ -335,7 +334,7 @@ const SPECS: Spec[] = [
     body: lesson(
       "Finish your setup",
       "You are close. What is left:",
-      ["Verify your sending domain.", "Connect a mailbox.", "Start warmup."],
+      ["Connect your mailbox.", "Start warmup."],
       "Once those are green you can launch a campaign the same day.",
     ),
   },
