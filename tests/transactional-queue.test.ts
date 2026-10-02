@@ -428,3 +428,101 @@ describe("worker mode selection", () => {
     expect(parseWorkerMode({ transactional: "queue" }, "transactional")).toBe("queue");
   });
 });
+
+/* ------------------------------------------------------------ deadline safety */
+import {
+  TX_PROVIDER_CALL_CUTOFF_MS, TX_PLATFORM_LIMIT_MS, RESEND_MAX_SEND_MS, TX_POST_SEND_RESERVE_MS,
+} from "@/lib/transactional-queue.server";
+
+describe("transactional queue — deadline safety", () => {
+  it("cutoff leaves room for a full worst-case Resend send plus bookkeeping", () => {
+    expect(TX_PROVIDER_CALL_CUTOFF_MS + RESEND_MAX_SEND_MS + TX_POST_SEND_RESERVE_MS).toBeLessThanOrEqual(TX_PLATFORM_LIMIT_MS);
+    expect(TX_PROVIDER_CALL_CUTOFF_MS).toBe(6_000);
+  });
+
+  it("slow send near the cutoff finishes normally; later rows stay queued untouched", async () => {
+    const db = fakeDb({ transactional_emails: [email("e1"), email("e2"), email("e3"), email("e4"), email("e5")] });
+    const { e, calls } = engine({
+      send: async (row) => {
+        if (row["id"] === "e1") db.advance(5_900); // pushes clock to near the cutoff
+        else db.advance(RESEND_MAX_SEND_MS); // slow send, never interrupted
+        return { ok: true, provider: "resend", messageId: `re_${row["id"]}`, statusCode: 200 };
+      },
+    });
+    const s = await runTransactionalQueue({ client: db.client, engine: e, now: db.now });
+    const rows = db.tables["transactional_emails"]!;
+    const sent = rows.filter((r) => r["status"] === "sent").map((r) => r["id"]);
+    expect(sent.length).toBe(calls.length);
+    expect(new Set(calls).size).toBe(calls.length); // no duplicate send
+    expect(calls.length).toBeLessThanOrEqual(TX_SEND_CONCURRENCY);
+    const left = rows.filter((r) => r["status"] !== "sent");
+    expect(left.length).toBeGreaterThan(0);
+    for (const r of left) { expect(r["status"]).toBe("queued"); expect(r["attempts"]).toBe(0); }
+    expect(s.budgetStop).toBe(true);
+    expect(s.unknown).toBe(0);
+  });
+
+  it("a row reaching the provider step after the cutoff is handed back, provider never called", async () => {
+    const db = fakeDb({ transactional_emails: [email("e1", { status: "retrying", attempts: 1, error: "prev" })] });
+    const { e, calls } = engine();
+    // Pre-call setup (provider resolution) is slow and crosses the cutoff.
+    const slowSetup: TransactionalEngine = { ...e, deliver: async (a, row, st, hooks) => { db.advance(TX_PROVIDER_CALL_CUTOFF_MS + 1); return e.deliver(a, row, st, hooks); } };
+    const s = await runTransactionalQueue({ client: db.client, engine: slowSetup, now: db.now, budgetMs: 60_000 });
+    const r = db.tables["transactional_emails"]![0]!;
+    expect(calls).toHaveLength(0);
+    expect(r["status"]).toBe("retrying");
+    expect(r["attempts"]).toBe(1);
+    expect(r["error"]).toBe("prev");
+    expect(s.deferred).toBe(1);
+    expect(s.claimed).toBe(0);
+  });
+
+  it("no new work after the safe start window", async () => {
+    const db = fakeDb({ transactional_emails: [email("e1"), email("e2")] });
+    const { e, calls } = engine({ recoverProviders: async () => { db.advance(TX_PROVIDER_CALL_CUTOFF_MS); return 0; } });
+    const s = await runTransactionalQueue({ client: db.client, engine: e, now: db.now });
+    expect(calls).toHaveLength(0);
+    expect(s.deferred).toBe(2);
+    expect(db.tables["transactional_emails"]!.every((r) => r["status"] === "queued" && r["attempts"] === 0)).toBe(true);
+  });
+
+  it("deferred rows are sent on the next run exactly once", async () => {
+    const db = fakeDb({ transactional_emails: [email("e1"), email("e2"), email("e3"), email("e4")] });
+    let slow = true;
+    const { e, calls } = engine({ send: async (row) => { if (slow) db.advance(RESEND_MAX_SEND_MS); return { ok: true, provider: "resend", messageId: `re_${row["id"]}`, statusCode: 200 }; } });
+    await runTransactionalQueue({ client: db.client, engine: e, now: db.now, budgetMs: 1 });
+    slow = false;
+    db.advance(60_000);
+    await runTransactionalQueue({ client: db.client, engine: e, now: db.now });
+    expect(db.tables["transactional_emails"]!.every((r) => r["status"] === "sent")).toBe(true);
+    expect([...calls].sort()).toEqual(["e1", "e2", "e3", "e4"]);
+  });
+
+  it("genuine unknown outcome after the provider was contacted stays outcome_unknown", async () => {
+    const db = fakeDb({ transactional_emails: [email("e1")] });
+    const { e } = engine({ send: async () => ({ ok: false, provider: "resend", error: "The operation timed out", statusCode: null }) });
+    const s = await runTransactionalQueue({ client: db.client, engine: e, now: db.now });
+    expect(db.tables["transactional_emails"]![0]!["status"]).toBe(OUTCOME_UNKNOWN_STATUS);
+    expect(s.unknown).toBe(1);
+  });
+
+  it("fast sends still process the full 25-row batch", async () => {
+    const db = fakeDb({ transactional_emails: Array.from({ length: 30 }, (_, i) => email(`e${String(i).padStart(2, "0")}`)) });
+    const { e, calls } = engine();
+    await runTransactionalQueue({ client: db.client, engine: e, now: db.now });
+    expect(calls).toHaveLength(25);
+  });
+});
+
+describe("resend adapter — optional RFC Message-ID read", () => {
+  it("system email skips the follow-up read; default still reads", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "re_1" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const base = { fromName: "M", fromEmail: "a@munchreach.com", to: "b@example.com", subject: "s", text: "t" };
+    await sendResendEmail({ api_key: "re_x" } as never, { ...base, skipRfcMessageIdLookup: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await sendResendEmail({ api_key: "re_x" } as never, base);
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+    vi.unstubAllGlobals();
+  });
+});

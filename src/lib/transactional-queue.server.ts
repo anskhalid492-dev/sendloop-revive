@@ -16,8 +16,13 @@
  *     then a second short write (marker PROVIDER_CALL) BEFORE the provider is
  *     contacted. If that write fails, the provider is never called and the
  *     row is released. No DB transaction is open during the Resend request.
- *  4. Bounded: new sends only START inside TX_RUN_BUDGET_MS; an in-flight send
- *     is never interrupted. Untouched rows stay queued for the next minute.
+ *  4. Deadline-safe: a provider request may only BEGIN before
+ *     TX_PROVIDER_CALL_CUTOFF_MS (30s platform limit - 20s Resend worst case -
+ *     4s post-send reserve = 6s), checked immediately before contacting
+ *     Resend. A row that reaches that point too late is handed back untouched
+ *     (attempt not counted). In-flight sends are never interrupted; system
+ *     email skips the optional RFC Message-ID read so a send is bounded by
+ *     the single 20s POST. Untouched rows stay queued for the next minute.
  *  5. Crash safety is at-most-once:
  *       - sending + CLAIMED older than STALE_SENDING_MS  -> provider was never
  *         called -> safely back to `retrying`.
