@@ -44,11 +44,19 @@ const JOB_LEASE_SECONDS = 300;
  * by the run itself. Unstarted jobs stay queued for the next tick (never failed).
  */
 export const MAILBOX_RUN_BUDGET_MS = 10_000;
+/**
+ * The run stops WAITING for in-flight reads at this point (it never aborts
+ * them) and hands their jobs back to the queue, so the invocation always ends
+ * and releases the lock before the platform's ~30s cutoff, however slow one
+ * mailbox is.
+ */
+export const MAILBOX_WAIT_DEADLINE_MS = 24_000;
 
 export type MailboxQueueDeps = {
   client: Client;
   now?: () => number;
   budgetMs?: number;
+  waitDeadlineMs?: number;
   limit?: number;
   loadMailboxes?: (limit: number, ids?: string[]) => Promise<PollMailboxRow[]>;
   poll?: (row: PollMailboxRow) => Promise<MailboxPollOutcome>;
@@ -62,6 +70,7 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
   const { client } = deps;
   const nowMs = deps.now ?? (() => Date.now());
   const budgetMs = deps.budgetMs ?? MAILBOX_RUN_BUDGET_MS;
+  const waitDeadlineMs = deps.waitDeadlineMs ?? MAILBOX_WAIT_DEADLINE_MS;
   const limit = deps.limit ?? MAILBOX_LIMIT;
   const startedAtMs = nowMs();
   const startedAt = new Date(startedAtMs);
@@ -217,8 +226,8 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
       current_jobs: 0,
       ...(failed > 0 ? { last_failed_at: new Date().toISOString(), last_error: lastError?.slice(0, 1000) } : {}),
     });
-    logWorkerRun({ worker: "mailbox-queue", startedAt: startedAtMs, result: "ok", enqueued, succeeded, failed, replies, bounces, budgetStop });
-    return { mode: "queue", enqueued, succeeded, failed, replies, bounces, warmup, budgetStop };
+    logWorkerRun({ worker: "mailbox-queue", startedAt: startedAtMs, result: "ok", enqueued, succeeded, failed, replies, bounces, budgetStop, handedBack });
+    return { mode: "queue", enqueued, succeeded, failed, replies, bounces, warmup, budgetStop, handedBack };
   } catch (error) {
     lastError = error instanceof Error ? error.message : String(error);
     await writeHealth(client, {
@@ -230,6 +239,36 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
     throw error;
   } finally {
     await releaseWorkerLease(client, lease);
+  }
+}
+
+/**
+ * Returns a still-running job to the queue (front of the line, attempt not
+ * counted). Guarded on status so a job already finished is never reopened.
+ */
+async function handBackJob(client: Client, id: string) {
+  try {
+    const { data } = await client
+      .from("background_jobs")
+      .select("attempts")
+      .eq("id", id)
+      .eq("status", "running")
+      .maybeSingle();
+    if (!data) return;
+    await client
+      .from("background_jobs")
+      .update({
+        status: "queued",
+        attempts: Math.max(0, (data.attempts ?? 1) - 1),
+        lease_until: null,
+        lease_owner: null,
+        next_attempt_at: new Date(0).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("status", "running");
+  } catch {
+    // Worst case the 5-minute job lease expires and normal recovery reclaims it.
   }
 }
 
