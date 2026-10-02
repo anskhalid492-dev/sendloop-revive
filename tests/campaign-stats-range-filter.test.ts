@@ -16,7 +16,7 @@ function stubClient(calls: Call[]) {
       call.filters.push(`${name}:${args.map((a) => String(a)).join("|")}`);
       return api;
     };
-    for (const m of ["select", "eq", "in", "not", "order", "gte", "lt", "or"]) {
+    for (const m of ["select", "eq", "in", "not", "order", "gte", "lt", "or", "is"]) {
       api[m] = chain(m);
     }
     api["range"] = (from: number) =>
@@ -40,11 +40,15 @@ describe("fetchCampaignStats range filters", () => {
       to,
     });
 
-    const messages = calls.find((c) => c.table === "campaign_messages");
+    const messageCalls = calls.filter((c) => c.table === "campaign_messages");
     const events = calls.find((c) => c.table === "email_engagement_events");
     const replies = calls.find((c) => c.table === "campaign_replies");
 
-    expect(messages?.filters.some((f) => f.startsWith("or:"))).toBe(true);
+    // Four indexable window reads replace one unindexable OR.
+    expect(messageCalls.some((c) => c.filters.includes("gte:sent_at|2026-08-01T00:00:00.000Z"))).toBe(true);
+    expect(messageCalls.some((c) => c.filters.includes("gte:updated_at|2026-08-01T00:00:00.000Z"))).toBe(true);
+    expect(messageCalls.some((c) => c.filters.some((f) => f.startsWith("is:sent_at")))).toBe(true);
+    expect(messageCalls.every((c) => !c.filters.some((f) => f.startsWith("or:")))).toBe(true);
     expect(events?.filters.some((f) => f.startsWith("gte:occurred_at"))).toBe(true);
     expect(events?.filters.some((f) => f.startsWith("lt:occurred_at"))).toBe(true);
     expect(replies?.filters.some((f) => f.startsWith("gte:received_at"))).toBe(true);
