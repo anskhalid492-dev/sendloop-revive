@@ -233,6 +233,21 @@ export type InboundRetryRow = {
   routing_token: string | null;
 };
 
+export const UNMATCHED_SEND_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const UNKNOWN_MAILBOX_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+/** PostgREST OR filter keeping every event except aged-out unmatchable ones. */
+export function unmatchableExclusionFilter(now = Date.now()): string {
+  const sendCutoff = new Date(now - UNMATCHED_SEND_WINDOW_MS).toISOString();
+  const mailboxCutoff = new Date(now - UNKNOWN_MAILBOX_WINDOW_MS).toISOString();
+  return [
+    "failure_code.is.null",
+    "failure_code.not.in.(provider_message_id_not_found,campaign_message_not_found,unknown_mailbox)",
+    `and(failure_code.in.(provider_message_id_not_found,campaign_message_not_found),created_at.gte.${sendCutoff})`,
+    `and(failure_code.eq.unknown_mailbox,created_at.gte.${mailboxCutoff})`,
+  ].join(",");
+}
+
 /**
  * Selects failed/stalled inbound events whose backoff has elapsed. Shared by the
  * legacy sweep and queue mode so both pick exactly the same work.
@@ -249,6 +264,11 @@ export async function selectDueInboundEvents(settings: InboundOpsSettings, limit
     // excluded here; otherwise 200+ of them would fill every batch forever and
     // newer failures would never be retried.
     .lt("attempts", settings.maxRetries)
+    // Permanently unmatchable events are skipped (rows untouched, still visible
+    // and manually retryable): delivery reports whose send is not in the
+    // outbound registry after the 7-day late-match window, and mail for no
+    // known workspace after 48h. Retrying them can never succeed.
+    .or(unmatchableExclusionFilter(now))
     .order("created_at", { ascending: true })
     .limit(200);
   if (error) throw new Error(error.message);

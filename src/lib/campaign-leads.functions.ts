@@ -186,29 +186,46 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
     };
 
     const from = (data.page - 1) * data.pageSize;
+    const { needsLeadJoin, isUnfiltered, leadsForPage } = await import("@/lib/campaign-leads-page");
+    const joinLeads = needsLeadJoin(data);
+    const unfiltered = isUnfiltered(data, Boolean(outcome));
+    const RECIPIENT_COLS =
+      "id, status, current_step, next_send_at, last_sent_at, sending_account_id, created_at, lead_id";
     const [pageRes, totalRes] = await Promise.all([
       applyFilters(
         context.supabase
           .from("campaign_recipients")
-          .select(
-            `id, status, current_step, next_send_at, last_sent_at, sending_account_id, created_at, lead_id, ${LEAD_EMBED}` as string,
-            { count: "exact" },
-          )
+          .select((joinLeads ? `${RECIPIENT_COLS}, ${LEAD_EMBED}` : RECIPIENT_COLS) as string, {
+            count: "exact",
+          })
           .order("created_at", { ascending: false })
           .order("id", { ascending: true }),
       ).range(from, from + data.pageSize - 1),
-      context.supabase
-        .from("campaign_recipients")
-        .select("id", { count: "exact", head: true })
-        .eq("campaign_id", data.campaignId),
+      // The unfiltered total equals the page count; only count again when filtered.
+      unfiltered
+        ? Promise.resolve({ count: null as number | null })
+        : context.supabase
+            .from("campaign_recipients")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", data.campaignId),
     ]);
     if (pageRes.error) throw new Error(pageRes.error.message);
 
-    const recipients = (pageRes.data ?? []) as unknown as Array<
+    let recipients = (pageRes.data ?? []) as unknown as Array<
       Omit<CampaignLeadRow, "lead" | "deliveryState" | "lastEventAt"> & {
         leads: CampaignLeadFields | null;
       }
     >;
+    if (!joinLeads && recipients.length) {
+      const leadMap = await leadsForPage<CampaignLeadFields>(
+        context.supabase,
+        recipients.map((r) => r.lead_id),
+      );
+      // Same semantics as the inner join: rows without a lead are dropped.
+      recipients = recipients
+        .map((r) => ({ ...r, leads: leadMap.get(r.lead_id) ?? null }))
+        .filter((r) => r.leads);
+    }
     let live = new Map<string, { state: string; at: string | null }>();
     if (recipients.length) {
       const { fetchByIds } = await import("@/lib/supabase-batch");

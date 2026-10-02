@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - Background worker single-flight uses `acquireWorkerLease`/`releaseWorkerLease` (src/lib/worker-lease.server.ts) on a platform_settings row — never read-then-write lease checks, because overlapping cron ticks race.
 - Background workers choose their path per tick from `platform_settings.worker_mode` via `getWorkerMode` (src/lib/worker-mode.server.ts); anything but an explicit "queue" runs the legacy path, so flipping the flag back is the rollback.
+- Campaign Leads pages join `leads` only when a lead-column filter is active (src/lib/campaign-leads-page.ts); otherwise page recipients alone and load that page's leads by id, because the full join+sort on every refresh was the top DB cost.
