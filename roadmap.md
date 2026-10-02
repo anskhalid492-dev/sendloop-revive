@@ -32,3 +32,10 @@
 - [x] Replace the existing `/about` content with the supplied company-voice founder story.
 - [x] Preserve the route, global header, footer, typography, branding, and design system.
 - [x] Verify desktop and mobile rendering, metadata, links, and factual guardrails.
+
+## Background job reliability (plan: background-job-reliability-staged-migration)
+- [x] Phase A: atomic leases (campaign, transactional, mailbox poll), retry jitter, inbound dead-letter fix, birthday once/day, structured logs, tests.
+- [x] Phase B/D SQL written: supabase/manual/background-jobs.sql, supabase/manual/stagger-cron-schedules.sql.
+- [ ] Apply Phase B/D SQL in production — blocked: needs backups/PITR first and manual run by owner.
+- [ ] Phase C queue mode per worker — blocked on Phase B being applied.
+- [ ] Phase E admin worker health page — blocked on Phase B tables.
