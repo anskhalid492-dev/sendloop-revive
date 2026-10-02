@@ -151,6 +151,11 @@ export type UnifiedOutboundMessage = {
   html?: string;
   headers?: Record<string, string>;
   attachments?: { name: string; url?: string; content?: string }[];
+  /**
+   * Skip the follow-up Resend read of the RFC Message-ID. System email never
+   * threads replies on it, and the read can add up to ~10s per send.
+   */
+  skipRfcMessageIdLookup?: boolean | undefined;
 };
 
 export type UnifiedSendResult = {

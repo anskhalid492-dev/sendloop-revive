@@ -16,8 +16,13 @@
  *     then a second short write (marker PROVIDER_CALL) BEFORE the provider is
  *     contacted. If that write fails, the provider is never called and the
  *     row is released. No DB transaction is open during the Resend request.
- *  4. Bounded: new sends only START inside TX_RUN_BUDGET_MS; an in-flight send
- *     is never interrupted. Untouched rows stay queued for the next minute.
+ *  4. Deadline-safe: a provider request may only BEGIN before
+ *     TX_PROVIDER_CALL_CUTOFF_MS (30s platform limit - 20s Resend worst case -
+ *     4s post-send reserve = 6s), checked immediately before contacting
+ *     Resend. A row that reaches that point too late is handed back untouched
+ *     (attempt not counted). In-flight sends are never interrupted; system
+ *     email skips the optional RFC Message-ID read so a send is bounded by
+ *     the single 20s POST. Untouched rows stay queued for the next minute.
  *  5. Crash safety is at-most-once:
  *       - sending + CLAIMED older than STALE_SENDING_MS  -> provider was never
  *         called -> safely back to `retrying`.
@@ -38,8 +43,20 @@ import type { DeliverRow, TransactionalSettings } from "@/lib/transactional-emai
 type Client = any;
 
 export const TRANSACTIONAL_WORKER = "transactional";
-/** New sends only start in this window; Resend's own timeout bounds in-flight sends. */
-export const TX_RUN_BUDGET_MS = 6_000;
+/** Platform kills an invocation at ~30s. */
+export const TX_PLATFORM_LIMIT_MS = 30_000;
+/** Worst case for one Resend send: the POST's own AbortSignal.timeout (resend-send.server.ts). */
+export const RESEND_MAX_SEND_MS = 20_000;
+/** Post-send writes (status w/ retries, registry), tick finish, health, lease release. */
+export const TX_POST_SEND_RESERVE_MS = 4_000;
+/**
+ * Last moment (from run start) a provider request may BEGIN:
+ * 30s - 20s - 4s = 6s. Checked right before contacting Resend, so a send
+ * that starts can always run to its full 20s and still be recorded.
+ */
+export const TX_PROVIDER_CALL_CUTOFF_MS = TX_PLATFORM_LIMIT_MS - RESEND_MAX_SEND_MS - TX_POST_SEND_RESERVE_MS;
+/** New rows are only picked up inside this window. */
+export const TX_RUN_BUDGET_MS = TX_PROVIDER_CALL_CUTOFF_MS;
 export const TX_SEND_CONCURRENCY = 3;
 export const TX_JOB_MAX_ATTEMPTS = 3;
 export const TX_LEASE_MS = 60_000;
@@ -80,6 +97,7 @@ export type TransactionalQueueDeps = {
   client: Client;
   now?: () => number;
   budgetMs?: number;
+  providerCutoffMs?: number;
   limit?: number;
   engine?: TransactionalEngine;
   random?: () => number;
@@ -195,7 +213,7 @@ export async function recoverStaleSending(client: Client, nowMs: number): Promis
   return { requeued: (requeued ?? []).length, held: (held ?? []).length };
 }
 
-type PendingRow = DeliverRow & { attempts: number; max_attempts: number };
+type PendingRow = DeliverRow & { attempts: number; max_attempts: number; status?: string | null; error?: string | null };
 
 export type TxQueueSummary = {
   mode: "queue";
@@ -236,6 +254,7 @@ export async function runTransactionalQueue(deps: TransactionalQueueDeps): Promi
   const nowMs = deps.now ?? (() => Date.now());
   const random = deps.random ?? Math.random;
   const budgetMs = deps.budgetMs ?? TX_RUN_BUDGET_MS;
+  const providerCutoffMs = deps.providerCutoffMs ?? TX_PROVIDER_CALL_CUTOFF_MS;
   const engine = deps.engine ?? (await loadEngine());
   const startedAtMs = nowMs();
   const outOfTime = () => nowMs() - startedAtMs >= budgetMs;
@@ -296,7 +315,7 @@ export async function runTransactionalQueue(deps: TransactionalQueueDeps): Promi
         const limit = Math.min(Math.max(1, deps.limit ?? settings.batch_size), 100);
         const { data: pendingData, error: pendingError } = await client
           .from("transactional_emails")
-          .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts")
+          .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts, status, error")
           .in("status", ["queued", "retrying"])
           .lte("next_attempt_at", new Date(nowMs()).toISOString())
           .order("queued_at", { ascending: true })
@@ -309,7 +328,9 @@ export async function runTransactionalQueue(deps: TransactionalQueueDeps): Promi
             if (outOfTime()) { summary.budgetStop = true; return; }
             const row = pending.shift()!;
             try {
-              await processOne(client, engine, settings, row, summary, nowMs, random);
+              const deferred = await processOne(client, engine, settings, row, summary, nowMs, random, () =>
+                nowMs() - startedAtMs >= Math.min(budgetMs, providerCutoffMs));
+              if (deferred) { pending.unshift(row); summary.budgetStop = true; return; }
             } catch (error) {
               summary.errors.push(`${row.id}: ${error instanceof Error ? error.message : "failed"}`.slice(0, 300));
             }
@@ -365,7 +386,8 @@ async function processOne(
   summary: TxQueueSummary,
   nowMs: () => number,
   random: () => number,
-) {
+  pastProviderCutoff: () => boolean = () => false,
+): Promise<boolean> {
   const attempt = row.attempts + 1;
   // 1. Atomic claim — only one worker can move the row out of queued/retrying.
   const { data: claimed } = await client
@@ -375,12 +397,14 @@ async function processOne(
     .in("status", ["queued", "retrying"])
     .select("id")
     .maybeSingle();
-  if (!claimed) return;
+  if (!claimed) return false;
   summary.claimed += 1;
 
   // 2. Record "provider may be contacted" BEFORE contacting it; refuse to send otherwise.
   let providerCalled = false;
   const beforeProviderCall = async () => {
+    // Too late to start a full-length Resend request safely: hand the row back.
+    if (pastProviderCutoff()) throw new DeadlineDefer();
     const { data, error } = await client
       .from("transactional_emails")
       .update({ error: MARK_PROVIDER_CALL, updated_at: new Date(nowMs()).toISOString() })
@@ -395,6 +419,12 @@ async function processOne(
   try {
     outcome = await engine.deliver(client, row, settings, { beforeProviderCall });
   } catch (error) {
+    if (error instanceof DeadlineDefer) {
+      // Provider never contacted: restore the row exactly as claimed (attempt not counted).
+      await updateWithRetry(client, row.id, { status: row.status ?? "queued", attempts: row.attempts, error: row.error ?? null });
+      summary.claimed -= 1;
+      return true;
+    }
     outcome = { ok: false, provider: null, error: error instanceof Error ? error.message : "Send failed" };
     if (providerCalled && !(error instanceof PreCallAbort)) {
       // Threw after the request may have left: treat as unknown, never resend.
@@ -423,7 +453,7 @@ async function processOne(
     } catch {
       /* classification registry is best-effort, exactly as legacy */
     }
-    return;
+    return false;
   }
 
   const message = (outcome.error ?? "Send failed").slice(0, 1000);
@@ -436,7 +466,7 @@ async function processOne(
       error: `${OUTCOME_UNKNOWN_REASON} Provider said: ${message}`.slice(0, 1000),
       failed_at: new Date(nowMs()).toISOString(),
     });
-    return;
+    return false;
   }
 
   summary.errors.push(`${row.id}: ${message}`.slice(0, 300));
@@ -457,9 +487,11 @@ async function processOne(
       failed_at: new Date(nowMs()).toISOString(),
     });
   }
+  return false;
 }
 
 class PreCallAbort extends Error {}
+class DeadlineDefer extends Error {}
 
 async function writeHealth(client: Client, patch: Record<string, unknown>) {
   try {
