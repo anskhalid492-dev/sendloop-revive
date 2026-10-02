@@ -37,11 +37,13 @@ const CLAIM_BATCH = 4;
 /** Longer than any single mailbox read; an expired lease makes the job reclaimable. */
 const JOB_LEASE_SECONDS = 300;
 /**
- * Background runs are terminated at roughly 30s. A new batch is only claimed
- * before this much time has elapsed, so the run ends and releases its lease
- * normally; unclaimed jobs stay queued for the next tick (never failed).
+ * Background runs are terminated at roughly 30s. A new mailbox read is only
+ * STARTED before this much time has elapsed. Reads already running are never
+ * interrupted; the slowest valid customer read observed is ~23s, so 10s + 23s
+ * of in-flight work normally ends before the cutoff and the lease is released
+ * by the run itself. Unstarted jobs stay queued for the next tick (never failed).
  */
-export const MAILBOX_RUN_BUDGET_MS = 20_000;
+export const MAILBOX_RUN_BUDGET_MS = 10_000;
 
 export type MailboxQueueDeps = {
   client: Client;
@@ -121,46 +123,59 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
 
     // Never claim more than this run's selection: a job failing mid-run waits
     // out its backoff for a later tick instead of adding IMAP load now.
+    //
+    // Slot pool: up to CLAIM_BATCH reads run at once, and a freed slot is
+    // refilled immediately (one claim per slot) instead of waiting for the
+    // slowest read in a group. New reads only START before the budget; reads
+    // already started are never interrupted, so a slow-but-valid mailbox
+    // (observed up to ~23s) finishes and the run ends before the ~30s cutoff.
     let claimBudget = rows.length;
     let budgetStop = false;
+    let drained = false;
     const seen = new Set<string>();
-    while (claimBudget > 0) {
-      if (nowMs() - startedAtMs >= budgetMs) { budgetStop = true; break; }
-      const { data: jobs, error: claimError } = await client.rpc("claim_background_jobs", {
-        _worker: MAILBOX_WORKER,
-        _limit: Math.min(CLAIM_BATCH, claimBudget),
-        _lease_seconds: JOB_LEASE_SECONDS,
-      });
-      if (claimError) throw new Error(claimError.message);
-      const batch = (jobs ?? []) as Array<{ id: string; payload: { mailbox_id?: string } }>;
-      if (!batch.length) break;
-      claimBudget -= batch.length;
+    const active = new Set<Promise<void>>();
 
-      await Promise.all(
-        batch.map(async (job) => {
-          const mailboxId = job.payload?.mailbox_id;
-          try {
-            if (mailboxId && !seen.has(mailboxId)) {
-              seen.add(mailboxId);
-              // Re-read: a mailbox disconnected/deactivated since enqueue is skipped.
-              const [row] = await load(1, [mailboxId]);
-              if (row) {
-                const outcome = await poll(row);
-                replies += outcome.replies;
-                bounces += outcome.bounces;
-                warmup += outcome.warmup;
-                if (!outcome.ok) throw new Error(outcome.error ?? "Mailbox check failed");
-              }
-            }
-            await client.rpc("finish_background_job", { _id: job.id, _ok: true });
-            succeeded += 1;
-          } catch (error) {
-            failed += 1;
-            lastError = error instanceof Error ? error.message : String(error);
-            await client.rpc("finish_background_job", { _id: job.id, _ok: false, _error: lastError });
+    const runJob = async (job: { id: string; payload: { mailbox_id?: string } }) => {
+      const mailboxId = job.payload?.mailbox_id;
+      try {
+        if (mailboxId && !seen.has(mailboxId)) {
+          seen.add(mailboxId);
+          // Re-read: a mailbox disconnected/deactivated since enqueue is skipped.
+          const [row] = await load(1, [mailboxId]);
+          if (row) {
+            const outcome = await poll(row);
+            replies += outcome.replies;
+            bounces += outcome.bounces;
+            warmup += outcome.warmup;
+            if (!outcome.ok) throw new Error(outcome.error ?? "Mailbox check failed");
           }
-        }),
-      );
+        }
+        await client.rpc("finish_background_job", { _id: job.id, _ok: true });
+        succeeded += 1;
+      } catch (error) {
+        failed += 1;
+        lastError = error instanceof Error ? error.message : String(error);
+        await client.rpc("finish_background_job", { _id: job.id, _ok: false, _error: lastError });
+      }
+    };
+
+    while (true) {
+      while (!drained && !budgetStop && claimBudget > 0 && active.size < CLAIM_BATCH) {
+        if (nowMs() - startedAtMs >= budgetMs) { budgetStop = true; break; }
+        const { data: jobs, error: claimError } = await client.rpc("claim_background_jobs", {
+          _worker: MAILBOX_WORKER,
+          _limit: 1,
+          _lease_seconds: JOB_LEASE_SECONDS,
+        });
+        if (claimError) throw new Error(claimError.message);
+        const job = ((jobs ?? []) as Array<{ id: string; payload: { mailbox_id?: string } }>)[0];
+        if (!job) { drained = true; break; }
+        claimBudget -= 1;
+        const p: Promise<void> = runJob(job).finally(() => { active.delete(p); });
+        active.add(p);
+      }
+      if (active.size === 0) break;
+      await Promise.race(active);
     }
 
     await writeHealth(client, {
