@@ -65,6 +65,8 @@ export type MailboxPollSummary = {
   failures: number;
   results: MailboxPollOutcome[];
   locked?: boolean;
+  /** Mailboxes left for the next run because the time budget ran out. */
+  deferred?: number;
 };
 
 const MAILBOX_BATCH = 100;
@@ -456,7 +458,38 @@ export async function loadPollableMailboxes(
   return ((data ?? []) as unknown as PollMailboxRow[]).filter((row) => row.is_active !== false);
 }
 
-export { MAILBOX_BATCH, POLL_CONCURRENCY, POLL_LEASE_KEY, POLL_LEASE_MS };
+/**
+ * Background runs are terminated at roughly 30s. Only start new mailbox work
+ * before this much time has elapsed; in-flight IMAP reads are never cut off.
+ */
+const RUN_BUDGET_MS = 20_000;
+
+/**
+ * Reads rows with at most `concurrency` in flight. Each worker checks the
+ * elapsed time before STARTING its next mailbox; a mailbox already being read
+ * always finishes. Unstarted rows are returned as `deferred` (not failures).
+ */
+export async function pollRowsWithinBudget(
+  rows: PollMailboxRow[],
+  poll: (row: PollMailboxRow) => Promise<MailboxPollOutcome>,
+  opts: { budgetMs?: number; now?: () => number; concurrency?: number } = {},
+): Promise<{ results: MailboxPollOutcome[]; deferred: number }> {
+  const now = opts.now ?? (() => Date.now());
+  const budgetMs = opts.budgetMs ?? RUN_BUDGET_MS;
+  const startedAt = now();
+  const results: MailboxPollOutcome[] = [];
+  let next = 0;
+  const worker = async () => {
+    while (next < rows.length && now() - startedAt < budgetMs) {
+      const row = rows[next++]!;
+      results.push(await poll(row));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(opts.concurrency ?? POLL_CONCURRENCY, rows.length) }, worker));
+  return { results, deferred: rows.length - next };
+}
+
+export { MAILBOX_BATCH, POLL_CONCURRENCY, POLL_LEASE_KEY, POLL_LEASE_MS, RUN_BUDGET_MS };
 export type { PollMailboxRow };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -474,23 +507,20 @@ async function pollWithLease(supabaseAdmin: any, limit: number): Promise<Mailbox
   };
 
   // Mailboxes are read several at a time so one slow mail server can never
-  // hold up the rest, and the whole run finishes well within the time the
-  // platform allows. Previously they were read one by one and mailboxes at the
-  // end of the list (the newest ones) were never reached.
-  let next = 0;
-  const worker = async () => {
-    while (next < rows.length) {
-      const row = rows[next++]!;
-      const outcome = await pollMailbox(supabaseAdmin, row);
-      summary.results.push(outcome);
-      summary.replies += outcome.replies;
-      summary.warmup += outcome.warmup;
-      summary.bounces += outcome.bounces;
-      summary.skipped += outcome.skipped;
-      if (!outcome.ok) summary.failures += 1;
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(POLL_CONCURRENCY, rows.length) }, worker));
+  // hold up the rest. A run only STARTS new mailboxes inside RUN_BUDGET_MS so it
+  // ends (and releases its lease) before the platform's ~30s background limit;
+  // unreached mailboxes keep their old last_tested_at and lead the next run.
+  const { results, deferred } = await pollRowsWithinBudget(rows, (row) => pollMailbox(supabaseAdmin, row));
+  for (const outcome of results) {
+    summary.results.push(outcome);
+    summary.replies += outcome.replies;
+    summary.warmup += outcome.warmup;
+    summary.bounces += outcome.bounces;
+    summary.skipped += outcome.skipped;
+    if (!outcome.ok) summary.failures += 1;
+  }
+  summary.deferred = deferred;
+  summary.mailboxes = results.length;
 
   return summary;
 }
