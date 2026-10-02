@@ -168,28 +168,34 @@ async function readCampaignStats(
   if (!campaignIds.length) return { byCampaign: new Map(), messages: [], signals: new Map() };
 
   const [messages, recipientCounts, events, replies] = await Promise.all([
-    fetchAllRows<CampaignMessageRow>(() => {
-      // Narrow the read in Postgres instead of downloading the whole table and
-      // filtering in memory. A row matters when it was sent, is still queued,
-      // or was touched (any signal write bumps updated_at) inside the window.
-      const q = client
-        .from("campaign_messages")
-        .select(MESSAGE_COLUMNS)
-        .eq("workspace_id", scope.workspaceId)
-        .in("campaign_id", campaignIds)
-        .order("id", { ascending: true });
-      const clauses: string[] = [];
-      if (scope.from && scope.to) {
-        const lo = scope.from.toISOString();
-        const hi = scope.to.toISOString();
-        clauses.push(`and(sent_at.gte.${lo},sent_at.lt.${hi})`);
-        clauses.push(`and(updated_at.gte.${lo},updated_at.lt.${hi})`);
-        clauses.push(`scheduled_at.gte.${lo}`);
-        clauses.push("sent_at.is.null");
-      }
-      if (clauses.length) q.or(clauses.join(","));
-      return q;
-    }),
+    (async () => {
+      // Narrow the read in Postgres instead of downloading the whole table. A
+      // row matters when it was sent, is still queued, or was touched (any
+      // signal write bumps updated_at) inside the window. The four conditions
+      // are read separately and merged by id: one OR across four columns could
+      // not use any index and scanned every workspace message per page.
+      const base = () =>
+        client
+          .from("campaign_messages")
+          .select(MESSAGE_COLUMNS)
+          .eq("workspace_id", scope.workspaceId)
+          .in("campaign_id", campaignIds)
+          .order("id", { ascending: true });
+      if (!(scope.from && scope.to)) return fetchAllRows<CampaignMessageRow>(() => base());
+      const lo = scope.from.toISOString();
+      const hi = scope.to.toISOString();
+      const parts = await Promise.all([
+        fetchAllRows<CampaignMessageRow>(() => base().gte("sent_at", lo).lt("sent_at", hi)),
+        fetchAllRows<CampaignMessageRow>(() => base().gte("updated_at", lo).lt("updated_at", hi)),
+        fetchAllRows<CampaignMessageRow>(() => base().gte("scheduled_at", lo)),
+        fetchAllRows<CampaignMessageRow>(() => base().is("sent_at", null)),
+      ]);
+      const byId = new Map<string, CampaignMessageRow>();
+      for (const part of parts) for (const row of part) byId.set((row as { id: string }).id, row);
+      return [...byId.values()].sort((a, b) =>
+        (a as { id: string }).id < (b as { id: string }).id ? -1 : 1,
+      );
+    })(),
     // Recipients are only needed for a per-campaign lead count. Downloading
     // every row was the slowest read in this request path (and had no date
     // window), so ask Postgres for the count instead.
