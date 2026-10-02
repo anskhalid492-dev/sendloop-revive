@@ -218,10 +218,26 @@ export async function getLastAlert() {
  * Retries failed inbound events whose backoff window has elapsed. Events past
  * the retry ceiling are left alone and reported once.
  */
-export async function runInboundRetrySweep(limit = 25) {
-  const settings = await getInboundOpsSettings();
-  if (!settings.retryEnabled) return { retried: 0, skipped: 0, exhausted: 0, disabled: true };
+export type InboundRetryRow = {
+  id: string;
+  attempts: number | null;
+  status: string | null;
+  last_retry_at: string | null;
+  created_at: string;
+  failure_code: string | null;
+  from_email: string | null;
+  subject: string | null;
+  workspace_id: string | null;
+  conversation_id: string | null;
+  lead_id: string | null;
+  routing_token: string | null;
+};
 
+/**
+ * Selects failed/stalled inbound events whose backoff has elapsed. Shared by the
+ * legacy sweep and queue mode so both pick exactly the same work.
+ */
+export async function selectDueInboundEvents(settings: InboundOpsSettings, limit: number, now = Date.now()) {
   const { data: rows, error } = await supabaseAdmin
     .from("email_events")
     .select("id, attempts, status, last_retry_at, created_at, failure_code, from_email, subject, workspace_id, conversation_id, lead_id, routing_token")
@@ -237,14 +253,11 @@ export async function runInboundRetrySweep(limit = 25) {
     .limit(200);
   if (error) throw new Error(error.message);
 
-  const now = Date.now();
-  let retried = 0;
+  const due: InboundRetryRow[] = [];
   let skipped = 0;
   let exhausted = 0;
-  const { retryStoredEvent } = await import("@/lib/email-events.server");
-
-  for (const row of rows ?? []) {
-    if (retried >= limit) break;
+  for (const row of (rows ?? []) as InboundRetryRow[]) {
+    if (due.length >= limit) break;
     const attempts = row.attempts ?? 0;
     if (attempts >= settings.maxRetries) {
       exhausted += 1;
@@ -261,37 +274,51 @@ export async function runInboundRetrySweep(limit = 25) {
       skipped += 1;
       continue;
     }
+    due.push(row);
+  }
+  return { due, skipped, exhausted };
+}
+
+/** Retries one event and raises the same admin alerts in both modes. */
+export async function retryInboundEventWithAlerts(settings: InboundOpsSettings, row: InboundRetryRow) {
+  const { retryStoredEvent } = await import("@/lib/email-events.server");
+  const result = await retryStoredEvent(row.id, false, null, "auto_retry");
+  const nextAttempts = (row.attempts ?? 0) + 1;
+  if (result.status === "failed" || result.status === "unmatched") {
+    const context = {
+      eventId: row.id,
+      attempts: nextAttempts,
+      from: row.from_email,
+      subject: row.subject,
+      reason: result.reason ?? row.failure_code,
+      workspaceId: row.workspace_id,
+      conversationId: row.conversation_id,
+      leadId: row.lead_id,
+      token: row.routing_token,
+    };
+    if (nextAttempts >= settings.maxRetries) {
+      await notifyAdmins("retry_exhausted", "Inbound event exhausted its retries", context);
+    } else if (nextAttempts >= settings.retryAlertThreshold) {
+      await notifyAdmins("retry_threshold", "Inbound event passed the retry threshold", context);
+    }
+  }
+  return result;
+}
+
+/** LEGACY path (default). Unchanged behaviour; also the rollback target. */
+export async function runInboundRetrySweep(limit = 25) {
+  const settings = await getInboundOpsSettings();
+  if (!settings.retryEnabled) return { retried: 0, skipped: 0, exhausted: 0, disabled: true };
+
+  const selection = await selectDueInboundEvents(settings, limit);
+  let retried = 0;
+  let skipped = selection.skipped;
+  const exhausted = selection.exhausted;
+
+  for (const row of selection.due) {
     try {
-      const result = await retryStoredEvent(row.id, false, null, "auto_retry");
+      await retryInboundEventWithAlerts(settings, row);
       retried += 1;
-      const nextAttempts = attempts + 1;
-      if (result.status === "failed" || result.status === "unmatched") {
-        if (nextAttempts >= settings.maxRetries) {
-          await notifyAdmins("retry_exhausted", "Inbound event exhausted its retries", {
-            eventId: row.id,
-            attempts: nextAttempts,
-            from: row.from_email,
-            subject: row.subject,
-            reason: result.reason ?? row.failure_code,
-            workspaceId: row.workspace_id,
-            conversationId: row.conversation_id,
-            leadId: row.lead_id,
-            token: row.routing_token,
-          });
-        } else if (nextAttempts >= settings.retryAlertThreshold) {
-          await notifyAdmins("retry_threshold", "Inbound event passed the retry threshold", {
-            eventId: row.id,
-            attempts: nextAttempts,
-            from: row.from_email,
-            subject: row.subject,
-            reason: result.reason ?? row.failure_code,
-            workspaceId: row.workspace_id,
-            conversationId: row.conversation_id,
-            leadId: row.lead_id,
-            token: row.routing_token,
-          });
-        }
-      }
     } catch {
       skipped += 1;
     }

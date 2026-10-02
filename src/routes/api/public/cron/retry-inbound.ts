@@ -48,7 +48,17 @@ async function run(request: Request) {
   }
 
   const { runInboundRetrySweep, reconcileInboundEvents } = await import("@/lib/inbound-ops.server");
-  const retry = await runInboundRetrySweep();
+  // worker_mode.inbound decides the path each tick; anything but "queue"
+  // (including a read error) runs the unchanged legacy sweep.
+  const { getWorkerMode } = await import("@/lib/worker-mode.server");
+  const mode = await getWorkerMode(supabaseAdmin, "inbound");
+  let retry: unknown;
+  if (mode === "queue") {
+    const { runInboundRetryQueue } = await import("@/lib/inbound-queue.server");
+    retry = await runInboundRetryQueue({ client: supabaseAdmin });
+  } else {
+    retry = await runInboundRetrySweep();
+  }
   // Reconciliation is a read-only audit pass. A slow database must never abort
   // the tick, because the warmup safety net below still has to run.
   let reconciliation: { scanned: number; linked: number; mismatched: number; error?: string } = {
