@@ -183,7 +183,7 @@ export async function sendResendEmail(
     const providerMessageId = extractResendMessageId(body, res.headers) ?? null;
     // The RFC Message-ID is not returned by the send call; it is read back from
     // the provider so replies can be threaded. Resend-specific, kept here.
-    const rfcMessageId = providerMessageId
+    const rfcMessageId = providerMessageId && !message.skipRfcMessageIdLookup
       ? ((await getResendRfcMessageIdSafe(providerMessageId, credentials)) ?? null)
       : null;
 

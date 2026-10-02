@@ -261,6 +261,11 @@ export type OutboundEmail = {
   attachments?: OutboundAttachment[] | undefined;
   /** RFC threading headers so replies stay in one email thread. */
   headers?: Record<string, string> | undefined;
+  /**
+   * Skip the follow-up Resend read of the RFC Message-ID. System email never
+   * threads replies on it, and the read can add up to ~10s per send.
+   */
+  skipRfcMessageIdLookup?: boolean | undefined;
 };
 
 function extractMessageId(body: string, headers: Headers): string | undefined {
@@ -387,6 +392,7 @@ export async function sendProviderEmail(
           text,
           ...(html ? { html } : {}),
           ...(hasHeaders ? { headers } : {}),
+          ...(message.skipRfcMessageIdLookup ? { skipRfcMessageIdLookup: true } : {}),
           ...(message.attachments?.length ? { attachments: message.attachments.map((a) => ({ name: a.name, ...(a.url ? { url: a.url } : {}), ...(a.content ? { content: a.content } : {}) })) } : {}),
         });
         return {

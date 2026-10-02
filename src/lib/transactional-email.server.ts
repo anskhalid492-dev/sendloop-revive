@@ -697,6 +697,9 @@ async function deliver(
     text: row.text_body || "",
     ...(row.html ? { html: row.html } : {}),
     headers: { "X-MunchReach-Type": "transactional" },
+    // Transactional results never use the RFC Message-ID; skipping the read
+    // keeps one send bounded by the Resend POST timeout alone.
+    skipRfcMessageIdLookup: true,
   };
 
   const sesCredentials = resolveSesCredentials(null);
