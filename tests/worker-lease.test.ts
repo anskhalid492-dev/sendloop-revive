@@ -38,10 +38,15 @@ function fakeSettings() {
           };
           return q;
         },
-        async insert(row: { key: string; value: { token: string; expiresAt: string } }) {
-          if (rows.has(row.key)) return { error: { code: "23505" } };
-          rows.set(row.key, row.value);
-          return { error: null };
+        // ON CONFLICT DO NOTHING: an existing row yields no data and no error.
+        upsert(row: { key: string; value: { token: string; expiresAt: string } }) {
+          return {
+            async select() {
+              if (rows.has(row.key)) return { data: [], error: null };
+              rows.set(row.key, row.value);
+              return { data: [{ key: row.key }], error: null };
+            },
+          };
         },
       };
     },
@@ -91,5 +96,15 @@ describe("inbound retry jitter", () => {
       expect(j).toBeGreaterThanOrEqual(0.8);
       expect(j).toBeLessThan(1.2);
     }
+  });
+});
+
+describe("worker lease duplicate-key safety", () => {
+  it("a held lease never issues a plain insert (no 23505 per tick)", async () => {
+    const db = fakeSettings() as any;
+    db.from = ((orig) => () => ({ ...orig(), insert: () => { throw new Error("plain insert used"); } }))(db.from.bind(db));
+    const now = new Date("2026-10-02T12:00:00Z");
+    expect(await acquireWorkerLease(db, "w", 60_000, now)).not.toBeNull();
+    expect(await acquireWorkerLease(db, "w", 60_000, now)).toBeNull();
   });
 });

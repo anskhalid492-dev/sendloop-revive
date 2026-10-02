@@ -24,7 +24,7 @@ function fakeClient(opts: { leaseHeld?: boolean; existingKeys?: string[]; failRe
       if (table === "platform_settings") {
         return {
           update: () => chain({ data: opts.leaseHeld ? [] : [{ key: "x" }], error: null }),
-          insert: async () => ({ error: opts.leaseHeld ? { code: "23505" } : null }),
+          upsert: () => ({ select: async () => ({ data: opts.leaseHeld ? [] : [{ key: "x" }], error: null }) }),
         };
       }
       if (table === "background_jobs") {
