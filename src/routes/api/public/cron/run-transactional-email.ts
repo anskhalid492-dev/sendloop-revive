@@ -63,8 +63,26 @@ async function run(request: Request) {
     // The runner is idempotent per user/year, so extra invocations are safe.
     let birthday: unknown = null;
     try {
-      const { runBirthdayGiftCycle } = await import("@/lib/birthday-gift.server");
-      birthday = await runBirthdayGiftCycle();
+      // Birthdays change once a day, so the check runs once per UTC day instead
+      // of every minute. The atomic lease (expiring at next midnight) makes the
+      // first tick of the day the only one that runs it.
+      const { acquireWorkerLease } = await import("@/lib/worker-lease.server");
+      const now = new Date();
+      const nextMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+      const daily = await acquireWorkerLease(supabaseAdmin, "birthday_gift_daily", nextMidnight - now.getTime(), now);
+      if (daily) {
+        const { runBirthdayGiftCycle } = await import("@/lib/birthday-gift.server");
+        try {
+          birthday = await runBirthdayGiftCycle();
+        } catch (error) {
+          // A failed run frees the day so the next tick retries it.
+          const { releaseWorkerLease } = await import("@/lib/worker-lease.server");
+          await releaseWorkerLease(supabaseAdmin, daily);
+          throw error;
+        }
+      } else {
+        birthday = { skipped: "already ran today" };
+      }
     } catch (birthdayError) {
       console.error("birthday gift cycle failed", birthdayError);
     }

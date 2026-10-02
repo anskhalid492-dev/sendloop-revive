@@ -64,10 +64,15 @@ export type MailboxPollSummary = {
   skipped: number;
   failures: number;
   results: MailboxPollOutcome[];
+  locked?: boolean;
 };
 
 const MAILBOX_BATCH = 100;
-const POLL_CONCURRENCY = 6;
+/** Conservative cap on simultaneous IMAP connections per run. */
+const POLL_CONCURRENCY = 4;
+const POLL_LEASE_KEY = "mailbox_poll_lease";
+/** Longer than any single run; a crashed run frees the lease after this. */
+const POLL_LEASE_MS = 10 * 60_000;
 
 /** Turns one relay message into the shape the Unified Inbox ingestion expects. */
 export function inboundFromRelayMessage(message: RelayCheckedMessage, mailbox: string) {
@@ -390,7 +395,37 @@ export async function pollMailbox(
 /** Reads every connected, active mailbox once. One failure never stops the rest. */
 export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<MailboxPollSummary> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { acquireWorkerLease, releaseWorkerLease, logWorkerRun } = await import("./worker-lease.server");
+  const startedAt = Date.now();
+  // Single-flight: an overlapping tick exits instead of reading the same
+  // mailboxes twice and doubling IMAP and database load.
+  const lease = await acquireWorkerLease(supabaseAdmin, POLL_LEASE_KEY, POLL_LEASE_MS);
+  if (!lease) {
+    logWorkerRun({ worker: "mailbox-worker", startedAt, result: "skipped", reason: "locked" });
+    return { mailboxes: 0, replies: 0, warmup: 0, bounces: 0, skipped: 0, failures: 0, results: [], locked: true } as MailboxPollSummary;
+  }
+  try {
+    const summary = await pollWithLease(supabaseAdmin, limit);
+    logWorkerRun({
+      worker: "mailbox-worker",
+      startedAt,
+      result: "ok",
+      mailboxes: summary.mailboxes,
+      replies: summary.replies,
+      bounces: summary.bounces,
+      failures: summary.failures,
+    });
+    return summary;
+  } catch (error) {
+    logWorkerRun({ worker: "mailbox-worker", startedAt, result: "error", reason: error instanceof Error ? error.message : String(error) });
+    throw error;
+  } finally {
+    await releaseWorkerLease(supabaseAdmin, lease);
+  }
+}
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function pollWithLease(supabaseAdmin: any, limit: number): Promise<MailboxPollSummary> {
   const BASE_COLUMNS =
     "id, workspace_id, email_address, imap_host, imap_port, imap_secure, imap_username, imap_password, last_imap_uid, status, is_active";
 

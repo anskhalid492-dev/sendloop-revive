@@ -57,6 +57,13 @@ export async function saveInboundOpsSettings(
 export const STALLED_GRACE_MS = 60_000;
 
 /** Backoff delay in minutes for the nth attempt. */
+/** Stable per-event jitter factor in [0.8, 1.2) so retries spread out instead of bunching. */
+export function retryJitter(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return 0.8 + (h % 400) / 1000;
+}
+
 export function backoffMinutes(settings: InboundOpsSettings, attempt: number) {
   const factor = Math.max(1, settings.backoffFactor);
   return Math.round(settings.backoffMinutes * Math.pow(factor, Math.max(0, attempt - 1)));
@@ -222,6 +229,10 @@ export async function runInboundRetrySweep(limit = 25) {
     // finished — the runtime cancelled it, so no error was ever written. They
     // are picked up after a short grace period instead of sitting unfiled.
     .in("status", ["failed", "retrying", "pending"])
+    // Exhausted events are dead-lettered in place (kept for investigation) and
+    // excluded here; otherwise 200+ of them would fill every batch forever and
+    // newer failures would never be retried.
+    .lt("attempts", settings.maxRetries)
     .order("created_at", { ascending: true })
     .limit(200);
   if (error) throw new Error(error.message);
@@ -243,7 +254,9 @@ export async function runInboundRetrySweep(limit = 25) {
     // A stalled (never-processed) event is not a failure needing backoff: it is
     // simply unfinished work, so it is picked up after a one-minute grace.
     const wait =
-      row.status === "pending" ? STALLED_GRACE_MS : backoffMinutes(settings, attempts + 1) * 60_000;
+      row.status === "pending"
+        ? STALLED_GRACE_MS
+        : backoffMinutes(settings, attempts + 1) * 60_000 * retryJitter(row.id);
     if (now - last < wait) {
       skipped += 1;
       continue;

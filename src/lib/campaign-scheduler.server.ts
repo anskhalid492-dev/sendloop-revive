@@ -17,9 +17,7 @@ import {
   SCHEDULER_BUDGET_MS,
   SCHEDULER_LEASE_TTL_MS,
   hasBudgetRemaining,
-  isLeaseHeld,
   orderCampaignsForRun,
-  type SchedulerLease,
 } from "./campaign-scheduler";
 import { completeAcceptedProcessingMessages } from "./dispatch.server";
 
@@ -123,15 +121,13 @@ export async function runCampaignScheduler(
   const startedAt = nowFn();
   const startedAtMs = startedAt.getTime();
 
-  const lease = (await readSetting(supabase, LEASE_KEY)) as SchedulerLease;
-  if (isLeaseHeld(lease, startedAt)) {
+  // Atomic take: overlapping ticks can no longer both pass a read-then-write check.
+  const { acquireWorkerLease, releaseWorkerLease, logWorkerRun } = await import("./worker-lease.server");
+  const lease = await acquireWorkerLease(supabase, LEASE_KEY, leaseTtlMs, startedAt);
+  if (!lease) {
+    logWorkerRun({ worker: "campaign-worker", startedAt: startedAtMs, result: "skipped", reason: "locked" });
     return { ok: true, skipped: "locked", campaigns: campaigns.length, processed: 0, budgetExhausted: false, recovered: 0, results: [] };
   }
-  const token = `${startedAtMs}-${Math.random().toString(36).slice(2)}`;
-  await writeSetting(supabase, LEASE_KEY, {
-    token,
-    expiresAt: new Date(startedAtMs + leaseTtlMs).toISOString(),
-  });
 
   const cursor = ((await readSetting(supabase, CURSOR_KEY)) as { campaignId?: string } | null)?.campaignId ?? null;
   const ordered = orderCampaignsForRun(campaigns, cursor);
@@ -176,8 +172,19 @@ export async function runCampaignScheduler(
     // Always release, even when an invocation dies mid-run: a held lease made
     // every following cron tick skip with `locked` and stalled the queue.
     await writeSetting(supabase, CURSOR_KEY, { campaignId: budgetExhausted ? lastProcessed : null });
-    await writeSetting(supabase, LEASE_KEY, { token, expiresAt: new Date(startedAtMs - 1).toISOString() });
+    await releaseWorkerLease(supabase, lease);
   }
+  logWorkerRun({
+    worker: "campaign-worker",
+    startedAt: startedAtMs,
+    result: "ok",
+    campaigns: campaigns.length,
+    processed: results.length,
+    sent: results.reduce((n, r) => n + r.sent, 0),
+    failed: results.reduce((n, r) => n + r.failed, 0),
+    recovered,
+    budget_exhausted: budgetExhausted,
+  });
 
   return {
     ok: true,
