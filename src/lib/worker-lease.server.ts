@@ -32,8 +32,13 @@ export async function acquireWorkerLease(
   if (!updateError && Array.isArray(updated) && updated.length > 0) return { key, token, expiresAt };
 
   // No row matched: either the lease is held, or the row does not exist yet.
-  const { error: insertError } = await client.from("platform_settings").insert({ key, value });
-  if (!insertError) return { key, token, expiresAt };
+  // ON CONFLICT DO NOTHING creates a missing row atomically; a held lease just
+  // returns no row instead of raising a duplicate-key error every cron tick.
+  const { data: inserted, error: insertError } = await client
+    .from("platform_settings")
+    .upsert({ key, value }, { onConflict: "key", ignoreDuplicates: true })
+    .select("key");
+  if (!insertError && Array.isArray(inserted) && inserted.length > 0) return { key, token, expiresAt };
   return null;
 }
 

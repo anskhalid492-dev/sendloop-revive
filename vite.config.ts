@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Tests must never reach the production database (see tests/setup).
+    test: { setupFiles: ["./tests/setup/block-production-network.ts"] },
+  } as never,
 });
