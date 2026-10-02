@@ -20,8 +20,8 @@ function clock() {
 
 describe("run budget (shared limit)", () => {
   it("budget is well under the ~30s background limit", () => {
-    expect(RUN_BUDGET_MS).toBe(20_000);
-    expect(MAILBOX_RUN_BUDGET_MS).toBe(20_000);
+    expect(RUN_BUDGET_MS).toBe(20_000); // legacy path unchanged
+    expect(MAILBOX_RUN_BUDGET_MS).toBe(10_000); // queue: start-new-work cutoff
   });
 });
 
@@ -125,8 +125,8 @@ describe("queue path: runtime budget", () => {
     const queued = f.jobs.filter((j) => j.status === "queued");
     expect(queued.length).toBe(17 - polled.length);
     expect(f.jobs.some((j) => j.status === "dead" || j.status === "backoff" || j.status === "running")).toBe(false);
-    // every claimed job (whole batch of 4) completed: active reads are never cut off
-    expect(polled.length % 4).toBe(0);
+    // every claimed job completed: active reads are never cut off
+    expect(f.jobs.filter((j) => j.status === "succeeded").length).toBe(polled.length);
   });
 
   it("next run processes the leftovers without creating duplicate jobs", async () => {
@@ -135,12 +135,12 @@ describe("queue path: runtime budget", () => {
     const counts = new Map<string, number>();
     const poll = async (r: PollMailboxRow) => { f.setT(f.getT() + 3_000); counts.set(r.id, (counts.get(r.id) ?? 0) + 1); return ok(r); };
     const load = async (_l: number, only?: string[]) => (only ?? ids).map(row);
-    await runMailboxQueue({ client: f.client, now: f.getT, loadMailboxes: load, poll });
+    await runMailboxQueue({ client: f.client, now: f.getT, loadMailboxes: load, poll, budgetMs: 20_000 });
     const firstPolled = new Set(counts.keys());
     expect(firstPolled.size).toBeLessThan(10);
     expect(f.jobs.filter((j) => j.status === "queued").length).toBe(10 - firstPolled.size);
     f.setT(f.getT() + 60_000);
-    await runMailboxQueue({ client: f.client, now: f.getT, loadMailboxes: load, poll });
+    await runMailboxQueue({ client: f.client, now: f.getT, loadMailboxes: load, poll, budgetMs: 20_000 });
     expect(counts.size).toBe(10);
     for (const id of ids.filter((i) => !firstPolled.has(i))) {
       expect(f.jobs.filter((j) => j.payload.mailbox_id === id).length).toBe(1);
