@@ -91,7 +91,7 @@ const SPECS: Spec[] = [
     heading: "Welcome to MunchReach",
     blocks: [
       p("Hi {{user.first_name}}, your MunchReach account is ready. We help you run cold outreach that actually lands in the inbox."),
-      { kind: "list", items: ["Connect your sending domain", "Add an email account and start warmup", "Import leads and launch your first campaign"] },
+      { kind: "list", items: ["Connect your mailbox", "Start warmup on your mailbox", "Import leads and launch your first campaign"] },
       cta("Open your dashboard", "{{dashboard_url}}"),
     ],
     reason: "You are receiving this email because you created a MunchReach account.",
@@ -161,7 +161,7 @@ const SPECS: Spec[] = [
     subject: "{{workspace.name}} is ready",
     preheader: "Your new workspace has been created.",
     heading: "{{workspace.name}} is ready",
-    blocks: [p("Your workspace {{workspace.name}} was created. Next: connect a sending domain and an email account."), cta("Continue setup", "{{dashboard_url}}")],
+    blocks: [p("Your workspace {{workspace.name}} was created. Next: connect your mailbox to start sending."), cta("Continue setup", "{{dashboard_url}}")],
   },
   {
     eventKey: "workspace.invitation_sent",
@@ -486,21 +486,21 @@ const SPECS: Spec[] = [
   // ── Email Infrastructure ────────────────────────────────────────────────
   {
     eventKey: "domain.verified",
-    name: "Domain verified",
+    name: "Mailbox connected and ready",
     category: "Email Infrastructure",
-    subject: "{{domain.name}} is verified",
-    preheader: "Your sending domain is ready.",
-    heading: "{{domain.name}} is verified",
-    blocks: [p("All DNS records for {{domain.name}} are in place, so this domain is ready for sending."), cta("Connect an email account", "{{dashboard_url}}")],
+    subject: "Your {{domain.name}} mailbox is ready",
+    preheader: "Your mailbox is connected and ready.",
+    heading: "Your mailbox is connected and ready",
+    blocks: [p("Your mailbox on {{domain.name}} is connected and ready for sending."), cta("Open your mailboxes", "{{dashboard_url}}")],
   },
   {
     eventKey: "domain.verification_failed",
-    name: "Domain verification failed",
+    name: "Mailbox connection failed",
     category: "Email Infrastructure",
-    subject: "We couldn't verify {{domain.name}}",
-    preheader: "One or more DNS records are still missing.",
-    heading: "{{domain.name}} is not verified yet",
-    blocks: [p("Some DNS records for {{domain.name}} are missing or incorrect. Add them at your DNS host, then run the check again."), cta("Open domain setup", "{{dashboard_url}}")],
+    subject: "We couldn't connect your {{domain.name}} mailbox",
+    preheader: "Your mailbox needs attention.",
+    heading: "We couldn't connect your mailbox",
+    blocks: [p("We couldn't finish connecting your mailbox on {{domain.name}}. Check your mailbox connection settings, then try again."), cta("Open mailbox setup", "{{dashboard_url}}")],
   },
   {
     eventKey: "mailbox.connected",
@@ -727,7 +727,7 @@ const SPECS: Spec[] = [
     preheader: "Pick up where you left off in a couple of clicks.",
     heading: "Pick up where you left off",
     blocks: [
-      p("Hi {{user.first_name}}, we haven't seen any activity in {{workspace.name}} for {{inactive.days}} days. Your domains, mailboxes and leads are exactly where you left them."),
+      p("Hi {{user.first_name}}, we haven't seen any activity in {{workspace.name}} for {{inactive.days}} days. Your mailboxes and leads are exactly where you left them."),
       { kind: "list", items: ["Resume or duplicate an existing campaign", "Check replies in your unified inbox", "Keep your mailboxes warm so deliverability holds"] },
       cta("Open your dashboard", "{{dashboard_url}}"),
     ],
