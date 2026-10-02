@@ -81,7 +81,7 @@ function fakeClient() {
           const okL = !leaseTaken; if (okL) leaseTaken = true;
           return chain({ data: okL ? [{ key: "x" }] : [], error: null });
         },
-        insert: async () => ({ error: { code: "23505" } }),
+        upsert: () => ({ select: async () => ({ data: [], error: null }) }),
       };
       if (table === "background_jobs") return {
         select: () => chain({ data: jobs.filter((j) => ["queued", "running"].includes(j.status)), error: null }),

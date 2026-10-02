@@ -34,7 +34,7 @@ function fakeClient() {
           const ok = !leaseTaken; if (ok) leaseTaken = true;
           return chain({ data: ok ? [{ key: "x" }] : [], error: null });
         },
-        insert: async () => ({ error: { code: "23505" } }),
+        upsert: () => ({ select: async () => ({ data: [], error: null }) }),
       };
       if (table === "background_jobs") return {
         select: (cols?: string) => {

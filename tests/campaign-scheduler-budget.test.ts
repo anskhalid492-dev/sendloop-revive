@@ -41,11 +41,13 @@ function fakeSupabase() {
           };
           return u;
         },
-        insert: async (row: { key: string; value: unknown }) => {
-          if (settings.has(row.key)) return { error: { code: "23505" } };
-          settings.set(row.key, row.value);
-          return { error: null };
-        },
+        upsert: (row: { key: string; value: unknown }) => ({
+          select: async () => {
+            if (settings.has(row.key)) return { data: [], error: null };
+            settings.set(row.key, row.value);
+            return { data: [{ key: row.key }], error: null };
+          },
+        }),
         upsert: async (row: { key: string; value: unknown }) => {
           settings.set(row.key, row.value);
           return { error: null };

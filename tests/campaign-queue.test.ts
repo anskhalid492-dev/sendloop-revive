@@ -37,7 +37,7 @@ function fakeClient(opts: { leaseHeld?: boolean; openFor?: string[] } = {}) {
             if (ok) { leaseTaken = true; jobs.forEach((j) => { if (j.status === "backoff") j.status = "queued"; }); }
             return chain({ data: ok ? [{ key: "x" }] : [], error: null });
           },
-          insert: async () => ({ error: { code: "23505" } }),
+          upsert: () => ({ select: async () => ({ data: [], error: null }) }),
         };
       }
       if (table === "background_jobs") {
