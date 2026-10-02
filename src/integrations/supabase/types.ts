@@ -995,6 +995,63 @@ export type Database = {
           },
         ]
       }
+      background_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          job_type: string
+          last_error: string | null
+          lease_owner: string | null
+          lease_until: string | null
+          max_attempts: number
+          next_attempt_at: string
+          payload: Json
+          started_at: string | null
+          status: string
+          updated_at: string
+          worker: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          job_type: string
+          last_error?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          payload?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          worker: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          job_type?: string
+          last_error?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          payload?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          worker?: string
+        }
+        Relationships: []
+      }
       billing_audit_log: {
         Row: {
           action: string
@@ -9482,6 +9539,48 @@ export type Database = {
           },
         ]
       }
+      worker_health: {
+        Row: {
+          current_jobs: number
+          failure_count: number
+          last_duration_ms: number | null
+          last_error: string | null
+          last_failed_at: string | null
+          last_started_at: string | null
+          last_succeeded_at: string | null
+          lease_until: string | null
+          status: string
+          updated_at: string
+          worker: string
+        }
+        Insert: {
+          current_jobs?: number
+          failure_count?: number
+          last_duration_ms?: number | null
+          last_error?: string | null
+          last_failed_at?: string | null
+          last_started_at?: string | null
+          last_succeeded_at?: string | null
+          lease_until?: string | null
+          status?: string
+          updated_at?: string
+          worker: string
+        }
+        Update: {
+          current_jobs?: number
+          failure_count?: number
+          last_duration_ms?: number | null
+          last_error?: string | null
+          last_failed_at?: string | null
+          last_started_at?: string | null
+          last_succeeded_at?: string | null
+          lease_until?: string | null
+          status?: string
+          updated_at?: string
+          worker?: string
+        }
+        Relationships: []
+      }
       workspace_activity: {
         Row: {
           actor_id: string | null
@@ -10137,6 +10236,33 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_background_jobs: {
+        Args: { _lease_seconds: number; _limit: number; _worker: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          job_type: string
+          last_error: string | null
+          lease_owner: string | null
+          lease_until: string | null
+          max_attempts: number
+          next_attempt_at: string
+          payload: Json
+          started_at: string | null
+          status: string
+          updated_at: string
+          worker: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "background_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_warmup_jobs: {
         Args: { _limit: number; _worker: string }
         Returns: {
@@ -10271,6 +10397,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      finish_background_job: {
+        Args: { _error?: string; _id: string; _ok: boolean }
+        Returns: undefined
       }
       generate_appsumo_codes: {
         Args: { _batch?: string; _count: number }
