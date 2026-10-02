@@ -41,16 +41,19 @@ function fakeSupabase() {
           };
           return u;
         },
-        upsert: (row: { key: string; value: unknown }) => ({
-          select: async () => {
-            if (settings.has(row.key)) return { data: [], error: null };
-            settings.set(row.key, row.value);
-            return { data: [{ key: row.key }], error: null };
-          },
-        }),
-        upsert: async (row: { key: string; value: unknown }) => {
+        upsert: (row: { key: string; value: unknown }, opts?: { ignoreDuplicates?: boolean }) => {
+          if (opts?.ignoreDuplicates) {
+            // Lease create: ON CONFLICT DO NOTHING.
+            return {
+              select: async () => {
+                if (settings.has(row.key)) return { data: [], error: null };
+                settings.set(row.key, row.value);
+                return { data: [{ key: row.key }], error: null };
+              },
+            };
+          }
           settings.set(row.key, row.value);
-          return { error: null };
+          return Promise.resolve({ error: null });
         },
       };
       return builder;
