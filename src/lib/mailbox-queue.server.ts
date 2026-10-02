@@ -85,7 +85,7 @@ export async function runMailboxQueue(deps: MailboxQueueDeps) {
   let replies = 0;
   let bounces = 0;
   let warmup = 0;
-  let lastError: string | null = null;
+  let lastError = null as string | null;
   try {
     await writeHealth(client, { status: "running", last_started_at: startedAt.toISOString() });
 
