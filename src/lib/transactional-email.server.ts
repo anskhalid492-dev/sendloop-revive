@@ -573,18 +573,22 @@ export type QueueRunSummary = {
 };
 
 /** Single-flight lease held in platform settings. */
+// Atomic lease in its own settings row: the old read-then-write check let two
+// overlapping ticks both start. Per-row claims still prevent double sends.
+const TX_LEASE_KEY = "transactional_runner_lease";
+let heldLease: import("./worker-lease.server").WorkerLease | null = null;
+
 async function acquireLease(admin: Admin): Promise<{ acquired: boolean; settings: TransactionalSettings }> {
   const settings = await getTransactionalSettings(admin);
-  const now = Date.now();
-  if (settings.lease_until && new Date(settings.lease_until).getTime() > now) {
-    return { acquired: false, settings };
-  }
-  await saveTransactionalSettings(admin, { lease_until: new Date(now + LEASE_MS).toISOString() });
-  return { acquired: true, settings };
+  const { acquireWorkerLease } = await import("./worker-lease.server");
+  heldLease = await acquireWorkerLease(admin, TX_LEASE_KEY, LEASE_MS);
+  return { acquired: Boolean(heldLease), settings };
 }
 
 async function releaseLease(admin: Admin) {
-  await saveTransactionalSettings(admin, { lease_until: null });
+  const { releaseWorkerLease } = await import("./worker-lease.server");
+  await releaseWorkerLease(admin, heldLease);
+  heldLease = null;
 }
 
 async function deliver(
@@ -846,7 +850,9 @@ export async function processTransactionalQueue(
       summary.errors.push(`${row.id}: ${message}`.slice(0, 300));
       if (attempt < Math.max(1, row.max_attempts)) {
         summary.retried += 1;
-        const delay = settings.retry_delay_seconds * Math.pow(2, attempt - 1);
+        // Exponential backoff with ±20% jitter so failures never retry in lockstep.
+        const delay =
+          settings.retry_delay_seconds * Math.pow(2, attempt - 1) * (0.8 + Math.random() * 0.4);
         await admin
           .from("transactional_emails")
           .update({
