@@ -424,18 +424,26 @@ export async function pollConnectedMailboxes(limit = MAILBOX_BATCH): Promise<Mai
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function pollWithLease(supabaseAdmin: any, limit: number): Promise<MailboxPollSummary> {
+/**
+ * The mailboxes one polling run reads: connected, active, least-recently
+ * checked first (rotation), capped at `limit`. Shared by legacy and queue mode
+ * so both select exactly the same work. `ids` narrows to specific mailboxes
+ * (queue jobs re-read their mailbox so a disconnect since enqueue is honoured).
+ */
+export async function loadPollableMailboxes(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
+  limit: number = MAILBOX_BATCH,
+  ids?: string[],
+): Promise<PollMailboxRow[]> {
   const BASE_COLUMNS =
     "id, workspace_id, email_address, imap_host, imap_port, imap_secure, imap_username, imap_password, last_imap_uid, status, is_active";
 
-  const select = (columns: string) =>
-    supabaseAdmin
-      .from("mailboxes")
-      .select(columns)
-      .eq("status", "connected")
-      .order("last_tested_at", { ascending: true, nullsFirst: true })
-      .limit(limit);
+  const select = (columns: string) => {
+    let q = supabaseAdmin.from("mailboxes").select(columns).eq("status", "connected");
+    if (ids) q = q.in("id", ids);
+    return q.order("last_tested_at", { ascending: true, nullsFirst: true }).limit(limit);
+  };
 
   // The junk-folder cursor is additive: on schemas without it the query falls
   // back to the original column list instead of failing the whole run.
@@ -445,9 +453,15 @@ async function pollWithLease(supabaseAdmin: any, limit: number): Promise<Mailbox
   }
   if (error) throw new Error(error.message);
 
-  const rows = ((data ?? []) as unknown as PollMailboxRow[]).filter(
-    (row) => row.is_active !== false,
-  );
+  return ((data ?? []) as unknown as PollMailboxRow[]).filter((row) => row.is_active !== false);
+}
+
+export { MAILBOX_BATCH, POLL_CONCURRENCY, POLL_LEASE_KEY, POLL_LEASE_MS };
+export type { PollMailboxRow };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function pollWithLease(supabaseAdmin: any, limit: number): Promise<MailboxPollSummary> {
+  const rows = await loadPollableMailboxes(supabaseAdmin, limit);
 
   const summary: MailboxPollSummary = {
     mailboxes: rows.length,
