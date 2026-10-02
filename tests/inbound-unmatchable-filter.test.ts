@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isUnfiltered, needsLeadJoin } from "./campaign-leads-page";
+import { isUnfiltered, needsLeadJoin } from "@/lib/campaign-leads-page";
 
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {} }));
 
 import { vi } from "vitest";
-const { unmatchableExclusionFilter } = await import("./inbound-ops.server");
+const { unmatchableExclusionFilter } = await import("@/lib/inbound-ops.server");
 
 describe("unmatchableExclusionFilter", () => {
   it("keeps recent unmatched sends and drops aged-out ones", () => {
