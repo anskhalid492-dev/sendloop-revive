@@ -122,6 +122,9 @@ export async function runAiReply(
     lastDecisionUncertain: Boolean(lastDecision?.usedFallback),
   });
   if (pre.block) return { ok: false, blocked: true, error: pre.block };
+  if ((lastDecision?.confidence ?? null) === null && !lastDecision?.usedFallback) {
+    pre.forceDraft.push("No confident AI decision came before this reply, so it needs review.");
+  }
   const { system, prompt } = buildReplyPrompt(cfg, settings, context);
   const call = await callSalesAgentModel({ system, prompt, purpose: "reply", workspaceId: ctx.workspaceId });
   if (!call.ok) {
