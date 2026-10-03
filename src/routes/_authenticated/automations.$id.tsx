@@ -42,7 +42,7 @@ import {
   setAutomationStatus,
 } from "@/lib/automations.functions";
 import { VisualAutomationEditor } from "@/components/automations/VisualAutomationEditor";
-import { legacyToWorkflow, workflowFromSteps, workflowToStep } from "@/lib/workflow-graph";
+import { convertLegacyAutomation, workflowFromSteps, workflowToStep } from "@/lib/workflow-graph";
 
 export const Route = createFileRoute("/_authenticated/automations/$id")({
   head: () => ({
@@ -95,7 +95,8 @@ function AutomationRoutePage() {
   const upgrade = async () => {
     if (!data || !workspaceId) return;
     try {
-      const converted = legacyToWorkflow(data.steps, data.automation.condition_logic);
+      const { workflow: converted, notes } = convertLegacyAutomation(data.steps, data.automation.condition_logic);
+      for (const note of notes) toast.warning(note);
       await save({
         data: {
           workspaceId,
