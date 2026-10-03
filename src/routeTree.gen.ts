@@ -55,7 +55,6 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
-import { Route as AuthenticatedAiSalesAgentRouteImport } from './routes/_authenticated/ai-sales-agent'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
@@ -104,6 +103,7 @@ import { Route as SolutionsIndexRouteImport } from './routes/solutions.index'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
 import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
 import { Route as AuthenticatedAutomationsActivityRouteImport } from './routes/_authenticated/automations.activity'
+import { Route as AuthenticatedAutomationsAiSalesAgentRouteImport } from './routes/_authenticated/automations.ai-sales-agent'
 import { Route as AuthenticatedAutomationsWorkflowsRouteImport } from './routes/_authenticated/automations.workflows'
 import { Route as AuthenticatedCampaignsIndexRouteImport } from './routes/_authenticated/campaigns.index'
 import { Route as AuthenticatedCampaignsCampaignIdRouteImport } from './routes/_authenticated/campaigns.$campaignId'
@@ -466,12 +466,6 @@ const WhyMunchreachRoute = WhyMunchreachRouteImport.update({
   path: '/why-munchreach',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAiSalesAgentRoute =
-  AuthenticatedAiSalesAgentRouteImport.update({
-    id: '/ai-sales-agent',
-    path: '/ai-sales-agent',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -721,6 +715,12 @@ const AuthenticatedAutomationsActivityRoute =
   AuthenticatedAutomationsActivityRouteImport.update({
     id: '/automations/activity',
     path: '/automations/activity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAutomationsAiSalesAgentRoute =
+  AuthenticatedAutomationsAiSalesAgentRouteImport.update({
+    id: '/automations/ai-sales-agent',
+    path: '/automations/ai-sales-agent',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAutomationsWorkflowsRoute =
@@ -1538,7 +1538,6 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
-  '/ai-sales-agent': typeof AuthenticatedAiSalesAgentRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1587,6 +1586,7 @@ export interface FileRoutesByFullPath {
   '/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
+  '/automations/ai-sales-agent': typeof AuthenticatedAutomationsAiSalesAgentRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/mailboxes/add': typeof AuthenticatedMailboxesAddRoute
@@ -1763,7 +1763,6 @@ export interface FileRoutesByTo {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
-  '/ai-sales-agent': typeof AuthenticatedAiSalesAgentRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1811,6 +1810,7 @@ export interface FileRoutesByTo {
   '/solutions': typeof SolutionsIndexRoute
   '/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/automations/activity': typeof AuthenticatedAutomationsActivityRoute
+  '/automations/ai-sales-agent': typeof AuthenticatedAutomationsAiSalesAgentRoute
   '/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/mailboxes/add': typeof AuthenticatedMailboxesAddRoute
@@ -1991,7 +1991,6 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/_authenticated/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
-  '/_authenticated/ai-sales-agent': typeof AuthenticatedAiSalesAgentRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
@@ -2040,6 +2039,7 @@ export interface FileRoutesById {
   '/_authenticated/mranuskhalid/marketing': typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
   '/_authenticated/automations/$id': typeof AuthenticatedAutomationsIdRoute
   '/_authenticated/automations/activity': typeof AuthenticatedAutomationsActivityRoute
+  '/_authenticated/automations/ai-sales-agent': typeof AuthenticatedAutomationsAiSalesAgentRoute
   '/_authenticated/automations/workflows': typeof AuthenticatedAutomationsWorkflowsRoute
   '/_authenticated/campaigns/$campaignId': typeof AuthenticatedCampaignsCampaignIdRoute
   '/_authenticated/mailboxes/add': typeof AuthenticatedMailboxesAddRoute
@@ -2220,7 +2220,6 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/why-munchreach'
     | '/mranuskhalid'
-    | '/ai-sales-agent'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -2269,6 +2268,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/marketing'
     | '/automations/$id'
     | '/automations/activity'
+    | '/automations/ai-sales-agent'
     | '/automations/workflows'
     | '/campaigns/$campaignId'
     | '/mailboxes/add'
@@ -2445,7 +2445,6 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
-    | '/ai-sales-agent'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -2493,6 +2492,7 @@ export interface FileRouteTypes {
     | '/solutions'
     | '/automations/$id'
     | '/automations/activity'
+    | '/automations/ai-sales-agent'
     | '/automations/workflows'
     | '/campaigns/$campaignId'
     | '/mailboxes/add'
@@ -2672,7 +2672,6 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/why-munchreach'
     | '/_authenticated/mranuskhalid'
-    | '/_authenticated/ai-sales-agent'
     | '/_authenticated/analytics'
     | '/_authenticated/billing'
     | '/_authenticated/crm'
@@ -2721,6 +2720,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mranuskhalid/marketing'
     | '/_authenticated/automations/$id'
     | '/_authenticated/automations/activity'
+    | '/_authenticated/automations/ai-sales-agent'
     | '/_authenticated/automations/workflows'
     | '/_authenticated/campaigns/$campaignId'
     | '/_authenticated/mailboxes/add'
@@ -3296,13 +3296,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WhyMunchreachRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/ai-sales-agent': {
-      id: '/_authenticated/ai-sales-agent'
-      path: '/ai-sales-agent'
-      fullPath: '/ai-sales-agent'
-      preLoaderRoute: typeof AuthenticatedAiSalesAgentRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/analytics': {
       id: '/_authenticated/analytics'
       path: '/analytics'
@@ -3637,6 +3630,13 @@ declare module '@tanstack/react-router' {
       path: '/automations/activity'
       fullPath: '/automations/activity'
       preLoaderRoute: typeof AuthenticatedAutomationsActivityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/automations/ai-sales-agent': {
+      id: '/_authenticated/automations/ai-sales-agent'
+      path: '/automations/ai-sales-agent'
+      fullPath: '/automations/ai-sales-agent'
+      preLoaderRoute: typeof AuthenticatedAutomationsAiSalesAgentRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/automations/workflows': {
@@ -4793,7 +4793,6 @@ const AuthenticatedMranuskhalidRouteRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedMranuskhalidRouteRoute: typeof AuthenticatedMranuskhalidRouteRouteWithChildren
-  AuthenticatedAiSalesAgentRoute: typeof AuthenticatedAiSalesAgentRoute
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
@@ -4813,6 +4812,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAutomationsIdRoute: typeof AuthenticatedAutomationsIdRoute
   AuthenticatedAutomationsActivityRoute: typeof AuthenticatedAutomationsActivityRoute
+  AuthenticatedAutomationsAiSalesAgentRoute: typeof AuthenticatedAutomationsAiSalesAgentRoute
   AuthenticatedAutomationsWorkflowsRoute: typeof AuthenticatedAutomationsWorkflowsRoute
   AuthenticatedCampaignsCampaignIdRoute: typeof AuthenticatedCampaignsCampaignIdRoute
   AuthenticatedMailboxesAddRoute: typeof AuthenticatedMailboxesAddRoute
@@ -4827,7 +4827,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMranuskhalidRouteRoute:
     AuthenticatedMranuskhalidRouteRouteWithChildren,
-  AuthenticatedAiSalesAgentRoute: AuthenticatedAiSalesAgentRoute,
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
@@ -4847,6 +4846,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAutomationsIdRoute: AuthenticatedAutomationsIdRoute,
   AuthenticatedAutomationsActivityRoute: AuthenticatedAutomationsActivityRoute,
+  AuthenticatedAutomationsAiSalesAgentRoute:
+    AuthenticatedAutomationsAiSalesAgentRoute,
   AuthenticatedAutomationsWorkflowsRoute:
     AuthenticatedAutomationsWorkflowsRoute,
   AuthenticatedCampaignsCampaignIdRoute: AuthenticatedCampaignsCampaignIdRoute,
