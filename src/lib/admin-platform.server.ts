@@ -228,7 +228,7 @@ export async function loadPlatformProviders(): Promise<{
       name: "Lovable AI Gateway",
       category: "ai",
       keys: ["LOVABLE_API_KEY"],
-      detail: "Used for AI copy assistance where enabled.",
+      detail: "Legacy platform AI credential. Not used by the AI Sales Agent, which uses the MunchReach-owned OpenAI/Anthropic provider configured by a super admin in Admin → AI Provider.",
     },
     {
       name: "Credential encryption",
@@ -581,7 +581,7 @@ const ENV_SPECS: EnvSpec[] = [
   { name: "LEMONSQUEEZY_API_KEY_LIVE", group: "Billing", required: false, environment: "live", note: "Lemon Squeezy production API key." },
   { name: "LEMONSQUEEZY_STORE_ID_LIVE", group: "Billing", required: false, environment: "live", note: "Lemon Squeezy store id." },
 
-  { name: "LOVABLE_API_KEY", group: "AI", required: false, note: "AI gateway credential for copy assistance." },
+  { name: "LOVABLE_API_KEY", group: "AI", required: false, note: "Legacy AI gateway credential. Not used by the AI Sales Agent (see Admin → AI Provider)." },
   { name: "OPENAI_API_KEY", group: "AI", required: false, note: "Optional direct OpenAI credential." },
 
   { name: "PUBLIC_APP_URL", group: "Application", required: false, note: "Absolute URL used in outbound emails." },
