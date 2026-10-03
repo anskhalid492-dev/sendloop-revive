@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
 import { Route as AiCampaignWriterRouteImport } from './routes/ai-campaign-writer'
 import { Route as AiPersonalizedOutreachRouteImport } from './routes/ai-personalized-outreach'
+import { Route as AiSalesAgentRouteImport } from './routes/ai-sales-agent'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationsRouteImport } from './routes/automations'
@@ -263,6 +264,11 @@ const AiCampaignWriterRoute = AiCampaignWriterRouteImport.update({
 const AiPersonalizedOutreachRoute = AiPersonalizedOutreachRouteImport.update({
   id: '/ai-personalized-outreach',
   path: '/ai-personalized-outreach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiSalesAgentRoute = AiSalesAgentRouteImport.update({
+  id: '/ai-sales-agent',
+  path: '/ai-sales-agent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDocsRoute = ApiDocsRouteImport.update({
@@ -1497,6 +1503,7 @@ export interface FileRoutesByFullPath {
   '/acceptable-use': typeof AcceptableUseRoute
   '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
+  '/ai-sales-agent': typeof AiSalesAgentRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
@@ -1724,6 +1731,7 @@ export interface FileRoutesByTo {
   '/acceptable-use': typeof AcceptableUseRoute
   '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
+  '/ai-sales-agent': typeof AiSalesAgentRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
@@ -1950,6 +1958,7 @@ export interface FileRoutesById {
   '/acceptable-use': typeof AcceptableUseRoute
   '/ai-campaign-writer': typeof AiCampaignWriterRoute
   '/ai-personalized-outreach': typeof AiPersonalizedOutreachRoute
+  '/ai-sales-agent': typeof AiSalesAgentRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
   '/automations': typeof AutomationsRoute
@@ -2179,6 +2188,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
+    | '/ai-sales-agent'
     | '/api-docs'
     | '/auth'
     | '/automations'
@@ -2406,6 +2416,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
+    | '/ai-sales-agent'
     | '/api-docs'
     | '/auth'
     | '/automations'
@@ -2631,6 +2642,7 @@ export interface FileRouteTypes {
     | '/acceptable-use'
     | '/ai-campaign-writer'
     | '/ai-personalized-outreach'
+    | '/ai-sales-agent'
     | '/api-docs'
     | '/auth'
     | '/automations'
@@ -2860,6 +2872,7 @@ export interface RootRouteChildren {
   AcceptableUseRoute: typeof AcceptableUseRoute
   AiCampaignWriterRoute: typeof AiCampaignWriterRoute
   AiPersonalizedOutreachRoute: typeof AiPersonalizedOutreachRoute
+  AiSalesAgentRoute: typeof AiSalesAgentRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
   AutomationsRoute: typeof AutomationsRoute
@@ -3014,6 +3027,13 @@ declare module '@tanstack/react-router' {
       path: '/ai-personalized-outreach'
       fullPath: '/ai-personalized-outreach'
       preLoaderRoute: typeof AiPersonalizedOutreachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-sales-agent': {
+      id: '/ai-sales-agent'
+      path: '/ai-sales-agent'
+      fullPath: '/ai-sales-agent'
+      preLoaderRoute: typeof AiSalesAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api-docs': {
@@ -5001,6 +5021,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptableUseRoute: AcceptableUseRoute,
   AiCampaignWriterRoute: AiCampaignWriterRoute,
   AiPersonalizedOutreachRoute: AiPersonalizedOutreachRoute,
+  AiSalesAgentRoute: AiSalesAgentRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
   AutomationsRoute: AutomationsRoute,
