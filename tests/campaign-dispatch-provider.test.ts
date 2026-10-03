@@ -272,3 +272,50 @@ describe("campaign dispatcher reaches the provider at the configured Dubai windo
     expect(backend.updates.some(({ patch }) => patch.status === "sent")).toBe(false);
   });
 });
+describe("automation trigger: Email sent", () => {
+  test("fires exactly once, only after a confirmed send", async () => {
+    const backend = fakeBackend();
+    const emit = vi.fn(async () => ({ runs: 1 }));
+    const result = await dispatchDueMessages(
+      backend.client as never,
+      { campaignId: campaign.id, now: new Date("2026-08-28T16:00:00.000Z") },
+      { ...dependencies(), emitAutomationEvent: emit },
+    );
+    expect(result.sent).toBe(1);
+    await new Promise((r) => setTimeout(r, 0));
+    const sentCalls = emit.mock.calls.filter((c) => (c as unknown as [{ type: string }])[0].type === "email.sent");
+    expect(sentCalls).toHaveLength(1);
+    expect((sentCalls[0] as unknown as [Record<string, unknown>])[0]).toMatchObject({
+      type: "email.sent",
+      idempotencyKey: "email.sent:message-1",
+      workspaceId: "workspace-1",
+      campaignId: "campaign-1",
+    });
+  });
+
+  test("never fires when the provider rejects the email", async () => {
+    relaySend.mockImplementationOnce(async () => ({ ok: false, messageId: "", message: "550 rejected" }) as never);
+    const backend = fakeBackend();
+    const emit = vi.fn(async () => ({ runs: 1 }));
+    const result = await dispatchDueMessages(
+      backend.client as never,
+      { campaignId: campaign.id, now: new Date("2026-08-28T16:00:00.000Z") },
+      { ...dependencies(), emitAutomationEvent: emit },
+    );
+    expect(result.sent).toBe(0);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(emit.mock.calls.some((c) => (c as unknown as [{ type: string }])[0].type === "email.sent")).toBe(false);
+  });
+
+  test("never fires when the email is outside its window (still queued)", async () => {
+    const backend = fakeBackend();
+    const emit = vi.fn(async () => ({ runs: 1 }));
+    await dispatchDueMessages(
+      backend.client as never,
+      { campaignId: campaign.id, now: new Date("2026-08-28T15:59:00.000Z") },
+      { ...dependencies(), emitAutomationEvent: emit },
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(emit.mock.calls.some((c) => (c as unknown as [{ type: string }])[0].type === "email.sent")).toBe(false);
+  });
+});
