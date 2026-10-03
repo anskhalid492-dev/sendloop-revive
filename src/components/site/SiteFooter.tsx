@@ -57,6 +57,7 @@ const fallbackColumns = [
       { label: "Campaigns", href: "/product/campaigns" },
       { label: "AI", href: "/ai-personalized-outreach" },
       { label: "AI Writer", href: "/ai-campaign-writer" },
+      { label: "AI Sales Agent", href: "/ai-sales-agent" },
       { label: "Unified Inbox", href: "/product/unified-inbox" },
       { label: "Follow-Ups", href: "/product/follow-ups" },
       { label: "Warmup", href: "/product/warmup" },
@@ -128,6 +129,7 @@ const productIcons: Record<string, typeof Send> = {
   AI: Sparkles,
   "AI Personalization": Sparkles,
   "AI Writer": PenLine,
+  "AI Sales Agent": Sparkles,
   "Unified Inbox": Inbox,
   "Follow-Ups": Repeat,
   Warmup: Flame,
@@ -241,6 +243,14 @@ export function SiteFooter() {
           ? [...products, entry]
           : [...products.slice(0, aiIndex + 1), entry, ...products.slice(aiIndex + 1)];
       products = next;
+    }
+    if (!products.some((l) => l.href === "/ai-sales-agent")) {
+      const writerIndex = products.findIndex((l) => l.href === "/ai-campaign-writer");
+      const entry = { label: "AI Sales Agent", href: "/ai-sales-agent" };
+      products =
+        writerIndex === -1
+          ? [...products, entry]
+          : [...products.slice(0, writerIndex + 1), entry, ...products.slice(writerIndex + 1)];
     }
     if (!products.some((l) => l.href === "/product/email-signature")) {
       products = [...products, { label: "Email Signature", href: "/product/email-signature" }];
