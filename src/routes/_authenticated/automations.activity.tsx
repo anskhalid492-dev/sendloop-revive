@@ -449,10 +449,10 @@ function AutomationActivityPage() {
                             <p className="mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
                               {step.error}
                             </p>
-                          ) : Object.keys(step.output ?? {}).length > 0 ? (
-                            <pre className="mt-2 overflow-x-auto rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">
-                              {JSON.stringify(step.output, null, 2)}
-                            </pre>
+                          ) : summarizeOutput(step.output ?? {}) ? (
+                            <p className="mt-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                              {summarizeOutput(step.output ?? {})}
+                            </p>
                           ) : null}
                         </div>
                       </div>
@@ -471,4 +471,20 @@ function AutomationActivityPage() {
       </Sheet>
     </AppShell>
   );
+}
+
+/** Plain-language summary of a run step's output for the timeline. */
+function summarizeOutput(output: Record<string, unknown>): string {
+  if (typeof output["skipped"] === "string") return `Skipped: ${output["skipped"]}`;
+  if (typeof output["pathLabel"] === "string") return `Took the “${output["pathLabel"]}” path`;
+  if (typeof output["passed"] === "boolean") return output["passed"] ? "Condition met" : "Condition not met — workflow stopped here";
+  if (typeof output["resume_at"] === "string") return `Waiting until ${new Date(output["resume_at"]).toLocaleString()}`;
+  if (output["eventHappened"] === true) return "The awaited event happened";
+  if (output["eventHappened"] === false) return "Stopped waiting: the event did not happen in time";
+  if (output["resumed"]) return "Wait finished";
+  if (output["ended"]) return "Workflow ended";
+  const parts = Object.entries(output)
+    .filter(([k, v]) => k !== "nodeId" && v !== null && typeof v !== "object")
+    .map(([k, v]) => `${k}: ${String(v)}`);
+  return parts.join(" · ");
 }
