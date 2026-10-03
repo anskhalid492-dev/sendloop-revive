@@ -40,6 +40,8 @@ import {
   saveAutomation,
   setAutomationStatus,
 } from "@/lib/automations.functions";
+import { VisualAutomationEditor } from "@/components/automations/VisualAutomationEditor";
+import { legacyToWorkflow, workflowFromSteps, workflowToStep } from "@/lib/workflow-graph";
 
 export const Route = createFileRoute("/_authenticated/automations/$id")({
   head: () => ({
@@ -55,8 +57,65 @@ export const Route = createFileRoute("/_authenticated/automations/$id")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: AutomationBuilderPage,
+  component: AutomationRoutePage,
 });
+
+/**
+ * Visual workflows open in the node builder; older linear automations keep
+ * their original editor (and keep executing unchanged) until the customer
+ * chooses to convert them.
+ */
+function AutomationRoutePage() {
+  const { id } = Route.useParams();
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id ?? null;
+  const fetchAutomation = useServerFn(getAutomation);
+  const save = useServerFn(saveAutomation);
+  const detailQuery = useQuery({
+    queryKey: ["automation", workspaceId, id],
+    queryFn: () => fetchAutomation({ data: { workspaceId: workspaceId!, automationId: id } }),
+    enabled: Boolean(workspaceId),
+  });
+  const data = detailQuery.data;
+  const workflow = data ? workflowFromSteps(data.steps) : null;
+
+  if (data && workflow && workspaceId) {
+    return (
+      <VisualAutomationEditor
+        key={`${data.automation.id}:${data.automation.version}`}
+        workspaceId={workspaceId}
+        automation={data.automation}
+        initialWorkflow={workflow}
+        onSaved={() => void detailQuery.refetch()}
+      />
+    );
+  }
+
+  const upgrade = async () => {
+    if (!data || !workspaceId) return;
+    try {
+      const converted = legacyToWorkflow(data.steps, data.automation.condition_logic);
+      await save({
+        data: {
+          workspaceId,
+          automationId: id,
+          name: data.automation.name,
+          description: data.automation.description,
+          triggerType: data.automation.trigger_type,
+          triggerConfig: data.automation.trigger_config ?? {},
+          conditionLogic: "and",
+          steps: [workflowToStep(converted) as never],
+        },
+      });
+      toast.success("Opened in the visual builder");
+      void detailQuery.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not convert this automation");
+    }
+  };
+
+  return <AutomationBuilderPage onUpgrade={data ? upgrade : undefined} />;
+}
 
 type DraftStep = { kind: StepKind; branch: "yes" | "no" | null; config: JsonObject };
 
@@ -67,7 +126,7 @@ const KIND_META: Record<StepKind, { label: string; icon: typeof Zap }> = {
   wait: { label: "Wait", icon: Clock },
 };
 
-function AutomationBuilderPage() {
+function AutomationBuilderPage({ onUpgrade }: { onUpgrade?: () => void }) {
   const { id } = Route.useParams();
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? null;
@@ -211,6 +270,11 @@ function AutomationBuilderPage() {
           <Button variant="ghost" size="sm" onClick={() => void navigate({ to: "/automations" })}>
             <ArrowLeft className="mr-2 size-4" /> Back
           </Button>
+          {onUpgrade && (
+            <Button variant="outline" size="sm" onClick={onUpgrade}>
+              Open in visual builder
+            </Button>
+          )}
           <Button variant="outline" size="sm" disabled={saving} onClick={handleSave}>
             <Save className="mr-2 size-4" /> Save
           </Button>
