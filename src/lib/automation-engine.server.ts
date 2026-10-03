@@ -16,7 +16,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertPublicUrl, safeFetch } from "@/lib/ssrf-guard.server";
-import type { ConditionConfig, OperatorId, WaitConfig } from "@/lib/automation-model";
+import { actionLabel, type ConditionConfig, type OperatorId, type WaitConfig } from "@/lib/automation-model";
 import { MAX_CHAIN_DEPTH, workflowFromSteps, type WaitSpec } from "@/lib/workflow-graph";
 import { executeWorkflow, type HopStatus, type WorkflowState } from "@/lib/workflow-runner";
 
@@ -1155,8 +1155,9 @@ export function zonedLocalToUtc(local: string, zone: string): number | null {
 
 function hopLabel(node: { type: string; label?: string; action?: string }): string {
   if (node.label) return node.label;
-  if (node.type === "action") return String(node.action ?? "action");
-  return node.type.charAt(0).toUpperCase() + node.type.slice(1);
+  if (node.type === "action") return actionLabel(String(node.action ?? "action"));
+  const names: Record<string, string> = { condition: "Condition evaluated", branch: "Branch selected", wait: "Wait", end: "End" };
+  return names[node.type] ?? node.type;
 }
 
 async function executeGraphRun(run: RunRow, workflow: import("@/lib/workflow-graph").Workflow): Promise<Outcome> {
