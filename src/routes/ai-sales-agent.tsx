@@ -138,7 +138,7 @@ function FlowNode({ icon: Icon, label, sub, accent }: { icon: typeof Inbox; labe
       </span>
       <div className="min-w-0">
         <p className="text-sm font-semibold">{label}</p>
-        <p className="truncate text-xs text-muted-foreground">{sub}</p>
+        <p className="text-xs text-muted-foreground">{sub}</p>
       </div>
     </div>
   );
