@@ -212,7 +212,7 @@ export function buildReplyPrompt(cfg: AiReplyConfig, settings: SalesAgentSetting
     "Context:",
     context,
   ]
-    .filter((x) => x !== "" && x !== false && x !== undefined)
+    .filter((x): x is string => typeof x === "string" && x !== "")
     .join("\n");
   return { system, prompt };
 }

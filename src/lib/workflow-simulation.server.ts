@@ -52,7 +52,7 @@ export async function runWorkflowSimulation(client: Client, data: SimulationRequ
         ]);
         return {
           settings,
-          ctx: { workspaceId: data.workspaceId, lead: fullLead ?? null, stageName: null, campaignName: null, conversation: convo.conversation, messages: convo.messages, previousDecisions: [] },
+          ctx: { workspaceId: data.workspaceId, lead: fullLead ?? null, stageName: null, campaignName: null, conversation: convo.conversation, messages: convo.messages, previousDecisions: [] as { outcome: string | null; pathLabel: string }[] },
         };
       })());
     let lastConfidence: number | null = null;

@@ -44,7 +44,8 @@ const defaultTransport: Transport = async ({ system, prompt, signal, apiKey }) =
     fetch: runIdFetch,
   });
   const result = streamText({
-    model: provider.responses(SALES_AGENT_MODEL),
+    // Provider package pins a newer @ai-sdk/provider than `ai`; runtime shape is identical.
+    model: provider.responses(SALES_AGENT_MODEL) as never,
     system,
     prompt,
     abortSignal: signal,
@@ -60,7 +61,7 @@ const defaultTransport: Transport = async ({ system, prompt, signal, apiKey }) =
     },
   });
   const text = await result.text;
-  const usage = await result.usage.catch(() => null);
+  const usage = await Promise.resolve(result.usage).catch(() => null);
   return { text, inputTokens: usage?.inputTokens ?? null, outputTokens: usage?.outputTokens ?? null };
 };
 
