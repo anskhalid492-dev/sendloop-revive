@@ -475,6 +475,24 @@ function AutomationActivityPage() {
 
 /** Plain-language summary of a run step's output for the timeline. */
 function summarizeOutput(output: Record<string, unknown>): string {
+  if (output["kind"] === "ai_decision") {
+    const conf = typeof output["confidence"] === "number" ? `${Math.round((output["confidence"] as number) * 100)}%` : "—";
+    const parts = [
+      `AI Decision · Outcome: ${output["outcome"] ?? "none"}`,
+      `Confidence: ${conf}`,
+      output["reason"] ? `Reason: ${String(output["reason"])}` : "",
+      `Selected path: ${String(output["pathLabel"] ?? "")}`,
+      output["fallbackReason"] ? `(${String(output["fallbackReason"])})` : "",
+    ];
+    return parts.filter(Boolean).join(" · ");
+  }
+  if (output["kind"] === "ai_reply") {
+    if (!output["generated"]) return `AI reply not generated: ${String(output["error"] ?? "")}${output["handedOff"] ? " · handed to a person" : ""}`;
+    const mode = output["mode"] === "auto_send" ? "Auto-send" : "Draft";
+    const forced = Array.isArray(output["forcedDraft"]) && (output["forcedDraft"] as string[]).length ? ` · kept as draft: ${(output["forcedDraft"] as string[]).join(" ")}` : "";
+    return `AI reply generated · ${mode}${forced}`;
+  }
+  if (output["humanReview"]) return `Human review requested: ${String(output["reason"] ?? "")}`;
   if (typeof output["skipped"] === "string") return `Skipped: ${output["skipped"]}`;
   if (typeof output["pathLabel"] === "string") return `Took the “${output["pathLabel"]}” path`;
   if (typeof output["passed"] === "boolean") return output["passed"] ? "Condition met" : "Condition not met — workflow stopped here";
