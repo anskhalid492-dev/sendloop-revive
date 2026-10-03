@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, FilterBar, LoadingRows, SearchInput, StatCard, num } from "@/components/app/admin/OutreachUI";
+import { FilterBar, LoadingRows, SearchInput, StatCard, num } from "@/components/app/admin/OutreachUI";
 import { adminSalesAgentMonitoring } from "@/lib/sales-agent.functions";
 import { formatRate, isoDay, presetRange } from "@/lib/warmup-analytics";
 
@@ -40,7 +40,9 @@ export function SalesAgentMonitoring() {
   });
   const d = q.data;
   const t = d?.totals;
-  const v = (x: string | undefined) => (t ? (x ?? "—") : "…");
+  // Loading placeholders only while a request is in flight; errors and invalid ranges show "—".
+  const pending = !invalid && !q.isError && !t;
+  const v = (x: string | undefined) => (t ? (x ?? "—") : pending ? "…" : "—");
 
   return (
     <div className="space-y-6">
@@ -68,7 +70,14 @@ export function SalesAgentMonitoring() {
         </span>
       </FilterBar>
       {invalid ? <p className="text-sm text-destructive">Choose a start date on or before the end date.</p> : null}
-      {q.isError ? <EmptyState message={`Could not load AI Sales Agent metrics: ${(q.error as Error).message}`} /> : null}
+      {q.isError ? (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <span>{/forbidden|unauthori|super admin|two-factor|verification/i.test((q.error as Error)?.message ?? "") ? "You don't have access to AI Sales Agent analytics." : "Unable to load AI Sales Agent analytics."}</span>
+          <Button size="sm" variant="outline" onClick={() => q.refetch()} disabled={q.isFetching}>
+            {q.isFetching ? "Retrying…" : "Retry"}
+          </Button>
+        </div>
+      ) : null}
       {d?.truncated ? <p className="text-xs text-muted-foreground">Showing the first 20,000 AI steps in this range — choose a shorter range for complete totals.</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -85,9 +94,9 @@ export function SalesAgentMonitoring() {
         <section className="rounded-xl border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">AI Decision outcomes</h3>
           {!d ? (
-            <LoadingRows />
+            pending ? <LoadingRows /> : <p className="text-sm text-muted-foreground">—</p>
           ) : d.outcomes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No AI decisions in this range.</p>
+            <p className="text-sm text-muted-foreground">No AI decision data yet.</p>
           ) : (
             <ul className="space-y-1.5 text-sm">
               {d.outcomes.map((o) => (
@@ -102,7 +111,9 @@ export function SalesAgentMonitoring() {
         <section className="rounded-xl border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">Failures and fallbacks</h3>
           {!d ? (
-            <LoadingRows />
+            pending ? <LoadingRows /> : <p className="text-sm text-muted-foreground">—</p>
+          ) : d.failures.every((f) => f.count === 0) ? (
+            <p className="text-sm text-muted-foreground">No failures yet.</p>
           ) : (
             <ul className="space-y-1.5 text-sm">
               {d.failures.map((f) => (
@@ -122,9 +133,9 @@ export function SalesAgentMonitoring() {
           <SearchInput value={search} onChange={setSearch} placeholder="Search workspaces" />
         </div>
         {!d ? (
-          <LoadingRows />
+          pending ? <LoadingRows /> : <p className="text-sm text-muted-foreground">—</p>
         ) : d.workspaces.total === 0 ? (
-          <p className="text-sm text-muted-foreground">No AI Sales Agent requests in this range.</p>
+          <p className="text-sm text-muted-foreground">{debounced ? "No workspaces match your search." : "No AI Sales Agent usage yet."}</p>
         ) : (
           <>
             <Table>
