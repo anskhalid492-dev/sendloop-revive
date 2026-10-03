@@ -281,15 +281,15 @@ export function SiteHeader() {
       icon: PenLine,
       cta: "Explore AI Writer",
     },
-    {
-      label: "AI Sales Agent",
-      to: "/ai-sales-agent",
-      text: "Let AI read replies, understand intent, draft responses and hand leads to your team.",
-      icon: Sparkles,
-      cta: "Explore AI Sales Agent",
-    },
   ];
-  const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
+  const salesAgentCard: Card = {
+    label: "AI Sales Agent",
+    to: "/ai-sales-agent",
+    text: "Let AI read replies, understand intent, draft responses and hand leads to your team.",
+    icon: Sparkles,
+  };
+  // AI Sales Agent always sits under "More from MunchReach", never in the core list.
+  const guaranteedHrefs = new Set([...guaranteedCoreCards.map((c) => c.to), salesAgentCard.to]);
   const emailSignatureCard: Card = {
     label: "Email Signature",
     to: "/product/email-signature",
@@ -300,6 +300,7 @@ export function SiteHeader() {
     ...adminMoreCards.filter(
       (c) => !guaranteedHrefs.has(c.to) && c.to !== emailSignatureCard.to,
     ),
+    salesAgentCard,
     emailSignatureCard,
   ];
   // Every core product card gets a link to its own page, labelled after the product.
