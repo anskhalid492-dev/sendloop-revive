@@ -55,7 +55,6 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
-import { Route as ZzWfPreviewRouteImport } from './routes/zz-wf-preview'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
@@ -464,11 +463,6 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const WhyMunchreachRoute = WhyMunchreachRouteImport.update({
   id: '/why-munchreach',
   path: '/why-munchreach',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZzWfPreviewRoute = ZzWfPreviewRouteImport.update({
-  id: '/zz-wf-preview',
-  path: '/zz-wf-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
@@ -1536,7 +1530,6 @@ export interface FileRoutesByFullPath {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
-  '/zz-wf-preview': typeof ZzWfPreviewRoute
   '/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -1762,7 +1755,6 @@ export interface FileRoutesByTo {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
-  '/zz-wf-preview': typeof ZzWfPreviewRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1989,7 +1981,6 @@ export interface FileRoutesById {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
-  '/zz-wf-preview': typeof ZzWfPreviewRoute
   '/_authenticated/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
@@ -2218,7 +2209,6 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
-    | '/zz-wf-preview'
     | '/mranuskhalid'
     | '/analytics'
     | '/billing'
@@ -2444,7 +2434,6 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
-    | '/zz-wf-preview'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -2670,7 +2659,6 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
-    | '/zz-wf-preview'
     | '/_authenticated/mranuskhalid'
     | '/_authenticated/analytics'
     | '/_authenticated/billing'
@@ -2899,7 +2887,6 @@ export interface RootRouteChildren {
   UserGuideRoute: typeof UserGuideRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WhyMunchreachRoute: typeof WhyMunchreachRoute
-  ZzWfPreviewRoute: typeof ZzWfPreviewRoute
   BlogSlugRoute: typeof BlogSlugRoute
   CompareMunchreachAlternativesRoute: typeof CompareMunchreachAlternativesRoute
   CompareMunchreachVsApolloRoute: typeof CompareMunchreachVsApolloRoute
@@ -3294,13 +3281,6 @@ declare module '@tanstack/react-router' {
       path: '/why-munchreach'
       fullPath: '/why-munchreach'
       preLoaderRoute: typeof WhyMunchreachRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zz-wf-preview': {
-      id: '/zz-wf-preview'
-      path: '/zz-wf-preview'
-      fullPath: '/zz-wf-preview'
-      preLoaderRoute: typeof ZzWfPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/analytics': {
@@ -5038,7 +5018,6 @@ const rootRouteChildren: RootRouteChildren = {
   UserGuideRoute: UserGuideRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WhyMunchreachRoute: WhyMunchreachRoute,
-  ZzWfPreviewRoute: ZzWfPreviewRoute,
   BlogSlugRoute: BlogSlugRoute,
   CompareMunchreachAlternativesRoute: CompareMunchreachAlternativesRoute,
   CompareMunchreachVsApolloRoute: CompareMunchreachVsApolloRoute,
