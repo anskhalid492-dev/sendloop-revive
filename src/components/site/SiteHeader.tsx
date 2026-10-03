@@ -281,6 +281,13 @@ export function SiteHeader() {
       icon: PenLine,
       cta: "Explore AI Writer",
     },
+    {
+      label: "AI Sales Agent",
+      to: "/ai-sales-agent",
+      text: "Let AI read replies, understand intent, draft responses and hand leads to your team.",
+      icon: Sparkles,
+      cta: "Explore AI Sales Agent",
+    },
   ];
   const guaranteedHrefs = new Set(guaranteedCoreCards.map((c) => c.to));
   const emailSignatureCard: Card = {
