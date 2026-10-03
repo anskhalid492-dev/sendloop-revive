@@ -55,6 +55,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UserGuideRouteImport } from './routes/user-guide'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WhyMunchreachRouteImport } from './routes/why-munchreach'
+import { Route as AuthenticatedAiSalesAgentRouteImport } from './routes/_authenticated/ai-sales-agent'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
@@ -465,6 +466,12 @@ const WhyMunchreachRoute = WhyMunchreachRouteImport.update({
   path: '/why-munchreach',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAiSalesAgentRoute =
+  AuthenticatedAiSalesAgentRouteImport.update({
+    id: '/ai-sales-agent',
+    path: '/ai-sales-agent',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -1531,6 +1538,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
+  '/ai-sales-agent': typeof AuthenticatedAiSalesAgentRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1755,6 +1763,7 @@ export interface FileRoutesByTo {
   '/user-guide': typeof UserGuideRoute
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
+  '/ai-sales-agent': typeof AuthenticatedAiSalesAgentRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/crm': typeof AuthenticatedCrmRoute
@@ -1982,6 +1991,7 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/why-munchreach': typeof WhyMunchreachRoute
   '/_authenticated/mranuskhalid': typeof AuthenticatedMranuskhalidRouteRouteWithChildren
+  '/_authenticated/ai-sales-agent': typeof AuthenticatedAiSalesAgentRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
@@ -2210,6 +2220,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/why-munchreach'
     | '/mranuskhalid'
+    | '/ai-sales-agent'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -2434,6 +2445,7 @@ export interface FileRouteTypes {
     | '/user-guide'
     | '/verify-email'
     | '/why-munchreach'
+    | '/ai-sales-agent'
     | '/analytics'
     | '/billing'
     | '/crm'
@@ -2660,6 +2672,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/why-munchreach'
     | '/_authenticated/mranuskhalid'
+    | '/_authenticated/ai-sales-agent'
     | '/_authenticated/analytics'
     | '/_authenticated/billing'
     | '/_authenticated/crm'
@@ -3282,6 +3295,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/why-munchreach'
       preLoaderRoute: typeof WhyMunchreachRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ai-sales-agent': {
+      id: '/_authenticated/ai-sales-agent'
+      path: '/ai-sales-agent'
+      fullPath: '/ai-sales-agent'
+      preLoaderRoute: typeof AuthenticatedAiSalesAgentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics': {
       id: '/_authenticated/analytics'
@@ -4773,6 +4793,7 @@ const AuthenticatedMranuskhalidRouteRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedMranuskhalidRouteRoute: typeof AuthenticatedMranuskhalidRouteRouteWithChildren
+  AuthenticatedAiSalesAgentRoute: typeof AuthenticatedAiSalesAgentRoute
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
@@ -4806,6 +4827,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMranuskhalidRouteRoute:
     AuthenticatedMranuskhalidRouteRouteWithChildren,
+  AuthenticatedAiSalesAgentRoute: AuthenticatedAiSalesAgentRoute,
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,

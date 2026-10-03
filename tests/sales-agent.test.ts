@@ -84,7 +84,7 @@ describe("provider separation", () => {
   });
   it("credential is server-only and never in client-safe modules or UI", () => {
     expect(read("src/lib/sales-agent.ts")).not.toMatch(/process\.env|LOVABLE_API_KEY/);
-    expect(read("src/components/automations/SalesAgentSettingsDialog.tsx")).not.toMatch(/api key|LOVABLE_API_KEY|sales-agent-ai/i);
+    expect(read("src/components/automations/SalesAgentSettingsPanel.tsx")).not.toMatch(/api key|LOVABLE_API_KEY|sales-agent-ai/i);
     expect(read("src/components/automations/WorkflowBuilder.tsx")).not.toMatch(/api key/i);
   });
   it("reports unavailable without a credential", async () => {
