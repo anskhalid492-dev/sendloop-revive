@@ -1,7 +1,7 @@
 /**
  * Visual workflow templates. Every template creates an editable DRAFT; nothing
  * goes live until the customer activates it. Only actions the engine really
- * executes are used, and no template sends email.
+ * executes are used, and no template sends email (AI reply steps default to draft).
  */
 import { newId, type Workflow, type WorkflowNode } from "./workflow-graph";
 
@@ -33,6 +33,17 @@ const act = (action: string, config: Record<string, unknown> = {}, label?: strin
   ...(label ? { label } : {}),
 });
 const wait = (mode: "days" | "hours", amount: number): WorkflowNode => ({ id: newId(), type: "wait", wait: { mode, amount } });
+const aiReply = (cfg: Record<string, unknown>): WorkflowNode =>
+  act("ai.generate_reply", { tone: "Friendly and concise", maxWords: 120, ...cfg, mode: "draft" }, "Generate AI Reply (draft)");
+const humanReview = (reason: string): WorkflowNode => act("human.review", { reason }, "Request Human Review");
+const aiDecision = (question: string, outcomes: [string, WorkflowNode[]][]): WorkflowNode => ({
+  id: newId(),
+  type: "branch",
+  label: "AI Decision",
+  ai: { question, threshold: 0.8 },
+  paths: outcomes.map(([label, steps]) => ({ key: `ai-${newId().slice(0, 8)}`, label, steps })),
+  otherwise: { key: "otherwise", label: "Human review", steps: [humanReview("AI was not confident enough to respond automatically.")] },
+});
 const wf = (nodes: WorkflowNode[]): Workflow => ({ version: 2, nodes });
 
 export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
@@ -211,5 +222,57 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     category: "Lead Management",
     trigger: "lead.created",
     build: () => wf([act("campaign.add", { campaignId: "" })]),
+  },
+  {
+    id: "ai-sales-reply",
+    name: "AI Sales Agent — Reply Handling",
+    description: "When a lead replies, stop follow-ups and let AI route the reply. AI replies are saved as drafts for you to review.",
+    category: "Reply Handling",
+    trigger: "lead.replied",
+    build: () =>
+      wf([
+        act("campaign.stop_followups"),
+        aiDecision("What is the prospect's intent in their latest reply?", [
+          ["Interested", [act("crm.move_stage", { stageKey: "interested" }, "Move to Interested"), act("task.create", { title: "Sales follow-up: {{lead.email}}", dueInDays: 1 }), aiReply({ goal: "Book a sales call" })]],
+          ["Question", [aiReply({ goal: "Answer the prospect's question", instructions: "Answer the question first using only the provided context." })]],
+          ["Objection", [aiReply({ goal: "Address the objection respectfully", instructions: "Acknowledge the concern, then offer a short call." })]],
+          ["Not Interested", [act("campaign.pause_enrollment", {}, "Stop outreach")]],
+          ["Unsubscribe", [act("lead.update_field", { field: "status", value: "unsubscribed" }, "Mark unsubscribed"), act("campaign.pause_enrollment", {}, "Stop outreach")]],
+          ["Out of Office", [act("lead.add_tag", { tag: "out-of-office" }, "Tag out of office")]],
+          ["Other", [humanReview("AI could not classify this reply.")]],
+        ]),
+      ]),
+  },
+  {
+    id: "ai-sales-objection",
+    name: "AI Sales Agent — Objection Handling",
+    description: "Detect the type of objection and draft a suggested response. Nothing is sent automatically.",
+    category: "Reply Handling",
+    trigger: "lead.replied",
+    build: () =>
+      wf([
+        aiDecision(
+          "Which objection is the prospect raising in their latest reply?",
+          ["Price", "Timing", "Already have provider", "Not interested", "Need more information", "Need approval", "Competitor", "Other"].map(
+            (o) => [o, o === "Not interested" ? [act("campaign.pause_enrollment", {}, "Stop outreach")] : o === "Other" ? [humanReview("Objection needs a person.")] : [aiReply({ goal: `Respond to a "${o.toLowerCase()}" objection`, instructions: "Acknowledge the concern honestly. Never invent pricing, discounts or features." })]] as [string, WorkflowNode[]],
+          ),
+        ),
+      ]),
+  },
+  {
+    id: "ai-sales-qualification",
+    name: "AI Sales Agent — Lead Qualification",
+    description: "AI reads the conversation and sorts the lead by intent. High intent moves to Qualified with a drafted reply.",
+    category: "Lead Qualification",
+    trigger: "lead.replied",
+    build: () =>
+      wf([
+        aiDecision("How strong is the buying intent in this conversation?", [
+          ["High intent", [act("crm.move_stage", { stageKey: "qualified" }, "Move to Qualified"), act("task.create", { title: "High-intent lead: {{lead.email}}", dueInDays: 1 }), aiReply({ goal: "Book a sales call" })]],
+          ["Medium intent", [act("lead.add_tag", { tag: "interested" }, "Keep Interested"), aiReply({ goal: "Move the conversation forward" })]],
+          ["Low intent", []],
+          ["Unclear", [humanReview("AI could not tell the lead's intent.")]],
+        ]),
+      ]),
   },
 ];

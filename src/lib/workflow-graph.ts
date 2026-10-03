@@ -125,7 +125,15 @@ export type WorkflowPath = { key: string; label: string; when?: RuleGroup; steps
 
 export type WorkflowNode =
   | { id: string; type: "condition"; label?: string | undefined; group: RuleGroup }
-  | { id: string; type: "branch"; label?: string | undefined; paths: WorkflowPath[]; otherwise: WorkflowPath }
+  | {
+      id: string;
+      type: "branch";
+      label?: string | undefined;
+      paths: WorkflowPath[];
+      otherwise: WorkflowPath;
+      /** Present = AI Decision node: paths are AI outcomes, `otherwise` is the fallback/human-review path. */
+      ai?: { question: string; threshold: number } | undefined;
+    }
   | { id: string; type: "wait"; label?: string | undefined; wait: WaitSpec }
   | { id: string; type: "action"; label?: string | undefined; action: string; config: Record<string, unknown> }
   | { id: string; type: "end"; label?: string | undefined };
@@ -160,6 +168,20 @@ export function makeNode(type: NodeType): WorkflowNode {
       return { id, type };
   }
 }
+
+/** AI Decision: a branch whose path is chosen by the MunchReach AI Sales Agent. */
+export function makeAiDecisionNode(outcomes: readonly string[] = AI_OUTCOMES_DEFAULT): WorkflowNode {
+  return {
+    id: newId(),
+    type: "branch",
+    label: "AI Decision",
+    ai: { question: "What is the prospect's intent in their latest reply?", threshold: 0.8 },
+    paths: outcomes.map((label) => ({ key: `ai-${newId().slice(0, 8)}`, label, steps: [] })),
+    otherwise: { key: "otherwise", label: "Human review", steps: [] },
+  };
+}
+
+const AI_OUTCOMES_DEFAULT = ["Interested", "Question", "Objection", "Not Interested", "Unsubscribe", "Out of Office", "Other"] as const;
 
 /** Deep copy with fresh ids (used by Duplicate step). */
 export function cloneNode(node: WorkflowNode): WorkflowNode {
@@ -347,7 +369,17 @@ export function validateWorkflowIssues(workflow: Workflow, knownActions: string[
           if (w.timeoutDays !== undefined && !(Number(w.timeoutDays) > 0)) add(n.id, "Set a timeout of at least 1 day.");
         }
       }
-      if (n.type === "branch") {
+      if (n.type === "branch" && n.ai) {
+        if (!String(n.ai.question ?? "").trim()) add(n.id, "Write the decision question.");
+        if (n.paths.length < 2) add(n.id, "AI Decision needs at least two outcomes.");
+        const labels = n.paths.map((p) => p.label.trim().toLowerCase());
+        if (labels.some((l) => !l)) add(n.id, "Every outcome needs a name.");
+        if (new Set(labels).size !== labels.length) add(n.id, "Outcome names must be different.");
+        const t = Number(n.ai.threshold);
+        if (!(t >= 0.5 && t <= 1)) add(n.id, "Minimum confidence must be between 50% and 100%.");
+        for (const p of n.paths) walk(p.steps);
+        walk(n.otherwise.steps);
+      } else if (n.type === "branch") {
         if (n.paths.length === 0) add(n.id, "Add at least one path.");
         for (const p of n.paths) for (const m of ruleIssues(p.when, true)) add(n.id, `${p.label || "Path"}: ${m}`);
         for (const p of n.paths) walk(p.steps);

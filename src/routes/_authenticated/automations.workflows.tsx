@@ -48,6 +48,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAutomationRealtime } from "@/hooks/useAutomationRealtime";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { SalesAgentSettingsDialog } from "@/components/automations/SalesAgentSettingsDialog";
 import {
   AUTOMATION_STATUS_TONE,
   RUN_STATUS_TONE,
@@ -287,6 +288,7 @@ function AutomationsPage() {
             <Button variant="ghost" size="sm" asChild>
               <Link to="/automations/activity">Open full activity</Link>
             </Button>
+            {workspaceId && <SalesAgentSettingsDialog workspaceId={workspaceId} />}
             {tab === "workflows" && (
               <Input
                 className="w-56"

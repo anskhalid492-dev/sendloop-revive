@@ -8,7 +8,9 @@ import {
   Filter,
   GitBranch,
   Plus,
+  Sparkles,
   Trash2,
+  UserRound,
   Zap,
 } from "lucide-react";
 
@@ -22,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AVAILABLE_TRIGGERS, CONDITION_FIELDS, TRIGGERS, WORKFLOW_ACTIONS, actionLabel } from "@/lib/automation-model";
 import {
   cloneNode,
+  makeAiDecisionNode,
   makeNode,
   newId,
   operatorNeedsValue,
@@ -107,7 +110,7 @@ function describeNode(node: WorkflowNode): string {
     case "condition":
       return describeRules(node.group);
     case "branch":
-      return `${node.paths.length + 1} paths`;
+      return node.ai ? `${node.paths.length} outcomes · min ${Math.round(node.ai.threshold * 100)}% confidence` : `${node.paths.length + 1} paths`;
     case "wait":
       return describeWaitSpec(node.wait);
     case "action":
@@ -133,8 +136,15 @@ export function WorkflowBuilder({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
 
-  const insert = (addr: ListAddr, index: number, type: NodeType) => {
-    const node = makeNode(type);
+  const insert = (addr: ListAddr, index: number, type: AddKind) => {
+    const node =
+      type === "ai_decision"
+        ? makeAiDecisionNode()
+        : type === "ai_reply"
+          ? ({ id: newId(), type: "action", action: "ai.generate_reply", config: { tone: "Friendly and concise", maxWords: 120, mode: "draft" } } as WorkflowNode)
+          : type === "human_review"
+            ? ({ id: newId(), type: "action", action: "human.review", config: { reason: "" } } as WorkflowNode)
+            : makeNode(type);
     onChange(edit(workflow, (nodes) => listAt(nodes, addr).splice(index, 0, node)));
     setSelected(node.id);
   };
@@ -187,7 +197,13 @@ export function WorkflowBuilder({
                 <div key={path.key} className="rounded-xl border border-dashed bg-muted/30 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{path.label}</p>
                   <p className="mb-1 text-[11px] text-muted-foreground">
-                    {path.key === node.otherwise.key ? "When no other path matches" : describeRules(path.when)}
+                    {node.ai
+                      ? path.key === node.otherwise.key
+                        ? "Low confidence, invalid answer or AI unavailable"
+                        : "When AI chooses this outcome"
+                      : path.key === node.otherwise.key
+                        ? "When no other path matches"
+                        : describeRules(path.when)}
                   </p>
                   {renderList([...addr, index, path.key], path.steps)}
                 </div>
@@ -203,7 +219,15 @@ export function WorkflowBuilder({
   return <div className="mx-auto w-full max-w-3xl">{renderList([], workflow.nodes)}</div>;
 }
 
-function AddStep({ onAdd }: { onAdd: (type: NodeType) => void }) {
+type AddKind = NodeType | "ai_decision" | "ai_reply" | "human_review";
+
+const AI_ADD: { kind: AddKind; label: string; hint: string; icon: typeof Zap }[] = [
+  { kind: "ai_decision", label: "AI Decision", hint: "Let AI understand the lead or conversation and choose a path.", icon: Sparkles },
+  { kind: "ai_reply", label: "Generate AI Reply", hint: "Create a personalized reply using the conversation context.", icon: Sparkles },
+  { kind: "human_review", label: "Request Human Review", hint: "Stop automated handling and notify a team member.", icon: UserRound },
+];
+
+function AddStep({ onAdd }: { onAdd: (type: AddKind) => void }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex justify-center py-1">
@@ -238,6 +262,24 @@ function AddStep({ onAdd }: { onAdd: (type: NodeType) => void }) {
               </button>
             );
           })}
+          <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">AI</p>
+          {AI_ADD.map((item) => (
+            <button
+              key={item.kind}
+              type="button"
+              onClick={() => {
+                onAdd(item.kind);
+                setOpen(false);
+              }}
+              className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-muted"
+            >
+              <item.icon className="mt-0.5 size-4 text-primary" />
+              <span>
+                <span className="block text-sm font-medium">{item.label}</span>
+                <span className="block text-xs text-muted-foreground">{item.hint}</span>
+              </span>
+            </button>
+          ))}
         </PopoverContent>
       </Popover>
     </div>
@@ -339,6 +381,7 @@ function NodeEditor({
   if (node.type === "condition") {
     return <RuleGroupEditor group={node.group} onChange={(group) => onChange({ ...node, group })} options={options} />;
   }
+  if (node.type === "branch" && node.ai) return <AiDecisionEditor node={node} onChange={onChange} />;
   if (node.type === "branch") return <BranchEditor node={node} onChange={onChange} options={options} />;
   if (node.type === "wait") return <WaitEditor wait={node.wait} onChange={(wait) => onChange({ ...node, wait })} />;
   if (node.type === "action") return <ActionEditor node={node} onChange={onChange} options={options} />;
@@ -517,6 +560,63 @@ function BranchEditor({
   );
 }
 
+function AiDecisionEditor({ node, onChange }: { node: Extract<WorkflowNode, { type: "branch" }>; onChange: (n: WorkflowNode) => void }) {
+  const ai = node.ai ?? { question: "", threshold: 0.8 };
+  const setPaths = (paths: WorkflowPath[]) => onChange({ ...node, paths });
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= node.paths.length) return;
+    const next = [...node.paths];
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    setPaths(next);
+  };
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Let AI understand the lead or conversation and choose the right path. AI can only pick one of these outcomes.</p>
+      <div className="space-y-1">
+        <Label className="text-xs">Decision question</Label>
+        <Textarea rows={2} value={ai.question} onChange={(e) => onChange({ ...node, ai: { ...ai, question: e.target.value } })} />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Minimum confidence (%)</Label>
+        <Input
+          type="number"
+          min={50}
+          max={100}
+          className="h-8 w-28"
+          value={Math.round(ai.threshold * 100)}
+          onChange={(e) => onChange({ ...node, ai: { ...ai, threshold: Math.min(100, Math.max(50, Number(e.target.value) || 80)) / 100 } })}
+        />
+        <p className="text-[11px] text-muted-foreground">Below this, the lead takes the “{node.otherwise.label}” path and nothing is sent automatically.</p>
+      </div>
+      <Label className="text-xs">Possible outcomes</Label>
+      {node.paths.map((path, i) => (
+        <div key={path.key} className="flex items-center gap-1">
+          <Input className="h-8" value={path.label} onChange={(e) => setPaths(node.paths.map((p, k) => (k === i ? { ...p, label: e.target.value } : p)))} />
+          <Button variant="ghost" size="icon" className="size-8" aria-label="Move outcome up" disabled={i === 0} onClick={() => move(i, -1)}>
+            <ArrowUp className="size-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8" aria-label="Move outcome down" disabled={i === node.paths.length - 1} onClick={() => move(i, 1)}>
+            <ArrowDown className="size-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8" aria-label="Delete outcome" disabled={node.paths.length <= 2} onClick={() => setPaths(node.paths.filter((_, k) => k !== i))}>
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => setPaths([...node.paths, { key: `ai-${newId().slice(0, 8)}`, label: `Outcome ${node.paths.length + 1}`, steps: [] }])}>
+          <Plus className="mr-1 size-3.5" /> Add outcome
+        </Button>
+        <Label className="text-xs">Fallback path name</Label>
+        <Input className="h-8 w-40" value={node.otherwise.label} onChange={(e) => onChange({ ...node, otherwise: { ...node.otherwise, label: e.target.value } })} />
+      </div>
+    </div>
+  );
+}
+
+const OPTION_LABELS: Record<string, string> = { draft: "Create draft", auto_send: "Send automatically" };
+
 function WaitEditor({ wait, onChange }: { wait: WaitSpec; onChange: (w: WaitSpec) => void }) {
   const zones = useMemo(() => {
     try {
@@ -602,7 +702,7 @@ function ActionEditor({
     if (fieldId === "stageId") return options.stages.map((s) => ({ value: s.id, label: s.name }));
     if (fieldId === "ownerId" || fieldId === "assigneeId") return options.members.map((m) => ({ value: m.id, label: m.label }));
     if (fieldId === "automationId") return options.workflows.map((w) => ({ value: w.id, label: w.name }));
-    return (def?.fields.find((f) => f.id === fieldId)?.options ?? []).map((o) => ({ value: o, label: o }));
+    return (def?.fields.find((f) => f.id === fieldId)?.options ?? []).map((o) => ({ value: o, label: OPTION_LABELS[o] ?? o }));
   };
   return (
     <div className="space-y-2">
@@ -656,6 +756,11 @@ function ActionEditor({
           </div>
         ))}
       </div>
+      {node.action === "ai.generate_reply" && node.config["mode"] === "auto_send" && (
+        <p className="rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-xs text-destructive">
+          AI-generated emails can be sent automatically when this workflow is active.
+        </p>
+      )}
       <Badge variant="outline" className="text-[10px]">
         Runs on the server · never repeated on retry
       </Badge>

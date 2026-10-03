@@ -138,7 +138,45 @@ export function describeSimulatedAction(action: string, config: Record<string, u
 
 const isAiAction = (action: string) => action.startsWith("ai.") || action.startsWith("ai_");
 
+export type SimAiRequest =
+  | { kind: "decision"; node: Extract<WorkflowNode, { type: "branch" }> }
+  | { kind: "reply"; config: Record<string, unknown> };
+
+export type SimDecisionAnswer = { pathKey: string; output: Record<string, unknown> };
+export type SimReplyAnswer =
+  | { ok: true; text: string; mode: "draft" | "auto_send"; forcedDraft: string[] }
+  | { ok: false; error: string };
+type SimAiAnswer = SimDecisionAnswer | SimReplyAnswer | null;
+
+/** Pure dry run; AI nodes are reported as not simulated. */
 export function simulateWorkflow(input: SimulationInput): SimulationResult {
+  const gen = simulateCore(input);
+  let next = gen.next(null);
+  while (!next.done) next = gen.next(null);
+  return next.value;
+}
+
+/**
+ * Dry run with AI: the caller answers AI requests (read-only MunchReach AI
+ * calls). Still writes nothing and performs no action.
+ */
+export async function simulateWorkflowWithAi(
+  input: SimulationInput,
+  ai: { decide: (node: Extract<WorkflowNode, { type: "branch" }>) => Promise<SimDecisionAnswer>; reply: (config: Record<string, unknown>) => Promise<SimReplyAnswer> },
+): Promise<SimulationResult> {
+  const gen = simulateCore(input);
+  let next = gen.next(null);
+  while (!next.done) {
+    const req = next.value;
+    const answer: SimAiAnswer = req.kind === "decision" ? await ai.decide(req.node) : await ai.reply(req.config);
+    next = gen.next(answer);
+  }
+  return next.value;
+}
+
+const pct = (n: unknown) => (typeof n === "number" ? `${Math.round(n * 100)}%` : "—");
+
+function* simulateCore(input: SimulationInput): Generator<SimAiRequest, SimulationResult, SimAiAnswer> {
   const { workflow, getField } = input;
   const labels = input.labels ?? {};
   const nodes = workflow.nodes;
@@ -191,6 +229,32 @@ export function simulateWorkflow(input: SimulationInput): SimulationResult {
       continue;
     }
 
+    if (node.type === "branch" && node.ai) {
+      summary.branchesEvaluated += 1;
+      const answer = (yield { kind: "decision", node }) as SimDecisionAnswer | null;
+      if (!answer) {
+        steps.push({ kind: "branch", title: "AI Decision not simulated", lines: [{ label: "Reason", value: "AI simulation is not available here." }, { label: "Path", value: `Would take the ${node.otherwise.label} path` }], status: "not_simulated" });
+        cursor = enterPath(nodes, cursor, node.otherwise.key);
+        continue;
+      }
+      const o = answer.output;
+      const label = String(o["pathLabel"] ?? node.otherwise.label);
+      steps.push({
+        kind: "branch",
+        title: "SIMULATION · AI Decision",
+        lines: [
+          { label: "Outcome", value: String(o["outcome"] ?? "No valid decision") },
+          { label: "Confidence", value: pct(o["confidence"]) },
+          ...(o["reason"] ? [{ label: "Reason", value: `"${String(o["reason"])}"` }] : []),
+          ...(o["fallbackReason"] ? [{ label: "Fallback", value: String(o["fallbackReason"]) }] : []),
+          { label: "Result", value: `Would take the ${label} path.` },
+        ],
+        status: "passed",
+      });
+      cursor = enterPath(nodes, cursor, answer.pathKey);
+      continue;
+    }
+
     if (node.type === "branch") {
       summary.branchesEvaluated += 1;
       const path = chooseBranch(node, getField);
@@ -227,7 +291,30 @@ export function simulateWorkflow(input: SimulationInput): SimulationResult {
     }
 
     // action
-    if (isAiAction(node.action)) {
+    if (node.action === "ai.generate_reply") {
+      const answer = (yield { kind: "reply", config: node.config ?? {} }) as SimReplyAnswer | null;
+      if (!answer) {
+        steps.push({ kind: "action", title: "Not simulated", lines: [{ label: "Reason", value: "AI simulation is not available here." }], status: "not_simulated" });
+      } else if (!answer.ok) {
+        steps.push({ kind: "action", title: "SIMULATION · AI reply not generated", lines: [{ label: "Reason", value: answer.error }, { label: "Result", value: "No email would be sent. The lead would be handed to a person for review." }], status: "stopped" });
+      } else {
+        summary.actionsWouldExecute += 1;
+        steps.push({
+          kind: "action",
+          title: "SIMULATION · AI would generate",
+          lines: [
+            { label: "Reply preview", value: answer.text },
+            { label: "Mode", value: answer.mode === "auto_send" ? "Would send automatically" : "Would be saved as a draft" },
+            ...answer.forcedDraft.map((r) => ({ label: "Kept as draft", value: r })),
+            { label: "Simulation", value: "No real email is sent." },
+          ],
+          status: "would_run",
+        });
+      }
+    } else if (node.action === "human.review") {
+      summary.actionsWouldExecute += 1;
+      steps.push({ kind: "action", title: "Action would execute", lines: [{ label: "Action", value: "Request Human Review" }, { label: "Simulation", value: "A review task would be created and automated replies paused for this lead" }], status: "would_run" });
+    } else if (isAiAction(node.action)) {
       steps.push({ kind: "action", title: "Not simulated", lines: [{ label: "Reason", value: "AI simulation is not available yet." }], status: "not_simulated" });
     } else if (!known(node.action)) {
       steps.push({ kind: "action", title: "Not simulated", lines: [{ label: "Reason", value: "This step type isn't recognised." }], status: "not_simulated" });

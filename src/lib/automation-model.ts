@@ -338,6 +338,30 @@ export const ACTIONS: ActionDef[] = [
   { id: "lead.add_note", label: "Add note", group: "CRM", description: "Adds a note to the contact, attributed to the automation owner.", fields: [{ id: "body", label: "Note", type: "textarea", placeholder: "Replied from {{lead.company}}" }] },
   { id: "workflow.start", label: "Start another workflow", group: "Flow", description: "Starts another active workflow for this lead. Loops are blocked automatically.", fields: [{ id: "automationId", label: "Workflow", type: "select", options: [] }] },
   { id: "workflow.stop", label: "Stop this workflow", group: "Flow", description: "Stops this run here.", fields: [] },
+  {
+    id: "ai.generate_reply",
+    label: "Generate AI Reply",
+    group: "AI",
+    description: "Create a personalized reply using the conversation context.",
+    fields: [
+      { id: "goal", label: "Goal", type: "text", placeholder: "Book a sales call" },
+      { id: "tone", label: "Tone", type: "text", placeholder: "Friendly and concise" },
+      { id: "instructions", label: "Instructions", type: "textarea", placeholder: "Answer the prospect's question first, then suggest a short call." },
+      { id: "cta", label: "Call to action", type: "text", placeholder: "Ask whether they are available this week." },
+      { id: "maxWords", label: "Maximum length (words)", type: "number", placeholder: "120" },
+      { id: "mode", label: "Mode", type: "select", options: ["draft", "auto_send"] },
+    ],
+  },
+  {
+    id: "human.review",
+    label: "Request Human Review",
+    group: "AI",
+    description: "Stop automated handling and notify a team member.",
+    fields: [
+      { id: "reason", label: "Reason", type: "textarea", placeholder: "AI was not confident enough to respond automatically." },
+      { id: "ownerId", label: "Assign to (optional)", type: "select", options: [] },
+    ],
+  },
 ];
 
 /** Actions the visual builder offers (flow control lives in its own nodes). */

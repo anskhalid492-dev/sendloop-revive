@@ -39,6 +39,10 @@ export type WorkflowDeps = {
   /** For until_event waits: did the event happen since the wait began? */
   eventSince?: (event: string, hop: number) => Promise<boolean>;
   isRetryable: (message: string) => boolean;
+  /** Output recorded for a completed hop (AI Decision reuses its stored path). */
+  priorOutput?: (hop: number) => Promise<Record<string, unknown> | null>;
+  /** AI Decision. Never throws; returns the chosen path and what to record. */
+  aiDecide?: (node: Extract<WorkflowNode, { type: "branch" }>, hop: number) => Promise<{ pathKey: string; output: Record<string, unknown> }>;
   maxHops?: number;
 };
 
@@ -75,6 +79,33 @@ export async function executeWorkflow(workflow: Workflow, initial: WorkflowState
         break;
       }
       case "branch": {
+        if (node.ai) {
+          // Idempotent: a completed AI decision is reused, never re-asked.
+          if (prior === "completed") {
+            const out = (await deps.priorOutput?.(hop)) ?? null;
+            const key = typeof out?.["path"] === "string" ? (out["path"] as string) : node.otherwise.key;
+            cursor = enterPath(nodes, cursor, key);
+            break;
+          }
+          if (prior === "running") {
+            // A previous worker may have asked the AI and died: outcome unknown,
+            // so take the fallback path instead of calling the AI again.
+            const reason = "The earlier AI decision attempt did not finish, so the fallback path was used.";
+            await deps.recordHop(hop, node, "completed", { path: node.otherwise.key, pathLabel: node.otherwise.label, usedFallback: true, fallbackReason: reason, unknownOutcome: true });
+            cursor = enterPath(nodes, cursor, node.otherwise.key);
+            break;
+          }
+          if (!deps.aiDecide) {
+            await deps.recordHop(hop, node, "completed", { path: node.otherwise.key, pathLabel: node.otherwise.label, usedFallback: true, fallbackReason: "AI service unavailable." });
+            cursor = enterPath(nodes, cursor, node.otherwise.key);
+            break;
+          }
+          await deps.recordHop(hop, node, "running", {});
+          const decided = await deps.aiDecide(node, hop);
+          await deps.recordHop(hop, node, "completed", { ...decided.output, path: decided.pathKey });
+          cursor = enterPath(nodes, cursor, decided.pathKey);
+          break;
+        }
         const path = chooseBranch(node, deps.getField);
         await deps.recordHop(hop, node, "completed", { path: path.key, pathLabel: path.label });
         cursor = enterPath(nodes, cursor, path.key);

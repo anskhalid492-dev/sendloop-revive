@@ -539,7 +539,14 @@ export const getAutomationRun = createServerFn({ method: "GET" })
       .eq("run_id", data.runId)
       .order("position", { ascending: true });
 
-    return { run: run as AutomationRun, steps: (steps ?? []) as AutomationRunStep[] };
+    // Internal AI call metadata (latency/tokens) stays server-side.
+    const clean = ((steps ?? []) as AutomationRunStep[]).map((step) => {
+      const out = (step as { output?: Record<string, unknown> | null }).output;
+      if (!out || !("ai" in out)) return step;
+      const { ai: _ai, ...rest } = out;
+      return { ...step, output: rest } as AutomationRunStep;
+    });
+    return { run: run as AutomationRun, steps: clean };
   });
 
 export const retryAutomationRun = createServerFn({ method: "POST" })
