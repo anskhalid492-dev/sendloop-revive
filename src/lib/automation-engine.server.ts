@@ -1182,7 +1182,7 @@ async function runSalesAgentAction(
 
   const { error } = await db.from("email_drafts").insert({
     workspace_id: run.workspace_id,
-    user_id: owner,
+    user_id: owner as string,
     conversation_id: conversation?.id ?? null,
     lead_id: run.lead_id,
     to_email: conversation?.prospect_email || String(ctx.lead?.["email"] ?? ""),
@@ -1190,7 +1190,7 @@ async function runSalesAgentAction(
     body: result.text,
   });
   if (error) throw new Error(error.message);
-  return { ...base, mode: "draft", draftCreated: true, ...(result.cfg.mode === "auto_send" && !conversation ? { note: "No conversation to reply in, so a draft was created." } : {}) };
+  return { ...base, mode: "draft", draftCreated: true, ...(result.cfg.mode === "auto_send" && delivery.reason ? { note: delivery.reason } : {}) };
 }
 
 async function hmacHex(secret: string, body: string): Promise<string> {
