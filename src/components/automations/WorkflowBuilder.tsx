@@ -284,7 +284,7 @@ export function WorkflowBuilder({
             const steps = countSteps(path.steps);
             const open = steps <= 1 || openLanes.has(key);
             const focused = focusLane === key;
-            const dimmed = focusLane !== null && !focused && focusLane !== parentLane && !focusLane.startsWith(`${node.id}:`) === false && !focused;
+            const dimmed = focusLane !== null && !focused && focusLane.startsWith(`${node.id}:`);
             const isFallback = path.key === node.otherwise.key;
             const problems = issueCount(path.steps, issues);
             return (
@@ -361,6 +361,11 @@ export function WorkflowBuilder({
       >
         <div ref={contentRef} className="mx-auto w-max min-w-full px-6 pb-10 pt-14" style={{ zoom }}>
           {renderList([], workflow.nodes)}
+          {workflow.nodes.length > 0 && (
+            <div className="flex justify-center">
+              <span className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground">End</span>
+            </div>
+          )}
         </div>
       </div>
 

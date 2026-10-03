@@ -174,14 +174,14 @@ export function VisualAutomationEditor({
       title={name || "Workflow"}
       description="When this happens → check this → wait → do this. Every step runs on the server."
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => void navigate({ to: "/automations" })}>
             <ArrowLeft className="mr-2 size-4" /> Back
           </Button>
-          <Button variant="outline" size="sm" disabled={saving} onClick={handleSave}>
+          <Button variant="ghost" size="sm" disabled={saving} onClick={handleSave}>
             <Save className="mr-2 size-4" /> Save draft
           </Button>
-          <Button variant="outline" size="sm" disabled={saving} onClick={() => setTestOpen(true)}>
+          <Button variant="ghost" size="sm" disabled={saving} onClick={() => setTestOpen(true)}>
             <FlaskConical className="mr-2 size-4" /> Test workflow
           </Button>
           {status === "active" ? (
@@ -196,9 +196,9 @@ export function VisualAutomationEditor({
         </div>
       }
     >
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-4">
-          <section className="rounded-xl border bg-card p-4">
+          <section className="mx-auto w-full max-w-md rounded-xl border bg-card p-3 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                 <Zap className="size-4 text-primary" />
@@ -263,9 +263,6 @@ export function VisualAutomationEditor({
             workflow={workflow}
           />
 
-          <div className="flex justify-center">
-            <span className="rounded-full border bg-muted px-3 py-1 text-xs text-muted-foreground">End</span>
-          </div>
         </div>
 
         <aside className="space-y-4">
@@ -282,10 +279,9 @@ export function VisualAutomationEditor({
             </div>
             <div className="space-y-1">
               <Label htmlFor="wf-desc">Description</Label>
-              <Textarea id="wf-desc" rows={3} value={description} onChange={(e) => { setDescription(e.target.value); setDirty(true); }} />
+              <Textarea id="wf-desc" rows={2} value={description} onChange={(e) => { setDescription(e.target.value); setDirty(true); }} />
             </div>
-          </section>
-          <section className="space-y-2 rounded-xl border bg-card p-4 text-sm">
+            <div className="space-y-2 border-t pt-3 text-sm">
             <h2 className="font-semibold">Ready to activate?</h2>
             {errors.length === 0 ? (
               <p className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
@@ -302,7 +298,7 @@ export function VisualAutomationEditor({
                 )}
                 {errors.length > generalErrors.length && (
                   <p className="text-destructive">
-                    {Object.keys(issuesByNode).length} step{Object.keys(issuesByNode).length === 1 ? " needs" : "s need"} attention — see the highlighted steps.
+                    {Object.keys(issuesByNode).length} step{Object.keys(issuesByNode).length === 1 ? " needs" : "s need"} attention — open the steps marked with a red dot to fix them.
                   </p>
                 )}
               </div>
@@ -311,6 +307,7 @@ export function VisualAutomationEditor({
               Edits never change runs already in progress. A workflow can’t retrigger itself, and chains of workflows
               stop automatically after a few hops.
             </p>
+            </div>
           </section>
         </aside>
       </div>
