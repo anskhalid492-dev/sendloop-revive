@@ -128,7 +128,7 @@ export type WorkflowNode =
   | { id: string; type: "branch"; label?: string | undefined; paths: WorkflowPath[]; otherwise: WorkflowPath }
   | { id: string; type: "wait"; label?: string | undefined; wait: WaitSpec }
   | { id: string; type: "action"; label?: string | undefined; action: string; config: Record<string, unknown> }
-  | { id: string; type: "end"; label?: string };
+  | { id: string; type: "end"; label?: string | undefined };
 
 export type Workflow = { version: 2; nodes: WorkflowNode[] };
 
