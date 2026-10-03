@@ -70,7 +70,7 @@ describe("provider separation", () => {
     }
   });
   it("uses the MunchReach credential and needs no customer key", async () => {
-    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "munchreach-test-key" }))
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "munchreach-test-key" }));
     let seen = "";
     __setSalesAgentTransport(async ({ apiKey }) => {
       seen = apiKey;
@@ -119,7 +119,7 @@ describe("AI decision parsing and routing", () => {
     expect(r).toEqual({ ok: true, outcome: "High intent", confidence: 0.88, reason: "r" });
   });
   it("timeouts and provider failures route to the fallback without guessing", async () => {
-    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }));
     __setSalesAgentTransport(async () => {
       throw new Error("The operation was aborted");
     });
@@ -175,19 +175,19 @@ describe("AI reply + safety", () => {
     expect(preReplySafety({ latestInbound: "hi", lastConfidence: 0.5 }).forceDraft).toContain("AI was not confident enough to respond automatically.");
   });
   it("auto-send is downgraded to draft when a safety rule fires", async () => {
-    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }));
     __setSalesAgentTransport(async () => ({ text: "Sure — it's $99 per month. Free to chat this week?" }));
     const r = await runAiReply({ mode: "auto_send" }, ctx(), settings, 0.95);
     expect(r.ok && r.mode).toBe("draft");
   });
   it("clean reply keeps the configured auto-send mode", async () => {
-    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }));
     __setSalesAgentTransport(async () => ({ text: "Happy to share more. Are you free for a short call this week?" }));
     const r = await runAiReply({ mode: "auto_send" }, ctx(), settings, 0.95);
     expect(r.ok && r.mode).toBe("auto_send");
   });
   it("missing context still works and provider failure creates nothing", async () => {
-    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }));
     __setSalesAgentTransport(async () => ({ text: "Thanks for getting back to me. Could we find 15 minutes this week?" }));
     const ok = await runAiReply({}, ctx({ lead: null, messages: [], conversation: null }), settings, null);
     expect(ok.ok).toBe(true);
@@ -205,7 +205,7 @@ describe("AI reply + safety", () => {
     expect(spy).not.toHaveBeenCalled();
   });
   it("mandatory rules are in the prompt and workflow text cannot remove them", async () => {
-    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }));
     let system = "";
     __setSalesAgentTransport(async (a) => {
       system = a.system;

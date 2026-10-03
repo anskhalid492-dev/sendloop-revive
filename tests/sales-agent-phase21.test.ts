@@ -35,7 +35,7 @@ const reply = (text: string) =>
 
 beforeEach(() => {
   calls = 0;
-  __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "test-key" }))
+  __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "test-key" }));
 });
 afterEach(() => {
   __setSalesAgentTransport(null);
