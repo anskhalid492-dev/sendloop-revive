@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CONDITION_FIELDS, TRIGGERS, WORKFLOW_ACTIONS, actionLabel } from "@/lib/automation-model";
+import { AVAILABLE_TRIGGERS, CONDITION_FIELDS, TRIGGERS, WORKFLOW_ACTIONS, actionLabel } from "@/lib/automation-model";
 import {
   cloneNode,
   makeNode,
@@ -540,7 +540,7 @@ function WaitEditor({ wait, onChange }: { wait: WaitSpec; onChange: (w: WaitSpec
               <SelectValue placeholder="Event" />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {TRIGGERS.filter((t) => t.id !== "webhook.received").map((t) => (
+              {AVAILABLE_TRIGGERS.filter((t) => t.id !== "webhook.received").map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.label}
                 </SelectItem>

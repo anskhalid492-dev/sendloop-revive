@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { WorkflowBuilder } from "@/components/automations/WorkflowBuilder";
 import {
   AUTOMATION_STATUS_TONE,
+  AVAILABLE_TRIGGERS,
   TRIGGER_PRESETS,
   TRIGGERS,
   WORKFLOW_ACTIONS,
@@ -189,7 +190,7 @@ export function VisualAutomationEditor({
                   </SelectTrigger>
                   <SelectContent className="max-h-96">
                     {TRIGGER_GROUPS.map((group) => {
-                      const items = TRIGGERS.filter((t) => t.group === group);
+                      const items = AVAILABLE_TRIGGERS.filter((t) => t.group === group);
                       const presets = TRIGGER_PRESETS.filter((p) => p.group === group);
                       if (!items.length && !presets.length) return null;
                       return [

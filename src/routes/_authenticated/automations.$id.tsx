@@ -28,6 +28,7 @@ import {
   needsValue,
   OPERATORS,
   TRIGGERS,
+  AVAILABLE_TRIGGERS,
   WAIT_MODES,
   type AutomationStatus,
   type JsonObject,
@@ -312,7 +313,7 @@ function AutomationBuilderPage({ onUpgrade }: { onUpgrade?: (() => void) | undef
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-80">
-                      {TRIGGERS.map((item) => (
+                      {AVAILABLE_TRIGGERS.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
                           {item.group} · {item.label}
                         </SelectItem>
