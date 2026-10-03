@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CONDITION_FIELDS, TRIGGERS, WORKFLOW_ACTIONS, actionLabel } from "@/lib/automation-model";
+import { AVAILABLE_TRIGGERS, CONDITION_FIELDS, TRIGGERS, WORKFLOW_ACTIONS, actionLabel } from "@/lib/automation-model";
 import {
   cloneNode,
   makeNode,
@@ -123,10 +123,13 @@ export function WorkflowBuilder({
   workflow,
   onChange,
   options,
+  issues = {},
 }: {
   workflow: Workflow;
   onChange: (next: Workflow) => void;
   options: BuilderOptions;
+  /** Activation problems keyed by step id, shown on that step. */
+  issues?: Record<string, string[]>;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -176,6 +179,7 @@ export function WorkflowBuilder({
             onDown={index < list.length - 1 ? () => move(addr, index, 1) : undefined}
             onChange={(next) => replace(addr, index, next)}
             options={options}
+            issues={issues[node.id]}
           />
           {node.type === "branch" && (
             <div className="mt-2 grid gap-3 border-l-2 border-dashed border-border pl-4 md:grid-cols-2 xl:grid-cols-3">
@@ -250,7 +254,9 @@ function NodeCard({
   onDown,
   onChange,
   options,
+  issues,
 }: {
+  issues?: string[] | undefined;
   node: WorkflowNode;
   selected: boolean;
   onSelect: () => void;
@@ -295,6 +301,13 @@ function NodeCard({
           </Button>
         </div>
       </div>
+      {issues && issues.length > 0 && (
+        <ul className="space-y-0.5 border-t border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {issues.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+      )}
       {selected && (
         <div className="space-y-3 border-t p-3">
           <div className="space-y-1">
@@ -540,7 +553,7 @@ function WaitEditor({ wait, onChange }: { wait: WaitSpec; onChange: (w: WaitSpec
               <SelectValue placeholder="Event" />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {TRIGGERS.filter((t) => t.id !== "webhook.received").map((t) => (
+              {AVAILABLE_TRIGGERS.filter((t) => t.id !== "webhook.received").map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.label}
                 </SelectItem>

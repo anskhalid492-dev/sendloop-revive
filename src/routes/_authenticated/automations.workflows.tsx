@@ -52,6 +52,7 @@ import {
   AUTOMATION_STATUS_TONE,
   RUN_STATUS_TONE,
   TRIGGERS,
+  AVAILABLE_TRIGGERS,
   triggerLabel,
   triggerSummary,
 } from "@/lib/automation-model";
@@ -122,7 +123,7 @@ function AutomationsPage() {
   const [runFilter, setRunFilter] = useState<"all" | "completed" | "failed" | "waiting" | "running">("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newTrigger, setNewTrigger] = useState(TRIGGERS[0]!.id);
+  const [newTrigger, setNewTrigger] = useState(AVAILABLE_TRIGGERS[0]!.id);
   const [busy, setBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -574,7 +575,7 @@ function AutomationsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {[...TRIGGERS].sort((a, b) => a.group.localeCompare(b.group)).map((trigger) => (
+                  {[...AVAILABLE_TRIGGERS].sort((a, b) => a.group.localeCompare(b.group)).map((trigger) => (
                     <SelectItem key={trigger.id} value={trigger.id}>
                       {trigger.group} · {trigger.label}
                     </SelectItem>

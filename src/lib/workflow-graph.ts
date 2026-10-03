@@ -247,35 +247,140 @@ export function chooseBranch(
 
 /* ---------------------------------------------------------- validation */
 
-export function validateWorkflow(workflow: Workflow, knownActions: string[]): string[] {
-  const errors: string[] = [];
-  if (workflow.nodes.length === 0) errors.push("Add at least one step.");
-  if (countNodes(workflow.nodes) > MAX_WORKFLOW_NODES) errors.push(`Workflows can have at most ${MAX_WORKFLOW_NODES} steps.`);
+export type WorkflowIssue = { nodeId: string | null; message: string };
+
+/** What the activation check may verify against the workspace's real data. */
+export type ValidationContext = {
+  /** Current automation id (self-loop detection). */
+  automationId?: string;
+  triggerType?: string;
+  /** Tag filter of a tag trigger, when set. */
+  triggerTag?: string;
+  supportedTriggers?: string[];
+  campaignIds?: string[];
+  stageIds?: string[];
+  workflowIds?: string[];
+  memberIds?: string[];
+};
+
+/** Config each action needs before it can run, with the customer-facing fix. */
+export const ACTION_REQUIREMENTS: Record<string, { key: string; message: string }[]> = {
+  "campaign.add": [{ key: "campaignId", message: "Select a campaign before activating this action." }],
+  "campaign.remove": [{ key: "campaignId", message: "Select a campaign before activating this action." }],
+  "crm.move_stage": [{ key: "stageId", message: "Select a pipeline stage before activating this action." }],
+  "lead.add_tag": [{ key: "tag", message: "Enter the tag to add." }],
+  "lead.remove_tag": [{ key: "tag", message: "Enter the tag to remove." }],
+  "task.create": [{ key: "title", message: "Give the task a title." }],
+  "lead.update_field": [{ key: "field", message: "Choose which lead field to update." }],
+  "lead.assign_owner": [{ key: "ownerId", message: "Choose the owner to assign." }],
+  "notify.slack": [{ key: "message", message: "Write the Slack message." }],
+  "webhook.send": [{ key: "url", message: "Enter the webhook address." }],
+  "lead.add_note": [{ key: "body", message: "Write the note." }],
+  "workflow.start": [{ key: "automationId", message: "Choose the workflow to start." }],
+};
+
+const filled = (v: unknown) => v !== undefined && v !== null && String(v).trim().length > 0;
+
+function ruleIssues(group: RuleGroup | undefined, requireRules: boolean): string[] {
+  const out: string[] = [];
+  const rules = group?.rules ?? [];
+  if (requireRules && rules.length === 0) out.push("Add at least one rule to this path.");
+  for (const r of rules) {
+    if (!r.field) out.push("Every rule needs a field.");
+    else if (!RULE_OPERATORS.some((o) => o.id === normalizeOperator(r.operator))) out.push("Choose a valid comparison.");
+    else if (operatorNeedsValue(normalizeOperator(r.operator)) && !filled(r.value)) out.push("Enter a value for every rule.");
+    else if (["gt", "lt", "gte", "lte"].includes(normalizeOperator(r.operator)) && !Number.isFinite(Number(r.value))) {
+      out.push("Number comparisons need a number.");
+    }
+  }
+  return Array.from(new Set(out));
+}
+
+export function validateWorkflowIssues(workflow: Workflow, knownActions: string[], ctx: ValidationContext = {}): WorkflowIssue[] {
+  const issues: WorkflowIssue[] = [];
+  const add = (nodeId: string | null, message: string) => issues.push({ nodeId, message });
+  if (ctx.supportedTriggers) {
+    if (!ctx.triggerType) add(null, "Choose what starts this workflow.");
+    else if (!ctx.supportedTriggers.includes(ctx.triggerType)) add(null, "This trigger can't fire yet. Choose a different trigger.");
+  }
+  if (workflow.nodes.length === 0) add(null, "Add at least one step.");
+  if (countNodes(workflow.nodes) > MAX_WORKFLOW_NODES) add(null, `Workflows can have at most ${MAX_WORKFLOW_NODES} steps.`);
   let actions = 0;
-  const walk = (nodes: WorkflowNode[], where: string) => {
+  const walk = (nodes: WorkflowNode[]) => {
     nodes.forEach((n, i) => {
-      const label = `${where}step ${i + 1}`;
+      const ends = n.type === "end" || (n.type === "action" && (n.action === "workflow.stop" || n.action === "workflow.end"));
+      if (ends && i < nodes.length - 1) add(nodes[i + 1]!.id, "This step can never run because the workflow ends right before it.");
       if (n.type === "action") {
-        actions += 1;
-        if (!knownActions.includes(n.action)) errors.push(`${label}: choose an action.`);
+        if (!knownActions.includes(n.action)) {
+          add(n.id, "Choose an action.");
+          return;
+        }
+        if (n.action !== "workflow.stop") actions += 1;
+        const cfg = n.config ?? {};
+        for (const req of ACTION_REQUIREMENTS[n.action] ?? []) if (!filled(cfg[req.key])) add(n.id, req.message);
+        const campaignId = cfg["campaignId"];
+        if (filled(campaignId) && ctx.campaignIds && !ctx.campaignIds.includes(String(campaignId))) add(n.id, "The selected campaign no longer exists. Select another campaign.");
+        const stageId = cfg["stageId"];
+        if (n.action === "crm.move_stage" && filled(stageId) && ctx.stageIds && !ctx.stageIds.includes(String(stageId))) add(n.id, "The selected pipeline stage no longer exists. Select another stage.");
+        const ownerId = cfg["ownerId"];
+        if (n.action === "lead.assign_owner" && filled(ownerId) && ctx.memberIds && !ctx.memberIds.includes(String(ownerId))) add(n.id, "The selected owner is no longer in this workspace.");
+        if (n.action === "workflow.start" && filled(cfg["automationId"])) {
+          const target = String(cfg["automationId"]);
+          if (ctx.automationId && target === ctx.automationId) add(n.id, "A workflow can't start itself. Choose a different workflow.");
+          else if (ctx.workflowIds && !ctx.workflowIds.includes(target)) add(n.id, "The selected workflow no longer exists.");
+        }
+        if (n.action === "task.create" && filled(cfg["dueInDays"]) && !(Number(cfg["dueInDays"]) >= 0)) add(n.id, "Task due days must be zero or more.");
+        if (n.action === "webhook.send" && filled(cfg["url"]) && !/^https:\/\//i.test(String(cfg["url"]))) add(n.id, "The webhook address must start with https://.");
       }
-      if (n.type === "condition" && n.group.rules.some((r) => !r.field)) errors.push(`${label}: every rule needs a field.`);
+      if (n.type === "condition") for (const m of ruleIssues(n.group, true)) add(n.id, m);
       if (n.type === "wait") {
         const w = n.wait;
-        if (["minutes", "hours", "days"].includes(w.mode) && !(Number(w.amount) > 0)) errors.push(`${label}: set how long to wait.`);
-        if (w.mode === "until_datetime" && !w.at) errors.push(`${label}: pick a date and time.`);
-        if (w.mode === "until_event" && !w.event) errors.push(`${label}: choose the event to wait for.`);
+        if (["minutes", "hours", "days"].includes(w.mode)) {
+          const amount = Number(w.amount);
+          if (!(amount > 0) || !Number.isFinite(amount)) add(n.id, "Set how long to wait.");
+          else if (w.mode === "days" && amount > 365) add(n.id, "Waits can be at most 365 days.");
+        }
+        if (w.mode === "until_datetime" && (!w.at || Number.isNaN(Date.parse(w.at)))) add(n.id, "Pick a valid date and time.");
+        if (w.mode === "until_event") {
+          if (!w.event) add(n.id, "Choose the event to wait for.");
+          else if (ctx.supportedTriggers && !ctx.supportedTriggers.includes(w.event)) add(n.id, "This event can't happen yet. Choose a different event.");
+          if (w.timeoutDays !== undefined && !(Number(w.timeoutDays) > 0)) add(n.id, "Set a timeout of at least 1 day.");
+        }
       }
       if (n.type === "branch") {
-        if (n.paths.length === 0) errors.push(`${label}: add at least one path.`);
-        for (const p of n.paths) walk(p.steps, `${label} › ${p.label} › `);
-        walk(n.otherwise.steps, `${label} › ${n.otherwise.label} › `);
+        if (n.paths.length === 0) add(n.id, "Add at least one path.");
+        for (const p of n.paths) for (const m of ruleIssues(p.when, true)) add(n.id, `${p.label || "Path"}: ${m}`);
+        for (const p of n.paths) walk(p.steps);
+        walk(n.otherwise.steps);
       }
     });
   };
-  walk(workflow.nodes, "");
-  if (workflow.nodes.length > 0 && actions === 0) errors.push("Add at least one action.");
-  return errors;
+  walk(workflow.nodes);
+  if (workflow.nodes.length > 0 && actions === 0) add(null, "Add at least one action.");
+  // Self-trigger loop: a workflow started by "another workflow" that starts
+  // itself is already caught above; tag triggers re-fired by the same tag
+  // change would loop and are blocked here.
+  if (ctx.triggerType === "lead.tag_added" || ctx.triggerType === "lead.tag_removed") {
+    const action = ctx.triggerType === "lead.tag_added" ? "lead.add_tag" : "lead.remove_tag";
+    const find = (nodes: WorkflowNode[]): WorkflowNode | undefined => {
+      for (const n of nodes) {
+        if (n.type === "action" && n.action === action) {
+          const tag = String(n.config?.["tag"] ?? "").trim().toLowerCase();
+          const filter = (ctx.triggerTag ?? "").trim().toLowerCase();
+          if (!filter || !tag || tag === filter) return n;
+        }
+        if (n.type === "branch") for (const p of [...n.paths, n.otherwise]) { const f = find(p.steps); if (f) return f; }
+      }
+      return undefined;
+    };
+    const hit = find(workflow.nodes);
+    if (hit) add(hit.id, "This step changes the same tag that starts the workflow, which would retrigger it. Use a different tag or action.");
+  }
+  return issues;
+}
+
+export function validateWorkflow(workflow: Workflow, knownActions: string[], ctx: ValidationContext = {}): string[] {
+  return Array.from(new Set(validateWorkflowIssues(workflow, knownActions, ctx).map((i) => i.message)));
 }
 
 /* ------------------------------------------------- storage + migration */
@@ -299,13 +404,34 @@ const LEGACY_WAIT: Record<string, WaitSpec["mode"]> = {
   business_hours: "next_business_day",
 };
 
+export type LegacyConversion = { workflow: Workflow; notes: string[] };
+
 /**
  * Converts a legacy linear automation (conditions + steps tagged yes/no) into
  * an equivalent tree, so customers can open old automations in the visual
- * builder. Execution order and semantics are preserved.
+ * builder with EXACTLY the same execution order.
+ *
+ * Legacy semantics (automation-engine `executeRun`): steps run in position
+ * order; a branch step sets the active side; a step tagged "yes"/"no" runs
+ * only when that side is active; untagged steps always run; tagged steps
+ * before any branch never run.
+ *
+ * Tree mapping per branch segment (branch → steps up to the next branch):
+ *  - the trailing run of untagged steps goes after the branch (runs on both);
+ *  - everything before it is copied, in order, into each path: Yes gets the
+ *    yes + untagged steps, No gets the no + untagged steps. Untagged steps
+ *    interleaved with tagged ones therefore keep their exact position on
+ *    whichever side runs, instead of being moved after the branch.
+ * Steps that could never run are reported in `notes`, never dropped silently.
  */
-export function legacyToWorkflow(steps: StoredStep[], logic: "and" | "or"): Workflow {
-  const ordered = [...steps];
+export function convertLegacyAutomation(
+  steps: (StoredStep & { position?: number })[],
+  logic: "and" | "or",
+): LegacyConversion {
+  const ordered = steps.some((s) => typeof s.position === "number")
+    ? [...steps].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    : [...steps];
+  const notes: string[] = [];
   const nodes: WorkflowNode[] = [];
   const conditions = ordered.filter((s) => s.kind === "condition");
   if (conditions.length) {
@@ -322,48 +448,57 @@ export function legacyToWorkflow(steps: StoredStep[], logic: "and" | "or"): Work
       },
     });
   }
-  let target = nodes;
-  let branchNode: Extract<WorkflowNode, { type: "branch" }> | null = null;
-  for (const s of ordered.filter((x) => x.kind !== "condition")) {
-    const convert = (): WorkflowNode | null => {
-      if (s.kind === "wait") {
-        const mode = String(s.config["mode"] ?? "hours");
-        if (mode === "until_time") {
-          return { id: newId(), type: "wait", label: `Wait until ${String(s.config["time"] ?? "09:00")}`, wait: { mode: "next_business_day" } };
-        }
-        return { id: newId(), type: "wait", wait: { mode: LEGACY_WAIT[mode] ?? "hours", amount: Number(s.config["amount"] ?? 1) } };
+
+  const convert = (s: StoredStep): WorkflowNode => {
+    if (s.kind === "wait") {
+      const mode = String(s.config["mode"] ?? "hours");
+      if (mode === "until_time") {
+        return { id: newId(), type: "wait", label: `Wait until ${String(s.config["time"] ?? "09:00")}`, wait: { mode: "next_business_day" } };
       }
-      const type = String(s.config["type"] ?? "");
-      if (type === "end") return { id: newId(), type: "end" };
-      const { type: _t, ...config } = s.config;
-      return { id: newId(), type: "action", action: type, config };
-    };
-    if (s.kind === "branch") {
-      const created: Extract<WorkflowNode, { type: "branch" }> = {
-        id: newId(),
-        type: "branch",
-        paths: [{
-          key: "yes",
-          label: "Yes",
-          when: { match: "all", rules: [{ field: String(s.config["field"] ?? ""), operator: normalizeOperator(String(s.config["operator"] ?? "is")), value: s.config["value"] === undefined ? undefined : String(s.config["value"]) }] },
-          steps: [],
-        }],
-        otherwise: { key: "otherwise", label: "No", steps: [] },
-      };
-      branchNode = created;
-      target.push(created);
+      return { id: newId(), type: "wait", wait: { mode: LEGACY_WAIT[mode] ?? "hours", amount: Number(s.config["amount"] ?? 1) } };
+    }
+    const type = String(s.config["type"] ?? "");
+    if (type === "end") return { id: newId(), type: "end" };
+    const { type: _t, ...config } = s.config;
+    return { id: newId(), type: "action", action: type, config };
+  };
+
+  const executable = ordered.filter((x) => x.kind !== "condition");
+  let i = 0;
+  // Before the first branch: untagged steps run, tagged ones never do.
+  for (; i < executable.length && executable[i]!.kind !== "branch"; i += 1) {
+    const s = executable[i]!;
+    if (s.branch === "yes" || s.branch === "no") {
+      notes.push(`A step on the ${s.branch === "yes" ? "Yes" : "No"} path before any branch never ran, so it was left out.`);
       continue;
     }
-    const node = convert();
-    if (!node) continue;
-    if (branchNode && s.branch === "yes") branchNode.paths[0]!.steps.push(node);
-    else if (branchNode && s.branch === "no") branchNode.otherwise.steps.push(node);
-    else if (branchNode) {
-      // Untagged steps after a branch run on both sides in the legacy engine,
-      // which equals "after the branch" in the tree.
-      target = nodes;
-      target.push(node);
-    } else target.push(node);
+    nodes.push(convert(s));
   }
-  return { version: 2, nodes };
+  while (i < executable.length) {
+    const b = executable[i]!;
+    i += 1;
+    const segment: StoredStep[] = [];
+    for (; i < executable.length && executable[i]!.kind !== "branch"; i += 1) segment.push(executable[i]!);
+    let cut = segment.length;
+    while (cut > 0 && !segment[cut - 1]!.branch) cut -= 1;
+    const inside = segment.slice(0, cut);
+    const after = segment.slice(cut);
+    nodes.push({
+      id: newId(),
+      type: "branch",
+      paths: [{
+        key: "yes",
+        label: "Yes",
+        when: { match: "all", rules: [{ field: String(b.config["field"] ?? ""), operator: normalizeOperator(String(b.config["operator"] ?? "is")), value: b.config["value"] === undefined ? undefined : String(b.config["value"]) }] },
+        steps: inside.filter((s) => s.branch !== "no").map(convert),
+      }],
+      otherwise: { key: "otherwise", label: "No", steps: inside.filter((s) => s.branch !== "yes").map(convert) },
+    });
+    for (const s of after) nodes.push(convert(s));
+  }
+  return { workflow: { version: 2, nodes }, notes };
+}
+
+export function legacyToWorkflow(steps: (StoredStep & { position?: number })[], logic: "and" | "or"): Workflow {
+  return convertLegacyAutomation(steps, logic).workflow;
 }

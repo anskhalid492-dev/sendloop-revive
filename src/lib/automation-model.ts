@@ -101,14 +101,19 @@ export type TriggerDef = {
   description: string;
   /** Source that actually emits the event, shown in the builder. */
   source: string;
+  /**
+   * false = no server path emits this event yet. Hidden from pickers and
+   * blocked at activation, so a workflow can never wait on a dead trigger.
+   */
+  available?: boolean;
 };
 
 export const TRIGGERS: TriggerDef[] = [
   { id: "lead.created", label: "Lead added", group: "Leads", description: "A lead is created or imported into the workspace.", source: "Leads" },
   { id: "lead.entered_campaign", label: "Lead enters campaign", group: "Campaigns", description: "A lead is enrolled as a campaign recipient.", source: "Campaigns" },
-  { id: "campaign.started", label: "Campaign started", group: "Campaigns", description: "A campaign is launched.", source: "Campaigns" },
-  { id: "campaign.completed", label: "Campaign completed", group: "Campaigns", description: "A campaign finishes its sequence.", source: "Campaigns" },
-  { id: "email.sent", label: "Email sent", group: "Email", description: "A campaign email is accepted by the sending provider.", source: "Sending engine" },
+  { id: "campaign.started", label: "Campaign started", group: "Campaigns", description: "A campaign is launched.", source: "Campaigns", available: false },
+  { id: "campaign.completed", label: "Campaign completed", group: "Campaigns", description: "A campaign finishes: every email is sent or its end date is reached.", source: "Campaigns" },
+  { id: "email.sent", label: "Email sent", group: "Email", description: "A campaign email is confirmed sent from your email account.", source: "Sending engine" },
   { id: "email.delivered", label: "Email delivered", group: "Email", description: "The provider confirms delivery.", source: "Delivery webhooks" },
   { id: "email.bounced", label: "Email bounced", group: "Email", description: "The provider reports a bounce.", source: "Delivery webhooks" },
   { id: "email.opened", label: "Email opened", group: "Email", description: "A tracked open is recorded.", source: "Delivery webhooks" },
@@ -118,16 +123,23 @@ export const TRIGGERS: TriggerDef[] = [
   { id: "lead.unsubscribed", label: "Lead unsubscribed", group: "Inbox", description: "An unsubscribe signal is received.", source: "Delivery webhooks / Inbox" },
   { id: "lead.status_changed", label: "Lead status changed", group: "Leads", description: "A lead's status field changes.", source: "Leads / CRM" },
   { id: "crm.stage_changed", label: "CRM stage changed", group: "CRM", description: "A contact moves to another pipeline stage.", source: "CRM" },
-  { id: "task.completed", label: "Task completed", group: "CRM", description: "A CRM task is marked done.", source: "CRM tasks" },
+  { id: "task.completed", label: "Task completed", group: "CRM", description: "A CRM task is marked done.", source: "CRM tasks", available: false },
   { id: "meeting.booked", label: "Meeting booked", group: "Meetings", description: "A real Calendly booking webhook is received.", source: "Calendly webhook" },
-  { id: "meeting.cancelled", label: "Meeting cancelled", group: "Meetings", description: "A real Calendly cancellation webhook is received.", source: "Calendly webhook" },
-  { id: "mailbox.connected", label: "Email account connected", group: "Infrastructure", description: "A mailbox passes its connection test.", source: "Email Accounts" },
-  { id: "warmup.status_changed", label: "Warmup status changed", group: "Infrastructure", description: "A mailbox warmup status changes.", source: "Warmup engine" },
+  { id: "meeting.cancelled", label: "Meeting cancelled", group: "Meetings", description: "A real Calendly cancellation webhook is received.", source: "Calendly webhook", available: false },
+  { id: "mailbox.connected", label: "Email account connected", group: "Infrastructure", description: "A mailbox passes its connection test.", source: "Email Accounts", available: false },
+  { id: "warmup.status_changed", label: "Warmup status changed", group: "Infrastructure", description: "A mailbox warmup status changes.", source: "Warmup engine", available: false },
   { id: "webhook.received", label: "Webhook received", group: "Webhooks", description: "A signed request hits this automation's own endpoint.", source: "Inbound webhook" },
   { id: "lead.tag_added", label: "Lead tag added", group: "Leads", description: "Another automation adds a tag to a lead.", source: "Automations" },
   { id: "lead.tag_removed", label: "Lead tag removed", group: "Leads", description: "Another automation removes a tag from a lead.", source: "Automations" },
   { id: "workflow.started", label: "Started by another workflow", group: "Workflows", description: "Another workflow uses \"Start another workflow\" on this one.", source: "Automations" },
 ];
+
+/** Triggers a real server path actually emits — the only ones customers can pick. */
+export const AVAILABLE_TRIGGERS: TriggerDef[] = TRIGGERS.filter((t) => t.available !== false);
+
+export function isSupportedTrigger(id: string): boolean {
+  return AVAILABLE_TRIGGERS.some((t) => t.id === id);
+}
 
 /**
  * Friendly trigger presets: a real trigger plus a filter the engine checks

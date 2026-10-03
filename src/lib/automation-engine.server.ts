@@ -541,6 +541,38 @@ async function loadContext(db: Db, run: RunRow): Promise<RunContext> {
   };
 }
 
+/* ---------------------------------------------------------- simulation */
+
+export function assertNotSimulation(metadata: Record<string, unknown> | null | undefined): void {
+  if (metadata && metadata["simulation"] === true) {
+    throw new Error("Simulation runs never perform real actions.");
+  }
+}
+
+/**
+ * Read-only context for a dry run. Uses the caller's own (RLS-scoped) client,
+ * reads exactly what a live run reads, and writes nothing.
+ */
+export async function loadSimulationContext(
+  db: unknown,
+  args: { workspaceId: string; leadId: string; campaignId?: string | null; event?: Record<string, unknown> },
+): Promise<{ getField: (field: string) => unknown }> {
+  const ctx = await loadContext(db as Db, {
+    id: "simulation",
+    automation_id: "simulation",
+    workspace_id: args.workspaceId,
+    lead_id: args.leadId,
+    campaign_id: args.campaignId ?? null,
+    trigger_type: "simulation",
+    current_step: 0,
+    attempts: 0,
+    branch: null,
+    metadata: { simulation: true, event: args.event ?? {} },
+    definition: {},
+  });
+  return { getField: (field) => fieldValue(field, ctx) };
+}
+
 /* ---------------------------------------------------------- conditions */
 
 function fieldValue(field: string, ctx: RunContext): unknown {
@@ -684,6 +716,9 @@ async function runAction(
   run: RunRow,
   ctx: RunContext,
 ): Promise<Record<string, unknown>> {
+  // Execution-layer guard: a run marked as a simulation can never perform a
+  // real side effect, whatever path reached this point.
+  assertNotSimulation(run.metadata);
   const leadId = run.lead_id;
   const workspaceId = run.workspace_id;
   const str = (key: string) => String(config[key] ?? "").trim();

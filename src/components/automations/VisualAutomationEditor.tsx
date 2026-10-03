@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, CheckCircle2, Pause, Play, Save, Zap } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FlaskConical, Pause, Play, Save, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -13,8 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowBuilder } from "@/components/automations/WorkflowBuilder";
+import { TestWorkflowDialog } from "@/components/automations/TestWorkflowDialog";
 import {
   AUTOMATION_STATUS_TONE,
+  AVAILABLE_TRIGGERS,
   TRIGGER_PRESETS,
   TRIGGERS,
   WORKFLOW_ACTIONS,
@@ -22,7 +24,7 @@ import {
   type AutomationStatus,
 } from "@/lib/automation-model";
 import { getAutomationOptions, listAutomations, saveAutomation, setAutomationStatus } from "@/lib/automations.functions";
-import { validateWorkflow, workflowToStep, type Workflow } from "@/lib/workflow-graph";
+import { validateWorkflowIssues, workflowToStep, type Workflow } from "@/lib/workflow-graph";
 
 const TRIGGER_GROUPS = ["Leads", "Email", "Inbox", "Campaigns", "Sales", "CRM", "Meetings", "Infrastructure", "Workflows", "Webhooks"];
 
@@ -81,7 +83,32 @@ export function VisualAutomationEditor({
     [optionsQuery.data, listQuery.data, automation.id],
   );
 
-  const errors = useMemo(() => validateWorkflow(workflow, WORKFLOW_ACTIONS.map((a) => a.id)), [workflow]);
+  const [testOpen, setTestOpen] = useState(false);
+  const issues = useMemo(
+    () =>
+      validateWorkflowIssues(workflow, WORKFLOW_ACTIONS.map((a) => a.id), {
+        automationId: automation.id,
+        triggerType: trigger,
+        triggerTag: String(triggerConfig["tag"] ?? ""),
+        supportedTriggers: AVAILABLE_TRIGGERS.map((t) => t.id),
+        ...(optionsQuery.data
+          ? {
+              campaignIds: optionsQuery.data.campaigns.map((c) => c.id),
+              stageIds: optionsQuery.data.stages.map((s) => s.id),
+              memberIds: optionsQuery.data.members.map((m) => m.id),
+            }
+          : {}),
+        ...(listQuery.data ? { workflowIds: listQuery.data.items.map((a) => a.id) } : {}),
+      }),
+    [workflow, trigger, triggerConfig, automation.id, optionsQuery.data, listQuery.data],
+  );
+  const errors = useMemo(() => Array.from(new Set(issues.map((i) => i.message))), [issues]);
+  const issuesByNode = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const i of issues) if (i.nodeId) (map[i.nodeId] ??= []).includes(i.message) || map[i.nodeId]!.push(i.message);
+    return map;
+  }, [issues]);
+  const generalErrors = useMemo(() => Array.from(new Set(issues.filter((i) => !i.nodeId).map((i) => i.message))), [issues]);
 
   const change = (next: Workflow) => {
     setWorkflow(next);
@@ -154,6 +181,9 @@ export function VisualAutomationEditor({
           <Button variant="outline" size="sm" disabled={saving} onClick={handleSave}>
             <Save className="mr-2 size-4" /> Save draft
           </Button>
+          <Button variant="outline" size="sm" disabled={saving} onClick={() => setTestOpen(true)}>
+            <FlaskConical className="mr-2 size-4" /> Test workflow
+          </Button>
           {status === "active" ? (
             <Button size="sm" variant="outline" disabled={saving} onClick={() => changeStatus("paused")}>
               <Pause className="mr-2 size-4" /> Pause
@@ -189,7 +219,7 @@ export function VisualAutomationEditor({
                   </SelectTrigger>
                   <SelectContent className="max-h-96">
                     {TRIGGER_GROUPS.map((group) => {
-                      const items = TRIGGERS.filter((t) => t.group === group);
+                      const items = AVAILABLE_TRIGGERS.filter((t) => t.group === group);
                       const presets = TRIGGER_PRESETS.filter((p) => p.group === group);
                       if (!items.length && !presets.length) return null;
                       return [
@@ -223,7 +253,15 @@ export function VisualAutomationEditor({
             )}
           </section>
 
-          <WorkflowBuilder workflow={workflow} onChange={change} options={options} />
+          <WorkflowBuilder workflow={workflow} onChange={change} options={options} issues={issuesByNode} />
+          <TestWorkflowDialog
+            open={testOpen}
+            onOpenChange={setTestOpen}
+            workspaceId={workspaceId}
+            automationId={automation.id}
+            triggerType={trigger}
+            workflow={workflow}
+          />
 
           <div className="flex justify-center">
             <span className="rounded-full border bg-muted px-3 py-1 text-xs text-muted-foreground">End</span>
@@ -254,11 +292,20 @@ export function VisualAutomationEditor({
                 <CheckCircle2 className="size-4" /> Everything looks good.
               </p>
             ) : (
-              <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
-                {errors.slice(0, 6).map((e) => (
-                  <li key={e}>{e}</li>
-                ))}
-              </ul>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                {generalErrors.length > 0 && (
+                  <ul className="list-disc space-y-1 pl-4">
+                    {generalErrors.map((e) => (
+                      <li key={e}>{e}</li>
+                    ))}
+                  </ul>
+                )}
+                {errors.length > generalErrors.length && (
+                  <p className="text-destructive">
+                    {Object.keys(issuesByNode).length} step{Object.keys(issuesByNode).length === 1 ? " needs" : "s need"} attention — see the highlighted steps.
+                  </p>
+                )}
+              </div>
             )}
             <p className="text-xs text-muted-foreground">
               Edits never change runs already in progress. A workflow can’t retrigger itself, and chains of workflows
