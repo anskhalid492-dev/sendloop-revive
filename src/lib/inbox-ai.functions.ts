@@ -11,15 +11,6 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const SYSTEM_PROMPT = [
-  "You write replies for a B2B sales rep answering a prospect's email.",
-  "Write only the reply body: no subject line, no signature, no placeholders.",
-  "Be concise (2-5 short sentences), specific to what the prospect wrote, plain and human.",
-  "Never invent facts, prices, case studies or commitments that are not in the thread.",
-  "If the prospect asked a question you cannot answer from the thread, offer to follow up.",
-  "Plain text only.",
-].join(" ");
-
 /** Which AI providers this workspace can use for AI Reply (never the key). */
 export const listInboxAiProviders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -57,23 +48,28 @@ export const draftAiReply = createServerFn({ method: "POST" })
     // RLS decides whether the caller may read this conversation at all.
     const { data: conversation } = await context.supabase
       .from("conversations")
-      .select("id, workspace_id, subject, prospect_email, lead_id")
+      .select("id, workspace_id, subject, prospect_email, lead_id, sending_account_id")
       .eq("id", data.conversationId)
       .maybeSingle();
     if (!conversation) throw new Error("Conversation not found.");
 
-    const { data: messages } = await context.supabase
+    // Only THIS thread, in THIS workspace: newest N, re-ordered oldest-first.
+    const { THREAD_MESSAGE_LIMIT, buildReplyPrompt, cleanAiEmail } = await import("@/lib/inbox-ai-prompt");
+    const { data: messages, error: msgError } = await context.supabase
       .from("conversation_messages")
-      .select("direction, from_name, from_email, body, occurred_at")
+      .select("direction, from_name, from_email, body, occurred_at, sending_account_id")
       .eq("conversation_id", conversation.id)
+      .eq("workspace_id", conversation.workspace_id)
       .order("occurred_at", { ascending: false })
-      .limit(8);
+      .limit(THREAD_MESSAGE_LIMIT);
+    if (msgError) throw new Error("Couldn't read this conversation. Please try again.");
 
     const { data: lead } = conversation.lead_id
       ? await context.supabase
           .from("leads")
           .select("first_name, last_name, company, job_title")
           .eq("id", conversation.lead_id)
+          .eq("workspace_id", conversation.workspace_id)
           .maybeSingle()
       : { data: null };
 
@@ -91,44 +87,69 @@ export const draftAiReply = createServerFn({ method: "POST" })
     }
 
     const { splitReplyBody } = await import("@/lib/email-body");
-    const thread = [...(messages ?? [])]
-      .reverse()
-      .map((message) => {
-        const who = message.direction === "inbound" ? "PROSPECT" : "US";
-        const text = splitReplyBody(message.body as string | null).reply.slice(0, 2000);
-        return `${who} (${message.from_email}):\n${text}`;
-      })
-      .join("\n\n---\n\n");
-
-    const facts = [
-      `Prospect: ${conversation.prospect_email}`,
-      lead?.company ? `Company: ${lead.company}` : "",
-      lead?.job_title ? `Role: ${lead.job_title}` : "",
-      conversation.subject ? `Subject: ${conversation.subject}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const built = buildReplyPrompt(
+      {
+        prospectEmail: conversation.prospect_email as string,
+        subject: conversation.subject as string | null,
+        lead: lead ?? null,
+        messages: [...(messages ?? [])].reverse(),
+        instruction: data.instruction ?? null,
+      },
+      (body) => splitReplyBody(body).reply.trim(),
+    );
 
     const { generateWithWorkspaceAi } = await import("@/lib/ai-personalization.server");
     const text = await generateWithWorkspaceAi({
       credentials,
-      system: SYSTEM_PROMPT,
-      prompt: [
-        facts,
-        "",
-        "Conversation so far (oldest first):",
-        thread || "(no messages yet)",
-        "",
-        data.instruction ? `Extra instruction from the rep: ${data.instruction}` : "",
-        "Write the next reply from US.",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      maxTokens: 600,
-      temperature: 0.5,
+      system: built.system,
+      prompt: built.prompt,
+      maxTokens: 700,
+      temperature: 0.6,
     });
 
-    const draft = (text ?? "").trim();
+    const draft = cleanAiEmail(text ?? "");
     if (!draft) throw new Error("The AI didn't return a draft. Please try again.");
-    return { text: draft, provider: credentials.provider };
+    return { text: draft, provider: credentials.provider, intent: built.intent };
+  });
+
+/**
+ * AI Email Composer: rewrites the user's own New Email draft body. Returns a
+ * suggestion only — the composer keeps the original until the user picks it.
+ * Uses the workspace's own AI key (never the AI Sales Agent provider).
+ */
+export const composeAiEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        mode: z.enum(["improve", "human", "shorter", "professional", "warmer", "first_touch"]),
+        draft: z.string().trim().min(1, "Write a draft first.").max(8000),
+        recipientEmail: z.string().max(320).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: member } = await context.supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", data.workspaceId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!member) throw new Error("Workspace not found.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { workspaceAiCredentials } = await import("@/lib/ai-keys.server");
+    const credentials = await workspaceAiCredentials(supabaseAdmin, data.workspaceId, null);
+    if (!credentials) {
+      throw new Error("Connect your OpenAI or Claude key in Settings → Integrations to use AI Email Composer.");
+    }
+    const { buildComposePrompt, cleanAiEmail } = await import("@/lib/inbox-ai-prompt");
+    const built = buildComposePrompt({ mode: data.mode, draft: data.draft, recipientEmail: data.recipientEmail ?? null });
+    const { generateWithWorkspaceAi } = await import("@/lib/ai-personalization.server");
+    const text = cleanAiEmail(
+      await generateWithWorkspaceAi({ credentials, system: built.system, prompt: built.prompt, maxTokens: 900, temperature: 0.5 }),
+    );
+    if (!text) throw new Error("The AI didn't return a version. Please try again.");
+    return { text };
   });
