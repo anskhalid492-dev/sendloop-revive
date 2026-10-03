@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HUMAN_REVIEW_TAG, normalizeSettings, preReplySafety, replyDelivery } from "@/lib/sales-agent";
+import { memStore } from "./helpers/sales-agent-provider-store";
+import { __setSalesAgentProviderStore } from "@/lib/sales-agent-provider.server";
 import { __setSalesAgentTransport } from "@/lib/sales-agent-ai.server";
 import { runAiReply, settingsKey, type AgentContext } from "@/lib/sales-agent.server";
 import { aggregateAiMonitoring, classifyFailure, FALLBACK_OUTCOME, pageWorkspaces } from "@/lib/sales-agent-metrics";
@@ -33,10 +35,11 @@ const reply = (text: string) =>
 
 beforeEach(() => {
   calls = 0;
-  vi.stubEnv("LOVABLE_API_KEY", "test-key");
+  __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "test-key" }));
 });
 afterEach(() => {
   __setSalesAgentTransport(null);
+  __setSalesAgentProviderStore(null);
   vi.unstubAllEnvs();
 });
 
@@ -322,7 +325,8 @@ describe("provider separation (four paths)", () => {
   });
   it("AI Sales Agent uses only MunchReach credentials, never a customer key", () => {
     const src = read("src/lib/sales-agent-ai.server.ts") + read("src/lib/sales-agent.server.ts") + read("src/lib/sales-agent.functions.ts");
-    expect(src).toMatch(/LOVABLE_API_KEY/);
+    expect(src).not.toMatch(/LOVABLE_API_KEY|ai\.gateway\.lovable|gpt-6-astra/);
+    expect(src).toMatch(/resolveProviderConfig/);
     expect(src).not.toMatch(/workspace_ai_keys|ai-keys|ai-provider-keys|byok/i);
   });
 });

@@ -113,6 +113,7 @@ import { Route as AuthenticatedMailboxesAddImapRouteImport } from './routes/_aut
 import { Route as AuthenticatedMailboxesAddMicrosoftRouteImport } from './routes/_authenticated/mailboxes.add-microsoft'
 import { Route as AuthenticatedMailboxesConnectRouteImport } from './routes/_authenticated/mailboxes.connect'
 import { Route as AuthenticatedMranuskhalidIndexRouteImport } from './routes/_authenticated/mranuskhalid/index'
+import { Route as AuthenticatedMranuskhalidAiProviderRouteImport } from './routes/_authenticated/mranuskhalid/ai-provider'
 import { Route as AuthenticatedMranuskhalidAiSalesAgentRouteImport } from './routes/_authenticated/mranuskhalid/ai-sales-agent'
 import { Route as AuthenticatedMranuskhalidAnalyticsRouteImport } from './routes/_authenticated/mranuskhalid/analytics'
 import { Route as AuthenticatedMranuskhalidAppsumoRouteImport } from './routes/_authenticated/mranuskhalid/appsumo'
@@ -773,6 +774,12 @@ const AuthenticatedMranuskhalidIndexRoute =
   AuthenticatedMranuskhalidIndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
+const AuthenticatedMranuskhalidAiProviderRoute =
+  AuthenticatedMranuskhalidAiProviderRouteImport.update({
+    id: '/ai-provider',
+    path: '/ai-provider',
     getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
   } as any)
 const AuthenticatedMranuskhalidAiSalesAgentRoute =
@@ -1579,6 +1586,7 @@ export interface FileRoutesByFullPath {
   '/mailboxes/add-imap': typeof AuthenticatedMailboxesAddImapRoute
   '/mailboxes/add-microsoft': typeof AuthenticatedMailboxesAddMicrosoftRoute
   '/mailboxes/connect': typeof AuthenticatedMailboxesConnectRoute
+  '/mranuskhalid/ai-provider': typeof AuthenticatedMranuskhalidAiProviderRoute
   '/mranuskhalid/ai-sales-agent': typeof AuthenticatedMranuskhalidAiSalesAgentRoute
   '/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
   '/mranuskhalid/appsumo': typeof AuthenticatedMranuskhalidAppsumoRoute
@@ -1801,6 +1809,7 @@ export interface FileRoutesByTo {
   '/mailboxes/add-imap': typeof AuthenticatedMailboxesAddImapRoute
   '/mailboxes/add-microsoft': typeof AuthenticatedMailboxesAddMicrosoftRoute
   '/mailboxes/connect': typeof AuthenticatedMailboxesConnectRoute
+  '/mranuskhalid/ai-provider': typeof AuthenticatedMranuskhalidAiProviderRoute
   '/mranuskhalid/ai-sales-agent': typeof AuthenticatedMranuskhalidAiSalesAgentRoute
   '/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
   '/mranuskhalid/appsumo': typeof AuthenticatedMranuskhalidAppsumoRoute
@@ -2028,6 +2037,7 @@ export interface FileRoutesById {
   '/_authenticated/mailboxes/add-imap': typeof AuthenticatedMailboxesAddImapRoute
   '/_authenticated/mailboxes/add-microsoft': typeof AuthenticatedMailboxesAddMicrosoftRoute
   '/_authenticated/mailboxes/connect': typeof AuthenticatedMailboxesConnectRoute
+  '/_authenticated/mranuskhalid/ai-provider': typeof AuthenticatedMranuskhalidAiProviderRoute
   '/_authenticated/mranuskhalid/ai-sales-agent': typeof AuthenticatedMranuskhalidAiSalesAgentRoute
   '/_authenticated/mranuskhalid/analytics': typeof AuthenticatedMranuskhalidAnalyticsRoute
   '/_authenticated/mranuskhalid/appsumo': typeof AuthenticatedMranuskhalidAppsumoRoute
@@ -2255,6 +2265,7 @@ export interface FileRouteTypes {
     | '/mailboxes/add-imap'
     | '/mailboxes/add-microsoft'
     | '/mailboxes/connect'
+    | '/mranuskhalid/ai-provider'
     | '/mranuskhalid/ai-sales-agent'
     | '/mranuskhalid/analytics'
     | '/mranuskhalid/appsumo'
@@ -2477,6 +2488,7 @@ export interface FileRouteTypes {
     | '/mailboxes/add-imap'
     | '/mailboxes/add-microsoft'
     | '/mailboxes/connect'
+    | '/mranuskhalid/ai-provider'
     | '/mranuskhalid/ai-sales-agent'
     | '/mranuskhalid/analytics'
     | '/mranuskhalid/appsumo'
@@ -2703,6 +2715,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mailboxes/add-imap'
     | '/_authenticated/mailboxes/add-microsoft'
     | '/_authenticated/mailboxes/connect'
+    | '/_authenticated/mranuskhalid/ai-provider'
     | '/_authenticated/mranuskhalid/ai-sales-agent'
     | '/_authenticated/mranuskhalid/analytics'
     | '/_authenticated/mranuskhalid/appsumo'
@@ -3676,6 +3689,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMranuskhalidIndexRouteImport
       parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
     }
+    '/_authenticated/mranuskhalid/ai-provider': {
+      id: '/_authenticated/mranuskhalid/ai-provider'
+      path: '/ai-provider'
+      fullPath: '/mranuskhalid/ai-provider'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidAiProviderRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
     '/_authenticated/mranuskhalid/ai-sales-agent': {
       id: '/_authenticated/mranuskhalid/ai-sales-agent'
       path: '/ai-sales-agent'
@@ -4593,6 +4613,7 @@ const AuthenticatedMranuskhalidInboundEventsRouteWithChildren =
 
 interface AuthenticatedMranuskhalidRouteRouteChildren {
   AuthenticatedMranuskhalidMarketingRouteRoute: typeof AuthenticatedMranuskhalidMarketingRouteRouteWithChildren
+  AuthenticatedMranuskhalidAiProviderRoute: typeof AuthenticatedMranuskhalidAiProviderRoute
   AuthenticatedMranuskhalidAiSalesAgentRoute: typeof AuthenticatedMranuskhalidAiSalesAgentRoute
   AuthenticatedMranuskhalidAnalyticsRoute: typeof AuthenticatedMranuskhalidAnalyticsRoute
   AuthenticatedMranuskhalidAppsumoRoute: typeof AuthenticatedMranuskhalidAppsumoRoute
@@ -4651,6 +4672,8 @@ const AuthenticatedMranuskhalidRouteRouteChildren: AuthenticatedMranuskhalidRout
   {
     AuthenticatedMranuskhalidMarketingRouteRoute:
       AuthenticatedMranuskhalidMarketingRouteRouteWithChildren,
+    AuthenticatedMranuskhalidAiProviderRoute:
+      AuthenticatedMranuskhalidAiProviderRoute,
     AuthenticatedMranuskhalidAiSalesAgentRoute:
       AuthenticatedMranuskhalidAiSalesAgentRoute,
     AuthenticatedMranuskhalidAnalyticsRoute:

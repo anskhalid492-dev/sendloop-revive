@@ -127,6 +127,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/crm", label: "CRM", icon: Users },
       { to: "/mranuskhalid/automations", label: "Automations", icon: Workflow },
       { to: "/mranuskhalid/ai-sales-agent", label: "AI Sales Agent", icon: Sparkles },
+      { to: "/mranuskhalid/ai-provider", label: "AI Provider", icon: Sparkles },
     ],
   },
   {
