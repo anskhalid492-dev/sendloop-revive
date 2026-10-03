@@ -4,7 +4,7 @@
  * Uses MunchReach's own AI gateway credential (LOVABLE_API_KEY, read inside
  * the call). It NEVER reads a customer AI key and is never used by AI Campaign
  * Writer / AI Personalization, which keep their customer-key path
- * (ai-keys.server.ts / ai-models.server.ts). Credentials never leave this file.
+ * (their own key store and model modules). Credentials never leave this file.
  */
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
