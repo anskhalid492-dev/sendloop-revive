@@ -107,7 +107,7 @@ async function decrypt(ct: string): Promise<string | null> {
 }
 
 /** Save provider/model and optionally a new key. Changing provider requires a new key. */
-export async function saveProviderConfig(input: { provider: SalesAgentAiProvider; model: string; apiKey?: string | null }): Promise<SalesAgentProviderView> {
+export async function saveProviderConfig(input: { provider: SalesAgentAiProvider; model: string; apiKey?: string | null | undefined }): Promise<SalesAgentProviderView> {
   const current = normalize(await store().read());
   const model = input.model.trim();
   if (!model) throw new Error("Enter a model.");
