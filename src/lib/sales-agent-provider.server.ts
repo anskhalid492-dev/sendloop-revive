@@ -6,7 +6,7 @@
  * it is not returned, logged, or written to workflow history / analytics.
  *
  * There is deliberately NO fallback to any other credential (including
- * LOVABLE_API_KEY): no configuration means "unavailable".
+ * the former platform AI gateway key): no configuration means "unavailable".
  */
 import {
   MASKED_KEY,

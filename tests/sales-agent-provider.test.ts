@@ -213,7 +213,7 @@ describe("admin configuration + masking", () => {
   });
   it("every admin server function requires super admin", () => {
     const src = read("src/lib/sales-agent-provider.functions.ts");
-    expect(src.match(/createServerFn/g)!.length).toBe(4);
+    expect(src.match(/createServerFn\(/g)!.length).toBe(4);
     expect(src.match(/await guard\(context/g)!.length).toBe(4);
     expect(src).toMatch(/assertSuperAdmin/);
     expect(src.match(/requireSupabaseAuth\]/g)!.length).toBe(4);
