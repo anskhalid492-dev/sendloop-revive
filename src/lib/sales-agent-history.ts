@@ -6,6 +6,7 @@ export function describeAiReplyOutput(output: Record<string, unknown>): string {
   const forced = Array.isArray(output["forcedDraft"]) ? (output["forcedDraft"] as string[]) : [];
   const note = typeof output["note"] === "string" ? output["note"] : "";
   if (output["mode"] === "auto_send") return output["duplicate"] ? "Auto-send attempted · already sent earlier, not sent again" : "Auto-send attempted · reply sent from the conversation's mailbox";
+  if (output["draftCreated"] === false && !output["handedOff"]) return `AI reply not saved${note ? ` · ${note}` : ""}`;
   if (output["handedOff"]) return `AI reply not saved · handed to a person${note ? ` · ${note}` : ""}`;
   const why = forced.length ? ` · kept as draft: ${forced.join(" ")}` : note ? ` · ${note}` : "";
   return `Draft generated${why}`;

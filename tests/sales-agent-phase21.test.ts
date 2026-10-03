@@ -266,6 +266,27 @@ describe("admin monitoring", () => {
   });
 });
 
+describe("phase 2.2 audit", () => {
+  it("no confidence available (no preceding AI Decision) → draft", async () => {
+    reply(CLEAN);
+    expect(await finalMode(AUTO, ctx(), null)).toBe("draft");
+    reply(CLEAN);
+    expect(await finalMode(AUTO, ctx(), { confidence: null })).toBe("draft");
+  });
+  it("an unsaved reply is never shown as a generated draft", () => {
+    expect(describeAiReplyOutput({ generated: true, mode: "draft", draftCreated: false, handedOff: false, note: "No owner" })).toMatch(/^AI reply not saved/);
+  });
+  it("hitting the 20,000-step cap is reported as truncated", async () => {
+    const full = Array.from({ length: 1000 }, () => ({ workspace_id: WS, output: {} }));
+    const b: Record<string, unknown> = {};
+    for (const k of ["select", "gte", "lt", "or", "order"]) b[k] = () => b;
+    b["range"] = async () => ({ data: full, error: null });
+    const out = await loadMonitoringRows({ from: () => b }, "2026-01-01", "2026-01-31");
+    expect(out.truncated).toBe(true);
+    expect(out.rows.length).toBe(20_000);
+  });
+});
+
 describe("customer run history", () => {
   it("AI reply: draft generated vs auto-send attempted", () => {
     expect(describeAiReplyOutput({ generated: true, mode: "draft" })).toMatch(/^Draft generated/);
