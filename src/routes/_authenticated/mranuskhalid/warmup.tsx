@@ -38,6 +38,7 @@ import {
   adminWarmupControl,
 } from "@/lib/admin-outreach.functions";
 import { WarmupRecipientPool } from "@/components/admin/WarmupRecipientPool";
+import { WarmupAnalytics } from "@/components/admin/WarmupAnalytics";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/warmup")({
   head: () => ({
@@ -122,7 +123,11 @@ function AdminWarmupPage() {
         <TabsList>
           <TabsTrigger value="mailboxes">Mailboxes</TabsTrigger>
           <TabsTrigger value="pool">Recipient pool</TabsTrigger>
+          <TabsTrigger value="analytics">Warmup Analytics</TabsTrigger>
         </TabsList>
+        <TabsContent value="analytics" className="pt-4">
+          <WarmupAnalytics />
+        </TabsContent>
         <TabsContent value="pool" className="pt-4">
           <WarmupRecipientPool />
         </TabsContent>
