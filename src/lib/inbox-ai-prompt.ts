@@ -78,13 +78,15 @@ export const HUMAN_STYLE_RULES = [
   "Never use: 'I hope this email finds you well', 'I hope you are doing well', 'I'd be happy to assist', 'Thank you for your valuable', 'We are excited to', 'Don't hesitate to reach out', 'Feel free to reach out', 'synergy', 'leverage', 'circle back', 'touch base'.",
   "No corporate jargon, no marketing hype, no excessive enthusiasm, at most one exclamation mark.",
   "Do not summarise the conversation back to the prospect and do not repeat what they already know.",
-  "Plain text only. No markdown, no bullet symbols unless the prospect used a list, no placeholders like [Name] or {{...}}.",
+  "Plain text only. No markdown, no bullet or numbered lists (write in sentences), no placeholders like [Name] or {{...}}.",
 ];
 
 export const FACT_RULES = [
   "Never invent pricing, discounts, features, integrations, production or delivery times, guarantees, results, meetings, payments or completed actions.",
   "Only use facts that appear in the conversation, the contact details given, or the rep's own text. If something needed is missing, do not guess — offer to confirm it.",
   "Never invent a sender name, phone number, job title, address, website or credentials.",
+  "Never promise deliverables, offers or timelines that US has not already offered in the thread — no free samples, sample kits, mockups, dielines, PDFs, quotes, 'today'/'within 24 hours' or similar unless already offered earlier. Don't recommend specific materials or options nobody mentioned.",
+  "Ask at most one or two short questions, and only for what is genuinely needed for the next step.",
 ];
 
 /* ---------------------------------------------------------------- AI Reply */
@@ -149,6 +151,8 @@ export function buildReplyPrompt(ctx: ReplyContext, cleanBody?: (b: string | nul
     .pop();
   const intent = detectIntent(clean(latestInbound?.body ?? ""));
   const { greeting } = resolveGreeting(ctx);
+  // Defensive: never more than the newest THREAD_MESSAGE_LIMIT messages.
+  ctx = { ...ctx, messages: [...ctx.messages].sort((a, b) => Date.parse(a.occurred_at ?? "") - Date.parse(b.occurred_at ?? "")).slice(-THREAD_MESSAGE_LIMIT) };
   const facts = [
     `Prospect email: ${ctx.prospectEmail}`,
     ctx.lead?.first_name ? `Prospect first name: ${ctx.lead.first_name}` : "",
