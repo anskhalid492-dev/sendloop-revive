@@ -1768,6 +1768,7 @@ export async function requeueRetryableMessages(
 export async function finalizeCampaignIfDrained(
   supabase: AnySupabase,
   campaignId: string,
+  emit?: (...args: any[]) => Promise<any>,
 ): Promise<boolean> {
   const { count: openCount } = await supabase
     .from("campaign_messages")
