@@ -198,6 +198,7 @@ export const createAutomation = createServerFn({ method: "POST" })
         name: z.string().trim().min(2).max(120),
         description: z.string().trim().max(400).optional(),
         triggerType: z.string().trim().min(2).max(60),
+        triggerConfig: z.record(z.string(), z.unknown()).default({}),
         steps: z.array(stepInput).max(40).default([]),
       })
       .parse(input),
@@ -220,6 +221,7 @@ export const createAutomation = createServerFn({ method: "POST" })
         name: data.name,
         description: data.description ?? null,
         trigger_type: data.triggerType,
+        trigger_config: data.triggerConfig,
         status: "draft",
         created_by: context.userId,
       })
