@@ -5,7 +5,7 @@
  * member from another workspace can never be read. Nothing is written.
  */
 import { countNodes, type Workflow } from "@/lib/workflow-graph";
-import { simulateWorkflow, type SimulationResult } from "@/lib/workflow-simulator";
+import { simulateWorkflowWithAi, type SimulationResult } from "@/lib/workflow-simulator";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -38,7 +38,25 @@ export async function runWorkflowSimulation(client: Client, data: SimulationRequ
       client.from("workspace_members").select(sel("user_id, profiles:user_id(email, full_name)")).eq("workspace_id", data.workspaceId),
     ]);
     const map = (rows: unknown) => Object.fromEntries(((rows ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
-    return simulateWorkflow({
+    // AI nodes run against the MunchReach AI provider in read-only mode:
+    // context is loaded through the caller's RLS client, filtered by workspace.
+    const { loadAgentConversation, loadSalesAgentSettings, runAiDecision, runAiReply } = await import("@/lib/sales-agent.server");
+    let agentPromise: Promise<{ ctx: import("@/lib/sales-agent.server").AgentContext; settings: import("@/lib/sales-agent").SalesAgentSettings }> | null = null;
+    const agent = () =>
+      (agentPromise ??= (async () => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const [settings, convo, { data: fullLead }] = await Promise.all([
+          loadSalesAgentSettings(supabaseAdmin, data.workspaceId),
+          loadAgentConversation(client, data.workspaceId, data.leadId),
+          client.from("leads").select("*").eq("id", data.leadId).eq("workspace_id", data.workspaceId).maybeSingle(),
+        ]);
+        return {
+          settings,
+          ctx: { workspaceId: data.workspaceId, lead: fullLead ?? null, stageName: null, campaignName: null, conversation: convo.conversation, messages: convo.messages, previousDecisions: [] },
+        };
+      })());
+    let lastConfidence: number | null = null;
+    return simulateWorkflowWithAi({
       workflow,
       triggerType: data.triggerType,
       getField,
@@ -52,6 +70,19 @@ export async function runWorkflowSimulation(client: Client, data: SimulationRequ
             m.profiles?.full_name || m.profiles?.email || "a team member",
           ]),
         ),
+      },
+    }, {
+      decide: async (node) => {
+        const a = await agent();
+        const decided = await runAiDecision(node, a.ctx, a.settings);
+        lastConfidence = (decided.output["confidence"] as number | null) ?? null;
+        a.ctx.previousDecisions.push({ outcome: (decided.output["outcome"] as string) ?? null, pathLabel: String(decided.output["pathLabel"]) });
+        return decided;
+      },
+      reply: async (config) => {
+        const a = await agent();
+        const r = await runAiReply(config, a.ctx, a.settings, lastConfidence);
+        return r.ok ? { ok: true, text: r.text, mode: r.mode, forcedDraft: r.forcedDraft } : { ok: false, error: r.error };
       },
     });
 }

@@ -1049,6 +1049,145 @@ async function runAction(
   }
 }
 
+/* ------------------------------------------------------ AI Sales Agent */
+
+async function loadAgentForRun(db: Db, run: RunRow, ctx: RunContext, meta: Record<string, unknown>) {
+  const { loadAgentConversation, loadSalesAgentSettings } = await import("@/lib/sales-agent.server");
+  const conversationId = typeof ctx.event["conversationId"] === "string" ? (ctx.event["conversationId"] as string) : null;
+  const [settings, convo] = await Promise.all([
+    loadSalesAgentSettings(db, run.workspace_id),
+    loadAgentConversation(db, run.workspace_id, run.lead_id, conversationId),
+  ]);
+  const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { outcome: string | null; pathLabel: string }[]) : [];
+  return {
+    settings,
+    ctx: {
+      workspaceId: run.workspace_id,
+      lead: ctx.lead && ctx.lead["workspace_id"] === run.workspace_id ? ctx.lead : null,
+      stageName: ctx.stageName,
+      campaignName: ctx.campaign?.name ?? null,
+      conversation: convo.conversation,
+      messages: convo.messages,
+      previousDecisions: decisions.map((d) => ({ outcome: d.outcome ?? null, pathLabel: String(d.pathLabel ?? "") })),
+    },
+  };
+}
+
+async function automationOwner(db: Db, automationId: string): Promise<string | null> {
+  const { data } = await db.from("automations").select("created_by").eq("id", automationId).maybeSingle();
+  return (data as { created_by?: string | null } | null)?.created_by ?? null;
+}
+
+async function requestHumanReview(db: Db, run: RunRow, ctx: RunContext, reason: string, ownerId: string | null) {
+  const leadId = run.lead_id;
+  const workspaceId = run.workspace_id;
+  if (!leadId) return { skipped: "No lead" };
+  const { HUMAN_REVIEW_TAG } = await import("@/lib/sales-agent");
+  const createdBy = await automationOwner(db, run.automation_id);
+  const text = reason.slice(0, 300) || "AI handed this conversation to a person.";
+  if (createdBy) {
+    const { error } = await db.from("lead_tasks").insert({
+      lead_id: leadId,
+      workspace_id: workspaceId,
+      created_by: createdBy,
+      title: `Human review: ${text}`.slice(0, 200),
+      due_at: new Date(Date.now() + 86_400_000).toISOString(),
+      completed: false,
+    });
+    if (error) throw new Error(error.message);
+  }
+  await db.from("lead_activities").insert({ lead_id: leadId, workspace_id: workspaceId, campaign_id: run.campaign_id, type: "automation", detail: `Human review requested: ${text}` });
+  // Pauses automated AI replies for this lead until a person removes the tag.
+  const tags = Array.isArray(ctx.lead?.["tags"]) ? (ctx.lead!["tags"] as string[]) : [];
+  const patch: Record<string, unknown> = { tags: Array.from(new Set([...tags, HUMAN_REVIEW_TAG])) };
+  if (ownerId) {
+    const { data: member } = await db.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).eq("user_id", ownerId).maybeSingle();
+    if (member) patch["owner_id"] = ownerId;
+  }
+  await db.from("leads").update(patch as never).eq("id", leadId).eq("workspace_id", workspaceId);
+  if (ctx.lead) ctx.lead["tags"] = patch["tags"];
+  const notifyTo = ownerId ?? createdBy;
+  if (notifyTo) {
+    await db.from("notifications").insert({ user_id: notifyTo, workspace_id: workspaceId, type: "automation", title: "Human review requested", message: text, entity_type: "automation", entity_id: run.automation_id });
+  }
+  return { humanReview: true, reason: text, assignedTo: patch["owner_id"] ?? null };
+}
+
+async function runSalesAgentAction(
+  db: Db,
+  type: string,
+  config: Record<string, unknown>,
+  run: RunRow,
+  ctx: RunContext,
+  meta: Record<string, unknown>,
+  loadAgent: () => Promise<{ ctx: import("@/lib/sales-agent.server").AgentContext; settings: import("@/lib/sales-agent").SalesAgentSettings }>,
+): Promise<Record<string, unknown>> {
+  assertNotSimulation(run.metadata);
+  const str = (k: string) => String(config[k] ?? "").trim();
+  if (type === "human.review") {
+    const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { usedFallback?: boolean }[]) : [];
+    const last = decisions[decisions.length - 1];
+    const fallbackText = last?.usedFallback ? "AI was not confident enough to respond automatically." : "";
+    return requestHumanReview(db, run, ctx, str("reason") || fallbackText, str("ownerId") || null);
+  }
+  if (type !== "ai.generate_reply") throw new Error(`Unsupported action "${type}"`);
+
+  const { runAiReply } = await import("@/lib/sales-agent.server");
+  const a = await loadAgent();
+  const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { confidence?: number | null }[]) : [];
+  const lastConfidence = decisions.length ? (decisions[decisions.length - 1]!.confidence ?? null) : null;
+  const result = await runAiReply(config, a.ctx, a.settings, lastConfidence);
+  if (!result.ok) {
+    // Never send on failure. Hand off to a person unless configured otherwise.
+    if (config["onFailure"] !== "stop") {
+      const review = await requestHumanReview(db, run, ctx, result.error, null);
+      return { kind: "ai_reply", generated: false, error: result.error, blocked: result.blocked, handedOff: !("skipped" in review), ...(result.ai ? { ai: result.ai } : {}) };
+    }
+    return { kind: "ai_reply", generated: false, error: result.error, blocked: result.blocked, ...(result.ai ? { ai: result.ai } : {}) };
+  }
+  const conversation = a.ctx.conversation;
+  const owner = await automationOwner(db, run.automation_id);
+  const subject = conversation?.subject ? (/^re:/i.test(conversation.subject) ? conversation.subject : `Re: ${conversation.subject}`) : "Re: your reply";
+  const base = { kind: "ai_reply", generated: true, requestedMode: result.cfg.mode, forcedDraft: result.forcedDraft, truncated: result.truncated, words: result.text.split(/\s+/).length, ai: result.ai };
+
+  if (result.mode === "auto_send" && conversation && owner) {
+    const { claimManualSend } = await import("@/lib/manual-send-idempotency.server");
+    const claim = await claimManualSend<{ messageId?: string }>(run.workspace_id, `ai-reply:${run.id}:${String(config["__hop"] ?? "")}`, "reply");
+    if (!claim.proceed) return { ...base, mode: "auto_send", sent: true, duplicate: true };
+    const { requireEntitlement, consumeUsage, releaseUsage } = await import("@/lib/billing/usage.server");
+    try {
+      await requireEntitlement(run.workspace_id, "unified_inbox");
+      await consumeUsage(run.workspace_id, "emails_monthly", 1);
+    } catch (error) {
+      await claim.release();
+      throw error;
+    }
+    try {
+      const { sendReplyThroughMailbox } = await import("@/lib/inbox-send.server");
+      const sent = await sendReplyThroughMailbox({ supabase: db, userId: owner, conversationId: conversation.id, subject, body: result.text, cc: [], attachments: [] });
+      await claim.finish(sent as never);
+      return { ...base, mode: "auto_send", sent: true };
+    } catch (error) {
+      await claim.release();
+      await releaseUsage(run.workspace_id, "emails_monthly", 1).catch(() => {});
+      throw error;
+    }
+  }
+
+  if (!owner) return { ...base, mode: "draft", skipped: "Automation has no owner to attribute the draft to" };
+  const { error } = await db.from("email_drafts").insert({
+    workspace_id: run.workspace_id,
+    user_id: owner,
+    conversation_id: conversation?.id ?? null,
+    lead_id: run.lead_id,
+    to_email: conversation?.prospect_email || String(ctx.lead?.["email"] ?? ""),
+    subject,
+    body: result.text,
+  });
+  if (error) throw new Error(error.message);
+  return { ...base, mode: "draft", draftCreated: true, ...(result.cfg.mode === "auto_send" && !conversation ? { note: "No conversation to reply in, so a draft was created." } : {}) };
+}
+
 async function hmacHex(secret: string, body: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -1209,10 +1348,19 @@ async function executeGraphRun(run: RunRow, workflow: import("@/lib/workflow-gra
 
   const { data: priorRows } = await db
     .from("automation_run_steps")
-    .select("position, status")
+    .select("position, status, output")
     .eq("run_id", run.id);
   const prior = new Map<number, HopStatus>();
-  for (const row of (priorRows ?? []) as { position: number; status: HopStatus }[]) prior.set(row.position, row.status);
+  const priorOut = new Map<number, Record<string, unknown>>();
+  for (const row of (priorRows ?? []) as { position: number; status: HopStatus; output: Record<string, unknown> | null }[]) {
+    prior.set(row.position, row.status);
+    if (row.output) priorOut.set(row.position, row.output);
+  }
+  let agent: { ctx: import("@/lib/sales-agent.server").AgentContext; settings: import("@/lib/sales-agent").SalesAgentSettings } | null = null;
+  const loadAgent = async () => {
+    if (!agent) agent = await loadAgentForRun(db, run, context, meta);
+    return agent;
+  };
 
   const persistState = async (state: WorkflowState, extra: Record<string, unknown> = {}) => {
     Object.assign(meta, { workflow: state }, extra);
@@ -1244,7 +1392,21 @@ async function executeGraphRun(run: RunRow, workflow: import("@/lib/workflow-gra
       );
     },
     saveState: (state) => persistState(state),
-    executeAction: (action, config, hop) => runAction(db, action, { ...config, __hop: hop }, run, context),
+    executeAction: (action, config, hop) =>
+      action.startsWith("ai.") || action === "human.review"
+        ? runSalesAgentAction(db, action, { ...config, __hop: hop }, run, context, meta, loadAgent)
+        : runAction(db, action, { ...config, __hop: hop }, run, context),
+    priorOutput: async (hop) => priorOut.get(hop) ?? null,
+    aiDecide: async (node) => {
+      assertNotSimulation(run.metadata);
+      const { runAiDecision } = await import("@/lib/sales-agent.server");
+      const a = await loadAgent();
+      const decided = await runAiDecision(node, a.ctx, a.settings);
+      const list = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as unknown[]) : [];
+      meta["aiDecisions"] = [...list, { outcome: decided.output["outcome"], pathLabel: decided.output["pathLabel"], confidence: decided.output["confidence"], usedFallback: decided.output["usedFallback"] }].slice(-5);
+      a.ctx.previousDecisions.push({ outcome: (decided.output["outcome"] as string) ?? null, pathLabel: String(decided.output["pathLabel"]) });
+      return decided;
+    },
     computeResume: (wait) => computeWorkflowResume(wait, context.timezone, context.window),
     eventSince: async (event) => {
       if (!run.lead_id) return false;
