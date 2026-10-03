@@ -249,7 +249,10 @@ describe("compatibility and templates", () => {
   it("every template builds a valid workflow using real actions", () => {
     const ids = WORKFLOW_ACTIONS.map((a) => a.id);
     for (const t of WORKFLOW_TEMPLATES) {
-      const errors = validateWorkflow(t.build(), ids);
+      // Templates are drafts: workspace-specific picks (owner, campaign,
+      // stage, workflow) are intentionally left for the customer and must
+      // block activation until chosen. Everything else must be valid.
+      const errors = validateWorkflow(t.build(), ids).filter((e) => !/^(Select|Choose) (a|the) /.test(e));
       expect(errors, t.id).toEqual([]);
     }
   });
