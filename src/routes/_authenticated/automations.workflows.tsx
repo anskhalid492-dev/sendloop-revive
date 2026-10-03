@@ -13,6 +13,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Sparkles,
   Trash2,
   Workflow,
 } from "lucide-react";
@@ -213,6 +214,11 @@ function AutomationsPage() {
           </Button>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 size-4" /> New automation
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/automations/ai-sales-agent">
+              <Sparkles className="mr-2 size-4" /> AI Sales Agent
+            </Link>
           </Button>
         </div>
       }

@@ -81,7 +81,6 @@ const navGroups = [
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/templates", label: "Templates", icon: FileText },
       { to: "/automations/workflows", label: "Automations", icon: Workflow },
-      { to: "/automations/ai-sales-agent", label: "AI Sales Agent", icon: Sparkles },
     ],
   },
 
