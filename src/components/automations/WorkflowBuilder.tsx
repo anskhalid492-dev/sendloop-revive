@@ -256,8 +256,8 @@ function NodeCard({
   onSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onUp?: () => void;
-  onDown?: () => void;
+  onUp?: (() => void) | undefined;
+  onDown?: (() => void) | undefined;
   onChange: (next: WorkflowNode) => void;
   options: BuilderOptions;
 }) {

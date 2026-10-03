@@ -126,7 +126,7 @@ const KIND_META: Record<StepKind, { label: string; icon: typeof Zap }> = {
   wait: { label: "Wait", icon: Clock },
 };
 
-function AutomationBuilderPage({ onUpgrade }: { onUpgrade?: () => void }) {
+function AutomationBuilderPage({ onUpgrade }: { onUpgrade?: (() => void) | undefined }) {
   const { id } = Route.useParams();
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id ?? null;
