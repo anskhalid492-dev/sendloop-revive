@@ -18,15 +18,20 @@ import type {
   AutomationStats,
   AutomationStep,
 } from "@/lib/automation-model";
-import { WORKFLOW_ACTIONS } from "@/lib/automation-model";
-import { countNodes, validateWorkflow, workflowFromSteps } from "@/lib/workflow-graph";
+import { AVAILABLE_TRIGGERS, WORKFLOW_ACTIONS } from "@/lib/automation-model";
+import { countNodes, validateWorkflow, workflowFromSteps, type ValidationContext, type Workflow } from "@/lib/workflow-graph";
+import { simulateWorkflow } from "@/lib/workflow-simulator";
 
 /** Server-side guard for visual workflows inside a step list. */
-function assertValidSteps(steps: { kind: string; config: Record<string, unknown> }[], strict: boolean) {
+function assertValidSteps(
+  steps: { kind: string; config: Record<string, unknown> }[],
+  strict: boolean,
+  ctx: ValidationContext = {},
+) {
   const workflow = workflowFromSteps(steps);
   if (!workflow) return;
   if (steps.length !== 1) throw new Error("A visual workflow must be saved on its own.");
-  const errors = validateWorkflow(workflow, WORKFLOW_ACTIONS.map((a) => a.id));
+  const errors = validateWorkflow(workflow, WORKFLOW_ACTIONS.map((a) => a.id), ctx);
   const blocking = strict ? errors : errors.filter((e) => e.includes("at most"));
   if (blocking.length) throw new Error(blocking[0]);
 }
@@ -340,7 +345,25 @@ export const setAutomationStatus = createServerFn({ method: "POST" })
         .from("automation_steps")
         .select(sel("kind, config"))
         .eq("automation_id", data.automationId);
-      assertValidSteps((stepRows ?? []) as { kind: string; config: Record<string, unknown> }[], true);
+      const { data: automationRow } = await client
+        .from("automations")
+        .select(sel("trigger_type, trigger_config"))
+        .eq("id", data.automationId)
+        .eq("workspace_id", data.workspaceId)
+        .maybeSingle();
+      if (!automationRow) throw new Error("Workflow not found.");
+      const triggerType = String((automationRow as { trigger_type: string }).trigger_type ?? "");
+      if (!AVAILABLE_TRIGGERS.some((t) => t.id === triggerType)) {
+        throw new Error("This trigger can't fire yet. Choose a different trigger before activating.");
+      }
+      const refs = await loadValidationRefs(client, data.workspaceId);
+      assertValidSteps((stepRows ?? []) as { kind: string; config: Record<string, unknown> }[], true, {
+        ...refs,
+        automationId: data.automationId,
+        triggerType,
+        triggerTag: String(((automationRow as { trigger_config?: Record<string, unknown> }).trigger_config ?? {})["tag"] ?? ""),
+        supportedTriggers: AVAILABLE_TRIGGERS.map((t) => t.id),
+      });
       // Publishing consumes a live automation slot, so the plan limit is
       // enforced here too — not only at creation time.
       await assertActiveLimit(client, data.workspaceId, data.automationId);
@@ -615,4 +638,108 @@ export const getAutomationWebhook = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!automation?.webhook_token) throw new Error("Automation not found");
     return { path: `/api/public/automations/${automation.webhook_token}` };
+  });
+
+/* ----------------------------------------------------- validation refs */
+
+/** Ids of the workspace's real campaigns/stages/workflows/members (RLS-scoped, id-only). */
+async function loadValidationRefs(client: Client, workspaceId: string) {
+  const [{ data: campaigns }, { data: stages }, { data: workflows }, { data: members }] = await Promise.all([
+    client.from("campaigns").select(sel("id")).eq("workspace_id", workspaceId).neq("status", "archived"),
+    client.from("crm_stages").select(sel("id")).eq("workspace_id", workspaceId),
+    client.from("automations").select(sel("id")).eq("workspace_id", workspaceId).neq("status", "archived"),
+    client.from("workspace_members").select(sel("user_id")).eq("workspace_id", workspaceId),
+  ]);
+  const ids = (rows: unknown, key = "id") => ((rows ?? []) as Record<string, string>[]).map((r) => r[key]!);
+  return {
+    campaignIds: ids(campaigns),
+    stageIds: ids(stages),
+    workflowIds: ids(workflows),
+    memberIds: ids(members, "user_id"),
+  };
+}
+
+/* -------------------------------------------------------------- dry run */
+
+/** Lead picker for "Test workflow": current workspace only, at most 20 rows. */
+export const searchSimulationLeads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ workspaceId: z.string().uuid(), query: z.string().max(120).default("") }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    let q = client
+      .from("leads")
+      .select(sel("id, email, first_name, last_name, company"))
+      .eq("workspace_id", data.workspaceId)
+      .eq("archived", false)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const term = data.query.trim().replace(/[%,()*]/g, " ").trim();
+    if (term) q = q.or(`email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%,company.ilike.%${term}%`);
+    const { data: rows, error } = await q;
+    if (error) throw new Error("Could not load leads.");
+    return ((rows ?? []) as { id: string; email: string; first_name: string | null; last_name: string | null; company: string | null }[]).map((r) => ({
+      id: r.id,
+      label: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
+      email: r.email,
+      company: r.company,
+    }));
+  });
+
+/**
+ * "Test workflow": a read-only simulation. Loads the lead through the caller's
+ * RLS-scoped client after confirming it belongs to this workspace, then runs
+ * the pure simulator. Writes nothing — no run rows, no events, no actions.
+ */
+export const simulateAutomation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        automationId: z.string().uuid(),
+        leadId: z.string().uuid(),
+        triggerType: z.string().min(1).max(80),
+        workflow: z.object({ version: z.literal(2), nodes: z.array(z.unknown()).max(200) }),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const [{ data: automation }, { data: lead }] = await Promise.all([
+      client.from("automations").select(sel("id")).eq("id", data.automationId).eq("workspace_id", data.workspaceId).maybeSingle(),
+      client.from("leads").select(sel("id")).eq("id", data.leadId).eq("workspace_id", data.workspaceId).maybeSingle(),
+    ]);
+    if (!automation) throw new Error("This workflow isn't available in your workspace.");
+    if (!lead) throw new Error("This lead isn't available in your workspace.");
+    const workflow = data.workflow as unknown as Workflow;
+    if (countNodes(workflow.nodes) > 60) throw new Error("Workflows can have at most 60 steps.");
+
+    const { loadSimulationContext } = await import("@/lib/automation-engine.server");
+    const [{ getField }, { data: campaigns }, { data: stages }, { data: workflows }, { data: members }] = await Promise.all([
+      loadSimulationContext(client, { workspaceId: data.workspaceId, leadId: data.leadId }),
+      client.from("campaigns").select(sel("id, name")).eq("workspace_id", data.workspaceId).limit(500),
+      client.from("crm_stages").select(sel("id, name")).eq("workspace_id", data.workspaceId),
+      client.from("automations").select(sel("id, name")).eq("workspace_id", data.workspaceId).limit(500),
+      client.from("workspace_members").select(sel("user_id, profiles:user_id(email, full_name)")).eq("workspace_id", data.workspaceId),
+    ]);
+    const map = (rows: unknown) => Object.fromEntries(((rows ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
+    return simulateWorkflow({
+      workflow,
+      triggerType: data.triggerType,
+      getField,
+      labels: {
+        campaigns: map(campaigns),
+        stages: map(stages),
+        workflows: map(workflows),
+        members: Object.fromEntries(
+          ((members ?? []) as { user_id: string; profiles: { email: string; full_name: string | null } | null }[]).map((m) => [
+            m.user_id,
+            m.profiles?.full_name || m.profiles?.email || "a team member",
+          ]),
+        ),
+      },
+    });
   });
