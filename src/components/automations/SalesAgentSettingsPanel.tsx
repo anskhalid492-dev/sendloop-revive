@@ -34,7 +34,7 @@ export function SalesAgentSettingsPanel({ workspaceId }: { workspaceId: string }
   });
 
   return (
-    <section className="max-w-2xl space-y-4 rounded-xl border bg-card p-5">
+    <section className="mx-auto w-full max-w-2xl space-y-4 rounded-xl border bg-card p-5">
       <div>
         <h2 className="text-base font-semibold">Workspace settings</h2>
         <p className="text-sm text-muted-foreground">Included with MunchReach. Used by AI Decision, Generate AI Reply and Request Human Review steps in your workflows.</p>
