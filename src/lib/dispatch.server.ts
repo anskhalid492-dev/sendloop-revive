@@ -25,6 +25,7 @@ import {
 } from "@/lib/mailbox-assignment";
 import { stripAngle } from "@/lib/inbox-model";
 import { buildSentSnapshot } from "@/lib/sent-snapshot";
+import { emitCampaignCompletedAutomation, emitEmailSentAutomation } from "@/lib/automation-emit.server";
 import { persistSentSnapshot } from "@/lib/sent-snapshot.server";
 import { campaignBodyHtml } from "@/lib/email-html";
 import {
@@ -727,6 +728,7 @@ export async function dispatchDueMessages(
     messageIdHeader?: (...args: any[]) => string;
     recordOutboundCampaignMessage?: (...args: any[]) => Promise<any>;
     registerOutboundMessage?: (...args: any[]) => Promise<any>;
+    emitAutomationEvent?: (...args: any[]) => Promise<any>;
     supabaseAdmin?: AnySupabase;
   } = {},
 ): Promise<DispatchResult> {
@@ -775,7 +777,8 @@ export async function dispatchDueMessages(
 
   const endAt = campaignRow.end_at ? new Date(campaignRow.end_at) : null;
   if (!options.force && endAt && !Number.isNaN(endAt.getTime()) && endAt.getTime() <= now.getTime()) {
-    await supabase.from("campaigns").update({ status: "completed" }).eq("id", options.campaignId).eq("status", "active");
+    const flipped = await completeActiveCampaign(supabase, options.campaignId);
+    void emitCampaignCompletedAutomation(flipped, "end_date", dependencies.emitAutomationEvent);
     logDispatchDiagnostic({ campaignId: options.campaignId, now: now.toISOString(), reason: "campaign_end_at_reached" });
     return result;
   }
@@ -1528,7 +1531,23 @@ export async function dispatchDueMessages(
       last_error: null,
       attempts: (message.attempts ?? 0) + 1,
     };
-    await applySentPatch(supabase, message.id, campaignMessagePatch);
+    const sentRecorded = await applySentPatch(supabase, message.id, campaignMessagePatch);
+
+    // Automation "Email sent": only for a confirmed send — provider accepted
+    // AND the terminal `sent` row is stored. Never awaited, never throws.
+    if (sentRecorded) {
+      void emitEmailSentAutomation(
+        {
+          id: message.id,
+          workspace_id: message.workspace_id as string,
+          campaign_id: (message.campaign_id as string | null) ?? null,
+          lead_id: (message.lead_id as string | null) ?? null,
+          subject: (message.subject as string | null) ?? null,
+        },
+        { mailboxId: account.id, sentAt },
+        dependencies.emitAutomationEvent,
+      );
+    }
 
     // Public API subscribers are notified from the queue, never inline: this
     // only enqueues a row and swallows its own failures.
