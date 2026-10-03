@@ -299,13 +299,34 @@ const LEGACY_WAIT: Record<string, WaitSpec["mode"]> = {
   business_hours: "next_business_day",
 };
 
+export type LegacyConversion = { workflow: Workflow; notes: string[] };
+
 /**
  * Converts a legacy linear automation (conditions + steps tagged yes/no) into
  * an equivalent tree, so customers can open old automations in the visual
- * builder. Execution order and semantics are preserved.
+ * builder with EXACTLY the same execution order.
+ *
+ * Legacy semantics (automation-engine `executeRun`): steps run in position
+ * order; a branch step sets the active side; a step tagged "yes"/"no" runs
+ * only when that side is active; untagged steps always run; tagged steps
+ * before any branch never run.
+ *
+ * Tree mapping per branch segment (branch → steps up to the next branch):
+ *  - the trailing run of untagged steps goes after the branch (runs on both);
+ *  - everything before it is copied, in order, into each path: Yes gets the
+ *    yes + untagged steps, No gets the no + untagged steps. Untagged steps
+ *    interleaved with tagged ones therefore keep their exact position on
+ *    whichever side runs, instead of being moved after the branch.
+ * Steps that could never run are reported in `notes`, never dropped silently.
  */
-export function legacyToWorkflow(steps: StoredStep[], logic: "and" | "or"): Workflow {
-  const ordered = [...steps];
+export function convertLegacyAutomation(
+  steps: (StoredStep & { position?: number })[],
+  logic: "and" | "or",
+): LegacyConversion {
+  const ordered = steps.some((s) => typeof s.position === "number")
+    ? [...steps].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    : [...steps];
+  const notes: string[] = [];
   const nodes: WorkflowNode[] = [];
   const conditions = ordered.filter((s) => s.kind === "condition");
   if (conditions.length) {
@@ -322,48 +343,57 @@ export function legacyToWorkflow(steps: StoredStep[], logic: "and" | "or"): Work
       },
     });
   }
-  let target = nodes;
-  let branchNode: Extract<WorkflowNode, { type: "branch" }> | null = null;
-  for (const s of ordered.filter((x) => x.kind !== "condition")) {
-    const convert = (): WorkflowNode | null => {
-      if (s.kind === "wait") {
-        const mode = String(s.config["mode"] ?? "hours");
-        if (mode === "until_time") {
-          return { id: newId(), type: "wait", label: `Wait until ${String(s.config["time"] ?? "09:00")}`, wait: { mode: "next_business_day" } };
-        }
-        return { id: newId(), type: "wait", wait: { mode: LEGACY_WAIT[mode] ?? "hours", amount: Number(s.config["amount"] ?? 1) } };
+
+  const convert = (s: StoredStep): WorkflowNode => {
+    if (s.kind === "wait") {
+      const mode = String(s.config["mode"] ?? "hours");
+      if (mode === "until_time") {
+        return { id: newId(), type: "wait", label: `Wait until ${String(s.config["time"] ?? "09:00")}`, wait: { mode: "next_business_day" } };
       }
-      const type = String(s.config["type"] ?? "");
-      if (type === "end") return { id: newId(), type: "end" };
-      const { type: _t, ...config } = s.config;
-      return { id: newId(), type: "action", action: type, config };
-    };
-    if (s.kind === "branch") {
-      const created: Extract<WorkflowNode, { type: "branch" }> = {
-        id: newId(),
-        type: "branch",
-        paths: [{
-          key: "yes",
-          label: "Yes",
-          when: { match: "all", rules: [{ field: String(s.config["field"] ?? ""), operator: normalizeOperator(String(s.config["operator"] ?? "is")), value: s.config["value"] === undefined ? undefined : String(s.config["value"]) }] },
-          steps: [],
-        }],
-        otherwise: { key: "otherwise", label: "No", steps: [] },
-      };
-      branchNode = created;
-      target.push(created);
+      return { id: newId(), type: "wait", wait: { mode: LEGACY_WAIT[mode] ?? "hours", amount: Number(s.config["amount"] ?? 1) } };
+    }
+    const type = String(s.config["type"] ?? "");
+    if (type === "end") return { id: newId(), type: "end" };
+    const { type: _t, ...config } = s.config;
+    return { id: newId(), type: "action", action: type, config };
+  };
+
+  const executable = ordered.filter((x) => x.kind !== "condition");
+  let i = 0;
+  // Before the first branch: untagged steps run, tagged ones never do.
+  for (; i < executable.length && executable[i]!.kind !== "branch"; i += 1) {
+    const s = executable[i]!;
+    if (s.branch === "yes" || s.branch === "no") {
+      notes.push(`A step on the ${s.branch === "yes" ? "Yes" : "No"} path before any branch never ran, so it was left out.`);
       continue;
     }
-    const node = convert();
-    if (!node) continue;
-    if (branchNode && s.branch === "yes") branchNode.paths[0]!.steps.push(node);
-    else if (branchNode && s.branch === "no") branchNode.otherwise.steps.push(node);
-    else if (branchNode) {
-      // Untagged steps after a branch run on both sides in the legacy engine,
-      // which equals "after the branch" in the tree.
-      target = nodes;
-      target.push(node);
-    } else target.push(node);
+    nodes.push(convert(s));
   }
-  return { version: 2, nodes };
+  while (i < executable.length) {
+    const b = executable[i]!;
+    i += 1;
+    const segment: StoredStep[] = [];
+    for (; i < executable.length && executable[i]!.kind !== "branch"; i += 1) segment.push(executable[i]!);
+    let cut = segment.length;
+    while (cut > 0 && !segment[cut - 1]!.branch) cut -= 1;
+    const inside = segment.slice(0, cut);
+    const after = segment.slice(cut);
+    nodes.push({
+      id: newId(),
+      type: "branch",
+      paths: [{
+        key: "yes",
+        label: "Yes",
+        when: { match: "all", rules: [{ field: String(b.config["field"] ?? ""), operator: normalizeOperator(String(b.config["operator"] ?? "is")), value: b.config["value"] === undefined ? undefined : String(b.config["value"]) }] },
+        steps: inside.filter((s) => s.branch !== "no").map(convert),
+      }],
+      otherwise: { key: "otherwise", label: "No", steps: inside.filter((s) => s.branch !== "yes").map(convert) },
+    });
+    for (const s of after) nodes.push(convert(s));
+  }
+  return { workflow: { version: 2, nodes }, notes };
+}
+
+export function legacyToWorkflow(steps: (StoredStep & { position?: number })[], logic: "and" | "or"): Workflow {
+  return convertLegacyAutomation(steps, logic).workflow;
 }
