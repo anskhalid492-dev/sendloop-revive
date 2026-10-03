@@ -254,6 +254,8 @@ export type ValidationContext = {
   /** Current automation id (self-loop detection). */
   automationId?: string;
   triggerType?: string;
+  /** Tag filter of a tag trigger, when set. */
+  triggerTag?: string;
   supportedTriggers?: string[];
   campaignIds?: string[];
   stageIds?: string[];
@@ -362,7 +364,11 @@ export function validateWorkflowIssues(workflow: Workflow, knownActions: string[
     const action = ctx.triggerType === "lead.tag_added" ? "lead.add_tag" : "lead.remove_tag";
     const find = (nodes: WorkflowNode[]): WorkflowNode | undefined => {
       for (const n of nodes) {
-        if (n.type === "action" && n.action === action) return n;
+        if (n.type === "action" && n.action === action) {
+          const tag = String(n.config?.["tag"] ?? "").trim().toLowerCase();
+          const filter = (ctx.triggerTag ?? "").trim().toLowerCase();
+          if (!filter || !tag || tag === filter) return n;
+        }
         if (n.type === "branch") for (const p of [...n.paths, n.otherwise]) { const f = find(p.steps); if (f) return f; }
       }
       return undefined;
