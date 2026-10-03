@@ -1100,9 +1100,14 @@ async function requestHumanReview(db: Db, run: RunRow, ctx: RunContext, reason: 
   // Pauses automated AI replies for this lead until a person removes the tag.
   const tags = Array.isArray(ctx.lead?.["tags"]) ? (ctx.lead!["tags"] as string[]) : [];
   const patch: Record<string, unknown> = { tags: Array.from(new Set([...tags, HUMAN_REVIEW_TAG])) };
+  let ownerName: string | null = null;
   if (ownerId) {
-    const { data: member } = await db.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).eq("user_id", ownerId).maybeSingle();
-    if (member) patch["owner_id"] = ownerId;
+    const { data: member } = await db.from("workspace_members").select("user_id, profiles:user_id(email, full_name)").eq("workspace_id", workspaceId).eq("user_id", ownerId).maybeSingle();
+    if (member) {
+      patch["owner_id"] = ownerId;
+      const prof = (member as { profiles?: { email?: string | null; full_name?: string | null } | null }).profiles;
+      ownerName = prof?.full_name || prof?.email || null;
+    }
   }
   await db.from("leads").update(patch as never).eq("id", leadId).eq("workspace_id", workspaceId);
   if (ctx.lead) ctx.lead["tags"] = patch["tags"];
@@ -1110,7 +1115,7 @@ async function requestHumanReview(db: Db, run: RunRow, ctx: RunContext, reason: 
   if (notifyTo) {
     await db.from("notifications").insert({ user_id: notifyTo, workspace_id: workspaceId, type: "automation", title: "Human review requested", message: text, entity_type: "automation", entity_id: run.automation_id });
   }
-  return { humanReview: true, reason: text, assignedTo: patch["owner_id"] ?? null };
+  return { humanReview: true, reason: text, assignedTo: patch["owner_id"] ?? null, assignedToName: ownerName };
 }
 
 async function runSalesAgentAction(
@@ -1134,9 +1139,9 @@ async function runSalesAgentAction(
 
   const { runAiReply } = await import("@/lib/sales-agent.server");
   const a = await loadAgent();
-  const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { confidence?: number | null }[]) : [];
-  const lastConfidence = decisions.length ? (decisions[decisions.length - 1]!.confidence ?? null) : null;
-  const result = await runAiReply(config, a.ctx, a.settings, lastConfidence);
+  const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { confidence?: number | null; usedFallback?: boolean; threshold?: number | null }[]) : [];
+  const lastD = decisions.length ? decisions[decisions.length - 1]! : null;
+  const result = await runAiReply(config, a.ctx, a.settings, lastD ? { confidence: lastD.confidence ?? null, usedFallback: Boolean(lastD.usedFallback), threshold: lastD.threshold ?? null } : null);
   if (!result.ok) {
     // Never send on failure. Hand off to a person unless configured otherwise.
     if (config["onFailure"] !== "stop") {
@@ -1150,7 +1155,13 @@ async function runSalesAgentAction(
   const subject = conversation?.subject ? (/^re:/i.test(conversation.subject) ? conversation.subject : `Re: ${conversation.subject}`) : "Re: your reply";
   const base = { kind: "ai_reply", generated: true, requestedMode: result.cfg.mode, forcedDraft: result.forcedDraft, truncated: result.truncated, words: result.text.split(/\s+/).length, ai: result.ai };
 
-  if (result.mode === "auto_send" && conversation && owner) {
+  const { replyDelivery } = await import("@/lib/sales-agent");
+  const delivery = replyDelivery({ requested: result.mode, forcedDraft: result.forcedDraft, hasConversation: Boolean(conversation), hasOwner: Boolean(owner) });
+  if (delivery.mode === "handoff") {
+    const review = await requestHumanReview(db, run, ctx, delivery.reason ?? "", null);
+    return { ...base, mode: "draft", draftCreated: false, handedOff: !("skipped" in review), note: delivery.reason };
+  }
+  if (delivery.mode === "auto_send" && conversation && owner) {
     const { claimManualSend } = await import("@/lib/manual-send-idempotency.server");
     const claim = await claimManualSend<{ messageId?: string }>(run.workspace_id, `ai-reply:${run.id}:${String(config["__hop"] ?? "")}`, "reply");
     if (!claim.proceed) return { ...base, mode: "auto_send", sent: true, duplicate: true };
@@ -1174,10 +1185,9 @@ async function runSalesAgentAction(
     }
   }
 
-  if (!owner) return { ...base, mode: "draft", skipped: "Automation has no owner to attribute the draft to" };
   const { error } = await db.from("email_drafts").insert({
     workspace_id: run.workspace_id,
-    user_id: owner,
+    user_id: owner as string,
     conversation_id: conversation?.id ?? null,
     lead_id: run.lead_id,
     to_email: conversation?.prospect_email || String(ctx.lead?.["email"] ?? ""),
@@ -1185,7 +1195,7 @@ async function runSalesAgentAction(
     body: result.text,
   });
   if (error) throw new Error(error.message);
-  return { ...base, mode: "draft", draftCreated: true, ...(result.cfg.mode === "auto_send" && !conversation ? { note: "No conversation to reply in, so a draft was created." } : {}) };
+  return { ...base, mode: "draft", draftCreated: true, ...(result.cfg.mode === "auto_send" && delivery.reason ? { note: delivery.reason } : {}) };
 }
 
 async function hmacHex(secret: string, body: string): Promise<string> {
@@ -1403,7 +1413,7 @@ async function executeGraphRun(run: RunRow, workflow: import("@/lib/workflow-gra
       const a = await loadAgent();
       const decided = await runAiDecision(node, a.ctx, a.settings);
       const list = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as unknown[]) : [];
-      meta["aiDecisions"] = [...list, { outcome: decided.output["outcome"], pathLabel: decided.output["pathLabel"], confidence: decided.output["confidence"], usedFallback: decided.output["usedFallback"] }].slice(-5);
+      meta["aiDecisions"] = [...list, { outcome: decided.output["outcome"], pathLabel: decided.output["pathLabel"], confidence: decided.output["confidence"], usedFallback: decided.output["usedFallback"], threshold: decided.output["threshold"] ?? null }].slice(-5);
       a.ctx.previousDecisions.push({ outcome: (decided.output["outcome"] as string) ?? null, pathLabel: String(decided.output["pathLabel"]) });
       return decided;
     },

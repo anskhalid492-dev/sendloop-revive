@@ -1,3 +1,4 @@
+import { describeAiReplyOutput, describeHumanReviewOutput } from "@/lib/sales-agent-history";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -486,13 +487,8 @@ function summarizeOutput(output: Record<string, unknown>): string {
     ];
     return parts.filter(Boolean).join(" · ");
   }
-  if (output["kind"] === "ai_reply") {
-    if (!output["generated"]) return `AI reply not generated: ${String(output["error"] ?? "")}${output["handedOff"] ? " · handed to a person" : ""}`;
-    const mode = output["mode"] === "auto_send" ? "Auto-send" : "Draft";
-    const forced = Array.isArray(output["forcedDraft"]) && (output["forcedDraft"] as string[]).length ? ` · kept as draft: ${(output["forcedDraft"] as string[]).join(" ")}` : "";
-    return `AI reply generated · ${mode}${forced}`;
-  }
-  if (output["humanReview"]) return `Human review requested: ${String(output["reason"] ?? "")}`;
+  if (output["kind"] === "ai_reply") return describeAiReplyOutput(output);
+  if (output["humanReview"]) return describeHumanReviewOutput(output);
   if (typeof output["skipped"] === "string") return `Skipped: ${output["skipped"]}`;
   if (typeof output["pathLabel"] === "string") return `Took the “${output["pathLabel"]}” path`;
   if (typeof output["passed"] === "boolean") return output["passed"] ? "Condition met" : "Condition not met — workflow stopped here";

@@ -77,3 +77,44 @@ export const adminSalesAgentAiMetrics = createServerFn({ method: "GET" })
     const { summarizeAiMetrics } = await import("@/lib/sales-agent-metrics");
     return summarizeAiMetrics((rows ?? []) as { workspace_id: string; output: Record<string, unknown> }[]);
   });
+
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * Admin-only AI Sales Agent monitoring for a UTC date range. Reads only the
+ * AI Sales Agent step outputs (bounded, paged reads), aggregates on the
+ * server and returns counts — never prompts, replies, provider payloads or
+ * credentials.
+ */
+export const adminSalesAgentMonitoring = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        from: day,
+        to: day,
+        search: z.string().max(200).nullable().default(null),
+        page: z.number().int().min(1).max(100_000).default(1),
+        pageSize: z.number().int().min(5).max(100).default(20),
+      })
+      .refine((r) => r.from <= r.to, "Start date must be on or before end date")
+      .refine((r) => Date.parse(r.to) - Date.parse(r.from) <= 366 * 86_400_000, "Range is limited to one year")
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { loadMonitoringRows } = await import("@/lib/sales-agent-monitoring.server");
+    const { aggregateAiMonitoring, pageWorkspaces } = await import("@/lib/sales-agent-metrics");
+    const { rows, truncated } = await loadMonitoringRows(supabaseAdmin, data.from, data.to);
+    const m = aggregateAiMonitoring(rows);
+    const ids = m.workspaces.map((w) => w.workspaceId);
+    const names = new Map<string, string>();
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data: ws } = await supabaseAdmin.from("workspaces").select("id, name").in("id", ids.slice(i, i + 200));
+      for (const w of (ws ?? []) as { id: string; name: string | null }[]) names.set(w.id, w.name || "Untitled workspace");
+    }
+    const named = m.workspaces.map((w) => ({ ...w, name: names.get(w.workspaceId) ?? "Deleted workspace" }));
+    return { totals: m.totals, outcomes: m.outcomes, failures: m.failures, workspaces: pageWorkspaces(named, data.search, data.page, data.pageSize), truncated };
+  });

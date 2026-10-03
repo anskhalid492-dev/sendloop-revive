@@ -17,6 +17,7 @@ import {
   preReplySafety,
   routeDecision,
   type AiReplyConfig,
+  type LastDecision,
   type SalesAgentSettings,
 } from "@/lib/sales-agent";
 import { callSalesAgentModel, type SalesAgentCallMeta } from "@/lib/sales-agent-ai.server";
@@ -106,8 +107,9 @@ export async function runAiReply(
   config: Record<string, unknown>,
   ctx: AgentContext,
   settings: SalesAgentSettings,
-  lastConfidence: number | null,
+  last: number | null | LastDecision,
 ): Promise<ReplyResult> {
+  const lastDecision: LastDecision | null = typeof last === "number" ? { confidence: last } : last;
   if (!settings.enabled) return { ok: false, blocked: true, error: "The AI Sales Agent is turned off for this workspace." };
   const cfg = normalizeReplyConfig(config, settings);
   const { text: context, latestInbound } = buildAiContext(ctx);
@@ -115,8 +117,9 @@ export async function runAiReply(
     latestInbound,
     leadStatus: (ctx.lead?.["status"] as string) ?? null,
     leadTags: Array.isArray(ctx.lead?.["tags"]) ? (ctx.lead!["tags"] as string[]) : [],
-    lastConfidence,
-    threshold: settings.defaultThreshold,
+    lastConfidence: lastDecision?.confidence ?? null,
+    threshold: lastDecision?.threshold ?? settings.defaultThreshold,
+    lastDecisionUncertain: Boolean(lastDecision?.usedFallback),
   });
   if (pre.block) return { ok: false, blocked: true, error: pre.block };
   const { system, prompt } = buildReplyPrompt(cfg, settings, context);

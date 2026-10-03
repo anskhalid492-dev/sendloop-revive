@@ -55,7 +55,7 @@ export async function runWorkflowSimulation(client: Client, data: SimulationRequ
           ctx: { workspaceId: data.workspaceId, lead: fullLead ?? null, stageName: null, campaignName: null, conversation: convo.conversation, messages: convo.messages, previousDecisions: [] as { outcome: string | null; pathLabel: string }[] },
         };
       })());
-    let lastConfidence: number | null = null;
+    let lastDecision: import("@/lib/sales-agent").LastDecision | null = null;
     return simulateWorkflowWithAi({
       workflow,
       triggerType: data.triggerType,
@@ -75,13 +75,13 @@ export async function runWorkflowSimulation(client: Client, data: SimulationRequ
       decide: async (node) => {
         const a = await agent();
         const decided = await runAiDecision(node, a.ctx, a.settings);
-        lastConfidence = (decided.output["confidence"] as number | null) ?? null;
+        lastDecision = { confidence: (decided.output["confidence"] as number | null) ?? null, usedFallback: Boolean(decided.output["usedFallback"]), threshold: (decided.output["threshold"] as number | undefined) ?? null };
         a.ctx.previousDecisions.push({ outcome: (decided.output["outcome"] as string) ?? null, pathLabel: String(decided.output["pathLabel"]) });
         return decided;
       },
       reply: async (config) => {
         const a = await agent();
-        const r = await runAiReply(config, a.ctx, a.settings, lastConfidence);
+        const r = await runAiReply(config, a.ctx, a.settings, lastDecision);
         return r.ok ? { ok: true, text: r.text, mode: r.mode, forcedDraft: r.forcedDraft } : { ok: false, error: r.error };
       },
     });
