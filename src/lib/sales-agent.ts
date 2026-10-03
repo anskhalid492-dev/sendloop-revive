@@ -238,7 +238,15 @@ export type ReplySafety = {
 };
 
 /** Rules checked BEFORE calling the model (from the inbound message + lead state). */
-export function preReplySafety(args: { latestInbound: string; leadStatus?: string | null; leadTags?: string[]; lastConfidence?: number | null; threshold?: number }): ReplySafety {
+export function preReplySafety(args: {
+  latestInbound: string;
+  leadStatus?: string | null;
+  leadTags?: string[];
+  lastConfidence?: number | null;
+  threshold?: number;
+  /** The preceding AI Decision fell back (invalid result, failure, timeout, low confidence). */
+  lastDecisionUncertain?: boolean;
+}): ReplySafety {
   const tags = (args.leadTags ?? []).map((t) => t.toLowerCase());
   if (String(args.leadStatus ?? "").toLowerCase() === "unsubscribed") return { block: "The lead is unsubscribed, so no AI reply was generated.", forceDraft: [] };
   if (isUnsubscribeRequest(args.latestInbound)) return { block: "The prospect asked to unsubscribe, so no AI reply was generated.", forceDraft: [] };
@@ -247,8 +255,32 @@ export function preReplySafety(args: { latestInbound: string; leadStatus?: strin
   if (isSensitiveRequest(args.latestInbound)) forceDraft.push("The message looks sensitive or legal, so it needs a person to review it.");
   if (args.lastConfidence !== null && args.lastConfidence !== undefined && args.lastConfidence < clampThreshold(args.threshold ?? AI_DEFAULT_THRESHOLD)) {
     forceDraft.push("AI was not confident enough to respond automatically.");
+  } else if (args.lastDecisionUncertain) {
+    forceDraft.push("The AI decision before this reply was uncertain, so it needs review.");
   }
+  if (!String(args.latestInbound ?? "").trim()) forceDraft.push("There is no prospect message to reply to, so it needs review.");
   return { block: null, forceDraft };
+}
+
+export type LastDecision = { confidence: number | null; usedFallback?: boolean; threshold?: number | null };
+
+/**
+ * Final delivery gate for a generated AI reply. Auto-send only when it was
+ * explicitly requested, no safety rule forced a draft, and the conversation
+ * and workflow owner needed to send exist. Without an owner nothing can be
+ * attributed, so the reply is handed to a person instead.
+ */
+export function replyDelivery(args: {
+  requested: "draft" | "auto_send";
+  forcedDraft: string[];
+  hasConversation: boolean;
+  hasOwner: boolean;
+}): { mode: "auto_send" | "draft" | "handoff"; reason: string | null } {
+  if (!args.hasOwner) return { mode: "handoff", reason: "This workflow has no owner to send or save the reply as, so a person needs to review it." };
+  if (args.requested !== "auto_send") return { mode: "draft", reason: null };
+  if (args.forcedDraft.length) return { mode: "draft", reason: args.forcedDraft[0]! };
+  if (!args.hasConversation) return { mode: "draft", reason: "No conversation to reply in, so a draft was created." };
+  return { mode: "auto_send", reason: null };
 }
 
 export type CheckedReply = { ok: true; text: string; truncated: boolean; forceDraft: string[] } | { ok: false; error: string };

@@ -1134,9 +1134,9 @@ async function runSalesAgentAction(
 
   const { runAiReply } = await import("@/lib/sales-agent.server");
   const a = await loadAgent();
-  const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { confidence?: number | null }[]) : [];
-  const lastConfidence = decisions.length ? (decisions[decisions.length - 1]!.confidence ?? null) : null;
-  const result = await runAiReply(config, a.ctx, a.settings, lastConfidence);
+  const decisions = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as { confidence?: number | null; usedFallback?: boolean; threshold?: number | null }[]) : [];
+  const lastD = decisions.length ? decisions[decisions.length - 1]! : null;
+  const result = await runAiReply(config, a.ctx, a.settings, lastD ? { confidence: lastD.confidence ?? null, usedFallback: Boolean(lastD.usedFallback), threshold: lastD.threshold ?? null } : null);
   if (!result.ok) {
     // Never send on failure. Hand off to a person unless configured otherwise.
     if (config["onFailure"] !== "stop") {
@@ -1150,7 +1150,13 @@ async function runSalesAgentAction(
   const subject = conversation?.subject ? (/^re:/i.test(conversation.subject) ? conversation.subject : `Re: ${conversation.subject}`) : "Re: your reply";
   const base = { kind: "ai_reply", generated: true, requestedMode: result.cfg.mode, forcedDraft: result.forcedDraft, truncated: result.truncated, words: result.text.split(/\s+/).length, ai: result.ai };
 
-  if (result.mode === "auto_send" && conversation && owner) {
+  const { replyDelivery } = await import("@/lib/sales-agent");
+  const delivery = replyDelivery({ requested: result.mode, forcedDraft: result.forcedDraft, hasConversation: Boolean(conversation), hasOwner: Boolean(owner) });
+  if (delivery.mode === "handoff") {
+    const review = await requestHumanReview(db, run, ctx, delivery.reason ?? "", null);
+    return { ...base, mode: "draft", draftCreated: false, handedOff: !("skipped" in review), note: delivery.reason };
+  }
+  if (delivery.mode === "auto_send" && conversation && owner) {
     const { claimManualSend } = await import("@/lib/manual-send-idempotency.server");
     const claim = await claimManualSend<{ messageId?: string }>(run.workspace_id, `ai-reply:${run.id}:${String(config["__hop"] ?? "")}`, "reply");
     if (!claim.proceed) return { ...base, mode: "auto_send", sent: true, duplicate: true };
@@ -1174,7 +1180,6 @@ async function runSalesAgentAction(
     }
   }
 
-  if (!owner) return { ...base, mode: "draft", skipped: "Automation has no owner to attribute the draft to" };
   const { error } = await db.from("email_drafts").insert({
     workspace_id: run.workspace_id,
     user_id: owner,
@@ -1403,7 +1408,7 @@ async function executeGraphRun(run: RunRow, workflow: import("@/lib/workflow-gra
       const a = await loadAgent();
       const decided = await runAiDecision(node, a.ctx, a.settings);
       const list = Array.isArray(meta["aiDecisions"]) ? (meta["aiDecisions"] as unknown[]) : [];
-      meta["aiDecisions"] = [...list, { outcome: decided.output["outcome"], pathLabel: decided.output["pathLabel"], confidence: decided.output["confidence"], usedFallback: decided.output["usedFallback"] }].slice(-5);
+      meta["aiDecisions"] = [...list, { outcome: decided.output["outcome"], pathLabel: decided.output["pathLabel"], confidence: decided.output["confidence"], usedFallback: decided.output["usedFallback"], threshold: decided.output["threshold"] ?? null }].slice(-5);
       a.ctx.previousDecisions.push({ outcome: (decided.output["outcome"] as string) ?? null, pathLabel: String(decided.output["pathLabel"]) });
       return decided;
     },
