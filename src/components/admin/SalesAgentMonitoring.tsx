@@ -72,13 +72,13 @@ export function SalesAgentMonitoring() {
       {d?.truncated ? <p className="text-xs text-muted-foreground">Showing the first 20,000 AI steps in this range — choose a shorter range for complete totals.</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="AI Requests" value={v(t && num(t.requests))} hint={t ? `${num(t.decisions)} decisions · ${num(t.replies)} replies` : undefined} />
+        <StatCard label="AI Requests" value={v(t && num(t.requests))} hint={t ? `${num(t.decisions)} decisions · ${num(t.replies)} replies` : ""} />
         <StatCard label="Successful" value={v(t && num(t.success))} />
         <StatCard label="Failed" value={v(t && num(t.failed))} hint="Provider unavailable or error" />
         <StatCard label="Timed Out" value={v(t && num(t.timedOut))} />
         <StatCard label="Success Rate" value={v(t && formatRate(t.successRate))} />
         <StatCard label="Average Response Time" value={v(t && ms(t.avgLatencyMs))} />
-        <StatCard label="Total AI Usage" value={v(t && `${num(t.totalTokens)} tokens`)} hint={t ? `${num(t.inputTokens)} in · ${num(t.outputTokens)} out` : undefined} />
+        <StatCard label="Total AI Usage" value={v(t && `${num(t.totalTokens)} tokens`)} hint={t ? `${num(t.inputTokens)} in · ${num(t.outputTokens)} out` : ""} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
