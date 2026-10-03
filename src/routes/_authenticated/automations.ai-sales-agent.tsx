@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { SalesAgentSettingsPanel } from "@/components/automations/SalesAgentSettingsPanel";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-export const Route = createFileRoute("/_authenticated/ai-sales-agent")({
+export const Route = createFileRoute("/_authenticated/automations/ai-sales-agent")({
   head: () => ({
     meta: [
       { title: "AI Sales Agent — MunchReach" },
