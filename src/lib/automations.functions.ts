@@ -18,6 +18,18 @@ import type {
   AutomationStats,
   AutomationStep,
 } from "@/lib/automation-model";
+import { WORKFLOW_ACTIONS } from "@/lib/automation-model";
+import { countNodes, validateWorkflow, workflowFromSteps } from "@/lib/workflow-graph";
+
+/** Server-side guard for visual workflows inside a step list. */
+function assertValidSteps(steps: { kind: string; config: Record<string, unknown> }[], strict: boolean) {
+  const workflow = workflowFromSteps(steps);
+  if (!workflow) return;
+  if (steps.length !== 1) throw new Error("A visual workflow must be saved on its own.");
+  const errors = validateWorkflow(workflow, WORKFLOW_ACTIONS.map((a) => a.id));
+  const blocking = strict ? errors : errors.filter((e) => e.includes("at most"));
+  if (blocking.length) throw new Error(blocking[0]);
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -47,14 +59,17 @@ export const listAutomations = createServerFn({ method: "GET" })
         .select(sel(AUTOMATION_COLUMNS))
         .eq("workspace_id", data.workspaceId)
         .order("created_at", { ascending: false }),
-      client.from("automation_steps").select(sel("automation_id")).eq("workspace_id", data.workspaceId),
+      client.from("automation_steps").select(sel("automation_id, config")).eq("workspace_id", data.workspaceId),
       client.from("automation_runs").select(sel("automation_id, status")).eq("workspace_id", data.workspaceId),
     ]);
     if (error) throw new Error(error.message);
 
     const stepCounts = new Map<string, number>();
-    for (const s of (steps ?? []) as { automation_id: string }[]) {
-      stepCounts.set(s.automation_id, (stepCounts.get(s.automation_id) ?? 0) + 1);
+    for (const s of (steps ?? []) as { automation_id: string; config: Record<string, unknown> | null }[]) {
+      // A visual workflow is stored as one row holding the whole tree.
+      const graph = workflowFromSteps([{ kind: "action", config: s.config ?? {} }]);
+      const n = graph ? countNodes(graph.nodes) : 1;
+      stepCounts.set(s.automation_id, (stepCounts.get(s.automation_id) ?? 0) + n);
     }
 
     const runRows = (runs ?? []) as { automation_id: string; status: string }[];
@@ -183,12 +198,14 @@ export const createAutomation = createServerFn({ method: "POST" })
         name: z.string().trim().min(2).max(120),
         description: z.string().trim().max(400).optional(),
         triggerType: z.string().trim().min(2).max(60),
+        triggerConfig: z.record(z.string(), z.unknown()).default({}),
         steps: z.array(stepInput).max(40).default([]),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
+    assertValidSteps(data.steps, false);
     // Server-side plan enforcement: an API caller cannot bypass this.
     const { requireEntitlement, checkUsageLimit } = await import("@/lib/billing/usage.server");
     await requireEntitlement(data.workspaceId, "automations");
@@ -204,6 +221,7 @@ export const createAutomation = createServerFn({ method: "POST" })
         name: data.name,
         description: data.description ?? null,
         trigger_type: data.triggerType,
+        trigger_config: data.triggerConfig,
         status: "draft",
         created_by: context.userId,
       })
@@ -254,6 +272,7 @@ export const saveAutomation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
+    assertValidSteps(data.steps, false);
 
     // Version bump: runs already in flight keep their frozen definition, so
     // editing a live automation cannot corrupt them.
@@ -317,6 +336,11 @@ export const setAutomationStatus = createServerFn({ method: "POST" })
         .eq("automation_id", data.automationId)
         .in("kind", ["action", "wait"]);
       if ((count ?? 0) === 0) throw new Error("Add at least one action before publishing.");
+      const { data: stepRows } = await client
+        .from("automation_steps")
+        .select(sel("kind, config"))
+        .eq("automation_id", data.automationId);
+      assertValidSteps((stepRows ?? []) as { kind: string; config: Record<string, unknown> }[], true);
       // Publishing consumes a live automation slot, so the plan limit is
       // enforced here too — not only at creation time.
       await assertActiveLimit(client, data.workspaceId, data.automationId);

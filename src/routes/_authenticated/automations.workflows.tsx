@@ -50,11 +50,13 @@ import { useAutomationRealtime } from "@/hooks/useAutomationRealtime";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   AUTOMATION_STATUS_TONE,
-  AUTOMATION_TEMPLATES,
   RUN_STATUS_TONE,
   TRIGGERS,
   triggerLabel,
+  triggerSummary,
 } from "@/lib/automation-model";
+import { workflowToStep } from "@/lib/workflow-graph";
+import { TEMPLATE_CATEGORIES, WORKFLOW_TEMPLATES } from "@/lib/workflow-templates";
 import {
   createAutomation,
   deleteAutomation,
@@ -114,7 +116,9 @@ function AutomationsPage() {
   const retry = useServerFn(retryAutomationRun);
 
   const [tab, setTab] = useState<"workflows" | "activity">("workflows");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused" | "draft" | "archived">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused" | "draft" | "archived" | "failed">("all");
+  const [search, setSearch] = useState("");
+  const [templateCategory, setTemplateCategory] = useState<string>("all");
   const [runFilter, setRunFilter] = useState<"all" | "completed" | "failed" | "waiting" | "running">("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -138,8 +142,13 @@ function AutomationsPage() {
   const limit = listQuery.data?.limit;
   const items = useMemo(() => {
     const rows = listQuery.data?.items ?? [];
-    return statusFilter === "all" ? rows : rows.filter((r) => r.status === statusFilter);
-  }, [listQuery.data, statusFilter]);
+    const q = search.trim().toLowerCase();
+    return rows
+      .filter((r) =>
+        statusFilter === "all" ? true : statusFilter === "failed" ? r.failed > 0 : r.status === statusFilter,
+      )
+      .filter((r) => !q || r.name.toLowerCase().includes(q) || triggerLabel(r.trigger_type).toLowerCase().includes(q));
+  }, [listQuery.data, statusFilter, search]);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["automations", workspaceId] });
@@ -148,7 +157,7 @@ function AutomationsPage() {
 
   const handleCreate = async (templateId?: string) => {
     if (!workspaceId) return;
-    const template = AUTOMATION_TEMPLATES.find((t) => t.id === templateId);
+    const template = WORKFLOW_TEMPLATES.find((t) => t.id === templateId);
     const name = template ? template.name : newName.trim();
     if (!template && name.length < 2) {
       toast.error("Give your automation a name");
@@ -162,11 +171,9 @@ function AutomationsPage() {
           name,
           ...(template ? { description: template.description } : {}),
           triggerType: template ? template.trigger : newTrigger,
-          steps: (template?.steps ?? []).map((s) => ({
-            kind: s.kind,
-            branch: s.branch ?? null,
-            config: s.config,
-          })),
+          triggerConfig: template?.triggerConfig ?? {},
+          // New automations are visual workflows; templates arrive pre-built.
+          steps: [workflowToStep(template ? template.build() : { version: 2, nodes: [] }) as never],
         },
       });
       toast.success("Automation created as a draft");
@@ -212,11 +219,12 @@ function AutomationsPage() {
       <div className="space-y-8">
 
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {[
             { label: "Active workflows", value: stats?.active ?? 0, icon: Workflow },
-            { label: "Runs (all time)", value: stats?.runs ?? 0, icon: Activity },
+            { label: "Runs", value: stats?.runs ?? 0, icon: Activity },
             { label: "Completed", value: stats?.successful ?? 0, icon: CheckCircle2 },
+            { label: "Waiting", value: stats?.waiting ?? 0, icon: Clock },
             { label: "Failed", value: stats?.failed ?? 0, icon: AlertTriangle },
           ].map((card) => (
             <div key={card.label} className="rounded-xl border bg-card p-4">
@@ -278,6 +286,14 @@ function AutomationsPage() {
             <Button variant="ghost" size="sm" asChild>
               <Link to="/automations/activity">Open full activity</Link>
             </Button>
+            {tab === "workflows" && (
+              <Input
+                className="w-56"
+                placeholder="Search workflows"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            )}
             {tab === "workflows" ? (
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
                 <SelectTrigger className="w-44">
@@ -288,6 +304,7 @@ function AutomationsPage() {
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="paused">Paused</SelectItem>
                   <SelectItem value="draft">Drafts</SelectItem>
+                  <SelectItem value="failed">With failed runs</SelectItem>
                   <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
@@ -353,7 +370,7 @@ function AutomationsPage() {
                             <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{triggerLabel(item.trigger_type)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{triggerSummary(item.trigger_type, item.trigger_config ?? {})}</td>
                         <td className="px-4 py-3 text-muted-foreground">{item.steps}</td>
                         <td className="px-4 py-3">
                           <span className="text-foreground">{item.runs}</span>
@@ -419,11 +436,26 @@ function AutomationsPage() {
             )}
 
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Start from a template
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Start from a template
+                </h2>
+                <div className="flex flex-wrap gap-1">
+                  {["all", ...TEMPLATE_CATEGORIES].map((c) => (
+                    <Button
+                      key={c}
+                      size="sm"
+                      variant={templateCategory === c ? "secondary" : "ghost"}
+                      onClick={() => setTemplateCategory(c)}
+                    >
+                      {c === "all" ? "All" : c}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Templates create an editable draft — nothing runs until you activate it.</p>
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {AUTOMATION_TEMPLATES.map((template) => (
+                {WORKFLOW_TEMPLATES.filter((t) => templateCategory === "all" || t.category === templateCategory).map((template) => (
                   <button
                     key={template.id}
                     type="button"
@@ -431,7 +463,8 @@ function AutomationsPage() {
                     onClick={() => handleCreate(template.id)}
                     className="rounded-xl border bg-card p-4 text-left transition hover:border-primary/50 hover:shadow-sm disabled:opacity-60"
                   >
-                    <p className="font-medium">{template.name}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{template.category}</p>
+                    <p className="mt-1 font-medium">{template.name}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{template.description}</p>
                     <p className="mt-3 text-xs font-medium text-primary">{triggerLabel(template.trigger)}</p>
                   </button>
@@ -521,7 +554,7 @@ function AutomationsPage() {
           <DialogHeader>
             <DialogTitle>New automation</DialogTitle>
             <DialogDescription>
-              Pick the real event that starts this workflow. You can add conditions, waits and actions next.
+              Pick the event that starts this workflow. Next you’ll build it step by step: checks, branches, waits and actions.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -541,7 +574,7 @@ function AutomationsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {TRIGGERS.map((trigger) => (
+                  {[...TRIGGERS].sort((a, b) => a.group.localeCompare(b.group)).map((trigger) => (
                     <SelectItem key={trigger.id} value={trigger.id}>
                       {trigger.group} · {trigger.label}
                     </SelectItem>
@@ -558,7 +591,7 @@ function AutomationsPage() {
               Cancel
             </Button>
             <Button disabled={busy} onClick={() => handleCreate()}>
-              Create draft
+              Open builder
             </Button>
           </DialogFooter>
         </DialogContent>
