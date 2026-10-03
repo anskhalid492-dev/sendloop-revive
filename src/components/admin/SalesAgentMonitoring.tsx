@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FilterBar, LoadingRows, SearchInput, StatCard, num } from "@/components/app/admin/OutreachUI";
 import { adminSalesAgentMonitoring } from "@/lib/sales-agent.functions";
+import { monitoringView } from "@/lib/sales-agent-monitoring-view";
 import { formatRate, isoDay, presetRange } from "@/lib/warmup-analytics";
 
 type Preset = "today" | "last7" | "last30" | "this_month" | "custom";
@@ -41,7 +42,8 @@ export function SalesAgentMonitoring() {
   const d = q.data;
   const t = d?.totals;
   // Loading placeholders only while a request is in flight; errors and invalid ranges show "—".
-  const pending = !invalid && !q.isError && !t;
+  const view = monitoringView({ invalid, isError: q.isError, hasData: Boolean(d), errorMessage: (q.error as Error | null)?.message });
+  const pending = view === "loading";
   const v = (x: string | undefined) => (t ? (x ?? "—") : pending ? "…" : "—");
 
   return (
@@ -72,7 +74,7 @@ export function SalesAgentMonitoring() {
       {invalid ? <p className="text-sm text-destructive">Choose a start date on or before the end date.</p> : null}
       {q.isError ? (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
-          <span>{/forbidden|unauthori|super admin|two-factor|verification/i.test((q.error as Error)?.message ?? "") ? "You don't have access to AI Sales Agent analytics." : "Unable to load AI Sales Agent analytics."}</span>
+          <span>{view === "denied" ? "You don't have access to AI Sales Agent analytics." : "Unable to load AI Sales Agent analytics."}</span>
           <Button size="sm" variant="outline" onClick={() => q.refetch()} disabled={q.isFetching}>
             {q.isFetching ? "Retrying…" : "Retry"}
           </Button>
