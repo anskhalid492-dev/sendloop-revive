@@ -1100,9 +1100,14 @@ async function requestHumanReview(db: Db, run: RunRow, ctx: RunContext, reason: 
   // Pauses automated AI replies for this lead until a person removes the tag.
   const tags = Array.isArray(ctx.lead?.["tags"]) ? (ctx.lead!["tags"] as string[]) : [];
   const patch: Record<string, unknown> = { tags: Array.from(new Set([...tags, HUMAN_REVIEW_TAG])) };
+  let ownerName: string | null = null;
   if (ownerId) {
-    const { data: member } = await db.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).eq("user_id", ownerId).maybeSingle();
-    if (member) patch["owner_id"] = ownerId;
+    const { data: member } = await db.from("workspace_members").select("user_id, profiles:user_id(email, full_name)").eq("workspace_id", workspaceId).eq("user_id", ownerId).maybeSingle();
+    if (member) {
+      patch["owner_id"] = ownerId;
+      const prof = (member as { profiles?: { email?: string | null; full_name?: string | null } | null }).profiles;
+      ownerName = prof?.full_name || prof?.email || null;
+    }
   }
   await db.from("leads").update(patch as never).eq("id", leadId).eq("workspace_id", workspaceId);
   if (ctx.lead) ctx.lead["tags"] = patch["tags"];
@@ -1110,7 +1115,7 @@ async function requestHumanReview(db: Db, run: RunRow, ctx: RunContext, reason: 
   if (notifyTo) {
     await db.from("notifications").insert({ user_id: notifyTo, workspace_id: workspaceId, type: "automation", title: "Human review requested", message: text, entity_type: "automation", entity_id: run.automation_id });
   }
-  return { humanReview: true, reason: text, assignedTo: patch["owner_id"] ?? null };
+  return { humanReview: true, reason: text, assignedTo: patch["owner_id"] ?? null, assignedToName: ownerName };
 }
 
 async function runSalesAgentAction(
