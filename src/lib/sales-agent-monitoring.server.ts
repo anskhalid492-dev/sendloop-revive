@@ -16,10 +16,10 @@ export async function loadMonitoringRows(db: Db, from: string, to: string): Prom
     const { data, error } = await db
       .from("automation_run_steps")
       .select("workspace_id, output")
-      .gte("created_at", start)
-      .lt("created_at", end)
+      .gte("started_at", start)
+      .lt("started_at", end)
       .or("output->>kind.in.(ai_decision,ai_reply),output->>humanReview.eq.true")
-      .order("created_at", { ascending: true })
+      .order("started_at", { ascending: true })
       .range(offset, offset + MONITORING_PAGE - 1);
     if (error) throw new Error("Could not load AI Sales Agent metrics.");
     const page = (data ?? []) as MetricRow[];

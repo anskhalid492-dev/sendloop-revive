@@ -258,8 +258,8 @@ describe("admin monitoring", () => {
     expect(out.truncated).toBe(false);
     expect(seen[0]!["table"]).toBe("automation_run_steps");
     expect(seen[0]!["select"]).toBe("workspace_id, output");
-    expect(seen[0]!["gte"]).toEqual(["created_at", "2026-10-01T00:00:00.000Z"]);
-    expect(seen[0]!["lt"]).toEqual(["created_at", "2026-10-04T00:00:00.000Z"]);
+    expect(seen[0]!["gte"]).toEqual(["started_at", "2026-10-01T00:00:00.000Z"]);
+    expect(seen[0]!["lt"]).toEqual(["started_at", "2026-10-04T00:00:00.000Z"]);
     expect(String(seen[0]!["or"])).toMatch(/ai_decision,ai_reply/);
     expect(seen[1]!["range"]).toEqual([1000, 1999]);
   });
