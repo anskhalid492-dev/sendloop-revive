@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
   ArrowUp,
   CircleStop,
   Clock,
@@ -19,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AVAILABLE_TRIGGERS, CONDITION_FIELDS, TRIGGERS, WORKFLOW_ACTIONS, actionLabel } from "@/lib/automation-model";
@@ -122,6 +129,36 @@ function describeNode(node: WorkflowNode): string {
 
 /* ------------------------------------------------------------ component */
 
+type Located = { node: WorkflowNode; addr: ListAddr; index: number; size: number };
+
+function locate(nodes: WorkflowNode[], id: string, addr: ListAddr = []): Located | null {
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i]!;
+    if (n.id === id) return { node: n, addr, index: i, size: nodes.length };
+    if (n.type === "branch") {
+      for (const p of [...n.paths, n.otherwise]) {
+        const hit = locate(p.steps, id, [...addr, i, p.key]);
+        if (hit) return hit;
+      }
+    }
+  }
+  return null;
+}
+
+function countSteps(list: WorkflowNode[]): number {
+  return list.reduce((sum, n) => sum + 1 + (n.type === "branch" ? [...n.paths, n.otherwise].reduce((s, p) => s + countSteps(p.steps), 0) : 0), 0);
+}
+
+function issueCount(list: WorkflowNode[], issues: Record<string, string[]>): number {
+  return list.reduce(
+    (sum, n) => sum + (issues[n.id]?.length ? 1 : 0) + (n.type === "branch" ? [...n.paths, n.otherwise].reduce((s, p) => s + issueCount(p.steps, issues), 0) : 0),
+    0,
+  );
+}
+
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 1.5;
+
 export function WorkflowBuilder({
   workflow,
   onChange,
@@ -135,6 +172,12 @@ export function WorkflowBuilder({
   issues?: Record<string, string[]>;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  /** Expanded lanes ("nodeId:pathKey"). Lanes with 0–1 steps are always open. */
+  const [openLanes, setOpenLanes] = useState<Set<string>>(() => new Set());
+  const [focusLane, setFocusLane] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const insert = (addr: ListAddr, index: number, type: AddKind) => {
     const node =
@@ -148,8 +191,11 @@ export function WorkflowBuilder({
     onChange(edit(workflow, (nodes) => listAt(nodes, addr).splice(index, 0, node)));
     setSelected(node.id);
   };
-  const remove = (addr: ListAddr, index: number) =>
+  const remove = (addr: ListAddr, index: number) => {
+    const id = listAt(workflow.nodes, addr)[index]?.id;
     onChange(edit(workflow, (nodes) => listAt(nodes, addr).splice(index, 1)));
+    if (id && id === selected) setSelected(null);
+  };
   const duplicate = (addr: ListAddr, index: number) =>
     onChange(
       edit(workflow, (nodes) => {
@@ -174,49 +220,167 @@ export function WorkflowBuilder({
       }),
     );
 
-  const renderList = (addr: ListAddr, list: WorkflowNode[]) => (
-    <div className="flex flex-col items-stretch">
+  const current = useMemo(() => (selected ? locate(workflow.nodes, selected) : null), [workflow, selected]);
+
+  const toggleLane = (key: string) => {
+    setOpenLanes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+        if (focusLane === key) setFocusLane(null);
+      } else {
+        next.add(key);
+        setFocusLane(key);
+      }
+      return next;
+    });
+  };
+  const backToWorkflow = () => {
+    setFocusLane(null);
+    setOpenLanes(new Set());
+  };
+
+  const fit = () => {
+    const vp = viewportRef.current;
+    const el = contentRef.current;
+    if (!vp || !el) return;
+    const natural = el.scrollWidth / zoom;
+    const scale = Math.min(1, Math.max(ZOOM_MIN, (vp.clientWidth - 48) / natural));
+    setZoom(Number(scale.toFixed(2)));
+  };
+
+  const renderList = (addr: ListAddr, list: WorkflowNode[], laneKey?: string): React.ReactNode => (
+    <div className="flex flex-col items-center">
       <AddStep onAdd={(t) => insert(addr, 0, t)} />
       {list.map((node, index) => (
-        <div key={node.id} className="flex flex-col items-stretch">
-          <NodeCard
+        <div key={node.id} className="flex flex-col items-center">
+          <NodeChip
             node={node}
             selected={selected === node.id}
-            onSelect={() => setSelected(selected === node.id ? null : node.id)}
+            onSelect={() => setSelected(node.id)}
             onDelete={() => remove(addr, index)}
             onDuplicate={() => duplicate(addr, index)}
             onUp={index > 0 ? () => move(addr, index, -1) : undefined}
             onDown={index < list.length - 1 ? () => move(addr, index, 1) : undefined}
-            onChange={(next) => replace(addr, index, next)}
-            options={options}
             issues={issues[node.id]}
           />
-          {node.type === "branch" && (
-            <div className="mt-2 grid gap-3 border-l-2 border-dashed border-border pl-4 md:grid-cols-2 xl:grid-cols-3">
-              {[...node.paths, node.otherwise].map((path) => (
-                <div key={path.key} className="rounded-xl border border-dashed bg-muted/30 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{path.label}</p>
-                  <p className="mb-1 text-[11px] text-muted-foreground">
-                    {node.ai
-                      ? path.key === node.otherwise.key
-                        ? "Low confidence, invalid answer or AI unavailable"
-                        : "When AI chooses this outcome"
-                      : path.key === node.otherwise.key
-                        ? "When no other path matches"
-                        : describeRules(path.when)}
-                  </p>
-                  {renderList([...addr, index, path.key], path.steps)}
-                </div>
-              ))}
-            </div>
-          )}
+          {node.type === "branch" && renderLanes(addr, index, node, laneKey)}
           <AddStep onAdd={(t) => insert(addr, index + 1, t)} />
         </div>
       ))}
+      {list.length === 0 && <span className="rounded-full border border-dashed px-2.5 py-0.5 text-[11px] text-muted-foreground">End</span>}
     </div>
   );
 
-  return <div className="mx-auto w-full max-w-3xl">{renderList([], workflow.nodes)}</div>;
+  const renderLanes = (addr: ListAddr, index: number, node: Extract<WorkflowNode, { type: "branch" }>, parentLane?: string) => {
+    const paths = [...node.paths, node.otherwise];
+    return (
+      <div className="flex flex-col items-center">
+        <span className="h-5 w-px bg-border" />
+        <div className="relative flex items-start gap-6 px-2">
+          {paths.length > 1 && <span className="pointer-events-none absolute left-[calc(7rem+0.5rem)] right-[calc(7rem+0.5rem)] top-0 h-px bg-border" />}
+          {paths.map((path) => {
+            const key = `${node.id}:${path.key}`;
+            const steps = countSteps(path.steps);
+            const open = steps <= 1 || openLanes.has(key);
+            const focused = focusLane === key;
+            const dimmed = focusLane !== null && !focused && focusLane !== parentLane && !focusLane.startsWith(`${node.id}:`) === false && !focused;
+            const isFallback = path.key === node.otherwise.key;
+            const problems = issueCount(path.steps, issues);
+            return (
+              <div key={path.key} className={`flex min-w-56 flex-col items-center transition-opacity ${dimmed ? "opacity-50" : ""}`}>
+                <span className="h-4 w-px bg-border" />
+                <button
+                  type="button"
+                  onClick={() => (steps > 1 ? toggleLane(key) : setFocusLane(focused ? null : key))}
+                  aria-expanded={open}
+                  className={`flex w-56 items-center gap-2 rounded-full border bg-background px-3 py-1.5 text-left text-xs transition hover:border-primary/60 ${focused ? "border-primary ring-2 ring-primary/30" : ""}`}
+                  title={
+                    node.ai
+                      ? isFallback
+                        ? "Low confidence, invalid answer or AI unavailable"
+                        : "When AI chooses this outcome"
+                      : isFallback
+                        ? "When no other path matches"
+                        : describeRules(path.when)
+                  }
+                >
+                  <span className={`size-2 shrink-0 rounded-full ${isFallback ? "bg-muted-foreground" : node.ai ? "bg-primary" : "bg-violet-500"}`} />
+                  <span className="min-w-0 flex-1 truncate font-semibold uppercase tracking-wide">{path.label}</span>
+                  {problems > 0 && <span className="size-1.5 rounded-full bg-destructive" aria-label="Needs attention" />}
+                  <span className="shrink-0 text-muted-foreground">
+                    {steps === 0 ? "End" : `${steps} step${steps === 1 ? "" : "s"}`}
+                  </span>
+                  {steps > 1 && (open ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />)}
+                </button>
+                {open ? (
+                  <div className={`mt-1 rounded-2xl px-2 pb-2 ${focused ? "bg-primary/5" : ""}`}>{renderList([...addr, index, path.key], path.steps, key)}</div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleLane(key)}
+                    className="mt-2 w-48 truncate rounded-lg px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted"
+                  >
+                    {path.steps.map((s) => s.label || (s.type === "action" ? actionLabel(s.action) : NODE_META[s.type].label)).join(" → ")}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border bg-muted/20">
+      {focusLane && (
+        <div className="absolute left-3 top-3 z-10">
+          <Button size="sm" variant="secondary" onClick={backToWorkflow}>
+            <ArrowLeft className="mr-1.5 size-3.5" /> Back to workflow
+          </Button>
+        </div>
+      )}
+      <div className="absolute right-3 top-3 z-10 flex items-center gap-0.5 rounded-lg border bg-background/95 p-0.5 shadow-sm">
+        <Button variant="ghost" size="icon" className="size-7" aria-label="Zoom out" disabled={zoom <= ZOOM_MIN} onClick={() => setZoom((z) => Math.max(ZOOM_MIN, Number((z - 0.1).toFixed(2))))}>
+          <ZoomOut className="size-3.5" />
+        </Button>
+        <button type="button" className="w-11 text-center text-[11px] tabular-nums text-muted-foreground hover:text-foreground" aria-label="Reset zoom" onClick={() => setZoom(1)}>
+          {Math.round(zoom * 100)}%
+        </button>
+        <Button variant="ghost" size="icon" className="size-7" aria-label="Zoom in" disabled={zoom >= ZOOM_MAX} onClick={() => setZoom((z) => Math.min(ZOOM_MAX, Number((z + 0.1).toFixed(2))))}>
+          <ZoomIn className="size-3.5" />
+        </Button>
+        <Button variant="ghost" size="icon" className="size-7" aria-label="Fit workflow to screen" onClick={fit}>
+          <Maximize2 className="size-3.5" />
+        </Button>
+      </div>
+      <div
+        ref={viewportRef}
+        className="max-h-[75vh] min-h-80 overflow-auto bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:20px_20px]"
+      >
+        <div ref={contentRef} className="mx-auto w-max min-w-full px-6 pb-10 pt-14" style={{ zoom }}>
+          {renderList([], workflow.nodes)}
+        </div>
+      </div>
+
+      <Sheet open={Boolean(current)} onOpenChange={(o) => !o && setSelected(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+          {current && (
+            <Inspector
+              located={current}
+              options={options}
+              issues={issues[current.node.id]}
+              onChange={(next) => replace(current.addr, current.index, next)}
+              onDelete={() => remove(current.addr, current.index)}
+              onDuplicate={() => duplicate(current.addr, current.index)}
+              onMove={(dir) => move(current.addr, current.index, dir)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
 }
 
 type AddKind = NodeType | "ai_decision" | "ai_reply" | "human_review";
@@ -286,7 +450,28 @@ function AddStep({ onAdd }: { onAdd: (type: AddKind) => void }) {
   );
 }
 
-function NodeCard({
+function chipTitle(node: WorkflowNode): string {
+  if (node.label) return node.label;
+  if (node.type === "branch" && node.ai) return "AI Decision";
+  if (node.type === "action") return actionLabel(node.action);
+  return NODE_META[node.type].label;
+}
+
+function chipSubtitle(node: WorkflowNode): string {
+  if (node.type === "branch" && node.ai) {
+    const q = node.ai.question.trim();
+    return `${q ? `${q.length > 40 ? `${q.slice(0, 40)}…` : q} · ` : ""}${node.paths.length} outcomes · ${Math.round(node.ai.threshold * 100)}%`;
+  }
+  if (node.type === "action") {
+    const c = (node.config ?? {}) as Record<string, unknown>;
+    if (typeof c["mode"] === "string") return OPTION_LABELS[c["mode"]] ?? String(c["mode"]);
+    for (const k of ["tag", "stage_name", "status", "subject", "url"]) if (typeof c[k] === "string" && c[k]) return String(c[k]);
+    return node.label ? actionLabel(node.action) : "";
+  }
+  return describeNode(node);
+}
+
+function NodeChip({
   node,
   selected,
   onSelect,
@@ -294,8 +479,6 @@ function NodeCard({
   onDuplicate,
   onUp,
   onDown,
-  onChange,
-  options,
   issues,
 }: {
   issues?: string[] | undefined;
@@ -306,63 +489,102 @@ function NodeCard({
   onDuplicate: () => void;
   onUp?: (() => void) | undefined;
   onDown?: (() => void) | undefined;
-  onChange: (next: WorkflowNode) => void;
-  options: BuilderOptions;
 }) {
   const meta = NODE_META[node.type];
+  const isAi = (node.type === "branch" && node.ai) || (node.type === "action" && (node.action === "ai.generate_reply" || node.action === "human.review"));
+  const Icon = node.type === "branch" && node.ai ? Sparkles : node.type === "action" && node.action === "ai.generate_reply" ? Sparkles : node.type === "action" && node.action === "human.review" ? UserRound : meta.icon;
+  const hasIssues = Boolean(issues && issues.length);
+  const sub = chipSubtitle(node);
   return (
-    <div className={`rounded-xl border bg-card shadow-sm transition ${selected ? "ring-2 ring-primary/40" : ""}`}>
-      <div className="flex items-center gap-3 p-3">
-        <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-            <meta.icon className={`size-4 ${meta.tone}`} />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {node.label || meta.label}
-            </span>
-            <span className="block truncate text-sm font-medium">{describeNode(node)}</span>
-          </span>
-        </button>
-        <div className="flex shrink-0 items-center">
-          {onUp && (
-            <Button variant="ghost" size="icon" className="size-7" aria-label="Move up" onClick={onUp}>
-              <ArrowUp className="size-3.5" />
-            </Button>
-          )}
-          {onDown && (
-            <Button variant="ghost" size="icon" className="size-7" aria-label="Move down" onClick={onDown}>
-              <ArrowDown className="size-3.5" />
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" className="size-7" aria-label="Duplicate step" onClick={onDuplicate}>
-            <Copy className="size-3.5" />
+    <div
+      className={`group relative w-56 rounded-xl border bg-card shadow-sm transition hover:shadow-md ${
+        selected ? "border-primary ring-2 ring-primary/30" : hasIssues ? "border-destructive/60" : ""
+      } ${node.type === "end" ? "w-auto rounded-full" : ""}`}
+    >
+      <button type="button" onClick={onSelect} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left" aria-label={`Edit ${chipTitle(node)}`}>
+        <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${isAi ? "bg-primary/10" : "bg-muted"}`}>
+          <Icon className={`size-3.5 ${isAi ? "text-primary" : meta.tone}`} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[11px] font-semibold uppercase tracking-wide">{chipTitle(node)}</span>
+          {sub && <span className="block truncate text-xs text-muted-foreground">{sub}</span>}
+        </span>
+        {hasIssues && <span className="size-2 shrink-0 rounded-full bg-destructive" aria-label={issues!.join(" ")} title={issues!.join("\n")} />}
+      </button>
+      <div className="absolute -right-2 -top-3 flex items-center rounded-md border bg-background opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+        {onUp && (
+          <Button variant="ghost" size="icon" className="size-6" aria-label="Move up" onClick={onUp}>
+            <ArrowUp className="size-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="size-7" aria-label="Delete step" onClick={onDelete}>
-            <Trash2 className="size-3.5 text-destructive" />
+        )}
+        {onDown && (
+          <Button variant="ghost" size="icon" className="size-6" aria-label="Move down" onClick={onDown}>
+            <ArrowDown className="size-3" />
           </Button>
-        </div>
+        )}
+        <Button variant="ghost" size="icon" className="size-6" aria-label="Duplicate step" onClick={onDuplicate}>
+          <Copy className="size-3" />
+        </Button>
+        <Button variant="ghost" size="icon" className="size-6" aria-label="Delete step" onClick={onDelete}>
+          <Trash2 className="size-3 text-destructive" />
+        </Button>
       </div>
+    </div>
+  );
+}
+
+function Inspector({
+  located,
+  options,
+  issues,
+  onChange,
+  onDelete,
+  onDuplicate,
+  onMove,
+}: {
+  located: Located;
+  options: BuilderOptions;
+  issues?: string[] | undefined;
+  onChange: (next: WorkflowNode) => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  const { node, index, size } = located;
+  const meta = NODE_META[node.type];
+  return (
+    <div className="space-y-5">
+      <SheetHeader>
+        <SheetTitle>{chipTitle(node)}</SheetTitle>
+        <SheetDescription>{node.type === "branch" && node.ai ? "Let AI choose one outcome path." : meta.hint}</SheetDescription>
+      </SheetHeader>
       {issues && issues.length > 0 && (
-        <ul className="space-y-0.5 border-t border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        <ul className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
           {issues.map((m) => (
             <li key={m}>{m}</li>
           ))}
         </ul>
       )}
-      {selected && (
-        <div className="space-y-3 border-t p-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Step name (optional)</Label>
-            <Input
-              value={node.label ?? ""}
-              placeholder={meta.label}
-              onChange={(e) => onChange({ ...node, label: e.target.value || undefined })}
-            />
-          </div>
-          <NodeEditor node={node} onChange={onChange} options={options} />
-        </div>
-      )}
+      <div className="space-y-1">
+        <Label className="text-xs">Step name (optional)</Label>
+        <Input value={node.label ?? ""} placeholder={meta.label} onChange={(e) => onChange({ ...node, label: e.target.value || undefined })} />
+      </div>
+      <NodeEditor node={node} onChange={onChange} options={options} />
+      <div className="flex flex-wrap gap-2 border-t pt-4">
+        <Button variant="outline" size="sm" disabled={index === 0} onClick={() => onMove(-1)}>
+          <ArrowUp className="mr-1 size-3.5" /> Move up
+        </Button>
+        <Button variant="outline" size="sm" disabled={index >= size - 1} onClick={() => onMove(1)}>
+          <ArrowDown className="mr-1 size-3.5" /> Move down
+        </Button>
+        <Button variant="outline" size="sm" onClick={onDuplicate}>
+          <Copy className="mr-1 size-3.5" /> Duplicate
+        </Button>
+        <Button variant="outline" size="sm" className="text-destructive" onClick={onDelete}>
+          <Trash2 className="mr-1 size-3.5" /> Delete
+        </Button>
+      </div>
+      <p className="text-[11px] text-muted-foreground">Changes apply to the canvas right away. Use Save draft to keep them.</p>
     </div>
   );
 }
