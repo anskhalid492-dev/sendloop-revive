@@ -12,6 +12,8 @@ import {
   DEFAULT_SALES_AGENT_SETTINGS,
   HUMAN_REVIEW_TAG,
 } from "@/lib/sales-agent";
+import { memStore } from "./helpers/sales-agent-provider-store";
+import { __setSalesAgentProviderStore } from "@/lib/sales-agent-provider.server";
 import { __setSalesAgentTransport, callSalesAgentModel } from "@/lib/sales-agent-ai.server";
 import { loadAgentConversation, runAiDecision, runAiReply, type AgentContext } from "@/lib/sales-agent.server";
 import { summarizeAiMetrics } from "@/lib/sales-agent-metrics";
@@ -44,6 +46,7 @@ const ctx = (over: Partial<AgentContext> = {}): AgentContext => ({
 
 afterEach(() => {
   __setSalesAgentTransport(null);
+  __setSalesAgentProviderStore(null);
   vi.unstubAllEnvs();
 });
 
@@ -67,7 +70,7 @@ describe("provider separation", () => {
     }
   });
   it("uses the MunchReach credential and needs no customer key", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "munchreach-test-key");
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "munchreach-test-key" }))
     let seen = "";
     __setSalesAgentTransport(async ({ apiKey }) => {
       seen = apiKey;
@@ -85,7 +88,7 @@ describe("provider separation", () => {
     expect(read("src/components/automations/WorkflowBuilder.tsx")).not.toMatch(/api key/i);
   });
   it("reports unavailable without a credential", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "");
+    __setSalesAgentProviderStore(memStore(null));
     const r = await callSalesAgentModel({ system: "s", prompt: "p", purpose: "reply", workspaceId: "w" });
     expect(r).toMatchObject({ ok: false, kind: "unavailable", message: "AI service unavailable." });
   });
@@ -116,7 +119,7 @@ describe("AI decision parsing and routing", () => {
     expect(r).toEqual({ ok: true, outcome: "High intent", confidence: 0.88, reason: "r" });
   });
   it("timeouts and provider failures route to the fallback without guessing", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "k");
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
     __setSalesAgentTransport(async () => {
       throw new Error("The operation was aborted");
     });
@@ -172,19 +175,19 @@ describe("AI reply + safety", () => {
     expect(preReplySafety({ latestInbound: "hi", lastConfidence: 0.5 }).forceDraft).toContain("AI was not confident enough to respond automatically.");
   });
   it("auto-send is downgraded to draft when a safety rule fires", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "k");
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
     __setSalesAgentTransport(async () => ({ text: "Sure — it's $99 per month. Free to chat this week?" }));
     const r = await runAiReply({ mode: "auto_send" }, ctx(), settings, 0.95);
     expect(r.ok && r.mode).toBe("draft");
   });
   it("clean reply keeps the configured auto-send mode", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "k");
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
     __setSalesAgentTransport(async () => ({ text: "Happy to share more. Are you free for a short call this week?" }));
     const r = await runAiReply({ mode: "auto_send" }, ctx(), settings, 0.95);
     expect(r.ok && r.mode).toBe("auto_send");
   });
   it("missing context still works and provider failure creates nothing", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "k");
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
     __setSalesAgentTransport(async () => ({ text: "Thanks for getting back to me. Could we find 15 minutes this week?" }));
     const ok = await runAiReply({}, ctx({ lead: null, messages: [], conversation: null }), settings, null);
     expect(ok.ok).toBe(true);
@@ -202,7 +205,7 @@ describe("AI reply + safety", () => {
     expect(spy).not.toHaveBeenCalled();
   });
   it("mandatory rules are in the prompt and workflow text cannot remove them", async () => {
-    vi.stubEnv("LOVABLE_API_KEY", "k");
+    __setSalesAgentProviderStore(memStore({ provider: "openai", model: "gpt-test", key: "k" }))
     let system = "";
     __setSalesAgentTransport(async (a) => {
       system = a.system;
