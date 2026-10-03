@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -14,15 +12,13 @@ import { MANDATORY_SAFETY_RULES, type SalesAgentSettings } from "@/lib/sales-age
 import { getSalesAgentSettings, saveSalesAgentSettings } from "@/lib/sales-agent.functions";
 
 /** Workspace AI Sales Agent settings. Included with MunchReach — no AI key needed. */
-export function SalesAgentSettingsDialog({ workspaceId }: { workspaceId: string }) {
-  const [open, setOpen] = useState(false);
+export function SalesAgentSettingsPanel({ workspaceId }: { workspaceId: string }) {
   const fetchSettings = useServerFn(getSalesAgentSettings);
   const save = useServerFn(saveSalesAgentSettings);
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["sales-agent-settings", workspaceId],
     queryFn: () => fetchSettings({ data: { workspaceId } }),
-    enabled: open,
   });
   const [draft, setDraft] = useState<SalesAgentSettings | null>(null);
   useEffect(() => {
@@ -33,23 +29,16 @@ export function SalesAgentSettingsDialog({ workspaceId }: { workspaceId: string 
     onSuccess: (value) => {
       qc.setQueryData(["sales-agent-settings", workspaceId], value);
       toast.success("AI Sales Agent settings saved");
-      setOpen(false);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save settings"),
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Sparkles className="mr-1 size-3.5" /> AI Sales Agent
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>AI Sales Agent</DialogTitle>
-          <DialogDescription>Included with MunchReach. Used by AI Decision, Generate AI Reply and Request Human Review steps.</DialogDescription>
-        </DialogHeader>
+    <section className="max-w-2xl space-y-4 rounded-xl border bg-card p-5">
+      <div>
+        <h2 className="text-base font-semibold">Workspace settings</h2>
+        <p className="text-sm text-muted-foreground">Included with MunchReach. Used by AI Decision, Generate AI Reply and Request Human Review steps in your workflows.</p>
+      </div>
         {!draft ? (
           <p className="text-sm text-muted-foreground">{query.isError ? "Couldn't load settings." : "Loading…"}</p>
         ) : (
@@ -93,12 +82,11 @@ export function SalesAgentSettingsDialog({ workspaceId }: { workspaceId: string 
             </div>
           </div>
         )}
-        <DialogFooter>
-          <Button disabled={!draft || mutation.isPending} onClick={() => draft && mutation.mutate(draft)}>
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <div className="flex justify-end">
+        <Button disabled={!draft || mutation.isPending} onClick={() => draft && mutation.mutate(draft)}>
+          {mutation.isPending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </section>
   );
 }
