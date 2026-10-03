@@ -123,10 +123,13 @@ export function WorkflowBuilder({
   workflow,
   onChange,
   options,
+  issues = {},
 }: {
   workflow: Workflow;
   onChange: (next: Workflow) => void;
   options: BuilderOptions;
+  /** Activation problems keyed by step id, shown on that step. */
+  issues?: Record<string, string[]>;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -176,6 +179,7 @@ export function WorkflowBuilder({
             onDown={index < list.length - 1 ? () => move(addr, index, 1) : undefined}
             onChange={(next) => replace(addr, index, next)}
             options={options}
+            issues={issues[node.id]}
           />
           {node.type === "branch" && (
             <div className="mt-2 grid gap-3 border-l-2 border-dashed border-border pl-4 md:grid-cols-2 xl:grid-cols-3">
@@ -250,7 +254,9 @@ function NodeCard({
   onDown,
   onChange,
   options,
+  issues,
 }: {
+  issues?: string[] | undefined;
   node: WorkflowNode;
   selected: boolean;
   onSelect: () => void;
@@ -295,6 +301,13 @@ function NodeCard({
           </Button>
         </div>
       </div>
+      {issues && issues.length > 0 && (
+        <ul className="space-y-0.5 border-t border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {issues.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+      )}
       {selected && (
         <div className="space-y-3 border-t p-3">
           <div className="space-y-1">
