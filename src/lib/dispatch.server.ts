@@ -1795,12 +1795,31 @@ export async function finalizeCampaignIfDrained(
     .in("status", ["pending", "in_progress"]);
   if (Number(openRecipients ?? 0) > 0) return false;
 
-  await supabase
+  const flipped = await completeActiveCampaign(supabase, campaignId);
+  await emitCampaignCompletedAutomation(flipped, "drained", emit);
+  return true;
+}
+
+/**
+ * The existing conditional `active → completed` update. Returns the rows it
+ * actually flipped, so "Campaign completed" fires once — a campaign already
+ * completed (or paused/archived) matches nothing and emits nothing.
+ */
+export async function completeActiveCampaign(
+  supabase: AnySupabase,
+  campaignId: string,
+): Promise<{ id: string; workspace_id: string }[]> {
+  const query = supabase
     .from("campaigns")
     .update({ status: "completed" })
     .eq("id", campaignId)
     .eq("status", "active");
-  return true;
+  if (typeof query?.select !== "function") {
+    await query;
+    return [];
+  }
+  const { data } = await query.select("id, workspace_id");
+  return Array.isArray(data) ? (data as { id: string; workspace_id: string }[]) : [];
 }
 
 /**
