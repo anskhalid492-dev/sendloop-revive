@@ -193,9 +193,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: "cold-reengage",
     name: "Cold lead re-engagement",
-    description: "When a campaign completes, wait 30 days; if the lead never replied, notify the owner to re-engage.",
+    description: "30 days after a lead enters a campaign, if they never replied, tag them and notify the team to re-engage.",
     category: "Lead Management",
-    trigger: "campaign.completed",
+    trigger: "lead.entered_campaign",
     build: () =>
       wf([
         wait("days", 30),
