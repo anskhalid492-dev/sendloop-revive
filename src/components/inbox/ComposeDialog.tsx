@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/inbox/RichTextEditor";
+import { AiComposerButton } from "@/components/inbox/AiComposerButton";
 import { composerHtmlToText, textToComposerHtml } from "@/lib/rich-text";
 import { listComposeMailboxes, saveDraft, sendComposedEmail } from "@/lib/inbox.functions";
 import { isMailboxLimitError, mailboxLimitMessage } from "@/lib/mailbox-capacity";
@@ -495,6 +496,15 @@ export function ComposeDialog({
               <Paperclip className="h-4 w-4" />
             )}
           </Button>
+          <AiComposerButton
+            workspaceId={workspaceId}
+            draft={body}
+            recipientEmail={to}
+            onApply={(text) => {
+              setBody(text);
+              setBodyHtml(textToComposerHtml(text));
+            }}
+          />
           <Button
             type="button"
             variant="ghost"

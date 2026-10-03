@@ -870,6 +870,7 @@ export function ConversationView({
                   />
                   <AiReplyButton
                     conversationId={conversationId}
+                    currentDraft={body}
                     onDraft={(text) => {
                       setBody(text);
                       setBodyHtml(textToComposerHtml(text));

@@ -5,7 +5,7 @@
  * lands in the composer for the customer to read and edit — it is never sent
  * automatically, and no key ever reaches the browser.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Sparkles } from "lucide-react";
@@ -27,10 +27,18 @@ type ProviderId = "openai" | "anthropic";
 export function AiReplyButton({
   conversationId,
   onDraft,
+  currentDraft = "",
 }: {
   conversationId: string;
   onDraft: (text: string) => void;
+  /** What the user already typed; kept so it can be restored after AI Reply. */
+  currentDraft?: string;
 }) {
+  const [stage, setStage] = useState<"reading" | "writing">("reading");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
   const fetchProviders = useServerFn(listInboxAiProviders);
   const draft = useServerFn(draftAiReply);
   const [open, setOpen] = useState(false);
@@ -46,17 +54,37 @@ export function AiReplyButton({
   }>;
 
   const generate = useMutation({
-    mutationFn: (provider?: ProviderId) =>
-      draft({ data: { conversationId, ...(provider ? { provider } : {}) } }),
+    mutationFn: (provider?: ProviderId) => {
+      setStage("reading");
+      timer.current = setTimeout(() => setStage("writing"), 1500);
+      return draft({ data: { conversationId, ...(provider ? { provider } : {}) } });
+    },
+    onSettled: () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
     onSuccess: (result) => {
+      // Never silently lose what the user typed: offer one-click restore.
+      const previous = currentDraft;
       onDraft(result.text);
-      toast.success("Draft ready — review and edit before sending.");
+      if (previous.trim()) {
+        toast.success("AI reply inserted — your previous text was replaced.", {
+          description: "Review and edit before sending.",
+          duration: 12_000,
+          action: { label: "Restore my draft", onClick: () => onDraft(previous) },
+        });
+      } else {
+        toast.success("Draft ready — review and edit before sending.");
+      }
     },
     onError: (error: Error) =>
       toast.error(error.message || "The reply could not be drafted. Please try again."),
   });
 
-  const label = generate.isPending ? "Writing…" : "AI Reply";
+  const label = generate.isPending
+    ? stage === "reading"
+      ? "Reading conversation…"
+      : "Writing reply…"
+    : "AI Reply";
   const icon = generate.isPending ? (
     <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
   ) : (
