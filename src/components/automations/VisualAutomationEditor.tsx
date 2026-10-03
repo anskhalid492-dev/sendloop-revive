@@ -105,7 +105,10 @@ export function VisualAutomationEditor({
   };
 
   const handleSave = async () => {
-    if (name.trim().length < 2) return toast.error("Give your workflow a name");
+    if (name.trim().length < 2) {
+      toast.error("Give your workflow a name");
+      return;
+    }
     setSaving(true);
     try {
       await persist();
@@ -119,7 +122,10 @@ export function VisualAutomationEditor({
   };
 
   const changeStatus = async (next: AutomationStatus) => {
-    if (next === "active" && errors.length) return toast.error(errors[0]);
+    if (next === "active" && errors.length) {
+      toast.error(errors[0]);
+      return;
+    }
     setSaving(true);
     try {
       if (dirty || next === "active") await persist();

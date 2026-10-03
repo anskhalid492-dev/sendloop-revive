@@ -37,7 +37,7 @@ export const RULE_OPERATORS = [
 
 export type RuleOperator = (typeof RULE_OPERATORS)[number]["id"];
 
-export type Rule = { field: string; operator: RuleOperator; value?: string };
+export type Rule = { field: string; operator: RuleOperator; value?: string | undefined };
 export type RuleGroup = { match: "all" | "any"; rules: Rule[] };
 
 const LEGACY_OPERATORS: Record<string, RuleOperator> = {
@@ -114,7 +114,7 @@ export type WaitSpec = {
   /** Local wall-clock "YYYY-MM-DDTHH:mm" for until_datetime. */
   at?: string;
   /** IANA zone; defaults to the workspace sending timezone. */
-  timezone?: string;
+  timezone?: string | undefined;
   /** Event type for until_event. */
   event?: string;
   /** Give up waiting for the event after this many days (default 7). */
@@ -124,10 +124,10 @@ export type WaitSpec = {
 export type WorkflowPath = { key: string; label: string; when?: RuleGroup; steps: WorkflowNode[] };
 
 export type WorkflowNode =
-  | { id: string; type: "condition"; label?: string; group: RuleGroup }
-  | { id: string; type: "branch"; label?: string; paths: WorkflowPath[]; otherwise: WorkflowPath }
-  | { id: string; type: "wait"; label?: string; wait: WaitSpec }
-  | { id: string; type: "action"; label?: string; action: string; config: Record<string, unknown> }
+  | { id: string; type: "condition"; label?: string | undefined; group: RuleGroup }
+  | { id: string; type: "branch"; label?: string | undefined; paths: WorkflowPath[]; otherwise: WorkflowPath }
+  | { id: string; type: "wait"; label?: string | undefined; wait: WaitSpec }
+  | { id: string; type: "action"; label?: string | undefined; action: string; config: Record<string, unknown> }
   | { id: string; type: "end"; label?: string };
 
 export type Workflow = { version: 2; nodes: WorkflowNode[] };
@@ -339,7 +339,7 @@ export function legacyToWorkflow(steps: StoredStep[], logic: "and" | "or"): Work
       return { id: newId(), type: "action", action: type, config };
     };
     if (s.kind === "branch") {
-      branchNode = {
+      const created: Extract<WorkflowNode, { type: "branch" }> = {
         id: newId(),
         type: "branch",
         paths: [{
@@ -350,7 +350,8 @@ export function legacyToWorkflow(steps: StoredStep[], logic: "and" | "or"): Work
         }],
         otherwise: { key: "otherwise", label: "No", steps: [] },
       };
-      target.push(branchNode);
+      branchNode = created;
+      target.push(created);
       continue;
     }
     const node = convert();
