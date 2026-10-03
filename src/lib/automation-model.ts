@@ -124,7 +124,32 @@ export const TRIGGERS: TriggerDef[] = [
   { id: "mailbox.connected", label: "Email account connected", group: "Infrastructure", description: "A mailbox passes its connection test.", source: "Email Accounts" },
   { id: "warmup.status_changed", label: "Warmup status changed", group: "Infrastructure", description: "A mailbox warmup status changes.", source: "Warmup engine" },
   { id: "webhook.received", label: "Webhook received", group: "Webhooks", description: "A signed request hits this automation's own endpoint.", source: "Inbound webhook" },
+  { id: "lead.tag_added", label: "Lead tag added", group: "Leads", description: "Another automation adds a tag to a lead.", source: "Automations" },
+  { id: "lead.tag_removed", label: "Lead tag removed", group: "Leads", description: "Another automation removes a tag from a lead.", source: "Automations" },
+  { id: "workflow.started", label: "Started by another workflow", group: "Workflows", description: "Another workflow uses \"Start another workflow\" on this one.", source: "Automations" },
 ];
+
+/**
+ * Friendly trigger presets: a real trigger plus a filter the engine checks
+ * before starting a run (see `triggerMatches`). No separate event system.
+ */
+export type TriggerPreset = { id: string; label: string; group: string; trigger: string; config: Record<string, string> };
+
+export const TRIGGER_PRESETS: TriggerPreset[] = [
+  { id: "stage-interested", label: "Lead moved to Interested", group: "Sales", trigger: "crm.stage_changed", config: { stage: "interested" } },
+  { id: "stage-qualified", label: "Lead moved to Qualified", group: "Sales", trigger: "crm.stage_changed", config: { stage: "qualified" } },
+  { id: "stage-meeting", label: "Lead moved to Meeting Booked", group: "Sales", trigger: "crm.stage_changed", config: { stage: "meeting_booked" } },
+];
+
+export function triggerSummary(trigger: string, config: Record<string, unknown> = {}): string {
+  const preset = TRIGGER_PRESETS.find(
+    (p) => p.trigger === trigger && Object.entries(p.config).every(([k, v]) => String(config[k] ?? "").toLowerCase() === v),
+  );
+  if (preset) return preset.label;
+  const base = triggerLabel(trigger);
+  const filter = ["stage", "status", "tag"].map((k) => config[k]).find((v) => typeof v === "string" && v);
+  return filter ? `${base} · ${String(filter)}` : base;
+}
 
 export function triggerLabel(id: string): string {
   return TRIGGERS.find((t) => t.id === id)?.label ?? id;
@@ -167,6 +192,10 @@ export const CONDITION_FIELDS: ConditionField[] = [
   { id: "mailbox.warmup_status", label: "Warmup status", group: "Infrastructure", type: "text" },
   { id: "meeting.status", label: "Meeting status", group: "Meetings", type: "text" },
   { id: "event.type", label: "Trigger event type", group: "Event", type: "text" },
+  { id: "activity.has_replied", label: "Lead has replied", group: "Email activity", type: "select", options: ["yes", "no"] },
+  { id: "activity.days_since_activity", label: "Days since last activity", group: "Email activity", type: "number" },
+  { id: "campaign.id", label: "Campaign", group: "Campaign", type: "select", options: [] },
+  { id: "custom.", label: "Custom field…", group: "Custom fields", type: "text" },
 ];
 
 export const OPERATORS = [
@@ -294,7 +323,13 @@ export const ACTIONS: ActionDef[] = [
     fields: [],
   },
   { id: "end", label: "End automation", group: "Flow", description: "Completes the run immediately.", fields: [] },
+  { id: "lead.add_note", label: "Add note", group: "CRM", description: "Adds a note to the contact, attributed to the automation owner.", fields: [{ id: "body", label: "Note", type: "textarea", placeholder: "Replied from {{lead.company}}" }] },
+  { id: "workflow.start", label: "Start another workflow", group: "Flow", description: "Starts another active workflow for this lead. Loops are blocked automatically.", fields: [{ id: "automationId", label: "Workflow", type: "select", options: [] }] },
+  { id: "workflow.stop", label: "Stop this workflow", group: "Flow", description: "Stops this run here.", fields: [] },
 ];
+
+/** Actions the visual builder offers (flow control lives in its own nodes). */
+export const WORKFLOW_ACTIONS = ACTIONS.filter((a) => !["wait", "end"].includes(a.id));
 
 export function actionDef(id: string) {
   return ACTIONS.find((a) => a.id === id);

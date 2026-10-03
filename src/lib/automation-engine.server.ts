@@ -17,6 +17,8 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertPublicUrl, safeFetch } from "@/lib/ssrf-guard.server";
 import type { ConditionConfig, OperatorId, WaitConfig } from "@/lib/automation-model";
+import { MAX_CHAIN_DEPTH, workflowFromSteps, type WaitSpec } from "@/lib/workflow-graph";
+import { executeWorkflow, type HopStatus, type WorkflowState } from "@/lib/workflow-runner";
 
 type Db = typeof supabaseAdmin;
 
@@ -29,7 +31,33 @@ export type EmitArgs = {
   campaignId?: string | null;
   conversationId?: string | null;
   payload?: Record<string, unknown>;
+  /** Loop protection: the automation chain that caused this event. */
+  chain?: EventChain;
+  /** Start exactly this active automation (the "Start another workflow" action). */
+  onlyAutomationId?: string;
 };
+
+export type EventChain = { depth: number; automationIds: string[] };
+
+/** Chain to attach to events emitted by a run's own actions. */
+export function chainForRun(run: { automation_id: string; metadata?: Record<string, unknown> | null }): EventChain {
+  const prior = (run.metadata?.["chain"] as EventChain | undefined) ?? { depth: 0, automationIds: [] };
+  return {
+    depth: (prior.depth ?? 0) + 1,
+    automationIds: Array.from(new Set([...(prior.automationIds ?? []), run.automation_id])),
+  };
+}
+
+/**
+ * Pure loop guard: which matched automations may start a run for this event.
+ * An automation never re-triggers itself through its own chain, and nothing
+ * starts once the chain is MAX_CHAIN_DEPTH deep.
+ */
+export function automationsAllowedByChain<T extends { id: string }>(matched: T[], chain: EventChain | undefined): T[] {
+  if (!chain) return matched;
+  if (chain.depth >= MAX_CHAIN_DEPTH) return [];
+  return matched.filter((a) => !chain.automationIds.includes(a.id));
+}
 
 type StepDef = {
   id: string | null;
@@ -71,20 +99,38 @@ export async function emitAutomationEvent(args: EmitArgs): Promise<{ runs: numbe
 async function emitInner(args: EmitArgs): Promise<{ runs: number }> {
   const db = supabaseAdmin;
 
-  const { data: automations } = await db
+  // Wake runs that are waiting for exactly this event on this lead. Indexed
+  // by workspace/lead/status; the JSON filter only narrows that small set.
+  if (args.leadId && !args.onlyAutomationId) {
+    await db
+      .from("automation_runs")
+      .update({ resume_at: new Date().toISOString() })
+      .eq("workspace_id", args.workspaceId)
+      .eq("lead_id", args.leadId)
+      .eq("status", "waiting")
+      .eq("metadata->>waitFor", args.type);
+  }
+
+  const base = db
     .from("automations")
     .select("id, workspace_id, name, trigger_type, trigger_config, condition_logic, version, status")
     .eq("workspace_id", args.workspaceId)
-    .eq("trigger_type", args.type)
     .eq("status", "active");
+  const { data: automations } = args.onlyAutomationId
+    ? await base.eq("id", args.onlyAutomationId)
+    : await base.eq("trigger_type", args.type);
 
-  const matched = (automations ?? []) as {
+  const listening = (automations ?? []) as {
     id: string;
     name: string;
     trigger_config: Record<string, unknown>;
     condition_logic: string;
     version: number;
   }[];
+  const matched = automationsAllowedByChain(listening, args.chain);
+  if (matched.length < listening.length) {
+    console.warn("automation loop guard skipped runs", { type: args.type, depth: args.chain?.depth ?? 0 });
+  }
 
   // The event is always logged (even with no listener) so the activity view
   // shows what the backend actually received.
@@ -122,7 +168,7 @@ async function emitInner(args: EmitArgs): Promise<{ runs: number }> {
       campaign_id: args.campaignId ?? null,
       trigger_type: args.type,
       status: "queued",
-      metadata: { event: args.payload ?? {} } as never,
+      metadata: { event: args.payload ?? {}, ...(args.chain ? { chain: args.chain } : {}) } as never,
       definition: { steps, logic: automation.condition_logic, name: automation.name } as never,
       automation_version: automation.version,
     });
@@ -141,9 +187,21 @@ async function emitInner(args: EmitArgs): Promise<{ runs: number }> {
   return { runs: created };
 }
 
-function triggerMatches(config: Record<string, unknown>, args: EmitArgs): boolean {
+export function triggerMatches(config: Record<string, unknown>, args: Pick<EmitArgs, "campaignId" | "payload">): boolean {
+  const text = (key: string) => (typeof config[key] === "string" ? (config[key] as string).trim().toLowerCase() : "");
+  const payload = args.payload ?? {};
   const campaignId = typeof config["campaignId"] === "string" ? (config["campaignId"] as string) : "";
   if (campaignId && campaignId !== args.campaignId) return false;
+  // "Lead moved to Interested" etc. are stage-filtered pipeline events.
+  const stage = text("stage");
+  if (stage) {
+    const values = [payload["stageKey"], payload["stageName"], payload["stage"]].map((v) => String(v ?? "").toLowerCase());
+    if (!values.includes(stage)) return false;
+  }
+  const status = text("status");
+  if (status && String(payload["to"] ?? payload["status"] ?? "").toLowerCase() !== status) return false;
+  const tag = text("tag");
+  if (tag && String(payload["tag"] ?? "").toLowerCase() !== tag) return false;
   return true;
 }
 
@@ -227,6 +285,8 @@ async function executeRun(run: RunRow): Promise<Outcome> {
   const db = supabaseAdmin;
   const steps = (run.definition?.steps ?? []).slice().sort((a, b) => a.position - b.position);
   const logic = run.definition?.logic === "or" ? "or" : "and";
+  const workflow = workflowFromSteps(steps);
+  if (workflow) return executeGraphRun(run, workflow);
 
   let context: RunContext;
   try {
@@ -491,7 +551,19 @@ function fieldValue(field: string, ctx: RunContext): unknown {
     if (key === "open_tasks") return ctx.activity.open_tasks;
   }
   if (group === "campaign") return ctx.campaign ? (ctx.campaign as Record<string, unknown>)[key ?? ""] : null;
-  if (group === "activity") return (ctx.activity as unknown as Record<string, number>)[key ?? ""] ?? 0;
+  if (group === "activity") {
+    if (key === "days_since_activity") {
+      const at = Date.parse(String(ctx.lead?.["last_activity_at"] ?? ctx.lead?.["created_at"] ?? ""));
+      return Number.isFinite(at) ? Math.floor((Date.now() - at) / 86_400_000) : null;
+    }
+    if (key === "has_replied") return ctx.activity.replies > 0 ? "yes" : "no";
+    return (ctx.activity as unknown as Record<string, number>)[key ?? ""] ?? 0;
+  }
+  if (group === "custom") {
+    const custom = (ctx.lead?.["custom_fields"] ?? {}) as Record<string, unknown>;
+    return custom && typeof custom === "object" ? (custom[field.slice("custom.".length)] ?? null) : null;
+  }
+  if (group === "campaign" && key === "id") return ctx.campaign?.id ?? null;
   if (group === "reply") return ctx.event["sentiment"] ?? null;
   if (group === "mailbox") return ctx.event[key === "email" ? "mailbox" : "warmupStatus"] ?? null;
   if (group === "meeting") return ctx.event["meetingStatus"] ?? null;
@@ -637,6 +709,7 @@ async function runAction(
         leadId,
         campaignId,
         payload: { source: "automation" },
+        chain: chainForRun(run),
       });
       return { enrolled: true, campaignId };
     }
@@ -684,7 +757,17 @@ async function runAction(
     }
 
     case "crm.move_stage": {
-      const stageId = str("stageId");
+      let stageId = str("stageId");
+      // Templates name a stage by key/name; resolve it inside this workspace.
+      const stageKey = str("stageKey").toLowerCase();
+      if (!stageId && stageKey) {
+        const { data: stages } = await db.from("crm_stages").select("id, key, name").eq("workspace_id", workspaceId);
+        const hit = ((stages ?? []) as { id: string; key: string; name: string }[]).find(
+          (s) => s.key.toLowerCase() === stageKey || s.name.toLowerCase() === stageKey.replace(/_/g, " "),
+        );
+        if (!hit) throw new Error(`Pipeline stage "${stageKey.replace(/_/g, " ")}" does not exist in this workspace`);
+        stageId = hit.id;
+      }
       if (!stageId || !leadId) return { skipped: "No stage or lead" };
       const { data: stage } = await db
         .from("crm_stages")
@@ -710,7 +793,8 @@ async function runAction(
         type: "crm.stage_changed",
         idempotencyKey: `stage:${leadId}:${stageId}:${run.id}`,
         leadId,
-        payload: { stage: row.name, source: "automation" },
+        payload: { stage: row.name, stageId, source: "automation" },
+        chain: chainForRun(run),
       });
       return { stage: row.name };
     }
@@ -726,7 +810,19 @@ async function runAction(
           : current.filter((t) => t.toLowerCase() !== tag.toLowerCase());
       const { error } = await db.from("leads").update({ tags: next }).eq("id", leadId).eq("workspace_id", workspaceId);
       if (error) throw new Error(error.message);
+      const changed = next.length !== current.length;
       ctx.lead!["tags"] = next;
+      if (changed) {
+        await emitAutomationEvent({
+          workspaceId,
+          type: type === "lead.add_tag" ? "lead.tag_added" : "lead.tag_removed",
+          idempotencyKey: `tag:${type}:${leadId}:${tag.toLowerCase()}:${run.id}`,
+          leadId,
+          campaignId: run.campaign_id,
+          payload: { tag, source: "automation" },
+          chain: chainForRun(run),
+        });
+      }
       return { tags: next };
     }
 
@@ -773,7 +869,8 @@ async function runAction(
           type: "lead.status_changed",
           idempotencyKey: `status:${leadId}:${value}:${run.id}`,
           leadId,
-          payload: { status: value, source: "automation" },
+          payload: { status: value, to: value, source: "automation" },
+          chain: chainForRun(run),
         });
       }
       return { [field]: value };
@@ -883,6 +980,35 @@ async function runAction(
       return { status: response.status };
     }
 
+    case "lead.add_note": {
+      if (!leadId) return { skipped: "No lead" };
+      const { data: owner } = await db.from("automations").select("created_by").eq("id", run.automation_id).maybeSingle();
+      const authorId = (owner as { created_by?: string | null } | null)?.created_by ?? null;
+      if (!authorId) return { skipped: "Automation has no owner to attribute the note to" };
+      const body = interpolate(str("body"), ctx).slice(0, 2000);
+      if (!body) return { skipped: "Empty note" };
+      const { error } = await db.from("lead_notes").insert({ lead_id: leadId, workspace_id: workspaceId, author_id: authorId, body });
+      if (error) throw new Error(error.message);
+      return { noted: true };
+    }
+
+    case "workflow.start": {
+      const target = str("automationId");
+      if (!target) return { skipped: "No workflow selected" };
+      if (target === run.automation_id) return { skipped: "A workflow cannot start itself" };
+      const { runs } = await emitAutomationEvent({
+        workspaceId,
+        type: "workflow.started",
+        idempotencyKey: `workflow.start:${run.id}:${String(config["__hop"] ?? "")}:${target}`,
+        leadId,
+        campaignId: run.campaign_id,
+        payload: { startedBy: run.automation_id },
+        chain: chainForRun(run),
+        onlyAutomationId: target,
+      });
+      return runs > 0 ? { started: target } : { skipped: "Workflow is not active or the loop guard stopped it" };
+    }
+
     default:
       throw new Error(`Unsupported action "${type}"`);
   }
@@ -945,11 +1071,203 @@ export async function retryRun(runId: string, workspaceId: string): Promise<void
 
   // Clear the failed step's error so the timeline shows the fresh attempt;
   // completed steps are left untouched.
-  await db
-    .from("automation_run_steps")
-    .update({ status: "running", error: null, finished_at: null })
-    .eq("run_id", runId)
-    .eq("status", "failed");
+  // Graph workflows re-attempt a `failed` hop but treat `running` as "may
+  // already have happened", so their failed step is left as failed.
+  if (!meta["workflow"]) {
+    await db
+      .from("automation_run_steps")
+      .update({ status: "running", error: null, finished_at: null })
+      .eq("run_id", runId)
+      .eq("status", "failed");
+  }
 
   void runAutomationCycle(10).catch(() => undefined);
+}
+
+/* ------------------------------------------------------ graph workflows */
+
+const BUSINESS_DAY_HOUR = 9;
+
+/** Resume time for a visual-workflow wait. Exported for tests. */
+export function computeWorkflowResume(
+  wait: WaitSpec,
+  timezone: string,
+  window: { days: number[]; start: number; end: number },
+  now = Date.now(),
+): string {
+  const amount = Math.max(1, Number(wait.amount ?? 1));
+  switch (wait.mode) {
+    case "minutes":
+      return new Date(now + amount * 60_000).toISOString();
+    case "hours":
+      return new Date(now + amount * 3_600_000).toISOString();
+    case "days":
+      return new Date(now + amount * 86_400_000).toISOString();
+    case "until_event":
+      return new Date(now + Math.max(1, Number(wait.timeoutDays ?? 7)) * 86_400_000).toISOString();
+    case "until_datetime": {
+      const zone = wait.timezone || timezone;
+      const target = zonedLocalToUtc(wait.at ?? "", zone);
+      return target && target > now ? new Date(target).toISOString() : new Date(now).toISOString();
+    }
+    case "next_business_day": {
+      const zone = wait.timezone || timezone;
+      const days = window.days.length ? window.days : [1, 2, 3, 4, 5];
+      const startHour = window.start ?? BUSINESS_DAY_HOUR;
+      // Step hour by hour to the first sending-window opening on a later day.
+      const today = zonedParts(new Date(now), zone).weekday;
+      for (let i = 1; i <= 24 * 9; i += 1) {
+        const candidate = now + i * 3_600_000;
+        const p = zonedParts(new Date(candidate), zone);
+        if (p.weekday !== today && days.includes(p.weekday) && p.hour === startHour) {
+          return new Date(candidate - p.minute * 60_000).toISOString();
+        }
+      }
+      return new Date(now + 86_400_000).toISOString();
+    }
+  }
+}
+
+/** "YYYY-MM-DDTHH:mm" wall clock in `zone` → epoch ms. */
+export function zonedLocalToUtc(local: string, zone: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(local);
+  if (!m) return null;
+  const asUtc = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date(asUtc)).map((p) => [p.type, p.value]));
+  const shown = Date.UTC(
+    Number(parts["year"]),
+    Number(parts["month"]) - 1,
+    Number(parts["day"]),
+    Number(parts["hour"]) % 24,
+    Number(parts["minute"]),
+  );
+  return asUtc - (shown - asUtc);
+}
+
+function hopLabel(node: { type: string; label?: string; action?: string }): string {
+  if (node.label) return node.label;
+  if (node.type === "action") return String(node.action ?? "action");
+  return node.type.charAt(0).toUpperCase() + node.type.slice(1);
+}
+
+async function executeGraphRun(run: RunRow, workflow: import("@/lib/workflow-graph").Workflow): Promise<Outcome> {
+  const db = supabaseAdmin;
+  let context: RunContext;
+  try {
+    context = await loadContext(db, run);
+  } catch (error) {
+    return finishRun(db, run, "failed", (error as Error).message);
+  }
+
+  const meta = { ...(run.metadata ?? {}) } as Record<string, unknown>;
+  const saved = (meta["workflow"] as WorkflowState | undefined) ?? { cursor: null, hop: 0 };
+
+  const { data: priorRows } = await db
+    .from("automation_run_steps")
+    .select("position, status")
+    .eq("run_id", run.id);
+  const prior = new Map<number, HopStatus>();
+  for (const row of (priorRows ?? []) as { position: number; status: HopStatus }[]) prior.set(row.position, row.status);
+
+  const persistState = async (state: WorkflowState, extra: Record<string, unknown> = {}) => {
+    Object.assign(meta, { workflow: state }, extra);
+    await db
+      .from("automation_runs")
+      .update({ metadata: meta as never, current_step: state.hop })
+      .eq("id", run.id);
+  };
+
+  const outcome = await executeWorkflow(workflow, saved, {
+    getField: (field) => fieldValue(field, context),
+    priorHop: async (hop) => prior.get(hop) ?? null,
+    recordHop: async (hop, node, status, output, error) => {
+      prior.set(hop, status);
+      await db.from("automation_run_steps").upsert(
+        {
+          run_id: run.id,
+          workspace_id: run.workspace_id,
+          step_id: null,
+          position: hop,
+          kind: node.type,
+          label: hopLabel(node as never).slice(0, 160),
+          status,
+          output: { ...output, nodeId: node.id } as never,
+          error: error ? customerError(error) : null,
+          finished_at: status === "waiting" || status === "running" ? null : new Date().toISOString(),
+        },
+        { onConflict: "run_id,position,kind" },
+      );
+    },
+    saveState: (state) => persistState(state),
+    executeAction: (action, config, hop) => runAction(db, action, { ...config, __hop: hop }, run, context),
+    computeResume: (wait) => computeWorkflowResume(wait, context.timezone, context.window),
+    eventSince: async (event) => {
+      if (!run.lead_id) return false;
+      const since = String(meta["waitStartedAt"] ?? run.metadata?.["waitStartedAt"] ?? "");
+      const query = db
+        .from("automation_events")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", run.workspace_id)
+        .eq("lead_id", run.lead_id)
+        .eq("event_type", event);
+      const { count } = since ? await query.gte("created_at", since) : await query;
+      return (count ?? 0) > 0;
+    },
+    isRetryable: (message) => isRetryable(message) && run.attempts < 4,
+  });
+
+  if (outcome.status === "waiting") {
+    Object.assign(meta, {
+      workflow: outcome.state,
+      waitFor: outcome.waitFor,
+      waitStartedAt: new Date().toISOString(),
+    });
+    await db
+      .from("automation_runs")
+      .update({
+        status: "waiting",
+        resume_at: outcome.resumeAt,
+        metadata: meta as never,
+        current_step: outcome.state.hop,
+        locked_by: null,
+        locked_at: null,
+      })
+      .eq("id", run.id);
+    return "waiting";
+  }
+  if (meta["waitFor"]) {
+    delete meta["waitFor"];
+    await persistState(outcome.state);
+  }
+  if (outcome.status === "retry") {
+    const delayMinutes = Math.min(30, 2 ** run.attempts);
+    await db
+      .from("automation_runs")
+      .update({
+        status: "waiting",
+        resume_at: new Date(Date.now() + delayMinutes * 60_000).toISOString(),
+        error: customerError(outcome.error),
+        locked_by: null,
+        locked_at: null,
+      })
+      .eq("id", run.id);
+    return "waiting";
+  }
+  if (outcome.status === "failed") return finishRun(db, run, "failed", customerError(outcome.error));
+  return finishRun(db, run, "completed", null, outcome.result);
+}
+
+/** Plain-language error for the run timeline — never a stack trace. */
+export function customerError(message: string): string {
+  const first = String(message ?? "").split("\n")[0]!.replace(/\s+at\s.+$/, "").trim();
+  return (first || "The step failed").slice(0, 300);
 }
