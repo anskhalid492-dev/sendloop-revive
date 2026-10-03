@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  Sparkles,
   BellRing,
   AtSign,
   ContactRound,
@@ -125,6 +126,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/warmup", label: "Warmup", icon: Flame },
       { to: "/mranuskhalid/crm", label: "CRM", icon: Users },
       { to: "/mranuskhalid/automations", label: "Automations", icon: Workflow },
+      { to: "/mranuskhalid/ai-sales-agent", label: "AI Sales Agent", icon: Sparkles },
     ],
   },
   {
