@@ -369,6 +369,8 @@ export function useCampaignBuilder(
       // typed while the save was in flight.
       await queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
       await queryClient.invalidateQueries({ queryKey: ["campaign-readiness", campaignId] });
+      // Edits made while this save was in flight still need saving.
+      if (!isLatest) setTimeout(() => saveRef.current.mutate(), 0);
     },
     onError: (e: Error) => toast.error(e.message),
   });
