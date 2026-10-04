@@ -19,6 +19,7 @@ import { canLaunchCampaign, launchSucceededDespiteError } from "@/lib/campaign-s
 import { getCampaignLeads } from "@/lib/campaign-leads.functions";
 import { listLeadLists } from "@/lib/leads.functions";
 import { listCampaignSendingAccounts } from "@/lib/sending.functions";
+import { applySavedMailboxesToReadiness, type LaunchReadiness } from "@/lib/campaign-launch-model";
 import type {
   CampaignStep,
   CustomVariable,
@@ -208,6 +209,9 @@ export function useCampaignBuilder(
   // never overwrite what the customer just wrote.
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
+  // Every local edit bumps this; a save only clears "dirty" / applies its
+  // result when no newer edit happened while it was in flight.
+  const editVersion = useRef(0);
 
   // Navigating to another campaign drops the previous editor state immediately,
   // so a pending autosave can never write it onto the campaign now in the URL.
@@ -270,11 +274,13 @@ export function useCampaignBuilder(
 
   const patchSettings = useCallback((patch: Partial<CampaignSettings>) => {
     setSettingsState((prev) => (prev ? { ...prev, ...patch } : prev));
+    editVersion.current += 1;
     setDirty(true);
   }, []);
 
   const updateSteps = useCallback((updater: (prev: StepDraft[]) => StepDraft[]) => {
     setSteps((prev) => updater(prev));
+    editVersion.current += 1;
     setDirty(true);
   }, []);
 
@@ -285,6 +291,8 @@ export function useCampaignBuilder(
       if (!campaign || !settings) throw new Error("Campaign is still loading");
       if (settings.sendEndHour <= settings.sendStartHour)
         throw new Error("The sending window end must be after the start.");
+      const version = editVersion.current;
+      const savedAccountIds = [...settings.sendingAccountIds];
       await saveStepsFn({
         data: {
           campaignId,
@@ -336,10 +344,26 @@ export function useCampaignBuilder(
           customVariables: settings.customVariables,
         },
       });
+      return { version, savedAccountIds };
     },
-    onSuccess: async () => {
-      setDirty(false);
+    onSuccess: async ({ version, savedAccountIds }) => {
+      const isLatest = version === editVersion.current;
+      if (isLatest) setDirty(false);
       setSavedAt(new Date());
+      // Reflect the saved mailbox selection in launch readiness right away
+      // (from the save result, not a later GET). Only the newest save may do
+      // this, so an older response can never overwrite a newer selection.
+      if (isLatest) {
+        queryClient.setQueryData<LaunchReadiness>(["campaign-readiness", campaignId], (prev) =>
+          prev
+            ? applySavedMailboxesToReadiness(
+                prev,
+                savedAccountIds,
+                (accountsQuery.data?.accounts ?? []) as never,
+              )
+            : prev,
+        );
+      }
       // Do NOT re-hydrate from the server here: the local editor content is
       // what was just saved, and re-reading it would clobber any keystrokes
       // typed while the save was in flight.
