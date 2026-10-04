@@ -25,7 +25,6 @@ import {
   type WriterReview,
   type WriterStep,
   type WriterStrategy,
-  sanitizeVariables,
   lintStep,
 } from "@/lib/ai-campaign-writer-model";
 
