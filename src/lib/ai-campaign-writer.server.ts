@@ -10,7 +10,8 @@
 
 import type { WorkspaceAiCredentials } from "@/lib/ai-keys.server";
 import { generateWithWorkspaceAi, AiGatewayError } from "@/lib/ai-personalization.server";
-import { LEAD_VARIABLES } from "@/lib/campaign-model";
+import type { CustomVariable } from "@/lib/campaign-model";
+import { WRITER_SYSTEM_TOKENS, sanitizeWriterVariables } from "@/lib/ai-campaign-writer-model";
 import {
   angleSchema,
   offerAdviceSchema,
@@ -29,7 +30,7 @@ import {
 } from "@/lib/ai-campaign-writer-model";
 
 /** Only variables MunchReach actually supports may appear in generated copy. */
-const SUPPORTED_TOKENS = LEAD_VARIABLES.map((v) => `{{${v.token}}}`);
+const SUPPORTED_TOKENS = WRITER_SYSTEM_TOKENS.map((t) => `{{${t}}}`);
 
 const GROUND_RULES = [
   "You write cold email sequences for MunchReach customers. The emails are sent through a real sending platform.",
@@ -56,7 +57,8 @@ const GROUND_RULES = [
   "",
   "SIGNATURE: every email body must end with exactly one of these sign-offs, varied across the sequence:\n\"Best Regards,\\n{{sender_name}}\" or \"Warm Regards,\\n{{sender_name}}\" or \"Best Wishes,\\n{{sender_name}}\". Never write a real or made-up sender name — always the {{sender_name}} variable.",
   "",
-  `VARIABLES: the only personalization variables that exist are: ${SUPPORTED_TOKENS.join(", ")}. Never invent other variables.`,
+  `VARIABLES: the system variables are: ${SUPPORTED_TOKENS.join(", ")}, plus any campaign custom variables listed in the request. Never invent, rename or modify variables; keep their exact {{token}} syntax.`,
+  "NEVER write {{ai_personalization}} anywhere (subject, body, any step). That belongs to a separate feature the user runs themselves. Write complete copy from the lead data and variables instead.",
   "",
   "FINAL CHECK before returning — for every email confirm: sounds human; simple English; correct greeting; 3–5 real personalization signals when available; personalized subject; unique angle; follow-up adds something new; specific, not vague; one clear CTA; aims at the campaign goal; no invented facts; ends with the required signature. If an email feels generic, robotic, vague or reusable for anyone, rewrite it before returning.",
   "The goal is not to sound 'professional'. The goal is HUMAN, PERSONAL, SIMPLE, RELEVANT and WORTH REPLYING TO.",
@@ -232,7 +234,11 @@ export async function generateStep(input: {
   refinement?: string | null;
   /** The version being recreated, so the new one is genuinely different. */
   avoid?: string | null;
+  /** The campaign's own custom variables (token + label/description). */
+  customVariables?: CustomVariable[];
 }): Promise<WriterStep> {
+  const custom = (input.customVariables ?? []).filter((v) => v.token && v.token !== "ai_personalization");
+  const customTokens = custom.map((v) => v.token);
   const history = input.previous.length
     ? input.previous
         .map((s, i) => `Step ${i + 1} (${s.purpose})\nSubject: ${s.subject}\n${s.body}`)
@@ -268,11 +274,17 @@ export async function generateStep(input: {
     "",
     "Earlier steps in this sequence:",
     history,
-    // Pain point variables were removed: write the pain point as real sentences.
-    [
-      "",
-      "Never write a {{pain_point}} variable or any pain point placeholder. Write the pain point out as a real sentence in the copy.",
-    ].join("\n"),
+    custom.length
+      ? [
+          "",
+          "Campaign custom variables (each holds per-lead data described by its label):",
+          ...custom.map((v) => `- {{${v.token}}} — ${v.label.trim() || v.token.replace(/_/g, " ")}`),
+          "Use these where relevant to make the actual message more personal (not just the greeting), across the first email and follow-ups. Keep their meaning accurate and never claim more than the variable contains. Write each sentence so it still reads naturally for a lead whose value is empty — or use the fallback syntax {{token | short natural fallback}}. Never replace a custom variable with generic text or with {{ai_personalization}}.",
+        ].join("\n")
+      : "",
+    customTokens.some((t) => /^pain_point(_\d+)?$/.test(t))
+      ? ""
+      : "\nNever write a {{pain_point}} variable or any pain point placeholder. Write the pain point out as a real sentence in the copy.",
     input.avoid
       ? [
           "",
@@ -316,11 +328,11 @@ export async function generateStep(input: {
 
   return {
     ...step,
-    subject: sanitizeVariables(step.subject).slice(0, 200),
+    subject: sanitizeWriterVariables(step.subject, customTokens).slice(0, 200),
     subjectOptions: Array.from(
-      new Set([step.subject, ...step.subjectOptions].map((s) => sanitizeVariables(s).trim().slice(0, 200)).filter(Boolean)),
+      new Set([step.subject, ...step.subjectOptions].map((s) => sanitizeWriterVariables(s, customTokens).slice(0, 200)).filter(Boolean)),
     ).slice(0, 4),
-    body: sanitizeVariables(step.body),
+    body: sanitizeWriterVariables(step.body, customTokens),
     waitDays: input.index === 0 ? 0 : Math.max(1, step.waitDays),
   };
 }

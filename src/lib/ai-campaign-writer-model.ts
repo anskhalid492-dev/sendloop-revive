@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 
-import { LEAD_VARIABLES, PAIN_POINT_MAX } from "@/lib/campaign-model";
+import { AI_VARIABLE_TOKEN, LEAD_VARIABLES, PAIN_POINT_MAX } from "@/lib/campaign-model";
 
 /** Hard ceiling on a generated sequence: the initial email plus follow-ups. */
 export const MAX_FOLLOW_UPS = 9;
@@ -313,4 +313,34 @@ export function sanitizeVariables(text: string): string {
       LEAD_VARIABLES.some((v) => v.token === normalized) || normalized === "unsubscribe_link";
     return known ? `{{${normalized}}}` : match.replace(/\{\{|\}\}/g, "");
   });
+}
+
+/**
+ * Variables the AI Campaign Writer may write. {{ai_personalization}} belongs to
+ * the separate AI Personalizer and is never offered to (or kept from) the writer.
+ */
+export const WRITER_SYSTEM_TOKENS: string[] = LEAD_VARIABLES.map((v) => v.token).filter(
+  (t) => t !== AI_VARIABLE_TOKEN,
+);
+
+/**
+ * Writer-only sanitizer: keeps system variables and the campaign's own custom
+ * variables exactly (including any `| fallback`), removes {{ai_personalization}}
+ * outright, and strips braces from anything unsupported.
+ */
+export function sanitizeWriterVariables(text: string, customTokens: string[] = []): string {
+  const allowed = new Set([...WRITER_SYSTEM_TOKENS, "unsubscribe_link", ...customTokens.map((t) => t.toLowerCase())]);
+  const out = text.replace(/\{\{\s*([a-z0-9_]+)\s*(\|[^}]*)?\}\}/gi, (match, token: string, fallback?: string) => {
+    const normalized = token.toLowerCase();
+    if (normalized === AI_VARIABLE_TOKEN) return "";
+    if (allowed.has(normalized)) return fallback ? `{{${normalized} ${fallback.trim()}}}` : `{{${normalized}}}`;
+    return (fallback ? fallback.replace(/^\|\s*/, "") : token).trim();
+  });
+  // Tidy whitespace left where a removed token used to be.
+  return out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ +([,.!?])/g, "$1")
+    .replace(/^[ \t]+|[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

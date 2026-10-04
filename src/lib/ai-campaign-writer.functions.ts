@@ -46,7 +46,7 @@ async function writerContext(
 ) {
   const { data: campaign, error } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, ai_config")
+    .select("id, workspace_id, ai_config, custom_variables")
     .eq("id", campaignId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -91,7 +91,15 @@ async function writerContext(
         status: 401,
       },
     };
-  return { workspaceId, credentials };
+  const customVariables = (Array.isArray(campaign.custom_variables) ? campaign.custom_variables : [])
+    .filter((v: unknown): v is { token: string; label?: string; defaultValue?: string } =>
+      Boolean(v && typeof (v as { token?: unknown }).token === "string" && (v as { token: string }).token))
+    .map((v: { token: string; label?: string; defaultValue?: string }) => ({
+      token: v.token,
+      label: String(v.label ?? ""),
+      defaultValue: String(v.defaultValue ?? ""),
+    }));
+  return { workspaceId, credentials, customVariables };
 }
 
 /** Wraps a generation so provider problems become readable, retryable messages. */
@@ -241,6 +249,7 @@ export const generateCampaignStep = createServerFn({ method: "POST" })
         previous: data.previous,
         refinement: data.refinement ?? null,
         avoid: data.avoid ?? null,
+        customVariables: ctx.customVariables,
       }),
       index: data.index,
       provider: ctx.credentials.provider,
