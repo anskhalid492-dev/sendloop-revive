@@ -248,8 +248,8 @@ export async function generateStep(input: {
       ? "This is the final follow-up: low pressure, permission-based close."
       : "",
     `Return ONLY this JSON: {"purpose":"...","subject":"...","subjectOptions":["...","...","..."],"body":"...","waitDays":3}`,
-    "waitDays is days to wait before this step (0 for the first step). Body is plain text with line breaks, no signature block, no HTML.",
-    "subject and subjectOptions: short (2-6 words), natural, relevant, lower-key, never clickbait. subjectOptions gives three genuinely different alternatives.",
+    "waitDays is days to wait before this step (0 for the first step). Body is plain text with line breaks, no HTML; it starts with the personalized greeting and ends with one of the required sign-offs followed by {{sender_name}}.",
+    "subject and subjectOptions: personalized (usually 2-7 words), natural, relevant, lower-key, never clickbait. subjectOptions gives three genuinely different alternatives.",
     input.index > 0 ? "Follow-ups may keep the thread feel; a follow-up can be very short (2-4 sentences)." : "",
     "",
     "Campaign strategy:",
