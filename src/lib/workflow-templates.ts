@@ -233,7 +233,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       wf([
         act("campaign.stop_followups"),
         aiDecision("What is the prospect's intent in their latest reply?", [
-          ["Interested", [act("crm.move_stage", { stageKey: "interested" }, "Move to Interested"), act("task.create", { title: "Sales follow-up: {{lead.email}}", dueInDays: 1 }), aiReply({ goal: "Book a sales call" })]],
+          ["Interested", [act("crm.move_stage", { stageKey: "replied" }, "Move to Replied"), act("lead.update_field", { field: "status", value: "interested" }, "Mark Interested"), act("task.create", { title: "Sales follow-up: {{lead.email}}", dueInDays: 1 }), aiReply({ goal: "Book a sales call" })]],
           ["Question", [aiReply({ goal: "Answer the prospect's question", instructions: "Answer the question first using only the provided context." })]],
           ["Objection", [aiReply({ goal: "Address the objection respectfully", instructions: "Acknowledge the concern, then offer a short call." })]],
           ["Not Interested", [act("campaign.pause_enrollment", {}, "Stop outreach")]],
@@ -268,7 +268,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     build: () =>
       wf([
         aiDecision("How strong is the buying intent in this conversation?", [
-          ["High intent", [act("crm.move_stage", { stageKey: "qualified" }, "Move to Qualified"), act("task.create", { title: "High-intent lead: {{lead.email}}", dueInDays: 1 }), aiReply({ goal: "Book a sales call" })]],
+          ["High intent", [act("crm.move_stage", { stageKey: "replied" }, "Move to Replied"), act("lead.add_tag", { tag: "qualified" }, "Tag Qualified"), act("task.create", { title: "High-intent lead: {{lead.email}}", dueInDays: 1 }), aiReply({ goal: "Book a sales call" })]],
           ["Medium intent", [act("lead.add_tag", { tag: "interested" }, "Keep Interested"), aiReply({ goal: "Move the conversation forward" })]],
           ["Low intent", []],
           ["Unclear", [humanReview("AI could not tell the lead's intent.")]],

@@ -148,8 +148,8 @@ export function isSupportedTrigger(id: string): boolean {
 export type TriggerPreset = { id: string; label: string; group: string; trigger: string; config: Record<string, string> };
 
 export const TRIGGER_PRESETS: TriggerPreset[] = [
-  { id: "stage-interested", label: "Lead moved to Interested", group: "Sales", trigger: "crm.stage_changed", config: { stage: "interested" } },
-  { id: "stage-qualified", label: "Lead moved to Qualified", group: "Sales", trigger: "crm.stage_changed", config: { stage: "qualified" } },
+  // Only stages every workspace has (CANONICAL_STAGE_KEYS), so presets always match.
+  { id: "stage-replied", label: "Lead moved to Replied", group: "Sales", trigger: "crm.stage_changed", config: { stage: "replied" } },
   { id: "stage-meeting", label: "Lead moved to Meeting Booked", group: "Sales", trigger: "crm.stage_changed", config: { stage: "meeting_booked" } },
 ];
 
