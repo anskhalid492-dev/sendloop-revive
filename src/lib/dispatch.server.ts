@@ -413,7 +413,14 @@ export async function ensureInitialCampaignMessages(
   }
 
   for (let i = 0; i < inserts.length; i += 500) {
-    const { error } = await supabase.from("campaign_messages").insert(inserts.slice(i, i + 500));
+    // Idempotent: a message already queued for this (campaign, recipient, step)
+    // by an overlapping run is skipped instead of failing the whole batch.
+    const { error } = await supabase
+      .from("campaign_messages")
+      .upsert(inserts.slice(i, i + 500) as never, {
+        onConflict: "campaign_id,recipient_id,step_order",
+        ignoreDuplicates: true,
+      });
     if (error) throw new Error(error.message);
   }
   await flushRecipientPatches(
@@ -664,7 +671,14 @@ export async function scheduleFollowUps(
   }
 
   if (inserts.length) {
-    const { error } = await supabase.from("campaign_messages").insert(inserts);
+    // Idempotent: a follow-up already queued for this step is skipped, so one
+    // duplicate no longer fails the batch and blocks every other recipient.
+    const { error } = await supabase
+      .from("campaign_messages")
+      .upsert(inserts as never, {
+        onConflict: "campaign_id,recipient_id,step_order",
+        ignoreDuplicates: true,
+      });
     if (error) throw new Error(error.message);
   }
   await flushRecipientPatches(
