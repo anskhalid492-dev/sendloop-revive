@@ -1784,31 +1784,35 @@ export async function finalizeCampaignIfDrained(
   campaignId: string,
   emit?: (...args: any[]) => Promise<any>,
 ): Promise<boolean> {
-  const { count: openCount } = await supabase
+  // Every check must SUCCEED and prove "nothing left". A failed or timed-out
+  // count returns no number; treating that as 0 used to complete live
+  // campaigns with hundreds of leads still waiting.
+  const { count: openCount, error: openError } = await supabase
     .from("campaign_messages")
     .select("id", { count: "exact", head: true })
     .eq("campaign_id", campaignId)
     .in("status", ["pending", "scheduled", "processing"]);
-  if (Number(openCount ?? 0) > 0) return false;
+  if (openError || typeof openCount !== "number" || openCount > 0) return false;
 
-  const { data: failedRows } = await supabase
+  const { data: failedRows, error: failedError } = await supabase
     .from("campaign_messages")
     .select("id, last_error")
     .eq("campaign_id", campaignId)
     .eq("status", "failed")
     .is("sent_at", null)
     .limit(500);
+  if (failedError) return false;
   const retryableLeft = ((failedRows ?? []) as { last_error: string | null }[]).some((row) =>
     isRetryableFailure(row.last_error),
   );
   if (retryableLeft) return false;
 
-  const { count: openRecipients } = await supabase
+  const { count: openRecipients, error: recipientsError } = await supabase
     .from("campaign_recipients")
     .select("id", { count: "exact", head: true })
     .eq("campaign_id", campaignId)
     .in("status", ["pending", "in_progress"]);
-  if (Number(openRecipients ?? 0) > 0) return false;
+  if (recipientsError || typeof openRecipients !== "number" || openRecipients > 0) return false;
 
   const flipped = await completeActiveCampaign(supabase, campaignId);
   await emitCampaignCompletedAutomation(flipped, "drained", emit);
