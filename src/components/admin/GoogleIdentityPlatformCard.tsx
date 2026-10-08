@@ -30,13 +30,13 @@ import {
 const STATUS_LABEL: Record<GoogleIdpView["status"], string> = {
   not_configured: "Not configured",
   configured: "Configured",
-  enabled: "Enabled",
+  enabled: "Configured",
   disabled: "Disabled",
 };
 
 /**
- * Admin → Settings → Authentication → Google Sign-In (Google Cloud Identity
- * Platform). Preparation only: saving here does not change live sign-in.
+ * Admin → Settings → Authentication → Google Sign-In (Google Identity
+ * Services). Preparation only: saving here does not change live sign-in.
  * The Client Secret is write-only; the server only ever returns a mask.
  */
 export function GoogleIdentityPlatformCard() {
@@ -124,8 +124,8 @@ export function GoogleIdentityPlatformCard() {
       <div className="flex gap-2 rounded-md border border-border/60 bg-muted/40 p-3 text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          When enabled, &ldquo;Continue with Google&rdquo; signs customers in directly with this Google Web Client
-          (Google Identity Services). Accounts and sessions stay in the existing MunchReach authentication system.
+          Google Sign-In is configured here. The active sign-in system will use this configuration after the Google
+          Sign-In migration is completed. Your current Supabase authentication remains active until then.
         </p>
       </div>
 
@@ -194,7 +194,7 @@ export function GoogleIdentityPlatformCard() {
             <Row label="Authorized domain" value={v.authorizedDomain ? `https://${v.authorizedDomain}` : "—"} />
             <Row label="Google Web Client ID" value={v.clientId} />
             <Row label="Google Web Client Secret" value={v.maskedSecret} />
-            <Row label="Redirect / callback status" value={v.enabled ? "Active — Google popup sign-in (no redirect callback)" : "Not active"} />
+            <Row label="Google Sign-In status" value="Not active — Google Sign-In migration not completed" />
             <Row label="Last test" value={v.lastTestedAt ? new Date(v.lastTestedAt).toLocaleString() : "Never"} />
           </dl>
         )}
@@ -223,7 +223,8 @@ export function GoogleIdentityPlatformCard() {
         ) : null}
         {configured && !editing && v.status === "enabled" ? (
           <p className="text-xs text-muted-foreground">
-            “Enabled” marks this configuration ready for the future migration. Customers still sign in with the current system.
+            “Configured” means the Google credentials are saved and ready for the Google Sign-In migration. Customers
+            continue using the current sign-in system until that migration is completed.
           </p>
         ) : null}
       </div>

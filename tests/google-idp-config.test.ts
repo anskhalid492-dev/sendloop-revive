@@ -97,7 +97,7 @@ describe("test connection", () => {
     __setGoogleTokenProbe(probe);
     const v = await testGoogleIdpConnection();
     expect(v.lastTestResult).toBe("credentials_valid");
-    expect(v.lastTestMessage).toBe("Google accepted the Client ID and Client Secret.");
+    expect(v.lastTestMessage).toBe("Google Client ID and configuration are saved. Google Sign-In is not active yet.");
     expect(JSON.stringify(v)).not.toContain(SECRET);
   });
 
