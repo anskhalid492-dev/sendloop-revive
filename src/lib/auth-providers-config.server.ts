@@ -1,9 +1,10 @@
 /**
- * Server-only storage for Google Cloud Identity Platform configuration.
- * PREPARATION ONLY: nothing here is read by sign-in, sign-up, sessions or
- * auth guards. The client secret is encrypted with the existing provider
- * credential cipher and stored in one platform_settings row; it is never
- * returned, logged or audited.
+ * Server-only storage for the Google Sign-In (Google OAuth Web Client)
+ * configuration managed in Admin → Settings → Authentication. Direct Google
+ * Sign-In reads the Client ID/Secret from here via getGoogleSignInClient*; it
+ * does not use Google Cloud Identity Platform. The client secret is encrypted
+ * with the existing provider credential cipher and stored in one
+ * platform_settings row; it is never returned, logged or audited.
  */
 import {
   MASKED_SECRET,
@@ -88,6 +89,20 @@ export function toView(s: StoredGoogleIdp): GoogleIdpView {
 
 export async function getGoogleIdpView(): Promise<GoogleIdpView> {
   return toView(normalize(await store().read()));
+}
+
+/** Client ID for the browser — only when the saved configuration is complete and enabled. */
+export async function getGoogleSignInClientId(): Promise<string | null> {
+  const view = toView(normalize(await store().read()));
+  return view.enabled && view.clientId ? view.clientId : null;
+}
+
+/** Server-only Client ID + decrypted secret for live Google Sign-In, or null when unavailable. */
+export async function getGoogleSignInClient(): Promise<{ clientId: string; clientSecret: string } | null> {
+  const current = normalize(await store().read());
+  if (!toView(current).enabled || !current.client_id || !current.secret_ciphertext) return null;
+  const clientSecret = await decryptSecret(current.secret_ciphertext);
+  return clientSecret ? { clientId: current.client_id, clientSecret } : null;
 }
 
 async function encryptSecret(secret: string) {
@@ -202,10 +217,9 @@ export async function testGoogleIdpConnection(): Promise<GoogleIdpView> {
         result = "credentials_invalid";
         message = "Google rejected the Client ID or Client Secret.";
       } else if (r.error === "invalid_grant" || r.error === "redirect_uri_mismatch") {
-        // Client credentials are accepted. Identity Platform tenant/provider
-        // setup cannot be verified without a Google Cloud service account.
-        result = "not_fully_configured";
-        message = `Google accepted the Client ID and Client Secret. ${NOT_FULLY_CONFIGURED}`;
+        // Google accepted the client credentials (the fake code is rejected).
+        result = "credentials_valid";
+        message = "Google accepted the Client ID and Client Secret.";
       } else {
         result = "error";
         message = `Google returned an unexpected response (HTTP ${r.status}).`;

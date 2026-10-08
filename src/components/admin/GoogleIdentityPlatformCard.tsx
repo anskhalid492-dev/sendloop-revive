@@ -118,14 +118,14 @@ export function GoogleIdentityPlatformCard() {
     <div className="surface-card space-y-4 p-6 text-sm">
       <div>
         <h3 className="font-semibold">Authentication providers</h3>
-        <p className="text-muted-foreground">Prepare future sign-in providers. Only Google is available in this phase.</p>
+        <p className="text-muted-foreground">Sign-in providers customers can use. Only Google is available.</p>
       </div>
 
       <div className="flex gap-2 rounded-md border border-border/60 bg-muted/40 p-3 text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          Google Sign-In configuration is prepared here. Changing the active authentication system requires a separate
-          migration step. Your current Supabase authentication remains active.
+          When enabled, &ldquo;Continue with Google&rdquo; signs customers in directly with this Google Web Client
+          (Google Identity Services). Accounts and sessions stay in the existing MunchReach authentication system.
         </p>
       </div>
 
@@ -135,7 +135,7 @@ export function GoogleIdentityPlatformCard() {
             <GoogleIcon className="h-6 w-6" />
             <div>
               <p className="font-medium">Google Sign-In</p>
-              <p className="text-xs text-muted-foreground">Google Cloud Identity Platform</p>
+              <p className="text-xs text-muted-foreground">Google Identity Services</p>
             </div>
           </div>
           <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary" data-testid="google-idp-status">
@@ -144,7 +144,7 @@ export function GoogleIdentityPlatformCard() {
         </div>
 
         {!configured && !editing ? (
-          <p className="text-muted-foreground">Connect Google Cloud Identity Platform to enable Google Sign-In for MunchReach.</p>
+          <p className="text-muted-foreground">Add your Google OAuth Web Client to enable Google Sign-In for MunchReach.</p>
         ) : null}
 
         {showForm ? (
@@ -194,7 +194,7 @@ export function GoogleIdentityPlatformCard() {
             <Row label="Authorized domain" value={v.authorizedDomain ? `https://${v.authorizedDomain}` : "—"} />
             <Row label="Google Web Client ID" value={v.clientId} />
             <Row label="Google Web Client Secret" value={v.maskedSecret} />
-            <Row label="Redirect / callback status" value="Not active — current sign-in callback unchanged" />
+            <Row label="Redirect / callback status" value={v.enabled ? "Active — Google popup sign-in (no redirect callback)" : "Not active"} />
             <Row label="Last test" value={v.lastTestedAt ? new Date(v.lastTestedAt).toLocaleString() : "Never"} />
           </dl>
         )}

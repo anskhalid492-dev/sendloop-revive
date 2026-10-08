@@ -87,7 +87,7 @@ describe("storage lifecycle", () => {
 });
 
 describe("test connection", () => {
-  it("never fakes success: accepted credentials still report Identity Platform not fully configured", async () => {
+  it("accepted credentials report valid without signing anyone in", async () => {
     useMem();
     await saveGoogleIdpConfig(VALID);
     const probe = vi.fn(async (_id: string, s: string) => {
@@ -96,8 +96,8 @@ describe("test connection", () => {
     });
     __setGoogleTokenProbe(probe);
     const v = await testGoogleIdpConnection();
-    expect(v.lastTestResult).toBe("not_fully_configured");
-    expect(v.lastTestMessage).toContain("Google Cloud Identity Platform is not fully configured yet.");
+    expect(v.lastTestResult).toBe("credentials_valid");
+    expect(v.lastTestMessage).toBe("Google accepted the Client ID and Client Secret.");
     expect(JSON.stringify(v)).not.toContain(SECRET);
   });
 
@@ -129,8 +129,8 @@ describe("access control and scope", () => {
     expect(fns).not.toMatch(/writeAudit\([^)]*clientSecret/);
   });
 
-  it("existing login/sign-up and Supabase auth do not use the new config", () => {
-    for (const p of ["src/routes/auth.tsx", "src/routes/signin.tsx", "src/routes/_authenticated/route.tsx", "src/routes/__root.tsx", "src/lib/auth-settings.functions.ts"]) {
+  it("pages, guards and the root never import the server config directly", () => {
+    for (const p of ["src/routes/auth.tsx", "src/routes/signin.tsx", "src/routes/signup.tsx", "src/routes/_authenticated/route.tsx", "src/routes/__root.tsx", "src/lib/auth-settings.functions.ts"]) {
       expect(read(p)).not.toMatch(/auth-providers-config|google_idp|GoogleIdp/);
     }
   });
