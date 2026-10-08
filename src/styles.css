@@ -541,10 +541,10 @@
 .hero-personalized-detail { color: var(--tint-sky-foreground); background: color-mix(in oklab, var(--primary) 10%, transparent); border-radius: 3px; padding: 1px 3px; }
 @media (min-width: 1024px) { .hero-product-scene { height: 680px; } }
 @media (min-width: 1024px) {
-  .home-hero .hero-product-scene { max-width: 1040px; height: 525px; }
+  .home-hero .hero-product-scene { max-width: 1040px; height: 620px; }
   .home-hero .hero-dashboard { left: 17%; top: 20px; width: 62%; transform: rotate(-1deg); }
-  .home-hero .hero-sequence { left: 0; top: 188px; width: 29%; transform: rotate(-3deg); }
-  .home-hero .hero-email { right: 0; top: 95px; width: 37%; transform: rotate(2deg); }
+  .home-hero .hero-sequence { left: 0; top: 285px; width: 29%; transform: rotate(-3deg); }
+  .home-hero .hero-email { right: 0; top: 200px; width: 37%; transform: rotate(2deg); }
 }
 @media (min-width: 640px) and (max-width: 1023px) { .hero-product-scene { height: 680px; } }
 @media (max-width: 639px) {
