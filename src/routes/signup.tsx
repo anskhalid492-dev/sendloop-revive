@@ -177,21 +177,16 @@ function SignUpPage() {
     staleTime: 60_000,
   });
 
-  async function handleGoogle() {
-    const { googleEnabled } = await getPublicAuthSettings();
-    if (!googleEnabled) {
-      toast.error("Google sign-in is currently disabled. Please use your email and password.");
-      return;
-    }
-    // OAuth returns to the public origin, so remember where the visitor was
-    // heading (e.g. billing with a chosen plan) and resume after the session.
-    if (redirectTo) window.sessionStorage.setItem("munchreach.post-auth", redirectTo);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) toast.error("Google sign-up failed. Please try again.");
-  }
+  // Direct Google Identity Services sign-up (not Supabase OAuth). New users land
+  // in onboarding like an email signup; existing users go to their account.
+  const onGoogleSignedIn = useCallback(
+    ({ isNewUser }: { isNewUser: boolean }) => {
+      navigate({ to: redirectTo ?? (isNewUser ? "/onboarding" : "/dashboard"), replace: true });
+    },
+    [navigate, redirectTo],
+  );
+  const google = useGoogleSignIn(onGoogleSignedIn);
+  const handleGoogle = () => void google.start();
 
   const score = strength(password);
   const labels = ["Too short", "Weak", "Okay", "Good", "Strong"];

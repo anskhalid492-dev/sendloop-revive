@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { TURNSTILE_ACTIONS } from "@/lib/turnstile-config";
 import { signInWithTurnstile } from "@/lib/auth-turnstile.functions";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -149,16 +150,15 @@ export function SignInPage() {
     staleTime: 60_000,
   });
 
-  async function handleGoogle() {
-    if (search.redirect) {
-      window.sessionStorage.setItem("munchreach.post-auth", destination);
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) toast.error("Google sign-in failed. Please try again.");
-  }
+  // Direct Google Identity Services sign-in (not Supabase OAuth).
+  const onGoogleSignedIn = useCallback(
+    ({ isNewUser }: { isNewUser: boolean }) => {
+      navigate({ to: isNewUser && !search.redirect ? "/onboarding" : destination, replace: true });
+    },
+    [navigate, destination, search.redirect],
+  );
+  const google = useGoogleSignIn(onGoogleSignedIn);
+  const handleGoogle = () => void google.start();
 
   return (
     <AuthLayout
