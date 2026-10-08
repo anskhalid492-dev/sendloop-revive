@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -13,6 +13,7 @@ import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { TURNSTILE_ACTIONS } from "@/lib/turnstile-config";
 import { signUpWithTurnstile } from "@/lib/auth-turnstile.functions";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 
 import { captureReferralCode } from "@/hooks/useReferralClaim";
 import { Button } from "@/components/ui/button";

@@ -14,4 +14,4 @@
 - AI Sales Agent (AI Decision branch `node.ai`, `ai.generate_reply`, `human.review`) calls only the MunchReach-owned provider in src/lib/sales-agent-ai.server.ts; AI Campaign Writer/Personalization keep the customer-key path and must never import it (and vice versa), because the two AI systems have separate billing and credentials.
 - More rules for workers, campaigns, warmup and automations: src/lib/AGENTS.md.
 - Homepage hero product visualization stays presentational with labeled example data and no live-data reads, so marketing rendering cannot affect customer activity.
-- Google Cloud Identity Platform config is preparation-only (src/lib/auth-providers-config*.ts): no sign-in, session or guard code may read it until a separate migration, so saving settings can never change live auth.
+- Google Sign-In is direct Google Identity Services (src/lib/google-signin*.ts) using the admin-saved Web Client in src/lib/auth-providers-config.server.ts; sessions are minted as normal Supabase Auth sessions server-side. Never use Supabase's Google OAuth provider or Google Cloud Identity Platform, because the Supabase provider is intentionally disabled.
