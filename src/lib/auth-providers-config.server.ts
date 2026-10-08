@@ -21,6 +21,8 @@ export type StoredGoogleIdp = {
   secret_ciphertext: string | null;
   authorized_domain: string | null;
   enabled: boolean;
+  /** Admin explicitly turned it off (credentials kept). */
+  disabled?: boolean;
   last_tested_at: string | null;
   last_test_result: GoogleIdpView["lastTestResult"];
   last_test_message: string | null;
@@ -68,9 +70,9 @@ function normalize(raw: StoredGoogleIdp | null): StoredGoogleIdp {
 
 export function toView(s: StoredGoogleIdp): GoogleIdpView {
   const complete = Boolean(s.project_id && s.client_id && s.secret_ciphertext);
-  const status = !complete ? "not_configured" : s.enabled ? "enabled" : s.last_tested_at || s.updated_at ? (s.enabled === false && s.last_test_result !== null ? "configured" : "configured") : "configured";
+  const status: GoogleIdpView["status"] = !complete ? "not_configured" : s.enabled ? "enabled" : s.disabled ? "disabled" : "configured";
   return {
-    status: complete && s.enabled === false && (s as { disabled?: boolean }).disabled ? "disabled" : status,
+    status,
     projectId: s.project_id,
     clientId: s.client_id,
     hasSecret: Boolean(s.secret_ciphertext),
@@ -114,7 +116,7 @@ export async function saveGoogleIdpConfig(input: GoogleIdpInput): Promise<Google
     !secret && current.project_id === projectId && current.client_id === clientId && current.authorized_domain === domain;
   if (unchanged) throw new Error("This configuration is already saved.");
   const credentialsChanged = Boolean(secret) || current.project_id !== projectId || current.client_id !== clientId;
-  const next: StoredGoogleIdp & { disabled?: boolean } = {
+  const next: StoredGoogleIdp = {
     ...current,
     project_id: projectId,
     client_id: clientId,
