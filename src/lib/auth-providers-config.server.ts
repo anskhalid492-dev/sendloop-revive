@@ -219,7 +219,7 @@ export async function testGoogleIdpConnection(): Promise<GoogleIdpView> {
       } else if (r.error === "invalid_grant" || r.error === "redirect_uri_mismatch") {
         // Google accepted the client credentials (the fake code is rejected).
         result = "credentials_valid";
-        message = "Google accepted the Client ID and Client Secret.";
+        message = "Google Client ID and configuration are saved. Google Sign-In is not active yet.";
       } else {
         result = "error";
         message = `Google returned an unexpected response (HTTP ${r.status}).`;
