@@ -563,3 +563,11 @@
 @media (prefers-reduced-motion: reduce) {
   .mr-orbit, .mr-dash, .mr-flow, .mr-float { animation: none; }
 }
+
+/* Quick, smooth color change while the visitor switches theme. */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, fill 180ms ease !important;
+}
