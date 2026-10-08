@@ -11,7 +11,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function guard(context: { supabase: unknown; userId: string; claims?: Record<string, unknown> }, sensitive = false, action?: string) {
   const { assertPlatformAdmin } = await import("@/lib/billing/access.server");
-  await assertPlatformAdmin(context as never, sensitive ? { sensitive: true, action } : {});
+  await assertPlatformAdmin(context as never, sensitive ? { sensitive: true, action: action ?? "authentication settings" } : {});
 }
 
 async function audit(userId: string, action: string) {

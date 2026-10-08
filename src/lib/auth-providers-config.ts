@@ -32,7 +32,7 @@ const DOMAIN = /^(?=.{1,253}$)(?!-)([a-z0-9-]{1,63}\.)+[a-z]{2,63}$/;
 export type GoogleIdpInput = {
   projectId: string;
   clientId: string;
-  clientSecret?: string | null;
+  clientSecret?: string | null | undefined;
   authorizedDomain: string;
 };
 
