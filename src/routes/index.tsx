@@ -377,17 +377,21 @@ function Home() {
       <main>
         {/* Hero */}
         <section className="home-hero relative overflow-hidden" aria-label="MunchReach cold outreach platform">
-          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pt-28 pb-12 sm:px-8 sm:pt-28 lg:grid-cols-[44fr_56fr] lg:gap-8 lg:pt-14 lg:pb-14">
-            <div className="min-w-0 text-left">
+          <div className="relative mx-auto max-w-7xl px-5 pt-28 pb-10 sm:px-8 sm:pt-28 lg:pt-12">
+            <div className="mx-auto max-w-4xl min-w-0 text-center">
+              <div className="mb-7 flex flex-wrap items-center justify-center gap-2.5" aria-label="MunchReach review profiles">
+                <a href="https://www.trustpilot.com/review/munchreach.com" target="_blank" rel="noopener noreferrer" aria-label="MunchReach on Trustpilot" className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-3.5 text-foreground transition-colors hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-2 focus-visible:outline-ring"><TrustpilotMark /></a>
+                <a href="https://www.capterra.com/p/10186302/MunchReach/pricing/" target="_blank" rel="noopener noreferrer" aria-label="MunchReach on Capterra" className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-3.5 text-foreground transition-colors hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-2 focus-visible:outline-ring"><CapterraMark /></a>
+              </div>
               <Eyebrow>The all-in-one cold outreach platform</Eyebrow>
-              <h1 className="mt-5 max-w-[560px] text-[2.5rem] font-extrabold leading-[1.12] tracking-normal text-balance sm:text-[3.3rem] lg:text-[3.5rem] xl:text-[3.75rem]">
+              <h1 className="mx-auto mt-4 max-w-[900px] text-[2.5rem] font-extrabold leading-[1.12] tracking-normal text-balance sm:text-[3.3rem] lg:text-[3.75rem] xl:text-[4rem]">
                 Your Next Customer Could Be <span className="text-primary">One Email Away.</span>
               </h1>
-              <p className="mt-6 max-w-[460px] text-pretty text-base leading-[1.8] text-muted-foreground sm:text-lg">
+              <p className="mx-auto mt-5 max-w-[650px] text-pretty text-base leading-[1.8] text-muted-foreground sm:text-lg">
                 Find the right prospects, personalize every message, automate follow-ups, and manage replies, all from
                 one simple outbound platform.
               </p>
-              <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start">
+              <div className="mx-auto mt-7 flex max-w-sm flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
                 <Button size="lg" className="rounded-xl px-7" asChild>
                   <Link to="/signup">
                     Start Sending Free
@@ -401,23 +405,12 @@ function Home() {
                   </a>
                 </Button>
               </div>
-              <p className="mt-6 text-sm text-muted-foreground">
+              <p className="mt-4 text-sm text-muted-foreground">
                 14-day free trial · No credit card required · Cancel anytime
               </p>
             </div>
-            <div className="min-w-0">
+            <div className="mt-10 min-w-0 sm:mt-12">
               <HeroProductVisual />
-            </div>
-          </div>
-        </section>
-
-        {/* Trust strip */}
-        <section className="border-y border-border/60">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-4 px-4 py-6 text-muted-foreground sm:flex-row sm:gap-10 sm:px-6">
-            <span className="text-xs font-medium tracking-[0.18em] uppercase">Find MunchReach on</span>
-            <div className="flex items-center gap-8 text-foreground/80">
-              <a href="https://www.trustpilot.com/review/munchreach.com" target="_blank" rel="noopener noreferrer" aria-label="MunchReach on Trustpilot" className="transition-opacity hover:opacity-70"><TrustpilotMark /></a>
-              <a href="https://www.capterra.com/p/10186302/MunchReach/pricing/" target="_blank" rel="noopener noreferrer" aria-label="MunchReach on Capterra" className="transition-opacity hover:opacity-70"><CapterraMark /></a>
             </div>
           </div>
         </section>
