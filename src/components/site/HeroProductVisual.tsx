@@ -107,8 +107,8 @@ export function HeroProductVisual() {
   return (
     <div className="hero-product-scene" role="img" aria-label="MunchReach example workspace showing campaign performance, automated follow-ups, and a personalized email to Jamie at Bloom & Co. All figures and prospect details are illustrative.">
       <CampaignDashboard />
-      <SequenceCard />
       <PersonalizedEmail />
+      <SequenceCard />
     </div>
   );
 }

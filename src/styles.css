@@ -533,18 +533,18 @@
 
 @keyframes mr-spin { to { transform: rotate(360deg); } }
 .home-hero { background: var(--hero-surface-wash); }
-.hero-product-scene { position: relative; width: 100%; max-width: 640px; margin-inline: auto; height: 640px; }
+.hero-product-scene { position: relative; width: 100%; max-width: 640px; margin-inline: auto; height: 680px; }
 .hero-product-window { overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--hero-product-shadow); }
 .hero-dashboard { position: absolute; top: 24px; left: 3%; width: 94%; transform: rotate(-2deg); }
 .hero-sequence { position: absolute; top: 407px; left: 0; width: 44%; z-index: 2; transform: rotate(-3deg); }
-.hero-email { position: absolute; top: 207px; right: -1%; width: 61%; z-index: 3; transform: rotate(2deg); }
+.hero-email { position: absolute; top: 248px; right: -1%; width: 58%; z-index: 3; transform: rotate(2deg); }
 .hero-personalized-detail { color: var(--tint-sky-foreground); background: color-mix(in oklab, var(--primary) 10%, transparent); border-radius: 3px; padding: 1px 3px; }
-@media (min-width: 1024px) { .hero-product-scene { height: 640px; } }
-@media (min-width: 640px) and (max-width: 1023px) { .hero-product-scene { height: 625px; } }
+@media (min-width: 1024px) { .hero-product-scene { height: 680px; } }
+@media (min-width: 640px) and (max-width: 1023px) { .hero-product-scene { height: 680px; } }
 @media (max-width: 639px) {
   .hero-product-scene { height: auto; padding-bottom: 2px; }
   .hero-dashboard { position: relative; top: 0; left: 0; width: 96%; transform: none; }
-  .hero-email { position: relative; top: auto; right: auto; width: 94%; margin: -28px 0 0 auto; transform: none; }
+  .hero-email { position: relative; top: auto; right: auto; width: 94%; margin: 16px 0 0 auto; transform: none; }
   .hero-sequence { position: relative; top: auto; left: 0; width: 87%; margin: 16px 0 0; transform: none; }
 }
 @keyframes mr-dash-move { to { stroke-dashoffset: -40; } }

@@ -377,7 +377,7 @@ function Home() {
       <main>
         {/* Hero */}
         <section className="home-hero relative overflow-hidden" aria-label="MunchReach cold outreach platform">
-          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pt-12 pb-12 sm:px-8 sm:pt-16 lg:grid-cols-[44fr_56fr] lg:gap-8 lg:pt-14 lg:pb-14">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pt-28 pb-12 sm:px-8 sm:pt-28 lg:grid-cols-[44fr_56fr] lg:gap-8 lg:pt-14 lg:pb-14">
             <div className="min-w-0 text-left">
               <Eyebrow>The all-in-one cold outreach platform</Eyebrow>
               <h1 className="mt-5 max-w-[560px] text-[2.5rem] font-extrabold leading-[1.12] tracking-normal text-balance sm:text-[3.3rem] lg:text-[3.5rem] xl:text-[3.75rem]">
