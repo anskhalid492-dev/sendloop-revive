@@ -39,6 +39,7 @@ import {
 import { getSystemSettings, saveSystemSettings } from "@/lib/platform-settings.functions";
 import { SETTING_GROUPS, type SettingField, type SettingGroup } from "@/lib/platform-settings";
 import { AuthProvidersPanel } from "@/components/admin/AuthProvidersPanel";
+import { GoogleIdentityPlatformCard } from "@/components/admin/GoogleIdentityPlatformCard";
 import { AnnouncementsPanel } from "@/components/admin/AnnouncementsPanel";
 import { FeatureFlagsPanel } from "@/components/admin/FeatureFlagsPanel";
 import { ConfigHistoryPanel } from "@/components/admin/ConfigHistoryPanel";
@@ -245,7 +246,7 @@ function SystemSettingsPage() {
             </div>
           </div>
 
-          {group.panel === "auth" || group.id === "auth" ? <AuthProvidersPanel /> : null}
+          {group.panel === "auth" || group.id === "auth" ? (<><AuthProvidersPanel /><GoogleIdentityPlatformCard /></>) : null}
           {group.panel === "referral-templates" || group.id === "notifications" ? (
             <ReferralTemplatesPanel />
           ) : null}
