@@ -376,18 +376,14 @@ function Home() {
 
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--primary)_7%,transparent),transparent_70%)]"
-          />
-          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 lg:grid-cols-[45fr_55fr] lg:pt-24 lg:pb-24">
-            <div className="text-center lg:text-left">
+        <section className="home-hero relative overflow-hidden" aria-label="MunchReach cold outreach platform">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pt-12 pb-12 sm:px-8 sm:pt-16 lg:grid-cols-[44fr_56fr] lg:gap-8 lg:pt-14 lg:pb-14">
+            <div className="min-w-0 text-left">
               <Eyebrow>The all-in-one cold outreach platform</Eyebrow>
-              <h1 className="mt-5 text-[2.3rem] font-extrabold leading-[1.05] tracking-tight text-balance sm:text-[3.2rem] lg:text-[3.6rem]">
+              <h1 className="mt-5 max-w-[560px] text-[2.5rem] font-extrabold leading-[1.12] tracking-normal text-balance sm:text-[3.3rem] lg:text-[3.5rem] xl:text-[3.75rem]">
                 Your Next Customer Could Be <span className="text-primary">One Email Away.</span>
               </h1>
-              <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0">
+              <p className="mt-6 max-w-[460px] text-pretty text-base leading-[1.8] text-muted-foreground sm:text-lg">
                 Find the right prospects, personalize every message, automate follow-ups, and manage replies, all from
                 one simple outbound platform.
               </p>
