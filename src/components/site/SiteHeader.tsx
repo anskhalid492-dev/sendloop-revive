@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -435,6 +436,7 @@ export function SiteHeader() {
 
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
+          <ThemeToggle />
           {signedIn ? (
             <Button size="sm" asChild>
               <Link to="/dashboard">Go to dashboard</Link>
@@ -451,6 +453,7 @@ export function SiteHeader() {
           )}
         </div>
 
+        <ThemeToggle className="ml-auto size-11 lg:hidden" />
         <button
           className="inline-flex size-11 items-center justify-center rounded-md border border-border lg:hidden"
           onClick={() => setOpen((v) => !v)}
