@@ -133,6 +133,8 @@
 
   --shadow-glow: 0 0 0 1px oklch(0.685 0.145 231 / 0.18), 0 24px 60px -26px oklch(0.685 0.145 231 / 0.5);
   --shadow-card: 0 18px 45px -28px oklch(0.35 0.06 245 / 0.45);
+  --hero-surface-wash: linear-gradient(120deg, var(--background) 30%, color-mix(in oklab, var(--secondary) 65%, var(--background)) 100%);
+  --hero-product-shadow: 0 24px 60px -22px color-mix(in oklab, var(--foreground) 18%, transparent), 0 4px 12px -4px color-mix(in oklab, var(--primary) 12%, transparent);
   --font-sans:
     "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -530,6 +532,21 @@
 }
 
 @keyframes mr-spin { to { transform: rotate(360deg); } }
+.home-hero { background: var(--hero-surface-wash); }
+.hero-product-scene { position: relative; width: 100%; max-width: 640px; margin-inline: auto; height: 680px; }
+.hero-product-window { overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--hero-product-shadow); }
+.hero-dashboard { position: absolute; top: 24px; left: 3%; width: 94%; transform: rotate(-2deg); }
+.hero-sequence { position: absolute; top: 407px; left: 0; width: 44%; z-index: 2; transform: rotate(-3deg); }
+.hero-email { position: absolute; top: 248px; right: -1%; width: 58%; z-index: 3; transform: rotate(2deg); }
+.hero-personalized-detail { color: var(--tint-sky-foreground); background: color-mix(in oklab, var(--primary) 10%, transparent); border-radius: 3px; padding: 1px 3px; }
+@media (min-width: 1024px) { .hero-product-scene { height: 680px; } }
+@media (min-width: 640px) and (max-width: 1023px) { .hero-product-scene { height: 680px; } }
+@media (max-width: 639px) {
+  .hero-product-scene { height: auto; padding-bottom: 2px; }
+  .hero-dashboard { position: relative; top: 0; left: 0; width: 96%; transform: none; }
+  .hero-email { position: relative; top: auto; right: auto; width: 94%; margin: 16px 0 0 auto; transform: none; }
+  .hero-sequence { position: relative; top: auto; left: 0; width: 87%; margin: 16px 0 0; transform: none; }
+}
 @keyframes mr-dash-move { to { stroke-dashoffset: -40; } }
 @keyframes mr-flow-move { from { stroke-dashoffset: 64; } to { stroke-dashoffset: 0; } }
 @keyframes mr-float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }

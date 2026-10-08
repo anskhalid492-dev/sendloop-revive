@@ -13,3 +13,4 @@
 - Tests block all network calls to the production project (tests/setup/block-production-network.ts, loaded via vite.config.ts), because the server client is hard-pinned to production and unmocked tests leaked fixture IDs ("ws-1", "lead-1") into it.
 - AI Sales Agent (AI Decision branch `node.ai`, `ai.generate_reply`, `human.review`) calls only the MunchReach-owned provider in src/lib/sales-agent-ai.server.ts; AI Campaign Writer/Personalization keep the customer-key path and must never import it (and vice versa), because the two AI systems have separate billing and credentials.
 - More rules for workers, campaigns, warmup and automations: src/lib/AGENTS.md.
+- Homepage hero product visualization stays presentational with labeled example data and no live-data reads, so marketing rendering cannot affect customer activity.
