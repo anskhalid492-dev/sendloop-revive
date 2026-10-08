@@ -1,5 +1,5 @@
 /**
- * Admin-only server functions for Google Cloud Identity Platform
+ * Admin-only server functions for Google Sign-In (Google Identity Services)
  * configuration (preparation only — not used by any sign-in flow).
  * Every handler re-checks the platform admin role server-side. Responses
  * contain status and masked values only; audit entries never include secrets.
