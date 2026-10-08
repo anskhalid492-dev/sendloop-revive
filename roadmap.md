@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Homepage hero presentation
-- [ ] Redesign only the hero and its product visualization, preserving all existing messaging and CTAs.
-- [ ] Verify desktop, tablet and mobile presentation, product imagery, copy preservation and relevant checks.
+- [x] Redesign only the hero and its product visualization, preserving all existing messaging and CTAs.
+- [x] Verify desktop, tablet and mobile presentation, product imagery, copy preservation and relevant checks.
 
 - [x] Audit the existing Support page, Help Center content, search, and current product workflows.
 - [x] Rebuild /support around Start Here and categorized popular guides without duplicating the knowledge base.
