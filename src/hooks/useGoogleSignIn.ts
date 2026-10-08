@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { completeGoogleSignIn, getGoogleSignInConfig } from "@/lib/google-signin.functions";
-import { requestGoogleAuthCode } from "@/lib/google-identity.client";
+import { requestGoogleAuthCode } from "@/lib/google-identity-browser";
 
 export const GOOGLE_UNAVAILABLE_MESSAGE =
   "Google Sign-In is currently unavailable. Please try another sign-in method.";

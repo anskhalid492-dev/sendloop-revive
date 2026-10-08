@@ -200,14 +200,14 @@ describe("Client ID comes from the admin configuration", () => {
 
 // ---------------------------------------------------------------- static guarantees
 describe("implementation guarantees", () => {
-  const pages = ["src/routes/signin.tsx", "src/routes/signup.tsx", "src/hooks/useGoogleSignIn.ts", "src/lib/google-identity.client.ts"];
+  const pages = ["src/routes/signin.tsx", "src/routes/signup.tsx", "src/hooks/useGoogleSignIn.ts", "src/lib/google-identity-browser.ts"];
   it("Google buttons never call Supabase OAuth or /auth/v1/authorize", () => {
     for (const p of pages) {
       expect(read(p)).not.toMatch(/signInWithOAuth|\/auth\/v1\/authorize|signInWithIdToken/);
     }
     expect(read("src/routes/signin.tsx")).toContain("useGoogleSignIn");
     expect(read("src/routes/signup.tsx")).toContain("useGoogleSignIn");
-    expect(read("src/lib/google-identity.client.ts")).toContain("https://accounts.google.com/gsi/client");
+    expect(read("src/lib/google-identity-browser.ts")).toContain("https://accounts.google.com/gsi/client");
   });
 
   it("Client ID is read from the admin config, not env vars", () => {
