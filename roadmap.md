@@ -1,6 +1,8 @@
 # Roadmap
 
 ## Homepage hero presentation
+- [ ] Integrate genuine review-platform links above a centered headline and remove the standalone homepage review strip.
+- [ ] Verify the unchanged copy, links and product visualization on desktop, tablet and mobile.
 - [x] Redesign only the hero and its product visualization, preserving all existing messaging and CTAs.
 - [x] Verify desktop, tablet and mobile presentation, product imagery, copy preservation and relevant checks.
 
