@@ -485,10 +485,11 @@ export async function scheduleFollowUps(
     current_step: number;
     sending_account_id: string | null;
     last_sent_at: string | null;
+    next_send_at: string | null;
   }>(() =>
     supabase
       .from("campaign_recipients")
-      .select("id, lead_id, status, current_step, sending_account_id, last_sent_at")
+      .select("id, lead_id, status, current_step, sending_account_id, last_sent_at, next_send_at")
       .eq("campaign_id", campaignId)
       .in("status", ["pending", "in_progress"])
       .order("id", { ascending: true }),
@@ -512,7 +513,7 @@ export async function scheduleFollowUps(
 
   const byRecipient = new Map<
     string,
-    { lastSentOrder: number; lastSentAt: string | null; open: boolean }
+    { lastSentOrder: number; lastSentAt: string | null; open: boolean; steps: Set<number> }
   >();
   for (const m of (messages ?? []) as Array<{
     recipient_id: string | null;
@@ -525,7 +526,9 @@ export async function scheduleFollowUps(
       lastSentOrder: 0,
       lastSentAt: null,
       open: false,
+      steps: new Set<number>(),
     };
+    entry.steps.add(m.step_order);
     if (["pending", "scheduled", "processing"].includes(m.status)) entry.open = true;
     if (m.status === "sent" && m.step_order > entry.lastSentOrder) {
       entry.lastSentOrder = m.step_order;
@@ -534,7 +537,68 @@ export async function scheduleFollowUps(
     byRecipient.set(m.recipient_id, entry);
   }
 
-  const leadIds = recipients.map((r: { lead_id: string }) => r.lead_id);
+  const window = {
+    timezone: campaign.timezone,
+    sendDays: normalizeSendDays(campaign.send_days),
+    startHour: campaign.send_start_hour,
+    endHour: campaign.send_end_hour,
+  };
+
+  const now = Date.now();
+  const inserts: Array<Record<string, unknown>> = [];
+  const advanced: Array<{ id: string; step: number; nextAt: string }> = [];
+  const finished: string[] = [];
+
+  const due: Array<{ recipient: (typeof recipients)[number]; next: StepRow; dueAt: Date }> = [];
+  for (const recipient of recipients) {
+    const state = byRecipient.get(recipient.id);
+    if (!state || state.open || state.lastSentOrder === 0) continue;
+
+    // Walk forward from the step we just sent, accumulating wait time until we
+    // reach the next email step (or the sequence ends / hits a stop step).
+    let delay = 0;
+    let next: StepRow | null = null;
+    for (const step of steps.filter((s) => s.step_order > state.lastSentOrder)) {
+      delay += stepDelayMs(step);
+      if (step.step_type === "stop") break;
+      if (step.step_type === "email") {
+        next = step;
+        break;
+      }
+    }
+
+    if (!next) {
+      finished.push(recipient.id);
+      continue;
+    }
+
+    const base = state.lastSentAt ? new Date(state.lastSentAt).getTime() : now;
+    const dueAt = new Date(base + Math.max(delay, 60_000));
+    if (dueAt.getTime() > now) {
+      // Not due yet — remember when it will be so the UI can show it.
+      // Only write when the stored value actually changes: this runs every
+      // scheduler tick for every active lead, and rewriting unchanged rows was
+      // the main source of database load.
+      if (
+        recipient.current_step !== state.lastSentOrder ||
+        !recipient.next_send_at ||
+        new Date(recipient.next_send_at).getTime() !== dueAt.getTime()
+      ) {
+        advanced.push({ id: recipient.id, step: state.lastSentOrder, nextAt: dueAt.toISOString() });
+      }
+      continue;
+    }
+
+    // A message already exists for this step (e.g. it failed): the insert
+    // would be skipped as a duplicate anyway, so don't reprocess it every tick.
+    if (state.steps.has(next.step_order)) continue;
+    due.push({ recipient, next, dueAt });
+  }
+
+  // Leads, senders and AI snippets are only needed for follow-ups that are due
+  // now, so not-yet-due leads no longer cost a lookup on every tick.
+  const dueRecipients = due.map((entry) => entry.recipient);
+  const leadIds = dueRecipients.map((r: { lead_id: string }) => r.lead_id);
   const leads = await fetchByIds<{ id: string }>(leadIds, (ids) =>
     supabase
       .from("leads")
@@ -551,7 +615,7 @@ export async function scheduleFollowUps(
   // assigned to, so a rotated sequence signs off with the right person.
   const accountIds = [
     ...new Set(
-      recipients
+      dueRecipients
         .map((r: { sending_account_id: string | null }) => r.sending_account_id)
         .filter((id: string | null): id is string => Boolean(id)),
     ),
@@ -582,48 +646,7 @@ export async function scheduleFollowUps(
     ? await pendingPersonalizationLeads(supabase, campaignId, leadIds)
     : new Set<string>();
 
-  const window = {
-    timezone: campaign.timezone,
-    sendDays: normalizeSendDays(campaign.send_days),
-    startHour: campaign.send_start_hour,
-    endHour: campaign.send_end_hour,
-  };
-
-  const now = Date.now();
-  const inserts: Array<Record<string, unknown>> = [];
-  const advanced: Array<{ id: string; step: number; nextAt: string }> = [];
-  const finished: string[] = [];
-
-  for (const recipient of recipients) {
-    const state = byRecipient.get(recipient.id);
-    if (!state || state.open || state.lastSentOrder === 0) continue;
-
-    // Walk forward from the step we just sent, accumulating wait time until we
-    // reach the next email step (or the sequence ends / hits a stop step).
-    let delay = 0;
-    let next: StepRow | null = null;
-    for (const step of steps.filter((s) => s.step_order > state.lastSentOrder)) {
-      delay += stepDelayMs(step);
-      if (step.step_type === "stop") break;
-      if (step.step_type === "email") {
-        next = step;
-        break;
-      }
-    }
-
-    if (!next) {
-      finished.push(recipient.id);
-      continue;
-    }
-
-    const base = state.lastSentAt ? new Date(state.lastSentAt).getTime() : now;
-    const dueAt = new Date(base + Math.max(delay, 60_000));
-    if (dueAt.getTime() > now) {
-      // Not due yet — remember when it will be so the UI can show it.
-      advanced.push({ id: recipient.id, step: state.lastSentOrder, nextAt: dueAt.toISOString() });
-      continue;
-    }
-
+  for (const { recipient, next, dueAt } of due) {
     const lead = leadById.get(recipient.lead_id);
     if (!lead) continue;
     const slot = windowStartAt(dueAt, window, { includeCurrentDay: true }).toISOString();
