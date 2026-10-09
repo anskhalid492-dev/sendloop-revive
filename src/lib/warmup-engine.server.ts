@@ -996,7 +996,8 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
       .eq("id", accountId)
       .maybeSingle();
     const prev = (acct as { last_sent_at?: string | null } | null)?.last_sent_at;
-    const stale = !prev || prev.slice(0, 10) !== nowIso.slice(0, 10);
+    // Same 12-hour rolling window campaign capacity uses.
+    const stale = !prev || new Date(prev).getTime() < Date.now() - 12 * 3_600_000;
     await admin
       .from("sending_accounts")
       .update(stale ? { last_sent_at: nowIso, sent_today: 0 } : { last_sent_at: nowIso })
