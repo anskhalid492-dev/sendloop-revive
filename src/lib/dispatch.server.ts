@@ -513,7 +513,7 @@ export async function scheduleFollowUps(
 
   const byRecipient = new Map<
     string,
-    { lastSentOrder: number; lastSentAt: string | null; open: boolean }
+    { lastSentOrder: number; lastSentAt: string | null; open: boolean; steps: Set<number> }
   >();
   for (const m of (messages ?? []) as Array<{
     recipient_id: string | null;
@@ -526,7 +526,9 @@ export async function scheduleFollowUps(
       lastSentOrder: 0,
       lastSentAt: null,
       open: false,
+      steps: new Set<number>(),
     };
+    entry.steps.add(m.step_order);
     if (["pending", "scheduled", "processing"].includes(m.status)) entry.open = true;
     if (m.status === "sent" && m.step_order > entry.lastSentOrder) {
       entry.lastSentOrder = m.step_order;
@@ -587,6 +589,9 @@ export async function scheduleFollowUps(
       continue;
     }
 
+    // A message already exists for this step (e.g. it failed): the insert
+    // would be skipped as a duplicate anyway, so don't reprocess it every tick.
+    if (state.steps.has(next.step_order)) continue;
     due.push({ recipient, next, dueAt });
   }
 
