@@ -985,10 +985,23 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
   });
   await bumpStats(admin, { workspaceId, accountId }, { sent: 1 });
   await touchPoolRecipient(admin, job["pool_recipient_id"] as string | null, "sent");
-  await admin
-    .from("sending_accounts")
-    .update({ last_sent_at: new Date().toISOString() })
-    .eq("id", accountId);
+  {
+    // Warmup sends do not count toward the campaign daily cap, but touching
+    // last_sent_at would make a stale campaign counter from a previous day
+    // look like "today" and block campaign sending. Reset a stale counter.
+    const nowIso = new Date().toISOString();
+    const { data: acct } = await admin
+      .from("sending_accounts")
+      .select("last_sent_at")
+      .eq("id", accountId)
+      .maybeSingle();
+    const prev = (acct as { last_sent_at?: string | null } | null)?.last_sent_at;
+    const stale = !prev || prev.slice(0, 10) !== nowIso.slice(0, 10);
+    await admin
+      .from("sending_accounts")
+      .update(stale ? { last_sent_at: nowIso, sent_today: 0 } : { last_sent_at: nowIso })
+      .eq("id", accountId);
+  }
   summary.sent += 1;
 
   if (
