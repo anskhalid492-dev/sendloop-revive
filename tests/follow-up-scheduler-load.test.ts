@@ -175,42 +175,49 @@ describe("follow-up scheduler", () => {
   test("9. overlapping scheduler runs: only one holds the lease", async () => {
     let resolveFirst!: () => void;
     const gate = new Promise<void>((r) => (resolveFirst = r));
-    const settings = new Map<string, unknown>();
-    // Minimal lease store emulating the atomic acquire RPC.
+    // platform_settings emulation honouring the lease's conditional writes.
+    const settings = new Map<string, { token: string; expiresAt: string }>();
     const supabase = {
-      rpc: async (_n: string, args: { p_key: string; p_token: string }) => {
-        if (settings.has(args.p_key)) return { data: false, error: null };
-        settings.set(args.p_key, args.p_token);
-        return { data: true, error: null };
-      },
       from: () => {
-        const b: Record<string, unknown> = {
-          select: () => b, eq: () => b, upsert: async () => ({ error: null }),
-          delete: () => b, update: () => b,
-          maybeSingle: async () => ({ data: null }),
-          then: (res: (v: unknown) => unknown) => Promise.resolve({ data: null, error: null }).then(res),
+        let op = "select", key = "", value: any = null, cond: string | null = null, tokenEq: string | null = null;
+        const exec = () => {
+          const cur = settings.get(key);
+          if (op === "update") {
+            const free = !cur || (cond && new Date(cur.expiresAt).getTime() < Date.now());
+            const own = tokenEq !== null && cur?.token === tokenEq;
+            if ((cond && free && cur) || own) { settings.set(key, value); return { data: [{ key }], error: null }; }
+            return { data: [], error: null };
+          }
+          if (op === "upsert") {
+            if (cur) return { data: [], error: null };
+            settings.set(key, value); return { data: [{ key }], error: null };
+          }
+          return { data: cur ? { value: cur } : null, error: null };
+        };
+        const b: any = {
+          select: () => b,
+          update: (v: any) => ((op = "update"), (value = v.value), b),
+          upsert: (v: any) => ((op = "upsert"), (key = v.key), (value = v.value), b),
+          eq: (k: string, v: string) => (k === "key" ? (key = v) : (tokenEq = v), b),
+          or: (c: string) => ((cond = c), b),
+          maybeSingle: () => b,
+          then: (res: any, rej: any) => Promise.resolve().then(exec).then(res, rej),
         };
         return b;
       },
     };
-    vi.doMock("@/lib/worker-lease.server", () => ({
-      acquireWorkerLease: async () => (settings.has("lease") ? null : (settings.set("lease", 1), { token: "t" })),
-      releaseWorkerLease: async () => void settings.delete("lease"),
-      logWorkerRun: () => {},
-    }));
     let calls = 0;
     const runCampaign = async () => {
       calls += 1;
       await gate;
       return { sent: 0, failed: 0, scheduled: 0 };
     };
-    const a = runCampaignScheduler(supabase, [{ id: C }], { runCampaign, recover: async () => 0 });
-    await new Promise((r) => setTimeout(r, 10));
-    const b = await runCampaignScheduler(supabase, [{ id: C }], { runCampaign, recover: async () => 0 });
+    const first = runCampaignScheduler(supabase, [{ id: C }], { runCampaign, recover: async () => 0 });
+    await new Promise((r) => setTimeout(r, 20));
+    const second = await runCampaignScheduler(supabase, [{ id: C }], { runCampaign, recover: async () => 0 });
     resolveFirst();
-    await a;
-    expect(b.skipped).toBe("locked");
+    await first;
+    expect(second.skipped).toBe("locked");
     expect(calls).toBe(1);
-    vi.doUnmock("@/lib/worker-lease.server");
   });
 });
