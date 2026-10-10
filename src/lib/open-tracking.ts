@@ -247,9 +247,6 @@ export function classifyOpenRequest(args: {
   if (/^66\.249\.\d{1,3}\.\d{1,3}$/.test(ip)) {
     return { isPrefetch: false, source: "google_network_unverified" };
   }
-  if (ua.includes("googleimageproxy")) {
-    return { isPrefetch: false, source: "google_image_proxy" };
-  }
   if (ua.includes("yahoomailproxy")) {
     return { isPrefetch: false, source: "yahoo_image_proxy" };
   }
