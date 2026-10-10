@@ -1,5 +1,10 @@
 # Roadmap
 
+## Open tracking pre-deployment review
+- [x] Review signature validation, scanner evidence, persistence, privacy and campaign/warmup isolation.
+- [x] Add missing isolated regression tests and run tracking, campaign analytics and security coverage (114 passed, 15 release-blocking failures).
+- [x] Deliver PASS/FAIL/NOT TESTED report in docs/open-tracking-predeployment-review.md; no deployment, formula or historical-data changes.
+
 ## Analytics and automatic prospect replies
 - [x] Audit analytics calculations, theme, inbound classification, CRM and queue integration.
 - [x] Upgrade engagement chart and metric cards using shared filters and accurate data.

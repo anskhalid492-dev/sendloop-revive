@@ -1,0 +1,82 @@
+# Open tracking pre-deployment review
+
+Date: 2026-10-10 UTC. **Release verdict: FAIL — not safe to publish as prepared.** No deployment was performed.
+
+## Scope and method
+
+Reviewed the exact current contents of:
+- `src/routes/api/public/open.ts`
+- `src/lib/open-tracking.server.ts`
+- `src/lib/open-tracking.ts`
+- `src/lib/__tests__/open-pixel-hardening.test.ts`
+
+The requested `src/lib/tests/open-pixel-hardening.test.ts` does not exist; the actual directory is `__tests__`.
+
+The three implementation files had no working-tree diff when review started. This review is of their prepared current state, not a reconstructed comparison to the deployed revision. No published version comparison was performed.
+
+Added failure-reproducing tests rather than silently changing the implementation. All persistence tests use explicitly named throwaway fixtures with database and automation IO mocked. The existing production-network blocker remained enabled. No production endpoint, worker, campaign, or mailbox was exercised.
+
+## PASS / FAIL / NOT TESTED
+
+| Area | Result | Evidence |
+| --- | --- | --- |
+| HMAC check before endpoint recording | PASS, with release caveats below | The endpoint parses and verifies before loading the recorder. Invalid signatures with encoded spaces, plus, NUL, slash, percent, zero-width characters and malformed percent sequences are rejected; endpoint tests return a GIF with zero database calls. |
+| Malformed-character handling bypasses signature check | PASS: no bypass found in tested cases | Character stripping normalizes input but still runs the HMAC check on the resulting payload. A malformed valid token may normalize to its original valid token; a forged signature does not become valid. |
+| Strict token grammar | FAIL | `parseOpenToken` accepts an extra unsigned `.segment` because splitting ignores trailing parts. Unknown signed kinds default to campaign. These defects do not independently remove the HMAC requirement, but malformed tokens are not strictly rejected. |
+| Private signing authority | FAIL under missing-secret configuration | Signing falls back to a public publishable key, then a known literal. A test proves a token signed using that public fallback is accepted. Actual deployed private-secret configuration was NOT TESTED. |
+| Conservative Google scanner detection | FAIL | Any `66.249.*.*` address without `GoogleImageProxy` is marked machine, including missing, current and outdated browser agents. IP ownership alone does not prove a scanner. |
+| Gmail image proxy and old browser alone | PASS | Gmail proxy is not excluded; an old browser outside the Google range is not excluded. |
+| Campaign event-insert failure | PASS | Returned insert errors produce `write_failed`; later message/engagement writes stop. |
+| Conversation persistence errors | FAIL | Read errors look like unknown messages. Insert and update returned errors are ignored and can report success even when the event was not saved. |
+| Campaign message update / analytics save failure | FAIL | Update and engagement-upsert returned errors are ignored. A later hit can recover a missing engagement row, but there is no durable retry here and initial failure is reported as success. |
+| Sequential repeats / unique engagement identity | PASS in mocked tests | Each request creates a raw hit; sequential counts increment; the stable `open:pixel:<message>` key with ignore-duplicate upsert preserves one unique engagement row. Automation keys are stable. Real deployed indexes were NOT TESTED. |
+| Concurrent repeated requests | FAIL | Read-then-write count increment loses an increment: two concurrent requests leave count 1, not 2. First-open timestamps can also race. Unique engagement stays deduplicated in the mock. |
+| Campaign/workspace/message matching | PASS in mocked tests | Wrong workspace and missing message cause no writes. Campaign, lead and recipient values come from the authoritative campaign-message row, not token hints. Two campaigns remain separate. |
+| Conversation campaign attribution | FAIL for unsupported signed hints | Conversation rows validate workspace/message but raw-event campaign/lead fields come from token hints without verifying a linked campaign message. Such hints can label an unlinked conversation as a campaign. This needs a signed token; it is not an independent signature bypass. |
+| Warmup isolation | PASS at reviewed boundaries | A warmup-only message cannot satisfy a campaign lookup. Recorder never queries or updates warmup tables. Conversations do not mirror campaign engagement or emit campaign automation. Static inspection found no shared open-pixel injection calls in the warmup engine/delivery path. Full warmup execution was NOT TESTED and was deliberately not triggered. |
+| Sensitive diagnostic logging | FAIL | Normal diagnostic messages do not explicitly print token, email or IDs, but route/recorder/mirror catch blocks log raw errors. A database-error canary test proves an address embedded in an error message reaches `console.warn`. The automation helper also logs raw errors. No guarantee of sensitive-identifier-free logs is possible. |
+| Existing analytics/security regressions | PASS | All 14 unchanged regression suites passed. See test totals below. |
+| Production persistence, permissions and deployed runtime | NOT TESTED | No live reads/writes, authenticated production requests or deployment were performed. Production tables/indexes, privileges, secret consistency and runtime crypto compatibility are not established by mocked tests. |
+
+## Test results
+
+Baseline existing coverage: **97 passed across 15 files**, before adding missing cases. The old scanner test positively asserted the overbroad Google-IP heuristic; a passing baseline therefore did not establish the requested conservative behavior.
+
+Final expanded coverage: **129 tests: 114 passed, 15 failed; 14 files passed, 2 failed**. The failures are deliberately retained as release-blocking regression tests, not skipped or inverted to conceal defects.
+
+The 15 failures cover:
+- Extra unsigned token segment, unknown signed kind and public-key fallback (3).
+- Google-IP false positives with the original outdated agent, missing agent, current agent and another outdated agent (4).
+- Unverified conversation campaign hints (1).
+- Concurrent raw-count lost update (1).
+- Conversation read and insert errors (2).
+- Campaign and conversation update errors (2).
+- Unreported analytics-mirror failure and sensitive-error logging (2).
+
+Executed with `bunx vitest run`:
+`src/lib/__tests__/{open-tracking,open-pixel-hardening,open-pixel-persistence-review,click-tracking,verification-token}.test.ts` and `tests/{domain-tracking,campaign-stats,campaign-stats-range-filter,campaign-stats-events,campaign-stats-dedupe,analytics-overview-upgrade,analytics-sequence-people,analytics-subject,warmup-analytics,campaign-bulk-rls,campaign-mailbox-isolation}.test.ts`.
+
+These test failures do not mean production data was accessed; database failure, race and logging cases use synthetic responses. Database uniqueness and RLS behavior in production remain unverified.
+
+## Remaining risks and required remediation
+
+1. Fail closed if no private signing secret is available. Check the deployed secret configuration without displaying values. Coordinate any secret change with old-message token compatibility; blindly rotating it could invalidate previously sent links.
+2. Reject extra segments and unknown message kinds; bound and validate token grammar before decoding. Keep signature validation mandatory after any supported normalization.
+3. Remove Google-IP-only exclusion. Existing inputs provide no reliable proof that a generic Google-hosted browser request is a scanner. Treat uncertainty conservatively rather than excluding a genuine human open. The broad existing Apple address-block heuristic also warrants review; ownership alone is not proof of Mail Privacy Protection. Other scanners may remain indistinguishable from readers.
+4. Check every database operation result, distinguish partial persistence from complete success, and design recovery so a failed analytics mirror is not dependent on another reader request. Preserve original raw hits.
+5. Address concurrency using a database-safe atomic approach. Raw requests intentionally remain repeatable; deduplicating every request would discard genuine repeat opens. Bearer pixel links can be replayed by anyone possessing them; signatures cannot prove a human opened a message.
+6. Resolve conversation campaign/lead attribution through verified message relationships, not unsupported token hints.
+7. Replace raw-error diagnostic logging with fixed reasons / allowlisted nonsensitive error categories, including downstream automation errors. Infrastructure access/request logs were not inspected and may capture token-bearing URLs. IP forwarding headers are currently accepted without validation; spoofed headers and nonexclusive address ranges further limit classifier reliability.
+8. Verify deployed table/index availability, permission boundaries and private-secret compatibility in an explicitly scoped safe environment before release. Existing schema files are evidence of intended shape, not proof of production shape.
+
+The 128-bit truncated HMAC is not identified as a practical cryptographic weakness here; changing token length is not needed to establish the reported failures and could break historical links.
+
+## Changes made in this review
+
+- Updated `src/lib/__tests__/open-pixel-hardening.test.ts` to cover malformed/encoded signatures, strict parsing, public fallback and conservative scanner expectations.
+- Added `src/lib/__tests__/open-pixel-persistence-review.test.ts` for mocked persistence, duplicates/concurrency, privacy, warmup boundaries, workspace and multiple-campaign isolation, and invalid-signature endpoint execution.
+- Added this report and updated `roadmap.md`.
+
+**No tracking implementation, open-rate formula, sending code, warmup code, production data, database schema or historical open records were changed by this review. No migration, email send, background worker, publish or deployment was performed.** This statement covers this review only; it does not audit earlier changes against production history.
+
+**Decision: keep unpublished. Fix the confirmed blockers, rerun these tests, and complete scoped deployed-configuration/database verification before requesting deployment approval.**

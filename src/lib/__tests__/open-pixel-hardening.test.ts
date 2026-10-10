@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildOpenToken, classifyOpenRequest, parseOpenToken } from "@/lib/open-tracking";
+import { buildOpenToken, classifyOpenRequest, parseOpenToken, signOpenPayload } from "@/lib/open-tracking";
 import { readPixelToken } from "@/routes/api/public/open";
 
 const target = {
@@ -8,6 +8,8 @@ const target = {
   messageKind: "campaign" as const,
   messageId: "22222222-2222-2222-2222-222222222222",
 };
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("pixel token reading", () => {
   const token = buildOpenToken(target);
@@ -22,19 +24,48 @@ describe("pixel token reading", () => {
     expect(parseOpenToken(readPixelToken(new URL(`https://x.test/o?t=${token.slice(0, -2)}xx`)))).toBeNull();
     expect(readPixelToken(new URL("https://x.test/o"))).toBe("");
   });
+  it.each(["%20", "%2B", "%00", "%2F", "%25", "%E2%80%8B", "%ZZ"])(
+    "does not let malformed characters %s bypass an invalid signature", (characters) => {
+      const [payload] = token.split(".");
+      const forged = `${payload}.${"0".repeat(32)}${characters}`;
+      expect(parseOpenToken(readPixelToken(new URL(`https://x.test/o?t=${forged}`)))).toBeNull();
+    },
+  );
+  it("rejects an extra unsigned token segment", () => {
+    expect(parseOpenToken(`${token}.unsigned`)).toBeNull();
+  });
+  it("rejects an unknown signed message kind rather than assuming campaign", () => {
+    const payload = Buffer.from(JSON.stringify({ w: target.workspaceId, m: target.messageId, k: "warmup" })).toString("base64url");
+    expect(parseOpenToken(`${payload}.${signOpenPayload(payload)}`)).toBeNull();
+  });
+  it("fails closed when only a public signing key is available", () => {
+    for (const key of ["OPEN_TRACKING_SECRET", "UNSUBSCRIBE_SECRET", "SUPABASE_SERVICE_ROLE_KEY"]) vi.stubEnv(key, "");
+    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "throwaway-public-key");
+    const payload = Buffer.from(JSON.stringify({ w: target.workspaceId, m: target.messageId, k: "c" })).toString("base64url");
+    // A public value must not authorize writes, even if an attacker signs with it.
+    expect(parseOpenToken(`${payload}.${signOpenPayload(payload)}`)).toBeNull();
+  });
 });
 
 describe("Google automated scanner", () => {
-  it("flags Google-range fetches with a spoofed browser agent as machine opens", () => {
+  it("does not exclude a reader solely on Google IP and an outdated browser agent", () => {
     expect(
       classifyOpenRequest({
         ip: "66.249.89.10",
         userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
       }),
-    ).toEqual({ isPrefetch: true, source: "google_automated_scan" });
+    ).toMatchObject({ isPrefetch: false });
   });
   it("keeps Gmail's image proxy (a reader opening) as a real open", () => {
     expect(classifyOpenRequest({ ip: "66.249.84.1", userAgent: "Mozilla/5.0 (via ggpht.com GoogleImageProxy)" }).isPrefetch).toBe(false);
+  });
+  it.each([null, "Mozilla/5.0 Chrome/130.0", "Mozilla/5.0 Chrome/42.0"])(
+    "does not infer machine activity from Google ownership alone (%s)", (userAgent) => {
+      expect(classifyOpenRequest({ ip: "66.249.89.10", userAgent }).isPrefetch).toBe(false);
+    },
+  );
+  it("does not infer machine activity from an outdated agent alone", () => {
+    expect(classifyOpenRequest({ ip: "84.1.1.1", userAgent: "Mozilla/5.0 Chrome/42.0 Edge/12.246" }).isPrefetch).toBe(false);
   });
 });
 
