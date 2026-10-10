@@ -45,9 +45,9 @@ export const Route = createFileRoute("/api/public/click")({
             userAgent: request.headers.get("user-agent"),
             ip: clientIp(request),
           });
-        } catch (error) {
-          // The reader must always reach the page they clicked.
-          console.warn("[click] recording failed", error);
+        } catch {
+          // The reader must always reach the page they clicked. No details logged.
+          console.warn("[click] recording failed");
         }
         return redirect(hit.url);
       },

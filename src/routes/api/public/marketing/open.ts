@@ -25,8 +25,8 @@ export const Route = createFileRoute("/api/public/marketing/open")({
             const kind = classifyOpenRequest({ userAgent: request.headers.get("user-agent"), ip });
             const { recordMarketingOpen } = await import("@/lib/marketing/engagement.server");
             await recordMarketingOpen({ target, isPrefetch: kind.isPrefetch, source: kind.source });
-          } catch (error) {
-            console.warn("[marketing-open] recording failed", error);
+          } catch {
+            console.warn("[marketing-open] recording failed");
           }
         }
         return pixel();
