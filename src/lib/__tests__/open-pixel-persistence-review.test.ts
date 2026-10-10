@@ -13,7 +13,7 @@ const fixture = vi.hoisted(() => {
     calls: [] as { table: string; operation: string; value?: Record<string, unknown>; filters: Record<string, unknown> }[],
     failures: new Map<string, string>(),
     engagement: new Map<string, Record<string, unknown>>(),
-    emit: vi.fn(async () => ({ runs: 0 })),
+    emit: vi.fn(async (_args: { idempotencyKey: string }) => ({ runs: 0 })),
   };
 });
 
@@ -109,7 +109,7 @@ describe("open persistence pre-deployment review", () => {
     expect(writes().filter((call) => call.table === "email_open_events")).toHaveLength(2);
     expect(fixture.engagement.size).toBe(1);
     expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.open_count).toBe(2);
-    expect(fixture.emit.mock.calls.map(([args]) => (args as unknown as { idempotencyKey: string }).idempotencyKey)).toEqual([`email.opened:open:pixel:${fixture.messageId}`, `email.opened:open:pixel:${fixture.messageId}`]);
+    expect(fixture.emit.mock.calls.map(([args]) => args.idempotencyKey)).toEqual([`email.opened:open:pixel:${fixture.messageId}`, `email.opened:open:pixel:${fixture.messageId}`]);
   });
   it("does not lose raw count increments on concurrent duplicate requests", async () => {
     await Promise.all([recordOpenHit({ target }), recordOpenHit({ target })]);
