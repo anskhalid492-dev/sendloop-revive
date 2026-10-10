@@ -105,3 +105,27 @@ Test-only changes: a throwaway test signing key (`tests/setup/test-signing-secre
 4. Live table permissions, `email_engagement_events.external_id` uniqueness, and `email_open_events` column shape are not verified against production.
 5. Same public/literal fallback pattern still exists in click tracking (`src/lib/click-tracking.ts`) and marketing open tracking (`src/lib/marketing/engagement-tracking.ts`); left unchanged to avoid breaking live links — separate follow-up.
 6. Infrastructure request logs may still record token-bearing URLs; forwarding headers are trusted as before.
+
+---
+
+## Read-only production configuration check — 2026-10-10 15:11 UTC
+
+Stopped early as instructed: the original signing key could not be confirmed. No secret values were read or printed. Nothing was deployed, rotated or changed.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Signing-key lookup order (prepared code) | PASS | `OPEN_TRACKING_SECRET` → `UNSUBSCRIBE_SECRET` → `SUPABASE_SERVICE_ROLE_KEY` → `SB_SERVICE_ROLE_KEY`; values under 16 chars ignored; nothing else. |
+| Signing-key lookup order (currently live code) | PASS (code read) | Same first three, then `VITE_SUPABASE_PUBLISHABLE_KEY` (public), then literal `munchreach-open-tracking`. |
+| Key names in project secret store | PASS (names only) | `OPEN_TRACKING_SECRET`: not set. `UNSUBSCRIBE_SECRET`: not set. `SB_SERVICE_ROLE_KEY`: set. `SUPABASE_SERVICE_ROLE_KEY`: not in the user secret store. |
+| Key names in the live runtime | NOT VERIFIED | The only authorized runtime inspection (Admin environment status) runs on the live site behind an admin sign-in, which I can't use. Whether the platform injects `SUPABASE_SERVICE_ROLE_KEY` into the live runtime is unknown; in the sandbox it is injected but points at the sandbox project. |
+| Configured key = key that signed already-sent tokens | NOT VERIFIED (blocking) | Proving this needs either the live runtime env or a real sent token; both were ruled out. A test fixture can't prove which key the live site used. |
+| Live analytics table columns / unique keys / permissions | NOT VERIFIED | Database tools here reach the sandbox project, not production. Schema files show intent, not live shape. Skipped once the key check stopped the run. |
+| Missing-key handling (prepared code) | PASS (code + tests) | No private key → no pixel is added, the email still sends, every token is rejected, and only `signing_secret_missing` is logged. |
+| Old pixels after deployment | NOT VERIFIED — depends on the key above | If live used `SUPABASE_SERVICE_ROLE_KEY`, old pixels keep working. If live used the public key (no private key present), the new code signs with `SB_SERVICE_ROLE_KEY` and every pixel in already-sent emails silently stops recording opens; images still load. |
+
+### Remaining fallbacks (documented only, not changed)
+- Click tracking (`src/lib/click-tracking.ts`): `CLICK_TRACKING_SECRET` → `OPEN_TRACKING_SECRET` → `UNSUBSCRIBE_SECRET` → `SUPABASE_SERVICE_ROLE_KEY` → `VITE_SUPABASE_PUBLISHABLE_KEY` (public, ships in the browser bundle) → literal `munchreach-click-tracking`. If the live site has no private key, click tokens can be forged.
+- Marketing open tracking (`src/lib/marketing/engagement-tracking.ts`): `OPEN_TRACKING_SECRET` → `MARKETING_UNSUBSCRIBE_SECRET` → `SUPABASE_SERVICE_ROLE_KEY` → literal `munchreach-marketing-open`. With no private key, tokens are signed with a value that appears in the source code.
+
+### What would resolve it
+Someone signed in as an admin opens Admin → environment status on the live site and reports only whether `SUPABASE_SERVICE_ROLE_KEY` is present (yes/no). Present → old pixels compatible. Absent → old pixels stop recording opens on release; this needs an explicit decision.
