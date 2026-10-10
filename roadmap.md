@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Analytics targeted restoration
-- [ ] Restore original screenshot-led Engagement Overview layout while keeping theme series colors and organized lower cards.
-- [ ] Trace metric source/filter differences and show unconfirmed delivery honestly without changing rate formulas.
-- [ ] Add isolated metric/filter regression tests, verify presentation, and report limitations without deploying.
+- [x] Restore original screenshot-led Engagement Overview layout while keeping theme series colors and organized lower cards.
+- [x] Trace metric source/filter differences and show unconfirmed delivery honestly without changing rate formulas.
+- [x] Add isolated metric/filter regression tests, verify presentation, and report limitations without deploying (docs/analytics-restoration-report.md).
+- [ ] Reconcile exact reported production totals — blocked: no authorized scoped account/session and exact date/campaign/mailbox selection.
 
 ## Open tracking pre-deployment review
 - [x] Review signature validation, scanner evidence, persistence, privacy and campaign/warmup isolation.
