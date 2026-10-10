@@ -25,13 +25,14 @@ export async function recordClickHit(args: {
 
   try {
     if (hit.messageKind === "campaign") {
-      const { data } = await supabaseAdmin
+      const { data, error: lookupError } = await supabaseAdmin
         .from("campaign_messages")
         .select(
           "id, workspace_id, campaign_id, lead_id, sending_account_id, to_email, clicked_at",
         )
         .eq("id", hit.messageId)
         .maybeSingle();
+      if (lookupError) return { recorded: false, reason: "lookup_failed" };
       const row = (data as
         | {
             id: string;
@@ -49,7 +50,7 @@ export async function recordClickHit(args: {
         return { recorded: false, reason: "unknown_message" };
       }
 
-      await supabaseAdmin.from("email_click_events").insert({
+      const { error: insertError } = await supabaseAdmin.from("email_click_events").insert({
         workspace_id: row.workspace_id,
         campaign_id: row.campaign_id,
         lead_id: row.lead_id,
@@ -61,8 +62,9 @@ export async function recordClickHit(args: {
         user_agent: userAgent,
         client_ip: clientIp,
       });
+      if (insertError) return { recorded: false, reason: "write_failed" };
 
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from("campaign_messages")
         .update({
           ...(row.clicked_at ? {} : { clicked_at: nowIso }),
@@ -71,14 +73,16 @@ export async function recordClickHit(args: {
         .eq("id", row.id);
 
       await mirrorEngagementClick(row, hit.url, nowIso);
-      return { recorded: true };
+      // The raw click is stored; a failed first-click timestamp is reported, not hidden.
+      return updateError ? { recorded: true, reason: "partial_message_update_failed" } : { recorded: true };
     }
 
-    const { data } = await supabaseAdmin
+    const { data, error: lookupError } = await supabaseAdmin
       .from("conversation_messages")
       .select("id, workspace_id, to_email, clicked_at")
       .eq("id", hit.messageId)
       .maybeSingle();
+    if (lookupError) return { recorded: false, reason: "lookup_failed" };
     const row = (data as
       | { id: string; workspace_id: string; to_email: string | null; clicked_at: string | null }
       | null) ?? null;
@@ -86,7 +90,7 @@ export async function recordClickHit(args: {
       return { recorded: false, reason: "unknown_message" };
     }
 
-    await supabaseAdmin.from("email_click_events").insert({
+    const { error: insertError } = await supabaseAdmin.from("email_click_events").insert({
       workspace_id: row.workspace_id,
       campaign_id: hit.campaignId ?? null,
       lead_id: hit.leadId ?? null,
@@ -98,15 +102,20 @@ export async function recordClickHit(args: {
       user_agent: userAgent,
       client_ip: clientIp,
     });
+    if (insertError) return { recorded: false, reason: "write_failed" };
 
-    await supabaseAdmin
-      .from("conversation_messages")
-      .update(row.clicked_at ? {} : { clicked_at: nowIso })
-      .eq("id", row.id);
+    if (!row.clicked_at) {
+      const { error: updateError } = await supabaseAdmin
+        .from("conversation_messages")
+        .update({ clicked_at: nowIso })
+        .eq("id", row.id);
+      if (updateError) return { recorded: true, reason: "partial_message_update_failed" };
+    }
 
     return { recorded: true };
-  } catch (error) {
-    console.warn("[click-tracking] could not record click", error);
+  } catch {
+    // No token, URL, email or raw error details in logs.
+    console.warn("[click-tracking] could not record click");
     return { recorded: false, reason: "write_failed" };
   }
 }
@@ -140,8 +149,8 @@ async function mirrorEngagementClick(
       },
       { onConflict: "external_id", ignoreDuplicates: true },
     );
-  } catch (error) {
-    console.warn("[click-tracking] could not mirror engagement click", error);
+  } catch {
+    console.warn("[click-tracking] could not mirror engagement click");
   }
 
   try {
