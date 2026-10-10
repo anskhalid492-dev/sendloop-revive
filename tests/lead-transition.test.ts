@@ -82,6 +82,10 @@ function makeDb() {
               filters.push((row) => row[column] === value);
               return updater;
             },
+            neq(column: string, value: unknown) {
+              filters.push((row) => row[column] !== value);
+              return updater;
+            },
             in(column: string, values: unknown[]) {
               filters.push((row) => values.includes(row[column]));
               return updater;
