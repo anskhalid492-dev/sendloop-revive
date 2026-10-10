@@ -54,13 +54,14 @@ export async function recordOpenHit(args: {
 
   try {
     if (target.messageKind === "campaign") {
-      const { data } = await supabaseAdmin
+      const { data, error: readError } = await supabaseAdmin
         .from("campaign_messages")
         .select(
           "id, workspace_id, campaign_id, lead_id, sending_account_id, to_email, opened_at, open_count",
         )
         .eq("id", target.messageId)
         .maybeSingle();
+      if (readError) throw new Error(`message read failed: ${readError.message}`);
       const row = (data as CampaignMessageRow | null) ?? null;
       // The token is signed, but the message row is still the authority for
       // which workspace / campaign / lead the open belongs to.
@@ -68,7 +69,7 @@ export async function recordOpenHit(args: {
         return { recorded: false, isPrefetch: classification.isPrefetch, reason: "unknown_message" };
       }
 
-      await supabaseAdmin.from("email_open_events").insert({
+      const { error: insertError } = await supabaseAdmin.from("email_open_events").insert({
         workspace_id: row.workspace_id,
         campaign_id: row.campaign_id,
         lead_id: row.lead_id,
@@ -81,6 +82,9 @@ export async function recordOpenHit(args: {
         is_prefetch: classification.isPrefetch,
         prefetch_source: classification.source,
       });
+      // Supabase returns write errors instead of throwing; an unchecked error
+      // made failed recordings look identical to successful ones.
+      if (insertError) throw new Error(`open insert failed: ${insertError.message}`);
 
       await supabaseAdmin
         .from("campaign_messages")

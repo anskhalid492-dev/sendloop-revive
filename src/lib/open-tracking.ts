@@ -192,6 +192,13 @@ export function classifyOpenRequest(args: {
   if (ua.includes("applemailproxy") || ua.includes("icloudprivaterelay")) {
     return { isPrefetch: true, source: "apple_privacy_proxy" };
   }
+  // Google's automated mail scanner fetches the pixel from Google's own
+  // 66.249.x range ~20-30s after delivery with a spoofed desktop browser UA
+  // (no "GoogleImageProxy"). Production data showed this was most recorded
+  // "opens" before Oct 8 2026. It is a machine fetch, not a reader.
+  if (/^66\.249\.\d{1,3}\.\d{1,3}$/.test(ip) && !ua.includes("googleimageproxy")) {
+    return { isPrefetch: true, source: "google_automated_scan" };
+  }
   if (ua.includes("googleimageproxy")) {
     return { isPrefetch: false, source: "google_image_proxy" };
   }

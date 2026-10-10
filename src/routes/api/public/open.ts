@@ -35,14 +35,19 @@ export const Route = createFileRoute("/api/public/open")({
       GET: async ({ request }) => {
         const token = new URL(request.url).searchParams.get("t") ?? "";
         const target = parseOpenToken(token);
+        if (!target) {
+          // Diagnostic only: never logs the token or any recipient data.
+          console.log(JSON.stringify({ event: "open_pixel", result: "ignored", reason: token ? "invalid_token" : "missing_token", len: token.length }));
+        }
         if (target) {
           try {
             const { recordOpenHit } = await import("@/lib/open-tracking.server");
-            await recordOpenHit({
+            const outcome = await recordOpenHit({
               target,
               userAgent: request.headers.get("user-agent"),
               ip: clientIp(request),
             });
+            console.log(JSON.stringify({ event: "open_pixel", result: outcome.recorded ? "recorded" : "ignored", reason: outcome.reason ?? null, prefetch: outcome.isPrefetch }));
           } catch (error) {
             // The reader must always get the image back.
             console.warn("[open-pixel] recording failed", error);
