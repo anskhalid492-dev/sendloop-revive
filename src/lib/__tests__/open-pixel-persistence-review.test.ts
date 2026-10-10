@@ -17,6 +17,7 @@ const fixture = vi.hoisted(() => {
   };
 });
 
+const IS_NULL = vi.hoisted(() => Symbol("is-null"));
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     from(table: string) {
@@ -29,7 +30,14 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         if (failure) return { data: null, error: { message: failure } };
         const row = fixture.rows.get(`${table}:${String(filters["id"])}`);
         if (operation === "read") return { data: row ? { ...row } : null, error: null };
-        if (operation === "update" && row && value) Object.assign(row, value);
+        if (operation === "update") {
+          // Behave like PostgREST: apply only when every filter matches and
+          // return the affected rows, so compare-and-swap writes are realistic.
+          const matches = !!row && Object.entries(filters).every(([key, expected]) =>
+            expected === IS_NULL ? row[key] == null : row[key] === expected);
+          if (matches && row && value) Object.assign(row, value);
+          return { data: matches && row ? [{ id: row["id"] }] : [], error: null };
+        }
         if (operation === "upsert" && value) {
           const key = String(value["external_id"]);
           if (!fixture.engagement.has(key)) fixture.engagement.set(key, value);
@@ -39,6 +47,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
       const builder = {
         select: () => builder,
         eq: (key: string, val: unknown) => { filters[key] = val; return builder; },
+        is: (key: string, val: unknown) => { filters[key] = val === null ? IS_NULL : val; return builder; },
         maybeSingle: execute,
         insert: (val: Record<string, unknown>) => { operation = "insert"; value = val; return builder; },
         update: (val: Record<string, unknown>) => { operation = "update"; value = val; return builder; },
@@ -173,4 +182,76 @@ describe("open persistence pre-deployment review", () => {
     }
     expect(fixture.calls).toHaveLength(0);
   });
+
 });
+
+describe("open persistence remediation regressions", () => {
+  const loggedText = () =>
+    [...vi.mocked(console.warn).mock.calls, ...vi.mocked(console.log).mock.calls]
+      .flat().map((item) => (item instanceof Error ? `${item.message} ${item.stack}` : String(item))).join(" ");
+
+  it("counts every one of several concurrent raw hits exactly once", async () => {
+    await Promise.all([1, 2, 3, 4].map(() => recordOpenHit({ target })));
+    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["open_count"]).toBe(4);
+    expect(writes().filter((call) => call.table === "email_open_events")).toHaveLength(4);
+    expect(fixture.engagement.size).toBe(1);
+  });
+  it("does not lose conversation raw counts under concurrency", async () => {
+    const conversation = addConversation();
+    await Promise.all([recordOpenHit({ target: conversation }), recordOpenHit({ target: conversation })]);
+    expect(fixture.rows.get(`conversation_messages:${fixture.messageId}`)?.["open_count"]).toBe(2);
+  });
+  it("sets first-opened once and keeps it on later concurrent hits", async () => {
+    await recordOpenHit({ target });
+    const first = fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["opened_at"];
+    expect(first).toBeTruthy();
+    await Promise.all([recordOpenHit({ target }), recordOpenHit({ target })]);
+    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["opened_at"]).toBe(first);
+  });
+  it("preserves a pre-existing historical count and only adds to it", async () => {
+    fixture.rows.set(`campaign_messages:${fixture.messageId}`, { ...campaignRow(), open_count: 7 });
+    await recordOpenHit({ target });
+    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["open_count"]).toBe(8);
+  });
+  it("reports partial_write while keeping the raw event when the count update fails", async () => {
+    fixture.failures.set("campaign_messages:update", "synthetic update failure");
+    expect(await recordOpenHit({ target })).toEqual({ recorded: false, isPrefetch: false, reason: "partial_write" });
+    expect(writes().filter((call) => call.table === "email_open_events")).toHaveLength(1);
+  });
+  it("does not emit the open automation when the analytics mirror failed", async () => {
+    fixture.failures.set("email_engagement_events:upsert", "synthetic mirror failure");
+    expect(await recordOpenHit({ target })).toMatchObject({ recorded: false, reason: "partial_write" });
+    expect(fixture.emit).not.toHaveBeenCalled();
+  });
+  it("still reports success when only the best-effort automation emit fails", async () => {
+    fixture.emit.mockRejectedValueOnce(new Error("automation down throwaway-open-review@example.test"));
+    expect(await recordOpenHit({ target })).toMatchObject({ recorded: true });
+    expect(loggedText()).not.toContain("throwaway-open-review@example.test");
+  });
+  it.each([
+    ["email_open_events:insert", "campaign"],
+    ["campaign_messages:update", "campaign"],
+    ["email_engagement_events:upsert", "campaign"],
+    ["campaign_messages:read", "campaign"],
+    ["conversation_messages:read", "conversation"],
+    ["conversation_messages:update", "conversation"],
+    ["email_open_events:insert", "conversation"],
+  ] as const)("never logs recipient, token or secret from a %s (%s) error", async (failure, kind) => {
+    const token = buildOpenToken(target);
+    const secretValue = process.env["OPEN_TRACKING_SECRET"]!;
+    const canary = "throwaway-leak-canary@example.test";
+    fixture.failures.set(failure, `boom ${canary} ${token} ${secretValue}`);
+    await recordOpenHit({ target: kind === "conversation" ? addConversation() : target });
+    const text = loggedText();
+    expect(text.length).toBeGreaterThan(0);
+    for (const sensitive of [canary, token, secretValue, "throwaway-open-review@example.test"]) {
+      expect(text).not.toContain(sensitive);
+    }
+  });
+  it("ignores token campaign/lead hints even when the conversation exists in the same workspace", async () => {
+    await recordOpenHit({ target: { ...addConversation(), campaignId: fixture.campaignId, leadId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", email: "spoof@example.test" } });
+    const event = writes().find((call) => call.table === "email_open_events")?.value;
+    expect(event).toMatchObject({ campaign_id: null, lead_id: null, recipient_email: "throwaway-open-review@example.test" });
+  });
+});
+

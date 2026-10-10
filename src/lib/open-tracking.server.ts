@@ -7,6 +7,12 @@
  * mirrored ONCE per message into `email_engagement_events`, which is what
  * analytics and the admin screens already read — so an open rate is always
  * unique opens, never raw pixel hits.
+ *
+ * Every database result is checked. The raw open row is written first and is
+ * the durable record; when a later step (count update, analytics mirror) fails
+ * the result is reported as `partial_write`, never as success. The mirror is
+ * an ignore-duplicate upsert on a stable key, so any later hit for the same
+ * message repairs a missing mirror row without double counting.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { classifyOpenRequest, type OpenTrackingTarget } from "@/lib/open-tracking";
@@ -30,11 +36,87 @@ type ConversationMessageRow = {
   open_count: number | null;
 };
 
+export type RecordOpenReason = "unknown_message" | "write_failed" | "partial_write";
+
 export type RecordOpenResult = {
   recorded: boolean;
   isPrefetch: boolean;
-  reason?: string;
+  reason?: RecordOpenReason;
 };
+
+type DbError = { code?: unknown } | null | undefined;
+
+/** Optimistic-concurrency attempts for the raw open counter. */
+export const OPEN_COUNT_MAX_ATTEMPTS = 6;
+
+/**
+ * Diagnostics carry a fixed stage name and, at most, a Postgres/PostgREST
+ * error code. Never the raw error, message text, token, address or secret —
+ * database errors can echo row values back.
+ */
+function logOpenIssue(stage: string, error?: DbError | unknown): void {
+  const rawCode = error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
+  const code = typeof rawCode === "string" && /^(?:[0-9A-Z]{5}|PGRST\d{3})$/.test(rawCode) ? rawCode : null;
+  console.warn(JSON.stringify({ event: "open_pixel_record", stage, code }));
+}
+
+class StageError extends Error {
+  constructor(readonly stage: string, readonly dbError: DbError) {
+    super(stage);
+  }
+}
+
+/**
+ * Raises the raw open count by exactly one without a lost update: the write
+ * only applies while the count is still the value just read, and re-reads and
+ * retries when a concurrent request got there first. Returns false when the
+ * count could not be applied.
+ */
+async function incrementOpenCount(args: {
+  table: "campaign_messages" | "conversation_messages";
+  id: string;
+  firstOpenColumn: "opened_at" | "first_opened_at";
+  isPrefetch: boolean;
+  nowIso: string;
+  initial: { open_count: number | null; first_open: string | null };
+}): Promise<boolean> {
+  let current = args.initial;
+  for (let attempt = 0; attempt < OPEN_COUNT_MAX_ATTEMPTS; attempt++) {
+    const patch: Record<string, unknown> = {
+      open_count: (current.open_count ?? 0) + 1,
+      // "First opened" means a real reader. A privacy prefetch never sets it.
+      ...(args.isPrefetch || current.first_open ? {} : { [args.firstOpenColumn]: args.nowIso }),
+      ...(args.table === "campaign_messages" ? { last_event_at: args.nowIso } : {}),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = (supabaseAdmin.from(args.table) as any).update(patch).eq("id", args.id);
+    query = current.open_count == null ? query.is("open_count", null) : query.eq("open_count", current.open_count);
+    const { data, error } = await query.select("id");
+    if (error) {
+      logOpenIssue(`${args.table}_update`, error);
+      return false;
+    }
+    if (Array.isArray(data) && data.length > 0) return true;
+
+    // Lost the race — re-read the latest count and try again.
+    const { data: fresh, error: readError } = await supabaseAdmin
+      .from(args.table)
+      .select(`open_count, ${args.firstOpenColumn}`)
+      .eq("id", args.id)
+      .maybeSingle();
+    if (readError || !fresh) {
+      logOpenIssue(`${args.table}_reread`, readError);
+      return false;
+    }
+    const row = fresh as unknown as Record<string, unknown>;
+    current = {
+      open_count: typeof row["open_count"] === "number" ? (row["open_count"] as number) : null,
+      first_open: (row[args.firstOpenColumn] as string | null) ?? null,
+    };
+  }
+  logOpenIssue(`${args.table}_update_contention`);
+  return false;
+}
 
 /**
  * Records one pixel request. Never throws — the endpoint must always be able to
@@ -50,7 +132,15 @@ export async function recordOpenHit(args: {
     userAgent: args.userAgent ?? null,
     ip: args.ip ?? null,
   });
+  const isPrefetch = classification.isPrefetch;
   const nowIso = new Date().toISOString();
+  const rawEvent = {
+    occurred_at: nowIso,
+    user_agent: args.userAgent ? args.userAgent.slice(0, 400) : null,
+    client_ip: args.ip ? args.ip.slice(0, 80) : null,
+    is_prefetch: isPrefetch,
+    prefetch_source: classification.source,
+  };
 
   try {
     if (target.messageKind === "campaign") {
@@ -61,12 +151,12 @@ export async function recordOpenHit(args: {
         )
         .eq("id", target.messageId)
         .maybeSingle();
-      if (readError) throw new Error(`message read failed: ${readError.message}`);
+      if (readError) throw new StageError("campaign_messages_read", readError);
       const row = (data as CampaignMessageRow | null) ?? null;
-      // The token is signed, but the message row is still the authority for
-      // which workspace / campaign / lead the open belongs to.
+      // The token is signed, but the message row is the only authority for
+      // which workspace / campaign / lead / recipient the open belongs to.
       if (!row || row.workspace_id !== target.workspaceId) {
-        return { recorded: false, isPrefetch: classification.isPrefetch, reason: "unknown_message" };
+        return { recorded: false, isPrefetch, reason: "unknown_message" };
       }
 
       const { error: insertError } = await supabaseAdmin.from("email_open_events").insert({
@@ -76,79 +166,80 @@ export async function recordOpenHit(args: {
         message_kind: "campaign",
         message_id: row.id,
         recipient_email: row.to_email,
-        occurred_at: nowIso,
-        user_agent: args.userAgent ? args.userAgent.slice(0, 400) : null,
-        client_ip: args.ip ? args.ip.slice(0, 80) : null,
-        is_prefetch: classification.isPrefetch,
-        prefetch_source: classification.source,
+        ...rawEvent,
       });
-      // Supabase returns write errors instead of throwing; an unchecked error
-      // made failed recordings look identical to successful ones.
-      if (insertError) throw new Error(`open insert failed: ${insertError.message}`);
+      if (insertError) throw new StageError("email_open_events_insert", insertError);
 
-      await supabaseAdmin
-        .from("campaign_messages")
-        .update({
-          open_count: (row.open_count ?? 0) + 1,
-          // "First opened" means a real reader. An Apple prefetch never sets it.
-          ...(classification.isPrefetch || row.opened_at ? {} : { opened_at: nowIso }),
-          last_event_at: nowIso,
-        })
-        .eq("id", row.id);
-
-      if (!classification.isPrefetch) {
-        await mirrorEngagementOpen(row, nowIso);
+      // From here the raw open is durably stored; failures are partial.
+      let complete = await incrementOpenCount({
+        table: "campaign_messages",
+        id: row.id,
+        firstOpenColumn: "opened_at",
+        isPrefetch,
+        nowIso,
+        initial: { open_count: row.open_count, first_open: row.opened_at },
+      });
+      if (!isPrefetch) {
+        const mirrored = await mirrorEngagementOpen(row, nowIso);
+        complete = complete && mirrored;
       }
-      return { recorded: true, isPrefetch: classification.isPrefetch };
+      return complete
+        ? { recorded: true, isPrefetch }
+        : { recorded: false, isPrefetch, reason: "partial_write" };
     }
 
-    const { data } = await supabaseAdmin
+    const { data, error: readError } = await supabaseAdmin
       .from("conversation_messages")
       .select("id, workspace_id, to_email, first_opened_at, open_count")
       .eq("id", target.messageId)
       .maybeSingle();
+    if (readError) throw new StageError("conversation_messages_read", readError);
     const row = (data as ConversationMessageRow | null) ?? null;
     if (!row || row.workspace_id !== target.workspaceId) {
-      return { recorded: false, isPrefetch: classification.isPrefetch, reason: "unknown_message" };
+      return { recorded: false, isPrefetch, reason: "unknown_message" };
     }
 
-    await supabaseAdmin.from("email_open_events").insert({
+    const { error: insertError } = await supabaseAdmin.from("email_open_events").insert({
       workspace_id: row.workspace_id,
-      campaign_id: target.campaignId ?? null,
-      lead_id: target.leadId ?? null,
+      // Conversation opens are never attributed to a campaign/lead from token
+      // hints: the signed token proves which message, not which campaign.
+      campaign_id: null,
+      lead_id: null,
       message_kind: "conversation",
       message_id: row.id,
       recipient_email: row.to_email,
-      occurred_at: nowIso,
-      user_agent: args.userAgent ? args.userAgent.slice(0, 400) : null,
-      client_ip: args.ip ? args.ip.slice(0, 80) : null,
-      is_prefetch: classification.isPrefetch,
-      prefetch_source: classification.source,
+      ...rawEvent,
     });
+    if (insertError) throw new StageError("email_open_events_insert", insertError);
 
-    await supabaseAdmin
-      .from("conversation_messages")
-      .update({
-        open_count: (row.open_count ?? 0) + 1,
-        ...(classification.isPrefetch || row.first_opened_at ? {} : { first_opened_at: nowIso }),
-      })
-      .eq("id", row.id);
-
-    return { recorded: true, isPrefetch: classification.isPrefetch };
+    const counted = await incrementOpenCount({
+      table: "conversation_messages",
+      id: row.id,
+      firstOpenColumn: "first_opened_at",
+      isPrefetch,
+      nowIso,
+      initial: { open_count: row.open_count, first_open: row.first_opened_at },
+    });
+    return counted
+      ? { recorded: true, isPrefetch }
+      : { recorded: false, isPrefetch, reason: "partial_write" };
   } catch (error) {
-    console.warn("[open-tracking] could not record open", error);
-    return { recorded: false, isPrefetch: classification.isPrefetch, reason: "write_failed" };
+    if (error instanceof StageError) logOpenIssue(error.stage, error.dbError);
+    else logOpenIssue("unexpected");
+    return { recorded: false, isPrefetch, reason: "write_failed" };
   }
 }
 
 /**
  * One `opened` engagement row per message, so every existing open metric counts
  * distinct opened messages (and therefore distinct leads per step) rather than
- * raw pixel hits.
+ * raw pixel hits. Returns false when the required analytics row could not be
+ * written. Automations are best-effort and never affect the result.
  */
-async function mirrorEngagementOpen(row: CampaignMessageRow, nowIso: string): Promise<void> {
+async function mirrorEngagementOpen(row: CampaignMessageRow, nowIso: string): Promise<boolean> {
+  let mirrored = false;
   try {
-    await supabaseAdmin.from("email_engagement_events").upsert(
+    const { error } = await supabaseAdmin.from("email_engagement_events").upsert(
       {
         workspace_id: row.workspace_id,
         campaign_id: row.campaign_id,
@@ -163,9 +254,14 @@ async function mirrorEngagementOpen(row: CampaignMessageRow, nowIso: string): Pr
       },
       { onConflict: "external_id", ignoreDuplicates: true },
     );
+    if (error) logOpenIssue("email_engagement_events_upsert", error);
+    else mirrored = true;
   } catch (error) {
-    console.warn("[open-tracking] could not mirror engagement open", error);
+    logOpenIssue("email_engagement_events_upsert", error);
   }
+  // Only emit once the analytics row exists, so automations never run for an
+  // open that analytics does not show.
+  if (!mirrored) return false;
 
   try {
     const { emitAutomationEvent } = await import("@/lib/automation-engine.server");
@@ -177,7 +273,8 @@ async function mirrorEngagementOpen(row: CampaignMessageRow, nowIso: string): Pr
       idempotencyKey: `email.opened:open:pixel:${row.id}`,
       payload: { email: row.to_email },
     });
-  } catch {
-    /* Open recording must never fail because of automations. */
+  } catch (error) {
+    logOpenIssue("automation_emit", error);
   }
+  return true;
 }

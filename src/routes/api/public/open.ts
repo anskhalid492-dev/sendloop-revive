@@ -65,9 +65,10 @@ export const Route = createFileRoute("/api/public/open")({
               ip: clientIp(request),
             });
             console.log(JSON.stringify({ event: "open_pixel", result: outcome.recorded ? "recorded" : "ignored", reason: outcome.reason ?? null, prefetch: outcome.isPrefetch }));
-          } catch (error) {
-            // The reader must always get the image back.
-            console.warn("[open-pixel] recording failed", error);
+          } catch {
+            // The reader must always get the image back. Never log the raw
+            // error: it can carry the token, recipient or configuration.
+            console.warn(JSON.stringify({ event: "open_pixel", result: "error", reason: "record_threw" }));
           }
         }
         return pixel();

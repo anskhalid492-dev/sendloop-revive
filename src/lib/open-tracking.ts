@@ -35,14 +35,32 @@ export type OpenTrackingTarget = {
   email?: string | null;
 };
 
-function secret(): string {
-  return (
-    process.env["OPEN_TRACKING_SECRET"] ||
-    process.env["UNSUBSCRIBE_SECRET"] ||
-    process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
-    process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
-    "munchreach-open-tracking"
-  );
+/**
+ * The private, server-only signing key. The order is unchanged from earlier
+ * releases so tokens already sitting in recipients' inboxes keep verifying;
+ * `SB_SERVICE_ROLE_KEY` is only consulted last, where the old code fell back to
+ * a PUBLIC key. Public keys and hardcoded literals are never accepted: with no
+ * private key, signing and verification both fail closed. Never logged.
+ */
+const SIGNING_SECRET_ENV = [
+  "OPEN_TRACKING_SECRET",
+  "UNSUBSCRIBE_SECRET",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SB_SERVICE_ROLE_KEY",
+] as const;
+const MIN_SECRET_LENGTH = 16;
+
+function secret(): string | null {
+  for (const name of SIGNING_SECRET_ENV) {
+    const value = (process.env[name] ?? "").trim();
+    if (value.length >= MIN_SECRET_LENGTH) return value;
+  }
+  return null;
+}
+
+/** True when a private signing key is configured. Never reveals which or its value. */
+export function hasOpenTrackingSecret(): boolean {
+  return secret() !== null;
 }
 
 function base64url(value: string): string {
@@ -53,8 +71,11 @@ function fromBase64url(value: string): string {
   return Buffer.from(value, "base64url").toString("utf8");
 }
 
+/** Empty string when no private key is configured; an empty signature never verifies. */
 export function signOpenPayload(payload: string): string {
-  return createHmac("sha256", secret()).update(payload).digest("hex").slice(0, 32);
+  const key = secret();
+  if (!key) return "";
+  return createHmac("sha256", key).update(payload).digest("hex").slice(0, 32);
 }
 
 /** Opaque, tamper-proof token: `<base64url(json)>.<hmac>`. */
@@ -72,25 +93,43 @@ export function buildOpenToken(target: OpenTrackingTarget): string {
   return `${payload}.${signOpenPayload(payload)}`;
 }
 
+/** `<base64url payload>.<32 hex HMAC>` and nothing else — no extra segments. */
+const TOKEN_PATTERN = /^([A-Za-z0-9_-]{1,2048})\.([0-9a-f]{32})$/;
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+
 export function parseOpenToken(token: string): OpenTrackingTarget | null {
-  const [payload, signature] = (token ?? "").split(".");
-  if (!payload || !signature) return null;
+  if (typeof token !== "string") return null;
+  const match = TOKEN_PATTERN.exec(token);
+  if (!match) return null;
+  const payload = match[1]!;
+  const signature = match[2]!;
   const expected = signOpenPayload(payload);
+  if (!expected) return null; // no private key: fail closed
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    const raw = JSON.parse(fromBase64url(payload)) as Record<string, unknown>;
-    const workspaceId = typeof raw["w"] === "string" ? raw["w"] : "";
-    const messageId = typeof raw["m"] === "string" ? raw["m"] : "";
-    if (!workspaceId || !messageId) return null;
+    const raw = JSON.parse(fromBase64url(payload)) as unknown;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const r = raw as Record<string, unknown>;
+    const workspaceId = typeof r["w"] === "string" ? r["w"] : "";
+    const messageId = typeof r["m"] === "string" ? r["m"] : "";
+    if (!ID_PATTERN.test(workspaceId) || !ID_PATTERN.test(messageId)) return null;
+    // Only the two kinds this module mints. Anything else is rejected rather
+    // than silently treated as a campaign message.
+    let messageKind: OpenTrackingMessageKind;
+    if (r["k"] === "c") messageKind = "campaign";
+    else if (r["k"] === "v") messageKind = "conversation";
+    else return null;
+    // campaignId / leadId / email are informational hints only. The recorder
+    // derives all attribution from the verified message row.
     return {
       workspaceId,
-      messageKind: raw["k"] === "v" ? "conversation" : "campaign",
+      messageKind,
       messageId,
-      campaignId: typeof raw["p"] === "string" ? raw["p"] : null,
-      leadId: typeof raw["l"] === "string" ? raw["l"] : null,
-      email: typeof raw["e"] === "string" ? raw["e"] : null,
+      campaignId: typeof r["p"] === "string" ? r["p"] : null,
+      leadId: typeof r["l"] === "string" ? r["l"] : null,
+      email: typeof r["e"] === "string" ? r["e"] : null,
     };
   } catch {
     return null;
@@ -112,6 +151,12 @@ export function openTrackingBaseUrl(): string {
 /** The absolute, message-unique pixel URL that ships inside the email. */
 export function openPixelUrl(target: OpenTrackingTarget): string {
   if (!target.workspaceId || !target.messageId) return "";
+  // Fail closed: without a private key no pixel is injected (the email itself
+  // still sends normally) rather than shipping an unverifiable or forgeable link.
+  if (!hasOpenTrackingSecret()) {
+    console.warn(JSON.stringify({ event: "open_pixel", result: "not_injected", reason: "signing_secret_missing" }));
+    return "";
+  }
   return `${openTrackingBaseUrl()}${OPEN_PIXEL_PATH}?t=${encodeURIComponent(buildOpenToken(target))}`;
 }
 
@@ -192,15 +237,15 @@ export function classifyOpenRequest(args: {
   if (ua.includes("applemailproxy") || ua.includes("icloudprivaterelay")) {
     return { isPrefetch: true, source: "apple_privacy_proxy" };
   }
-  // Google's automated mail scanner fetches the pixel from Google's own
-  // 66.249.x range ~20-30s after delivery with a spoofed desktop browser UA
-  // (no "GoogleImageProxy"). Production data showed this was most recorded
-  // "opens" before Oct 8 2026. It is a machine fetch, not a reader.
-  if (/^66\.249\.\d{1,3}\.\d{1,3}$/.test(ip) && !ua.includes("googleimageproxy")) {
-    return { isPrefetch: true, source: "google_automated_scan" };
-  }
   if (ua.includes("googleimageproxy")) {
     return { isPrefetch: false, source: "google_image_proxy" };
+  }
+  // A request from Google's network without the image-proxy marker MAY be an
+  // automated scan, but Google-owned addresses are also used by real readers
+  // (Workspace, Chrome, Cloud). Ownership alone is not proof, so the open is
+  // kept and labelled as uncertain instead of being excluded.
+  if (/^66\.249\.\d{1,3}\.\d{1,3}$/.test(ip)) {
+    return { isPrefetch: false, source: "google_network_unverified" };
   }
   if (ua.includes("yahoomailproxy")) {
     return { isPrefetch: false, source: "yahoo_image_proxy" };

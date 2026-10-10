@@ -91,7 +91,11 @@ export async function emitAutomationEvent(args: EmitArgs): Promise<{ runs: numbe
   try {
     return await emitInner(args);
   } catch (error) {
-    console.error("automation emit failed", args.type, error);
+    // Event payloads carry recipient addresses and database errors can echo
+    // them back, so only the event type and a bare error code are logged.
+    const rawCode = error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
+    const code = typeof rawCode === "string" && /^(?:[0-9A-Z]{5}|PGRST\d{3})$/.test(rawCode) ? rawCode : null;
+    console.error(JSON.stringify({ event: "automation_emit_failed", type: args.type, code }));
     return { runs: 0 };
   }
 }

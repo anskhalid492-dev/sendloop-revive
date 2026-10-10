@@ -14,6 +14,8 @@ export default defineConfig({
   },
   vite: {
     // Tests must never reach the production database (see tests/setup).
-    test: { setupFiles: ["./tests/setup/block-production-network.ts"] },
+    test: {
+      setupFiles: ["./tests/setup/block-production-network.ts", "./tests/setup/test-signing-secrets.ts"],
+    },
   } as never,
 });

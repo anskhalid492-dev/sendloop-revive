@@ -80,3 +80,28 @@ The 128-bit truncated HMAC is not identified as a practical cryptographic weakne
 **No tracking implementation, open-rate formula, sending code, warmup code, production data, database schema or historical open records were changed by this review. No migration, email send, background worker, publish or deployment was performed.** This statement covers this review only; it does not audit earlier changes against production history.
 
 **Decision: keep unpublished. Fix the confirmed blockers, rerun these tests, and complete scoped deployed-configuration/database verification before requesting deployment approval.**
+---
+
+## Remediation — 2026-10-10 UTC
+
+**Readiness: code-level PASS (1606/1606 tests, 173/173 files). Deployment readiness: FAIL until the deployment-only checks below are done.** Nothing was published.
+
+| Blocker | Fix |
+| --- | --- |
+| Signing secrets | Public publishable-key and hardcoded-literal fallbacks removed. Key order kept (`OPEN_TRACKING_SECRET` → `UNSUBSCRIBE_SECRET` → `SUPABASE_SERVICE_ROLE_KEY`) so already-sent tokens keep verifying; `SB_SERVICE_ROLE_KEY` added only last, where the public key used to be. Values under 16 chars ignored. No key → signing returns empty, verification rejects, and no pixel is injected (the email still sends). Never logged. |
+| Token grammar | Exact `<base64url ≤2048>.<32 lowercase hex>`; extra segments, unknown/missing kinds, non-object payloads and malformed ids rejected. HMAC always verified. |
+| Attribution | Campaign opens use only the verified campaign-message row. Conversation opens no longer copy campaign/lead hints from the token (stored as null). |
+| Scanner | Google-IP-only exclusion removed; such hits are kept as real opens and labelled `google_network_unverified`. Apple and Gmail-proxy rules unchanged. |
+| Database failures | Every read/insert/update/upsert result is checked. Read/insert failure → `write_failed` with no further writes. Raw event saved but count or analytics mirror failed → `partial_write` (never success). Automation only emits after the analytics row exists. A later hit repairs a missing mirror via the stable ignore-duplicate key. |
+| Concurrency | Open count uses compare-and-swap (`update … where open_count = <read value>`, re-read and retry up to 6 times). Historical counts are only ever added to. First-opened is set once. |
+| Sensitive logs | Endpoint, recorder and automation-emit logs now print fixed stage names plus at most a bare Postgres/PostgREST code. Canary tests prove recipient addresses, tokens and secrets embedded in errors do not reach logs. |
+
+Test-only changes: a throwaway test signing key (`tests/setup/test-signing-secrets.ts`); the persistence mock now applies update filters like the real database; one tamper test was fixed because it was a no-op whenever the real signature ended in `0`; the lead-status test mock gained the `neq` filter the real database supports (6 failures there came from the mock, not product code).
+
+### Deployment-only checks (NOT verified)
+1. Which private key variable exists in the live runtime. If none of the private names is present there, live tokens were signed with the public key and **all previously sent pixels will stop recording** after this release (that is the intended fail-closed outcome, but it is a visible change).
+2. Do not add a new `OPEN_TRACKING_SECRET` without a migration plan — it would change the signing key and invalidate historical pixels.
+3. Expect reported open rates to rise for Gmail/Google-hosted recipients, because Google-network hits are no longer excluded.
+4. Live table permissions, `email_engagement_events.external_id` uniqueness, and `email_open_events` column shape are not verified against production.
+5. Same public/literal fallback pattern still exists in click tracking (`src/lib/click-tracking.ts`) and marketing open tracking (`src/lib/marketing/engagement-tracking.ts`); left unchanged to avoid breaking live links — separate follow-up.
+6. Infrastructure request logs may still record token-bearing URLs; forwarding headers are trusted as before.

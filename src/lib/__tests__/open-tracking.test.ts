@@ -36,7 +36,10 @@ describe("open tracking tokens", () => {
     const token = buildOpenToken(target);
     const [payload, sig] = token.split(".");
     expect(parseOpenToken(`${payload}x.${sig}`)).toBeNull();
-    expect(parseOpenToken(`${payload}.${sig?.slice(0, -1)}0`)).toBeNull();
+    // Flip the last hex digit to a guaranteed-different value (a fixed "0"
+    // was a no-op whenever the real signature already ended in 0).
+    const last = sig!.slice(-1);
+    expect(parseOpenToken(`${payload}.${sig!.slice(0, -1)}${last === "0" ? "1" : "0"}`)).toBeNull();
     expect(parseOpenToken("")).toBeNull();
     expect(parseOpenToken("nonsense")).toBeNull();
   });
