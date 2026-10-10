@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownRight, ArrowUpRight, BarChart3, Minus, Mail, CheckCheck, MailOpen, MessageSquare, ThumbsUp, ThumbsDown, UserX, TriangleAlert, CircleX, CalendarCheck } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BarChart3, Minus, Mail, Users, MailOpen, MessageSquare, ThumbsUp, ThumbsDown, UserX, TriangleAlert, CircleX, CalendarCheck } from "lucide-react";
 
 
 import { AppShell } from "@/components/app/AppShell";
