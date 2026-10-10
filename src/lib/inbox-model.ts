@@ -234,15 +234,15 @@ const POSITIVE_PATTERNS = [
   /let'?s (talk|chat|connect|schedule|set ?up|do it|discuss)/i,
   /(book|schedule|set ?up) a (call|time|meeting|demo|chat)/i,
   /happy to (chat|talk|connect|learn more)/i,
-  /(send|share) (me )?(more|the|some) ?(info|information|details|deck|pricing|numbers)?/i,
+  /\b(send|share) (me |us )?(more|the|some) (info|information|details|deck|pricing|numbers)\b/i,
   /tell me more/i,
   /(know|learn|hear) more/i,
   /can we (discuss|chat|talk|connect|meet|jump on)/i,
-  /(i'?m|i am) (available|free|open|keen|in)\b/i,
+  /(i'?m|i am) (available|free|open|keen) (to|for) (chat|talk|connect|a call|a meeting)\b/i,
   /would love to (chat|talk|connect|learn)/i,
   /works for me/i,
   /count me in/i,
-  /^\s*(yes|sure|ok(ay)?)\b/i,
+  /^\s*(yes|sure),? (tell me more|send|let'?s|please share)\b/i,
   /\b(yes|sure),? (please|send|i'?d|we'?d|let'?s)/i,
 ];
 
@@ -316,15 +316,18 @@ export function classifyInbound(
   body: string,
   headers?: Record<string, string> | null,
 ): ConversationStatus | null {
-  const own = stripQuotedReply(body);
+  const cleaned = decodeHtmlEntities(body.replace(/<blockquote\b[^>]*>[\s\S]*?<\/blockquote>/gi, "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div)>/gi, "\n").replace(/<[^>]*>/g, " "));
+  const own = stripQuotedReply(cleaned);
   // When the whole body is quoted, fall back to the footer-filtered raw body
   // — never the unfiltered one, which still carries our unsubscribe wording.
-  const text = `${subject}\n${own || dropFooterLines(body)}`.slice(0, 4000);
-  if (BOUNCE_PATTERNS.some((p) => p.test(text))) return "bounced";
+  // The outbound subject and quoted history are not the prospect's intent.
+  const text = own.slice(0, 4000);
+  if (BOUNCE_PATTERNS.some((p) => p.test(`${subject}\n${text}`))) return "bounced";
   if (UNSUB_PATTERNS.some((p) => p.test(text))) return "unsubscribed";
   if (isAutoReplyHeaders(headers)) return "ooo";
   if (OOO_PATTERNS.some((p) => p.test(text))) return "ooo";
   if (NEGATIVE_PATTERNS.some((p) => p.test(text))) return "not_interested";
+  if (/\b(not sure|maybe|might|perhaps|not yet|not ready|not really interested|not particularly interested|if we|if i)\b/i.test(text)) return null;
   if (POSITIVE_PATTERNS.some((p) => p.test(text))) return "interested";
   return null;
 }

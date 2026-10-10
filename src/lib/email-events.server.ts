@@ -539,6 +539,19 @@ export async function processEventPayload(
   }
 }
 
+/** Park an IMAP ingestion failure in the EXISTING inbound retry log. No scheduler or immediate second ingestion. */
+export async function recordFailedMailboxInbound(email: import("@/lib/inbox.server").InboundEmail, reason: string) {
+  const messageId = stripAngle(email.messageId);
+  if (!messageId) throw new Error("Cannot safely retry mailbox mail without a Message-ID");
+  const recorded = await recordEvent({
+    provider: "imap", kind: "inbound", externalId: `imap-recovery:${email.to.toLowerCase()}:${messageId}`,
+    payload: { ...email, type: "email.received", received_at: email.receivedAt, in_reply_to: email.inReplyTo, message_id: messageId },
+    fromEmail: email.from, toEmail: email.to, subject: email.subject ?? null, messageId,
+    signatureStatus: "internal", signatureDetail: "Authenticated mailbox polling", routingToken: null,
+  });
+  if (recorded.id && !recorded.duplicate) await finish(recorded.id, { status: "failed", failure_code: "reply_processing_failed", error: reason.slice(0, 500) });
+}
+
 /** Entry point used by the inbound webhook route. */
 export async function handleWebhookDelivery(
   raw: Record<string, unknown>,

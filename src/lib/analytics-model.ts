@@ -8,6 +8,11 @@ import {
 } from "@/lib/engagement-rates";
 
 export type AnalyticsSummary = {
+  contacted?: number;
+  negativeReplies?: number;
+  totalOpens?: number;
+  /** True only when all sends have explicit delivery/bounce evidence. */
+  deliveryComplete?: boolean;
   sent: number;
   delivered: number;
   opens: number;
@@ -80,9 +85,9 @@ export function rate(numerator: number, denominator: number): number {
  * `engagement-rates.ts`: unique people divided by reachable emails
  * (sent minus confirmed bounces). Admin uses the exact same helpers.
  */
-export const openRate = (r: RateBase & { opens: number }) => openRatePercent(r.opens, r);
+export const openRate = (r: RateBase & { opens: number; deliveryComplete?: boolean }) => r.deliveryComplete ? rate(r.opens, r.delivered) : openRatePercent(r.opens, r);
 export const clickRate = (r: RateBase & { clicks: number }) => clickRatePercent(r.clicks, r);
-export const replyRate = (r: RateBase & { replies: number }) => replyRatePercent(r.replies, r);
+export const replyRate = (r: RateBase & { replies: number; deliveryComplete?: boolean }) => r.deliveryComplete ? rate(r.replies, r.delivered) : replyRatePercent(r.replies, r);
 /** Bounce rate = bounces / sent: it measures the sends themselves. */
 export const bounceRate = (r: RateBase & { bounced: number }) => bounceRatePercent(r.bounced, r.sent);
 export const unsubRate = (r: RateBase & { unsubscribed: number }) =>

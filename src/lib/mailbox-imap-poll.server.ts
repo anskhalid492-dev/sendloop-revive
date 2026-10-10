@@ -227,7 +227,14 @@ async function processFolderMessages(
       }
       // Threads on In-Reply-To / References against the stored outbound ids
       // first, then on the sender address; unmatched mail is never surfaced.
-      const result = await ingestInboundEmail(inbound);
+      let result;
+      try {
+        result = await ingestInboundEmail(inbound);
+      } catch (error) {
+        const { recordFailedMailboxInbound } = await import("@/lib/email-events.server");
+        await recordFailedMailboxInbound(inbound, error instanceof Error ? error.message : "Reply processing failed");
+        throw error;
+      }
       if (result.status === "unmatched") {
         outcome.skipped += 1;
         continue;

@@ -2,17 +2,8 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownRight, ArrowUpRight, BarChart3, Minus } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip as ChartTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { ArrowDownRight, ArrowUpRight, BarChart3, Minus, Mail, CheckCheck, MailOpen, MessageSquare, ThumbsUp, ThumbsDown, UserX, TriangleAlert, CircleX, CalendarCheck } from "lucide-react";
+
 
 import { AppShell } from "@/components/app/AppShell";
 import { ActivityFeed } from "@/components/analytics/ActivityFeed";
@@ -82,23 +73,15 @@ export const Route = createFileRoute("/_authenticated/analytics")({
 });
 
 const RANGES = [
-  { id: "today", label: "Today", days: 1 },
-  { id: "7d", label: "7 days", days: 7 },
-  { id: "30d", label: "30 days", days: 30 },
-  { id: "90d", label: "90 days", days: 90 },
+  
+  { id: "7d", label: "7d", days: 7 },
+  { id: "14d", label: "14d", days: 14 },
+  { id: "30d", label: "30d", days: 30 },
+  { id: "90d", label: "90d", days: 90 },
   { id: "custom", label: "Custom", days: 0 },
 ] as const;
 
 type RangeId = (typeof RANGES)[number]["id"];
-
-const SERIES = [
-  { key: "sent", label: "Sent", color: "hsl(var(--primary))" },
-  { key: "delivered", label: "Delivered", color: "hsl(var(--chart-2, 173 58% 39%))" },
-  { key: "opens", label: "Opens", color: "hsl(var(--chart-3, 197 37% 44%))" },
-  { key: "clicks", label: "Clicks", color: "hsl(var(--chart-4, 43 74% 49%))" },
-  { key: "replies", label: "Replies", color: "hsl(var(--chart-5, 27 87% 55%))" },
-  { key: "bounced", label: "Bounced", color: "hsl(var(--destructive))" },
-] as const;
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -116,7 +99,6 @@ function AnalyticsPage() {
     startOfDay(new Date(Date.now() - 13 * 86_400_000)).toISOString().slice(0, 10),
   );
   const [customTo, setCustomTo] = useState(new Date().toISOString().slice(0, 10));
-  const [visible, setVisible] = useState<string[]>(["sent", "opens", "replies"]);
   const [campaignDetail, setCampaignDetail] = useState<AnalyticsCampaignRow | null>(null);
   const [funnelStep, setFunnelStep] = useState<FunnelStepKey | null>(null);
   const [campaignFilter, setCampaignFilter] = useState<string>("all");
@@ -124,15 +106,16 @@ function AnalyticsPage() {
 
   const { from, to, bucket } = useMemo(() => {
     if (rangeId === "custom") {
-      const f = startOfDay(new Date(customFrom));
-      const t = new Date(startOfDay(new Date(customTo)).getTime() + 86_400_000);
+      const f = startOfDay(new Date(`${customFrom}T00:00:00`));
+      const t = new Date(startOfDay(new Date(`${customTo}T00:00:00`)).getTime() + 86_400_000);
+      if (!Number.isFinite(+f) || !Number.isFinite(+t) || t <= f) return { from: startOfDay(new Date()), to: new Date(), bucket: "day" as const };
       const days = Math.max(1, Math.round((t.getTime() - f.getTime()) / 86_400_000));
       return { from: f, to: t, bucket: days <= 2 ? ("hour" as const) : ("day" as const) };
     }
     const days = RANGES.find((r) => r.id === rangeId)?.days ?? 30;
     const t = new Date();
-    const f = days === 1 ? startOfDay(t) : startOfDay(new Date(t.getTime() - (days - 1) * 86_400_000));
-    return { from: f, to: t, bucket: days === 1 ? ("hour" as const) : ("day" as const) };
+    const f = startOfDay(new Date(t.getTime() - (days - 1) * 86_400_000));
+    return { from: f, to: t, bucket: "day" as const };
   }, [rangeId, customFrom, customTo]);
 
   const campaignId = campaignFilter === "all" ? null : campaignFilter;
@@ -250,105 +233,79 @@ function AnalyticsPage() {
   const cards = current
     ? [
         {
-          label: "Emails sent",
+          label: "Emails Sent",
+          icon: Mail,
           value: formatCount(current.sent),
           delta: deltaCount(current.sent, previous?.sent ?? 0),
-          sub: `${formatCount(current.delivered)} delivered`,
+          sub: "Accepted by the sending provider",
         },
         {
-          label: "Open rate",
+          label: "Delivered", icon: CheckCheck,
+          value: formatCount(current.delivered), delta: null,
+          sub: `${formatPct(rate(current.delivered, current.sent))} confirmed · ${current.deliveryComplete ? "complete receipts" : "receipts incomplete"}`,
+        },
+        {
+          label: "Open Rate",
+          icon: MailOpen,
           value: formatPct(openRate(current)),
           delta: deltaRate(openRate(current), previous ? openRate(previous) : 0),
           sub: `${formatCount(current.opens)} unique opens`,
         },
         {
-          label: "Reply rate",
+          label: "Reply Rate",
+          icon: MessageSquare,
           value: formatPct(replyRate(current)),
           delta: deltaRate(replyRate(current), previous ? replyRate(previous) : 0),
           sub: `${formatCount(current.replies)} replies`,
         },
         {
-          label: "Positive replies",
+          label: "Positive Replies",
+          icon: ThumbsUp,
           value: formatCount(current.positiveReplies),
           delta: deltaCount(current.positiveReplies, previous?.positiveReplies ?? 0),
           sub: `${formatPct(rate(current.positiveReplies, current.replies))} of replies`,
         },
         {
-          label: "Bounce rate",
+          label: "Negative Replies", icon: ThumbsDown,
+          value: formatCount(current.negativeReplies ?? 0), delta: null,
+          sub: `${formatPct(rate(current.negativeReplies ?? 0, current.replies))} of replying contacts`,
+        },
+        {
+          label: "Bounce Rate",
+          icon: TriangleAlert,
           value: formatPct(bounceRate(current)),
           delta: deltaRate(bounceRate(current), previous ? bounceRate(previous) : 0, true),
           sub: `${formatCount(current.bounced)} bounced`,
         },
         {
-          label: "Unsubscribe rate",
+          label: "Unsubscribe Rate",
+          icon: UserX,
           value: formatPct(unsubRate(current)),
           delta: deltaRate(unsubRate(current), previous ? unsubRate(previous) : 0, true),
           sub: `${formatCount(current.unsubscribed)} unsubscribed`,
         },
         {
-          label: "Failed sends",
+          label: "Failed Sends",
+          icon: CircleX,
           value: formatCount(current.failed),
           delta: deltaCount(current.failed, previous?.failed ?? 0),
-          sub: `${formatCount(current.complained)} complaints`,
+          sub: `${formatPct(rate(current.failed, current.sent + current.failed))} of send attempts`,
         },
         {
-          label: "Meetings booked",
-          value: formatCount(overview.data?.meetings ?? 0),
+          label: "Meetings Booked",
+          icon: CalendarCheck,
+          value: overview.data?.meetings == null ? "—" : formatCount(overview.data.meetings),
           delta: null,
-          sub: `${formatPct(rate(overview.data?.meetings ?? 0, current.replies))} of replies`,
+          sub: overview.data?.meetings == null ? "Historical booking data unavailable" : "Confirmed booking activities",
         },
       ]
     : [];
-
-  const chartData = (series.data ?? []).map((p) => ({
-    ...p,
-    label:
-      bucket === "hour"
-        ? new Date(p.bucket).toLocaleTimeString([], { hour: "2-digit" })
-        : new Date(p.bucket).toLocaleDateString([], { month: "short", day: "numeric" }),
-  }));
 
   const hasActivity = !!current && (current.sent > 0 || current.delivered > 0 || current.replies > 0);
 
   return (
     <AppShell title="Analytics">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* range filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1 rounded-xl border border-border/60 bg-card/60 p-1">
-            {RANGES.map((r) => (
-              <Button
-                key={r.id}
-                size="sm"
-                variant={rangeId === r.id ? "default" : "ghost"}
-                onClick={() => setRangeId(r.id)}
-              >
-                {r.label}
-              </Button>
-            ))}
-          </div>
-          {rangeId === "custom" ? (
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                className="h-9 w-[9.5rem]"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-              />
-              <span className="text-sm text-muted-foreground">to</span>
-              <Input
-                type="date"
-                className="h-9 w-[9.5rem]"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-              />
-            </div>
-          ) : null}
-          <Badge variant="secondary" className="ml-auto">
-            Live
-          </Badge>
-        </div>
-
         {/* campaign / mailbox filters + export */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={campaignFilter} onValueChange={setCampaignFilter}>
@@ -403,23 +360,60 @@ function AnalyticsPage() {
           </Button>
         </div>
 
-        <EngagementOverview workspaceId={workspaceId} />
+        <EngagementOverview current={current} points={series.data ?? []} bucket={bucket} loading={overview.isLoading || series.isLoading || !workspaceId} error={overview.isError || series.isError} onRetry={() => { void overview.refetch(); void series.refetch(); }} controls={
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border/60 bg-card/60 p-1">
+            {RANGES.map((r) => (
+              <Button
+                key={r.id}
+                size="sm"
+                variant={rangeId === r.id ? "default" : "ghost"}
+                onClick={() => setRangeId(r.id)}
+              >
+                {r.label}
+              </Button>
+            ))}
+          </div>
+          {rangeId === "custom" ? (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                className="h-9 w-[9.5rem]"
+                aria-label="Start date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <Input
+                type="date"
+                className="h-9 w-[9.5rem]"
+                aria-label="End date"
+                min={customFrom}
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        } />
 
 
 
         {/* KPI cards */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {overview.isLoading || !current
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-[6.5rem] rounded-xl" />
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-5">
+          {overview.isLoading || !workspaceId
+            ? Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="h-36 rounded-lg" />
               ))
             : cards.map((card) => (
-                <div key={card.label} className="surface-card p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <div key={card.label} className="min-h-36 min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
+                  <card.icon className="mb-3 size-4 text-muted-foreground" />
+                  <p className="text-xs font-medium text-muted-foreground">
                     {card.label}
                   </p>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold">{card.value}</span>
+                    <span className="text-2xl font-semibold tabular-nums">{card.value}</span>
                     <DeltaBadge delta={card.delta} />
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
@@ -427,76 +421,8 @@ function AnalyticsPage() {
               ))}
         </div>
 
-        {/* time series */}
-        <div className="surface-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Performance over time</h2>
-            <div className="flex flex-wrap gap-1">
-              {SERIES.map((s) => (
-                <Button
-                  key={s.key}
-                  size="sm"
-                  variant={visible.includes(s.key) ? "secondary" : "ghost"}
-                  onClick={() =>
-                    setVisible((prev) =>
-                      prev.includes(s.key) ? prev.filter((k) => k !== s.key) : [...prev, s.key],
-                    )
-                  }
-                >
-                  <span
-                    className="mr-2 inline-block size-2 rounded-full"
-                    style={{ background: s.color }}
-                  />
-                  {s.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 h-[18rem]">
-            {series.isLoading ? (
-              <Skeleton className="h-full w-full rounded-xl" />
-            ) : chartData.length === 0 ? (
-              <EmptyState label="No activity in this range yet." />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ left: -20, right: 8, top: 8 }}>
-                  <defs>
-                    {SERIES.map((s) => (
-                      <linearGradient key={s.key} id={`g-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={s.color} stopOpacity={0.35} />
-                        <stop offset="100%" stopColor={s.color} stopOpacity={0} />
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
-                  <ChartTooltip
-                    contentStyle={{
-                      background: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 12,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  {SERIES.filter((s) => visible.includes(s.key)).map((s) => (
-                    <Area
-                      key={s.key}
-                      type="monotone"
-                      dataKey={s.key}
-                      name={s.label}
-                      stroke={s.color}
-                      fill={`url(#g-${s.key})`}
-                      strokeWidth={2}
-                    />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+        {overview.isError ? <div role="alert" className="flex items-center justify-between gap-3 text-sm"><p>Metrics could not be loaded.</p><Button variant="outline" onClick={() => void overview.refetch()}>Retry</Button></div> : null}
+        <p className="text-xs text-muted-foreground">Delivered counts confirmed receipts only. When receipts are incomplete, engagement rates use sent minus bounces. Opens measure tracked unique contacts, not inbox placement.</p>
 
         <SequencePerformance filters={filters} />
 
@@ -510,7 +436,7 @@ function AnalyticsPage() {
             opens: current?.opens ?? 0,
             replies: current?.replies ?? 0,
             positiveReplies: current?.positiveReplies ?? 0,
-            meetings: overview.data?.meetings ?? 0,
+            meetings: overview.data?.meetings ?? null,
           }}
           onStepClick={workspaceId ? (step) => setFunnelStep(step) : undefined}
         />
@@ -623,8 +549,7 @@ function AnalyticsPage() {
 
         {!overview.isLoading && !hasActivity ? (
           <p className="text-center text-xs text-muted-foreground">
-            Metrics appear as soon as your campaigns start sending and delivery is reported
-            events.
+            No campaign activity recorded for these filters.
           </p>
         ) : null}
       </div>
@@ -653,19 +578,13 @@ function deltaRate(current: number, previous: number, inverse = false): Delta {
 }
 
 function DeltaBadge({ delta }: { delta: Delta }) {
-  if (!delta || !Number.isFinite(delta.value)) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <Minus className="size-3" /> no prior data
-      </span>
-    );
-  }
+  if (!delta || !Number.isFinite(delta.value)) return null;
   const positive = delta.inverse ? delta.value < 0 : delta.value > 0;
   const Icon = delta.value === 0 ? Minus : delta.value > 0 ? ArrowUpRight : ArrowDownRight;
   return (
     <span
       className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-        delta.value === 0 ? "text-muted-foreground" : positive ? "text-emerald-500" : "text-destructive"
+        delta.value === 0 ? "text-muted-foreground" : positive ? "text-success" : "text-destructive"
       }`}
     >
       <Icon className="size-3" />

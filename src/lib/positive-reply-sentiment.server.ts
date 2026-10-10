@@ -17,13 +17,17 @@ export async function syncLeadReplySentiment(
   const sentiment = sentimentForStatus(status);
   if (!leadId || !sentiment) return null;
   try {
-    await client
+    const { data: lead, error: leadError } = await client.from("leads").select("workspace_id").eq("id", leadId).maybeSingle();
+    if (leadError || !lead) throw new Error("Could not verify reply workspace");
+    const { error } = await client
       .from("campaign_replies")
       .update({ sentiment })
+      .eq("workspace_id", lead.workspace_id)
       .eq("lead_id", leadId)
       .neq("sentiment", sentiment);
-  } catch {
-    /* sentiment sync must never block a status change */
+    if (error) throw new Error("Could not save reply classification");
+  } catch (error) {
+    throw new Error("Reply classification was not saved; please retry the status correction.", { cause: error });
   }
   return sentiment;
 }
