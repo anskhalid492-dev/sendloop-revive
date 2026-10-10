@@ -27,12 +27,14 @@ export function CampaignDetailDialog({
   workspaceId,
   from,
   to,
+  accountId,
 }: {
   row: AnalyticsCampaignRow | null;
   onOpenChange: (open: boolean) => void;
   workspaceId: string | null;
   from: string;
   to: string;
+  accountId?: string | null;
 }) {
   const [step, setStep] = useState<FunnelStepKey | null>(null);
   return (
@@ -49,7 +51,7 @@ export function CampaignDetailDialog({
           <div className="grid grid-cols-2 gap-3">
             {[
               ["Sent", formatCount(row.sent)],
-              ["Delivered", formatCount(row.delivered)],
+              ["Accepted − bounced", formatCount(row.delivered)],
               [
                 "Unique opens",
                 row.openTracking === false
@@ -84,7 +86,7 @@ export function CampaignDetailDialog({
             title="Conversion funnel"
             data={{
               sent: row.sent,
-              delivered: row.delivered,
+              delivered: null,
               opens: row.opens,
               replies: row.replies,
             }}
@@ -99,6 +101,7 @@ export function CampaignDetailDialog({
             from={from}
             to={to}
             campaignId={row.campaignId}
+            accountId={accountId ?? null}
             onOpenChange={(open) => {
               if (!open) setStep(null);
             }}

@@ -5,7 +5,7 @@ export type FunnelStepKey = "sent" | "delivered" | "opens" | "replies";
 
 export type FunnelInput = {
   sent: number;
-  delivered: number;
+  delivered: number | null;
   opens: number;
   replies: number;
   /** Audience size at the top of the funnel, when known. */
@@ -54,7 +54,7 @@ export function ConversionFunnel({
     value: data.sent,
     prev: typeof data.leads === "number" ? data.leads : null,
   });
-  steps.push({ key: "delivered", label: "Delivered", value: data.delivered, prev: data.sent });
+  if (data.delivered !== null) steps.push({ key: "delivered", label: "Delivered", value: data.delivered, prev: data.sent });
   steps.push({ key: "opens", label: "Opened", value: data.opens, prev: data.delivered });
   steps.push({ key: "replies", label: "Replied", value: data.replies, prev: data.delivered });
   if (typeof data.positiveReplies === "number") {
@@ -74,11 +74,12 @@ export function ConversionFunnel({
     });
   }
   const top = Math.max(data.leads ?? data.sent, data.sent, 1);
-  const empty = data.sent === 0 && data.delivered === 0;
+  const empty = data.sent === 0 && (data.delivered ?? 0) === 0;
 
   return (
     <section className={cn("surface-card p-5", className)}>
       <h3 className="font-semibold">{title}</h3>
+      {data.delivered === null ? <p className="text-xs text-muted-foreground">Delivery unconfirmed</p> : null}
       <p className="text-sm text-muted-foreground">
         Step-by-step conversion from real delivery, open and reply events.
         {onStepClick ? " Click a step to see the underlying events." : ""}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { collapseMessageUnits } from "@/lib/campaign-stats";
-import { engagementTrend, summarizeEngagement, uniqueReplyIntents } from "@/lib/analytics-overview";
-import { openRate, replyRate } from "@/lib/analytics-model";
+import { collapseAnalyticsUnits, engagementTrend, summarizeEngagement, uniqueReplyIntents } from "@/lib/analytics-overview";
+import { deliveryPresentation, openRate, replyRate } from "@/lib/analytics-model";
 
 const from = new Date("2026-10-01T00:00:00Z");
 const to = new Date("2026-10-04T00:00:00Z");
@@ -47,5 +47,53 @@ describe("analytics overview actual units", () => {
   it("returns actual zero counts in an empty workspace", () => {
     expect(summarizeEngagement([], from, to)).toMatchObject({ contacted: 0, delivered: 0, opens: 0, replies: 0 });
     expect(uniqueReplyIntents([])).toEqual({ replies: 0, positiveReplies: 0, negativeReplies: 0 });
+  });
+  it("keeps campaigns isolated while collapsing retries within each campaign", () => {
+    const messages = [
+      { id: "test-analytics-a", campaign_id: "throwaway-analytics-campaign-a", lead_id: "throwaway-analytics-contact", step_order: 1, sent_at: at },
+      { id: "test-analytics-retry", campaign_id: "throwaway-analytics-campaign-a", lead_id: "throwaway-analytics-contact", step_order: 1, sent_at: at },
+      { id: "test-analytics-b", campaign_id: "throwaway-analytics-campaign-b", lead_id: "throwaway-analytics-contact", step_order: 1, sent_at: at },
+    ];
+    const summary = summarizeEngagement(collapseAnalyticsUnits(messages), from, to);
+    expect(summary.sent).toBe(2);
+    expect(summary.contacted).toBe(1);
+  });
+  it("never counts a recovered retry as an additional failed send", () => {
+    const collapsed = collapseAnalyticsUnits([
+      { id: "test-failed-attempt", recipient_id: "throwaway-analytics-contact", status: "failed", failed_at: at, updated_at: at },
+      { id: "test-recovered-attempt", recipient_id: "throwaway-analytics-contact", status: "sent", sent_at: at },
+    ]);
+    expect(summarizeEngagement(collapsed, from, to)).toMatchObject({ sent: 1, failed: 0 });
+  });
+  it("does not move historical failures into the reporting range using updated_at", () => {
+    const collapsed = collapseAnalyticsUnits([
+      { id: "test-old-failure", status: "failed", failed_at: "2026-09-01T00:00:00Z", updated_at: at },
+      { id: "test-undated-failure", status: "failed", updated_at: at },
+      { id: "test-dated-failure", status: "failed", failed_at: at },
+    ]);
+    expect(summarizeEngagement(collapsed, from, to)).toMatchObject({ failed: 1, failureHistoryIncomplete: true });
+  });
+  it("distinguishes absent receipts, failed reads, partial confirmation and empty data", () => {
+    const summary = { sent: 1266, delivered: 0, opens: 170, clicks: 0, replies: 0, positiveReplies: 0, bounced: 0, unsubscribed: 0, complained: 0, failed: 0 };
+    expect(deliveryPresentation(summary).value).toBe("—");
+    expect(deliveryPresentation({ ...summary, deliveryEventsAvailable: false })).toEqual({ value: "—", description: "Delivery confirmations unavailable" });
+    expect(deliveryPresentation({ ...summary, delivered: 100 }).value).toBe("100");
+    expect(deliveryPresentation({ ...summary, sent: 0 }).value).toBe("0");
+  });
+  it("preserves the existing open-rate denominator rather than using contacted or failures", () => {
+    // Arithmetic illustration only, not a claim about the reported production bounce count.
+    expect(openRate({ sent: 1266, bounced: 50, delivered: 0, opens: 170 })).toBe(14);
+    expect(openRate({ sent: 1266, bounced: 0, delivered: 0, opens: 170 })).toBe(13.4);
+  });
+  it("uses exact inclusive-start/exclusive-end timestamps for every summary series", () => {
+    const collapsed = collapseAnalyticsUnits([
+      { id: "test-before", sent_at: "2026-09-30T23:59:59.999Z", opened_at: "2026-09-30T23:59:59.999Z" },
+      { id: "test-start", sent_at: from.toISOString(), opened_at: from.toISOString() },
+      { id: "test-end", sent_at: to.toISOString(), opened_at: to.toISOString() },
+    ]);
+    expect(summarizeEngagement(collapsed, from, to)).toMatchObject({ sent: 1, opens: 1 });
+    const points = engagementTrend(collapsed, from, to, "day");
+    expect(points.reduce((n, p) => n + p.sent, 0)).toBe(1);
+    expect(points.reduce((n, p) => n + p.opens, 0)).toBe(1);
   });
 });

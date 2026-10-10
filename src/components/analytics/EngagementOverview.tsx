@@ -20,29 +20,29 @@ export function EngagementOverview({ current, points, loading, error, onRetry, c
   const id = useId().replace(/:/g, "");
   const [visible, setVisible] = useState<string[]>(ENGAGEMENT_SERIES.map(s => s.key));
   const stats = [
-    { label: "Contacted", icon: Mail, value: formatCount(current?.contacted ?? 0), sub: "Unique campaign contacts" },
-    { label: "Opened", icon: MailOpen, value: formatCount(current?.opens ?? 0), sub: current ? `${formatPct(openRate(current))} · unique contacts` : "Unique contacts" },
-    { label: "Replied", icon: Handshake, value: formatCount(current?.replies ?? 0), sub: current ? `${formatPct(replyRate(current))} · unique contacts` : "Unique contacts" },
-    { label: "Unsubscribe Rate", icon: UserX, value: current ? formatPct(unsubRate(current)) : "—", sub: `${formatCount(current?.unsubscribed ?? 0)} opted out` },
+    { label: "Contacted", icon: Mail, value: current ? formatCount(current.contacted ?? 0) : "—", rate: null },
+    { label: "Opened", icon: MailOpen, value: current ? formatCount(current.opens) : "—", rate: current ? formatPct(openRate(current)) : null },
+    { label: "Replied", icon: Handshake, value: current ? formatCount(current.replies) : "—", rate: current ? formatPct(replyRate(current)) : null },
+    { label: "Unsubscribe Rate", icon: UserX, value: current ? formatCount(current.unsubscribed) : "—", rate: current ? formatPct(unsubRate(current)) : null },
   ];
   const active = points.some(p => p.sent || p.opens || p.clicks || p.replies);
   const data = points.map(p => ({ ...p, label: new Date(p.bucket).toLocaleString([], bucket === "hour" ? { hour: "numeric" } : { month: "short", day: "numeric" }) }));
   return (
-    <section aria-label="Engagement Overview" className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-5">
+    <section aria-label="Engagement Overview" className="overflow-hidden rounded-xl border border-border bg-card bg-[image:var(--gradient-card)] shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 px-5 py-4">
         <h2 className="text-lg font-semibold">Engagement Overview</h2>
         {controls}
       </div>
       {error ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 p-5 text-sm"><p>Engagement data could not be loaded.</p><Button variant="outline" size="sm" onClick={onRetry}>Retry</Button></div> : <>
-        <div className="grid grid-cols-2 border-b border-border sm:grid-cols-4">
-          {stats.map(s => <div key={s.label} className="min-w-0 px-5 py-5">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><s.icon className="size-4 shrink-0" />{s.label}</div>
-            {loading ? <Skeleton className="my-3 h-8 w-20" /> : <p className="mt-3 text-3xl font-semibold tabular-nums">{s.value}</p>}
-            <p className="mt-2 text-xs text-muted-foreground">{s.sub}</p>
+        <div className="grid grid-cols-2 border-b border-border/50 sm:grid-cols-4">
+          {stats.map(s => <div key={s.label} className="flex min-w-0 flex-col items-center justify-center border-r border-border/50 px-2 py-6 text-center last:border-r-0 sm:px-4">
+            <s.icon className="size-5 shrink-0 text-muted-foreground" />
+            {loading ? <Skeleton className="my-3 h-8 w-20" /> : <div className="mt-3 flex flex-wrap items-baseline justify-center gap-2 tabular-nums"><span className="text-3xl font-semibold text-primary">{s.value}</span>{s.rate ? <span className="border-l border-border pl-2 text-base text-muted-foreground">{s.rate}</span> : null}</div>}
+            <p className="mt-2 text-sm text-muted-foreground">{s.label}</p>
           </div>)}
         </div>
-        <div className="px-3 pt-6 sm:px-5">
-          <div className="h-[20rem] sm:h-[23rem]">
+        <div className="px-3 pt-5 sm:px-5">
+          <div className="h-[16rem] sm:h-[18rem]">
             {loading ? <Skeleton className="h-full w-full rounded-lg" /> : !active ? <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground"><MailOpen className="size-6" /><p>No engagement recorded in this range.</p></div> :
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data} margin={{ left: -12, right: 12, top: 8, bottom: 8 }}>
@@ -60,7 +60,6 @@ export function EngagementOverview({ current, points, loading, error, onRetry, c
               </ResponsiveContainer>}
           </div>
           <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 py-4">{ENGAGEMENT_SERIES.map(s => <Button key={s.key} variant="ghost" size="sm" aria-pressed={visible.includes(s.key)} className={`h-8 gap-2 text-xs ${visible.includes(s.key) ? "" : "opacity-40"}`} onClick={() => setVisible(prev => prev.includes(s.key) ? prev.length > 1 ? prev.filter(k => k !== s.key) : prev : [...prev, s.key])}><span className={`size-2 rounded-full ${s.dot}`} />{s.label}</Button>)}</div>
-          <p className="pb-4 text-center text-xs text-muted-foreground">Sent counts emails; opens, clicks and replies count unique contacts per interval. Repeat opens are not included.</p>
         </div>
       </>}
     </section>

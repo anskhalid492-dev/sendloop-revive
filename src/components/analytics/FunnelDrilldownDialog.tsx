@@ -25,6 +25,7 @@ export function FunnelDrilldownDialog({
   from,
   to,
   campaignId,
+  accountId,
   onOpenChange,
 }: {
   step: FunnelStep | null;
@@ -32,12 +33,13 @@ export function FunnelDrilldownDialog({
   from: string;
   to: string;
   campaignId?: string | null;
+  accountId?: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
   const fetchDrilldown = useServerFn(getFunnelDrilldown);
   const query = useQuery({
     enabled: !!step,
-    queryKey: ["funnel-drilldown", workspaceId, from, to, campaignId ?? null, step],
+    queryKey: ["funnel-drilldown", workspaceId, from, to, campaignId ?? null, accountId ?? null, step],
     queryFn: () =>
       fetchDrilldown({
         data: {
@@ -46,6 +48,7 @@ export function FunnelDrilldownDialog({
           to,
           step: step as FunnelStep,
           campaignId: campaignId ?? null,
+          accountId: accountId ?? null,
           limit: 200,
         },
       }),

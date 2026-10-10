@@ -70,6 +70,8 @@ export type CampaignStatsBundle = {
   messages: CampaignMessageRow[];
   /** Per-message signals from the real provider event feed. */
   signals: MessageEventSignals;
+  /** Optional event-feed failures must not be presented as confirmed zero delivery. */
+  eventReadAvailable?: boolean;
 };
 
 
@@ -167,6 +169,7 @@ async function readCampaignStats(
   const campaignIds = campaigns.map((c) => c.id);
   if (!campaignIds.length) return { byCampaign: new Map(), messages: [], signals: new Map() };
 
+  let eventReadAvailable = true;
   const [messages, recipientCounts, events, replies] = await Promise.all([
     (async () => {
       // Narrow the read in Postgres instead of downloading the whole table. A
@@ -211,7 +214,10 @@ async function readCampaignStats(
       if (scope.from) q.gte("occurred_at", scope.from.toISOString());
       if (scope.to) q.lt("occurred_at", scope.to.toISOString());
       return q;
-    }).catch(() => [] as Array<{ message_id: string | null; event_type: string; occurred_at: string }>),
+    }).catch(() => {
+      eventReadAvailable = false;
+      return [] as Array<{ message_id: string | null; event_type: string; occurred_at: string }>;
+    }),
     fetchAllRows<ReplyRow>(() => {
       // Every stored reply, not just the positive ones: a reply counts as a
       // reply whatever its intent, and the breakdown is derived from the same
@@ -303,7 +309,7 @@ async function readCampaignStats(
     );
   }
 
-  return { byCampaign, messages, signals };
+  return { byCampaign, messages, signals, eventReadAvailable };
 }
 
 /** Convenience reader for a single campaign. */

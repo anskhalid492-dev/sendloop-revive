@@ -13,6 +13,10 @@ export type AnalyticsSummary = {
   totalOpens?: number;
   /** True only when all sends have explicit delivery/bounce evidence. */
   deliveryComplete?: boolean;
+  /** False when the optional provider-event read failed. */
+  deliveryEventsAvailable?: boolean;
+  /** Legacy failed rows without an occurrence timestamp cannot be date-attributed. */
+  failureHistoryIncomplete?: boolean;
   sent: number;
   delivered: number;
   opens: number;
@@ -110,4 +114,10 @@ export function formatPct(value: number): string {
 
 export function formatCount(value: number): string {
   return value.toLocaleString();
+}
+
+export function deliveryPresentation(r: AnalyticsSummary): { value: string; description: string } {
+  if (r.deliveryEventsAvailable === false) return { value: "—", description: "Delivery confirmations unavailable" };
+  if (!r.delivered && r.sent && !r.deliveryComplete) return { value: "—", description: "No confirmed delivery receipts" };
+  return { value: formatCount(r.delivered), description: `${formatPct(rate(r.delivered, r.sent))} confirmed · ${r.deliveryComplete ? "complete receipts" : "partial receipts"}` };
 }

@@ -9,8 +9,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { deliveredCount } from "@/lib/engagement-rates";
-import { summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
+import { collapseAnalyticsUnits, summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
 import { fetchAllRows } from "@/lib/supabase-batch";
+import { scopeAnalyticsQuery } from "@/lib/analytics-filters";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { SubjectLineRow } from "@/lib/analytics-subject";
@@ -49,17 +50,14 @@ function campaignScope(data: RangeInput) {
 async function loadUnits(client: Client, data: RangeInput) {
   const from = new Date(data.from);
   const to = new Date(data.to);
-  const [{ fetchCampaignStats }, { collapseMessageUnits }] = await Promise.all([
-    import("@/lib/campaign-stats.server"),
-    import("@/lib/campaign-stats"),
-  ]);
+  const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
   const bundle = await fetchCampaignStats(client, {
     workspaceId: data.workspaceId,
     ...campaignScope(data),
     from,
     to,
   });
-  const all = Array.from(collapseMessageUnits(bundle.messages, bundle.signals).values());
+  const all = collapseAnalyticsUnits(bundle.messages, bundle.signals);
   const units = data.accountId ? all.filter((u) => u.accountId === data.accountId) : all;
   return { bundle, units, from, to };
 }
@@ -167,7 +165,6 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
     // Same authoritative reader as the Campaign Overview and the dashboard,
     // so workspace totals always equal the sum of the campaign numbers.
     const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
-    const { collapseMessageUnits, computeAccountTotals } = await import("@/lib/campaign-stats");
     const sum = (rows: Iterable<import("@/lib/campaign-stats").CampaignStats>) => {
       const total = { ...ZERO };
       for (const s of rows) {
@@ -204,15 +201,14 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
       lo: Date,
       hi: Date,
     ): Promise<AnalyticsSummary> => {
-      const units = Array.from(
-        collapseMessageUnits(bundle.messages, bundle.signals).values(),
-      ).filter((u) => !data.accountId || u.accountId === data.accountId);
+      const units = collapseAnalyticsUnits(bundle.messages, bundle.signals)
+        .filter((u) => !data.accountId || u.accountId === data.accountId);
       const replies = await fetchReplyRows(client, data, lo, hi);
       return {
         ...sum(bundle.byCampaign.values()),
         ...summarizeEngagement(units, lo, hi),
         ...uniqueReplyIntents(replies),
-        ...(data.accountId ? { failed: computeAccountTotals(units, { from: lo, to: hi }).reduce((n, a) => n + a.failed, 0) } : {}),
+        deliveryEventsAvailable: bundle.eventReadAvailable !== false,
       };
     };
 
@@ -411,16 +407,12 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
     let rows: FunnelDrilldownRow[] = [];
 
     if (data.step === "sent") {
-      let q = client
+      const q = scopeAnalyticsQuery(client
         .from("campaign_messages")
         .select("id, lead_id, campaign_id, to_email, sent_at")
-        .eq("workspace_id", data.workspaceId)
         .eq("status", "sent")
-        .gte("sent_at", from)
-        .lt("sent_at", to)
         .order("sent_at", { ascending: false })
-        .limit(data.limit);
-      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+        .limit(data.limit), data, "sent_at");
       const { data: msgs, error } = await q;
       if (error) throw new Error(error.message);
       rows = ((msgs ?? []) as Record<string, unknown>[]).map((m) => ({
@@ -434,15 +426,11 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
         occurredAt: String(m["sent_at"]),
       }));
     } else if (data.step === "replies") {
-      let q = client
+      const q = scopeAnalyticsQuery(client
         .from("campaign_replies")
         .select("id, lead_id, campaign_id, from_email, received_at")
-        .eq("workspace_id", data.workspaceId)
-        .gte("received_at", from)
-        .lt("received_at", to)
         .order("received_at", { ascending: false })
-        .limit(data.limit);
-      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+        .limit(data.limit), data, "received_at");
       const { data: reps, error } = await q;
       if (error) throw new Error(error.message);
       const seen = new Set<string>();
@@ -463,16 +451,12 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
       }
     } else {
       const eventType = data.step === "delivered" ? "delivered" : "opened";
-      let q = client
+      const q = scopeAnalyticsQuery(client
         .from("email_engagement_events")
         .select("id, lead_id, campaign_id, message_id, recipient_email, occurred_at")
-        .eq("workspace_id", data.workspaceId)
         .eq("event_type", eventType)
-        .gte("occurred_at", from)
-        .lt("occurred_at", to)
         .order("occurred_at", { ascending: false })
-        .limit(data.limit * 3);
-      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+        .limit(data.limit * 3), data, "occurred_at");
       const { data: evs, error } = await q;
       if (error) throw new Error(error.message);
       // Same dedupe key the aggregation RPCs use: message_id, else recipient.
