@@ -1,4 +1,4 @@
-import { computeAccountTotals, type Unit } from "@/lib/campaign-stats";
+import { collapseMessageUnits, computeAccountTotals, type CampaignMessageRow, type MessageEventSignals, type Unit } from "@/lib/campaign-stats";
 import type { AnalyticsSummary, AnalyticsTimeseriesPoint } from "@/lib/analytics-model";
 
 export const ENGAGEMENT_SERIES = [
@@ -7,6 +7,18 @@ export const ENGAGEMENT_SERIES = [
   { key: "clicks", label: "Clicks", color: "var(--chart-4)", dot: "bg-chart-4" },
   { key: "replies", label: "Replies", color: "var(--chart-5)", dot: "bg-chart-5" },
 ] as const;
+
+/** Analytics can span campaigns: never collapse two campaigns' emails together. */
+export function collapseAnalyticsUnits(messages: CampaignMessageRow[], events?: MessageEventSignals): Unit[] {
+  const groups = new Map<string, CampaignMessageRow[]>();
+  for (const message of messages) {
+    const key = message.campaign_id ?? "";
+    const rows = groups.get(key) ?? [];
+    rows.push(message);
+    groups.set(key, rows);
+  }
+  return [...groups.values()].flatMap(rows => [...collapseMessageUnits(rows, events).values()]);
+}
 
 export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partial<AnalyticsSummary> {
   const inRange = (iso: string | null) => Boolean(iso && Date.parse(iso) >= +from && Date.parse(iso) < +to);
@@ -19,6 +31,9 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
     contacted: people(u => inRange(u.sentAt)),
     delivered: confirmed,
     deliveryComplete: sent > 0 && units.filter(u => inRange(u.sentAt) && Boolean(u.signals.delivered_at || u.signals.bounced_at)).length === sent,
+    // A mutable updated_at must not move an old failure into this window.
+    failed: units.filter(u => !u.sentAt && !u.signals.bounced_at && inRange(u.signals.failed_at)).length,
+    failureHistoryIncomplete: units.some(u => !u.sentAt && u.status === "failed" && !u.signals.failed_at),
     opens: people(u => inRange(u.signals.opened_at)),
     clicks: people(u => inRange(u.signals.clicked_at)),
     replies: people(u => inRange(u.signals.replied_at)),

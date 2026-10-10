@@ -42,6 +42,7 @@ import {
   bounceRate,
   rate,
   formatCount,
+  deliveryPresentation,
   formatPct,
   formatOpenRate,
   openRate,
@@ -237,12 +238,12 @@ function AnalyticsPage() {
           icon: Mail,
           value: formatCount(current.sent),
           delta: deltaCount(current.sent, previous?.sent ?? 0),
-          sub: "Accepted by the sending provider",
+          sub: "Unique recipient/step emails accepted; not contacts",
         },
         {
           label: "Delivered", icon: CheckCheck,
-          value: formatCount(current.delivered), delta: null,
-          sub: `${formatPct(rate(current.delivered, current.sent))} confirmed · ${current.deliveryComplete ? "complete receipts" : "receipts incomplete"}`,
+          value: deliveryPresentation(current).value, delta: null,
+          sub: deliveryPresentation(current).description,
         },
         {
           label: "Open Rate",
@@ -288,8 +289,8 @@ function AnalyticsPage() {
           label: "Failed Sends",
           icon: CircleX,
           value: formatCount(current.failed),
-          delta: deltaCount(current.failed, previous?.failed ?? 0),
-          sub: `${formatPct(rate(current.failed, current.sent + current.failed))} of send attempts`,
+          delta: current.failureHistoryIncomplete || previous?.failureHistoryIncomplete ? null : deltaCount(current.failed, previous?.failed ?? 0),
+          sub: current.failureHistoryIncomplete ? "Timestamped failures only; legacy history incomplete" : "Unsent logical emails failed in this period",
         },
         {
           label: "Meetings Booked",
@@ -362,12 +363,13 @@ function AnalyticsPage() {
 
         <EngagementOverview current={current} points={series.data ?? []} bucket={bucket} loading={overview.isLoading || series.isLoading || !workspaceId} error={overview.isError || series.isError} onRetry={() => { void overview.refetch(); void series.refetch(); }} controls={
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1 rounded-lg border border-border/60 bg-card/60 p-1">
+          <div className="flex flex-wrap gap-1 rounded-full border border-border/50 p-1">
             {RANGES.map((r) => (
               <Button
                 key={r.id}
                 size="sm"
-                variant={rangeId === r.id ? "default" : "ghost"}
+                variant={rangeId === r.id ? "secondary" : "ghost"}
+                className="h-8 rounded-full px-3"
                 onClick={() => setRangeId(r.id)}
               >
                 {r.label}
