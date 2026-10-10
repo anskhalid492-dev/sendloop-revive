@@ -137,10 +137,8 @@ export function replyCategory(sentiment: unknown): ReplyCategory {
 }
 
 /**
- * Meetings booked in the range. Bookings are recorded on the lead itself
- * (crm_stage opportunity/customer with last_activity_at at booking time) —
- * the same source the dashboard uses — not every booking writes a
- * lead_activities row, so counting activities under-reports.
+ * Recorded booking activities only; mutable CRM status is not a historical event.
+ * Legacy bookings without activities or attribution remain unavailable.
  */
 async function countMeetings(client: Client, data: RangeInput, from: Date, to: Date) {
   // Mutable lead status/last_activity_at cannot prove a historical booking.

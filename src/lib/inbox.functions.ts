@@ -503,7 +503,7 @@ export const updateConversation = createServerFn({ method: "POST" })
       conversation_id: data.id,
       workspace_id: updated.workspace_id,
       type: "updated",
-      detail: Object.keys(patch).join(", "),
+      detail: data.status ? `Manual classification: ${data.status}; ${Object.keys(patch).join(", ")}` : Object.keys(patch).join(", "),
       actor_id: context.userId,
     });
 

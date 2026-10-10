@@ -545,7 +545,7 @@ export async function recordFailedMailboxInbound(email: import("@/lib/inbox.serv
   if (!messageId) throw new Error("Cannot safely retry mailbox mail without a Message-ID");
   const recorded = await recordEvent({
     provider: "imap", kind: "inbound", externalId: `imap-recovery:${email.to.toLowerCase()}:${messageId}`,
-    payload: { ...email, type: "email.received", received_at: email.receivedAt, in_reply_to: email.inReplyTo, message_id: messageId },
+    payload: { ...email, to: email.deliveredTo ?? email.to, type: "email.received", received_at: email.receivedAt, in_reply_to: email.inReplyTo, message_id: messageId },
     fromEmail: email.from, toEmail: email.to, subject: email.subject ?? null, messageId,
     signatureStatus: "internal", signatureDetail: "Authenticated mailbox polling", routingToken: null,
   });

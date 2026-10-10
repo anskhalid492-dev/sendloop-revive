@@ -59,7 +59,8 @@ export function EngagementOverview({ current, points, loading, error, onRetry, c
                 </AreaChart>
               </ResponsiveContainer>}
           </div>
-          <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 py-4">{ENGAGEMENT_SERIES.map(s => <Button key={s.key} variant="ghost" size="sm" aria-pressed={visible.includes(s.key)} className={`h-8 gap-2 text-xs ${visible.includes(s.key) ? "" : "opacity-40"}`} onClick={() => setVisible(prev => prev.includes(s.key) ? prev.filter(k => k !== s.key) : [...prev, s.key])}><span className={`size-2 rounded-full ${s.dot}`} />{s.label}</Button>)}</div>
+          <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 py-4">{ENGAGEMENT_SERIES.map(s => <Button key={s.key} variant="ghost" size="sm" aria-pressed={visible.includes(s.key)} className={`h-8 gap-2 text-xs ${visible.includes(s.key) ? "" : "opacity-40"}`} onClick={() => setVisible(prev => prev.includes(s.key) ? prev.length > 1 ? prev.filter(k => k !== s.key) : prev : [...prev, s.key])}><span className={`size-2 rounded-full ${s.dot}`} />{s.label}</Button>)}</div>
+          <p className="pb-4 text-center text-xs text-muted-foreground">Sent counts emails; opens, clicks and replies count unique contacts per interval.</p>
         </div>
       </>}
     </section>
