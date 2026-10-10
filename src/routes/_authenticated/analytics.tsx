@@ -240,10 +240,15 @@ function AnalyticsPage() {
           sub: null,
         },
         {
-          // Confirmed receipts only; "—" when unavailable (never a misleading zero).
+          // Estimated delivered = sent minus confirmed bounces (same basis as the rates).
           label: "Delivered", icon: Send, tone: "bg-chart-2/15 text-chart-2",
-          value: deliveryPresentation(current).value === "—" ? "—" : formatCount(current.delivered),
-          delta: null,
+          value: formatCount(Math.max(0, current.sent - current.bounced)),
+          delta: previous
+            ? deltaCount(
+                Math.max(0, current.sent - current.bounced),
+                Math.max(0, previous.sent - previous.bounced),
+              )
+            : null,
           sub: null,
         },
         {
