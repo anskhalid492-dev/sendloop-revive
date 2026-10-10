@@ -101,7 +101,7 @@ export function CampaignDetailDialog({
             from={from}
             to={to}
             campaignId={row.campaignId}
-            accountId={accountId}
+            accountId={accountId ?? null}
             onOpenChange={(open) => {
               if (!open) setStep(null);
             }}

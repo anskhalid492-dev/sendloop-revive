@@ -416,6 +416,7 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
         .order("sent_at", { ascending: false })
         .limit(data.limit);
       if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
       const { data: msgs, error } = await q;
       if (error) throw new Error(error.message);
       rows = ((msgs ?? []) as Record<string, unknown>[]).map((m) => ({
@@ -438,6 +439,7 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
         .order("received_at", { ascending: false })
         .limit(data.limit);
       if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
       const { data: reps, error } = await q;
       if (error) throw new Error(error.message);
       const seen = new Set<string>();
@@ -468,6 +470,7 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
         .order("occurred_at", { ascending: false })
         .limit(data.limit * 3);
       if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
+      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
       const { data: evs, error } = await q;
       if (error) throw new Error(error.message);
       // Same dedupe key the aggregation RPCs use: message_id, else recipient.
