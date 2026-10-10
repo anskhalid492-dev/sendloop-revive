@@ -129,3 +129,17 @@ Stopped early as instructed: the original signing key could not be confirmed. No
 
 ### What would resolve it
 Someone signed in as an admin opens Admin → environment status on the live site and reports only whether `SUPABASE_SERVICE_ROLE_KEY` is present (yes/no). Present → old pixels compatible. Absent → old pixels stop recording opens on release; this needs an explicit decision.
+
+## Click / marketing-open remediation (2026-10-10)
+
+Changed: `src/lib/click-tracking.ts`, `src/lib/click-tracking.server.ts`, `src/lib/marketing/engagement-tracking.ts`, `src/lib/marketing/engagement.server.ts`, `src/routes/api/public/click.ts`, `src/routes/api/public/marketing/open.ts`; added `tests/click-marketing-tracking-hardening.test.ts`.
+
+- Removed `VITE_SUPABASE_PUBLISHABLE_KEY` and the literals `munchreach-click-tracking` / `munchreach-marketing-open`. Only private keys (min 16 chars) are accepted, in the previous order with `SB_SERVICE_ROLE_KEY` appended last. With no key: links are left unwrapped, no marketing pixel is added, every token is rejected.
+- Strict token grammar (`<base64url>.<32 hex>`), object-only payloads, known kinds only, ID/email shape checks. No expiry exists in the token format; adding one would break already-sent links, so it was not introduced.
+- Click recorder checks lookup/insert/update results, attributes campaign clicks from the stored message row, verifies workspace ownership, reports partial failures. Marketing recorder throws on lookup/duplicate-check/insert errors instead of silently writing or dropping. Logs carry no token, URL, email or raw error.
+
+Compatibility: tokens signed with a private key that is still configured under the same name precedence keep verifying (tested with a fixture key). Tokens signed by the public-key or hardcoded fallbacks are now rejected by design. Which key the live runtime actually used historically is NOT VERIFIED.
+
+Safe migration strategy: (1) confirm in the live Admin environment page which of the listed key names exist (names only); (2) if the first-present private key is unchanged, no action; (3) if historical tokens were signed by a fallback, accept that those old links/pixels stop recording (links still redirect to the site home, pixels still render) — never restore the fallback; (4) any future dedicated key must be added as an additional verify-only key, not by replacing the current one.
+
+Known limitation: marketing open duplicate check is read-then-write (no unique constraint); concurrent duplicate opens remain possible. Fixing needs a schema change, not made.
