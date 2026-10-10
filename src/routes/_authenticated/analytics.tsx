@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownRight, ArrowUpRight, BarChart3, Minus, Mail, CheckCheck, MailOpen, MessageSquare, ThumbsUp, ThumbsDown, UserX, TriangleAlert, CircleX, CalendarCheck } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BarChart3, Minus, Mail, Users, MailOpen, MessageSquare, ThumbsUp, ThumbsDown, UserX, TriangleAlert, CircleX, CalendarCheck } from "lucide-react";
 
 
 import { AppShell } from "@/components/app/AppShell";
@@ -238,19 +238,19 @@ function AnalyticsPage() {
           icon: Mail,
           value: formatCount(current.sent),
           delta: deltaCount(current.sent, previous?.sent ?? 0),
-          sub: "Unique recipient/step emails accepted; not contacts",
+          sub: null,
         },
         {
-          label: "Delivered", icon: CheckCheck,
-          value: deliveryPresentation(current).value, delta: null,
-          sub: deliveryPresentation(current).description,
+          label: "Contacted", icon: Users,
+          value: current.contacted == null ? "—" : formatCount(current.contacted), delta: null,
+          sub: null,
         },
         {
           label: "Open Rate",
           icon: MailOpen,
           value: formatPct(openRate(current)),
           delta: deltaRate(openRate(current), previous ? openRate(previous) : 0),
-          sub: `${formatCount(current.opens)} unique opens`,
+          sub: `${formatCount(current.opens)} opens`,
         },
         {
           label: "Reply Rate",
@@ -269,7 +269,7 @@ function AnalyticsPage() {
         {
           label: "Negative Replies", icon: ThumbsDown,
           value: formatCount(current.negativeReplies ?? 0), delta: null,
-          sub: `${formatPct(rate(current.negativeReplies ?? 0, current.replies))} of replying contacts`,
+          sub: `${formatPct(rate(current.negativeReplies ?? 0, current.replies))} of replies`,
         },
         {
           label: "Bounce Rate",
@@ -290,14 +290,14 @@ function AnalyticsPage() {
           icon: CircleX,
           value: formatCount(current.failed),
           delta: current.failureHistoryIncomplete || previous?.failureHistoryIncomplete ? null : deltaCount(current.failed, previous?.failed ?? 0),
-          sub: current.failureHistoryIncomplete ? "Timestamped failures only; legacy history incomplete" : "Unsent logical emails failed in this period",
+          sub: null,
         },
         {
           label: "Meetings Booked",
           icon: CalendarCheck,
           value: overview.data?.meetings == null ? "—" : formatCount(overview.data.meetings),
           delta: null,
-          sub: overview.data?.meetings == null ? "Historical booking data unavailable" : "Confirmed booking activities",
+          sub: null,
         },
       ]
     : [];
@@ -406,25 +406,24 @@ function AnalyticsPage() {
         <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-5">
           {overview.isLoading || !workspaceId
             ? Array.from({ length: 10 }).map((_, i) => (
-                <Skeleton key={i} className="h-36 rounded-lg" />
+                <Skeleton key={i} className="h-32 rounded-xl" />
               ))
             : cards.map((card) => (
-                <div key={card.label} className="min-h-36 min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
-                  <card.icon className="mb-3 size-4 text-muted-foreground" />
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {card.label}
-                  </p>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold tabular-nums">{card.value}</span>
+                <div key={card.label} className="flex h-32 min-w-0 flex-col rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <card.icon className="size-3.5 shrink-0" />
+                    <p className="truncate text-xs font-medium">{card.label}</p>
+                  </div>
+                  <div className="mt-auto flex items-baseline gap-2">
+                    <span className="text-3xl font-semibold tracking-tight tabular-nums">{card.value}</span>
                     <DeltaBadge delta={card.delta} />
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
+                  <p className="mt-1 h-4 truncate text-xs text-muted-foreground">{card.sub ?? ""}</p>
                 </div>
               ))}
         </div>
 
         {overview.isError ? <div role="alert" className="flex items-center justify-between gap-3 text-sm"><p>Metrics could not be loaded.</p><Button variant="outline" onClick={() => void overview.refetch()}>Retry</Button></div> : null}
-        <p className="text-xs text-muted-foreground">Delivered counts confirmed receipts only. When receipts are incomplete, engagement rates use sent minus bounces. Opens measure tracked unique contacts, not inbox placement.</p>
 
         <SequencePerformance filters={filters} />
 
