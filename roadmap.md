@@ -1,5 +1,10 @@
 # Roadmap
 
+## Analytics targeted restoration
+- [ ] Restore original screenshot-led Engagement Overview layout while keeping theme series colors and organized lower cards.
+- [ ] Trace metric source/filter differences and show unconfirmed delivery honestly without changing rate formulas.
+- [ ] Add isolated metric/filter regression tests, verify presentation, and report limitations without deploying.
+
 ## Open tracking pre-deployment review
 - [x] Review signature validation, scanner evidence, persistence, privacy and campaign/warmup isolation.
 - [x] Add missing isolated regression tests and run tracking, campaign analytics and security coverage (114 passed, 15 release-blocking failures).
