@@ -29,11 +29,28 @@ function clientIp(request: Request): string | null {
   return first || null;
 }
 
+/**
+ * Some mail clients mangle the query (`t+=`, stray encoded characters). The
+ * signature still has to verify, so tolerating them cannot admit a forged token.
+ */
+export function readPixelToken(url: URL): string {
+  let raw = url.searchParams.get("t");
+  if (raw == null) {
+    for (const [key, value] of url.searchParams) {
+      if (key.trim() === "t") {
+        raw = value;
+        break;
+      }
+    }
+  }
+  return (raw ?? "").replace(/[^A-Za-z0-9_.-]/g, "");
+}
+
 export const Route = createFileRoute("/api/public/open")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const token = new URL(request.url).searchParams.get("t") ?? "";
+        const token = readPixelToken(new URL(request.url));
         const target = parseOpenToken(token);
         if (!target) {
           // Diagnostic only: never logs the token or any recipient data.
