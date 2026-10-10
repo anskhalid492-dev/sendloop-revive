@@ -193,7 +193,7 @@ function AnalyticsPage() {
       "Campaign",
       "Status",
       "Sent",
-      "Delivered",
+      "Accepted minus bounced (not confirmed delivery)",
       "Opens",
       "Clicks",
       "Replies",
@@ -434,7 +434,7 @@ function AnalyticsPage() {
           data={{
             leads: audience.data ?? null,
             sent: current?.sent ?? 0,
-            delivered: current?.delivered ?? 0,
+            delivered: current && deliveryPresentation(current).value !== "—" ? current.delivered : null,
             opens: current?.opens ?? 0,
             replies: current?.replies ?? 0,
             positiveReplies: current?.positiveReplies ?? 0,
@@ -449,6 +449,8 @@ function AnalyticsPage() {
             workspaceId={workspaceId}
             from={range.from}
             to={range.to}
+            campaignId={campaignId}
+            accountId={accountId}
             onOpenChange={(open) => {
               if (!open) setFunnelStep(null);
             }}
@@ -469,7 +471,7 @@ function AnalyticsPage() {
                   <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="py-2 pr-3">Campaign</th>
                     <th className="py-2 pr-3">Sent</th>
-                    <th className="py-2 pr-3">Delivered</th>
+                    <th className="py-2 pr-3" title="Accepted sends minus bounced contacts; not confirmed delivery">Accepted − bounced</th>
                     <th className="py-2 pr-3">Open</th>
                     <th className="py-2 pr-3">Reply</th>
                     <th className="py-2 pr-3">Positive replies</th>
@@ -517,7 +519,7 @@ function AnalyticsPage() {
                   <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="py-2 pr-3">Mailbox</th>
                     <th className="py-2 pr-3">Sent</th>
-                    <th className="py-2 pr-3">Delivered</th>
+                    <th className="py-2 pr-3" title="Accepted sends minus bounced contacts; not confirmed delivery">Accepted − bounced</th>
                     <th className="py-2 pr-3">Open</th>
                     <th className="py-2 pr-3">Reply</th>
                     <th className="py-2 pr-3">Bounce</th>
@@ -562,6 +564,7 @@ function AnalyticsPage() {
         workspaceId={workspaceId}
         from={range.from}
         to={range.to}
+        accountId={accountId}
       />
     </AppShell>
   );

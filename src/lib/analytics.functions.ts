@@ -9,7 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { deliveredCount } from "@/lib/engagement-rates";
-import { summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
+import { collapseAnalyticsUnits, summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
 import { fetchAllRows } from "@/lib/supabase-batch";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -49,17 +49,14 @@ function campaignScope(data: RangeInput) {
 async function loadUnits(client: Client, data: RangeInput) {
   const from = new Date(data.from);
   const to = new Date(data.to);
-  const [{ fetchCampaignStats }, { collapseMessageUnits }] = await Promise.all([
-    import("@/lib/campaign-stats.server"),
-    import("@/lib/campaign-stats"),
-  ]);
+  const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
   const bundle = await fetchCampaignStats(client, {
     workspaceId: data.workspaceId,
     ...campaignScope(data),
     from,
     to,
   });
-  const all = Array.from(collapseMessageUnits(bundle.messages, bundle.signals).values());
+  const all = collapseAnalyticsUnits(bundle.messages, bundle.signals);
   const units = data.accountId ? all.filter((u) => u.accountId === data.accountId) : all;
   return { bundle, units, from, to };
 }
@@ -167,7 +164,6 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
     // Same authoritative reader as the Campaign Overview and the dashboard,
     // so workspace totals always equal the sum of the campaign numbers.
     const { fetchCampaignStats } = await import("@/lib/campaign-stats.server");
-    const { collapseMessageUnits, computeAccountTotals } = await import("@/lib/campaign-stats");
     const sum = (rows: Iterable<import("@/lib/campaign-stats").CampaignStats>) => {
       const total = { ...ZERO };
       for (const s of rows) {
@@ -204,15 +200,14 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
       lo: Date,
       hi: Date,
     ): Promise<AnalyticsSummary> => {
-      const units = Array.from(
-        collapseMessageUnits(bundle.messages, bundle.signals).values(),
-      ).filter((u) => !data.accountId || u.accountId === data.accountId);
+      const units = collapseAnalyticsUnits(bundle.messages, bundle.signals)
+        .filter((u) => !data.accountId || u.accountId === data.accountId);
       const replies = await fetchReplyRows(client, data, lo, hi);
       return {
         ...sum(bundle.byCampaign.values()),
         ...summarizeEngagement(units, lo, hi),
         ...uniqueReplyIntents(replies),
-        ...(data.accountId ? { failed: computeAccountTotals(units, { from: lo, to: hi }).reduce((n, a) => n + a.failed, 0) } : {}),
+        deliveryEventsAvailable: bundle.eventReadAvailable !== false,
       };
     };
 
