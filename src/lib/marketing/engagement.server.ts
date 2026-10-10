@@ -23,22 +23,25 @@ function meta(row: SendRow, key: string): string | null {
 }
 
 async function loadSend(id: string): Promise<SendRow | null> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("marketing_email_events")
     .select("id, email, subscriber_id, campaign_id, automation_id, created_at, metadata")
     .eq("id", id)
     .eq("event_type", "marketing_email_sent")
     .maybeSingle();
+  if (error) throw new Error("marketing_send_lookup_failed");
   return (data as SendRow | null) ?? null;
 }
 
 async function alreadyRecorded(eventType: string, key: string, value: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("marketing_email_events")
     .select("id")
     .eq("event_type", eventType)
     .eq(`metadata->>${key}`, value)
     .limit(1);
+  // Unknown duplicate state: do not write a possibly-duplicate open.
+  if (error) throw new Error("marketing_duplicate_check_failed");
   return (data ?? []).length > 0;
 }
 
@@ -55,10 +58,11 @@ export async function recordMarketingOpen(args: {
   source: string | null;
 }): Promise<void> {
   const send = await loadSend(args.target.sendEventId);
-  if (!send || send.email.toLowerCase() !== args.target.email) return;
+  if (!send || send.email.trim().toLowerCase() !== args.target.email.trim().toLowerCase()) return;
+  // The stored send row, not the token, is the authority for attribution.
   const eventType = args.isPrefetch ? "marketing_email_opened_machine" : "marketing_email_opened";
   if (await alreadyRecorded(eventType, "send_event_id", send.id)) return;
-  await supabaseAdmin.from("marketing_email_events").insert({
+  const { error: insertError } = await supabaseAdmin.from("marketing_email_events").insert({
     event_type: eventType,
     email: send.email,
     subscriber_id: send.subscriber_id,
@@ -71,6 +75,7 @@ export async function recordMarketingOpen(args: {
       source: args.source,
     },
   });
+  if (insertError) throw new Error("marketing_open_insert_failed");
   if (!args.isPrefetch) await refreshStats(send.campaign_id);
 }
 

@@ -36,15 +36,33 @@ export type ClickTrackingTarget = {
 
 export type ClickTrackingHit = ClickTrackingTarget & { url: string };
 
-function secret(): string {
-  return (
-    process.env["CLICK_TRACKING_SECRET"] ||
-    process.env["OPEN_TRACKING_SECRET"] ||
-    process.env["UNSUBSCRIBE_SECRET"] ||
-    process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
-    process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
-    "munchreach-click-tracking"
-  );
+/**
+ * Private server-side signing keys, in the same order the previous code used
+ * (so already-sent links signed with a private key keep verifying). The public
+ * publishable key and the hardcoded literal that used to follow are gone: with
+ * no private key, links are not wrapped and every token is rejected.
+ * `SB_SERVICE_ROLE_KEY` is only consulted last. Never logged.
+ */
+const CLICK_SIGNING_SECRET_ENV = [
+  "CLICK_TRACKING_SECRET",
+  "OPEN_TRACKING_SECRET",
+  "UNSUBSCRIBE_SECRET",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SB_SERVICE_ROLE_KEY",
+] as const;
+const MIN_SECRET_LENGTH = 16;
+
+function secret(): string | null {
+  for (const name of CLICK_SIGNING_SECRET_ENV) {
+    const value = (process.env[name] ?? "").trim();
+    if (value.length >= MIN_SECRET_LENGTH) return value;
+  }
+  return null;
+}
+
+/** True when a private signing key is configured. Never reveals which or its value. */
+export function hasClickTrackingSecret(): boolean {
+  return secret() !== null;
 }
 
 function base64url(value: string): string {
@@ -55,9 +73,16 @@ function fromBase64url(value: string): string {
   return Buffer.from(value, "base64url").toString("utf8");
 }
 
+/** Empty string when no private key is configured; an empty signature never verifies. */
 export function signClickPayload(payload: string): string {
-  return createHmac("sha256", secret()).update(payload).digest("hex").slice(0, 32);
+  const key = secret();
+  if (!key) return "";
+  return createHmac("sha256", key).update(payload).digest("hex").slice(0, 32);
 }
+
+/** `<base64url payload>.<32 hex HMAC>` and nothing else. */
+const CLICK_TOKEN_PATTERN = /^([A-Za-z0-9_-]{1,4096})\.([0-9a-f]{32})$/;
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
 
 /** Opaque, tamper-proof token: `<base64url(json)>.<hmac>`. */
 export function buildClickToken(target: ClickTrackingTarget, url: string): string {
@@ -76,21 +101,32 @@ export function buildClickToken(target: ClickTrackingTarget, url: string): strin
 }
 
 export function parseClickToken(token: string): ClickTrackingHit | null {
-  const [payload, signature] = (token ?? "").split(".");
-  if (!payload || !signature) return null;
+  if (typeof token !== "string") return null;
+  const match = CLICK_TOKEN_PATTERN.exec(token);
+  if (!match) return null;
+  const payload = match[1]!;
+  const signature = match[2]!;
   const expected = signClickPayload(payload);
+  if (!expected) return null; // no private key: fail closed
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    const raw = JSON.parse(fromBase64url(payload)) as Record<string, unknown>;
+    const parsed = JSON.parse(fromBase64url(payload)) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const raw = parsed as Record<string, unknown>;
     const workspaceId = typeof raw["w"] === "string" ? raw["w"] : "";
     const messageId = typeof raw["m"] === "string" ? raw["m"] : "";
     const url = typeof raw["u"] === "string" ? raw["u"] : "";
-    if (!workspaceId || !messageId || !isTrackableDestination(url)) return null;
+    if (!ID_PATTERN.test(workspaceId) || !ID_PATTERN.test(messageId)) return null;
+    if (!isTrackableDestination(url)) return null;
+    let messageKind: ClickTrackingMessageKind;
+    if (raw["k"] === "c") messageKind = "campaign";
+    else if (raw["k"] === "v") messageKind = "conversation";
+    else return null;
     return {
       workspaceId,
-      messageKind: raw["k"] === "v" ? "conversation" : "campaign",
+      messageKind,
       messageId,
       campaignId: typeof raw["p"] === "string" ? raw["p"] : null,
       leadId: typeof raw["l"] === "string" ? raw["l"] : null,
@@ -124,6 +160,9 @@ export function isTrackableDestination(url: string): boolean {
 export function clickUrl(target: ClickTrackingTarget, destination: string): string {
   if (!target.workspaceId || !target.messageId) return destination;
   if (!isTrackableDestination(destination)) return destination;
+  // No private key: leave the real link untouched rather than mint a token
+  // nobody can verify.
+  if (!hasClickTrackingSecret()) return destination;
   return `${clickTrackingBaseUrl()}${CLICK_PATH}?t=${encodeURIComponent(buildClickToken(target, destination))}`;
 }
 

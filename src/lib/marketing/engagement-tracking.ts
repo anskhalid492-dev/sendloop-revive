@@ -20,18 +20,40 @@ export type MarketingOpenTarget = {
   automationId: string | null;
 };
 
-function secret(): string {
-  return (
-    process.env["OPEN_TRACKING_SECRET"] ||
-    process.env["MARKETING_UNSUBSCRIBE_SECRET"] ||
-    process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
-    "munchreach-marketing-open"
-  );
+/**
+ * Private server-side signing keys, in the previous order so already-sent
+ * pixels signed with a private key keep verifying. The hardcoded literal that
+ * used to follow is gone: with no private key, no pixel is added and every
+ * token is rejected. `SB_SERVICE_ROLE_KEY` is only consulted last. Never logged.
+ */
+const MARKETING_SIGNING_SECRET_ENV = [
+  "OPEN_TRACKING_SECRET",
+  "MARKETING_UNSUBSCRIBE_SECRET",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SB_SERVICE_ROLE_KEY",
+] as const;
+const MIN_SECRET_LENGTH = 16;
+
+function secret(): string | null {
+  for (const name of MARKETING_SIGNING_SECRET_ENV) {
+    const value = (process.env[name] ?? "").trim();
+    if (value.length >= MIN_SECRET_LENGTH) return value;
+  }
+  return null;
+}
+
+export function hasMarketingOpenSecret(): boolean {
+  return secret() !== null;
 }
 
 function sign(payload: string): string {
-  return createHmac("sha256", secret()).update(`mkt-open:${payload}`).digest("hex").slice(0, 32);
+  const key = secret();
+  if (!key) return "";
+  return createHmac("sha256", key).update(`mkt-open:${payload}`).digest("hex").slice(0, 32);
 }
+
+const TOKEN_PATTERN = /^([A-Za-z0-9_-]{1,2048})\.([0-9a-f]{32})$/;
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
 
 export function buildMarketingOpenToken(target: MarketingOpenTarget): string {
   const payload = Buffer.from(
@@ -48,17 +70,25 @@ export function buildMarketingOpenToken(target: MarketingOpenTarget): string {
 }
 
 export function parseMarketingOpenToken(token: string): MarketingOpenTarget | null {
-  const [payload, signature] = (token ?? "").split(".");
-  if (!payload || !signature) return null;
+  if (typeof token !== "string") return null;
+  const match = TOKEN_PATTERN.exec(token);
+  if (!match) return null;
+  const payload = match[1]!;
+  const signature = match[2]!;
+  const expected = sign(payload);
+  if (!expected) return null; // no private key: fail closed
   const a = Buffer.from(signature);
-  const b = Buffer.from(sign(payload));
+  const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    const raw = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const raw = parsed as Record<string, unknown>;
     const str = (v: unknown) => (typeof v === "string" && v ? v : null);
     const sendEventId = str(raw["m"]);
     const email = str(raw["e"]);
-    if (!sendEventId || !email) return null;
+    if (!sendEventId || !ID_PATTERN.test(sendEventId)) return null;
+    if (!email || email.length > 320 || !email.includes("@")) return null;
     return {
       sendEventId,
       email,
@@ -71,6 +101,8 @@ export function parseMarketingOpenToken(token: string): MarketingOpenTarget | nu
   }
 }
 
-export function marketingOpenPixelUrl(target: MarketingOpenTarget): string {
+/** `null` when no private key is configured: the email is sent without a pixel. */
+export function marketingOpenPixelUrl(target: MarketingOpenTarget): string | null {
+  if (!hasMarketingOpenSecret()) return null;
   return `${openTrackingBaseUrl()}${MARKETING_OPEN_PATH}?t=${encodeURIComponent(buildMarketingOpenToken(target))}`;
 }
