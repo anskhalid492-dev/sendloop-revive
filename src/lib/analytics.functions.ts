@@ -9,6 +9,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { deliveredCount } from "@/lib/engagement-rates";
+import { summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
+import { fetchAllRows } from "@/lib/supabase-batch";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { SubjectLineRow } from "@/lib/analytics-subject";
@@ -24,8 +26,8 @@ type Client = any;
 
 const rangeInput = z.object({
   workspaceId: z.string().uuid(),
-  from: z.string(),
-  to: z.string(),
+  from: z.string().datetime(),
+  to: z.string().datetime(),
   /** Optional campaign filter shared by every section of the page. */
   campaignId: z.string().uuid().nullish(),
   /** Optional mailbox (sending account) filter. */
@@ -99,6 +101,7 @@ function toSummary(row: Record<string, unknown> | undefined): AnalyticsSummary {
 
 /** Reply rows for the range, honouring the campaign and mailbox filters. */
 async function fetchReplyRows(client: Client, data: RangeInput, from: Date, to: Date) {
+  const build = () => {
   let q = client
     .from("campaign_replies")
     .select("id, campaign_id, sending_account_id, lead_id, from_email, subject, sentiment, received_at")
@@ -106,70 +109,48 @@ async function fetchReplyRows(client: Client, data: RangeInput, from: Date, to: 
     .gte("received_at", from.toISOString())
     .lt("received_at", to.toISOString())
     .order("received_at", { ascending: false })
-    .limit(2000);
+    .order("id", { ascending: false });
   if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
   if (data.accountId) q = q.eq("sending_account_id", data.accountId);
-  const { data: rows, error } = await q;
-  if (error) return [] as Array<Record<string, unknown>>;
-  return (rows ?? []) as Array<Record<string, unknown>>;
+  return q;
+  };
+  return fetchAllRows<Record<string, unknown>>(build);
 }
 
-export type ReplyCategory = "positive" | "neutral" | "negative" | "out_of_office" | "unsubscribe";
+export type ReplyCategory = "positive" | "neutral" | "negative" | "out_of_office" | "unsubscribe" | "unclassified";
 
 /** Map a stored sentiment onto the five reply-intelligence buckets. */
 export function replyCategory(sentiment: unknown): ReplyCategory {
   const value = String(sentiment ?? "").trim().toLowerCase();
+  if (!value || value === "unclassified" || value === "needs_review") return "unclassified";
   if (value.includes("unsub") || value.includes("opt_out") || value.includes("opt-out")) {
     return "unsubscribe";
   }
   if (value.includes("out_of_office") || value.includes("out-of-office") || value === "ooo" || value.includes("auto")) {
     return "out_of_office";
   }
-  if (value.includes("positive") || value.includes("interested") || value.includes("meeting")) {
-    return "positive";
-  }
   if (value.includes("negative") || value.includes("not_interested") || value.includes("reject")) {
     return "negative";
   }
+  if (value === "positive" || value === "interested" || value === "meeting_booked") return "positive";
   return "neutral";
 }
 
 /**
- * Meetings booked in the range. Bookings are recorded on the lead itself
- * (crm_stage opportunity/customer with last_activity_at at booking time) —
- * the same source the dashboard uses — not every booking writes a
- * lead_activities row, so counting activities under-reports.
+ * Recorded booking activities only; mutable CRM status is not a historical event.
+ * Legacy bookings without activities or attribution remain unavailable.
  */
 async function countMeetings(client: Client, data: RangeInput, from: Date, to: Date) {
-  let leadIds: string[] | null = null;
-  if (data.campaignId) {
-    const { data: recipients, error: recErr } = await client
-      .from("campaign_recipients")
-      .select("lead_id")
-      .eq("workspace_id", data.workspaceId)
-      .eq("campaign_id", data.campaignId)
-      .not("lead_id", "is", null);
-    if (recErr) return null;
-    leadIds = [
-      ...new Set(
-        ((recipients ?? []) as Array<{ lead_id: string | null }>)
-          .map((r) => r.lead_id)
-          .filter((id): id is string => typeof id === "string"),
-      ),
-    ];
-    if (leadIds.length === 0) return 0;
-  }
-  let q = client
-    .from("leads")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", data.workspaceId)
-    .in("crm_stage", ["opportunity", "customer"])
-    .gte("last_activity_at", from.toISOString())
-    .lt("last_activity_at", to.toISOString());
-  if (leadIds) q = q.in("id", leadIds);
-  const { count, error } = await q;
-  if (error) return null;
-  return Number(count ?? 0);
+  // Mutable lead status/last_activity_at cannot prove a historical booking.
+  // Legacy activities lack campaign/mailbox attribution; do not invent scoped counts.
+  if (data.campaignId || data.accountId) return null;
+  try {
+    const rows = await fetchAllRows<Record<string, unknown>>(() => client.from("lead_activities")
+      .select("id, lead_id, type, detail, created_at")
+      .eq("workspace_id", data.workspaceId).in("type", ["stage_changed", "meeting_booked"])
+      .gte("created_at", from.toISOString()).lt("created_at", to.toISOString()).order("id"));
+    return new Set(rows.filter(r => r["type"] === "meeting_booked" || /\bto Meeting booked\b/i.test(String(r["detail"] ?? ""))).map(r => r["lead_id"])).size;
+  } catch { return null; }
 }
 
 /** Totals for the selected range plus the immediately preceding range. */
@@ -216,14 +197,6 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
       countMeetings(client, data, from, to),
     ]);
 
-    if (!data.accountId) {
-      return {
-        current: sum(current.byCampaign.values()),
-        previous: sum(previous.byCampaign.values()),
-        meetings,
-      };
-    }
-
     // Mailbox filter: derive the same metrics from the units that belong to
     // that mailbox, and take reply intent from the replies it received.
     const scoped = async (
@@ -233,21 +206,13 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
     ): Promise<AnalyticsSummary> => {
       const units = Array.from(
         collapseMessageUnits(bundle.messages, bundle.signals).values(),
-      ).filter((u) => u.accountId === data.accountId);
-      const totals = computeAccountTotals(units, { from: lo, to: hi })[0];
+      ).filter((u) => !data.accountId || u.accountId === data.accountId);
       const replies = await fetchReplyRows(client, data, lo, hi);
-      const positive = replies.filter((r) => replyCategory(r["sentiment"]) === "positive").length;
       return {
-        ...ZERO,
-        sent: totals?.sent ?? 0,
-        delivered: totals?.delivered ?? 0,
-        opens: totals?.opens ?? 0,
-        clicks: totals?.clicks ?? 0,
-        replies: totals?.replies ?? 0,
-        positiveReplies: positive,
-        bounced: totals?.bounced ?? 0,
-        unsubscribed: totals?.unsubscribed ?? 0,
-        failed: totals?.failed ?? 0,
+        ...sum(bundle.byCampaign.values()),
+        ...summarizeEngagement(units, lo, hi),
+        ...uniqueReplyIntents(replies),
+        ...(data.accountId ? { failed: computeAccountTotals(units, { from: lo, to: hi }).reduce((n, a) => n + a.failed, 0) } : {}),
       };
     };
 
@@ -262,17 +227,12 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
 export const getAnalyticsTimeseries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    rangeInput.extend({ bucket: z.enum(["hour", "day"]).default("day") }).parse(input),
+    z.object({ workspaceId: z.string().uuid(), from: z.string().datetime(), to: z.string().datetime(), campaignId: z.string().uuid().nullish(), accountId: z.string().uuid().nullish(), bucket: z.enum(["hour", "day"]).default("day") }).refine(d => Date.parse(d.to) > Date.parse(d.from), "End date must follow start date").parse(input),
   )
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
-    const { computeTimeseries } = await import("@/lib/campaign-stats");
     const { units, from, to } = await loadUnits(client, data);
-    return computeTimeseries(units, {
-      bucket: data.bucket,
-      from,
-      to,
-    }) as AnalyticsTimeseriesPoint[];
+    return engagementTrend(units, from, to, data.bucket);
   });
 
 
@@ -764,12 +724,13 @@ export const getReplyIntelligence = createServerFn({ method: "POST" })
       negative: 0,
       out_of_office: 0,
       unsubscribe: 0,
+      unclassified: 0,
     };
     // One reply per contact, so a long back-and-forth cannot inflate the split.
     const seen = new Set<string>();
     const deduped: Array<Record<string, unknown>> = [];
     for (const row of rows) {
-      const key = String(row["lead_id"] ?? row["from_email"] ?? row["id"]);
+      const key = String(row["lead_id"] ?? row["from_email"] ?? row["id"]).trim().toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
       deduped.push(row);

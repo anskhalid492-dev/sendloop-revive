@@ -6,6 +6,8 @@
  * webhook retry, a duplicate provider event) resolves to the same conversation
  * and the same message row, and never fires the follow-up automation twice.
  */
+import { classifyProspectReply } from "@/lib/reply-classification";
+import { syncReplyCrm } from "@/lib/reply-crm.server";
 import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
@@ -643,14 +645,14 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   if (messageId) {
     const { data: existing } = await db
       .from("conversation_messages")
-      .select("id, conversation_id")
+      .select("id, conversation_id, body")
       .eq("workspace_id", workspaceId)
       .eq("message_id", messageId)
       .maybeSingle();
     if (existing) {
       const { data: existingConversation } = await db
         .from("conversations")
-        .select("lead_id, campaign_id, sending_account_id")
+        .select("lead_id, campaign_id, sending_account_id, status")
         .eq("id", existing.conversation_id)
         .maybeSingle();
       const repair = await db
@@ -658,6 +660,21 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
         .update({ has_inbound: true, last_inbound_at: receivedIso, archived: false })
         .eq("id", existing.conversation_id);
       if (repair.error) return { status: "unmatched", reason: repair.error.message };
+      // Only replay work explicitly recorded by this version; historical replies are untouched.
+      const { data: processing, error: processingError } = await db.from("conversation_events").select("type, detail").eq("workspace_id", workspaceId).eq("conversation_id", existing.conversation_id).in("dedupe_key", [`classification:${existing.id}`, `processed:${existing.id}`]);
+      if (processingError) return { status: "unmatched", reason: "Reply recovery state could not be read" };
+      const pending = processing?.find(e => e.type === "reply_classified");
+      if (pending && !processing?.some(e => e.type === "reply_processed")) {
+        const saved = JSON.parse(pending.detail ?? "{}") as { status: ConversationStatus | null; category: string; leadId: string | null; campaignId: string | null; campaignMessage: CampaignMessageRow | null; prospect: string; subject: string; receivedIso: string; replyBody: string };
+        const { data: correction } = await db.from("conversation_events").select("id").eq("workspace_id", workspaceId).eq("conversation_id", existing.conversation_id).eq("type", "updated").not("actor_id", "is", null).gte("created_at", saved.receivedIso).ilike("detail", "Manual classification:%").limit(1);
+        if (correction?.length && existingConversation?.status) {
+          const { sentimentForStatus } = await import("@/lib/positive-reply-sentiment");
+          saved.category = sentimentForStatus(existingConversation.status) ?? "unclassified";
+          // Compliance is never undone by a correction.
+          if (saved.status !== "unsubscribed") saved.status = existingConversation.status as ConversationStatus;
+        }
+        await applyReplyAutomation({ db, workspaceId, conversationId: existing.conversation_id, leadId: saved.leadId, campaignId: saved.campaignId, campaignMessage: saved.campaignMessage, prospect: saved.prospect, subject: saved.subject, detected: saved.status, receivedIso: saved.receivedIso, replyBody: existing.body ?? "", dedupeKey: messageId, inboundMessageId: existing.id, sentiment: saved.category });
+      }
       return {
         status: "duplicate",
         conversationId: existing.conversation_id,
@@ -676,7 +693,8 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       .from("leads")
       .select("id")
       .eq("workspace_id", workspaceId)
-      .eq("email", prospect)
+      .ilike("email", prospect.replace(/[\\%_]/g, c => `\\${c}`))
+      .limit(1)
       .maybeSingle();
     leadId = lead?.id ?? null;
   }
@@ -758,17 +776,22 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
   if (attribution.attributed && !leadId) {
     // A confidently attributed reply from someone not yet in the database gets
     // a CRM contact so the conversation has a record to hang activity off.
-    const { data: created } = await db
+    const { data: created, error: createError } = await db
       .from("leads")
-      .insert({
+      .upsert({
         workspace_id: workspaceId,
         email: prospect,
         status: "replied",
         lead_source: "inbound_reply",
-      })
+      }, { onConflict: "workspace_id,email", ignoreDuplicates: true })
       .select("id")
       .maybeSingle();
+    if (createError) return { status: "unmatched", reason: "CRM contact could not be linked" };
     leadId = created?.id ?? null;
+    if (!leadId) {
+      const { data: existingLead } = await db.from("leads").select("id").eq("workspace_id", workspaceId).eq("email", prospect).maybeSingle();
+      leadId = existingLead?.id ?? null;
+    }
   }
 
   const { data: upserted, error: convError } = routedConversation
@@ -860,7 +883,16 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     return { status: "unmatched", reason: insertError.message };
   }
 
-  const detected: ConversationStatus | null = classifyInbound(subject, body, email.headers ?? null);
+  const classification = classifyProspectReply(body, email.headers ?? null);
+  const detected: ConversationStatus | null = classification.status;
+  if (attribution.attributed) {
+    const { error: classificationError } = await db.from("conversation_events").insert({
+      workspace_id: workspaceId, conversation_id: conversation.id,
+      type: "reply_classified", dedupe_key: `classification:${inserted.id}`,
+      detail: JSON.stringify({ ...classification, classifiedAt: receivedIso, inboundMessageId: inserted.id, leadId, campaignId: attributedCampaignId, campaignMessage: attributedMessage, prospect, subject, receivedIso }),
+    });
+    if (classificationError && classificationError.code !== "23505") return { status: "unmatched", reason: "Reply classification metadata could not be saved" };
+  }
   // Reply sentiment only moves a thread that belongs to a campaign.
   const nextStatus =
     attribution.attributed && conversation.status === "lead" && detected
@@ -905,6 +937,8 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       detected,
       receivedIso,
       dedupeKey: messageId ?? inserted.id,
+      inboundMessageId: inserted.id,
+      sentiment: classification.category,
       replyBody: body,
     });
   }
@@ -973,58 +1007,23 @@ async function applyReplyAutomation(args: {
   receivedIso: string;
   dedupeKey: string;
   replyBody: string;
+  inboundMessageId: string;
+  sentiment: string;
 }) {
   const { db, workspaceId, conversationId, leadId, campaignId, campaignMessage } = args;
 
-  const leadStatus =
-    args.detected === "bounced"
-      ? "bounced"
-      : args.detected === "unsubscribed"
-        ? "unsubscribed"
-        : args.detected === "not_interested"
-          ? "not_interested"
-          : args.detected === "interested"
-            ? "interested"
-            : "replied";
-
-  if (leadId) {
-    // A reply moves the contact into the "Replied" stage, but never drags a
-    // contact backwards out of a later stage a human already set.
-    const { data: stages } = await db
-      .from("crm_stages")
-      .select("id, key, position")
-      .eq("workspace_id", workspaceId)
-      .order("position", { ascending: true });
-    const repliedStage = (stages ?? []).find((s: { key: string }) => s.key === "replied");
-    const { data: leadRow } = await db
-      .from("leads")
-      .select("stage_id")
-      .eq("id", leadId)
-      .maybeSingle();
-    const currentPosition =
-      (stages ?? []).find((s: { id: string }) => s.id === leadRow?.stage_id)?.position ?? -1;
-    const advance =
-      repliedStage && currentPosition < repliedStage.position ? repliedStage.id : undefined;
-
-    await db
-      .from("leads")
-      .update({
-        status: leadStatus,
-        last_activity_at: args.receivedIso,
-        ...(advance ? { stage_id: advance } : {}),
-      })
-      .eq("id", leadId);
-
-    await db.from("lead_activities").insert({
-      lead_id: leadId,
-      workspace_id: workspaceId,
-      campaign_id: campaignId,
-      type: "replied",
-      detail: `Reply from ${args.prospect}${args.subject ? ` — ${args.subject}` : ""}`,
-      created_at: args.receivedIso,
-    });
+  // Explicit opt-outs precede CRM work and are retried if persistence fails.
+  if (args.detected === "unsubscribed") {
+    const { error: suppressionError } = await db.from("email_suppressions").upsert({ workspace_id: workspaceId, email: args.prospect, reason: "unsubscribe", source: "inbound_reply", detail: args.subject || null }, { onConflict: "workspace_id,email", ignoreDuplicates: true });
+    if (suppressionError) throw new Error(`Reply suppression failed: ${suppressionError.message}`);
+    if (leadId) {
+      const { error: cancelError } = await db.from("campaign_messages").update({ status: "cancelled", cancelled_reason: "recipient_unsubscribed" } as never).eq("workspace_id", workspaceId).eq("lead_id", leadId).in("status", ["pending", "scheduled"]);
+      if (cancelError) throw new Error(`Reply opt-out cancellation failed: ${cancelError.message}`);
+    }
   }
 
+  // Original message is already durable; a failed CRM write is safe to replay.
+  if (leadId) await syncReplyCrm(db, { ...args, leadId });
 
   let stopOnReply = true;
   if (campaignId) {
@@ -1032,22 +1031,26 @@ async function applyReplyAutomation(args: {
       .from("campaigns")
       .select("stop_on_reply, name")
       .eq("id", campaignId)
+      .eq("workspace_id", workspaceId)
       .maybeSingle();
     stopOnReply = campaign?.stop_on_reply ?? true;
   }
 
   if (campaignId && leadId) {
-    await db
+    const { error: recipientError } = await db
       .from("campaign_recipients")
       .update({ status: "replied", ...(stopOnReply ? { next_send_at: null } : {}) })
+      .eq("workspace_id", workspaceId)
       .eq("campaign_id", campaignId)
       .eq("lead_id", leadId);
+    if (recipientError) throw new Error(`Reply recipient update failed: ${recipientError.message}`);
 
     // Mark the most recent send to this lead as replied so campaign metrics
     // read the reply straight off the message state.
     const { data: lastSend } = await db
       .from("campaign_messages")
       .select("id, status, delivery_status")
+      .eq("workspace_id", workspaceId)
       .eq("campaign_id", campaignId)
       .eq("lead_id", leadId)
       .not("sent_at", "is", null)
@@ -1060,12 +1063,14 @@ async function applyReplyAutomation(args: {
 
 
     if (stopOnReply) {
-      await db
+      const { error: stopError } = await db
         .from("campaign_messages")
         .update({ status: "cancelled", cancelled_reason: "recipient_replied" } as never)
+        .eq("workspace_id", workspaceId)
         .eq("campaign_id", campaignId)
         .eq("lead_id", leadId)
         .in("status", ["pending", "scheduled"]);
+      if (stopError) throw new Error(`Reply follow-up stop failed: ${stopError.message}`);
     }
   }
 
@@ -1103,63 +1108,15 @@ async function applyReplyAutomation(args: {
       sentiment: args.detected ?? null,
     });
 
-    // One stored reply per inbound email: a webhook retry or a second sync
-    // pass of the same message must never inflate the reply count.
-    const { data: alreadyLogged } = await db
-      .from("campaign_replies")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("campaign_id", campaignId)
-      .eq("lead_id", leadId)
-      .eq("received_at", args.receivedIso)
-      .limit(1);
-
-    if (!alreadyLogged?.length) {
-      await db.from("campaign_replies").insert({
-        workspace_id: workspaceId,
-        campaign_id: campaignId,
-        message_id: campaignMessage?.id ?? null,
-        lead_id: leadId,
-        sending_account_id: campaignMessage?.sending_account_id ?? null,
-        from_email: args.prospect,
-        to_email: null,
-        subject: args.subject || null,
-        body: args.replyBody,
-        sentiment: replySentimentFor(args.detected),
-        received_at: args.receivedIso,
-      });
-    }
-  }
-
-  // An explicit opt-out suppresses the contact for every future campaign.
-  if (args.detected === "unsubscribed") {
-    try {
-      const { data: suppressed } = await db
-        .from("email_suppressions")
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .eq("email", args.prospect)
-        .limit(1);
-      if (!suppressed?.length) {
-        await db.from("email_suppressions").insert({
-          workspace_id: workspaceId,
-          email: args.prospect,
-          reason: "unsubscribe",
-          source: "inbound_reply",
-          detail: args.subject || null,
-        });
-      }
-      if (campaignId && leadId) {
-        await db
-          .from("campaign_messages")
-          .update({ status: "cancelled", cancelled_reason: "recipient_unsubscribed" } as never)
-          .eq("workspace_id", workspaceId)
-          .eq("lead_id", leadId)
-          .in("status", ["pending", "scheduled"]);
-      }
-    } catch {
-      /* suppression is best-effort; the reply itself must always be stored */
-    }
+    // The inbound message UUID is the reply UUID: concurrent retries cannot insert twice.
+    const { error: replyError } = await db.from("campaign_replies").upsert({
+      id: args.inboundMessageId,
+      workspace_id: workspaceId, campaign_id: campaignId, message_id: campaignMessage?.id ?? null,
+      lead_id: leadId, sending_account_id: campaignMessage?.sending_account_id ?? null,
+      from_email: args.prospect, subject: args.subject || null, body: args.replyBody,
+      sentiment: args.sentiment, received_at: args.receivedIso,
+    }, { onConflict: "id", ignoreDuplicates: true });
+    if (replyError) throw new Error(`Reply log failed: ${replyError.message}`);
   }
 
 
@@ -1240,6 +1197,9 @@ async function applyReplyAutomation(args: {
       await notifyPositiveReply(payload);
     }
   }
+  const { error: completeError } = await db.from("conversation_events").insert({ workspace_id: workspaceId, conversation_id: conversationId, type: "reply_processed", dedupe_key: `processed:${args.inboundMessageId}`, detail: "Classification and CRM synchronization completed" });
+  if (completeError && completeError.code !== "23505") throw new Error(`Reply completion failed: ${completeError.message}`);
+
 }
 
 /**

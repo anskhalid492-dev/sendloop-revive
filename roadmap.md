@@ -1,5 +1,12 @@
 # Roadmap
 
+## Analytics and automatic prospect replies
+- [x] Audit analytics calculations, theme, inbound classification, CRM and queue integration.
+- [x] Upgrade engagement chart and metric cards using shared filters and accurate data.
+- [x] Harden automatic classification, manual overrides, compliance and idempotent CRM sync.
+- [x] Run 180 isolated regression tests and rendered UI checks; report limitations without publishing (docs/analytics-reply-upgrade-report.md).
+- [ ] Complete authenticated visual/RLS and database-backed recovery checks before publishing.
+
 ## Homepage hero presentation
 - [x] Integrate genuine review-platform links above a centered headline and remove the standalone homepage review strip.
 - [x] Verify the unchanged copy, links and product visualization on desktop, tablet and mobile.

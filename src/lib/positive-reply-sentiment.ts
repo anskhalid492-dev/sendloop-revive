@@ -18,6 +18,9 @@ const STATUS_SENTIMENT: Record<string, ReplySentimentValue> = {
   not_interested: "negative",
   ooo: "out_of_office",
   out_of_office: "out_of_office",
+  lead: "neutral",
+  replied: "neutral",
+  unsubscribed: "negative",
 };
 
 /** Returns the sentiment a status implies, or null when it implies nothing. */

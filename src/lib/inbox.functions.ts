@@ -493,11 +493,17 @@ export const updateConversation = createServerFn({ method: "POST" })
       }
     }
 
+    // An explicit correction also applies when the lead already had that status.
+    if (data.status && leadId) {
+      const { syncLeadReplySentiment } = await import("@/lib/positive-reply-sentiment.server");
+      await syncLeadReplySentiment(context.supabase, leadId, data.status);
+    }
+
     await context.supabase.from("conversation_events").insert({
       conversation_id: data.id,
       workspace_id: updated.workspace_id,
       type: "updated",
-      detail: Object.keys(patch).join(", "),
+      detail: data.status ? `Manual classification: ${data.status}; ${Object.keys(patch).join(", ")}` : Object.keys(patch).join(", "),
       actor_id: context.userId,
     });
 

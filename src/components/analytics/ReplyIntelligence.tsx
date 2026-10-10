@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsKeys, liveQueryOptions } from "@/lib/analytics-query";
 import { getReplyIntelligence } from "@/lib/analytics.functions";
@@ -8,14 +9,16 @@ import { filterPayload, type AnalyticsFilters } from "@/lib/analytics-filters";
 import { formatCount, formatPct, rate } from "@/lib/analytics-model";
 
 const CATEGORIES = [
-  { key: "positive", label: "Positive", bar: "bg-emerald-500" },
-  { key: "neutral", label: "Neutral", bar: "bg-sky-500" },
+  { key: "unclassified", label: "Needs review", bar: "bg-muted-foreground" },
+  { key: "positive", label: "Positive", bar: "bg-success" },
+  { key: "neutral", label: "Neutral", bar: "bg-primary" },
   { key: "negative", label: "Negative", bar: "bg-destructive" },
-  { key: "out_of_office", label: "Out of office", bar: "bg-violet-500" },
-  { key: "unsubscribe", label: "Unsubscribe", bar: "bg-amber-500" },
+  { key: "out_of_office", label: "Out of office", bar: "bg-chart-5" },
+  { key: "unsubscribe", label: "Unsubscribe", bar: "bg-warning" },
 ] as const;
 
 const LABELS: Record<string, string> = {
+  unclassified: "Needs review",
   positive: "Positive",
   neutral: "Neutral",
   negative: "Negative",
@@ -51,7 +54,7 @@ export function ReplyIntelligence({ filters }: { filters: AnalyticsFilters }) {
 
       {query.isLoading ? (
         <Skeleton className="mt-3 h-40 w-full rounded-xl" />
-      ) : total === 0 ? (
+      ) : query.isError ? (<div role="alert" className="flex items-center justify-between gap-3 py-5 text-sm"><p>Reply data could not be loaded.</p><Button variant="outline" size="sm" onClick={() => void query.refetch()}>Retry</Button></div>) : total === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           No replies in this range yet.
         </p>
