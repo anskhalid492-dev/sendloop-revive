@@ -10,8 +10,10 @@ WHERE event_type IN ('marketing_email_opened', 'marketing_email_opened_machine')
   AND metadata ? 'send_event_id'
 GROUP BY 1, 2 HAVING count(*) > 1 LIMIT 50;
 
--- 2) Index (CONCURRENTLY avoids locking writes; run outside a transaction).
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS marketing_email_events_open_once_per_send
+-- 2) Index. The Supabase SQL editor runs statements inside a transaction, where
+--    CREATE INDEX CONCURRENTLY is not allowed, so this uses a plain index build.
+--    It takes a brief write lock on the table while building.
+CREATE UNIQUE INDEX IF NOT EXISTS marketing_email_events_open_once_per_send
   ON public.marketing_email_events (event_type, (metadata->>'send_event_id'))
   WHERE event_type IN ('marketing_email_opened', 'marketing_email_opened_machine')
     AND metadata ? 'send_event_id';
