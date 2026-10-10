@@ -11,6 +11,7 @@ import { z } from "zod";
 import { deliveredCount } from "@/lib/engagement-rates";
 import { collapseAnalyticsUnits, summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
 import { fetchAllRows } from "@/lib/supabase-batch";
+import { scopeAnalyticsQuery } from "@/lib/analytics-filters";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { SubjectLineRow } from "@/lib/analytics-subject";
@@ -406,17 +407,12 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
     let rows: FunnelDrilldownRow[] = [];
 
     if (data.step === "sent") {
-      let q = client
+      const q = scopeAnalyticsQuery(client
         .from("campaign_messages")
         .select("id, lead_id, campaign_id, to_email, sent_at")
-        .eq("workspace_id", data.workspaceId)
         .eq("status", "sent")
-        .gte("sent_at", from)
-        .lt("sent_at", to)
         .order("sent_at", { ascending: false })
-        .limit(data.limit);
-      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
-      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
+        .limit(data.limit), data, "sent_at");
       const { data: msgs, error } = await q;
       if (error) throw new Error(error.message);
       rows = ((msgs ?? []) as Record<string, unknown>[]).map((m) => ({
@@ -430,16 +426,11 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
         occurredAt: String(m["sent_at"]),
       }));
     } else if (data.step === "replies") {
-      let q = client
+      const q = scopeAnalyticsQuery(client
         .from("campaign_replies")
         .select("id, lead_id, campaign_id, from_email, received_at")
-        .eq("workspace_id", data.workspaceId)
-        .gte("received_at", from)
-        .lt("received_at", to)
         .order("received_at", { ascending: false })
-        .limit(data.limit);
-      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
-      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
+        .limit(data.limit), data, "received_at");
       const { data: reps, error } = await q;
       if (error) throw new Error(error.message);
       const seen = new Set<string>();
@@ -460,17 +451,12 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
       }
     } else {
       const eventType = data.step === "delivered" ? "delivered" : "opened";
-      let q = client
+      const q = scopeAnalyticsQuery(client
         .from("email_engagement_events")
         .select("id, lead_id, campaign_id, message_id, recipient_email, occurred_at")
-        .eq("workspace_id", data.workspaceId)
         .eq("event_type", eventType)
-        .gte("occurred_at", from)
-        .lt("occurred_at", to)
         .order("occurred_at", { ascending: false })
-        .limit(data.limit * 3);
-      if (data.campaignId) q = q.eq("campaign_id", data.campaignId);
-      if (data.accountId) q = q.eq("sending_account_id", data.accountId);
+        .limit(data.limit * 3), data, "occurred_at");
       const { data: evs, error } = await q;
       if (error) throw new Error(error.message);
       // Same dedupe key the aggregation RPCs use: message_id, else recipient.
