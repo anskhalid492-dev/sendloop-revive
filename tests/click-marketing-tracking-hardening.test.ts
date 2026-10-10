@@ -216,7 +216,7 @@ describe("marketing open signing", () => {
   });
 });
 
-function marketingDb(opts: { send?: Record<string, unknown> | null; existing?: boolean; dupError?: boolean; insertError?: boolean }) {
+function marketingDb(opts: { send?: Record<string, unknown> | null; existing?: boolean; dupError?: boolean; insertError?: boolean; uniqueViolation?: boolean }) {
   const inserts: unknown[] = [];
   const chain = (result: unknown) => {
     const c: Record<string, unknown> = {};
@@ -230,7 +230,7 @@ function marketingDb(opts: { send?: Record<string, unknown> | null; existing?: b
       select: () => chain({ data: opts.send ?? null, error: null }),
       insert: async (v: unknown) => {
         inserts.push(v);
-        return { error: opts.insertError ? { message: "x" } : null };
+        return { error: opts.uniqueViolation ? { code: "23505", message: "dup" } : opts.insertError ? { message: "x" } : null };
       },
     }),
   };
@@ -267,5 +267,14 @@ describe("marketing open recording", () => {
     inserts = marketingDb({ send, insertError: true });
     mod = await import("@/lib/marketing/engagement.server");
     await expect(mod.recordMarketingOpen({ target: tgt, isPrefetch: false, source: null })).rejects.toThrow("marketing_open_insert_failed");
+  });
+});
+
+describe("concurrent duplicate marketing opens", () => {
+  it("treats a unique-index rejection as an already-recorded open", async () => {
+    const inserts = marketingDb({ send, uniqueViolation: true });
+    const { recordMarketingOpen } = await import("@/lib/marketing/engagement.server");
+    await expect(recordMarketingOpen({ target: tgt, isPrefetch: false, source: null })).resolves.toBeUndefined();
+    expect(inserts).toHaveLength(1);
   });
 });

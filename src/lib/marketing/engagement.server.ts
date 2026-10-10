@@ -75,7 +75,12 @@ export async function recordMarketingOpen(args: {
       source: args.source,
     },
   });
-  if (insertError) throw new Error("marketing_open_insert_failed");
+  if (insertError) {
+    // A concurrent request already recorded this open; once the proposed
+    // unique index is applied the database rejects the second write (23505).
+    if ((insertError as { code?: string }).code === "23505") return;
+    throw new Error("marketing_open_insert_failed");
+  }
   if (!args.isPrefetch) await refreshStats(send.campaign_id);
 }
 
