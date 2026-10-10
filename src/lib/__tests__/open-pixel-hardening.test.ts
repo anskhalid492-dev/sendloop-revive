@@ -39,7 +39,7 @@ describe("pixel token reading", () => {
     expect(parseOpenToken(`${payload}.${signOpenPayload(payload)}`)).toBeNull();
   });
   it("fails closed when only a public signing key is available", () => {
-    for (const key of ["OPEN_TRACKING_SECRET", "UNSUBSCRIBE_SECRET", "SUPABASE_SERVICE_ROLE_KEY"]) vi.stubEnv(key, "");
+    for (const key of ["OPEN_TRACKING_SECRET", "UNSUBSCRIBE_SECRET", "SUPABASE_SERVICE_ROLE_KEY", "SB_SERVICE_ROLE_KEY"]) vi.stubEnv(key, "");
     vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "throwaway-public-key");
     const payload = Buffer.from(JSON.stringify({ w: target.workspaceId, m: target.messageId, k: "c" })).toString("base64url");
     // A public value must not authorize writes, even if an attacker signs with it.
