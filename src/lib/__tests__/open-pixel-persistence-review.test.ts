@@ -17,6 +17,7 @@ const fixture = vi.hoisted(() => {
   };
 });
 
+const IS_NULL = vi.hoisted(() => Symbol("is-null"));
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     from(table: string) {
@@ -29,7 +30,14 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         if (failure) return { data: null, error: { message: failure } };
         const row = fixture.rows.get(`${table}:${String(filters["id"])}`);
         if (operation === "read") return { data: row ? { ...row } : null, error: null };
-        if (operation === "update" && row && value) Object.assign(row, value);
+        if (operation === "update") {
+          // Behave like PostgREST: apply only when every filter matches and
+          // return the affected rows, so compare-and-swap writes are realistic.
+          const matches = !!row && Object.entries(filters).every(([key, expected]) =>
+            expected === IS_NULL ? row[key] == null : row[key] === expected);
+          if (matches && row && value) Object.assign(row, value);
+          return { data: matches && row ? [{ id: row["id"] }] : [], error: null };
+        }
         if (operation === "upsert" && value) {
           const key = String(value["external_id"]);
           if (!fixture.engagement.has(key)) fixture.engagement.set(key, value);
@@ -39,6 +47,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
       const builder = {
         select: () => builder,
         eq: (key: string, val: unknown) => { filters[key] = val; return builder; },
+        is: (key: string, val: unknown) => { filters[key] = val === null ? IS_NULL : val; return builder; },
         maybeSingle: execute,
         insert: (val: Record<string, unknown>) => { operation = "insert"; value = val; return builder; },
         update: (val: Record<string, unknown>) => { operation = "update"; value = val; return builder; },
