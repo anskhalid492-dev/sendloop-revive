@@ -10,7 +10,7 @@ const fixture = vi.hoisted(() => {
   return {
     workspaceId, messageId, campaignId,
     rows: new Map<string, Record<string, unknown>>(),
-    calls: [] as { table: string; operation: string; value?: Record<string, unknown>; filters: Record<string, unknown> }[],
+    calls: [] as { table: string; operation: string; value: Record<string, unknown> | undefined; filters: Record<string, unknown> }[],
     failures: new Map<string, string>(),
     engagement: new Map<string, Record<string, unknown>>(),
     emit: vi.fn(async (_args: { idempotencyKey: string }) => ({ runs: 0 })),
@@ -27,11 +27,11 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         fixture.calls.push({ table, operation, value, filters: { ...filters } });
         const failure = fixture.failures.get(`${table}:${operation}`);
         if (failure) return { data: null, error: { message: failure } };
-        const row = fixture.rows.get(`${table}:${String(filters.id)}`);
+        const row = fixture.rows.get(`${table}:${String(filters["id"])}`);
         if (operation === "read") return { data: row ? { ...row } : null, error: null };
         if (operation === "update" && row && value) Object.assign(row, value);
         if (operation === "upsert" && value) {
-          const key = String(value.external_id);
+          const key = String(value["external_id"]);
           if (!fixture.engagement.has(key)) fixture.engagement.set(key, value);
         }
         return { data: null, error: null };
@@ -90,7 +90,7 @@ describe("open persistence pre-deployment review", () => {
     expect(await recordOpenHit({ target: addConversation() })).toMatchObject({ recorded: true });
     expect(fixture.engagement.size).toBe(0);
     expect(fixture.emit).not.toHaveBeenCalled();
-    expect(writes().find((call) => call.table === "email_open_events")?.value?.campaign_id).toBeNull();
+    expect(writes().find((call) => call.table === "email_open_events")?.value?.["campaign_id"]).toBeNull();
   });
   it("does not trust unsupported campaign hints on an unlinked conversation", async () => {
     await recordOpenHit({ target: { ...addConversation(), campaignId: fixture.campaignId, leadId: "unverified-lead" } });
@@ -102,19 +102,19 @@ describe("open persistence pre-deployment review", () => {
     fixture.rows.set(`campaign_messages:${secondId}`, campaignRow(secondId, secondCampaign));
     await recordOpenHit({ target });
     await recordOpenHit({ target: { ...target, messageId: secondId, campaignId: fixture.campaignId } });
-    expect([...fixture.engagement.values()].map((row) => row.campaign_id)).toEqual([fixture.campaignId, secondCampaign]);
+    expect([...fixture.engagement.values()].map((row) => row["campaign_id"])).toEqual([fixture.campaignId, secondCampaign]);
   });
   it("keeps sequential repeated requests raw but unique campaign opens deduplicated", async () => {
     await recordOpenHit({ target }); await recordOpenHit({ target });
     expect(writes().filter((call) => call.table === "email_open_events")).toHaveLength(2);
     expect(fixture.engagement.size).toBe(1);
-    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.open_count).toBe(2);
+    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["open_count"]).toBe(2);
     expect(fixture.emit.mock.calls.map(([args]) => args.idempotencyKey)).toEqual([`email.opened:open:pixel:${fixture.messageId}`, `email.opened:open:pixel:${fixture.messageId}`]);
   });
   it("does not lose raw count increments on concurrent duplicate requests", async () => {
     await Promise.all([recordOpenHit({ target }), recordOpenHit({ target })]);
     expect(fixture.engagement.size).toBe(1);
-    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.open_count).toBe(2);
+    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["open_count"]).toBe(2);
   });
   it("reports campaign read errors without writing", async () => {
     fixture.failures.set("campaign_messages:read", "synthetic read failure");
@@ -150,14 +150,15 @@ describe("open persistence pre-deployment review", () => {
   it("keeps privacy-prefetch events raw but out of unique engagement", async () => {
     expect(await recordOpenHit({ target, userAgent: "AppleMailProxy" })).toMatchObject({ recorded: true, isPrefetch: true });
     expect(fixture.engagement.size).toBe(0);
-    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.opened_at).toBeNull();
+    expect(fixture.rows.get(`campaign_messages:${fixture.messageId}`)?.["opened_at"]).toBeNull();
     expect(fixture.emit).not.toHaveBeenCalled();
   });
   it("does not leak sensitive values carried inside database errors", async () => {
     const canary = "throwaway-sensitive-recipient@example.test";
     fixture.failures.set("email_open_events:insert", `failure details ${canary}`);
     await recordOpenHit({ target });
-    expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain(canary);
+    const logged = vi.mocked(console.warn).mock.calls.flat().map((item) => item instanceof Error ? item.message : String(item)).join(" ");
+    expect(logged).not.toContain(canary);
   });
   it("serves the same pixel for invalid signatures without any database call", async () => {
     const [payload] = buildOpenToken(target).split(".");
