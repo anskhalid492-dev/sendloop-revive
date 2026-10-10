@@ -18,4 +18,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS marketing_email_events_open_once_per_send
   WHERE event_type IN ('marketing_email_opened', 'marketing_email_opened_machine')
     AND metadata ? 'send_event_id';
 
--- Rollback: DROP INDEX CONCURRENTLY IF EXISTS public.marketing_email_events_open_once_per_send;
+-- Rollback: DROP INDEX IF EXISTS public.marketing_email_events_open_once_per_send;
