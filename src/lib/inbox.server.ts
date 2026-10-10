@@ -652,7 +652,7 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     if (existing) {
       const { data: existingConversation } = await db
         .from("conversations")
-        .select("lead_id, campaign_id, sending_account_id")
+        .select("lead_id, campaign_id, sending_account_id, status")
         .eq("id", existing.conversation_id)
         .maybeSingle();
       const repair = await db
@@ -666,6 +666,13 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
       const pending = processing?.find(e => e.type === "reply_classified");
       if (pending && !processing?.some(e => e.type === "reply_processed")) {
         const saved = JSON.parse(pending.detail ?? "{}") as { status: ConversationStatus | null; category: string; leadId: string | null; campaignId: string | null; campaignMessage: CampaignMessageRow | null; prospect: string; subject: string; receivedIso: string; replyBody: string };
+        const { data: correction } = await db.from("conversation_events").select("id").eq("workspace_id", workspaceId).eq("conversation_id", existing.conversation_id).eq("type", "updated").not("actor_id", "is", null).gte("created_at", saved.receivedIso).ilike("detail", "Manual classification:%").limit(1);
+        if (correction?.length && existingConversation?.status) {
+          const { sentimentForStatus } = await import("@/lib/positive-reply-sentiment");
+          saved.category = sentimentForStatus(existingConversation.status) ?? "unclassified";
+          // Compliance is never undone by a correction.
+          if (saved.status !== "unsubscribed") saved.status = existingConversation.status as ConversationStatus;
+        }
         await applyReplyAutomation({ db, workspaceId, conversationId: existing.conversation_id, leadId: saved.leadId, campaignId: saved.campaignId, campaignMessage: saved.campaignMessage, prospect: saved.prospect, subject: saved.subject, detected: saved.status, receivedIso: saved.receivedIso, replyBody: existing.body ?? "", dedupeKey: messageId, inboundMessageId: existing.id, sentiment: saved.category });
       }
       return {
