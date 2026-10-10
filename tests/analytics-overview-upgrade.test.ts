@@ -82,8 +82,8 @@ describe("analytics overview actual units", () => {
   });
   it("preserves the existing open-rate denominator rather than using contacted or failures", () => {
     // Arithmetic illustration only, not a claim about the reported production bounce count.
-    expect(openRate({ sent: 1266, bounced: 50, delivered: 0, opens: 170 })).toBeCloseTo(13.980263, 5);
-    expect(openRate({ sent: 1266, bounced: 0, delivered: 0, opens: 170 })).toBeCloseTo(13.42812, 5);
+    expect(openRate({ sent: 1266, bounced: 50, delivered: 0, opens: 170 })).toBe(14);
+    expect(openRate({ sent: 1266, bounced: 0, delivered: 0, opens: 170 })).toBe(13.4);
   });
   it("uses exact inclusive-start/exclusive-end timestamps for every summary series", () => {
     const collapsed = collapseAnalyticsUnits([
