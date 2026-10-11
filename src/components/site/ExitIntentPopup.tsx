@@ -51,7 +51,7 @@ export function ExitIntentPopup({ enabled }: { enabled: boolean }) {
         <DialogPrimitive.Overlay className="exit-intent-overlay fixed inset-0 z-[100] motion-safe:data-[state=open]:animate-in motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 duration-200" />
         <DialogPrimitive.Content className="exit-intent-popup fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] max-w-[580px] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl px-6 pb-7 pt-14 text-center sm:px-10 sm:pb-8 sm:pt-16 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=open]:zoom-in-95 motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 duration-200">
           <DialogClose asChild>
-            <Button variant="ghost" size="icon" aria-label="Close popup" className="absolute right-3 top-3 rounded-full">
+            <Button variant="ghost" size="icon" aria-label="Close popup" className="absolute right-3 top-3 rounded-full border border-primary/25 text-muted-foreground hover:border-primary/50 hover:bg-primary/10 hover:text-primary">
               <X aria-hidden="true" />
             </Button>
           </DialogClose>
@@ -68,7 +68,7 @@ export function ExitIntentPopup({ enabled }: { enabled: boolean }) {
             </a>
           </Button>
           <DialogClose asChild>
-            <Button variant="ghost" className="mt-3 h-10 text-sm text-muted-foreground">Maybe later</Button>
+            <Button variant="ghost" className="mt-3 h-10 text-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">Maybe later</Button>
           </DialogClose>
         </DialogPrimitive.Content>
       </DialogPortal>
