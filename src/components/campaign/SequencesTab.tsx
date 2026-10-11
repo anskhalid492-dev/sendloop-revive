@@ -220,24 +220,28 @@ export function SequencesTab({
     onMouseUp: () => rememberSelection(field),
   });
 
-  const insertToken = (token: string) => {
+  const insertSnippet = (snippet: string, bodyOnly = false) => {
     if (!step) return;
-    const snippet = variableSnippet(token);
-    const { field } = selectionRef.current;
+    let sel = selectionRef.current;
+    if (bodyOnly && sel.field !== "body") {
+      sel = { field: "body", start: editingBody.length, end: editingBody.length };
+    }
+    const { field } = sel;
     const el = field === "subject" ? subjectRef.current : bodyRef.current;
     const current = field === "subject" ? editingSubject : editingBody;
-    const { value: next, caret } = insertAtSelection(current, selectionRef.current, snippet);
+    const { value: next, caret } = insertAtSelection(current, sel, snippet);
     selectionRef.current = { field, start: caret, end: caret };
     if (field === "subject") setSubject(next);
     else setBody(next);
     // Restore focus and the caret after the controlled value rerenders so the
-    // customer can keep typing exactly where the variable landed.
+    // customer can keep typing exactly where the snippet landed.
     requestAnimationFrame(() => {
       if (!el) return;
       el.focus();
       el.setSelectionRange(caret, caret);
     });
   };
+  const insertToken = (token: string) => insertSnippet(variableSnippet(token));
 
   const activeVariant = step?.variants[variantIndex];
   const editingSubject = activeVariant ? activeVariant.subject : (step?.subject ?? "");
@@ -574,14 +578,16 @@ export function SequencesTab({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setBody(`${editingBody}\n\n{Best|Thanks|Cheers}, `)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => insertSnippet("{Best|Thanks|Cheers}")}
                   >
                     Spintax
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setBody(`${editingBody}\n\nUnsubscribe: {{unsubscribe_link}}`)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => insertSnippet("Unsubscribe: {{unsubscribe_link}}", true)}
                   >
                     Unsubscribe
                   </Button>
