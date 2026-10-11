@@ -2,7 +2,7 @@
 
 ## Public exit-intent popup
 - [x] Add the exact founder popup copy and accessible public-only dialog without changing website content.
-- [ ] Verify session suppression, delayed desktop exit intent, dismissal, and desktop/tablet/mobile presentation in preview; do not publish.
+- [x] Verify session suppression, delayed desktop exit intent, dismissal, and desktop/tablet/mobile presentation in preview; 12 isolated tests passed, browser checks passed, build OK; not published.
 
 ## Analytics targeted restoration
 - [x] Restore original screenshot-led Engagement Overview layout while keeping theme series colors and organized lower cards.
