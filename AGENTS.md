@@ -16,3 +16,5 @@
 - Workspace analytics collapse logical emails separately per campaign and derive dated failure totals only from unsent units with failure timestamps; confirmed delivery availability stays separate from accepted-minus-bounced estimates, so analytics cannot invent delivery evidence or move legacy failures between periods.
 - Homepage hero product visualization stays presentational with labeled example data and no live-data reads, so marketing rendering cannot affect customer activity.
 - Google Sign-In is direct Google Identity Services (src/lib/google-signin*.ts) using the admin-saved Web Client in src/lib/auth-providers-config.server.ts; sessions are minted as normal Supabase Auth sessions server-side. Never use Supabase's Google OAuth provider or Google Cloud Identity Platform, because the Supabase provider is intentionally disabled.
+
+- Monthly plan email allowance meters only billable initial campaign sends (`isBillableInitialSend` in src/lib/billing/initial-send.ts, step_order vs the first email step); follow-ups skip consume/release, and an unknown first step stays metered so lookup failures never give free initials.
