@@ -18,3 +18,4 @@
 - Google Sign-In is direct Google Identity Services (src/lib/google-signin*.ts) using the admin-saved Web Client in src/lib/auth-providers-config.server.ts; sessions are minted as normal Supabase Auth sessions server-side. Never use Supabase's Google OAuth provider or Google Cloud Identity Platform, because the Supabase provider is intentionally disabled.
 
 - Monthly plan email allowance meters only billable initial campaign sends (`isBillableInitialSend` in src/lib/billing/initial-send.ts, step_order vs the first email step); follow-ups skip consume/release, and an unknown first step stays metered so lookup failures never give free initials.
+- Mount the exit-intent dialog only through the public SiteHeader after local auth readiness; use sessionStorage with a memory fallback and fine-pointer top-edge detection, never unload/back interception, to preserve navigation and exclude dashboard/touch users.
