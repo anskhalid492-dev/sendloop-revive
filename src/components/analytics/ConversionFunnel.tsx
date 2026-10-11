@@ -33,18 +33,10 @@ const DRILLDOWN_KEYS = new Set<FunnelStepKey>(["sent", "delivered", "opens", "re
  * same deduplicated engagement counts as the KPI cards. Each bar is sized
  * against the top of the funnel and annotated with its step-to-step conversion.
  */
-export function ConversionFunnel({
-  data,
-  className,
-  title = "Conversion funnel",
-  onStepClick,
-}: {
-  data: FunnelInput;
-  className?: string;
-  title?: string;
-  onStepClick?: ((step: FunnelStepKey) => void) | undefined;
-}) {
-  const steps: Array<{ key: string; label: string; value: number; prev: number | null }> = [];
+export type FunnelStep = { key: string; label: string; value: number; prev: number | null };
+
+export function buildFunnelSteps(data: FunnelInput): FunnelStep[] {
+  const steps: FunnelStep[] = [];
   if (typeof data.leads === "number") {
     steps.push({ key: "leads", label: "Leads", value: data.leads, prev: null });
   }
@@ -76,6 +68,21 @@ export function ConversionFunnel({
       prev: typeof data.positiveReplies === "number" ? data.positiveReplies : data.replies,
     });
   }
+  return steps;
+}
+
+export function ConversionFunnel({
+  data,
+  className,
+  title = "Conversion funnel",
+  onStepClick,
+}: {
+  data: FunnelInput;
+  className?: string;
+  title?: string;
+  onStepClick?: ((step: FunnelStepKey) => void) | undefined;
+}) {
+  const steps = buildFunnelSteps(data);
   const top = Math.max(data.leads ?? data.sent, data.sent, 1);
   const empty = data.sent === 0 && (data.delivered ?? 0) === 0;
 
