@@ -908,6 +908,19 @@ export async function dispatchDueMessages(
     throw new Error("Campaign usage dependencies are unavailable.");
   }
   // Metering is per-message: a dispatch batch can span workspaces.
+  // Subscription allowance counts initial campaign emails only; follow-up
+  // steps are free. One step lookup per dispatch run, never per email.
+  const { firstEmailStepOrder, isBillableInitialSend } = await import("@/lib/billing/initial-send");
+  let firstStepOrder: number | null = null;
+  try {
+    const { data: stepRows } = await supabase
+      .from("campaign_steps")
+      .select("step_order, step_type, subject, body")
+      .eq("campaign_id", options.campaignId);
+    firstStepOrder = firstEmailStepOrder((stepRows ?? []) as { step_order: number }[]);
+  } catch {
+    firstStepOrder = null; // unknown => every send stays metered
+  }
 
   // Bounced, complained and unsubscribed addresses are never emailed again.
   const suppressed = await suppressedSet(
@@ -1034,6 +1047,7 @@ export async function dispatchDueMessages(
       ? accountById.get(message.sending_account_id)
       : undefined;
 
+    const billable = isBillableInitialSend(message.step_order, firstStepOrder);
     const fail = async (reason: string) => {
       result.failed += 1;
       if (result.errors.length < 5) result.errors.push(reason);
@@ -1259,7 +1273,7 @@ export async function dispatchDueMessages(
     // Atomic monthly-send reservation: concurrent dispatch runs can never
     // push the workspace past its plan allowance.
     try {
-      await consumeUsage(message.workspace_id as string, "emails_monthly", 1, "campaign_send");
+      if (billable) await consumeUsage(message.workspace_id as string, "emails_monthly", 1, "campaign_send");
     } catch (error) {
       if (error instanceof EntitlementError) {
         const entitlementMessage = error instanceof Error ? error.message : "Workspace sending limit reached.";
@@ -1293,12 +1307,12 @@ export async function dispatchDueMessages(
       reason: claim.error ? "message_claim_error" : Array.isArray(claim.data) && claim.data.length > 0 ? "message_claimed" : "message_claimed_by_another_runner",
     });
     if (claim.error) {
-      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "claim_failed");
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "claim_failed");
       throw new Error(claim.error.message);
     }
     if (!claim.error && Array.isArray(claim.data) && claim.data.length === 0) {
       // Already claimed by a concurrent run: give the plan reservation back.
-      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "duplicate_claim");
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "duplicate_claim");
       result.skipped += 1;
       logDispatchDiagnostic({ ...diagnosticBase, messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "message_claimed_by_another_runner" });
       continue;
@@ -1318,7 +1332,7 @@ export async function dispatchDueMessages(
         purpose: "campaign",
       });
     } catch (error) {
-      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await fail(error instanceof Error ? error.message : "Reply routing is not ready for this mailbox.");
       continue;
     }
@@ -1331,7 +1345,7 @@ export async function dispatchDueMessages(
         resolveAiTokenAtSend(supabase, message.campaign_id as string, message.lead_id, message.body ?? "", aiSendConfig),
       ]);
       if (resolvedSubject.hold || resolvedBody.hold) {
-        await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "ai_hold");
+        if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "ai_hold");
         await supabase
           .from("campaign_messages")
           .update({ status: "scheduled", last_error: "Waiting for AI personalization." })
@@ -1514,7 +1528,7 @@ export async function dispatchDueMessages(
     } catch (error) {
       // A thrown provider/transport error used to leave the row stuck in
       // `processing` forever. Treat it exactly like a failed send.
-      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       await fail(error instanceof Error ? error.message : "Sending failed.");
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
       continue;
@@ -1522,7 +1536,7 @@ export async function dispatchDueMessages(
 
     if (!send.ok) {
       // Give the reserved allowance back: nothing left the platform.
-      await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
       const { DOMAIN_NOT_VERIFIED_MESSAGE, INFRA_NOT_CONFIGURED_MESSAGE } = await import(
         "@/lib/managed-sending.server"
       );
