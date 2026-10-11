@@ -55,8 +55,11 @@ export function ConversionFunnel({
     prev: typeof data.leads === "number" ? data.leads : null,
   });
   if (data.delivered !== null) steps.push({ key: "delivered", label: "Delivered", value: data.delivered, prev: data.sent });
-  steps.push({ key: "opens", label: "Opened", value: data.opens, prev: data.delivered });
-  steps.push({ key: "replies", label: "Replied", value: data.replies, prev: data.delivered });
+  // When confirmed delivery is unavailable, measure opens/replies against sent
+  // instead of showing a meaningless "100% conversion".
+  const engagementBase = data.delivered ?? data.sent;
+  steps.push({ key: "opens", label: "Opened", value: data.opens, prev: engagementBase });
+  steps.push({ key: "replies", label: "Replied", value: data.replies, prev: engagementBase });
   if (typeof data.positiveReplies === "number") {
     steps.push({
       key: "positive",
