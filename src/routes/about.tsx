@@ -457,7 +457,7 @@ function About() {
                 <img
                   src={inboxAsset.url}
                   alt="MunchReach Unified Inbox connecting replies with campaign context"
-                  className="aspect-[4/3] w-full rounded-md object-cover object-left-top"
+                  className="w-full rounded-md object-cover object-left-top"
                 />
               </div>
             </Reveal>
