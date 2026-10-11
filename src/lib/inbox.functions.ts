@@ -339,6 +339,9 @@ export const getConversation = createServerFn({ method: "GET" })
         .from("conversation_events")
         .select("id, type, detail, created_at")
         .eq("conversation_id", data.id)
+        // reply_classified rows are internal recovery state (raw JSON detail);
+        // they are not meant for the Activity list.
+        .neq("type", "reply_classified")
         .order("created_at", { ascending: false })
         .limit(50),
       conversation.lead_id

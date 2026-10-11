@@ -33,18 +33,10 @@ const DRILLDOWN_KEYS = new Set<FunnelStepKey>(["sent", "delivered", "opens", "re
  * same deduplicated engagement counts as the KPI cards. Each bar is sized
  * against the top of the funnel and annotated with its step-to-step conversion.
  */
-export function ConversionFunnel({
-  data,
-  className,
-  title = "Conversion funnel",
-  onStepClick,
-}: {
-  data: FunnelInput;
-  className?: string;
-  title?: string;
-  onStepClick?: ((step: FunnelStepKey) => void) | undefined;
-}) {
-  const steps: Array<{ key: string; label: string; value: number; prev: number | null }> = [];
+export type FunnelStep = { key: string; label: string; value: number; prev: number | null };
+
+export function buildFunnelSteps(data: FunnelInput): FunnelStep[] {
+  const steps: FunnelStep[] = [];
   if (typeof data.leads === "number") {
     steps.push({ key: "leads", label: "Leads", value: data.leads, prev: null });
   }
@@ -55,8 +47,11 @@ export function ConversionFunnel({
     prev: typeof data.leads === "number" ? data.leads : null,
   });
   if (data.delivered !== null) steps.push({ key: "delivered", label: "Delivered", value: data.delivered, prev: data.sent });
-  steps.push({ key: "opens", label: "Opened", value: data.opens, prev: data.delivered });
-  steps.push({ key: "replies", label: "Replied", value: data.replies, prev: data.delivered });
+  // When confirmed delivery is unavailable, measure opens/replies against sent
+  // instead of showing a meaningless "100% conversion".
+  const engagementBase = data.delivered ?? data.sent;
+  steps.push({ key: "opens", label: "Opened", value: data.opens, prev: engagementBase });
+  steps.push({ key: "replies", label: "Replied", value: data.replies, prev: engagementBase });
   if (typeof data.positiveReplies === "number") {
     steps.push({
       key: "positive",
@@ -73,6 +68,21 @@ export function ConversionFunnel({
       prev: typeof data.positiveReplies === "number" ? data.positiveReplies : data.replies,
     });
   }
+  return steps;
+}
+
+export function ConversionFunnel({
+  data,
+  className,
+  title = "Conversion funnel",
+  onStepClick,
+}: {
+  data: FunnelInput;
+  className?: string;
+  title?: string;
+  onStepClick?: ((step: FunnelStepKey) => void) | undefined;
+}) {
+  const steps = buildFunnelSteps(data);
   const top = Math.max(data.leads ?? data.sent, data.sent, 1);
   const empty = data.sent === 0 && (data.delivered ?? 0) === 0;
 
