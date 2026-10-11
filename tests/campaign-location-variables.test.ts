@@ -13,7 +13,7 @@ const lead: LeadLike = {
   city: "Austin",
   state: "TX",
   country: "US",
-  custom_fields: { "Street Address": "1 Main St", Zip: "78701", Municipality: "Travis" },
+  custom_fields: { street_address: "1 Main St", zip: "78701", municipality: "Travis" },
 };
 
 describe("location variables", () => {
@@ -38,6 +38,6 @@ describe("location variables", () => {
   });
 
   it("custom fields still resolve by their own token", () => {
-    expect(renderTemplate("{{Street Address}}", lead)).toBe("1 Main St");
+    expect(renderTemplate("{{street_address}}", lead)).toBe("1 Main St");
   });
 });
