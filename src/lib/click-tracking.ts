@@ -18,6 +18,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 import { OPEN_PIXEL_PATH } from "@/lib/open-tracking";
 import { SITE_URL } from "@/lib/seo";
+import { signingKey, verificationKeys } from "@/lib/tracking-signing-keys";
 import { UNSUBSCRIBE_PATH } from "@/lib/unsubscribe";
 
 export const CLICK_PATH = "/api/public/click";
@@ -50,14 +51,8 @@ const CLICK_SIGNING_SECRET_ENV = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "SB_SERVICE_ROLE_KEY",
 ] as const;
-const MIN_SECRET_LENGTH = 16;
-
 function secret(): string | null {
-  for (const name of CLICK_SIGNING_SECRET_ENV) {
-    const value = (process.env[name] ?? "").trim();
-    if (value.length >= MIN_SECRET_LENGTH) return value;
-  }
-  return null;
+  return signingKey(CLICK_SIGNING_SECRET_ENV);
 }
 
 /** True when a private signing key is configured. Never reveals which or its value. */
@@ -81,7 +76,7 @@ export function signClickPayload(payload: string): string {
 }
 
 /** `<base64url payload>.<32 hex HMAC>` and nothing else. */
-const CLICK_TOKEN_PATTERN = /^([A-Za-z0-9_-]{1,4096})\.([0-9a-f]{32})$/;
+const CLICK_TOKEN_PATTERN = /^([A-Za-z0-9_-]{1,16384})\.([0-9a-f]{32})$/;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
 
 /** Opaque, tamper-proof token: `<base64url(json)>.<hmac>`. */
@@ -106,11 +101,16 @@ export function parseClickToken(token: string): ClickTrackingHit | null {
   if (!match) return null;
   const payload = match[1]!;
   const signature = match[2]!;
-  const expected = signClickPayload(payload);
-  if (!expected) return null; // no private key: fail closed
+  // No private key: fail closed. Otherwise accept the current key or the exact
+  // key the previous release signed with, so already-sent tokens still verify.
   const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const verified = verificationKeys(CLICK_SIGNING_SECRET_ENV).some((key) => {
+    const b = Buffer.from(
+      createHmac("sha256", key).update(payload).digest("hex").slice(0, 32),
+    );
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+  if (!verified) return null;
   try {
     const parsed = JSON.parse(fromBase64url(payload)) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;

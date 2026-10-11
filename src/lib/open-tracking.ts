@@ -19,6 +19,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 import { SITE_URL } from "@/lib/seo";
+import { signingKey, verificationKeys } from "@/lib/tracking-signing-keys";
 
 export const OPEN_PIXEL_PATH = "/api/public/open";
 
@@ -48,14 +49,8 @@ const SIGNING_SECRET_ENV = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "SB_SERVICE_ROLE_KEY",
 ] as const;
-const MIN_SECRET_LENGTH = 16;
-
 function secret(): string | null {
-  for (const name of SIGNING_SECRET_ENV) {
-    const value = (process.env[name] ?? "").trim();
-    if (value.length >= MIN_SECRET_LENGTH) return value;
-  }
-  return null;
+  return signingKey(SIGNING_SECRET_ENV);
 }
 
 /** True when a private signing key is configured. Never reveals which or its value. */
@@ -103,11 +98,16 @@ export function parseOpenToken(token: string): OpenTrackingTarget | null {
   if (!match) return null;
   const payload = match[1]!;
   const signature = match[2]!;
-  const expected = signOpenPayload(payload);
-  if (!expected) return null; // no private key: fail closed
+  // No private key: fail closed. Otherwise accept the current key or the exact
+  // key the previous release signed with, so already-sent tokens still verify.
   const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const verified = verificationKeys(SIGNING_SECRET_ENV).some((key) => {
+    const b = Buffer.from(
+      createHmac("sha256", key).update(payload).digest("hex").slice(0, 32),
+    );
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+  if (!verified) return null;
   try {
     const raw = JSON.parse(fromBase64url(payload)) as unknown;
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
