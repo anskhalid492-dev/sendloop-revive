@@ -304,7 +304,10 @@ export const VARIABLE_GROUPS: Array<{ group: string; variables: VariableDef[] }>
       { token: "job_title", label: "Job title" },
       { token: "website", label: "Website" },
       { token: "industry", label: "Industry" },
-      { token: "location", label: "Location" },
+      { token: "city", label: "City" },
+      { token: "state", label: "State" },
+      { token: "country", label: "Country" },
+      { token: "location", label: "Location (city, state, country)" },
       { token: "company_description", label: "Company description" },
     ],
   },
@@ -330,8 +333,6 @@ export const LEAD_VARIABLES: VariableDef[] = VARIABLE_GROUPS.flatMap((g) => g.va
 /** Aliases accepted in templates but not shown in the picker. */
 const VARIABLE_ALIASES: Record<string, string> = {
   company_name: "company",
-  country: "location",
-  city: "location",
   title: "job_title",
   role: "job_title",
   linkedin: "linkedin_url",
@@ -404,6 +405,9 @@ export function leadValue(lead: LeadLike, token: string): string | undefined {
     website: lead.website,
     phone: lead.phone,
     linkedin_url: lead.linkedin_url,
+    city: lead.city,
+    state: lead.state,
+    country: lead.country,
     location: leadLocation(lead),
     // Not columns on the lead table — they live in custom fields when imported.
     industry: custom["industry"],
