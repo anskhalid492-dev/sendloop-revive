@@ -500,10 +500,6 @@ export function SiteFooter() {
                   ),
                 )}
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                ChatGPT, Claude and Grok open with the prompt prefilled; DeepSeek and Gemini copy it
-                to your clipboard first.
-              </p>
             </div>
           </div>
 
