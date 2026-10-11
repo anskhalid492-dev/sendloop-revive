@@ -135,8 +135,29 @@
   --shadow-card: 0 18px 45px -28px oklch(0.35 0.06 245 / 0.45);
   --hero-surface-wash: linear-gradient(120deg, var(--background) 30%, color-mix(in oklab, var(--secondary) 65%, var(--background)) 100%);
   --hero-product-shadow: 0 24px 60px -22px color-mix(in oklab, var(--foreground) 18%, transparent), 0 4px 12px -4px color-mix(in oklab, var(--primary) 12%, transparent);
+  --exit-popup-background: oklch(1 0 0);
+  --exit-popup-foreground: oklch(0.21 0.03 250);
+  --exit-popup-muted: oklch(0.49 0.025 245);
+  --exit-popup-primary: oklch(0.55 0.2 255);
+  --exit-popup-overlay: oklch(0.12 0.015 250 / 0.58);
+  --exit-popup-shadow: 0 24px 80px oklch(0.12 0.015 250 / 0.22);
   --font-sans:
     "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.exit-intent-overlay { background: var(--exit-popup-overlay); }
+.exit-intent-popup {
+  --background: var(--exit-popup-background);
+  --foreground: var(--exit-popup-foreground);
+  --muted-foreground: var(--exit-popup-muted);
+  --primary: var(--exit-popup-primary);
+  --primary-foreground: var(--exit-popup-background);
+  --accent: oklch(0.96 0.008 250);
+  --accent-foreground: var(--exit-popup-foreground);
+  --ring: var(--exit-popup-primary);
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: var(--exit-popup-shadow);
 }
 
 .dark {

@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { BRAND_NAME } from "@/lib/branding";
+import { ExitIntentPopup } from "@/components/site/ExitIntentPopup";
 
 type Card = {
   label: string;
@@ -255,6 +256,7 @@ export function SiteHeader() {
   const [menu, setMenu] = useState<MenuKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -349,11 +351,17 @@ export function SiteHeader() {
   const midNav = allTopNav.length ? allTopNav : [{ label: "Pricing", to: "/pricing" }];
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) =>
-      setSignedIn(Boolean(session)),
-    );
-    return () => sub.subscription.unsubscribe();
+    let active = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active || error) return;
+      setSignedIn(Boolean(data.session));
+      setAuthReady(true);
+    }).catch(() => {});
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+      setAuthReady(true);
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -398,6 +406,8 @@ export function SiteHeader() {
   }
 
   return (
+    <>
+    <ExitIntentPopup enabled={authReady && !signedIn} />
     <header
       ref={headerRef}
       data-scrolled={scrolled || menu ? "true" : "false"}
@@ -550,6 +560,7 @@ export function SiteHeader() {
         ) : null}
       </AnimatePresence>
     </header>
+    </>
   );
 }
 
