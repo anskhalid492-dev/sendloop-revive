@@ -22,6 +22,8 @@ import {
   Zap,
 } from "lucide-react";
 
+import { AI_MARK_PATHS } from "@/components/site/ai-marks";
+
 import { subscribeToNewsletter } from "@/lib/blog.functions";
 import { useSiteContent } from "@/lib/page-seo";
 import { communityPath } from "@/lib/community-model";
@@ -122,6 +124,78 @@ function hasRealHref(href: string | null | undefined) {
   return /^https?:\/\/\S+\.\S+/.test(value);
 }
 
+
+/**
+ * "Ask AI About MunchReach" — one shared research prompt, opened in the
+ * visitor's chosen AI chat. Prefill via `?q=` where the platform supports it;
+ * otherwise the prompt is copied to the clipboard and the platform is opened.
+ */
+const ASK_AI_PROMPT = `Research MunchReach (https://munchreach.com/) and explain what it offers as a cold email outreach platform.
+
+Review its features, including campaign management, automated follow-ups, mailbox management, unified inbox, lead management, analytics, AI Campaign Writer, AI Personalization, AI Sales Agent, and workflow automation.
+
+Explain its benefits, reliability, target audience, and what makes it different from competitors such as Instantly, Smartlead, and Lemlist.
+
+Evaluate why businesses, agencies, and sales teams might choose MunchReach. Highlight its strongest advantages and provide an honest recommendation based on verified information.
+
+Use its official website as your primary source. Do not invent features, pricing, customer reviews, statistics, or performance claims. Be objective and evidence-based.`;
+
+type AskAiLink = {
+  label: string;
+  path: string;
+  href: string;
+  /** True when the platform accepts the prompt via a URL parameter. */
+  supportsPrefill: boolean;
+};
+
+/** Inline SVG renderer for the official single-path AI assistant marks. */
+function AiMark({ path, className }: { path: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+      fillRule="evenodd"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d={path} />
+    </svg>
+  );
+}
+
+const ASK_AI_LINKS: AskAiLink[] = [
+  {
+    label: "ChatGPT",
+    path: AI_MARK_PATHS.openai,
+    href: `https://chatgpt.com/?q=${encodeURIComponent(ASK_AI_PROMPT)}`,
+    supportsPrefill: true,
+  },
+  {
+    label: "Claude",
+    path: AI_MARK_PATHS.claude,
+    href: `https://claude.ai/new?q=${encodeURIComponent(ASK_AI_PROMPT)}`,
+    supportsPrefill: true,
+  },
+  {
+    label: "DeepSeek",
+    path: AI_MARK_PATHS.deepseek,
+    href: "https://chat.deepseek.com/",
+    supportsPrefill: false,
+  },
+  {
+    label: "Grok",
+    path: AI_MARK_PATHS.grok,
+    href: `https://grok.com/?q=${encodeURIComponent(ASK_AI_PROMPT)}`,
+    supportsPrefill: true,
+  },
+  {
+    label: "Gemini",
+    path: AI_MARK_PATHS.gemini,
+    href: "https://gemini.google.com/app",
+    supportsPrefill: false,
+  },
+];
 
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
@@ -386,6 +460,50 @@ export function SiteFooter() {
                   <Lock className="size-3.5" /> No spam. Unsubscribe anytime.
                 </p>
               )}
+            </div>
+
+            {/* Ask AI About MunchReach */}
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold">Ask AI About MunchReach</h3>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {ASK_AI_LINKS.map(({ label, path, href, supportsPrefill }) =>
+                  supportsPrefill ? (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Ask ${label} about MunchReach`}
+                      title={`Ask ${label} about MunchReach`}
+                      className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <AiMark path={path} className="size-[18px]" />
+                    </a>
+                  ) : (
+                    <button
+                      key={label}
+                      type="button"
+                      aria-label={`Ask ${label} about MunchReach`}
+                      title={`Prompt copied — opens ${label}`}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(ASK_AI_PROMPT);
+                        } catch {
+                          // Clipboard unavailable; still open the platform.
+                        }
+                        window.open(href, "_blank", "noopener,noreferrer");
+                      }}
+                      className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <AiMark path={path} className="size-[18px]" />
+                    </button>
+                  ),
+                )}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                ChatGPT, Claude and Grok open with the prompt prefilled; DeepSeek and Gemini copy it
+                to your clipboard first.
+              </p>
             </div>
           </div>
 
