@@ -1,3 +1,4 @@
+import { MailMinus, MessageSquareReply, Send, ShieldAlert, Users, type LucideIcon } from "lucide-react";
 import {
   LEAD_DELIVERY_LABELS,
   LEAD_DELIVERY_STATES,
@@ -28,12 +29,15 @@ function pct(part: number, total: number) {
   return Math.round((part / total) * 1000) / 10;
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Kpi({ label, value, sub, icon: Icon }: { label: string; value: string; sub?: string; icon: LucideIcon }) {
   return (
-    <div className="surface-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      {sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}
+    <div className="surface-card min-w-0 p-5">
+      <div className="mb-4 flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="size-4" aria-hidden="true" />
+      </div>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-2 break-words text-3xl font-semibold tabular-nums">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-muted-foreground">{sub}</p> : null}
     </div>
   );
 }
@@ -75,14 +79,16 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Kpi label="Leads queued" value={String(total)} />
-        <Kpi label="Emails sent" value={String(sent)} sub={`${pct(sent, total)}% of queue`} />
-        <Kpi label="Replies" value={String(replied)} sub={`${pct(replied, sent)}% reply rate`} />
-        <Kpi label="Bounced" value={String(bounced)} sub={`${pct(bounced, sent)}% bounce rate`} />
+      <h2 className="text-lg font-semibold">Analytics</h2>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Kpi label="Leads Queued" value={total.toLocaleString()} icon={Users} />
+        <Kpi label="Emails Sent" value={sent.toLocaleString()} icon={Send} sub={`${pct(sent, total)}% of queue`} />
+        <Kpi label="Replies" value={replied.toLocaleString()} icon={MessageSquareReply} sub={`${pct(replied, sent)}% reply rate`} />
+        <Kpi label="Bounced" value={bounced.toLocaleString()} icon={ShieldAlert} sub={`${pct(bounced, sent)}% bounce rate`} />
         <Kpi
           label="Unsubscribed"
-          value={String(unsubscribed)}
+          value={unsubscribed.toLocaleString()}
+          icon={MailMinus}
           sub={`${pct(unsubscribed, sent)}% opt-out`}
         />
       </div>
