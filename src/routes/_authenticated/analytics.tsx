@@ -42,6 +42,7 @@ import {
   bounceRate,
   rate,
   formatCount,
+  failedSendCount,
   deliveryPresentation,
   formatPct,
   formatOpenRate,
@@ -288,9 +289,9 @@ function AnalyticsPage() {
         },
         {
           label: "Failed Sends", icon: CircleX, tone: "bg-destructive/10 text-destructive",
-          value: formatCount(current.failed),
+          value: formatCount(failedSendCount(current)),
           delta: current.failureHistoryIncomplete || previous?.failureHistoryIncomplete ? null : deltaCount(current.failed, previous?.failed ?? 0),
-          sub: null,
+          sub: current.undatedFailed ? `${formatCount(current.undatedFailed)} without a recorded date` : null,
         },
         {
           label: "Meetings Booked", icon: CalendarCheck, tone: "bg-chart-3/10 text-chart-3",
