@@ -26,6 +26,9 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   const accounts = computeAccountTotals(units, { from, to });
   const sent = units.filter(u => inRange(u.sentAt)).length;
   const confirmed = units.filter(u => inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at).length;
+  // Legacy failures have a known outcome but no trustworthy occurrence date.
+  // Keep them visible separately; never assign them to a period via updated_at.
+  const undatedFailed = units.filter(u => !u.sentAt && !u.signals.bounced_at && u.status === "failed" && !u.signals.failed_at).length;
   return {
     sent,
     contacted: people(u => inRange(u.sentAt)),
@@ -33,7 +36,8 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
     deliveryComplete: sent > 0 && units.filter(u => inRange(u.sentAt) && Boolean(u.signals.delivered_at || u.signals.bounced_at)).length === sent,
     // A mutable updated_at must not move an old failure into this window.
     failed: units.filter(u => !u.sentAt && !u.signals.bounced_at && inRange(u.signals.failed_at)).length,
-    failureHistoryIncomplete: units.some(u => !u.sentAt && u.status === "failed" && !u.signals.failed_at),
+    undatedFailed,
+    failureHistoryIncomplete: undatedFailed > 0,
     opens: people(u => inRange(u.signals.opened_at)),
     clicks: people(u => inRange(u.signals.clicked_at)),
     replies: people(u => inRange(u.signals.replied_at)),

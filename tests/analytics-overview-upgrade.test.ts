@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { collapseMessageUnits } from "@/lib/campaign-stats";
 import { collapseAnalyticsUnits, engagementTrend, summarizeEngagement, uniqueReplyIntents } from "@/lib/analytics-overview";
-import { deliveryPresentation, openRate, replyRate } from "@/lib/analytics-model";
+import { deliveryPresentation, failedSendCount, openRate, replyRate } from "@/lib/analytics-model";
 
 const from = new Date("2026-10-01T00:00:00Z");
 const to = new Date("2026-10-04T00:00:00Z");
@@ -79,6 +79,28 @@ describe("analytics overview actual units", () => {
     expect(deliveryPresentation({ ...summary, deliveryEventsAvailable: false })).toEqual({ value: "—", description: "Delivery confirmations unavailable" });
     expect(deliveryPresentation({ ...summary, delivered: 100 }).value).toBe("100");
     expect(deliveryPresentation({ ...summary, sent: 0 }).value).toBe("0");
+  });
+  it("includes undated failed sends from every campaign without inventing a failure date", () => {
+    const summary = summarizeEngagement(collapseAnalyticsUnits([
+      { id: "test-failure-a", campaign_id: "throwaway-campaign-a", lead_id: "throwaway-contact", status: "failed" },
+      { id: "test-failure-a-duplicate", campaign_id: "throwaway-campaign-a", lead_id: "throwaway-contact", status: "failed" },
+      { id: "test-failure-b", campaign_id: "throwaway-campaign-b", lead_id: "throwaway-contact", status: "failed" },
+      { id: "test-dated-current", campaign_id: "throwaway-campaign-b", lead_id: "throwaway-other", status: "failed", failed_at: at },
+      { id: "test-dated-old", campaign_id: "throwaway-campaign-b", status: "failed", failed_at: "2026-09-01T00:00:00Z", updated_at: at },
+    ]), from, to);
+    expect(summary).toMatchObject({ failed: 1, undatedFailed: 2, failureHistoryIncomplete: true });
+    expect(failedSendCount({ failed: summary.failed ?? 0, undatedFailed: summary.undatedFailed })).toBe(3);
+  });
+  it("excludes recovered sends and bounces from undated failures", () => {
+    const summary = summarizeEngagement(collapseAnalyticsUnits([
+      { id: "test-recovery-failed", lead_id: "throwaway-recovered", status: "failed" },
+      { id: "test-recovery-sent", lead_id: "throwaway-recovered", status: "sent", sent_at: at },
+      { id: "test-bounced-failure", status: "failed", bounced_at: at },
+      { id: "test-pending", status: "scheduled" },
+      { id: "test-cancelled", status: "cancelled" },
+    ]), from, to);
+    expect(summary).toMatchObject({ failed: 0, undatedFailed: 0, failureHistoryIncomplete: false });
+    expect(failedSendCount({ failed: 0 })).toBe(0);
   });
   it("preserves the existing open-rate denominator rather than using contacted or failures", () => {
     // Arithmetic illustration only, not a claim about the reported production bounce count.
