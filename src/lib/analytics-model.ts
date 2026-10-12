@@ -17,6 +17,8 @@ export type AnalyticsSummary = {
   deliveryEventsAvailable?: boolean;
   /** Legacy failed rows without an occurrence timestamp cannot be date-attributed. */
   failureHistoryIncomplete?: boolean;
+  /** Known unsent failures without a reliable date, kept separate from period totals. */
+  undatedFailed?: number;
   sent: number;
   delivered: number;
   opens: number;
@@ -29,6 +31,11 @@ export type AnalyticsSummary = {
   complained: number;
   failed: number;
 };
+
+/** Visible failure inventory: period failures plus explicitly labelled undated history. */
+export function failedSendCount(summary: Pick<AnalyticsSummary, "failed" | "undatedFailed">): number {
+  return summary.failed + (summary.undatedFailed ?? 0);
+}
 
 export type AnalyticsTimeseriesPoint = {
   bucket: string;
