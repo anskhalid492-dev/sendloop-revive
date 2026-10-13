@@ -38,10 +38,8 @@ const INVALID_RECIPIENT_HINTS =
  * narrow: each entry is one exact error the customer named.
  */
 const FORCED_BOUNCE_PATTERNS: RegExp[] = [
-  /delivery\s+status\s+notification\s*\(\s*failure\s*\)/i,
   /\b550\s+5\.7\.1_etr\b/i,
   /this\s+message\s+could\s+not\s+be\s+delivered\.?\s*please\s+contact\s+support/i,
-  /\b550\s+5\.7\.0\s+bad\s+dkim\s+signature\s+data\b/i,
 ];
 
 /** True for the named errors that must always be recorded as bounced. */
