@@ -11,3 +11,18 @@ describe("warmup health history writes", () => {
   it("writes when factors change", () =>
     expect(isSameHealthSnapshot({ ...snap, factors: [{ key: "spf", ok: false }] }, snap)).toBe(false));
 });
+
+describe("factors comparison ignores stored key order", () => {
+  it("treats reordered keys (as jsonb returns them) as unchanged", () => {
+    const stored = { ...snap, factors: [{ ok: true, key: "spf" }] };
+    expect(isSameHealthSnapshot(stored, snap)).toBe(true);
+  });
+  it("still detects a changed value inside reordered factors", () => {
+    const stored = { ...snap, factors: [{ ok: false, key: "spf" }] };
+    expect(isSameHealthSnapshot(stored, snap)).toBe(false);
+  });
+  it("treats factor order in the list as a change", () => {
+    const two = { ...snap, factors: [{ key: "a" }, { key: "b" }] };
+    expect(isSameHealthSnapshot({ ...two, factors: [{ key: "b" }, { key: "a" }] }, two)).toBe(false);
+  });
+});
