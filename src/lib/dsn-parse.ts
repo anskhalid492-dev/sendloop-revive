@@ -32,9 +32,28 @@ const DELAY_HINTS =
 const INVALID_RECIPIENT_HINTS =
   /(5\.1\.[01346]\b|unknown\s+(user|recipient|mailbox)|no\s+such\s+(user|recipient|mailbox)|user\s+unknown|recipient\s+(address\s+)?(rejected[^\r\n]*(unknown|invalid|not\s+found|does\s+not\s+exist)|unknown|invalid|not\s+found)|mailbox\s+(unavailable|not\s+found|does\s+not\s+exist)|address\s+(does\s+not\s+exist|not\s+found|invalid)|invalid\s+(address|recipient)|undeliverable\s+address)/i;
 
+/**
+ * Responses the business has chosen to ALWAYS treat as bounces, even when the
+ * code would otherwise read as a sender/policy failure. Kept deliberately
+ * narrow: each entry is one exact error the customer named.
+ */
+const FORCED_BOUNCE_PATTERNS: RegExp[] = [
+  /delivery\s+status\s+notification\s*\(\s*failure\s*\)/i,
+  /\b550\s+5\.7\.1_etr\b/i,
+  /this\s+message\s+could\s+not\s+be\s+delivered\.?\s*please\s+contact\s+support/i,
+  /\b550\s+5\.7\.0\s+bad\s+dkim\s+signature\s+data\b/i,
+];
+
+/** True for the named errors that must always be recorded as bounced. */
+export function isForcedBounce(value: string | null | undefined): boolean {
+  const text = value ?? "";
+  return FORCED_BOUNCE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 /** Sender/content/policy refusals say nothing about whether the address exists. */
 export function isSenderPolicyFailure(value: string | null | undefined): boolean {
   const text = value ?? "";
+  if (isForcedBounce(text)) return false;
   return /(5\.7\.\d{1,3}\b|message\s+(blocked|rejected)|sender\s+reputation|spam(?:my)?\s*(policy|content)?|policy\s+(block|rejection|violation)|authentication\s+(required|failed)|spf\s+(fail|failure)|dkim\s+(fail|failure)|dmarc\s+(fail|failure)|relay\s+(denied|not\s+permitted)|access\s+denied|not\s+authorized|blacklist|blocklist)/i.test(
     text,
   );
@@ -44,7 +63,8 @@ export function isSenderPolicyFailure(value: string | null | undefined): boolean
 export function normalizeReportedDeliveryKind<T extends string>(
   kind: T,
   detail: string | null | undefined,
-): T | "failed" {
+): T | "failed" | "bounced" {
+  if ((kind === "bounced" || kind === "failed") && isForcedBounce(detail)) return "bounced";
   return kind === "bounced" && isSenderPolicyFailure(detail) ? "failed" : kind;
 }
 
@@ -99,6 +119,10 @@ export function parseDeliveryReport(input: {
     detail ??
     tidy(input.subject ?? null) ??
     (temporary ? "Delivery delayed by the receiving server" : "Delivery failure reported by the receiving server");
+
+  if (isForcedBounce(`${text}\n${input.subject ?? ""}\n${reason}`)) {
+    return { kind: "bounced", status: code, reason: reason.slice(0, 500) };
+  }
 
   if (temporary) return { kind: "delayed", status: code, reason: reason.slice(0, 500) };
 
