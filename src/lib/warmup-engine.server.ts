@@ -8,6 +8,7 @@
  * job only becomes `delivered`, `bounced` or `replied` after a real provider
  * event arrived on the webhook.
  */
+import { isSameHealthSnapshot } from "@/lib/warmup-health-snapshot";
 import { buildWarmupMessage, buildWarmupReply } from "@/lib/warmup-content.server";
 import { evaluateSafetyViolation, type SafetyStatRow } from "@/lib/mailbox-pause-state";
 import { statusFromScore, type WarmupHealthFactor, type WarmupHealthStatus } from "@/lib/warmup-model";
@@ -1729,14 +1730,24 @@ export async function recalculateHealth(
             ? "Volume has been reduced automatically. Fix the issues above before ramping again."
             : "Warmup is paused automatically. Resolve the failures above, then resume.";
 
-  await admin.from("warmup_health").insert({
-    workspace_id: account.workspace_id,
-    sending_account_id: accountId,
-    score,
-    status,
-    factors,
-    recommendation,
-  });
+  // Append a history row only when the snapshot changed; identical
+  // recalculations (after every warmup send) previously grew the table.
+  const { data: latestRows } = await admin
+    .from("warmup_health")
+    .select("score, status, factors, recommendation")
+    .eq("sending_account_id", accountId)
+    .order("computed_at", { ascending: false })
+    .limit(1);
+  if (!isSameHealthSnapshot(latestRows?.[0] ?? null, { score, status, factors, recommendation })) {
+    await admin.from("warmup_health").insert({
+      workspace_id: account.workspace_id,
+      sending_account_id: accountId,
+      score,
+      status,
+      factors,
+      recommendation,
+    });
+  }
   await admin.from("sending_accounts").update({ health_score: score }).eq("id", accountId);
   await admin
     .from("warmup_daily_stats")
