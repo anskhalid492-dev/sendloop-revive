@@ -1612,7 +1612,13 @@ export async function getAdminWarmupAccount(accountId: string) {
       .eq("sending_account_id", accountId)
       .order("created_at", { ascending: false })
       .limit(50),
-    db().from("warmup_health").select("*").eq("sending_account_id", accountId).maybeSingle(),
+    db()
+      .from("warmup_health")
+      .select("*")
+      .eq("sending_account_id", accountId)
+      .order("computed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!account.data) throw new Error("Mailbox not found");
