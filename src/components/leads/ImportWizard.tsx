@@ -41,8 +41,12 @@ import {
 } from "@/lib/lead-import";
 import { MAX_LEAD_IMPORT_BYTES } from "@/lib/files-model";
 import { uploadFileToR2 } from "@/lib/file-storage";
+import { createLeadList } from "@/lib/leads.functions";
+import { DEFAULT_LIST_COLOR, resolveImportList, type ListColor } from "@/lib/lead-list-color";
+import { ListColorPicker, ListFolderIcon } from "./ListColorPicker";
 
 const NO_LIST = "__none__";
+const NEW_LIST = "__new__";
 /** Rows read in the browser for the mapping preview only — never the whole file. */
 const PREVIEW_ROWS = 200;
 
@@ -98,6 +102,7 @@ export function ImportWizard({
 }) {
   const queryClient = useQueryClient();
   const startFn = useServerFn(startLeadImport);
+  const createListFn = useServerFn(createLeadList);
   const jobFn = useServerFn(getLeadImportJob);
   const dupeFn = useServerFn(checkImportDuplicates);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -108,6 +113,9 @@ export function ImportWizard({
   const [sample, setSample] = useState<Array<Record<string, string>>>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [listId, setListId] = useState<string | null>(defaultListId);
+  const [newListName, setNewListName] = useState("");
+  const [newListColor, setNewListColor] = useState<ListColor>(DEFAULT_LIST_COLOR);
+  const createdListRef = useRef<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const [duplicates, setDuplicates] = useState<string[]>([]);
   const [verified, setVerified] = useState<boolean | null>(null);
@@ -131,6 +139,9 @@ export function ImportWizard({
     setTagInput("");
     setUploadPercent(0);
     setJobId(null);
+    setNewListName("");
+    setNewListColor(DEFAULT_LIST_COLOR);
+    createdListRef.current = null;
   };
 
   /** Preview only: the real mapping runs in the background over the whole file. */
@@ -241,6 +252,17 @@ export function ImportWizard({
         onProgress: setUploadPercent,
       });
 
+      const destination = await resolveImportList(
+        listId === NEW_LIST ? createdListRef.current : listId,
+        listId === NEW_LIST && !createdListRef.current ? { name: newListName, color: newListColor } : null,
+        async (draft) => {
+          const list = await createListFn({ data: { workspaceId, ...draft } });
+          createdListRef.current = list.id;
+          await queryClient.invalidateQueries({ queryKey: ["lead-lists"] });
+          return list;
+        },
+      );
+
       const started = await startFn({
         data: {
           workspaceId,
@@ -249,7 +271,7 @@ export function ImportWizard({
           fileName: file.name,
           fileSize: file.size,
           mapping,
-          listId,
+          listId: destination,
           tags,
           listVerified: verified === true,
         },
@@ -412,16 +434,17 @@ export function ImportWizard({
                 <Label>Import into list</Label>
                 <Select
                   value={listId ?? NO_LIST}
-                  onValueChange={(value) => setListId(value === NO_LIST ? null : value)}
+                  onValueChange={(value) => { setListId(value === NO_LIST ? null : value); createdListRef.current = null; }}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_LIST}>No list</SelectItem>
+                    <SelectItem value={NEW_LIST}>Create new list</SelectItem>
                     {lists.map((l) => (
                       <SelectItem key={l.id} value={l.id}>
-                        {l.name}
+                        <span className="flex items-center gap-2"><ListFolderIcon color={l.color} />{l.name}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -438,6 +461,11 @@ export function ImportWizard({
                 />
               </div>
             </div>
+
+            {listId === NEW_LIST && <div className="space-y-3">
+              <div className="space-y-1.5"><Label htmlFor="import-list-name">List name</Label><Input id="import-list-name" maxLength={80} value={newListName} onChange={(event) => setNewListName(event.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Folder color</Label><ListColorPicker value={newListColor} onChange={setNewListColor} /></div>
+            </div>}
 
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-left text-sm">
@@ -518,7 +546,7 @@ export function ImportWizard({
                 Back
               </Button>
               <Button
-                disabled={!workspaceId || !file || verified !== true || startImport.isPending}
+                disabled={!workspaceId || !file || verified !== true || startImport.isPending || (listId === NEW_LIST && newListName.trim().length < 2)}
                 onClick={() => startImport.mutate()}
               >
                 {startImport.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}

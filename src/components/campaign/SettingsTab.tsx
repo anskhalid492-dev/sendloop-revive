@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { deleteCampaign, duplicateCampaign } from "@/lib/campaigns.functions";
 import { createLeadList } from "@/lib/leads.functions";
+import { ListFolderIcon } from "@/components/leads/ListColorPicker";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 const NO_LIST = "__none__";
@@ -130,7 +131,7 @@ export function SettingsTab({ builder }: { builder: CampaignBuilder }) {
               <SelectItem value={NO_LIST}>No list</SelectItem>
               {lists.map((list) => (
                 <SelectItem key={list.id} value={list.id}>
-                  {list.name} · {list.leadCount.toLocaleString()} leads
+                  <span className="flex items-center gap-2"><ListFolderIcon color={list.color} />{list.name} · {list.leadCount.toLocaleString()} leads</span>
                 </SelectItem>
               ))}
             </SelectContent>

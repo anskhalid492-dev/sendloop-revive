@@ -58,6 +58,7 @@ import { getCampaignLeads, getCampaignMailboxSummary } from "@/lib/campaign-lead
 import { MAILBOX_TYPE_LABELS, MAILBOX_TYPE_ORDER, emailProviderOf } from "@/lib/mailbox-type";
 import { MailboxTypeBadge, MailboxTypeIcon } from "./MailboxTypeBadge";
 import type { CampaignBuilder } from "./useCampaignBuilder";
+import { ListFolderIcon } from "@/components/leads/ListColorPicker";
 
 const ANY = "__any__";
 const PAGE_SIZE = 50;
@@ -550,7 +551,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
               <SelectContent>
                 {lists.map((l) => (
                   <SelectItem key={l.id} value={l.id}>
-                    {l.name}
+                    <span className="flex items-center gap-2"><ListFolderIcon color={l.color} />{l.name}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
