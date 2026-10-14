@@ -1,5 +1,10 @@
 # Roadmap
 
+## List colors and existing Spintax Builder
+- [ ] Persist list folder colors across creation, import and list displays without changing existing selections.
+- [ ] Refine existing spintax control with editable options, nested syntax and captured field/step/variant selection.
+- [ ] Run isolated import/color/editor regressions and browser checks; do not publish.
+
 ## Leads viewport scrolling
 - [x] Constrain the Leads layout to available viewport space, keep controls/pagination visible, and scroll only the table with sticky headers.
 - [x] Verify all 50 fixture rows, sticky headers, both scroll axes, pagination and selection at five viewport sizes; 42 regression tests passed. No production data changes or publishing.
