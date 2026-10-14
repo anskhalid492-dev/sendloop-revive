@@ -1,5 +1,10 @@
 # Roadmap
 
+## Leads table redesign
+- [ ] Refresh the compact table while preserving existing controls and lead fields.
+- [ ] Add provider marks and icon-only stored LinkedIn links without backend or CSV changes.
+- [ ] Run isolated existing/imported-lead regressions and desktop/mobile presentation checks; do not publish.
+
 ## Public exit-intent popup
 - [x] Add the exact founder popup copy and accessible public-only dialog without changing website content.
 - [x] Verify session suppression, delayed desktop exit intent, dismissal, and desktop/tablet/mobile presentation in preview; 12 isolated tests passed, browser checks passed, build OK; not published.
