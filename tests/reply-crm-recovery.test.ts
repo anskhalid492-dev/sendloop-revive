@@ -46,7 +46,8 @@ describe("isolated reply CRM recovery", () => {
   });
   it.each([null, "not_interested", "ooo"] as const)("does not create an interested opportunity for %s", async detected => {
     const db = fake(false); await syncReplyCrm(db.client, { ...args, detected });
-    expect(db.writes[0]?.row.stage_id).toBeUndefined();
+    // Neutral/negative replies may reach Replied, never an interested stage; OOO moves nothing.
+    expect(db.writes[0]?.row.stage_id).toBe(detected === "ooo" ? undefined : "reply-stage");
     expect(db.writes[0]?.row.status).not.toBe("interested");
   });
 });
