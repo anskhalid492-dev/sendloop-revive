@@ -6,7 +6,7 @@
  * campaign automation instead.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { normalizeReportedDeliveryKind } from "@/lib/dsn-parse";
+import { isPermanentRejectionBounce, normalizeReportedDeliveryKind } from "@/lib/dsn-parse";
 
 export type DeliveryOutcome = {
   status: "applied" | "unmatched";
@@ -129,7 +129,9 @@ export async function applyDeliveryEvent(args: {
   }
 
 
-  if (email) {
+  // A permanent-rejection bounce (550 5.7.193) is not proof the address is
+  // invalid, so it never adds the address to the suppression list.
+  if (email && !(kind === "bounced" && isPermanentRejectionBounce(args.reason))) {
     const { suppressEmail } = await import("@/lib/suppression.server");
     await suppressEmail({
       workspaceId,

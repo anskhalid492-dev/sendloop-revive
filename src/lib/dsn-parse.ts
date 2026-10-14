@@ -42,10 +42,42 @@ const FORCED_BOUNCE_PATTERNS: RegExp[] = [
   /this\s+message\s+could\s+not\s+be\s+delivered\.?\s*please\s+contact\s+support/i,
 ];
 
+/**
+ * Enhanced SMTP status codes that are a permanent delivery REJECTION recorded
+ * as bounced, without proving the address is invalid (so they never suppress
+ * the contact or mark it invalid). Matched on the parsed code, not wording.
+ */
+const PERMANENT_REJECTION_BOUNCE_CODES = new Set(["5.7.193"]);
+
+/** Every enhanced status code (x.y.z) present in an SMTP response. */
+export function enhancedStatusCodes(value: string | null | undefined): string[] {
+  const out: string[] = [];
+  for (const m of (value ?? "").matchAll(/(?<![\d.])([245])\.(\d{1,3})\.(\d{1,3})(?![\d.])/g)) {
+    out.push(`${m[1]}.${m[2]}.${m[3]}`);
+  }
+  return out;
+}
+
+/**
+ * True when the SMTP response carries a permanent-rejection code that is
+ * reported as bounced (550 5.7.193). A 4xx reply, an interrupted send with an
+ * unknown outcome, or any other 5.7.x code is never matched.
+ */
+export function isPermanentRejectionBounce(value: string | null | undefined): boolean {
+  const text = value ?? "";
+  if (/send_outcome_unknown_after_interrupt/i.test(text)) return false;
+  const codes = enhancedStatusCodes(text);
+  if (!codes.some((c) => PERMANENT_REJECTION_BOUNCE_CODES.has(c))) return false;
+  // When a basic reply code is present it must be permanent (5xx).
+  const basic = /(?<![\d.])([245])\d{2}(?![\d.])/.exec(text)?.[1] ?? null;
+  return basic === null || basic === "5";
+}
+
 /** True for the named errors that must always be recorded as bounced. */
 export function isForcedBounce(value: string | null | undefined): boolean {
   const text = value ?? "";
-  return FORCED_BOUNCE_PATTERNS.some((pattern) => pattern.test(text));
+  if (/send_outcome_unknown_after_interrupt/i.test(text)) return false;
+  return FORCED_BOUNCE_PATTERNS.some((pattern) => pattern.test(text)) || isPermanentRejectionBounce(text);
 }
 
 /** Sender/content/policy refusals say nothing about whether the address exists. */
