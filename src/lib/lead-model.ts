@@ -56,19 +56,20 @@ export const LEAD_FIELDS = [
 ] as const;
 
 export const LEAD_COLUMNS = [
-  { id: "name", label: "Name", width: 190 },
-  { id: "email", label: "Email", width: 240 },
-  { id: "company", label: "Company", width: 180 },
-  { id: "job_title", label: "Job title", width: 170 },
-  { id: "phone", label: "Phone", width: 150 },
-  { id: "location", label: "Location", width: 170 },
-  { id: "website", label: "Website", width: 180 },
-  { id: "linkedin_url", label: "LinkedIn", width: 200 },
-  { id: "status", label: "Status", width: 140 },
-  { id: "tags", label: "Tags", width: 180 },
-  { id: "campaign", label: "Campaign", width: 180 },
-  { id: "last_activity_at", label: "Last activity", width: 150 },
-  { id: "created_at", label: "Created", width: 130 },
+  { id: "name", label: "Name", width: 200 },
+  { id: "email", label: "Email", width: 230 },
+  { id: "provider", label: "Provider", width: 165 },
+  { id: "company", label: "Company", width: 160 },
+  { id: "job_title", label: "Job title", width: 150 },
+  { id: "phone", label: "Phone", width: 145 },
+  { id: "location", label: "Location", width: 160 },
+  { id: "website", label: "Website", width: 170 },
+  { id: "linkedin_url", label: "LinkedIn", width: 90 },
+  { id: "status", label: "Status", width: 125 },
+  { id: "tags", label: "Tags", width: 150 },
+  { id: "campaign", label: "Campaign", width: 160 },
+  { id: "last_activity_at", label: "Last activity", width: 135 },
+  { id: "created_at", label: "Created", width: 125 },
 ] as const;
 
 export type LeadColumnId = (typeof LEAD_COLUMNS)[number]["id"];
