@@ -7,6 +7,7 @@
  *  - `scheduleFollowUps`: walk each recipient through the sequence, materialising
  *    the next email step once its delay has elapsed.
  */
+import { phaseMarker, outcomeUnknownReason, isOutcomeUnknownReason, isUncertainTransportError, NEVER_RETRY_ATTEMPTS } from "./campaign-send-phase";
 import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import {
   MAX_MAILBOX_HOURLY_MESSAGE,
@@ -1571,7 +1572,7 @@ export async function dispatchDueMessages(
       if (isUncertainTransportError(thrown)) {
         // The SMTP server may already have accepted it: hold, never resend.
         result.failed += 1;
-        await holdOutcomeUnknown(message.id, thrown);
+        await holdOutcomeUnknown(thrown);
         logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_outcome_unknown_transport", providerResult: "error" });
         continue;
       }
@@ -1587,7 +1588,7 @@ export async function dispatchDueMessages(
       // Timed-out / unreadable relay response: acceptance is unknown. Usage stays
       // reserved (fail closed) and the row is held so it can never be resent.
       result.failed += 1;
-      await holdOutcomeUnknown(message.id, send.message);
+      await holdOutcomeUnknown(send.message);
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_outcome_unknown_transport", providerResult: "error" });
       continue;
     }
@@ -1807,6 +1808,7 @@ export function selectRetryableMessages(
 ): RetryableMessageRow[] {
   return rows.filter((row) => {
     if (row.status !== "failed") return false;
+    if (isOutcomeUnknownReason(row.last_error ?? null)) return false;
     if (row.sent_at) return false;
     if (row.provider_message_id) return false;
     if (row.bounced_at) return false;
