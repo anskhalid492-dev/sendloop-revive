@@ -25,7 +25,7 @@ export function EngagementOverview({ current, points, loading, error, onRetry, c
     { label: "Replied", icon: Handshake, value: current ? formatCount(current.replies) : "—", rate: current ? formatPct(replyRate(current)) : null },
     { label: "Unsubscribe Rate", icon: UserX, value: current ? formatCount(current.unsubscribed) : "—", rate: current ? formatPct(unsubRate(current)) : null },
   ];
-  const active = points.some(p => p.sent || p.opens || p.clicks || p.replies);
+  const active = points.some(p => p.sent || p.opens || p.positiveReplies || p.replies);
   const data = points.map(p => ({ ...p, label: new Date(p.bucket).toLocaleString([], bucket === "hour" ? { hour: "numeric" } : { month: "short", day: "numeric" }) }));
   return (
     <section aria-label="Engagement Overview" className="overflow-hidden rounded-xl border border-border bg-card bg-[image:var(--gradient-card)] shadow-sm">
