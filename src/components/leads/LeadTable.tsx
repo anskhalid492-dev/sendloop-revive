@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, ChevronLeft, ChevronRight, Ellipsis, Linkedin, Users } from "lucide-react";
 
+import { LeadProviderBadge } from "@/components/leads/LeadProviderBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +17,7 @@ import {
   type LeadRow,
 } from "@/lib/lead-model";
 import { isSelected, toggleSelection, type LeadSelection } from "@/lib/leads-query";
+import { leadLinkedInHref } from "@/lib/lead-presentation";
 
 
 const SORT_MAP: Partial<Record<LeadColumnId, string>> = {
@@ -142,12 +144,12 @@ export function LeadTable({
   }
 
   return (
-    <div className="surface-card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm" style={{ minWidth: 1400 }}>
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="max-w-full overflow-x-auto overscroll-x-contain" role="region" aria-label="Leads table" tabIndex={0}>
+        <table className="w-full table-fixed border-collapse text-[13px]" style={{ minWidth: LEAD_COLUMNS.reduce((sum, col) => sum + (widths[col.id] ?? col.width), 0) + 100 }}>
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="w-10 px-3 py-2">
+            <tr className="h-11 border-b border-border bg-muted/50 text-left text-xs text-muted-foreground">
+              <th className="sticky left-0 z-20 w-11 bg-muted px-3 py-2">
                 <Checkbox
                   aria-label="Select all leads on this page"
                   checked={allSelected}
@@ -164,13 +166,15 @@ export function LeadTable({
                 return (
                   <th
                     key={col.id}
-                    className="relative select-none px-3 py-2 font-medium"
+                    className={cn("relative select-none px-3 py-2 font-medium", col.id === "name" && "sticky left-11 z-20 bg-muted")}
                     style={{ width: widths[col.id], minWidth: widths[col.id] }}
                   >
                     {sortKey ? (
-                      <button
+                      <Button
                         type="button"
-                        className="flex items-center gap-1 hover:text-foreground"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto justify-start gap-1 rounded-none p-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground [&_svg]:size-3"
                         onClick={() => onSort(sortKey)}
                       >
                         {col.label}
@@ -183,7 +187,7 @@ export function LeadTable({
                         ) : (
                           <ChevronsUpDown className="size-3 opacity-40" />
                         )}
-                      </button>
+                      </Button>
                     ) : (
                       col.label
                     )}
@@ -203,21 +207,23 @@ export function LeadTable({
                   </th>
                 );
               })}
-              <th className="w-20 px-3 py-2 text-right font-medium">Actions</th>
+              <th className="w-14 px-3 py-2 text-right font-medium"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((lead) => {
               const checked = isSelected(selection, lead.id);
+              const linkedInHref = leadLinkedInHref(lead.linkedin_url);
+              const name = leadName(lead);
               return (
                 <tr
                   key={lead.id}
                   className={cn(
-                    "border-b border-border/50 transition-colors last:border-0 hover:bg-muted/40",
-                    checked && "bg-primary/5",
+                    "group h-14 border-b border-border/60 bg-card transition-colors last:border-0 hover:bg-muted/40",
+                    checked && "bg-accent/40",
                   )}
                 >
-                  <td className="px-3 py-2">
+                  <td className={cn("sticky left-0 z-10 px-3 py-2 group-hover:bg-muted", checked ? "bg-accent" : "bg-card")}>
                     <Checkbox
                       aria-label={`Select ${lead.email}`}
                       checked={checked}
@@ -227,18 +233,23 @@ export function LeadTable({
 
                     />
                   </td>
-                  <td className="truncate px-3 py-2 font-medium">
-                    <button
+                  <td className={cn("sticky left-11 z-10 px-3 py-2 font-medium group-hover:bg-muted", checked ? "bg-accent" : "bg-card")}>
+                    <Button
                       type="button"
-                      className="truncate hover:text-primary hover:underline"
+                      variant="ghost"
+                      className="h-auto w-full justify-start gap-2.5 px-0 py-0 text-[13px] hover:bg-transparent hover:text-primary"
                       onClick={() => onOpenLead(lead.id)}
                     >
-                      {leadName(lead) || "—"}
-                    </button>
+                      <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-primary/10 text-[11px] font-semibold text-primary">
+                        {name ? [lead.first_name?.[0], lead.last_name?.[0]].filter(Boolean).join("").toUpperCase() : <Users className="size-3.5" />}
+                      </span>
+                      <span className="truncate" title={name || lead.email}>{name || "—"}</span>
+                    </Button>
                   </td>
-                  <td className="truncate px-3 py-2 text-muted-foreground">{lead.email}</td>
-                  <td className="truncate px-3 py-2 text-muted-foreground">{lead.company ?? "—"}</td>
-                  <td className="truncate px-3 py-2 text-muted-foreground">{lead.job_title ?? "—"}</td>
+                  <td className="truncate px-3 py-2 text-muted-foreground" title={lead.email}>{lead.email}</td>
+                  <td className="px-3 py-2"><LeadProviderBadge email={lead.email} /></td>
+                  <td className="truncate px-3 py-2 text-muted-foreground" title={lead.company ?? undefined}>{lead.company ?? "—"}</td>
+                  <td className="truncate px-3 py-2 text-muted-foreground" title={lead.job_title ?? undefined}>{lead.job_title ?? "—"}</td>
                   <td className="truncate px-3 py-2 text-muted-foreground">{lead.phone ?? "—"}</td>
                   <td className="truncate px-3 py-2 text-muted-foreground">
                     {leadLocation(lead) || "—"}
@@ -258,19 +269,18 @@ export function LeadTable({
                     )}
                   </td>
                   <td className="truncate px-3 py-2 text-muted-foreground">
-                    {lead.linkedin_url ? (
+                    {linkedInHref ? (
+                      <Button asChild variant="ghost" size="icon" className="size-8 text-primary">
                       <a
-                        className="hover:text-primary hover:underline"
-                        href={
-                          lead.linkedin_url.startsWith("http")
-                            ? lead.linkedin_url
-                            : `https://${lead.linkedin_url}`
-                        }
+                        aria-label={`Open ${name || lead.email}'s LinkedIn profile`}
+                        title="Open LinkedIn profile"
+                        href={linkedInHref}
                         target="_blank"
                         rel="noreferrer noopener"
                       >
-                        {lead.linkedin_url}
+                        <Linkedin className="size-4" aria-hidden />
                       </a>
+                      </Button>
                     ) : (
                       "—"
                     )}
@@ -308,8 +318,8 @@ export function LeadTable({
                   <td className="px-3 py-2 text-muted-foreground">{fmtDate(lead.last_activity_at)}</td>
                   <td className="px-3 py-2 text-muted-foreground">{fmtDate(lead.created_at)}</td>
                   <td className="px-3 py-2 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => onOpenLead(lead.id)}>
-                      Open
+                    <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={`Open ${name || lead.email}`} title="Open lead details" onClick={() => onOpenLead(lead.id)}>
+                      <Ellipsis className="size-4" />
                     </Button>
                   </td>
                 </tr>
@@ -319,7 +329,7 @@ export function LeadTable({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs">
         <p className="text-muted-foreground">
           Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total} leads
         </p>
@@ -330,6 +340,7 @@ export function LeadTable({
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
           >
+            <ChevronLeft className="size-3.5" />
             Previous
           </Button>
           <span className="text-xs text-muted-foreground">
@@ -342,6 +353,7 @@ export function LeadTable({
             onClick={() => onPageChange(page + 1)}
           >
             Next
+            <ChevronRight className="size-3.5" />
           </Button>
         </div>
       </div>

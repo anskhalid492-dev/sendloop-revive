@@ -303,7 +303,7 @@ function LeadsPage() {
 
   return (
     <AppShell title="Leads" description={`${total} prospects in this workspace`}>
-      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
         <LeadListSidebar
           lists={lists.data ?? []}
           isLoading={lists.isLoading}
@@ -320,9 +320,10 @@ function LeadsPage() {
         <div className="min-w-0 space-y-4">
           <ImportProgressPanel workspaceId={workspaceId} />
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-[220px] flex-1">
+            <div className="relative min-w-0 basis-full sm:min-w-[220px] sm:flex-1 sm:basis-auto">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                aria-label="Search leads"
                 className="pl-9"
                 placeholder="Search name, email or company"
                 value={search}
@@ -333,7 +334,7 @@ function LeadsPage() {
                 }}
               />
             </div>
-            <Button variant="outline" onClick={() => setShowFilters((v) => !v)}>
+            <Button variant="outline" aria-expanded={showFilters} onClick={() => setShowFilters((v) => !v)}>
               <Filter className="mr-2 size-4" />
               Filters
             </Button>
