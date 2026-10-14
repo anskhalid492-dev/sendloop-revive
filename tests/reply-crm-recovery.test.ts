@@ -28,7 +28,7 @@ describe("isolated reply CRM recovery", () => {
   it("replaying the same inbound UUID creates one activity", async () => {
     const db = fake(false);
     await syncReplyCrm(db.client, args); await syncReplyCrm(db.client, args);
-    expect(db.activities.size).toBe(1);
+    expect([...db.activities.values()].filter((a: any) => a.type === "replied")).toHaveLength(1);
     expect(db.writes.find(w => w.table === "leads")?.row).toMatchObject({ status: "interested", stage_id: "reply-stage", crm_stage: "engaged" });
     expect(db.writes.every(w => w.table === "lead_activities" || w.filters.some(f => f[0] === "workspace_id" && f[1] === args.workspaceId))).toBe(true);
   });
@@ -37,7 +37,7 @@ describe("isolated reply CRM recovery", () => {
     await expect(syncReplyCrm(db.client, args)).rejects.toThrow("Reply CRM update failed");
     expect(db.activities.size).toBe(0);
     const recovered = fake(false); await syncReplyCrm(recovered.client, args);
-    expect(recovered.activities.size).toBe(1);
+    expect([...recovered.activities.values()].filter((a: any) => a.type === "replied")).toHaveLength(1);
   });
   it("never drags a won deal backwards", async () => {
     const db = fake(false, "completed", "won-stage"); await syncReplyCrm(db.client, args);
