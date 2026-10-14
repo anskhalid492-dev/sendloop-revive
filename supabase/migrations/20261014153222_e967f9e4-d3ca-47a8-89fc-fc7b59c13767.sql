@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_lists ADD COLUMN IF NOT EXISTS color text NOT NULL DEFAULT 'blue';
