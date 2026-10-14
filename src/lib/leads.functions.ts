@@ -9,6 +9,7 @@ import {
   type LeadRow,
 } from "@/lib/lead-model";
 import { CANONICAL_STAGE_KEYS } from "@/lib/lead-stage-map";
+import { DEFAULT_LIST_COLOR, listColorSchema } from "@/lib/lead-list-color";
 
 export { LEAD_FIELDS };
 export type { LeadRow };
@@ -21,6 +22,7 @@ const LEAD_SELECT =
 
 export type LeadList = {
   id: string;
+  color?: string | null;
   name: string;
   description: string | null;
   created_at: string;
@@ -79,7 +81,7 @@ export const listLeadLists = createServerFn({ method: "GET" })
   .handler(async ({ data: input, context }) => {
     let listsQuery = context.supabase
       .from("lead_lists")
-      .select(sel("id, name, description, created_at"))
+      .select(sel("id, name, description, created_at, color"))
       .order("created_at", { ascending: false });
     if (input.workspaceId) listsQuery = listsQuery.eq("workspace_id", input.workspaceId);
     const { data, error } = await listsQuery
@@ -119,6 +121,7 @@ export const createLeadList = createServerFn({ method: "POST" })
         workspaceId: z.string().uuid(),
         name: z.string().trim().min(2).max(80),
         description: z.string().trim().max(280).optional(),
+        color: listColorSchema.default(DEFAULT_LIST_COLOR),
       })
       .parse(input),
   )
@@ -128,10 +131,11 @@ export const createLeadList = createServerFn({ method: "POST" })
       .insert({
         workspace_id: data.workspaceId,
         name: data.name,
+        color: data.color,
         description: data.description || null,
         created_by: context.userId,
-      })
-      .select(sel("id, name, description, created_at"))
+      } as never)
+      .select(sel("id, name, description, created_at, color"))
       .single();
     if (error) throw new Error(error.message);
     return { ...(list as unknown as Omit<LeadList, "leadCount">), leadCount: 0 } as LeadList;
@@ -145,13 +149,14 @@ export const renameLeadList = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         name: z.string().trim().min(2).max(80),
         description: z.string().trim().max(280).optional(),
+        color: listColorSchema.optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("lead_lists")
-      .update({ name: data.name, description: data.description ?? null })
+      .update({ name: data.name, description: data.description ?? null, ...(data.color === undefined ? {} : { color: data.color }) } as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

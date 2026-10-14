@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { ListColorPicker, ListFolderIcon } from "./ListColorPicker";
+import { DEFAULT_LIST_COLOR, listColor, type ListColor } from "@/lib/lead-list-color";
 import {
   createLeadList,
   deleteLeadList,
@@ -54,6 +56,8 @@ export function LeadListSidebar({
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [color, setColor] = useState<ListColor>(DEFAULT_LIST_COLOR);
+  const [colorEdited, setColorEdited] = useState(false);
   const [editing, setEditing] = useState<LeadList | null>(null);
   const [removing, setRemoving] = useState<LeadList | null>(null);
 
@@ -63,8 +67,10 @@ export function LeadListSidebar({
   };
 
   const create = useMutation({
-    mutationFn: () =>
-      createFn({ data: { workspaceId: workspaceId!, name, description: description || undefined } }),
+    mutationFn: () => {
+      if (!workspaceId) throw new Error("Choose a workspace first");
+      return createFn({ data: { workspaceId, name, description: description || undefined, color } });
+    },
     onSuccess: async (list) => {
       setCreateOpen(false);
       setName("");
@@ -77,10 +83,10 @@ export function LeadListSidebar({
   });
 
   const rename = useMutation({
-    mutationFn: () =>
-      renameFn({
-        data: { id: editing!.id, name, description: description || undefined },
-      }),
+    mutationFn: () => {
+      if (!editing) throw new Error("Choose a list first");
+      return renameFn({ data: { id: editing.id, name, description: description || undefined, ...(colorEdited ? { color } : {}) } });
+    },
     onSuccess: async () => {
       setEditing(null);
       await refresh();
@@ -90,8 +96,10 @@ export function LeadListSidebar({
   });
 
   const remove = useMutation({
-    mutationFn: (withLeads: boolean) =>
-      deleteFn({ data: { id: removing!.id, deleteLeads: withLeads } }),
+    mutationFn: (withLeads: boolean) => {
+      if (!removing) throw new Error("Choose a list first");
+      return deleteFn({ data: { id: removing.id, deleteLeads: withLeads } });
+    },
     onSuccess: async () => {
       const deletedId = removing?.id;
       setRemoving(null);
@@ -110,7 +118,7 @@ export function LeadListSidebar({
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Lead lists
         </p>
-        <Button size="sm" variant="ghost" onClick={() => setCreateOpen(true)} disabled={!workspaceId}>
+        <Button size="sm" variant="ghost" onClick={() => { setColor(DEFAULT_LIST_COLOR); setColorEdited(false); setCreateOpen(true); }} disabled={!workspaceId}>
           <FolderPlus className="mr-1.5 size-3.5" /> New
         </Button>
       </div>
@@ -166,7 +174,7 @@ export function LeadListSidebar({
                 className="flex min-w-0 flex-1 items-center justify-between gap-2 px-2.5 py-2 text-left text-sm"
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  <List className="size-4 shrink-0 text-muted-foreground" />
+                  <ListFolderIcon color={list.color} />
                   <span className="truncate">{list.name}</span>
                 </span>
                 <span className="text-xs text-muted-foreground">{list.leadCount}</span>
@@ -183,9 +191,11 @@ export function LeadListSidebar({
                       setEditing(list);
                       setName(list.name);
                       setDescription(list.description ?? "");
+                      setColor(listColor(list.color));
+                      setColorEdited(false);
                     }}
                   >
-                    Rename
+                    Edit list
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setRemoving(list)}>Delete</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -208,12 +218,13 @@ export function LeadListSidebar({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Rename list" : "Create list"}</DialogTitle>
+            <DialogTitle>{editing ? "Edit list" : "Create list"}</DialogTitle>
             <DialogDescription>
               Lists group prospects so campaigns can target the right audience.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="space-y-1.5"><Label>Folder color</Label><ListColorPicker value={color} onChange={(value) => { setColor(value); setColorEdited(true); }} /></div>
             <div className="space-y-1.5">
               <Label htmlFor="list-name">Name</Label>
               <Input id="list-name" value={name} onChange={(e) => setName(e.target.value)} />

@@ -11,6 +11,7 @@ import { ImportWizard } from "@/components/leads/ImportWizard";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { LeadFiltersPanel } from "@/components/leads/LeadFiltersPanel";
 import { LeadListSidebar } from "@/components/leads/LeadListSidebar";
+import { ListFolderIcon } from "@/components/leads/ListColorPicker";
 import { LeadTable } from "@/components/leads/LeadTable";
 import { Button } from "@/components/ui/button";
 import {
@@ -591,7 +592,7 @@ function LeadsPage() {
                 {bulkDialog === "list"
                   ? (lists.data ?? []).map((l) => (
                       <SelectItem key={l.id} value={l.id}>
-                        {l.name}
+                        <span className="flex items-center gap-2"><ListFolderIcon color={l.color} />{l.name}</span>
                       </SelectItem>
                     ))
                   : bulkDialog === "campaign"

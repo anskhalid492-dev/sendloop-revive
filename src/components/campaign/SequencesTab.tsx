@@ -64,6 +64,7 @@ import { insertAtSelection, variableSnippet } from "@/lib/campaign-editor";
 import { emptyStep, type CampaignBuilder, type StepDraft } from "./useCampaignBuilder";
 import { AiPersonalizationSidebar } from "./AiPersonalizationSidebar";
 import { AiCampaignWriterSidebar } from "./AiCampaignWriterSidebar";
+import { SpintaxBuilder } from "./SpintaxBuilder";
 
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -198,6 +199,11 @@ export function SequencesTab({
   type EditorField = "subject" | "body";
   const subjectRef = useRef<HTMLInputElement | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const [spintaxTarget, setSpintaxTarget] = useState<{
+    stepKey: string; variantIndex: number; field: EditorField;
+    start: number; end: number; selectedText: string;
+  } | null>(null);
+  const restoreSpintaxRef = useRef<(() => void) | null>(null);
   const selectionRef = useRef<{ field: EditorField; start: number; end: number }>({
     field: "body",
     start: 0,
@@ -242,6 +248,39 @@ export function SequencesTab({
     });
   };
   const insertToken = (token: string) => insertSnippet(variableSnippet(token));
+
+  const openSpintax = () => {
+    if (!step) return;
+    const selection = { ...selectionRef.current };
+    const current = selection.field === "subject" ? editingSubject : editingBody;
+    const el = selection.field === "subject" ? subjectRef.current : bodyRef.current;
+    restoreSpintaxRef.current = () => {
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(selection.start, selection.end);
+    };
+    setSpintaxTarget({ ...selection, stepKey: step.key, variantIndex: activeVariant ? variantIndex : -1,
+      selectedText: current.slice(selection.start, selection.end) });
+  };
+
+  const insertBuiltSpintax = (syntax: string) => {
+    const target = spintaxTarget;
+    if (!target) return;
+    const targetStep = steps.find((item) => item.key === target.stepKey);
+    if (!targetStep) { setSpintaxTarget(null); return; }
+    const targetVariant = target.variantIndex >= 0 ? targetStep.variants[target.variantIndex] : null;
+    if (target.variantIndex >= 0 && !targetVariant) { setSpintaxTarget(null); return; }
+    const current = (targetVariant ?? targetStep)[target.field];
+    const { value, caret } = insertAtSelection(current, target, syntax);
+    updateSteps((prev) => prev.map((item) => item.key !== target.stepKey ? item : target.variantIndex >= 0
+      ? { ...item, variants: item.variants.map((variant, index) => index === target.variantIndex ? { ...variant, [target.field]: value } : variant) }
+      : { ...item, [target.field]: value }));
+    selectionRef.current = { field: target.field, start: caret, end: caret };
+    const el = target.field === "subject" ? subjectRef.current : bodyRef.current;
+    restoreSpintaxRef.current = () => { if (el) { el.focus(); el.setSelectionRange(caret, caret); } };
+    setSpintaxTarget(null);
+    requestAnimationFrame(() => restoreSpintaxRef.current?.());
+  };
 
   const activeVariant = step?.variants[variantIndex];
   const editingSubject = activeVariant ? activeVariant.subject : (step?.subject ?? "");
@@ -579,7 +618,7 @@ export function SequencesTab({
                     variant="ghost"
                     size="sm"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => insertSnippet("{Best|Thanks|Cheers}")}
+                    onClick={openSpintax}
                   >
                     Spintax
                   </Button>
@@ -1037,6 +1076,9 @@ export function SequencesTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {spintaxTarget && <SpintaxBuilder open initialText={spintaxTarget.selectedText}
+        onClose={() => setSpintaxTarget(null)} onInsert={insertBuiltSpintax}
+        onRestoreCursor={() => restoreSpintaxRef.current?.()} />}
     </div>
 
     {/* AI personalization lives with the copy it rewrites, not in a separate tab. */}
