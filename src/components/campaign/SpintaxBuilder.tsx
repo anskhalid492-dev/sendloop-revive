@@ -14,7 +14,7 @@ export function SpintaxBuilder({ open, initialText, onClose, onInsert, onRestore
   const { syntax, error } = buildSpintax(options);
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-md" aria-describedby={undefined}
+      <DialogContent className="max-h-[85dvh] max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-md" aria-describedby={undefined}
         onCloseAutoFocus={(event) => { event.preventDefault(); onRestoreCursor(); }}>
         <DialogHeader><DialogTitle className="flex items-center gap-2"><Braces className="size-5 text-primary" />Spintax Builder</DialogTitle></DialogHeader>
         <div className="space-y-3">

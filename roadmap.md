@@ -1,9 +1,10 @@
 # Roadmap
 
 ## List colors and existing Spintax Builder
-- [ ] Persist list folder colors across creation, import and list displays without changing existing selections.
-- [ ] Refine existing spintax control with editable options, nested syntax and captured field/step/variant selection.
-- [ ] Run isolated import/color/editor regressions and browser checks; do not publish.
+- [x] Add saved list colors to creation, CSV destinations, editing and all existing list displays; preserve existing-list selection.
+- [x] Refine the existing spintax control with editable options, nested syntax and captured field/step/variant selection.
+- [x] Run 42 isolated regressions and production-blocked browser checks for CSV review, colors, multiple options, nested syntax, body/subject selection, variants and multiple steps; no publication.
+- [ ] Apply additive list-color column and verify real saved colors/full import after refresh — blocked: production SQL is manual; external backend has no scoped throwaway test-account session. Script: supabase/manual/lead-list-colors.sql.
 
 ## Leads viewport scrolling
 - [x] Constrain the Leads layout to available viewport space, keep controls/pagination visible, and scroll only the table with sticky headers.
