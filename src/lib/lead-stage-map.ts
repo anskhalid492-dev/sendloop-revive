@@ -17,6 +17,7 @@ export const CANONICAL_STAGE_KEYS = [
   "new",
   "contacted",
   "replied",
+  "interested",
   "meeting_booked",
   "won",
   "lost",
@@ -29,6 +30,7 @@ export const STAGE_KEY_LABELS: Record<StageKey, string> = {
   new: "New",
   contacted: "Contacted",
   replied: "Replied",
+  interested: "Interested",
   meeting_booked: "Meeting booked",
   won: "Won",
   lost: "Lost",
@@ -41,7 +43,7 @@ export const STAGE_KEY_FOR_LEAD_STATUS: Record<string, StageKey> = {
   new: "new",
   contacted: "contacted",
   replied: "replied",
-  interested: "replied",
+  interested: "interested",
   meeting: "meeting_booked",
   completed: "won",
   not_interested: "lost",
@@ -52,6 +54,7 @@ export const LEAD_STATUS_FOR_STAGE_KEY: Record<StageKey, string> = {
   new: "new",
   contacted: "contacted",
   replied: "replied",
+  interested: "interested",
   meeting_booked: "meeting",
   won: "completed",
   lost: "not_interested",
@@ -62,6 +65,7 @@ export const LEGACY_CRM_STAGE_FOR_KEY: Record<StageKey, string> = {
   new: "prospect",
   contacted: "prospect",
   replied: "engaged",
+  interested: "engaged",
   meeting_booked: "opportunity",
   won: "customer",
   lost: "lost",
@@ -73,7 +77,7 @@ export const TRANSITION_FOR_CONVERSATION_STATUS: Record<
   { status: string; stageKey?: StageKey }
 > = {
   lead: { status: "replied", stageKey: "replied" },
-  interested: { status: "interested", stageKey: "replied" },
+  interested: { status: "interested", stageKey: "interested" },
   meeting_booked: { status: "meeting", stageKey: "meeting_booked" },
   meeting_completed: { status: "meeting", stageKey: "meeting_booked" },
   won: { status: "completed", stageKey: "won" },
@@ -97,3 +101,33 @@ export const STAGE_KEY_FOR_LEGACY_CRM_STAGE: Record<string, StageKey> = {
   customer: "won",
   lost: "lost",
 };
+
+/**
+ * Automatic (reply-driven) pipeline moves. Forward-only along this order; a
+ * custom stage, Won or Lost is a human decision and is never touched.
+ */
+const AUTO_STAGE_RANK: Record<string, number> = {
+  new: 0,
+  contacted: 1,
+  replied: 2,
+  interested: 3,
+  meeting_booked: 4,
+};
+
+/** Stage a detected reply intent means. OOO, bounces and opt-outs move nothing. */
+export function autoStageForReply(detected: string | null | undefined): StageKey | null {
+  if (detected === "meeting_booked") return "meeting_booked";
+  if (detected === "interested") return "interested";
+  // Neutral, question-only and negative replies are still real replies; a
+  // negative reply is never moved to Lost automatically.
+  if (detected === null || detected === undefined || detected === "not_interested" || detected === "lead") return "replied";
+  return null;
+}
+
+/** True when an automatic move from `currentKey` to `targetKey` is allowed. */
+export function canAutoAdvance(currentKey: string | null | undefined, targetKey: StageKey): boolean {
+  if (!currentKey) return true;
+  const from = AUTO_STAGE_RANK[currentKey];
+  if (from === undefined) return false; // Won, Lost or a custom stage
+  return (AUTO_STAGE_RANK[targetKey] ?? -1) > from;
+}
