@@ -1,5 +1,10 @@
 # Roadmap
 
+## Leads viewport scrolling
+- [x] Constrain the Leads layout to available viewport space, keep controls/pagination visible, and scroll only the table with sticky headers.
+- [x] Verify all 50 fixture rows, sticky headers, both scroll axes, pagination and selection at five viewport sizes; 42 regression tests passed. No production data changes or publishing.
+- [ ] Verify the complete signed-in Leads screen — blocked: externally managed backend has no available test-account session; isolated table checks passed.
+
 ## Leads table redesign
 - [x] Refresh the compact table while preserving existing controls and lead fields.
 - [x] Add provider marks and icon-only stored LinkedIn links without backend or CSV changes.
