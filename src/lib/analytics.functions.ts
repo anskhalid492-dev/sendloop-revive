@@ -9,7 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { deliveredCount } from "@/lib/engagement-rates";
-import { collapseAnalyticsUnits, summarizeEngagement, engagementTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
+import { collapseAnalyticsUnits, summarizeEngagement, engagementTrend, positiveReplyTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
 import { fetchAllRows } from "@/lib/supabase-batch";
 import { scopeAnalyticsQuery } from "@/lib/analytics-filters";
 
@@ -228,7 +228,13 @@ export const getAnalyticsTimeseries = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
     const { units, from, to } = await loadUnits(client, data);
-    return engagementTrend(units, from, to, data.bucket);
+    const trend = engagementTrend(units, from, to, data.bucket);
+    // Positive replies come from the classified reply rows, same source and
+    // rule as the summary card, scoped to the same workspace/campaign/mailbox.
+    const replies = await fetchReplyRows(client, data, from, to);
+    const positive = positiveReplyTrend(replies, from, to, data.bucket);
+    for (const p of trend) p.positiveReplies = positive.get(p.bucket) ?? 0;
+    return trend;
   });
 
 
