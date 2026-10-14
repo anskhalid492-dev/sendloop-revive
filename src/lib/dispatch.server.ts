@@ -1052,12 +1052,19 @@ export async function dispatchDueMessages(
     const fail = async (reason: string) => {
       result.failed += 1;
       if (result.errors.length < 5) result.errors.push(reason);
+      // 550 5.7.193 is a permanent rejection reported as Bounced. Only the
+      // reporting fields change: status/attempts (and so retries) are as before,
+      // and the contact is NOT suppressed or marked invalid.
+      const rejectionBounce = isPermanentRejectionBounce(reason);
       await supabase
         .from("campaign_messages")
         .update({
           status: "failed",
           last_error: reason.slice(0, 500),
           attempts: (message.attempts ?? 0) + 1,
+          ...(rejectionBounce
+            ? { bounced_at: new Date().toISOString(), delivery_status: "bounced", bounce_reason: reason.slice(0, 500) }
+            : {}),
         })
         .eq("id", message.id);
     };

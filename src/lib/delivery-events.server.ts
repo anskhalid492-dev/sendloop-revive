@@ -129,7 +129,9 @@ export async function applyDeliveryEvent(args: {
   }
 
 
-  if (email) {
+  // A permanent-rejection bounce (550 5.7.193) is not proof the address is
+  // invalid, so it never adds the address to the suppression list.
+  if (email && !(kind === "bounced" && isPermanentRejectionBounce(args.reason))) {
     const { suppressEmail } = await import("@/lib/suppression.server");
     await suppressEmail({
       workspaceId,
