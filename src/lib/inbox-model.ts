@@ -245,7 +245,7 @@ const POSITIVE_PATTERNS = [
   /^\s*(yes|sure),? (tell me more|send|let'?s|please share)\b/i,
   /\b(yes|sure),? (please|send|i'?d|we'?d|let'?s)/i,
   // Concrete buying requests: pricing / a quote, a mockup, sample or proposal.
-  /\b(share|send|see|get|have)\b[^.?!\n]{0,30}\b(pricing|price list|prices|quote|proposal|mock-?ups?|samples?)\b/i,
+  /\b(share|send|see|get)\b[^.?!\n]{0,30}\b(pricing|price list|prices|quote|proposal|mock-?ups?|samples?)\b/i,
   /\bwhat(?:'?s| is| are) (your|the) (pricing|prices|rates)\b/i,
 ];
 /** A meeting the prospect confirmed (not merely suggested). */
