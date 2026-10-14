@@ -1495,7 +1495,7 @@ export async function dispatchDueMessages(
       .eq("id", message.id)
       .eq("status", "processing")
       .select("id");
-    if (phaseWrite.error || !Array.isArray(phaseWrite.data) || phaseWrite.data.length === 0) {
+    if (phaseWrite?.error || (Array.isArray(phaseWrite?.data) && phaseWrite.data.length === 0)) {
       if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "phase_write_failed");
       result.skipped += 1;
       logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_call_marker_write_failed" });
