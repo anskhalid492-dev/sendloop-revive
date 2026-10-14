@@ -320,7 +320,7 @@ export function ImportWizard({
         if (!next) reset();
       }}
     >
-      <DialogContent className="max-h-[85dvh] max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[85dvh] min-w-0 max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-3xl [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Import leads from CSV</DialogTitle>
           <DialogDescription>
