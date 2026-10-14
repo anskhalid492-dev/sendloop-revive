@@ -26,6 +26,7 @@
  */
 import { acquireWorkerLease, releaseWorkerLease, logWorkerRun } from "@/lib/worker-lease.server";
 import { SCHEDULER_BUDGET_MS, SCHEDULER_LEASE_TTL_MS, hasBudgetRemaining } from "@/lib/campaign-scheduler";
+import { decideInterrupted, outcomeUnknownReason, NEVER_RETRY_ATTEMPTS } from "@/lib/campaign-send-phase";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;

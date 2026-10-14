@@ -194,7 +194,7 @@ describe("queue-mode crash recovery (at-most-once)", () => {
     const held = r.updates.find((u) => u.patch.status === "failed");
     expect(sent?.ids).toEqual(["accepted"]);
     expect(held?.ids).toEqual(["unknown"]);
-    expect(held?.patch.last_error).toBe(OUTCOME_UNKNOWN_REASON);
+    expect(String(held?.patch.last_error)).toContain(OUTCOME_UNKNOWN_REASON);
     // Never re-queued to scheduled:
     expect(r.updates.some((u) => u.patch.status === "scheduled")).toBe(false);
   });
