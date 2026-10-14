@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Filter, Loader2, Plus, Search, Upload } from "lucide-react";
+import { Download, Filter, List, Loader2, Plus, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -97,6 +97,7 @@ function LeadsPage() {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<LeadFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showLists, setShowLists] = useState(false);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -302,8 +303,9 @@ function LeadsPage() {
   };
 
   return (
-    <AppShell title="Leads" description={`${total} prospects in this workspace`}>
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <AppShell title="Leads" description={`${total} prospects in this workspace`} contained contentClassName="px-4 py-4 sm:px-6">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="hidden min-h-0 overflow-y-auto lg:block">
         <LeadListSidebar
           lists={lists.data ?? []}
           isLoading={lists.isLoading}
@@ -316,11 +318,14 @@ function LeadsPage() {
           }}
           workspaceId={workspaceId}
         />
+        </div>
 
-        <div className="min-w-0 space-y-4">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          <div className="shrink-0">
           <ImportProgressPanel workspaceId={workspaceId} />
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-0 basis-full sm:min-w-[220px] sm:flex-1 sm:basis-auto">
+          </div>
+          <div className="grid shrink-0 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+            <div className="relative col-span-2 min-w-0 sm:min-w-[220px] sm:flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="Search leads"
@@ -334,6 +339,7 @@ function LeadsPage() {
                 }}
               />
             </div>
+            <Button variant="outline" className="lg:hidden" onClick={() => setShowLists(true)}><List className="size-4" /> Lead lists</Button>
             <Button variant="outline" aria-expanded={showFilters} onClick={() => setShowFilters((v) => !v)}>
               <Filter className="mr-2 size-4" />
               Filters
@@ -352,20 +358,8 @@ function LeadsPage() {
             </Button>
           </div>
 
-          {showFilters ? (
-            <LeadFiltersPanel
-              filters={filters}
-              onChange={(next) => {
-                setFilters(next);
-                setPage(1);
-              }}
-              campaigns={campaignOptions}
-              tags={tags.data ?? []}
-            />
-          ) : null}
-
           {selectedCount > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3">
               <p className="text-sm font-medium">
                 {allMatchingSelected
                   ? `All ${total.toLocaleString()} leads selected`
@@ -484,6 +478,20 @@ function LeadsPage() {
           />
         </div>
       </div>
+
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader><DialogTitle>Lead filters</DialogTitle><DialogDescription>Filter prospects in this workspace.</DialogDescription></DialogHeader>
+          <LeadFiltersPanel filters={filters} onChange={(next) => { setFilters(next); setPage(1); }} campaigns={campaignOptions} tags={tags.data ?? []} />
+          <DialogFooter><Button onClick={() => setShowFilters(false)}>Done</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showLists} onOpenChange={setShowLists}>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+          <DialogHeader><DialogTitle>Lead lists</DialogTitle><DialogDescription>Select a list in this workspace.</DialogDescription></DialogHeader>
+          <LeadListSidebar lists={lists.data ?? []} isLoading={lists.isLoading} totalLeads={total} activeList={activeList} workspaceId={workspaceId} onSelect={(id) => { setActiveList(id); setPage(1); setSelection(EMPTY_SELECTION); setShowLists(false); }} />
+        </DialogContent>
+      </Dialog>
 
       <ImportWizard
         open={importOpen}

@@ -104,7 +104,7 @@ export function LeadTable({
 
   if (isError) {
     return (
-      <div className="surface-card p-12 text-center">
+      <div className="surface-card min-h-0 flex-1 overflow-auto p-6 text-center sm:p-12">
         <h3 className="text-lg font-semibold">Could not load leads</h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           {errorMessage ?? "Something went wrong while reading your workspace."}
@@ -118,7 +118,7 @@ export function LeadTable({
 
   if (isLoading) {
     return (
-      <div className="surface-card space-y-2 p-4">
+      <div className="surface-card min-h-0 flex-1 space-y-2 overflow-auto p-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex gap-3">
             <Skeleton className="h-9 w-6" />
@@ -133,7 +133,7 @@ export function LeadTable({
 
   if (rows.length === 0) {
     return (
-      <div className="surface-card p-12 text-center">
+      <div className="surface-card min-h-0 flex-1 overflow-auto p-6 text-center sm:p-12">
         <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <Users className="size-5" />
         </span>
@@ -144,12 +144,12 @@ export function LeadTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="max-w-full overflow-x-auto overscroll-x-contain" role="region" aria-label="Leads table" tabIndex={0}>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
+      <div className="min-h-0 max-w-full flex-1 overflow-auto overscroll-contain" role="region" aria-label="Leads table" tabIndex={0}>
         <table className="w-full table-fixed border-collapse text-[13px]" style={{ minWidth: LEAD_COLUMNS.reduce((sum, col) => sum + (widths[col.id] ?? col.width), 0) + 100 }}>
           <thead>
             <tr className="h-11 border-b border-border bg-muted/50 text-left text-xs text-muted-foreground">
-              <th className="sticky left-0 z-20 w-11 bg-muted px-3 py-2">
+              <th scope="col" className="sticky left-0 top-0 z-30 w-11 bg-muted px-3 py-2">
                 <Checkbox
                   aria-label="Select all leads on this page"
                   checked={allSelected}
@@ -166,7 +166,8 @@ export function LeadTable({
                 return (
                   <th
                     key={col.id}
-                    className={cn("relative select-none px-3 py-2 font-medium", col.id === "name" && "sticky left-11 z-20 bg-muted")}
+                    scope="col"
+                    className={cn("sticky top-0 z-20 select-none bg-muted px-3 py-2 font-medium", col.id === "name" && "left-11 z-30")}
                     style={{ width: widths[col.id], minWidth: widths[col.id] }}
                   >
                     {sortKey ? (
@@ -207,7 +208,7 @@ export function LeadTable({
                   </th>
                 );
               })}
-              <th className="w-14 px-3 py-2 text-right font-medium"><span className="sr-only">Actions</span></th>
+              <th scope="col" className="sticky top-0 z-20 w-14 bg-muted px-3 py-2 text-right font-medium"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -329,7 +330,7 @@ export function LeadTable({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs">
         <p className="text-muted-foreground">
           Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total} leads
         </p>

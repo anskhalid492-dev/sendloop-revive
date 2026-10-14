@@ -126,6 +126,7 @@ export function AppShell({
   actions,
   children,
   contentClassName,
+  contained = false,
 }: {
   title: string;
   /** Kept for call sites; the sub-heading is no longer shown in the app header. */
@@ -133,6 +134,8 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
   contentClassName?: string;
+  /** Opt-in viewport layout for screens with their own scrollable content. */
+  contained?: boolean;
 }) {
 
   const [open, setOpen] = useState(false);
@@ -418,7 +421,7 @@ export function AppShell({
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn("bg-background", contained ? "h-dvh overflow-hidden" : "min-h-screen")}>
       <aside className="fixed inset-y-3 left-3 z-40 hidden w-16 overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar shadow-sm lg:block">
         {rail}
         {tip ? (
@@ -442,8 +445,8 @@ export function AppShell({
         </div>
       ) : null}
 
-      <div className="lg:pl-[88px]">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/85 px-4 backdrop-blur sm:px-6">
+      <div className={cn("lg:pl-[88px]", contained && "flex h-full min-h-0 flex-col overflow-hidden")}>
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-background/85 px-4 backdrop-blur sm:px-6">
           <button
             className="inline-flex size-9 items-center justify-center rounded-md border border-border lg:hidden"
             onClick={() => setOpen((v) => !v)}
@@ -513,12 +516,12 @@ export function AppShell({
         </header>
 
         {actions ? (
-          <div className="flex flex-wrap gap-2 border-b border-border/60 px-4 py-3 sm:px-6">{actions}</div>
+          <div className="flex shrink-0 flex-wrap gap-2 border-b border-border/60 px-4 py-3 sm:px-6">{actions}</div>
         ) : null}
 
         <>
           <AnnouncementBar />
-          <main className={contentClassName ?? "px-4 py-8 sm:px-6"}>{children}</main>
+          <main className={cn(contentClassName ?? "px-4 py-8 sm:px-6", contained && "flex min-h-0 flex-1 flex-col overflow-hidden")}>{children}</main>
         </>
       </div>
     </div>
