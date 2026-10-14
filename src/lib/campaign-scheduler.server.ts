@@ -62,48 +62,18 @@ async function writeSetting(supabase: AnySupabase, key: string, value: unknown):
 
 /**
  * Recovers messages an interrupted invocation left in `processing`:
- * provider-accepted rows are completed from the outbound registry, rows with no
- * acceptance proof go back to `scheduled` so the next invocation can retry them.
- * Nothing that reached the provider is ever re-sent.
+ * provider-accepted rows are completed from the outbound registry; rows proven
+ * never handed to the provider are re-queued; rows whose provider call may have
+ * happened are held as outcome-unknown. Nothing possibly accepted is re-sent.
  */
 export async function recoverInterruptedMessages(
   supabase: AnySupabase,
   campaignId: string,
   now: Date = new Date(),
 ): Promise<number> {
-  let recovered = await completeAcceptedProcessingMessages(supabase, campaignId, now);
-
-  const cutoff = new Date(now.getTime() - STALE_PROCESSING_MINUTES * 60_000).toISOString();
-  const { data: stuck } = await supabase
-    .from("campaign_messages")
-    .select("id")
-    .eq("campaign_id", campaignId)
-    .eq("status", "processing")
-    .is("sent_at", null)
-    .is("provider_message_id", null)
-    .lte("created_at", cutoff)
-    .limit(200);
-  const rows = ((stuck ?? []) as { id: string }[]).map((row) => row.id);
-  if (!rows.length) return recovered;
-
-  const admin = (await import("@/integrations/supabase/client.server")).supabaseAdmin;
-  const { data: registry } = await admin
-    .from("outbound_messages")
-    .select("ref_id")
-    .eq("ref_table", "campaign_messages")
-    .in("ref_id", rows);
-  const accepted = new Set(((registry ?? []) as { ref_id: string | null }[]).map((r) => r.ref_id));
-  const requeue = rows.filter((id) => !accepted.has(id));
-  if (!requeue.length) return recovered;
-
-  await supabase
-    .from("campaign_messages")
-    .update({ status: "scheduled", scheduled_at: now.toISOString(), last_error: null })
-    .in("id", requeue)
-    .eq("status", "processing")
-    .is("sent_at", null);
-  recovered += requeue.length;
-  return recovered;
+  const recovered = await completeAcceptedProcessingMessages(supabase, campaignId, now);
+  const { recoverUnprovenProcessing } = await import("./campaign-queue.server");
+  return recovered + (await recoverUnprovenProcessing(supabase, campaignId, now));
 }
 
 /**

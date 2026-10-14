@@ -38,9 +38,7 @@ const JOB_LEASE_SECONDS = 120;
 const CLAIM_BATCH = 3;
 const STALE_PROCESSING_MINUTES = 10;
 /** Reason written on messages whose send outcome is unknown after a crash. */
-export const OUTCOME_UNKNOWN_REASON = "send_outcome_unknown_after_interrupt: held for review, not resent";
-/** Attempts value that keeps the existing daily retry from ever re-sending it. */
-const NEVER_RETRY_ATTEMPTS = 999;
+export { OUTCOME_UNKNOWN_REASON } from "@/lib/campaign-send-phase";
 
 export type CampaignTickResult = { sent: number; failed: number; scheduled: number };
 
@@ -57,13 +55,68 @@ export function campaignJobKey(campaignId: string, now: Date): string {
 }
 
 /**
- * Queue-mode recovery for messages an interrupted run left in `processing`.
- * Provider-accepted ones (outbound registry proof) are completed exactly like
- * legacy. The rest are NOT re-queued: the crash may have happened after the
- * provider accepted the email but before the proof was written, so resending
- * could duplicate it. They become `failed` with a clear reason and an attempt
- * count the daily retry never picks up — visible and manually resolvable.
+ * Shared recovery (queue AND legacy) for messages an interrupted run left in
+ * `processing` for 10+ minutes with no acceptance proof:
+ *  - phase `claimed`  -> provider never contacted -> back to `scheduled` (safe).
+ *  - phase `provider_call` or no marker -> outcome unknown -> held as `failed`
+ *    with the interruption point in last_error and an attempt count no retry
+ *    ever picks up. Never resent, never marked sent or bounced.
  */
+export async function recoverUnprovenProcessing(
+  client: Client,
+  campaignId: string,
+  now: Date = new Date(),
+  registryClient?: Client,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - STALE_PROCESSING_MINUTES * 60_000).toISOString();
+  const { data: stuck } = await client
+    .from("campaign_messages")
+    .select("id, last_error")
+    .eq("campaign_id", campaignId)
+    .eq("status", "processing")
+    .is("sent_at", null)
+    .is("provider_message_id", null)
+    .lte("updated_at", cutoff)
+    .limit(200);
+  const rows = (stuck ?? []) as { id: string; last_error?: string | null }[];
+  if (!rows.length) return 0;
+
+  const registry = registryClient ?? (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+  const { data: proof } = await registry
+    .from("outbound_messages")
+    .select("ref_id")
+    .eq("ref_table", "campaign_messages")
+    .in("ref_id", rows.map((r) => r.id));
+  const accepted = new Set(((proof ?? []) as { ref_id: string | null }[]).map((r) => r.ref_id));
+  const unproven = rows.filter((r) => !accepted.has(r.id));
+  if (!unproven.length) return 0;
+
+  const requeue = unproven.filter((r) => decideInterrupted(r.last_error) === "requeue").map((r) => r.id);
+  const hold = unproven.filter((r) => decideInterrupted(r.last_error) === "hold_unknown");
+
+  if (requeue.length) {
+    await client
+      .from("campaign_messages")
+      .update({ status: "scheduled", scheduled_at: now.toISOString(), last_error: null })
+      .in("id", requeue)
+      .eq("status", "processing")
+      .is("sent_at", null)
+      .is("provider_message_id", null);
+  }
+  for (const row of hold) {
+    await client
+      .from("campaign_messages")
+      .update({ status: "failed", last_error: outcomeUnknownReason(row.last_error), attempts: NEVER_RETRY_ATTEMPTS })
+      .eq("id", row.id)
+      .eq("status", "processing")
+      .is("sent_at", null)
+      .is("provider_message_id", null);
+  }
+  console.log(JSON.stringify({ worker: "campaign-recovery", campaign_id: campaignId, requeued: requeue.length, held_unknown: hold.length }));
+  return unproven.length;
+}
+
+/** Queue-mode recovery: complete proven sends, then the shared unproven rule. */
 export async function recoverInterruptedForQueue(
   client: Client,
   campaignId: string,
@@ -71,40 +124,8 @@ export async function recoverInterruptedForQueue(
   registryClient?: Client,
 ): Promise<number> {
   const { completeAcceptedProcessingMessages } = await import("@/lib/dispatch.server");
-  let recovered = await completeAcceptedProcessingMessages(client, campaignId, now, registryClient);
-
-  const cutoff = new Date(now.getTime() - STALE_PROCESSING_MINUTES * 60_000).toISOString();
-  const { data: stuck } = await client
-    .from("campaign_messages")
-    .select("id")
-    .eq("campaign_id", campaignId)
-    .eq("status", "processing")
-    .is("sent_at", null)
-    .is("provider_message_id", null)
-    .lte("updated_at", cutoff)
-    .limit(200);
-  const ids = ((stuck ?? []) as { id: string }[]).map((r) => r.id);
-  if (!ids.length) return recovered;
-
-  const registry = registryClient ?? (await import("@/integrations/supabase/client.server")).supabaseAdmin;
-  const { data: proof } = await registry
-    .from("outbound_messages")
-    .select("ref_id")
-    .eq("ref_table", "campaign_messages")
-    .in("ref_id", ids);
-  const accepted = new Set(((proof ?? []) as { ref_id: string | null }[]).map((r) => r.ref_id));
-  const unknown = ids.filter((id) => !accepted.has(id));
-  if (!unknown.length) return recovered;
-
-  await client
-    .from("campaign_messages")
-    .update({ status: "failed", last_error: OUTCOME_UNKNOWN_REASON, attempts: NEVER_RETRY_ATTEMPTS })
-    .in("id", unknown)
-    .eq("status", "processing")
-    .is("sent_at", null)
-    .is("provider_message_id", null);
-  recovered += unknown.length;
-  return recovered;
+  const recovered = await completeAcceptedProcessingMessages(client, campaignId, now, registryClient);
+  return recovered + (await recoverUnprovenProcessing(client, campaignId, now, registryClient));
 }
 
 export async function runCampaignQueue(deps: CampaignQueueDeps, campaigns: Array<{ id: string }>) {
