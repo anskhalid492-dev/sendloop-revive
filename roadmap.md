@@ -1,5 +1,9 @@
 # Roadmap
 
+## Leads viewport scrolling
+- [ ] Constrain the Leads layout to available viewport space, keep controls/pagination visible, and scroll only the table with sticky headers.
+- [ ] Verify scrolling and existing table interactions with isolated fixtures; leave production data unchanged and do not publish.
+
 ## Leads table redesign
 - [x] Refresh the compact table while preserving existing controls and lead fields.
 - [x] Add provider marks and icon-only stored LinkedIn links without backend or CSV changes.
