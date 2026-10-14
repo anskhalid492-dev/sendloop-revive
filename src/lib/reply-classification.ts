@@ -8,7 +8,7 @@ export function classifyProspectReply(body: string, headers?: Record<string, str
   const neutral = /^(thanks?( you)?|thank you|who are you|what is this)[.!?\s]*$/i.test(text);
   return {
     status,
-    category: status === "interested" ? "positive" : status === "unsubscribed" ? "unsubscribe" : status === "not_interested" ? "negative" : status === "ooo" ? "out_of_office" : neutral ? "neutral" : "unclassified",
+    category: status === "interested" || status === "meeting_booked" ? "positive" : status === "unsubscribed" ? "unsubscribe" : status === "not_interested" ? "negative" : status === "ooo" ? "out_of_office" : neutral ? "neutral" : "unclassified",
     // Rule matches are not calibrated AI probabilities.
     confidence: null,
     version: REPLY_CLASSIFIER_VERSION,
@@ -19,9 +19,12 @@ export function classifyProspectReply(body: string, headers?: Record<string, str
 /** Automated reply processing must not erase a human's pipeline decision. */
 export function automaticLeadStatus(current: string, detected: ConversationStatus | null): string {
   if (detected === "unsubscribed") return "unsubscribed";
-  if (!["new", "contacted", "replied", "lead"].includes(current)) return current;
+  if (!["new", "contacted", "replied", "lead", "interested"].includes(current)) return current;
+  if (detected === "meeting_booked") return "meeting";
   if (detected === "interested") return "interested";
-  if (detected === "not_interested") return "not_interested";
+  // Automation never moves a contact backwards from Interested.
+  if (current === "interested") return current;
   if (detected === "bounced") return "bounced";
+  // A negative reply is a reply, never an automatic "lost" decision.
   return "replied";
 }
