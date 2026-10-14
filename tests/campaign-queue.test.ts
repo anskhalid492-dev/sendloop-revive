@@ -9,6 +9,7 @@ import {
   runCampaignQueue,
 } from "@/lib/campaign-queue.server";
 import { selectRetryableMessages } from "@/lib/dispatch.server";
+import { decideInterrupted, isUncertainTransportError, outcomeUnknownReason, phaseMarker } from "@/lib/campaign-send-phase";
 
 type Job = { id: string; idempotency_key: string; payload: { campaign_id: string }; status: string; attempts: number };
 
@@ -197,6 +198,59 @@ describe("queue-mode crash recovery (at-most-once)", () => {
     expect(String(held?.patch.last_error)).toContain(OUTCOME_UNKNOWN_REASON);
     // Never re-queued to scheduled:
     expect(r.updates.some((u) => u.patch.status === "scheduled")).toBe(false);
+  });
+
+  it("worker restart: a row claimed but never handed to the provider is requeued, not held", async () => {
+    const msgs = [
+      { id: "claimed", campaign_id: "c1", status: "processing", sent_at: null, provider_message_id: null, last_error: phaseMarker("claimed", new Date("2026-10-14T10:00:00Z")) },
+    ];
+    const r = recoveryClient(msgs, []);
+    await recoverInterruptedForQueue(r.client, "c1", new Date(), r.client);
+    const requeued = r.updates.find((u) => u.patch.status === "scheduled");
+    expect(requeued?.ids).toEqual(["claimed"]);
+    expect(r.updates.some((u) => u.patch.status === "failed")).toBe(false);
+  });
+
+  it("interrupted during the SMTP call: held unknown with the interruption point, never resent, never bounced", async () => {
+    const msgs = [
+      { id: "inflight", campaign_id: "c1", status: "processing", sent_at: null, provider_message_id: null, last_error: phaseMarker("provider_call", new Date("2026-10-14T10:00:05Z")) },
+      { id: "legacy", campaign_id: "c1", status: "processing", sent_at: null, provider_message_id: null, last_error: null },
+    ];
+    const r = recoveryClient(msgs, []);
+    await recoverInterruptedForQueue(r.client, "c1", new Date(), r.client);
+    const held = r.updates.filter((u) => u.patch.status === "failed");
+    expect(held.flatMap((u) => u.ids).sort()).toEqual(["inflight", "legacy"]);
+    expect(String(held.find((u) => u.ids[0] === "inflight")?.patch.last_error)).toContain("provider_call at 2026-10-14T10:00:05.000Z");
+    expect(String(held.find((u) => u.ids[0] === "legacy")?.patch.last_error)).toContain("unrecorded");
+    expect(held.every((u) => u.patch.attempts === 999)).toBe(true);
+    expect(r.updates.some((u) => ["scheduled", "sent", "bounced"].includes(String(u.patch.status)))).toBe(false);
+  });
+
+  it("SMTP accepted but the sent write was lost: registry proof completes it as sent, no resend", async () => {
+    const msgs = [
+      { id: "acc", campaign_id: "c1", status: "processing", sent_at: null, provider_message_id: null, last_error: phaseMarker("provider_call", new Date()) },
+    ];
+    const r = recoveryClient(msgs, ["acc"]);
+    await recoverInterruptedForQueue(r.client, "c1", new Date(), r.client);
+    expect(r.updates.find((u) => u.patch.status === "sent")?.ids).toEqual(["acc"]);
+    expect(r.updates.some((u) => u.patch.status === "scheduled")).toBe(false);
+  });
+
+  it("send-phase rules", () => {
+    expect(decideInterrupted(phaseMarker("claimed", new Date()))).toBe("requeue");
+    expect(decideInterrupted(phaseMarker("provider_call", new Date()))).toBe("hold_unknown");
+    expect(decideInterrupted(null)).toBe("hold_unknown");
+    expect(decideInterrupted("SMTP 550 user unknown")).toBe("hold_unknown");
+    expect(isUncertainTransportError("The operation was aborted due to timeout")).toBe(true);
+    expect(isUncertainTransportError("550 5.1.1 User unknown")).toBe(false);
+  });
+
+  it("the daily retry never picks up a held unknown even with a low attempt count", () => {
+    const rows = selectRetryableMessages(
+      [{ id: "u", status: "failed", attempts: 1, sent_at: null, last_error: outcomeUnknownReason(null), updated_at: "2026-01-01T00:00:00Z" }],
+      new Date("2026-10-02T00:00:00Z"),
+    );
+    expect(rows).toHaveLength(0);
   });
 
   it("the existing daily retry never picks up a held unknown-outcome message", () => {
