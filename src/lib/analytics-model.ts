@@ -44,6 +44,7 @@ export type AnalyticsTimeseriesPoint = {
   opens: number;
   clicks: number;
   replies: number;
+  positiveReplies: number;
   bounced: number;
   unsubscribed: number;
 };

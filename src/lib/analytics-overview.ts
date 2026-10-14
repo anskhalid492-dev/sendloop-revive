@@ -4,7 +4,7 @@ import type { AnalyticsSummary, AnalyticsTimeseriesPoint } from "@/lib/analytics
 export const ENGAGEMENT_SERIES = [
   { key: "sent", label: "Emails sent", color: "var(--primary)", dot: "bg-primary" },
   { key: "opens", label: "Opens", color: "var(--chart-3)", dot: "bg-chart-3" },
-  { key: "clicks", label: "Clicks", color: "var(--chart-4)", dot: "bg-chart-4" },
+  { key: "positiveReplies", label: "Positive replies", color: "var(--chart-4)", dot: "bg-chart-4" },
   { key: "replies", label: "Replies", color: "var(--chart-5)", dot: "bg-chart-5" },
 ] as const;
 
