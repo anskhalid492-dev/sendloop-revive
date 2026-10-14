@@ -1060,6 +1060,18 @@ export async function dispatchDueMessages(
         })
         .eq("id", message.id);
     };
+    /** Possibly-accepted send: held for review, excluded from every retry. */
+    const holdOutcomeUnknown = async (detail: string) => {
+      await supabase
+        .from("campaign_messages")
+        .update({
+          status: "failed",
+          last_error: `${outcomeUnknownReason(phaseMarker("provider_call", new Date()))} ${detail}`.slice(0, 500),
+          attempts: NEVER_RETRY_ATTEMPTS,
+        })
+        .eq("id", message.id)
+        .eq("status", "processing");
+    };
 
     const suppressionReason = suppressed.get((message.to_email ?? "").toLowerCase());
     if (suppressionReason) {
@@ -1294,7 +1306,7 @@ export async function dispatchDueMessages(
     // send the same message — the loser's update matches zero rows.
     const claim = await supabase
       .from("campaign_messages")
-      .update({ status: "processing" })
+      .update({ status: "processing", last_error: phaseMarker("claimed", new Date()) })
       .eq("id", message.id)
       .in("status", ["pending", "scheduled"])
       .select("id");
@@ -1460,6 +1472,35 @@ export async function dispatchDueMessages(
         : {}),
     };
 
+    // Pre-send work (AI, signature, tracking, snapshot) can push past the run
+    // deadline. Never START a provider call after it: hand the row back to the
+    // queue untouched (provider never contacted, so no duplicate is possible).
+    if (options.deadlineAt && Date.now() >= options.deadlineAt.getTime()) {
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "run_deadline");
+      await supabase
+        .from("campaign_messages")
+        .update({ status: "scheduled", last_error: null })
+        .eq("id", message.id)
+        .eq("status", "processing");
+      result.skipped += 1;
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "run_deadline_reached_before_provider_call" });
+      break;
+    }
+    // Record the interruption point BEFORE contacting the provider. If this
+    // write fails we do not send: the row stays `claimed` and is safely requeued.
+    const phaseWrite = await supabase
+      .from("campaign_messages")
+      .update({ last_error: phaseMarker("provider_call", new Date()) })
+      .eq("id", message.id)
+      .eq("status", "processing")
+      .select("id");
+    if (phaseWrite.error || !Array.isArray(phaseWrite.data) || phaseWrite.data.length === 0) {
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "phase_write_failed");
+      result.skipped += 1;
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_call_marker_write_failed" });
+      continue;
+    }
+
     let send: Awaited<ReturnType<typeof sendManagedEmail>>;
     try {
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_send_started" });
@@ -1526,11 +1567,28 @@ export async function dispatchDueMessages(
         } as Awaited<ReturnType<typeof sendManagedEmail>>;
       }
     } catch (error) {
+      const thrown = error instanceof Error ? error.message : "Sending failed.";
+      if (isUncertainTransportError(thrown)) {
+        // The SMTP server may already have accepted it: hold, never resend.
+        result.failed += 1;
+        await holdOutcomeUnknown(message.id, thrown);
+        logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_outcome_unknown_transport", providerResult: "error" });
+        continue;
+      }
       // A thrown provider/transport error used to leave the row stuck in
       // `processing` forever. Treat it exactly like a failed send.
       if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "send_failed");
-      await fail(error instanceof Error ? error.message : "Sending failed.");
+      await fail(thrown);
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_transport_error", providerResult: "error" });
+      continue;
+    }
+
+    if (!send.ok && isUncertainTransportError(send.message)) {
+      // Timed-out / unreadable relay response: acceptance is unknown. Usage stays
+      // reserved (fail closed) and the row is held so it can never be resent.
+      result.failed += 1;
+      await holdOutcomeUnknown(message.id, send.message);
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_outcome_unknown_transport", providerResult: "error" });
       continue;
     }
 
@@ -1583,6 +1641,12 @@ export async function dispatchDueMessages(
       attempts: (message.attempts ?? 0) + 1,
     };
     const sentRecorded = await applySentPatch(supabase, message.id, campaignMessagePatch);
+    if (!sentRecorded) {
+      // Accepted by the provider but the `sent` write failed. The row keeps its
+      // provider_call marker; the outbound registry row written below is the
+      // proof recovery uses to complete it (never resent).
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "sent_status_write_failed_after_acceptance", providerResult: "accepted" });
+    }
 
     // Automation "Email sent": only for a confirmed send — provider accepted
     // AND the terminal `sent` row is stored. Never awaited, never throws.
