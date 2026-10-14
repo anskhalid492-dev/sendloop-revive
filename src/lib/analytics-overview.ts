@@ -4,7 +4,7 @@ import type { AnalyticsSummary, AnalyticsTimeseriesPoint } from "@/lib/analytics
 export const ENGAGEMENT_SERIES = [
   { key: "sent", label: "Emails sent", color: "var(--primary)", dot: "bg-primary" },
   { key: "opens", label: "Opens", color: "var(--chart-3)", dot: "bg-chart-3" },
-  { key: "clicks", label: "Clicks", color: "var(--chart-4)", dot: "bg-chart-4" },
+  { key: "positiveReplies", label: "Positive replies", color: "var(--chart-4)", dot: "bg-chart-4" },
   { key: "replies", label: "Replies", color: "var(--chart-5)", dot: "bg-chart-5" },
 ] as const;
 
@@ -52,7 +52,7 @@ export function engagementTrend(units: Unit[], from: Date, to: Date, bucket: "ho
   const points = new Map<number, AnalyticsTimeseriesPoint>();
   const seen = new Set<string>();
   for (let at = Math.floor(+from / step) * step; at < +to; at += step) {
-    points.set(at, { bucket: new Date(at).toISOString(), sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, bounced: 0, unsubscribed: 0 });
+    points.set(at, { bucket: new Date(at).toISOString(), sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, positiveReplies: 0, bounced: 0, unsubscribed: 0 });
   }
   for (const u of units) {
     for (const [field, iso] of Object.entries({ sent: u.sentAt, delivered: u.signals.delivered_at, opens: u.signals.opened_at, clicks: u.signals.clicked_at, replies: u.signals.replied_at, bounced: u.signals.bounced_at, unsubscribed: u.signals.unsubscribed_at })) {
@@ -67,6 +67,29 @@ export function engagementTrend(units: Unit[], from: Date, to: Date, bucket: "ho
     }
   }
   return [...points.values()];
+}
+
+/**
+ * Positive replies per bucket, keyed by the same bucket string engagementTrend uses.
+ * Same positive rule as uniqueReplyIntents, so the chart matches the summary card.
+ */
+export function positiveReplyTrend(rows: Array<Record<string, unknown>>, from: Date, to: Date, bucket: "hour" | "day"): Map<string, number> {
+  const step = bucket === "hour" ? 3_600_000 : 86_400_000;
+  const counts = new Map<string, number>();
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (String(r["sentiment"] ?? "").trim().toLowerCase() !== "positive") continue;
+    const at = Date.parse(String(r["received_at"] ?? ""));
+    if (!Number.isFinite(at) || at < +from || at >= +to) continue;
+    const key = new Date(Math.floor(at / step) * step).toISOString();
+    const person = String(r["lead_id"] ?? r["from_email"] ?? "").trim().toLowerCase();
+    if (!person) continue;
+    const identity = `${key}:${person}`;
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
 }
 
 export function uniqueReplyIntents(rows: Array<Record<string, unknown>>) {
