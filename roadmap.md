@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Leads table redesign
-- [ ] Refresh the compact table while preserving existing controls and lead fields.
-- [ ] Add provider marks and icon-only stored LinkedIn links without backend or CSV changes.
-- [ ] Run isolated existing/imported-lead regressions and desktop/mobile presentation checks; do not publish.
+- [x] Refresh the compact table while preserving existing controls and lead fields.
+- [x] Add provider marks and icon-only stored LinkedIn links without backend or CSV changes.
+- [x] Run 42 isolated regressions and table interaction/presentation checks with existing and CSV-mapped fake rows at desktop/tablet/mobile sizes; build OK; not published.
+- [ ] Verify authenticated full-page import/export and actual existing/newly imported test-account leads — blocked: external backend has no available test-account session. Reference attachment was unavailable, so exact reference matching remains unverified.
 
 ## Public exit-intent popup
 - [x] Add the exact founder popup copy and accessible public-only dialog without changing website content.
