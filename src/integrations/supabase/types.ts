@@ -4611,6 +4611,7 @@ export type Database = {
       }
       lead_lists: {
         Row: {
+          color: string
           created_at: string
           created_by: string
           description: string | null
@@ -4620,6 +4621,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          color?: string
           created_at?: string
           created_by: string
           description?: string | null
@@ -4629,6 +4631,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          color?: string
           created_at?: string
           created_by?: string
           description?: string | null
