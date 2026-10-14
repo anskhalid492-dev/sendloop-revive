@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LIST_COLORS, LIST_COLOR_CLASSES, listColor, type ListColor } from "@/lib/lead-list-color";
 
-export function ListFolderIcon({ color, className }: { color?: string | null; className?: string }) {
+export function ListFolderIcon({ color, className }: { color?: string | null | undefined; className?: string }) {
   return <Folder aria-hidden="true" className={cn("size-4 shrink-0", LIST_COLOR_CLASSES[listColor(color)].text, className)} />;
 }
 
