@@ -6,7 +6,7 @@
  * campaign automation instead.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { normalizeReportedDeliveryKind } from "@/lib/dsn-parse";
+import { isPermanentRejectionBounce, normalizeReportedDeliveryKind } from "@/lib/dsn-parse";
 
 export type DeliveryOutcome = {
   status: "applied" | "unmatched";

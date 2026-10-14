@@ -8,6 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { phaseMarker, outcomeUnknownReason, isOutcomeUnknownReason, isUncertainTransportError, NEVER_RETRY_ATTEMPTS } from "./campaign-send-phase";
+import { isPermanentRejectionBounce } from "./dsn-parse";
 import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import {
   MAX_MAILBOX_HOURLY_MESSAGE,
