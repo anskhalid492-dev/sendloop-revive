@@ -275,11 +275,26 @@ export const updateQueueMessages = createServerFn({ method: "POST" })
         ? ({ status: "cancelled" as const, cancelled_reason: "manual" } as never)
         : { status: "pending" as const, last_error: null, scheduled_at: null };
 
+    let targetIds = data.ids;
+    if (data.action === "requeue") {
+      // Held "outcome unknown" sends may already have been delivered: never resend.
+      const { isHeldOutcomeUnknown } = await import("@/lib/campaign-send-phase");
+      const { data: rows, error: readError } = await context.supabase
+        .from("campaign_messages")
+        .select("id, last_error, attempts")
+        .in("id", data.ids);
+      if (readError) throw new Error(readError.message);
+      targetIds = ((rows ?? []) as Array<{ id: string; last_error: string | null; attempts: number | null }>)
+        .filter((row) => !isHeldOutcomeUnknown(row))
+        .map((row) => row.id);
+      if (!targetIds.length) return { ok: true, affected: 0 };
+    }
+
     const { error } = await context.supabase
       .from("campaign_messages")
       .update(patch)
-      .in("id", data.ids)
+      .in("id", targetIds)
       .in("status", data.action === "cancel" ? ["pending", "scheduled", "failed"] : ["failed", "cancelled"]);
     if (error) throw new Error(error.message);
-    return { ok: true, affected: data.ids.length };
+    return { ok: true, affected: targetIds.length };
   });
