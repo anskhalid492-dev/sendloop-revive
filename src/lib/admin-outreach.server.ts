@@ -117,7 +117,7 @@ export type AdminCampaignFilters = {
  * with only the narrow columns needed for counting, chunked by campaign id.
  */
 export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
-  const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+  const { fetchAllRows, fetchAllByIds: fetchByIds } = await import("@/lib/supabase-batch");
   const { addClass, classifyMessage, deriveRates, emptyTotals, campaignType, weekTrend } =
     await import("@/lib/admin-campaign-monitor");
   const { OUTCOME_UNKNOWN_REASON } = await import("@/lib/campaign-send-phase");

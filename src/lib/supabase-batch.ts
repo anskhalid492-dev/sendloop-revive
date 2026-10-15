@@ -61,3 +61,20 @@ export async function fetchByIds<Row>(
   }
   return rows;
 }
+
+/**
+ * Like `fetchByIds`, but pages every chunk with `.range()` so a chunk that
+ * matches more than one PostgREST page (1,000 rows) is never truncated.
+ */
+export async function fetchAllByIds<Row>(
+  ids: readonly string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  build: (idChunk: string[]) => any,
+  size: number = ID_FILTER_CHUNK,
+): Promise<Row[]> {
+  const rows: Row[] = [];
+  for (const idChunk of chunk(ids, size)) {
+    rows.push(...(await fetchAllRows<Row>(() => build(idChunk))));
+  }
+  return rows;
+}
