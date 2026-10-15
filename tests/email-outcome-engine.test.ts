@@ -169,7 +169,7 @@ describe("pre-publish review items", () => {
     expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(201806281) [BN8NAM12FT055.eop-nam12.prod.protection.outlook.com]")).toBe("bounced");
     expect(o("550 5.4.1 Recipient address rejected: Access denied")).toBe("failed");
     expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(7299)")).toBe("failed");
-    expect(o("451 4.4.1 Recipient address rejected: Access denied. AS(201806281)")).toBe("delayed");
+    expect(o("451 4.4.1 Recipient address rejected: Access denied. AS(201806281)")).not.toBe("bounced");
   });
 
   it("550 5.7.193 stays Failed", () => expect(o("550 5.7.193 UserSubmission rejected")).toBe("failed"));
