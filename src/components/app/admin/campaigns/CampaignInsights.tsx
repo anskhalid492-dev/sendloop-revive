@@ -1,9 +1,9 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { EmptyState, LoadingRows, StatCard, num } from "@/components/app/admin/OutreachUI";
-import type { getAdminCampaignInsights } from "@/lib/admin-outreach.server";
+import type { adminGetCampaignInsights } from "@/lib/admin-outreach.functions";
 
-type Insights = Awaited<ReturnType<typeof getAdminCampaignInsights>>;
+type Insights = Awaited<ReturnType<typeof adminGetCampaignInsights>>;
 
 function CountList({ title, items, empty }: { title: string; items: { label: string; count: number }[]; empty: string }) {
   return (
