@@ -17,6 +17,8 @@ const campaignFilters = z.object({
   workspaceId: uuid.optional().nullable(),
   status: text,
   sendingAccountId: uuid.optional().nullable(),
+  ownerId: uuid.optional().nullable(),
+  type: z.enum(["ai", "standard"]).optional().nullable(),
   from: z.string().optional().nullable(),
   to: z.string().optional().nullable(),
   search: text,
@@ -78,6 +80,17 @@ export const adminGetCampaign = createServerFn({ method: "GET" })
     await assertSuperAdmin(context);
     const { getAdminCampaign } = await import("./admin-outreach.server");
     return getAdminCampaign(data.campaignId);
+  });
+
+/** Read-only monitoring insights: timeline, diagnostics and lead progress. */
+export const adminGetCampaignInsights = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ campaignId: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("./admin-access.server");
+    await assertSuperAdmin(context);
+    const { getAdminCampaignInsights } = await import("./admin-outreach.server");
+    return getAdminCampaignInsights(data.campaignId);
   });
 
 /** Pause, resume or stop a customer campaign. Never force-sends. */
