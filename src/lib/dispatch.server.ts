@@ -8,7 +8,7 @@
  *    the next email step once its delay has elapsed.
  */
 import { phaseMarker, outcomeUnknownReason, isOutcomeUnknownReason, isUncertainTransportError, NEVER_RETRY_ATTEMPTS } from "./campaign-send-phase";
-import { isPermanentRejectionBounce } from "./dsn-parse";
+import { classifyEmailOutcome } from "./email-outcome";
 import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import {
   MAX_MAILBOX_HOURLY_MESSAGE,
@@ -1053,10 +1053,10 @@ export async function dispatchDueMessages(
     const fail = async (reason: string) => {
       result.failed += 1;
       if (result.errors.length < 5) result.errors.push(reason);
-      // 550 5.7.193 is a permanent rejection reported as Bounced. Only the
-      // reporting fields change: status/attempts (and so retries) are as before,
-      // and the contact is NOT suppressed or marked invalid.
-      const rejectionBounce = isPermanentRejectionBounce(reason);
+      // Central engine: only an ESTABLISHED recipient failure is reported as
+      // Bounced. Only the reporting fields change: status/attempts (and so
+      // retries) are as before, and the contact is not suppressed here.
+      const rejectionBounce = classifyEmailOutcome(reason).outcome === "bounced";
       await supabase
         .from("campaign_messages")
         .update({

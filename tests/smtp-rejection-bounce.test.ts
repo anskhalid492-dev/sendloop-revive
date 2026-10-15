@@ -13,14 +13,14 @@ import { outcomeUnknownReason } from "../src/lib/campaign-send-phase";
 
 const r5193 = 'Mail relay returned 550: {"message":"550 5.7.193 UserSubmission rejected"}';
 
-describe("550 5.7.193 is bounced by its SMTP code", () => {
+describe("550 5.7.193 is a sender-side Failed outcome", () => {
   it("reads the enhanced code, not wording", () => {
     expect(enhancedStatusCodes(r5193)).toContain("5.7.193");
-    expect(isPermanentRejectionBounce(r5193)).toBe(true);
-    expect(isPermanentRejectionBounce("550 5.7.193")).toBe(true);
-    expect(isSenderPolicyFailure(r5193)).toBe(false);
-    expect(normalizeReportedDeliveryKind("failed", r5193)).toBe("bounced");
-    expect(parseDeliveryReport({ text: "Diagnostic-Code: smtp; 550 5.7.193 rejected", subject: "x" }).kind).toBe("bounced");
+    expect(isPermanentRejectionBounce(r5193)).toBe(false);
+    expect(isSenderPolicyFailure(r5193)).toBe(true);
+    expect(normalizeReportedDeliveryKind("failed", r5193)).toBe("failed");
+    expect(normalizeReportedDeliveryKind("bounced", r5193)).toBe("failed");
+    expect(parseDeliveryReport({ text: "Diagnostic-Code: smtp; 550 5.7.193 rejected", subject: "x" }).kind).toBe("failed");
   });
 
   it("550 5.7.1 stays a failed sender/policy refusal", () => {
@@ -50,7 +50,7 @@ describe("550 5.7.193 is bounced by its SMTP code", () => {
     expect(isRetryableFailure(r5193)).toBe(false);
   });
 
-  it("a send-time 5.7.193 row is counted as Bounced, not Failed", () => {
+  it("a stored bounced row is still counted as Bounced (historical rows unchanged)", () => {
     const row = {
       id: "m1", campaign_id: "c1", recipient_id: "r1", step_order: 1, status: "failed",
       delivery_status: "bounced", bounced_at: "2026-10-14T10:00:00.000Z", updated_at: "2026-10-14T10:00:00.000Z",
