@@ -96,7 +96,7 @@ function result(
 export function classifyEmailOutcome(
   input: string | null | undefined | { text?: string | null; subject?: string | null; interrupted?: boolean },
 ): EmailOutcomeResult {
-  const obj: { text?: string | null; interrupted?: boolean } =
+  const obj: { text?: string | null | undefined; interrupted?: boolean | undefined } =
     typeof input === "object" && input !== null ? input : { text: input };
   const raw = `${obj.text ?? ""}`;
   // Normalise spacing/case; keep punctuation so codes still parse.
