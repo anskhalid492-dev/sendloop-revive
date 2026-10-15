@@ -43,13 +43,13 @@ const FAILED = [
   "SMTP credentials rejected",
   "TLS negotiation failed",
   "550 Permanent failure",
+  "421 4.7.0 Try again later",
   "550",
   "Delivery Status Notification (Failure)",
 ];
 
 const DELAYED = [
   "451 4.4.7 Delivery temporarily deferred",
-  "421 4.7.0 Try again later",
   "450 4.2.2 Mailbox full, try later",
   "452 4.3.1 Insufficient system storage",
 ];
