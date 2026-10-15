@@ -97,17 +97,17 @@ export function parseDeliveryReport(input: {
 
   const detail = diagnostic ?? said ?? smtpLine;
   const code = status ?? (detail ? /\b([45]\.\d{1,3}\.\d{1,3})\b/.exec(detail)?.[1] ?? null : null);
-  const basic = detail ? /\b([45])\d{2}\b/.exec(detail)?.[1] ?? null : null;
 
   const reason =
     detail ??
     tidy(input.subject ?? null) ??
     "Delivery failure reported by the receiving server";
 
-  // Detail first so the receiving server's own reply decides; the full report
-  // is included so contradictory sender-side evidence anywhere wins. The
-  // subject is never evidence of a recipient failure.
-  const verdict = classifyEmailOutcome(`${detail ?? ""}\n${text}`);
+  // The subject is never evidence of a recipient failure.
+  // Only the status + server reply are evidence when present: the quoted
+  // original message (Authentication-Results, footers) must not flip it.
+  const evidence = detail || status ? `${status ?? ""} ${detail ?? ""}` : text;
+  const verdict = classifyEmailOutcome(evidence);
   const kind: DeliveryReport["kind"] =
     verdict.outcome === "bounced" ? "bounced" : verdict.outcome === "delayed" ? "delayed" : "failed";
   return { kind, status: code, reason: reason.slice(0, 500) };

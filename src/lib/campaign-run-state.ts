@@ -1,3 +1,4 @@
+import { classifyEmailOutcome } from "./email-outcome";
 /**
  * Pure campaign run/recurrence model.
  *
@@ -188,6 +189,7 @@ export function isSetupFailure(lastError: string | null | undefined): boolean {
 export function isPermanentFailure(lastError: string | null | undefined): boolean {
   const text = (lastError ?? "").trim();
   if (!text) return false;
+  if (classifyEmailOutcome(text).outcome === "bounced") return true;
   return PERMANENT_FAILURE_PATTERNS.some((pattern) => pattern.test(text));
 }
 
