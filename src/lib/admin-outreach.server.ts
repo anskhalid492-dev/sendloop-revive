@@ -62,27 +62,41 @@ export type AdminCampaignRow = {
   id: string;
   name: string;
   status: string;
+  /** "ai" when AI personalization is enabled, otherwise "standard". */
+  type: "ai" | "standard";
   workspaceId: string;
   workspaceName: string;
+  ownerId: string | null;
   ownerEmail: string | null;
   ownerName: string | null;
   leads: number;
+  /** Accepted by the mailbox/provider. */
   sent: number;
+  /** Estimate: sent minus bounces of those sends (no SMTP delivery receipts). */
+  delivered: number;
+  deliveryRate: number | null;
   opens: number;
-  /** Unique opens / sent, as a percentage. */
-  openRate: number;
+  /** Unique opens / reachable, as a percentage; null when nothing sent. */
+  openRate: number | null;
   /** Distinct contacts who clicked at least one link. */
   clicks: number;
-  /** Unique clicks / sent, as a percentage. */
-  clickRate: number;
+  clickRate: number | null;
   /** Unsubscribes recorded for this campaign. */
   unsubscribes: number;
   replies: number;
-
+  replyRate: number | null;
   positiveReplies: number;
+  /** Confirmed bounces (after send or rejected at SMTP time). */
   bounces: number;
+  bouncesAfterSend: number;
+  bounceRate: number | null;
+  /** Failed sends that are neither bounces nor unknown outcomes. */
+  failed: number;
+  /** Interrupted sends held for review; never counted as sent or failed. */
+  unknown: number;
   meetings: number;
   sendingAccounts: string[];
+  sendingAccountIds: string[];
   createdAt: string;
   lastActivityAt: string | null;
 };
@@ -91,21 +105,33 @@ export type AdminCampaignFilters = {
   workspaceId?: string | null | undefined;
   status?: string | null | undefined;
   sendingAccountId?: string | null | undefined;
+  ownerId?: string | null | undefined;
+  type?: "ai" | "standard" | null | undefined;
   from?: string | null | undefined;
   to?: string | null | undefined;
   search?: string | null | undefined;
 };
 
+/**
+ * Every campaign across every workspace. Read-only. Each history table is read
+ * with only the narrow columns needed for counting, chunked by campaign id.
+ */
 export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   const { fetchAllRows, fetchByIds } = await import("@/lib/supabase-batch");
+  const { addClass, classifyMessage, deriveRates, emptyTotals, campaignType, weekTrend } =
+    await import("@/lib/admin-campaign-monitor");
+  const { OUTCOME_UNKNOWN_REASON } = await import("@/lib/campaign-send-phase");
+  const unknownPrefix = OUTCOME_UNKNOWN_REASON.split(":")[0]!;
+
   let q = db()
     .from("campaigns")
     .select(
-      "id, name, status, workspace_id, created_by, created_at, updated_at, sending_account_ids, launched_at",
+      "id, name, status, workspace_id, created_by, created_at, updated_at, sending_account_ids, launched_at, ai_enabled",
     )
     .order("created_at", { ascending: false });
   if (filters.workspaceId) q = q.eq("workspace_id", filters.workspaceId);
   if (filters.status) q = q.eq("status", filters.status);
+  if (filters.ownerId) q = q.eq("created_by", filters.ownerId);
   if (filters.from) q = q.gte("created_at", filters.from);
   if (filters.to) q = q.lte("created_at", filters.to);
 
@@ -115,15 +141,18 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       (c.sending_account_ids ?? []).includes(filters.sendingAccountId),
     );
   }
+  if (filters.type) campaigns = campaigns.filter((c) => campaignType(c.ai_enabled) === filters.type);
   const term = (filters.search ?? "").trim().toLowerCase();
   if (term) campaigns = campaigns.filter((c) => String(c.name).toLowerCase().includes(term));
 
   const ids = campaigns.map((c) => c.id);
-  if (!ids.length) return [] as AdminCampaignRow[];
+  const empty = { rows: [] as AdminCampaignRow[], trends: { sent: null, replies: null, bounces: null } };
+  if (!ids.length) return empty;
 
   const [
     recipients,
     messages,
+    unknownRows,
     replies,
     engagement,
     workspaces,
@@ -132,82 +161,110 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
     activities,
     clickEvents,
     unsubscribeRows,
-  ] =
-    await Promise.all([
-      fetchByIds<any>(ids, (chunk) =>
-        db().from("campaign_recipients").select("campaign_id, status").in("campaign_id", chunk),
-      ),
-      fetchByIds<any>(ids, (chunk) =>
-        db().from("campaign_messages").select("campaign_id, status, sent_at").in("campaign_id", chunk),
-      ),
-      fetchByIds<any>(ids, (chunk) =>
-        db().from("campaign_replies").select("campaign_id, sentiment, received_at").in("campaign_id", chunk),
-      ),
-      fetchByIds<any>(ids, (chunk) =>
-        db()
-          .from("email_engagement_events")
-          .select("campaign_id, event_type, message_id, recipient_email")
-          .in("campaign_id", chunk),
-      ),
-      workspaceNames(campaigns.map((c) => c.workspace_id)),
-      profileNames(campaigns.map((c) => c.created_by)),
-      fetchAllRows<any>(() => db().from("sending_accounts").select("id, from_email")),
-      fetchByIds<any>(ids, (chunk) =>
-        db().from("lead_activities").select("campaign_id, type, created_at").in("campaign_id", chunk),
-      ),
-      fetchByIds<any>(ids, (chunk) =>
-        db()
-          .from("email_click_events")
-          .select("campaign_id, lead_id, recipient_email, message_id")
-          .in("campaign_id", chunk),
-      ),
-      fetchByIds<any>(ids, (chunk) =>
-        db().from("campaign_unsubscribes").select("campaign_id, email").in("campaign_id", chunk),
-      ),
-    ]);
-
+  ] = await Promise.all([
+    fetchByIds<any>(ids, (chunk) =>
+      db().from("campaign_recipients").select("campaign_id").in("campaign_id", chunk),
+    ),
+    fetchByIds<any>(ids, (chunk) =>
+      db()
+        .from("campaign_messages")
+        .select("id, campaign_id, status, sent_at, bounced_at")
+        .in("campaign_id", chunk)
+        .in("status", ["sent", "failed"]),
+    ),
+    fetchByIds<any>(ids, (chunk) =>
+      db()
+        .from("campaign_messages")
+        .select("id, campaign_id")
+        .in("campaign_id", chunk)
+        .like("last_error", `${unknownPrefix}%`),
+    ),
+    fetchByIds<any>(ids, (chunk) =>
+      db().from("campaign_replies").select("campaign_id, sentiment, received_at").in("campaign_id", chunk),
+    ),
+    fetchByIds<any>(ids, (chunk) =>
+      db()
+        .from("email_engagement_events")
+        .select("campaign_id, event_type, message_id, recipient_email")
+        .in("campaign_id", chunk)
+        .in("event_type", ["open", "opened", "bounce", "bounced"]),
+    ),
+    workspaceNames(campaigns.map((c) => c.workspace_id)),
+    profileNames(campaigns.map((c) => c.created_by)),
+    fetchAllRows<any>(() => db().from("sending_accounts").select("id, from_email")),
+    fetchByIds<any>(ids, (chunk) =>
+      db().from("lead_activities").select("campaign_id, type").in("campaign_id", chunk).ilike("type", "%meeting%"),
+    ),
+    fetchByIds<any>(ids, (chunk) =>
+      db()
+        .from("email_click_events")
+        .select("campaign_id, lead_id, recipient_email, message_id")
+        .in("campaign_id", chunk),
+    ),
+    fetchByIds<any>(ids, (chunk) =>
+      db().from("campaign_unsubscribes").select("campaign_id, email").in("campaign_id", chunk),
+    ),
+  ]);
 
   const recipientCounts = tally(recipients, (r: any) => r.campaign_id);
-  const sentCounts: Dict<number> = {};
-  const bounceCounts: Dict<number> = {};
-  const lastActivity: Dict<string> = {};
-  for (const m of messages as any[]) {
-    if (m.status === "sent") sentCounts[m.campaign_id] = (sentCounts[m.campaign_id] ?? 0) + 1;
-    if (m.status === "failed") bounceCounts[m.campaign_id] = (bounceCounts[m.campaign_id] ?? 0) + 1;
-    if (m.sent_at && (!lastActivity[m.campaign_id] || m.sent_at > lastActivity[m.campaign_id]!))
-      lastActivity[m.campaign_id] = m.sent_at;
-  }
-  const replyCounts: Dict<number> = {};
-  const positiveCounts: Dict<number> = {};
-  for (const r of replies as any[]) {
-    replyCounts[r.campaign_id] = (replyCounts[r.campaign_id] ?? 0) + 1;
-    if (r.sentiment === "positive")
-      positiveCounts[r.campaign_id] = (positiveCounts[r.campaign_id] ?? 0) + 1;
-    if (r.received_at && (!lastActivity[r.campaign_id] || r.received_at > lastActivity[r.campaign_id]!))
-      lastActivity[r.campaign_id] = r.received_at;
-  }
+  const unknownIds = new Set<string>((unknownRows as any[]).map((r) => String(r.id)));
+
   const openKeys: Dict<Set<string>> = {};
-  const bounceEvents: Dict<number> = {};
+  const bounceEventMessages = new Set<string>();
+  const bounceEventsNoMessage: Dict<number> = {};
   for (const e of engagement as any[]) {
     if (e.event_type === "open" || e.event_type === "opened") {
       const key = e.message_id ?? e.recipient_email ?? `${e.campaign_id}:unknown`;
       const set = openKeys[e.campaign_id] ?? new Set<string>();
       set.add(String(key));
       openKeys[e.campaign_id] = set;
+    } else if (e.message_id) bounceEventMessages.add(String(e.message_id));
+    else bounceEventsNoMessage[e.campaign_id] = (bounceEventsNoMessage[e.campaign_id] ?? 0) + 1;
+  }
+
+  const totals: Dict<ReturnType<typeof emptyTotals>> = {};
+  const lastActivity: Dict<string> = {};
+  const sentDates: string[] = [];
+  const bounceDates: string[] = [];
+  for (const m of messages as any[]) {
+    const t = (totals[m.campaign_id] ??= emptyTotals());
+    const cls = classifyMessage(m, {
+      unknown: unknownIds.has(String(m.id)),
+      bounceEvent: bounceEventMessages.has(String(m.id)),
+    });
+    addClass(t, cls);
+    if (m.sent_at) {
+      sentDates.push(m.sent_at);
+      if (!lastActivity[m.campaign_id] || m.sent_at > lastActivity[m.campaign_id]!)
+        lastActivity[m.campaign_id] = m.sent_at;
     }
-    if (e.event_type === "bounce" || e.event_type === "bounced")
-      bounceEvents[e.campaign_id] = (bounceEvents[e.campaign_id] ?? 0) + 1;
+    if (m.bounced_at) bounceDates.push(m.bounced_at);
   }
-  const meetingCounts: Dict<number> = {};
-  for (const a of activities as any[]) {
-    if (String(a.type).toLowerCase().includes("meeting"))
-      meetingCounts[a.campaign_id] = (meetingCounts[a.campaign_id] ?? 0) + 1;
+  // Unknown rows outside sent/failed status (e.g. still processing) still count.
+  const seen = new Set((messages as any[]).map((m) => String(m.id)));
+  for (const u of unknownRows as any[]) {
+    if (seen.has(String(u.id))) continue;
+    (totals[u.campaign_id] ??= emptyTotals()).unknown += 1;
   }
+
+  const replyCounts: Dict<number> = {};
+  const positiveCounts: Dict<number> = {};
+  const replyDates: string[] = [];
+  for (const r of replies as any[]) {
+    replyCounts[r.campaign_id] = (replyCounts[r.campaign_id] ?? 0) + 1;
+    if (r.sentiment === "positive")
+      positiveCounts[r.campaign_id] = (positiveCounts[r.campaign_id] ?? 0) + 1;
+    if (r.received_at) {
+      replyDates.push(r.received_at);
+      if (!lastActivity[r.campaign_id] || r.received_at > lastActivity[r.campaign_id]!)
+        lastActivity[r.campaign_id] = r.received_at;
+    }
+  }
+  const meetingCounts = tally(activities as any[], (a: any) => a.campaign_id);
   const accountEmails: Dict<string> = {};
   for (const a of accounts as any[]) accountEmails[a.id] = a.from_email;
 
-  // Click rate, like open rate, is driven by DISTINCT clickers — not raw
-  // redirect hits, so one contact clicking five times still counts once.
+  // Click rate, like open rate, is driven by DISTINCT clickers.
   const clickKeysByCampaign: Dict<Set<string>> = {};
   for (const e of clickEvents as any[]) {
     if (!e.campaign_id) continue;
@@ -219,42 +276,69 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   }
   const unsubscribeCounts = tally(unsubscribeRows as any[], (r: any) => r.campaign_id);
 
-
-  return campaigns.map((c): AdminCampaignRow => {
+  const rows = campaigns.map((c): AdminCampaignRow => {
     const owner = owners[c.created_by] ?? { email: null, name: null };
+    const t = totals[c.id] ?? emptyTotals();
+    // Bounce events without a message id cannot be matched to a send; they
+    // only add to bounces when they do not exceed recorded sends.
+    const extraBounces = Math.min(bounceEventsNoMessage[c.id] ?? 0, Math.max(0, t.sent - t.bouncedAfterSend));
+    const metrics = {
+      ...t,
+      bounced: t.bounced + extraBounces,
+      bouncedAfterSend: t.bouncedAfterSend + extraBounces,
+      leads: recipientCounts[c.id] ?? 0,
+      opens: openKeys[c.id]?.size ?? 0,
+      clicks: clickKeysByCampaign[c.id]?.size ?? 0,
+      replies: replyCounts[c.id] ?? 0,
+      positiveReplies: positiveCounts[c.id] ?? 0,
+      unsubscribes: unsubscribeCounts[c.id] ?? 0,
+    };
+    const rates = deriveRates(metrics);
     return {
       id: c.id,
       name: c.name,
       status: c.status,
+      type: campaignType(c.ai_enabled),
       workspaceId: c.workspace_id,
       workspaceName: workspaces[c.workspace_id] ?? "—",
+      ownerId: c.created_by ?? null,
       ownerEmail: owner.email,
       ownerName: owner.name,
-      leads: recipientCounts[c.id] ?? 0,
-      sent: sentCounts[c.id] ?? 0,
-      opens: openKeys[c.id]?.size ?? 0,
-      openRate: openRatePercent(openKeys[c.id]?.size ?? 0, {
-        sent: sentCounts[c.id] ?? 0,
-        bounced: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
-      }),
-      clicks: clickKeysByCampaign[c.id]?.size ?? 0,
-      clickRate: clickRatePercent(clickKeysByCampaign[c.id]?.size ?? 0, {
-        sent: sentCounts[c.id] ?? 0,
-        bounced: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
-      }),
-      unsubscribes: unsubscribeCounts[c.id] ?? 0,
-
-      replies: replyCounts[c.id] ?? 0,
-      positiveReplies: positiveCounts[c.id] ?? 0,
-      bounces: (bounceCounts[c.id] ?? 0) + (bounceEvents[c.id] ?? 0),
+      leads: metrics.leads,
+      sent: metrics.sent,
+      delivered: rates.delivered,
+      deliveryRate: rates.deliveryRate,
+      opens: metrics.opens,
+      openRate: rates.openRate,
+      clicks: metrics.clicks,
+      clickRate: rates.clickRate,
+      unsubscribes: metrics.unsubscribes,
+      replies: metrics.replies,
+      replyRate: rates.replyRate,
+      positiveReplies: metrics.positiveReplies,
+      bounces: metrics.bounced,
+      bouncesAfterSend: metrics.bouncedAfterSend,
+      bounceRate: rates.bounceRate,
+      failed: metrics.failed,
+      unknown: metrics.unknown,
       meetings: meetingCounts[c.id] ?? 0,
       sendingAccounts: (c.sending_account_ids ?? [])
         .map((id: string) => accountEmails[id])
         .filter(Boolean),
+      sendingAccountIds: c.sending_account_ids ?? [],
       createdAt: c.created_at,
       lastActivityAt: lastActivity[c.id] ?? c.launched_at ?? null,
     };
   });
+
+  return {
+    rows,
+    trends: {
+      sent: weekTrend(sentDates),
+      replies: weekTrend(replyDates),
+      bounces: weekTrend(bounceDates),
+    },
+  };
 }
 
 export async function getAdminCampaign(campaignId: string) {
