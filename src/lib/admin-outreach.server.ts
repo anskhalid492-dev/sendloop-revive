@@ -651,6 +651,151 @@ export async function getAdminCampaign(campaignId: string) {
 }
 
 /**
+ * Monitoring insights for one campaign: classified send totals, a 30-day
+ * timeline, diagnostics and lead progress. Read-only; narrow columns only and
+ * the timeline reads just the last `days` days of sends.
+ */
+export async function getAdminCampaignInsights(campaignId: string, days = 30) {
+  const { fetchAllRows } = await import("@/lib/supabase-batch");
+  const m = await import("@/lib/admin-campaign-monitor");
+  const { OUTCOME_UNKNOWN_REASON } = await import("@/lib/campaign-send-phase");
+  const unknownPrefix = OUTCOME_UNKNOWN_REASON.split(":")[0]!;
+
+  const { data: campaign, error } = await db()
+    .from("campaigns")
+    .select("id, start_at, launched_at, sending_account_ids")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!campaign) throw new Error("Campaign not found");
+
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const count = (build: () => any) => exactCount(build);
+  const msgs = () =>
+    db().from("campaign_messages").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId);
+  const recips = () =>
+    db().from("campaign_recipients").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId);
+
+  const [
+    sentAll,
+    sentBounced,
+    rejectedBounced,
+    failedAll,
+    failedBounced,
+    unknownAll,
+    unknownSent,
+    unknownFailedNotBounced,
+    queued,
+    recentSent,
+    recentProblems,
+    stepCount,
+    totalLeads,
+    contacted,
+    repliedLeads,
+    remaining,
+    positiveLeadRows,
+    meetingRows,
+    accounts,
+  ] = await Promise.all([
+    count(() => msgs().eq("status", "sent")),
+    count(() => msgs().eq("status", "sent").not("bounced_at", "is", null)),
+    count(() => msgs().neq("status", "sent").not("bounced_at", "is", null)),
+    count(() => msgs().eq("status", "failed")),
+    count(() => msgs().eq("status", "failed").not("bounced_at", "is", null)),
+    count(() => msgs().like("last_error", `${unknownPrefix}%`)),
+    count(() => msgs().eq("status", "sent").like("last_error", `${unknownPrefix}%`)),
+    count(() => msgs().eq("status", "failed").is("bounced_at", null).like("last_error", `${unknownPrefix}%`)),
+    count(() => msgs().in("status", ["pending", "scheduled", "processing"])),
+    fetchAllRows<any>(() =>
+      db()
+        .from("campaign_messages")
+        .select("sent_at, bounced_at")
+        .eq("campaign_id", campaignId)
+        .gte("sent_at", since),
+    ),
+    db()
+      .from("campaign_messages")
+      .select("id, status, to_email, last_error, bounce_reason, failed_at, bounced_at, updated_at, sending_account_id")
+      .eq("campaign_id", campaignId)
+      .or("status.eq.failed,bounced_at.not.is.null")
+      .order("updated_at", { ascending: false })
+      .limit(500),
+    count(() => db().from("campaign_steps").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId)),
+    count(() => recips()),
+    count(() => recips().not("last_sent_at", "is", null)),
+    count(() => recips().eq("status", "replied")),
+    count(() => recips().in("status", ["pending", "in_progress"])),
+    db().from("campaign_replies").select("lead_id").eq("campaign_id", campaignId).eq("sentiment", "positive").limit(5000),
+    db().from("lead_activities").select("lead_id").eq("campaign_id", campaignId).ilike("type", "%meeting%").limit(5000),
+    db()
+      .from("sending_accounts")
+      .select("id, from_email, status, paused, customer_enabled, last_error")
+      .in("id", campaign.sending_account_ids?.length ? campaign.sending_account_ids : ["00000000-0000-0000-0000-000000000000"]),
+  ]);
+
+  const unknown = unknownAll;
+  const totals = {
+    sent: sentAll - unknownSent,
+    bouncedAfterSend: sentBounced,
+    bounced: sentBounced + rejectedBounced,
+    failed: Math.max(0, failedAll - failedBounced - unknownFailedNotBounced),
+    unknown,
+    queued,
+  };
+
+  const events: { at: string | null; kind: "sent" | "bounced" | "failed" }[] = [];
+  for (const r of recentSent as any[]) {
+    events.push({ at: r.sent_at, kind: "sent" });
+    if (r.bounced_at) events.push({ at: r.bounced_at, kind: "bounced" });
+  }
+  const problems = ((recentProblems.data ?? []) as any[]).filter((p) => !m.isUnknownError(p.last_error));
+  for (const p of problems) {
+    if (p.bounced_at && p.status !== "sent") events.push({ at: p.bounced_at, kind: "bounced" });
+    else if (!p.bounced_at && p.failed_at) events.push({ at: p.failed_at, kind: "failed" });
+  }
+  const failures = problems.filter((p) => !p.bounced_at);
+  const bounces = problems.filter((p) => p.bounced_at);
+
+  const accountEmail: Dict<string> = {};
+  for (const a of (accounts.data ?? []) as any[]) accountEmail[a.id] = a.from_email;
+
+  return {
+    overview: { startAt: campaign.start_at ?? null, launchedAt: campaign.launched_at ?? null, steps: stepCount },
+    totals,
+    timeline: m.dailySeries(events, days),
+    timelineNote: `Last ${days} days (UTC). Failures and SMTP-time bounces from the latest 500 problem rows.`,
+    diagnostics: {
+      sampled: (recentProblems.data ?? []).length,
+      failedBreakdown: m.topCounts(failures.map((f) => m.errorLabel(f.last_error))),
+      smtpCodes: m.topCounts(problems.map((p) => m.smtpCode(p.bounce_reason ?? p.last_error))),
+      bounceReasons: m.topCounts(bounces.map((b) => m.errorLabel(b.bounce_reason ?? b.last_error))),
+      unknownOutcomes: unknown,
+      mailboxProblems: [
+        ...m
+          .topCounts(problems.map((p) => accountEmail[p.sending_account_id] ?? null))
+          .map((x) => ({ label: x.label, detail: `${x.count} failed/bounced send(s) in sample` })),
+        ...((accounts.data ?? []) as any[])
+          .filter((a) => a.paused || a.customer_enabled === false || (a.status && a.status !== "verified"))
+          .map((a) => ({
+            label: a.from_email,
+            detail: [a.paused ? "paused" : null, a.customer_enabled === false ? "disabled" : null, a.status !== "verified" ? `status ${a.status}` : null]
+              .filter(Boolean)
+              .join(", "),
+          })),
+      ],
+    },
+    leadActivity: {
+      total: totalLeads,
+      contacted,
+      replied: repliedLeads,
+      interested: new Set(((positiveLeadRows.data ?? []) as any[]).map((r) => r.lead_id).filter(Boolean)).size,
+      meetingBooked: new Set(((meetingRows.data ?? []) as any[]).map((r) => r.lead_id).filter(Boolean)).size,
+      remaining,
+    },
+  };
+}
+
+/**
  * Admin campaign control. Pause/resume/stop only flip the campaign status the
  * scheduler already honours — no message is force-sent and no safety control
  * (readiness gate, caps, sending window, suppression) is bypassed. Resuming a

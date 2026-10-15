@@ -270,3 +270,8 @@ export function allowedActions(status: string): ("pause" | "resume" | "stop")[] 
   if (status === "active" || status === "paused") out.push("stop");
   return out;
 }
+
+/** Same rule as the send pipeline's outcome-unknown marker. */
+export function isUnknownError(error: string | null | undefined): boolean {
+  return Boolean(error && error.startsWith("send_outcome_unknown_after_interrupt"));
+}
