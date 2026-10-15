@@ -140,3 +140,37 @@ describe("retry behaviour (both sending modes share runCampaign's rules)", () =>
     expect(isRetryableFailure("451 4.4.7 Delivery temporarily deferred")).toBe(true);
   });
 });
+
+describe("pre-publish review items", () => {
+  it("554 READ is Bounced only with confirmed recipient rejection", () => {
+    expect(o("554 READ: Recipient address rejected: User unknown")).toBe("bounced");
+    expect(o("554 5.1.1 READ error: mailbox does not exist")).toBe("bounced");
+    expect(o("554 READ")).toBe("failed");
+    expect(o("554 READ error: message rejected due to spam content")).toBe("failed");
+  });
+
+  it("DSN (Failure) is Bounced only when the diagnostic confirms it", () => {
+    const subject = "Delivery Status Notification (Failure)";
+    expect(parseDeliveryReport({ text: "Final-Recipient: rfc822; a@x.com\nAction: failed\nStatus: 5.1.1\nDiagnostic-Code: smtp; 550 5.1.1 user unknown", subject }).kind).toBe("bounced");
+    expect(parseDeliveryReport({ text: "Action: failed\nStatus: 5.0.0\nDiagnostic-Code: smtp; 550 Requested action not taken: mailbox unavailable", subject }).kind).toBe("bounced");
+    expect(parseDeliveryReport({ text: "Action: failed\nStatus: 5.7.26\nDiagnostic-Code: smtp; 550 5.7.26 unauthenticated", subject }).kind).toBe("failed");
+    expect(parseDeliveryReport({ text: "Action: failed", subject }).kind).toBe("failed");
+    expect(parseDeliveryReport({ text: "", subject }).kind).toBe("failed");
+  });
+
+  it("550 permanent recipient rejections are Bounced; bare permanent stays Failed", () => {
+    expect(o("550 Requested action not taken: mailbox unavailable")).toBe("bounced");
+    expect(o("550 permanent failure for one or more recipients: user unknown")).toBe("bounced");
+    expect(o("550 Permanent failure")).toBe("failed");
+    expect(o("550 5.7.1 Requested action not taken: mailbox unavailable, policy")).toBe("failed");
+  });
+
+  it("Microsoft 5.4.1 Access denied is Bounced only with the AS(201806281) directory tag", () => {
+    expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(201806281) [BN8NAM12FT055.eop-nam12.prod.protection.outlook.com]")).toBe("bounced");
+    expect(o("550 5.4.1 Recipient address rejected: Access denied")).toBe("failed");
+    expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(7299)")).toBe("failed");
+    expect(o("451 4.4.1 Recipient address rejected: Access denied. AS(201806281)")).toBe("delayed");
+  });
+
+  it("550 5.7.193 stays Failed", () => expect(o("550 5.7.193 UserSubmission rejected")).toBe("failed"));
+});
