@@ -25,7 +25,7 @@ function CountList({ title, items, empty }: { title: string; items: { label: str
   );
 }
 
-export function SendingActivity({ data, loading }: { data?: Insights; loading: boolean }) {
+export function SendingActivity({ data, loading }: { data?: Insights | undefined; loading: boolean }) {
   if (loading) return <LoadingRows rows={3} />;
   if (!data) return <EmptyState />;
   const hasData = data.timeline.some((d) => d.sent || d.bounced || d.failed);
@@ -54,7 +54,7 @@ export function SendingActivity({ data, loading }: { data?: Insights; loading: b
   );
 }
 
-export function Diagnostics({ data, loading }: { data?: Insights; loading: boolean }) {
+export function Diagnostics({ data, loading }: { data?: Insights | undefined; loading: boolean }) {
   if (loading) return <LoadingRows rows={3} />;
   if (!data) return <EmptyState />;
   const d = data.diagnostics;
@@ -90,7 +90,7 @@ export function Diagnostics({ data, loading }: { data?: Insights; loading: boole
   );
 }
 
-export function LeadActivity({ data, loading }: { data?: Insights; loading: boolean }) {
+export function LeadActivity({ data, loading }: { data?: Insights | undefined; loading: boolean }) {
   if (loading) return <LoadingRows rows={2} />;
   if (!data) return <EmptyState />;
   const l = data.leadActivity;

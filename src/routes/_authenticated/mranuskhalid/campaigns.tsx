@@ -196,7 +196,10 @@ function AdminCampaignsPage() {
   });
 
   const rows = campaignsQuery.data?.rows ?? [];
-  const totals = useMemo(() => sumKpis(rows), [rows]);
+  const totals = useMemo(
+    () => sumKpis(rows.map((r) => ({ ...r, bounced: r.bounces, bouncedAfterSend: r.bouncesAfterSend }))),
+    [rows],
+  );
   const sorted = useMemo(() => sortRows(rows, sortKey, sortDir), [rows, sortKey, sortDir]);
   const paged = paginate(sorted, page, PAGE_SIZE);
 
@@ -438,7 +441,7 @@ function CampaignDetail({
   onAction,
 }: {
   data: NonNullable<Awaited<ReturnType<typeof adminGetCampaign>>>;
-  insights?: Awaited<ReturnType<typeof adminGetCampaignInsights>>;
+  insights?: Awaited<ReturnType<typeof adminGetCampaignInsights>> | undefined;
   insightsLoading: boolean;
   onAction: (action: "pause" | "resume" | "stop") => void;
 }) {
