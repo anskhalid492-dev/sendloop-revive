@@ -46,3 +46,17 @@ describe("setup failures have a finite attempt budget", () => {
     expect(selectRetryableMessages([row(0, relayReject)], dayStart)).toEqual([]);
   });
 });
+
+import { isHeldOutcomeUnknown, OUTCOME_UNKNOWN_REASON, NEVER_RETRY_ATTEMPTS as NR } from "@/lib/campaign-send-phase";
+
+describe("held unknown sends can never be manually or automatically resent", () => {
+  test("marker or never-retry budget is held", () => {
+    expect(isHeldOutcomeUnknown({ last_error: `${OUTCOME_UNKNOWN_REASON} x`, attempts: 1 })).toBe(true);
+    expect(isHeldOutcomeUnknown({ last_error: "other", attempts: NR })).toBe(true);
+    expect(isHeldOutcomeUnknown({ last_error: "451 4.4.7 deferred", attempts: 1 })).toBe(false);
+  });
+  test("daily retry skips held unknown rows", () => {
+    const rows = [{ id: "u", status: "failed", attempts: NR, sent_at: null, last_error: `${OUTCOME_UNKNOWN_REASON} x`, updated_at: "2026-09-17T20:00:00Z" }];
+    expect(selectRetryableMessages(rows, new Date("2026-09-17T00:00:00Z"))).toEqual([]);
+  });
+});

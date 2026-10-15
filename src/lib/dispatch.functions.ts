@@ -45,7 +45,7 @@ export const retryFailedCampaignMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("campaign_messages")
-      .select("id")
+      .select("id, last_error, attempts")
       .eq("campaign_id", data.campaignId)
       .eq("status", "failed")
       .is("sent_at", null)
@@ -53,7 +53,11 @@ export const retryFailedCampaignMessages = createServerFn({ method: "POST" })
       .is("provider_message_id", null)
       .limit(5000);
     if (error) throw new Error(error.message);
-    const ids = (rows ?? []).map((row) => (row as { id: string }).id);
+    // Held "outcome unknown" sends may already have been delivered: never resend.
+    const { isHeldOutcomeUnknown } = await import("@/lib/campaign-send-phase");
+    const ids = ((rows ?? []) as Array<{ id: string; last_error: string | null; attempts: number | null }>)
+      .filter((row) => !isHeldOutcomeUnknown(row))
+      .map((row) => row.id);
     if (!ids.length) return { retried: 0 };
 
     for (let i = 0; i < ids.length; i += 500) {

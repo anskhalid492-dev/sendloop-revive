@@ -52,6 +52,11 @@ export function isOutcomeUnknownReason(value: string | null | undefined): boolea
   return Boolean(value && value.startsWith("send_outcome_unknown_after_interrupt"));
 }
 
+/** A held outcome-unknown row (marker or never-retry budget): must never be resent. */
+export function isHeldOutcomeUnknown(row: { last_error?: string | null; attempts?: number | null }): boolean {
+  return /send_outcome_unknown_after_interrupt/i.test(row.last_error ?? "") || (row.attempts ?? 0) >= NEVER_RETRY_ATTEMPTS;
+}
+
 /**
  * A provider/relay error that does NOT prove the email was refused: the
  * request may have reached the SMTP server before the connection died.
