@@ -39,7 +39,7 @@ describe("rates", () => {
     expect(r.delivered).toBe(95);
     expect(r.deliveryRate).toBe(95);
     expect(r.openRate).toBe(20); // 19 / 95
-    expect(r.bounceRate).toBe(6.7); // 7 / (100 + 2 rejected)
+    expect(r.bounceRate).toBe(6.9); // 7 / (100 + 2 rejected)
   });
 
   it("shows no rate (null) when nothing was sent", () => {
