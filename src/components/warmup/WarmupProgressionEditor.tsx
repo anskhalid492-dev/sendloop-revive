@@ -1,9 +1,7 @@
-import { Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { DEFAULT_WARMUP_STAGES, resolveWarmupProgression, validateWarmupStages, warmupStageLimit, type ProgressionMode, type ProgressionStage, type ProgressionSettings } from "@/lib/warmup-progression";
+import { DEFAULT_WARMUP_STAGES, validateWarmupStages, type ProgressionMode, type ProgressionStage, type ProgressionSettings } from "@/lib/warmup-progression";
 export function WarmupProgressionEditor({ mode, stages, limit, settings, onChange }: {
   mode: ProgressionMode; stages: ProgressionStage[]; limit: number; settings: ProgressionSettings | null;
   onChange: (patch: { progression_mode?: ProgressionMode; progression_stages?: ProgressionStage[]; manual_daily_limit?: number }) => void;
