@@ -18,7 +18,6 @@ import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
 import {
-  clickRatePercent,
   openRatePercent,
   reachable,
   replyRatePercent,
@@ -39,7 +38,7 @@ function pct(value: number | null) {
   return value === null ? "—" : `${value}%`;
 }
 
-/** Headline card: one number, its rate, and what the number actually means. */
+/** Headline card: one number and, where meaningful, its rate. */
 function HeadlineCard({
   icon: Icon,
   label,
