@@ -21,7 +21,9 @@ export async function availableProviders() {
     const state = states.find(
       (s) => s.provider === provider && s.environment === settings.environment,
     );
-    const available = Boolean(state?.enabled && state.ready);
+    // A not-yet-configured optional lifetime offer must not disable checkout
+    // for existing plans. Its own price is validated before session creation.
+    const available = Boolean(state?.enabled && state.credentials.ok && state.plans.length && state.plans.every(p => p.monthly.ok && p.yearly.ok));
     return {
       provider,
       environment: settings.environment,

@@ -24,3 +24,4 @@
 - Leads opts into AppShell's contained viewport flex layout; the table owns both scroll axes and pagination stays outside that region, so header/controls remain visible without fixed table heights.
 - Lead list colors live on the list row and share one presentation helper; imports create a list only for an explicit new-list destination, so existing destinations never get recolored.
 - The sequence toolbar uses one Spintax Builder that captures step key, variant index, field and selection before opening; insertion uses the existing selection helper, so modal focus and option editing cannot retarget the email.
+- Lifetime offers use separate manually configured Stripe mappings, never catalogue repair; verified checkout line items must match the selected plan before activation, so a new offer cannot alter original pricing or grant the wrong entitlements.
