@@ -9147,6 +9147,7 @@ export type Database = {
           recipient_account_id: string | null
           role: string
           scheduled_at: string
+          send_reserved_at: string | null
           sending_account_id: string
           status: string
           subject: string
@@ -9180,6 +9181,7 @@ export type Database = {
           recipient_account_id?: string | null
           role?: string
           scheduled_at?: string
+          send_reserved_at?: string | null
           sending_account_id: string
           status?: string
           subject: string
@@ -9213,6 +9215,7 @@ export type Database = {
           recipient_account_id?: string | null
           role?: string
           scheduled_at?: string
+          send_reserved_at?: string | null
           sending_account_id?: string
           status?: string
           subject?: string
@@ -9365,6 +9368,7 @@ export type Database = {
           id: string
           last_run_at: string | null
           last_run_reason: string | null
+          manual_daily_limit: number | null
           max_bounce_rate: number
           max_volume: number
           min_health_score: number
@@ -9372,6 +9376,12 @@ export type Database = {
           pause_reason: string | null
           paused_at: string | null
           paused_by_system: boolean
+          progression_date: string | null
+          progression_day: number | null
+          progression_limit: number | null
+          progression_mode: string
+          progression_review_required: boolean
+          progression_stages: Json
           ramp_days: number
           ramp_stage: string
           recovery_bounce_rate: number
@@ -9400,6 +9410,7 @@ export type Database = {
           id?: string
           last_run_at?: string | null
           last_run_reason?: string | null
+          manual_daily_limit?: number | null
           max_bounce_rate?: number
           max_volume?: number
           min_health_score?: number
@@ -9407,6 +9418,12 @@ export type Database = {
           pause_reason?: string | null
           paused_at?: string | null
           paused_by_system?: boolean
+          progression_date?: string | null
+          progression_day?: number | null
+          progression_limit?: number | null
+          progression_mode?: string
+          progression_review_required?: boolean
+          progression_stages?: Json
           ramp_days?: number
           ramp_stage?: string
           recovery_bounce_rate?: number
@@ -9435,6 +9452,7 @@ export type Database = {
           id?: string
           last_run_at?: string | null
           last_run_reason?: string | null
+          manual_daily_limit?: number | null
           max_bounce_rate?: number
           max_volume?: number
           min_health_score?: number
@@ -9442,6 +9460,12 @@ export type Database = {
           pause_reason?: string | null
           paused_at?: string | null
           paused_by_system?: boolean
+          progression_date?: string | null
+          progression_day?: number | null
+          progression_limit?: number | null
+          progression_mode?: string
+          progression_review_required?: boolean
+          progression_stages?: Json
           ramp_days?: number
           ramp_stage?: string
           recovery_bounce_rate?: number
@@ -10357,6 +10381,7 @@ export type Database = {
           recipient_account_id: string | null
           role: string
           scheduled_at: string
+          send_reserved_at: string | null
           sending_account_id: string
           status: string
           subject: string
@@ -10399,6 +10424,7 @@ export type Database = {
           recipient_account_id: string | null
           role: string
           scheduled_at: string
+          send_reserved_at: string | null
           sending_account_id: string
           status: string
           subject: string
@@ -10663,6 +10689,10 @@ export type Database = {
         }[]
       }
       reserve_campaign_send: { Args: { _campaign_id: string }; Returns: Json }
+      reserve_mailbox_warmup_send: {
+        Args: { _job: string; _limit: number }
+        Returns: boolean
+      }
       revoke_appsumo_code: {
         Args: { _actor: string; _code_id: string }
         Returns: Json
