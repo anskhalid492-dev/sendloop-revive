@@ -18,7 +18,6 @@ import { Progress } from "@/components/ui/progress";
 import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
 import {
-  clickRatePercent,
   openRatePercent,
   reachable,
   replyRatePercent,
@@ -39,20 +38,18 @@ function pct(value: number | null) {
   return value === null ? "—" : `${value}%`;
 }
 
-/** Headline card: one number, its rate, and what the number actually means. */
+/** Headline card: one number and, where meaningful, its rate. */
 function HeadlineCard({
   icon: Icon,
   label,
   value,
   rateLabel,
-  hint,
   tone,
 }: {
   icon: typeof Send;
   label: string;
   value: number;
   rateLabel?: string | undefined;
-  hint: string;
   tone?: string | undefined;
 }) {
   return (
@@ -67,7 +64,6 @@ function HeadlineCard({
           <span className="text-xs font-medium text-muted-foreground">{rateLabel}</span>
         ) : null}
       </div>
-      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -221,32 +217,24 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
 
       {/* Headline performance */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <HeadlineCard
-          icon={Send}
-          label="Emails sent"
-          value={sent}
-          hint="Accepted by the sending infrastructure"
-        />
+        <HeadlineCard icon={Send} label="Emails sent" value={sent} />
         <HeadlineCard
           icon={Mail}
           label="Delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
-          hint="Accepted and not bounced back"
         />
         <HeadlineCard
           icon={MousePointerClick}
           label="Opened"
           value={opened}
           rateLabel={sent ? `${openRatePercent(opened, { sent, bounced })}%` : "—"}
-          hint={`${clicked} link click${clicked === 1 ? "" : "s"} · ${clickRatePercent(clicked, { sent, bounced })}% click rate`}
         />
         <HeadlineCard
           icon={Reply}
           label="Replies"
           value={replied}
           rateLabel={sent ? `${replyRatePercent(replied, { sent, bounced })}%` : "—"}
-          hint="Conversations started from this campaign"
           tone={replied > 0 ? "text-emerald-600" : undefined}
         />
       </div>
