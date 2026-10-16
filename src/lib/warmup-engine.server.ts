@@ -509,7 +509,7 @@ export async function resolveDailyTarget(
   let progressionSettings = settings;
   if ((!settings.progression_mode || settings.progression_mode === "legacy") && settings.started_at) {
     const seeded = {
-      progression_mode: "automatic",
+      progression_mode: "automatic" as const,
       progression_day: warmupCalendarDay(settings.started_at),
       progression_date: today(),
       progression_limit: Math.max(1, settings.current_volume ?? 1),
