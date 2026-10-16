@@ -99,7 +99,7 @@ describe("legacy warmup rows convert to automatic progression", () => {
 
     // Today must hold the legacy volume: no same-day jump.
     expect(decision.target).toBe(6);
-    const checkpoint = updates[updates.length - 1]?.payload;
+    const checkpoint = updates[updates.length - 2]?.payload;
     expect(checkpoint?.progression_limit).toBe(6);
     expect(checkpoint?.progression_day).toBe(expectedCalendarDay);
   });
