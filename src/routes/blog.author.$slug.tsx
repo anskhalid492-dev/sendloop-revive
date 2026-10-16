@@ -15,7 +15,7 @@ import {
   authorSeoTitle,
   authorSocialLinks,
 } from "@/lib/blog-author";
-import { formatBlogDate, initials, type BlogAuthor } from "@/lib/blog-model";
+import { initials, type BlogAuthor } from "@/lib/blog-model";
 import { getBlogAuthor } from "@/lib/blog.functions";
 import { absoluteUrl, breadcrumbJsonLd, NOINDEX_META } from "@/lib/seo";
 
@@ -119,7 +119,6 @@ function AuthorPage() {
   if (!author) return null;
 
   const visiblePosts = posts.slice(0, shown);
-  const firstPublished = posts.length ? (posts[posts.length - 1]?.published_at ?? null) : null;
   const hasAbout =
     author.full_bio?.trim() || author.experience?.trim() || author.certifications?.trim() || author.languages?.trim();
   const hasTags = (author.expertise?.length ?? 0) > 0 || (author.topics?.length ?? 0) > 0;
@@ -242,28 +241,6 @@ function AuthorPage() {
           </div>
         </Section>
       ) : null}
-
-      {/* Statistics — only real, database-backed numbers */}
-      <Section>
-        <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border bg-card p-5 text-center">
-            <p className="text-3xl font-bold tracking-tight">{posts.length}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Published articles</p>
-          </div>
-          {(author.topics?.length ?? 0) > 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-5 text-center">
-              <p className="text-3xl font-bold tracking-tight">{author.topics!.length}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Topics covered</p>
-            </div>
-          ) : null}
-          {firstPublished ? (
-            <div className="rounded-2xl border border-border bg-card p-5 text-center">
-              <p className="text-3xl font-bold tracking-tight">{formatBlogDate(firstPublished)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Writing since</p>
-            </div>
-          ) : null}
-        </div>
-      </Section>
 
       {/* Articles */}
       <Section muted title={`Articles by ${author.name}`}>
