@@ -14,7 +14,7 @@ export type BlogPromoBannerConfig = {
   ctaLabel: string;
   /** Internal path ("/pricing") or full http(s) URL. */
   ctaUrl: string;
-  /** Optional brand icon / image URL. Empty = MunchReach favicon. */
+  /** Optional brand logo / image URL. Empty = MunchReach logo. */
   iconUrl: string;
   backgroundColor: string;
   textColor: string;

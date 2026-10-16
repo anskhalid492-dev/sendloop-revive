@@ -4,6 +4,7 @@ import {
   blogPromoBannerRenderable,
   type BlogPromoBannerConfig,
 } from "@/lib/blog-promo-banner";
+import { brandLogo } from "@/lib/branding";
 
 /**
  * Centrally managed promotional card for the single-blog-post sidebar.
@@ -23,7 +24,9 @@ export function BlogPromoBanner({
   if (variant === "inline" && !config.showOnMobile) return null;
 
   const external = /^https:\/\//i.test(config.ctaUrl);
-  const iconSrc = config.iconUrl || "/brand/munchreach-icon.png";
+  // The full MunchReach wordmark (admin branding upload wins), never the
+  // square favicon — an admin-set image URL still overrides it.
+  const iconSrc = config.iconUrl || brandLogo();
 
   return (
     <div
@@ -40,12 +43,15 @@ export function BlogPromoBanner({
         <img
           src={iconSrc}
           alt="MunchReach"
-          className="size-9 rounded-lg"
+          className="h-7 w-auto max-w-full object-contain"
           loading="lazy"
           onError={(e) => {
-            // A missing optional image must never break the card.
+            // A missing optional image must never break the card. One swap to
+            // the bundled logo, then stop, so a broken logo can't loop.
             const img = e.currentTarget;
-            if (!img.src.endsWith("/brand/munchreach-icon.png")) img.src = "/brand/munchreach-icon.png";
+            if (img.dataset.fallback) return;
+            img.dataset.fallback = "1";
+            img.src = "/brand/munchreach-logo.png";
           }}
         />
         <div>
