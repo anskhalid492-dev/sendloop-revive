@@ -451,6 +451,10 @@ function AdminBlogRoute() {
         <TabsContent value="media">
           <MediaLibraryPanel />
         </TabsContent>
+
+        <TabsContent value="settings">
+          <PromoBannerSettings />
+        </TabsContent>
       </Tabs>
 
       <Sheet open={!!draft} onOpenChange={(open) => !open && setDraft(null)}>
