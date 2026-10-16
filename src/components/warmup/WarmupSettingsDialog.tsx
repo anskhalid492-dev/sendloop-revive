@@ -163,7 +163,7 @@ export function WarmupSettingsDialog({
                 type="button"
                 onClick={() => applyMode(mode.id)}
                 className={cn(
-                  "rounded-lg border p-3 text-left transition",
+                  "h-auto flex-col items-start whitespace-normal rounded-lg border p-3 text-left transition",
                   draft.mode === mode.id
                     ? "border-primary bg-primary/5"
                     : "border-border hover:bg-muted/50",
