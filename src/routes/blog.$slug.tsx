@@ -29,7 +29,8 @@ export const Route = createFileRoute("/blog/$slug")({
       throw redirect({ to: "/blog/$slug", params: { slug: result.redirectTo }, replace: true });
     }
     if (!result.post) throw notFound();
-    return result;
+    const promoBanner = await loadBlogPromoBanner().catch(() => null);
+    return { ...result, promoBanner };
   },
   head: ({ params, loaderData }) => {
     const post = loaderData?.post;
@@ -132,7 +133,7 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 
 function ArticlePage() {
-  const { post, related } = Route.useLoaderData();
+  const { post, related, promoBanner } = Route.useLoaderData();
   if (!post) return null;
   const isHtml = (post as any).content_format === "html";
   const sections = isHtml ? parseHtmlToc(post.content) : parseArticle(post.content);
