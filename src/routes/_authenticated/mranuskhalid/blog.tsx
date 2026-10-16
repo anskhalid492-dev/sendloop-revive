@@ -859,17 +859,191 @@ function CategoriesPanel({ categories, onChanged }: { categories: any[]; onChang
   );
 }
 
-type AuthorDraft = { id?: string; slug: string; name: string; role: string; bio: string; avatarUrl: string };
+type AuthorDraft = {
+  id?: string;
+  slug: string;
+  name: string;
+  role: string;
+  bio: string;
+  fullBio: string;
+  avatarUrl: string;
+  coverImageUrl: string;
+  location: string;
+  company: string;
+  websiteUrl: string;
+  linkedinUrl: string;
+  xUrl: string;
+  publicEmail: string;
+  showEmail: boolean;
+  introduction: string;
+  experience: string;
+  certifications: string;
+  languages: string;
+  featuredQuote: string;
+  expertise: string[];
+  topics: string[];
+  seoTitle: string;
+  metaDescription: string;
+  canonicalUrl: string;
+  ogImageUrl: string;
+  noindex: boolean;
+};
+
+const emptyAuthorDraft: AuthorDraft = {
+  slug: "",
+  name: "",
+  role: "",
+  bio: "",
+  fullBio: "",
+  avatarUrl: "",
+  coverImageUrl: "",
+  location: "",
+  company: "",
+  websiteUrl: "",
+  linkedinUrl: "",
+  xUrl: "",
+  publicEmail: "",
+  showEmail: true,
+  introduction: "",
+  experience: "",
+  certifications: "",
+  languages: "",
+  featuredQuote: "",
+  expertise: [],
+  topics: [],
+  seoTitle: "",
+  metaDescription: "",
+  canonicalUrl: "",
+  ogImageUrl: "",
+  noindex: false,
+};
+
+function authorToDraft(author: any): AuthorDraft {
+  return {
+    id: author.id,
+    slug: author.slug ?? "",
+    name: author.name ?? "",
+    role: author.role ?? "",
+    bio: author.bio ?? "",
+    fullBio: author.full_bio ?? "",
+    avatarUrl: author.avatar_url ?? "",
+    coverImageUrl: author.cover_image_url ?? "",
+    location: author.location ?? "",
+    company: author.company ?? "",
+    websiteUrl: author.website_url ?? "",
+    linkedinUrl: author.linkedin_url ?? "",
+    xUrl: author.x_url ?? "",
+    publicEmail: author.public_email ?? "",
+    showEmail: author.show_email !== false,
+    introduction: author.introduction ?? "",
+    experience: author.experience ?? "",
+    certifications: author.certifications ?? "",
+    languages: author.languages ?? "",
+    featuredQuote: author.featured_quote ?? "",
+    expertise: author.expertise ?? [],
+    topics: author.topics ?? [],
+    seoTitle: author.seo_title ?? "",
+    metaDescription: author.meta_description ?? "",
+    canonicalUrl: author.canonical_url ?? "",
+    ogImageUrl: author.og_image_url ?? "",
+    noindex: author.noindex === true,
+  };
+}
+
+/** Comma/Enter-driven tag editor used for expertise and topics. */
+function TagEditor({
+  label,
+  values,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  values: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState("");
+  const add = () => {
+    const value = text.trim().replace(/,+$/, "");
+    if (value && !values.includes(value) && values.length < 20) onChange([...values, value]);
+    setText("");
+  };
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5">
+        {values.map((tag) => (
+          <span
+            key={tag}
+            className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium"
+          >
+            {tag}
+            <button
+              type="button"
+              aria-label={`Remove ${tag}`}
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => onChange(values.filter((t) => t !== tag))}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          value={text}
+          placeholder={values.length ? "" : placeholder}
+          onChange={(e) => {
+            if (e.target.value.endsWith(",")) {
+              setText(e.target.value);
+              setTimeout(add, 0);
+            } else setText(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          onBlur={add}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AuthorSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4 rounded-lg border border-border/60 p-4">
+      <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+const AUTHORS_PAGE_SIZE = 9;
 
 function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () => void }) {
   const save = useServerFn(saveBlogAuthor);
   const remove = useServerFn(deleteBlogAuthor);
   const [draft, setDraft] = useState<AuthorDraft | null>(null);
-  const [avatarPicker, setAvatarPicker] = useState(false);
+  const [picker, setPicker] = useState<"avatar" | "cover" | "og" | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
 
   const saveMutation = useMutation({
     mutationFn: (input: AuthorDraft) =>
-      save({ data: { ...input, avatarUrl: input.avatarUrl || null } }),
+      save({
+        data: {
+          ...input,
+          avatarUrl: input.avatarUrl || null,
+          coverImageUrl: input.coverImageUrl || null,
+          seoTitle: input.seoTitle || null,
+          metaDescription: input.metaDescription || null,
+          canonicalUrl: input.canonicalUrl || null,
+          ogImageUrl: input.ogImageUrl || null,
+        },
+      }),
     onSuccess: () => {
       toast.success("Author saved");
       setDraft(null);
@@ -878,25 +1052,52 @@ function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () =>
     onError: (error: Error) => toast.error(error.message),
   });
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => remove({ data: { id } }),
+    mutationFn: (input: { id: string; confirm: boolean }) => remove({ data: input }),
     onSuccess: () => {
       toast.success("Author deleted");
+      setPendingDelete(null);
       onChanged();
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const filtered = authors.filter((a) => {
+    const term = search.trim().toLowerCase();
+    if (!term) return true;
+    return [a.name, a.role, a.slug].some((v) => String(v ?? "").toLowerCase().includes(term));
+  });
+  const pageCount = Math.max(1, Math.ceil(filtered.length / AUTHORS_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = filtered.slice(safePage * AUTHORS_PAGE_SIZE, safePage * AUTHORS_PAGE_SIZE + AUTHORS_PAGE_SIZE);
+
+  const patchDraft = (patch: Partial<AuthorDraft>) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Authors show as the byline on every published post.</p>
-        <Button size="sm" onClick={() => setDraft({ slug: "", name: "", role: "", bio: "", avatarUrl: "" })}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Authors show as the byline on every published post and get a public profile page.
+        </p>
+        <Button size="sm" onClick={() => setDraft({ ...emptyAuthorDraft })}>
           <Plus className="mr-1.5 size-4" /> New author
         </Button>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+        <Input
+          className="pl-8"
+          placeholder="Search authors…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(0);
+          }}
+        />
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {authors.map((author) => (
+        {visible.map((author) => (
           <div key={author.id} className="flex items-start gap-3 rounded-lg border border-border/60 bg-card p-4">
             {author.avatar_url ? (
               <img src={author.avatar_url} alt={author.name} className="size-11 rounded-full object-cover" />
@@ -908,28 +1109,23 @@ function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () =>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{author.name}</p>
               <p className="truncate text-xs text-muted-foreground">{author.role || "—"}</p>
-              <div className="mt-2 space-x-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setDraft({
-                      id: author.id,
-                      slug: author.slug,
-                      name: author.name,
-                      role: author.role ?? "",
-                      bio: author.bio ?? "",
-                      avatarUrl: author.avatar_url ?? "",
-                    })
-                  }
-                >
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                /blog/author/{author.slug} · {author.post_count ?? 0} published
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                <Button size="sm" variant="outline" onClick={() => setDraft(authorToDraft(author))}>
                   Edit
+                </Button>
+                <Button size="sm" variant="ghost" asChild>
+                  <a href={`/blog/author/${author.slug}`} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-3.5" /> Preview
+                  </a>
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="text-destructive"
-                  onClick={() => deleteMutation.mutate(author.id)}
+                  onClick={() => setPendingDelete(author)}
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
@@ -937,59 +1133,275 @@ function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () =>
             </div>
           </div>
         ))}
+        {visible.length === 0 ? (
+          <p className="col-span-full py-8 text-center text-sm text-muted-foreground">No authors match your search.</p>
+        ) : null}
       </div>
 
+      {pageCount > 1 ? (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            Page {safePage + 1} of {pageCount} · {filtered.length} authors
+          </span>
+          <div className="space-x-1">
+            <Button size="sm" variant="outline" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={safePage >= pageCount - 1}
+              onClick={() => setPage(safePage + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <Sheet open={!!draft} onOpenChange={(open) => !open && setDraft(null)}>
-        <SheetContent className="w-full sm:max-w-md">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
           {draft ? (
             <>
               <SheetHeader>
                 <SheetTitle>{draft.id ? "Edit author" : "New author"}</SheetTitle>
               </SheetHeader>
-              <div className="mt-6 space-y-4">
-                <div className="space-y-1.5">
-                  <Label>Name</Label>
-                  <Input
-                    value={draft.name}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        name: e.target.value,
-                        slug: draft.id || draft.slug ? draft.slug : slugify(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Slug</Label>
-                  <Input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: slugify(e.target.value) })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Role</Label>
-                  <Input value={draft.role} onChange={(e) => setDraft({ ...draft, role: e.target.value })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Bio</Label>
-                  <Textarea rows={4} value={draft.bio} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Avatar</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={draft.avatarUrl}
-                      onChange={(e) => setDraft({ ...draft, avatarUrl: e.target.value })}
-                      placeholder="/api/public/media/..."
-                    />
-                    <Button type="button" variant="outline" onClick={() => setAvatarPicker(true)}>
-                      Choose
-                    </Button>
+              <div className="mt-6 space-y-4 pb-8">
+                <AuthorSection title="Basic information">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Full name</Label>
+                      <Input
+                        value={draft.name}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            name: e.target.value,
+                            slug: draft.id || draft.slug ? draft.slug : slugify(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>URL slug</Label>
+                      <Input
+                        value={draft.slug}
+                        onChange={(e) => patchDraft({ slug: slugify(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Professional title / role</Label>
+                      <Input value={draft.role} onChange={(e) => patchDraft({ role: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Location (optional)</Label>
+                      <Input value={draft.location} onChange={(e) => patchDraft({ location: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company / organization</Label>
+                      <Input value={draft.company} onChange={(e) => patchDraft({ company: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Personal website</Label>
+                      <Input
+                        value={draft.websiteUrl}
+                        placeholder="https://…"
+                        onChange={(e) => patchDraft({ websiteUrl: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
+                  <div className="space-y-1.5">
+                    <Label>Short bio ({draft.bio.length}/200)</Label>
+                    <Textarea
+                      rows={2}
+                      maxLength={200}
+                      value={draft.bio}
+                      onChange={(e) => patchDraft({ bio: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Full biography</Label>
+                    <RichTextEditor value={draft.fullBio} onChange={(html) => patchDraft({ fullBio: html })} />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Profile avatar</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={draft.avatarUrl}
+                          placeholder="/api/public/media/…"
+                          onChange={(e) => patchDraft({ avatarUrl: e.target.value })}
+                        />
+                        <Button type="button" variant="outline" onClick={() => setPicker("avatar")}>
+                          Choose
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Cover / banner image (optional)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={draft.coverImageUrl}
+                          placeholder="/api/public/media/…"
+                          onChange={(e) => patchDraft({ coverImageUrl: e.target.value })}
+                        />
+                        <Button type="button" variant="outline" onClick={() => setPicker("cover")}>
+                          Choose
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </AuthorSection>
+
+                <AuthorSection title="Social profiles & contact">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Linkedin className="size-3.5" /> LinkedIn profile URL
+                      </Label>
+                      <Input
+                        value={draft.linkedinUrl}
+                        placeholder="https://www.linkedin.com/in/…"
+                        onChange={(e) => patchDraft({ linkedinUrl: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Twitter className="size-3.5" /> X (Twitter) profile URL
+                      </Label>
+                      <Input
+                        value={draft.xUrl}
+                        placeholder="https://x.com/…"
+                        onChange={(e) => patchDraft({ xUrl: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Mail className="size-3.5" /> Public email address
+                      </Label>
+                      <Input
+                        value={draft.publicEmail}
+                        placeholder="name@example.com"
+                        onChange={(e) => patchDraft({ publicEmail: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-end gap-2 pb-1">
+                      <Switch
+                        checked={draft.showEmail}
+                        onCheckedChange={(checked) => patchDraft({ showEmail: checked })}
+                        id="author-show-email"
+                      />
+                      <Label htmlFor="author-show-email">Show email publicly</Label>
+                    </div>
+                  </div>
+                </AuthorSection>
+
+                <AuthorSection title="Professional background">
+                  <div className="space-y-1.5">
+                    <Label>Professional introduction</Label>
+                    <Textarea
+                      rows={2}
+                      value={draft.introduction}
+                      onChange={(e) => patchDraft({ introduction: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <TagEditor
+                      label="Areas of expertise"
+                      values={draft.expertise}
+                      onChange={(expertise) => patchDraft({ expertise })}
+                      placeholder="Type and press Enter"
+                    />
+                    <TagEditor
+                      label="Topics they write about"
+                      values={draft.topics}
+                      onChange={(topics) => patchDraft({ topics })}
+                      placeholder="Type and press Enter"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Professional experience</Label>
+                    <Textarea
+                      rows={3}
+                      value={draft.experience}
+                      onChange={(e) => patchDraft({ experience: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Certifications / credentials</Label>
+                      <Textarea
+                        rows={2}
+                        value={draft.certifications}
+                        onChange={(e) => patchDraft({ certifications: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Languages</Label>
+                      <Input value={draft.languages} onChange={(e) => patchDraft({ languages: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Featured quote</Label>
+                    <Textarea
+                      rows={2}
+                      value={draft.featuredQuote}
+                      onChange={(e) => patchDraft({ featuredQuote: e.target.value })}
+                    />
+                  </div>
+                </AuthorSection>
+
+                <AuthorSection title="SEO settings">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>SEO title</Label>
+                      <Input value={draft.seoTitle} onChange={(e) => patchDraft({ seoTitle: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Canonical URL (optional)</Label>
+                      <Input
+                        value={draft.canonicalUrl}
+                        onChange={(e) => patchDraft({ canonicalUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Meta description</Label>
+                    <Textarea
+                      rows={2}
+                      value={draft.metaDescription}
+                      onChange={(e) => patchDraft({ metaDescription: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Social sharing image</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={draft.ogImageUrl}
+                        placeholder="/api/public/media/…"
+                        onChange={(e) => patchDraft({ ogImageUrl: e.target.value })}
+                      />
+                      <Button type="button" variant="outline" onClick={() => setPicker("og")}>
+                        Choose
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={draft.noindex}
+                      onCheckedChange={(checked) => patchDraft({ noindex: checked })}
+                      id="author-noindex"
+                    />
+                    <Label htmlFor="author-noindex">Noindex this profile (hide from search engines)</Label>
+                  </div>
+                </AuthorSection>
+
                 <Button
                   className="w-full"
                   disabled={!draft.name.trim() || !draft.slug.trim() || saveMutation.isPending}
                   onClick={() => saveMutation.mutate(draft)}
                 >
+                  {saveMutation.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
                   Save author
                 </Button>
               </div>
@@ -999,13 +1411,53 @@ function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () =>
       </Sheet>
 
       <MediaPickerDialog
-        open={avatarPicker}
-        onOpenChange={setAvatarPicker}
+        open={picker !== null}
+        onOpenChange={(open) => !open && setPicker(null)}
         onSelect={(item) => {
-          setDraft((prev) => (prev ? { ...prev, avatarUrl: item.public_url } : prev));
-          setAvatarPicker(false);
+          if (picker === "avatar") patchDraft({ avatarUrl: item.public_url });
+          if (picker === "cover") patchDraft({ coverImageUrl: item.public_url });
+          if (picker === "og") patchDraft({ ogImageUrl: item.public_url });
+          setPicker(null);
         }}
       />
+
+      <Sheet open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <SheetContent className="w-full sm:max-w-md">
+          {pendingDelete ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>Delete {pendingDelete.name}?</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 space-y-4 text-sm text-muted-foreground">
+                {(pendingDelete.post_count ?? 0) > 0 ? (
+                  <p>
+                    This author is assigned to {pendingDelete.post_count} published post
+                    {pendingDelete.post_count === 1 ? "" : "s"}. Deleting removes the byline from those posts. You can
+                    reassign the posts to another author first, or confirm deletion.
+                  </p>
+                ) : (
+                  <p>This author has no published posts. The profile page will stop resolving.</p>
+                )}
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setPendingDelete(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    disabled={deleteMutation.isPending}
+                    onClick={() =>
+                      deleteMutation.mutate({ id: pendingDelete.id, confirm: (pendingDelete.post_count ?? 0) > 0 })
+                    }
+                  >
+                    Delete author
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
