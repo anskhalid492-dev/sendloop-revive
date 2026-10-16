@@ -7,7 +7,6 @@ export function WarmupProgressionEditor({ mode, stages, limit, settings, onChang
   onChange: (patch: { progression_mode?: ProgressionMode; progression_stages?: ProgressionStage[]; manual_daily_limit?: number }) => void;
 }) {
   const error = validateWarmupStages(stages);
-  const current = resolveWarmupProgression(settings ?? {}, false);
   return <section className="space-y-3 border-b border-border pb-5">
     <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">Automatic Warmup Progression</h3></div>
     {settings?.progression_review_required && <p className="text-xs text-muted-foreground">Existing mailbox: review its start date and current limit before enabling progression.</p>}
