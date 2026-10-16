@@ -27,4 +27,5 @@ describe("per-mailbox automatic warmup (isolated, no network)", () => {
   });
   it("does not increase existing mailbox limit on opt-in", () => { const result = resolveWarmupProgression({ ...state(22), progression_limit: 4 }, false, at(22)); expect(result.limit).toBe(4); });
   it("unhealthy mailbox never increases the next expected limit", () => { const result = resolveWarmupProgression(state(12), true, at(13)); expect(result.nextLimit).toBe(10); });
+  it("manual edits during a pause remain saved but never permit sending", () => { const result = resolveWarmupProgression({ ...state(12), progression_mode: "manual", manual_daily_limit: 17 }, true, at(13)); expect(result.limit).toBe(17); expect(result.effectiveLimit).toBe(0); });
 });
