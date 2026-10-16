@@ -49,8 +49,8 @@ export function BlogPromoBanner({
             // A missing optional image must never break the card. One swap to
             // the bundled logo, then stop, so a broken logo can't loop.
             const img = e.currentTarget;
-            if (img.dataset.fallback) return;
-            img.dataset.fallback = "1";
+            if (img.dataset["fallback"]) return;
+            img.dataset["fallback"] = "1";
             img.src = "/brand/munchreach-logo.png";
           }}
         />
