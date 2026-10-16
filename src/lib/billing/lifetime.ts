@@ -8,6 +8,7 @@
  * those columns are not present yet.
  */
 export const LIFETIME_PLAN_SLUG = "lifetime";
+export const LIFETIME_STARTER_SLUG = "lifetime-starter";
 
 /** Fallback used only when the plan row has no `one_time_price` column/value. */
 export const LIFETIME_PRICE_CENTS = 9900;
@@ -22,13 +23,36 @@ type PlanLike = {
 };
 
 export function isLifetimePlan(plan: PlanLike) {
-  return plan.billing_type === "lifetime" || plan.slug === LIFETIME_PLAN_SLUG;
+  return plan.billing_type === "lifetime" || plan.slug === LIFETIME_PLAN_SLUG || plan.slug === LIFETIME_STARTER_SLUG;
 }
 
 export function lifetimePriceCents(plan?: PlanLike | null) {
-  return plan?.one_time_price ?? LIFETIME_PRICE_CENTS;
+  return plan?.one_time_price ?? (plan?.slug === LIFETIME_STARTER_SLUG ? 2900 : LIFETIME_PRICE_CENTS);
 }
 
 export function lifetimeCompareAtCents(plan?: PlanLike | null) {
-  return plan?.compare_at_price ?? LIFETIME_COMPARE_AT_CENTS;
+  return plan?.compare_at_price ?? (plan?.slug === LIFETIME_STARTER_SLUG ? 0 : LIFETIME_COMPARE_AT_CENTS);
+}
+
+export function lifetimeBillingHref(plan: { id: string }) {
+  return `/billing?plan=${encodeURIComponent(plan.id)}`;
+}
+
+/** Deterministic marketing order without changing stored plan ordering. */
+export function lifetimeOffers<T extends PlanLike>(plans: T[]): T[] {
+  return plans.filter(isLifetimePlan).sort((a, b) => lifetimePriceCents(a) - lifetimePriceCents(b));
+}
+
+export type LifetimeStripePrice = {
+  id?: string; active?: boolean; type?: string; recurring?: unknown;
+  currency?: string; unit_amount?: number | null;
+  product?: string | { active?: boolean };
+};
+
+export function validateLifetimeStripePrice(price: LifetimeStripePrice | null, amount: number) {
+  if (!price || price.active !== true) throw new Error("That Stripe price is missing or archived.");
+  if (price.recurring || (price.type && price.type !== "one_time")) throw new Error("Lifetime access requires a one-time, non-recurring Stripe price.");
+  if (price.currency?.toLowerCase() !== "usd") throw new Error("Lifetime access requires a USD Stripe price.");
+  if (price.unit_amount !== amount) throw new Error("The Stripe price amount must match this lifetime plan's configured one-time price.");
+  if (typeof price.product === "object" && price.product?.active !== true) throw new Error("The Stripe product is archived.");
 }
