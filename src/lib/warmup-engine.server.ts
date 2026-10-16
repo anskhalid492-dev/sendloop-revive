@@ -497,17 +497,21 @@ export async function resolveDailyTarget(
     capacityCeiling: ceiling,
   });
 
+  // Null first-run histories cannot mask active low health or auth protection.
+  const safety = evaluateSafetyViolation({ stats: rows, maxBounceRate: settings.max_bounce_rate, minHealthScore: settings.min_health_score, healthScore: account.health_score, accountStatus: account.status, authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status] });
+  if (safety.active) decision = { stage: "paused", action: "pause", target: 0, reason: safety.reason ?? "Warmup safety protection is active." };
+
   if (settings.progression_mode && settings.progression_mode !== "legacy") {
     const unhealthy = account.health_score !== null && account.health_score < 70;
-    const blocked = settings.paused_by_system || !settings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || ["paused", "recovery"].includes(decision.stage);
+    const blocked = settings.paused_by_system || !settings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || ["paused", "recovery", "hold"].includes(decision.stage) && decision.action !== "hold" || decision.stage === "recovery";
     const progression = resolveWarmupProgression(settings, blocked);
     let limit = progression.effectiveLimit;
-    if (decision.stage === "recovery") limit = Math.min(progression.limit, decision.target);
+    if (decision.stage === "recovery" && !unhealthy) limit = Math.min(progression.limit, decision.target);
     if (ceiling !== null) limit = Math.min(limit, ceiling);
     decision = { ...decision, target: limit, reason: blocked ? decision.reason : `Day ${progression.day} · Stage ${progression.stage} · ${settings.progression_mode === "manual" ? "Manual" : "Automatic"} limit ${limit}/day.`, stage: blocked ? decision.stage : progression.day >= (settings.progression_stages?.at(-1)?.end_day ?? 25) ? "stable" : "ramp_up" };
     const { error } = await admin.from("warmup_settings").update({
       progression_day: progression.day, progression_date: progression.date,
-      progression_limit: blocked ? Math.min(progression.limit, settings.progression_limit ?? progression.limit) : progression.limit,
+      progression_limit: blocked ? Math.min(progression.limit, decision.stage === "recovery" ? decision.target : progression.limit) : progression.limit,
     }).eq("id", settings.id);
     if (error) throw new Error(error.message);
   }
@@ -964,9 +968,10 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
   });
 
   if (!result.ok) {
-    const retryable = /timeout|rate|429|5\d\d|temporar/i.test(result.message);
     await refundWarmup();
-    return fail(result.message, retryable);
+    // A provider attempt already owns a daily slot. Never retry a possibly
+    // accepted SMTP hand-off under a new attempt.
+    return fail(result.message, false);
   }
 
   await admin
