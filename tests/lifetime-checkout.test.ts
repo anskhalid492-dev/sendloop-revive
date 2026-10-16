@@ -1,0 +1,13 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const state = vi.hoisted(() => ({ selected: "", price: vi.fn(), checkout: vi.fn(), plan: { id: "test-lifetime-starter", billing_type: "lifetime", is_active: true } }));
+vi.mock("@/lib/billing/core.server", () => ({ getBillingSettings: async () => ({ environment: "test" }), writeAudit: vi.fn(), admin: async () => ({ from: (table: string) => { const q = { select: () => q, eq: (field: string, value: string) => { if (table === "plans" && field === "id") state.selected = value; return q; }, maybeSingle: async () => ({ data: table === "plans" ? { ...state.plan, id: state.selected } : null }) }; return q; } }) }));
+vi.mock("@/lib/billing/readiness.server", () => ({ loadReadiness: async () => [{ provider: "stripe", environment: "test", enabled: true, credentials: { ok: true }, plans: [{ monthly: { ok: true }, yearly: { ok: true } }], planIdsOk: true }] }));
+vi.mock("@/lib/billing/entitlements.server", () => ({ getEntitlement: async () => ({ planId: "test-free", active: false }) }));
+vi.mock("@/lib/billing/stripe-sync.server", () => ({ ensureStripePrice: state.price }));
+vi.mock("@/lib/billing/providers.server", () => ({ getBillingAdapter: () => ({ createCheckout: state.checkout }) }));
+import { createCheckoutSession } from "@/lib/billing/customer.server";
+beforeEach(() => { state.price.mockReset().mockImplementation(async (_env, id) => id === "test-lifetime-starter" ? "price_test_starter" : "price_test_original"); state.checkout.mockReset().mockResolvedValue({ url: "https://checkout.stripe.com/test-fixture" }); });
+describe("separate lifetime checkout selection, no real Stripe calls", () => {
+  for (const [planId, priceId] of [["test-lifetime-starter", "price_test_starter"], ["test-lifetime-original", "price_test_original"]]) it(`uses selected ${planId} configured price`, async () => { await createCheckoutSession({ workspaceId: "test-workspace-lifetime", userId: "test-user-lifetime", planId, interval: "lifetime", provider: "stripe" }); expect(state.checkout).toHaveBeenCalledWith(expect.objectContaining({ planId, priceId, mode: "payment", interval: "lifetime", cancelUrl: expect.stringContaining(`/billing?plan=${planId}`) })); });
+  it("fails closed when Starter price is not configured", async () => { state.price.mockRejectedValue(new Error("Price not configured")); await expect(createCheckoutSession({ workspaceId: "test-workspace-lifetime", userId: "test-user-lifetime", planId: "test-lifetime-starter", interval: "lifetime", provider: "stripe" })).rejects.toThrow(/configured/); expect(state.checkout).not.toHaveBeenCalled(); });
+});
