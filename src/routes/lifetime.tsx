@@ -32,15 +32,20 @@ import { MarketingLayout, Section, FaqBlock, faqJsonLd } from "@/components/site
 import { TestimonialCarousel } from "@/components/site/TestimonialCarousel";
 import { getPlans, type Plan } from "@/lib/plans.functions";
 import {
-  LIFETIME_PLAN_SLUG,
+  lifetimeOffers,
+  lifetimeBillingHref,
   isLifetimePlan,
   lifetimeCompareAtCents,
   lifetimePriceCents,
 } from "@/lib/billing/lifetime";
 import { formatMoney } from "@/lib/billing/model";
-import { supabase } from "@/integrations/supabase/client";
+import { PRICING_COMPARISON } from "@/lib/pricing-comparison";
+import { COMPARISON_LIST } from "@/lib/comparison-content";
 import { cn } from "@/lib/utils";
 import { brandFavicon } from "@/lib/branding";
+import instantlyIcon from "@/assets/lifetime-instantly.png.asset.json";
+import smartleadIcon from "@/assets/lifetime-smartlead.png.asset.json";
+import lemlistIcon from "@/assets/lifetime-lemlist.png.asset.json";
 
 /**
  * Lifetime Deal sales page.
@@ -72,15 +77,15 @@ const FAQS = [
   },
   {
     q: "How many leads can I store?",
-    a: "The lifetime plan includes 15,000 stored contacts.",
+    a: "Each lifetime offer has its own stored-contact allowance. Compare the current plan limits above.",
   },
   {
     q: "How many emails are included?",
-    a: "15,000 emails per month, every month, with no recurring bill.",
+    a: "Each lifetime offer includes a monthly initial-email allowance, shown in the plan comparison. Follow-ups do not consume that allowance.",
   },
   {
     q: "Can I connect my own sending accounts?",
-    a: "Yes. You connect your own mailboxes — up to 10 connected email accounts on the lifetime plan.",
+    a: "Yes. Both offers support your own mailboxes, with the connected-account limit shown in the plan comparison.",
   },
   {
     q: "Does this include warmup?",
@@ -108,25 +113,12 @@ const FAQS = [
   },
   {
     q: "How does the Stripe payment work?",
-    a: "Clicking Get Lifetime Access opens a secure Stripe checkout session for a one-time payment in USD. MunchReach never sees or stores your card details.",
+    a: "Choose an offer, sign in or sign up, and review it on the Billing page before opening a secure Stripe checkout session for a one-time payment in USD. MunchReach never sees or stores your card details.",
   },
   {
     q: "What is your refund policy?",
     a: "Contact support@munchreach.com within 14 days of purchase and we will review your request under our standard refund policy.",
   },
-];
-
-const INCLUDED: { label: string; value: string }[] = [
-  { label: "Contacts stored", value: "15,000" },
-  { label: "Emails per month", value: "15,000" },
-  { label: "Connected email accounts", value: "10" },
-  { label: "Campaigns", value: "Unlimited" },
-  { label: "Sequences & follow-ups", value: "Unlimited" },
-  { label: "Inbox warmup", value: "Included" },
-  { label: "Unified inbox", value: "Included" },
-  { label: "Analytics & reporting", value: "Included" },
-  { label: "Automations", value: "Included" },
-  { label: "Integrations & API", value: "Included" },
 ];
 
 const FEATURES = [
@@ -216,19 +208,6 @@ const PROBLEMS = [
   "Paying more as your outreach grows",
 ];
 
-const COMPARISON: { label: string; lifetime: string; stack: string }[] = [
-  { label: "Campaigns", lifetime: "Included", stack: "Separate sending tool" },
-  { label: "Automated follow-ups", lifetime: "Included", stack: "Separate tool or manual" },
-  { label: "Unified inbox", lifetime: "Included", stack: "Your mailbox clients" },
-  { label: "Warmup", lifetime: "Included", stack: "Usually a separate subscription" },
-  { label: "Analytics", lifetime: "Included", stack: "Split across tools" },
-  { label: "Lead management", lifetime: "Included", stack: "Spreadsheets or a separate CRM" },
-  { label: "Automations", lifetime: "Included", stack: "Separate automation tool" },
-  { label: "Templates", lifetime: "Included", stack: "Docs and snippets" },
-  { label: "Multiple sending accounts", lifetime: "Up to 10", stack: "Priced per mailbox" },
-  { label: "Lifetime access", lifetime: "One payment", stack: "Monthly, forever" },
-];
-
 const AUDIENCES = [
   { icon: Building2, label: "Agencies", text: "Run outbound for your agency and your clients from separated workspaces." },
   { icon: Sparkles, label: "Founders", text: "Own your pipeline without hiring an outbound team first." },
@@ -259,7 +238,7 @@ const USE_CASES = [
 ];
 
 const AFTER_PURCHASE = [
-  { step: "Step 1", title: "Click Get Lifetime Access", text: "You are taken straight to checkout." },
+  { step: "Step 1", title: "Click Get Lifetime Access", text: "Sign in and review your selected plan in Billing." },
   { step: "Step 2", title: "Complete secure Stripe checkout", text: "A single one-time payment in USD." },
   { step: "Step 3", title: "Your workspace is upgraded", text: "The lifetime plan is applied automatically." },
   { step: "Step 4", title: "Start using your plan", text: "Connect mailboxes, import leads and launch." },
@@ -307,24 +286,6 @@ function lifetimeQueryOptions() {
   return { queryKey: ["public", "plans"], queryFn: () => getPlans() };
 }
 
-function useSignedIn() {
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) setSignedIn(Boolean(data.session));
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
-      setSignedIn(Boolean(session)),
-    );
-    return () => {
-      active = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-  return signedIn;
-}
-
 /** Shows the sticky bar only once the visitor has scrolled past the hero. */
 function useScrolledPastHero() {
   const [past, setPast] = useState(false);
@@ -339,16 +300,15 @@ function useScrolledPastHero() {
 
 function LifetimePage() {
   const { data: plans } = useSuspenseQuery(lifetimeQueryOptions());
-  const signedIn = useSignedIn();
   const showSticky = useScrolledPastHero();
 
-  const plan: Plan | undefined =
-    plans.find((p) => p.slug === LIFETIME_PLAN_SLUG) ?? plans.find((p) => isLifetimePlan(p));
-
+  const offers = lifetimeOffers(plans);
+  const plan = offers[0];
   const priceCents = lifetimePriceCents(plan);
-  const compareCents = lifetimeCompareAtCents(plan);
-  const billingHref = `/billing?plan=${encodeURIComponent(plan?.slug ?? LIFETIME_PLAN_SLUG)}`;
-  const ctaHref = signedIn ? billingHref : `/signup?redirect=${encodeURIComponent(billingHref)}`;
+  const compareCents = plan ? lifetimeCompareAtCents(plan) : 0;
+  const ctaHref = plan ? lifetimeBillingHref(plan) : "/billing";
+  const comparisonRows = PRICING_COMPARISON.flatMap(category => category.rows);
+  const competitors = COMPARISON_LIST.slice(0, 3);
 
   const monthlyPlans = plans.filter(
     (p) => !isLifetimePlan(p) && p.public_on_pricing_page !== false && p.monthly_price > 0,
@@ -379,51 +339,9 @@ function LifetimePage() {
             </div>
           </div>
 
-          <div className="surface-card mx-auto w-full max-w-md border-primary/40 p-7 ring-2 ring-primary/15">
-            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              MunchReach Lifetime
-            </p>
-            <div className="mt-4 flex items-end gap-3">
-              <span className="text-5xl font-extrabold tracking-tight">
-                {formatMoney(priceCents)}
-              </span>
-              {compareCents > 0 ? (
-                <span className="pb-2 text-lg text-muted-foreground line-through">
-                  {formatMoney(compareCents)}
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              One-time payment
-            </p>
-            {compareCents > 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Compare-at {formatMoney(compareCents)} — what the same entitlements cost over a year
-                of monthly billing.
-              </p>
-            ) : null}
-
-            <Button size="lg" className="mt-6 w-full" asChild>
-              <a href={ctaHref}>Get Lifetime Access</a>
-            </Button>
-
-            <ul className="mt-5 space-y-2 text-sm">
-              {[
-                "One-time payment",
-                "No recurring subscription",
-                "Secure Stripe checkout",
-                "Lifetime access to the purchased plan",
-              ].map((item) => (
-                <li key={item} className="flex gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span className="text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-5 text-xs text-muted-foreground">
-              This is a limited lifetime offer and is not listed on our pricing page. Pricing may
-              change at any time — the plan you buy today keeps its terms.
-            </p>
+          <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-1" id="lifetime-offers">
+            {offers.map(offer => <LifetimeOfferCard key={offer.id} plan={offer} />)}
+            {offers.length === 0 && <p className="text-muted-foreground">Lifetime offers are currently unavailable.</p>}
           </div>
         </div>
       </section>
@@ -567,54 +485,37 @@ function LifetimePage() {
           </div>
         </div>
 
-        <div className="surface-card mx-auto mt-8 max-w-4xl p-6">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Limits & features in your lifetime licence
-          </h3>
-          <dl className="mt-4 grid gap-x-10 sm:grid-cols-2">
-            {INCLUDED.map((row) => (
-              <div
-                key={row.label}
-                className="flex items-center justify-between gap-4 border-b border-border/60 py-3"
-              >
-                <dt className="text-sm text-muted-foreground">{row.label}</dt>
-                <dd className="text-sm font-semibold">{row.value}</dd>
-              </div>
-            ))}
-          </dl>
+        <div className="mx-auto mt-10 max-w-6xl overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <caption className="p-5 text-left text-base font-semibold">Compare lifetime plans</caption>
+            <thead><tr className="border-y border-border bg-secondary/40"><th className="px-5 py-4">Limits & features</th>{offers.map(offer => <th key={offer.id} className="px-5 py-4 text-primary">{offer.name}</th>)}</tr></thead>
+            <tbody>
+              <tr className="border-b border-border"><td className="px-5 py-3">One-time payment</td>{offers.map(offer => <td key={offer.id} className="px-5 py-3 font-semibold">{formatMoney(lifetimePriceCents(offer))}</td>)}</tr>
+              {comparisonRows.map(row => <tr key={row.label} className="border-b border-border/60"><td className="px-5 py-3">{row.label}</td>{offers.map(offer => <td key={offer.id} className="px-5 py-3">{row.label === "Monthly email sends" ? `${limitText(offer.max_emails_monthly)} / month` : displayComparison(row.value(offer))}</td>)}</tr>)}
+              <tr><td className="px-5 py-4" />{offers.map(offer => <td key={offer.id} className="px-5 py-4"><Button asChild><a href={lifetimeBillingHref(offer)}>Get Lifetime Access</a></Button></td>)}</tr>
+            </tbody>
+          </table>
         </div>
       </Section>
 
-      {/* 7 — COMPARISON */}
-      <Section
-        title="MunchReach Lifetime vs a typical outbound tool stack"
-        description="Most of these capabilities exist somewhere in your current stack — the difference is that here they are one workspace and one payment."
-      >
-        <div className="surface-card mx-auto max-w-5xl overflow-x-auto p-0">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border/70 bg-secondary/40">
-                <th className="px-6 py-4 font-semibold">Capability</th>
-                <th className="px-6 py-4 font-semibold text-primary">MunchReach Lifetime</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">
-                  Typical outbound stack
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARISON.map((row) => (
-                <tr key={row.label} className="border-b border-border/50 last:border-0">
-                  <td className="px-6 py-4 font-medium">{row.label}</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-2 text-primary">
-                      <CheckCircle2 className="size-4" /> {row.lifetime}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">{row.stack}</td>
-                </tr>
-              ))}
-            </tbody>
+      {/* 7 — COMPETITOR COMPARISON */}
+      <Section title="Compare MunchReach with other outbound platforms" description="Compare core capabilities, then explore each detailed comparison for plan-specific differences.">
+        <div className="mx-auto max-w-6xl overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[940px] text-left text-sm">
+            <thead><tr className="border-b border-border bg-secondary/40">
+              <th className="px-5 py-4">Capability</th>
+              <th className="px-5 py-4 text-primary"><span className="inline-flex items-center gap-2"><img src={brandFavicon()} alt="" className="size-5 object-contain" />MunchReach</span></th>
+              {competitors.map(competitor => <th key={competitor.slug} className="px-5 py-4"><a href={competitor.competitorSite} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2"><img src={competitorIcon(competitor.competitor)} alt="" className="size-5 object-contain" />{competitor.competitor}</a></th>)}
+            </tr></thead>
+            <tbody>{["Campaigns", "Follow-ups", "Warmup", "Unified Inbox", "Analytics", "Automations"].map(area => <tr key={area} className="border-b border-border/60">
+              <td className="px-5 py-4 font-medium">{area}</td>
+              <td className="px-5 py-4 text-primary">{displayComparison((plan ? comparisonRows.find(row => row.label === ({ Campaigns: "Campaigns", "Follow-ups": "Automated follow-ups", Warmup: "Mailbox warmup", "Unified Inbox": "Unified inbox", Analytics: "Analytics dashboard", Automations: "Workflow automations" }[area]))?.value(plan) : undefined) ?? "See plan details")}</td>
+              {competitors.map(competitor => <td key={competitor.slug} className="max-w-60 px-5 py-4 text-muted-foreground">{competitor.rows.find(row => row.area === area)?.competitor.split("Publicly documented")[0]?.trim() ?? "See vendor details"}</td>)}
+            </tr>)}</tbody>
           </table>
+        </div>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          {competitors.map(competitor => <Button key={competitor.slug} variant="outline" asChild><a href={`/compare/${competitor.slug}`}>MunchReach vs {competitor.competitor}</a></Button>)}
         </div>
       </Section>
 
@@ -743,7 +644,7 @@ function LifetimePage() {
               loading="eager"
               decoding="async"
             />
-            MunchReach Lifetime — {formatMoney(priceCents)} one-time
+            MunchReach Lifetime — from {formatMoney(priceCents)} one-time
           </p>
           <Button size="sm" asChild>
             <a href={ctaHref}>Get Lifetime Access</a>
@@ -752,4 +653,18 @@ function LifetimePage() {
       </div>
     </MarketingLayout>
   );
+}
+
+function limitText(value: number | null | undefined) { return value == null || value < 0 ? "Unlimited" : value.toLocaleString(); }
+function displayComparison(value: string | boolean) { return typeof value === "boolean" ? (value ? "Included" : "Not included") : value; }
+function competitorIcon(name: string) { return ({ Instantly: instantlyIcon.url, Smartlead: smartleadIcon.url, lemlist: lemlistIcon.url } as Record<string, string>)[name]; }
+function LifetimeOfferCard({ plan }: { plan: Plan }) {
+  const compare = lifetimeCompareAtCents(plan);
+  return <article aria-label={plan.name} className="surface-card border-primary/40 p-6 ring-1 ring-primary/15">
+    <h2 className="text-sm font-semibold text-muted-foreground">{plan.name}</h2>
+    <div className="mt-3 flex flex-wrap items-end gap-3"><p className="text-4xl font-extrabold">{formatMoney(lifetimePriceCents(plan))}</p>{compare > 0 && <span className="text-muted-foreground line-through">{formatMoney(compare)}</span>}</div>
+    <p className="mt-1 text-xs font-semibold text-primary">ONE-TIME PAYMENT</p>
+    <ul className="mt-4 space-y-2 text-sm">{[`${limitText(plan.max_leads)} stored contacts`, `${limitText(plan.max_emails_monthly)} emails / month`, `${limitText(plan.max_sending_accounts)} connected mailboxes`, "Daily Sending Limit: Unlimited", "No recurring subscription"].map(label => <li key={label} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /><span>{label}</span></li>)}</ul>
+    <Button size="lg" className="mt-5 w-full" asChild><a href={lifetimeBillingHref(plan)}>Get Lifetime Access</a></Button>
+  </article>;
 }
