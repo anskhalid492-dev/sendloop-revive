@@ -55,7 +55,7 @@ export function resolveWarmupProgression(s: ProgressionSettings, blocked: boolea
   const desired = manual ? Math.max(1, Math.min(400, s.manual_daily_limit ?? s.progression_limit ?? 1)) : scheduled.limit;
   const previous = s.progression_limit ?? desired;
   // Keep the resumed day conservative; a later clean calendar day may increase.
-  const limit = blocked ? previous : elapsed > 1 && !manual ? Math.min(desired, previous) : desired;
+  const limit = blocked ? previous : !manual && s.progression_date && elapsed !== 1 ? Math.min(desired, previous) : desired;
   return { calendarDay, day, stage: scheduled.stage, limit, effectiveLimit: blocked ? 0 : limit,
     nextLimit: blocked ? previous : manual ? limit : warmupStageLimit(day + 1, stages).limit,
     nextAt: new Date(Date.parse(date) + 86400000).toISOString(), date };
