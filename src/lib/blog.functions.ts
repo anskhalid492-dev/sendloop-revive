@@ -529,9 +529,9 @@ export const saveBlogAuthor = createServerFn({ method: "POST" })
       slug: data.slug,
       name: data.name,
       role: data.role,
-      // `bio` stays the short bio (bylines, cards); the full biography is stored
-      // in `experience`… no — fullBio maps to the long-form column below.
+      // `bio` stays the short bio (bylines, cards); `full_bio` is the long-form biography.
       bio: data.bio,
+      full_bio: data.fullBio,
       avatar_url: data.avatarUrl || null,
       cover_image_url: data.coverImageUrl || null,
       location: data.location,
