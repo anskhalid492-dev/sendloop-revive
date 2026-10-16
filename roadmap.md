@@ -1,5 +1,12 @@
 # Roadmap
 
+## Independent automatic mailbox warmup
+- [ ] Inspect engine, queue, counters, health, settings and permissions.
+- [ ] Add shared deterministic progression, per-mailbox modes, pause-safe state and additive SQL.
+- [ ] Upgrade warmup settings, dashboard and mailbox list.
+- [ ] Run isolated safety regressions and full suite; verify preview without production sends.
+- [ ] Apply production SQL and verify signed-in test mailbox — blocked: owner-managed production changes and scoped test session required.
+
 ## List colors and existing Spintax Builder
 - [x] Add saved list colors to creation, CSV destinations, editing and all existing list displays; preserve existing-list selection.
 - [x] Refine the existing spintax control with editable options, nested syntax and captured field/step/variant selection.

@@ -18,8 +18,13 @@ import { Switch } from "@/components/ui/switch";
 import { getWarmupAccount, saveWarmupSettings } from "@/lib/warmup.functions";
 import { WARMUP_MODES, WEEKDAYS, type WarmupMode } from "@/lib/warmup-model";
 import { cn } from "@/lib/utils";
+import { WarmupProgressionEditor } from "@/components/warmup/WarmupProgressionEditor";
+import { DEFAULT_WARMUP_STAGES, validateWarmupStages, type ProgressionMode, type ProgressionStage } from "@/lib/warmup-progression";
 
 type Draft = {
+  progression_mode: ProgressionMode;
+  progression_stages: ProgressionStage[];
+  manual_daily_limit: number;
   mode: WarmupMode;
   start_volume: number;
   max_volume: number;
@@ -35,6 +40,9 @@ type Draft = {
 };
 
 const DEFAULT_DRAFT: Draft = {
+  progression_mode: "automatic",
+  progression_stages: DEFAULT_WARMUP_STAGES,
+  manual_daily_limit: 1,
   mode: "balanced",
   start_volume: 4,
   max_volume: 40,
@@ -85,8 +93,11 @@ export function WarmupSettingsDialog({
   const confirmed = placementTotals.inbox + placementTotals.spam;
 
   useEffect(() => {
-    if (!settings) return;
+    if (!settings) { setDraft(DEFAULT_DRAFT); return; }
     setDraft({
+      progression_mode: settings.progression_mode ?? "legacy",
+      progression_stages: settings.progression_stages ?? DEFAULT_WARMUP_STAGES,
+      manual_daily_limit: settings.manual_daily_limit ?? settings.progression_limit ?? settings.start_volume,
       mode: settings.mode,
       start_volume: settings.start_volume,
       max_volume: settings.max_volume,
@@ -108,6 +119,7 @@ export function WarmupSettingsDialog({
       toast.success("Warmup settings saved");
       await queryClient.invalidateQueries({ queryKey: ["warmup-accounts"] });
       await queryClient.invalidateQueries({ queryKey: ["warmup-account", accountId] });
+      await queryClient.invalidateQueries({ queryKey: ["workspace-mailboxes"] });
       onOpenChange(false);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -141,9 +153,11 @@ export function WarmupSettingsDialog({
         </DialogHeader>
 
         <div className="space-y-5">
+          <WarmupProgressionEditor mode={draft.progression_mode} stages={draft.progression_stages} limit={draft.manual_daily_limit} settings={settings} onChange={patch => setDraft(prev => ({ ...prev, ...patch }))} />
+          {draft.progression_mode === "legacy" && <>
           <div className="grid gap-2 sm:grid-cols-3">
             {WARMUP_MODES.map((mode) => (
-              <button
+              <Button variant="outline"
                 key={mode.id}
                 type="button"
                 onClick={() => applyMode(mode.id)}
@@ -156,12 +170,14 @@ export function WarmupSettingsDialog({
               >
                 <p className="text-sm font-semibold">{mode.label}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{mode.description}</p>
-              </button>
+              </Button>
             ))}
           </div>
 
+          </>}
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
+            {draft.progression_mode === "legacy" && <><div className="space-y-1.5">
               <Label htmlFor="start_volume">Start volume / day</Label>
               <Input
                 id="start_volume"
@@ -196,7 +212,7 @@ export function WarmupSettingsDialog({
                 value={draft.ramp_days}
                 onChange={(e) => num("ramp_days")(e.target.value)}
               />
-            </div>
+            </div></>}
             <div className="space-y-1.5">
               <Label htmlFor="send_start_hour">Send window start (hour)</Label>
               <Input
@@ -339,8 +355,8 @@ export function WarmupSettingsDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? "Saving…" : "Save settings"}
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || detail.isPending || Boolean(validateWarmupStages(draft.progression_stages))}>
+            {saveMutation.isPending ? "Saving…" : "Save progression settings"}
           </Button>
         </DialogFooter>
       </DialogContent>

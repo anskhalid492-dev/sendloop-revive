@@ -25,6 +25,7 @@ import {
   type WarmupStageAction,
 } from "@/lib/warmup-ramp";
 import { evaluateMailboxCapacity } from "@/lib/mailbox-capacity";
+import { PROGRESSION_COLUMNS, resolveWarmupProgression, type ProgressionSettings } from "@/lib/warmup-progression";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Admin = any;
@@ -385,7 +386,7 @@ type AccountRow = {
   dmarc_status: string;
 };
 
-type SettingsRow = {
+type SettingsRow = ProgressionSettings & {
   id: string;
   sending_account_id: string;
   workspace_id: string;
@@ -414,7 +415,7 @@ type SettingsRow = {
 
 /** Columns the scheduler needs from `warmup_settings`. */
 export const WARMUP_SETTINGS_COLUMNS =
-  "id, sending_account_id, workspace_id, enabled, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, started_at, ramp_stage, stage_since, stage_reason, current_volume, hold_failure_rate, recovery_bounce_rate, recovery_days";
+  "id, sending_account_id, workspace_id, enabled, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, started_at, ramp_stage, stage_since, stage_reason, current_volume, hold_failure_rate, recovery_bounce_rate, recovery_days, " + PROGRESSION_COLUMNS;
 
 /**
  * How much warmup capacity the mailbox has left today after human replies and
@@ -475,7 +476,7 @@ export async function resolveDailyTarget(
   const rows = ((stats ?? []) as RampStatRow[]).filter((row) => row.day < today());
   const todayRow = ((stats ?? []) as RampStatRow[]).find((row) => row.day === today());
 
-  const decision = evaluateWarmupRamp({
+  let decision = evaluateWarmupRamp({
     settings: {
       start_volume: settings.start_volume,
       max_volume: settings.max_volume,
@@ -495,6 +496,25 @@ export async function resolveDailyTarget(
     throttled,
     capacityCeiling: ceiling,
   });
+
+  // Null first-run histories cannot mask active low health or auth protection.
+  const safety = evaluateSafetyViolation({ stats: rows, maxBounceRate: settings.max_bounce_rate, minHealthScore: settings.min_health_score, healthScore: account.health_score, accountStatus: account.status, authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status] });
+  if (safety.active) decision = { stage: "paused", action: "pause", target: 0, reason: safety.reason ?? "Warmup safety protection is active." };
+
+  if (settings.progression_mode && settings.progression_mode !== "legacy") {
+    const unhealthy = account.health_score !== null && account.health_score < 70;
+    const blocked = settings.paused_by_system || !settings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || decision.stage === "paused" || decision.stage === "recovery";
+    const progression = resolveWarmupProgression(settings, blocked);
+    let limit = progression.effectiveLimit;
+    if (decision.stage === "recovery" && !unhealthy) limit = Math.min(progression.limit, decision.target);
+    if (ceiling !== null) limit = Math.min(limit, ceiling);
+    decision = { ...decision, target: limit, reason: blocked ? decision.reason : `Day ${progression.day} · Stage ${progression.stage} · ${settings.progression_mode === "manual" ? "Manual" : "Automatic"} limit ${limit}/day.`, stage: blocked ? decision.stage : progression.day >= (settings.progression_stages?.at(-1)?.end_day ?? 25) ? "stable" : "ramp_up" };
+    const { error } = await admin.from("warmup_settings").update({
+      progression_day: progression.day, progression_date: progression.date,
+      progression_limit: blocked ? Math.min(progression.limit, decision.stage === "recovery" ? decision.target : progression.limit) : progression.limit,
+    }).eq("id", settings.id);
+    if (error) throw new Error(error.message);
+  }
 
   const stageChanged = (settings.ramp_stage ?? null) !== decision.stage;
   await admin
@@ -678,7 +698,8 @@ async function scheduleAccount(
     // the scheduler tops the queue up instead of colliding on the same key.
     const slot = done + i;
     // Round-robin rotation keeps the pool evenly used across the day.
-    const targetRow = recipients[(done + i) % recipients.length]!;
+    const targetRow = recipients[(done + i) % recipients.length];
+    if (!targetRow) continue;
     const toEmail =
       targetRow.kind === "pool" ? targetRow.email : targetRow.account.from_email;
     const peerAccountId = targetRow.kind === "peer" ? targetRow.account.id : null;
@@ -768,7 +789,7 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
 
   const { data: account } = await admin
     .from("sending_accounts")
-    .select("id, workspace_id, provider, provider_id, connection_method, from_name, from_email, reply_to, paused, customer_enabled, status")
+    .select("id, workspace_id, provider, provider_id, connection_method, from_name, from_email, reply_to, paused, customer_enabled, status, health_score, spf_status, dkim_status, dmarc_status")
     .eq("id", accountId)
     .maybeSingle();
 
@@ -835,6 +856,22 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
     return;
   }
 
+  // Re-read settings at delivery time: queued jobs never bypass a pause or a
+  // lowered manual limit. Reservations count attempts, not successful sends.
+  const { data: liveSettings, error: settingsError } = await admin.from("warmup_settings")
+    .select(WARMUP_SETTINGS_COLUMNS).eq("sending_account_id", accountId).maybeSingle();
+  if (settingsError) throw new Error(settingsError.message);
+  const cancel = async (reason: string) => {
+    await admin.from("warmup_jobs").update({ status: "cancelled", locked_by: null, locked_at: null, error: reason, processed_at: new Date().toISOString() }).eq("id", jobId);
+  };
+  if (!liveSettings?.enabled || liveSettings.paused_by_system) return cancel("Warmup is paused or disabled.");
+  if (!await applySafety(admin, account as AccountRow, liveSettings as SettingsRow, summary)) return cancel("Warmup safety protection is active.");
+  const liveDecision = await resolveDailyTarget(admin, account as AccountRow, liveSettings as SettingsRow);
+  if (liveDecision.target <= 0) return cancel(liveDecision.reason);
+  if (!withinWindow(liveSettings as SettingsRow, new Date()) || new Date().getUTCHours() < liveSettings.send_start_hour || new Date().getUTCHours() >= liveSettings.send_end_hour) {
+    return cancel("Outside the warmup sending window.");
+  }
+
   // Warmup exists to build reputation for the customer's OWN mailbox, so it must
   // leave through that mailbox's own SMTP server via the mailbox-smtp-relay —
   // exactly like campaign dispatch. Shared platform credentials are never used;
@@ -862,6 +899,12 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
       false,
     );
   }
+
+  // Atomic per-mailbox reservation, also protecting duplicate processing and
+  // old-day queued jobs. Unknown/failed attempts retain their slots for safety.
+  const { data: reserved, error: reserveError } = await admin.rpc("reserve_mailbox_warmup_send", { _job: jobId, _limit: liveDecision.target });
+  if (reserveError) throw new Error(reserveError.message);
+  if (!reserved) return cancel("Daily warmup limit reached or job already attempted.");
 
   // Warmup traffic is metered on its own daily allowance and never consumes
   // the customer's campaign email allowance.
@@ -909,7 +952,7 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
       detail: { jobId, to: job["to_email"] },
     });
     await refundWarmup();
-    return fail(message, true);
+    return fail(`Outcome unknown: ${message}`, false);
   }
 
   const durationMs = Date.now() - started;
@@ -925,9 +968,10 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
   });
 
   if (!result.ok) {
-    const retryable = /timeout|rate|429|5\d\d|temporar/i.test(result.message);
     await refundWarmup();
-    return fail(result.message, retryable);
+    // A provider attempt already owns a daily slot. Never retry a possibly
+    // accepted SMTP hand-off under a new attempt.
+    return fail(result.message, false);
   }
 
   await admin
