@@ -1,0 +1,72 @@
+import { ArrowRight } from "lucide-react";
+
+import {
+  blogPromoBannerRenderable,
+  type BlogPromoBannerConfig,
+} from "@/lib/blog-promo-banner";
+
+/**
+ * Centrally managed promotional card for the single-blog-post sidebar.
+ * Presentational only — the configuration comes from site_settings via the
+ * article loader, so one admin edit updates every published post.
+ */
+export function BlogPromoBanner({
+  config,
+  variant,
+}: {
+  config: BlogPromoBannerConfig;
+  /** `sidebar` renders on desktop, `inline` inside the mobile article flow. */
+  variant: "sidebar" | "inline";
+}) {
+  if (!blogPromoBannerRenderable(config)) return null;
+  if (variant === "sidebar" && !config.showOnDesktop) return null;
+  if (variant === "inline" && !config.showOnMobile) return null;
+
+  const external = /^https:\/\//i.test(config.ctaUrl);
+  const iconSrc = config.iconUrl || "/favicon.ico";
+
+  return (
+    <div
+      data-testid={`blog-promo-banner-${variant}`}
+      className={variant === "inline" ? "lg:hidden" : undefined}
+      style={{
+        backgroundColor: config.backgroundColor,
+        color: config.textColor,
+        border: `1px solid ${config.borderColor}`,
+        borderRadius: `${config.borderRadius}px`,
+      }}
+    >
+      <div className="flex flex-col items-start gap-4 p-6">
+        <img
+          src={iconSrc}
+          alt="MunchReach"
+          className="size-9 rounded-lg"
+          loading="lazy"
+          onError={(e) => {
+            // A missing optional image must never break the card.
+            const img = e.currentTarget;
+            if (!img.src.endsWith("/favicon.ico")) img.src = "/favicon.ico";
+          }}
+        />
+        <div>
+          <p className="text-lg leading-snug font-semibold text-balance">{config.heading}</p>
+          {config.description ? (
+            <p className="mt-2 text-sm leading-relaxed opacity-80">{config.description}</p>
+          ) : null}
+        </div>
+        <a
+          href={config.ctaUrl}
+          {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+          style={{
+            backgroundColor: config.buttonBackgroundColor,
+            color: config.buttonTextColor,
+          }}
+        >
+          {config.ctaLabel}
+          <ArrowRight className="size-4" />
+        </a>
+      </div>
+    </div>
+  );
+}
