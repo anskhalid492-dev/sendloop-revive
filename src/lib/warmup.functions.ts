@@ -153,7 +153,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
       .toISOString()
       .slice(0, 10);
 
-    const [{ data: settings }, { data: stats }, { data: windowStats }] = await Promise.all([
+    const [{ data: settings, error: settingsError }, { data: stats }, { data: windowStats }] = await Promise.all([
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
@@ -166,6 +166,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         .in("sending_account_id", ids)
         .gte("day", safetySince),
     ]);
+    if (settingsError) throw new Error("Warmup progression requires the database upgrade before it can be displayed.");
 
     const windowStatsById = new Map<string, SafetyStatRow[]>();
     for (const row of (windowStats ?? []) as Array<Record<string, unknown>>) {
@@ -390,6 +391,7 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
 
     if (account.error) throw new Error(account.error.message);
     if (!account.data) throw new Error("Mailbox not found");
+    if (settings.error) throw new Error("Warmup progression requires the database upgrade before settings can be opened.");
 
     return {
       account: account.data,
@@ -544,6 +546,10 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     }
     if (patch.enabled) {
       body["started_at"] = existing ? existing.started_at : new Date().toISOString();
+    }
+    if (patch.send_start_hour !== undefined || patch.send_end_hour !== undefined) {
+      const { data: hours } = await client.from("warmup_settings").select("send_start_hour, send_end_hour").eq("sending_account_id", accountId).maybeSingle();
+      if ((patch.send_start_hour ?? hours?.send_start_hour ?? 8) >= (patch.send_end_hour ?? hours?.send_end_hour ?? 18)) throw new Error("Sending window end must be after its start.");
     }
 
 

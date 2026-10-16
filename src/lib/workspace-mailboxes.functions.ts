@@ -201,12 +201,13 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const accountIds = accounts.map((row) => row.id);
 
     // Real warmup state lives in warmup_settings, keyed by sending account.
-    const { data: warmupRows } = accountIds.length
+    const { data: warmupRows, error: warmupError } = accountIds.length
       ? await client
           .from("warmup_settings")
           .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason, started_at, current_volume, " + PROGRESSION_COLUMNS)
           .in("sending_account_id", accountIds)
-      : { data: [] };
+      : { data: [], error: null };
+    if (warmupError) throw new Error("Warmup progression requires the database upgrade before mailbox details can be displayed.");
     type WarmupRecord = ProgressionSettings & {
       sending_account_id: string;
       enabled: boolean | null;
