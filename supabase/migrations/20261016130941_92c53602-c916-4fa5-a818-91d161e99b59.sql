@@ -1,0 +1,1 @@
+ALTER TABLE public.blog_authors ADD COLUMN IF NOT EXISTS full_bio text NOT NULL DEFAULT '';

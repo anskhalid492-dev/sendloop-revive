@@ -1653,6 +1653,7 @@ export type Database = {
           experience: string
           expertise: string[]
           featured_quote: string
+          full_bio: string
           id: string
           introduction: string
           languages: string
@@ -1683,6 +1684,7 @@ export type Database = {
           experience?: string
           expertise?: string[]
           featured_quote?: string
+          full_bio?: string
           id?: string
           introduction?: string
           languages?: string
@@ -1713,6 +1715,7 @@ export type Database = {
           experience?: string
           expertise?: string[]
           featured_quote?: string
+          full_bio?: string
           id?: string
           introduction?: string
           languages?: string
