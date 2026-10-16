@@ -153,7 +153,10 @@ export async function getEntitlement(workspaceId: string): Promise<Entitlement> 
       max_sending_accounts: plan?.max_sending_accounts ?? null,
       max_workspaces: plan?.max_workspaces ?? null,
       max_automations: plan?.max_automations ?? null,
-      max_emails_daily: plan?.max_emails_daily ?? null,
+      // Plan-based daily sending caps were removed platform-wide: every plan
+      // is entitled to unlimited daily sending. The plans.max_emails_daily
+      // column still exists for historical data but is never enforced.
+      max_emails_daily: null,
       max_warmup_daily: plan?.max_warmup_daily ?? null,
     },
     flags: {

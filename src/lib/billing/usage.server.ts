@@ -411,8 +411,9 @@ async function applyGrantAwareLimits(
   const def = resourceDefinition(resource);
   const toNum = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   const limit = toNum(entitlement.limits[def.limitKey]);
-  const dailyLimit =
-    resource === "emails_monthly" ? toNum(entitlement.limits["max_emails_daily"]) : decision.dailyLimit;
+  // Daily sending is unlimited on every plan; the emails_daily counter is
+  // still tracked for visibility but never blocks a send.
+  const dailyLimit: number | null = null;
 
   // The entitlement is authoritative whenever it disagrees with the database
   // meter — that happens for admin-granted plans, which the meter cannot see.
