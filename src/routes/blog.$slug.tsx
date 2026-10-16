@@ -249,6 +249,12 @@ function ArticlePage() {
                 <TableOfContents sections={sections} />
               </div>
 
+              {promoBanner ? (
+                <div className="mt-8">
+                  <BlogPromoBanner config={promoBanner} variant="inline" />
+                </div>
+              ) : null}
+
               <div className="mt-8">
                 {isHtml ? <HtmlArticleBody html={post.content} /> : <ArticleBody sections={sections} />}
               </div>
@@ -280,6 +286,7 @@ function ArticlePage() {
             </div>
 
             <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+              {promoBanner ? <BlogPromoBanner config={promoBanner} variant="sidebar" /> : null}
               <div className="hidden lg:block">
                 <TableOfContents sections={sections} />
               </div>
