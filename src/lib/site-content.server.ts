@@ -7,6 +7,11 @@
  */
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
 import { mergeCommunityConfig, type CommunityConfig } from "@/lib/community-model";
+import {
+  BLOG_PROMO_BANNER_KEY,
+  normalizeBlogPromoBanner,
+  type BlogPromoBannerConfig,
+} from "@/lib/blog-promo-banner";
 import { normalizeVerificationToken } from "@/lib/verification-token";
 import {
   normalizePath,
@@ -155,6 +160,17 @@ export async function loadSiteContent(): Promise<SiteContentBundle> {
       statusCode: r.status_code,
     })),
   };
+}
+
+/** Public: the centrally managed blog sidebar promo banner. */
+export async function loadBlogPromoBanner(): Promise<BlogPromoBannerConfig> {
+  const db = await publicClient();
+  const { data } = await db
+    .from("site_settings")
+    .select("value")
+    .eq("key", BLOG_PROMO_BANNER_KEY)
+    .maybeSingle();
+  return normalizeBlogPromoBanner(data?.value);
 }
 
 export async function loadRobotsConfig(): Promise<RobotsConfig> {
