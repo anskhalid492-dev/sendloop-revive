@@ -14,6 +14,7 @@ import { CoverImage, PostCard } from "@/components/blog/BlogCards";
 import { MarketingLayout, Section } from "@/components/site/MarketingPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { authorPersonRef } from "@/lib/blog-author";
 import { CONTENT_TYPE_LABELS, formatBlogDate, initials } from "@/lib/blog-model";
 import { getBlogPost } from "@/lib/blog.functions";
 import { NewsletterCard } from "@/components/blog/NewsletterCard";
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/blog/$slug")({
             keywords: post.tags.join(", "),
             datePublished: post.published_at,
             dateModified: post.updated_at,
-            author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
+            author: post.author ? authorPersonRef(post.author) : undefined,
             publisher: { "@type": "Organization", name: "MunchReach", url: SITE_URL },
             ...(image ? { image: absoluteUrl(image) } : {}),
           }),

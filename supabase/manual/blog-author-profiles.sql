@@ -22,4 +22,5 @@ ALTER TABLE public.blog_authors
   ADD COLUMN IF NOT EXISTS meta_description text,
   ADD COLUMN IF NOT EXISTS canonical_url text,
   ADD COLUMN IF NOT EXISTS og_image_url text,
-  ADD COLUMN IF NOT EXISTS noindex boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS noindex boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS full_bio text NOT NULL DEFAULT '';

@@ -31,6 +31,7 @@ export type BlogAuthor = {
   name: string;
   role: string;
   bio: string;
+  full_bio?: string;
   avatar_url: string | null;
   cover_image_url?: string | null;
   location?: string;
@@ -59,7 +60,7 @@ export type BlogAuthor = {
  * blog_authors selects so the public page, admin list and byline stay in sync.
  */
 export const AUTHOR_COLUMNS =
-  "id, slug, name, role, bio, avatar_url, cover_image_url, location, company, website_url, linkedin_url, x_url, public_email, show_email, introduction, experience, certifications, languages, featured_quote, expertise, topics, seo_title, meta_description, canonical_url, og_image_url, noindex";
+  "id, slug, name, role, bio, full_bio, avatar_url, cover_image_url, location, company, website_url, linkedin_url, x_url, public_email, show_email, introduction, experience, certifications, languages, featured_quote, expertise, topics, seo_title, meta_description, canonical_url, og_image_url, noindex";
 
 export type BlogCategory = {
   id: string;

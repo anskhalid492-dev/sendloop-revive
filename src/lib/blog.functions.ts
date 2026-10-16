@@ -529,9 +529,9 @@ export const saveBlogAuthor = createServerFn({ method: "POST" })
       slug: data.slug,
       name: data.name,
       role: data.role,
-      // `bio` stays the short bio (bylines, cards); the full biography is stored
-      // in `experience`… no — fullBio maps to the long-form column below.
+      // `bio` stays the short bio (bylines, cards); `full_bio` is the long-form biography.
       bio: data.bio,
+      full_bio: data.fullBio,
       avatar_url: data.avatarUrl || null,
       cover_image_url: data.coverImageUrl || null,
       location: data.location,
@@ -562,12 +562,28 @@ export const saveBlogAuthor = createServerFn({ method: "POST" })
     return { id: (saved as { id: string }).id };
   });
 
-/** Admin: delete an author (posts keep existing but lose the byline). */
+/**
+ * Admin: delete an author (posts keep existing but lose the byline).
+ * Authors with published posts require an explicit confirmation so a byline is
+ * never removed by accident; the admin can reassign posts first instead.
+ */
 export const deleteBlogAuthor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: { id: string; confirm?: boolean }) =>
+    z.object({ id: z.string().uuid(), confirm: z.boolean().default(false) }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     if (!(await isPlatformAdmin(context))) throw new Error("Admin access required");
+    const { count } = await (context.supabase as any)
+      .from("blog_posts")
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", data.id)
+      .eq("status", "published");
+    if ((count ?? 0) > 0 && !data.confirm) {
+      throw new Error(
+        `This author is assigned to ${count} published post${count === 1 ? "" : "s"}. Reassign those posts to another author, or confirm deletion to remove the byline from them.`,
+      );
+    }
     await (context.supabase as any).from("blog_posts").update({ author_id: null }).eq("author_id", data.id);
     const { error } = await (context.supabase as any).from("blog_authors").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
