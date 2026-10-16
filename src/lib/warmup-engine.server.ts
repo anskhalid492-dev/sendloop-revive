@@ -26,7 +26,7 @@ import {
 } from "@/lib/warmup-ramp";
 import { evaluateMailboxCapacity } from "@/lib/mailbox-capacity";
 import { warmupHourlyLimit } from "@/lib/mailbox-hourly-cap";
-import { PROGRESSION_COLUMNS, resolveWarmupProgression, type ProgressionSettings } from "@/lib/warmup-progression";
+import { PROGRESSION_COLUMNS, resolveWarmupProgression, warmupCalendarDay, type ProgressionSettings } from "@/lib/warmup-progression";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Admin = any;
@@ -502,18 +502,36 @@ export async function resolveDailyTarget(
   const safety = evaluateSafetyViolation({ stats: rows, maxBounceRate: settings.max_bounce_rate, minHealthScore: settings.min_health_score, healthScore: account.health_score, accountStatus: account.status, authStatuses: [account.spf_status, account.dkim_status, account.dmarc_status] });
   if (safety.active) decision = { stage: "paused", action: "pause", target: 0, reason: safety.reason ?? "Warmup safety protection is active." };
 
-  if (settings.progression_mode && settings.progression_mode !== "legacy") {
+  // Progression is always automatic: a mailbox still parked on the legacy
+  // schedule converts itself on the next tick, seeded exactly like the
+  // settings save path (calendar day + current daily volume), so today's
+  // limit never jumps. Mailboxes with no known start keep the legacy engine.
+  let progressionSettings = settings;
+  if ((!settings.progression_mode || settings.progression_mode === "legacy") && settings.started_at) {
+    const seeded = {
+      progression_mode: "automatic",
+      progression_day: warmupCalendarDay(settings.started_at),
+      progression_date: today(),
+      progression_limit: Math.max(1, settings.current_volume ?? 1),
+      progression_review_required: false,
+    };
+    const seededResult = await admin.from("warmup_settings").update(seeded).eq("id", settings.id);
+    if (seededResult.error) throw new Error(seededResult.error.message);
+    progressionSettings = { ...settings, ...seeded };
+  }
+
+  if (progressionSettings.progression_mode && progressionSettings.progression_mode !== "legacy") {
     const unhealthy = account.health_score !== null && account.health_score < 70;
-    const blocked = settings.paused_by_system || !settings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || decision.stage === "paused" || decision.stage === "recovery";
-    const progression = resolveWarmupProgression(settings, blocked);
+    const blocked = progressionSettings.paused_by_system || !progressionSettings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || decision.stage === "paused" || decision.stage === "recovery";
+    const progression = resolveWarmupProgression(progressionSettings, blocked);
     let limit = progression.effectiveLimit;
     if (decision.stage === "recovery" && !unhealthy) limit = Math.min(progression.limit, decision.target);
     if (ceiling !== null) limit = Math.min(limit, ceiling);
-    decision = { ...decision, target: limit, reason: blocked ? decision.reason : `Day ${progression.day} · Stage ${progression.stage} · ${settings.progression_mode === "manual" ? "Manual" : "Automatic"} limit ${limit}/day.`, stage: blocked ? decision.stage : progression.day >= (settings.progression_stages?.at(-1)?.end_day ?? 25) ? "stable" : "ramp_up" };
+    decision = { ...decision, target: limit, reason: blocked ? decision.reason : `Day ${progression.day} · Stage ${progression.stage} · ${progressionSettings.progression_mode === "manual" ? "Manual" : "Automatic"} limit ${limit}/day.`, stage: blocked ? decision.stage : progression.day >= (progressionSettings.progression_stages?.at(-1)?.end_day ?? 25) ? "stable" : "ramp_up" };
     const { error } = await admin.from("warmup_settings").update({
       progression_day: progression.day, progression_date: progression.date,
       progression_limit: blocked ? Math.min(progression.limit, decision.stage === "recovery" ? decision.target : progression.limit) : progression.limit,
-    }).eq("id", settings.id);
+    }).eq("id", progressionSettings.id);
     if (error) throw new Error(error.message);
   }
 

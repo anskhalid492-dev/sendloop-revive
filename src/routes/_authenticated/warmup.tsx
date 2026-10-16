@@ -351,7 +351,7 @@ function WarmupPage() {
                     </td>
                     <td className="w-44 px-3 py-2.5">
                       <p className="mb-1 text-xs font-medium">Day {row.ramp_day || 1} · {row.progression_mode === "legacy" ? STAGE_LABEL[row.ramp_stage as keyof typeof STAGE_LABEL] : `Stage ${row.progression_stage}`} · {row.progression_mode === "manual" ? "Manual" : row.progression_mode === "legacy" ? "Legacy" : "Automatic"}</p>
-                      <p className="mb-1 text-xs text-muted-foreground">Next day: {row.next_daily_limit}/day{row.progression_review_required ? " · Review needed" : ""}</p>
+                      <p className="mb-1 text-xs text-muted-foreground">Next day: {row.next_daily_limit}/day</p>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
                           {row.sent_today} / {row.target_today || "—"}
