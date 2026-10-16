@@ -143,9 +143,18 @@ export function UsageDashboard({ workspaceId }: { workspaceId: string | null }) 
           <LimitCard title="Emails" caption={resetLabel} row={emails} />
         </div>
 
-        {emailsDaily && emailsDaily.limit !== null ? (
+        {emailsDaily ? (
           <div className="mt-4">
-            <LimitCard title="Daily sending cap" caption="Resets at midnight UTC" row={emailsDaily} />
+            {emailsDaily.limit !== null ? (
+              <LimitCard title="Daily sending cap" caption="Resets at midnight UTC" row={emailsDaily} />
+            ) : (
+              <div className="rounded-lg border border-border/60 bg-secondary/20 p-4">
+                <p className="text-sm font-medium">Daily Sending Limit: Unlimited</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatNumber(emailsDaily.used)} sent today. Mailbox-level and provider safety limits still apply.
+                </p>
+              </div>
+            )}
           </div>
         ) : null}
 
