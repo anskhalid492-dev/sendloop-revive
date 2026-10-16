@@ -49,6 +49,9 @@ import {
   saveBlogPost,
   setBlogPostStatus,
 } from "@/lib/blog.functions";
+import { getBlogPromoBanner, saveBlogPromoBanner } from "@/lib/site-content.functions";
+import type { BlogPromoBannerConfig } from "@/lib/blog-promo-banner";
+import { BlogPromoBanner } from "@/components/blog/BlogPromoBanner";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/blog")({
   head: () => ({
