@@ -23,7 +23,7 @@ export function BlogPromoBanner({
   if (variant === "inline" && !config.showOnMobile) return null;
 
   const external = /^https:\/\//i.test(config.ctaUrl);
-  const iconSrc = config.iconUrl || "/favicon.ico";
+  const iconSrc = config.iconUrl || "/brand/munchreach-icon.png";
 
   return (
     <div
@@ -45,7 +45,7 @@ export function BlogPromoBanner({
           onError={(e) => {
             // A missing optional image must never break the card.
             const img = e.currentTarget;
-            if (!img.src.endsWith("/favicon.ico")) img.src = "/favicon.ico";
+            if (!img.src.endsWith("/brand/munchreach-icon.png")) img.src = "/brand/munchreach-icon.png";
           }}
         />
         <div>
