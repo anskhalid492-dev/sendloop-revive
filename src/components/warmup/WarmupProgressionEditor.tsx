@@ -11,20 +11,8 @@ export function WarmupProgressionEditor({ mode, stages, limit, settings, onChang
   const error = validateWarmupStages(stages);
   const current = resolveWarmupProgression(settings ?? {}, false);
   return <section className="space-y-3 border-b border-border pb-5">
-    <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">Automatic Warmup Progression</h3>
-      <Switch aria-label="Enable automatic progression" checked={mode === "automatic"} onCheckedChange={checked => onChange({ progression_mode: checked ? "automatic" : "manual" })} /></div>
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant={mode === "automatic" ? "default" : "outline"} onClick={() => onChange({ progression_mode: "automatic" })}>Automatic</Button>
-      <Button size="sm" variant={mode === "manual" ? "default" : "outline"} onClick={() => onChange({ progression_mode: "manual" })}>Manual</Button>
-      {mode === "legacy" && <span className="text-xs text-muted-foreground">Existing schedule · review before switching</span>}
-    </div>
+    <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">Automatic Warmup Progression</h3></div>
     {settings?.progression_review_required && <p className="text-xs text-muted-foreground">Existing mailbox: review its start date and current limit before enabling progression.</p>}
-    {mode === "manual" && <div className="space-y-2"><Label htmlFor="manual-warmup-limit">Manual daily limit</Label><div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" size="icon" aria-label="Decrease daily limit" onClick={() => onChange({ manual_daily_limit: Math.max(1, limit - 1) })}><Minus className="size-4" /></Button>
-      <Input id="manual-warmup-limit" className="w-24" type="number" min={1} max={400} value={limit} onChange={e => onChange({ manual_daily_limit: Number(e.target.value) })} />
-      <Button variant="outline" size="icon" aria-label="Increase daily limit" onClick={() => onChange({ manual_daily_limit: Math.min(400, limit + 1) })}><Plus className="size-4" /></Button>
-      <Button variant="ghost" size="sm" onClick={() => onChange({ progression_mode: "automatic" })}><RotateCcw className="mr-1 size-4" />Reset to automatic</Button>
-    </div></div>}
     <div className="overflow-x-auto"><table className="w-full min-w-[480px] text-xs"><thead><tr>{["Stage", "Start Day", "End Day", "Min Emails/Day", "Max Emails/Day", ""].map((text, i) => <th key={i} className="pb-2 text-left font-medium">{text}</th>)}</tr></thead><tbody>
       {stages.map((stage, index) => <tr key={index}><td className="pr-2">Stage {index + 1}</td>{(["start_day", "end_day", "min_emails", "max_emails"] as const).map(key => <td key={key} className="p-1"><Input aria-label={`Stage ${index + 1} ${key.replaceAll("_", " ")}`} className="h-8 w-20" type="number" min={1} value={stage[key]} onChange={e => onChange({ progression_stages: stages.map((s, i) => i === index ? { ...s, [key]: Number(e.target.value) } : s) })} /></td>)}
       <td><Button variant="ghost" size="icon" aria-label={`Remove stage ${index + 1}`} disabled={stages.length === 1} onClick={() => onChange({ progression_stages: stages.filter((_, i) => i !== index) })}><Trash2 className="size-3.5" /></Button></td></tr>)}
