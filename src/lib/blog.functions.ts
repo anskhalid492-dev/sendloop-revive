@@ -10,7 +10,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/config";
-import { POST_COLUMNS, type BlogAuthor, type BlogCategory, type BlogPost } from "@/lib/blog-model";
+import { AUTHOR_COLUMNS, POST_COLUMNS, type BlogAuthor, type BlogCategory, type BlogPost } from "@/lib/blog-model";
 
 function publicClient() {
   const key = SUPABASE_PUBLISHABLE_KEY;
@@ -138,7 +138,7 @@ export const getBlogIndex = createServerFn({ method: "GET" }).handler(
         .order("published_at", { ascending: false })
         .limit(60),
       (supabase as any).from("blog_categories").select("id, slug, name, description, sort_order").order("sort_order"),
-      (supabase as any).from("blog_authors").select("id, slug, name, role, bio, avatar_url").order("name"),
+      (supabase as any).from("blog_authors").select(AUTHOR_COLUMNS).order("name"),
     ]);
 
     const all = ((postsRes.data ?? []) as BlogPost[]);
@@ -223,7 +223,7 @@ export const getBlogAuthor = createServerFn({ method: "GET" })
     const supabase = await publicClient();
     const { data: author } = await (supabase as any)
       .from("blog_authors")
-      .select("id, slug, name, role, bio, avatar_url")
+      .select(AUTHOR_COLUMNS)
       .eq("slug", data.slug)
       .maybeSingle();
     if (!author) return { author: null, posts: [] };
@@ -328,12 +328,16 @@ export const listAllBlogPosts = createServerFn({ method: "GET" })
         .from("blog_categories")
         .select("id, slug, name, description, sort_order")
         .order("sort_order"),
-      (context.supabase as any).from("blog_authors").select("id, slug, name, role, bio, avatar_url").order("name"),
+      (context.supabase as any).from("blog_authors").select(AUTHOR_COLUMNS).order("name"),
     ]);
+    const postRows = (posts.data ?? []) as BlogPost[];
     return {
-      posts: (posts.data ?? []) as BlogPost[],
+      posts: postRows,
       categories: (categories.data ?? []) as BlogCategory[],
-      authors: (authors.data ?? []) as BlogAuthor[],
+      authors: ((authors.data ?? []) as BlogAuthor[]).map((a) => ({
+        ...a,
+        post_count: postRows.filter((p) => p.author?.id === a.id && p.status === "published").length,
+      })),
     };
   });
 
