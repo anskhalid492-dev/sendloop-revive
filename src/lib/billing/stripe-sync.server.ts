@@ -157,9 +157,7 @@ export async function ensureStripePrice(
     product: productId,
     currency: "usd",
     unit_amount: amountCents,
-    ...(interval === "lifetime"
-      ? {}
-      : { recurring: { interval: interval === "yearly" ? "year" : "month" } }),
+    recurring: { interval: interval === "yearly" ? "year" : "month" },
     metadata: { munchreach_plan_id: plan.id, munchreach_interval: interval },
   });
 

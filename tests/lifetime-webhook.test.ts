@@ -1,0 +1,14 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const fixtures = vi.hoisted(() => ({ plan: { id: "test-lifetime-starter", billing_type: "lifetime", one_time_price: 2900 }, mapping: { external_price_id: "price_test_starter" }, lines: { data: [{ quantity: 1, price: { id: "price_test_starter", unit_amount: 2900 } }] }, apply: vi.fn(), call: vi.fn() }));
+vi.mock("@/lib/billing/core.server", () => ({ applyBillingEvent: fixtures.apply, admin: async () => ({ from: (table: string) => { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: table === "plans" ? fixtures.plan : fixtures.mapping, error: null }) }; return q; } }) }));
+vi.mock("@/lib/billing/providers.server", () => ({ stripeCall: fixtures.call }));
+import { applyVerifiedLifetimeCheckout } from "@/lib/billing/lifetime-webhook.server";
+const session = { id: "cs_test_throwaway", mode: "payment", payment_status: "paid", currency: "usd", amount_total: 2900, metadata: { workspace_id: "test-workspace-lifetime", plan_id: "test-lifetime-starter" } };
+beforeEach(() => { fixtures.apply.mockReset(); fixtures.call.mockReset().mockResolvedValue(fixtures.lines); });
+describe("verified lifetime checkout mapping (mocked provider only)", () => {
+  it("activates selected Starter only after paid verification and matching line", async () => { await applyVerifiedLifetimeCheckout("test", "evt_test", session); expect(fixtures.apply).toHaveBeenCalledWith("stripe", expect.objectContaining({ planId: "test-lifetime-starter", workspaceId: "test-workspace-lifetime", subscription: expect.objectContaining({ interval: "lifetime", amountCents: 2900, priceId: "price_test_starter", status: "active" }) })); });
+  it("does not activate an unpaid completion", async () => { await applyVerifiedLifetimeCheckout("test", "evt_test", { ...session, payment_status: "unpaid" }); expect(fixtures.apply).not.toHaveBeenCalled(); expect(fixtures.call).not.toHaveBeenCalled(); });
+  it("rejects original-plan price on Starter session", async () => { fixtures.call.mockResolvedValue({ data: [{ quantity: 1, price: { id: "price_test_original", unit_amount: 9900 } }] }); await expect(applyVerifiedLifetimeCheckout("test", "evt_test", session)).rejects.toThrow(/match/); expect(fixtures.apply).not.toHaveBeenCalled(); });
+  it("rejects wrong currency", async () => { await expect(applyVerifiedLifetimeCheckout("test", "evt_test", { ...session, currency: "eur" })).rejects.toThrow(/USD/); expect(fixtures.apply).not.toHaveBeenCalled(); });
+  it("rejects missing plan metadata", async () => { await expect(applyVerifiedLifetimeCheckout("test", "evt_test", { ...session, metadata: {} })).rejects.toThrow(/missing/); expect(fixtures.apply).not.toHaveBeenCalled(); });
+});
