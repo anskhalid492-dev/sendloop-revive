@@ -114,7 +114,7 @@ export function WarmupSettingsDialog({
   }, [settings]);
 
   const saveMutation = useMutation({
-    mutationFn: () => saveFn({ data: { accountId: accountId as string, ...draft } }),
+    mutationFn: () => saveFn({ data: { accountId: accountId as string, ...draft, progression_mode: "automatic" } }),
     onSuccess: async () => {
       toast.success("Warmup settings saved");
       await queryClient.invalidateQueries({ queryKey: ["warmup-accounts"] });
