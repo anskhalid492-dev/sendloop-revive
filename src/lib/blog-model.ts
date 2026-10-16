@@ -32,7 +32,34 @@ export type BlogAuthor = {
   role: string;
   bio: string;
   avatar_url: string | null;
+  cover_image_url?: string | null;
+  location?: string;
+  company?: string;
+  website_url?: string;
+  linkedin_url?: string;
+  x_url?: string;
+  public_email?: string;
+  show_email?: boolean;
+  introduction?: string;
+  experience?: string;
+  certifications?: string;
+  languages?: string;
+  featured_quote?: string;
+  expertise?: string[];
+  topics?: string[];
+  seo_title?: string | null;
+  meta_description?: string | null;
+  canonical_url?: string | null;
+  og_image_url?: string | null;
+  noindex?: boolean;
 };
+
+/**
+ * Every column the public author profile and admin editor need. Used by all
+ * blog_authors selects so the public page, admin list and byline stay in sync.
+ */
+export const AUTHOR_COLUMNS =
+  "id, slug, name, role, bio, avatar_url, cover_image_url, location, company, website_url, linkedin_url, x_url, public_email, show_email, introduction, experience, certifications, languages, featured_quote, expertise, topics, seo_title, meta_description, canonical_url, og_image_url, noindex";
 
 export type BlogCategory = {
   id: string;

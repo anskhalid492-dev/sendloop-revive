@@ -1645,32 +1645,92 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string
+          canonical_url: string | null
+          certifications: string
+          company: string
+          cover_image_url: string | null
           created_at: string
+          experience: string
+          expertise: string[]
+          featured_quote: string
           id: string
+          introduction: string
+          languages: string
+          linkedin_url: string
+          location: string
+          meta_description: string | null
           name: string
+          noindex: boolean
+          og_image_url: string | null
+          public_email: string
           role: string
+          seo_title: string | null
+          show_email: boolean
           slug: string
+          topics: string[]
           updated_at: string
+          website_url: string
+          x_url: string
         }
         Insert: {
           avatar_url?: string | null
           bio?: string
+          canonical_url?: string | null
+          certifications?: string
+          company?: string
+          cover_image_url?: string | null
           created_at?: string
+          experience?: string
+          expertise?: string[]
+          featured_quote?: string
           id?: string
+          introduction?: string
+          languages?: string
+          linkedin_url?: string
+          location?: string
+          meta_description?: string | null
           name: string
+          noindex?: boolean
+          og_image_url?: string | null
+          public_email?: string
           role?: string
+          seo_title?: string | null
+          show_email?: boolean
           slug: string
+          topics?: string[]
           updated_at?: string
+          website_url?: string
+          x_url?: string
         }
         Update: {
           avatar_url?: string | null
           bio?: string
+          canonical_url?: string | null
+          certifications?: string
+          company?: string
+          cover_image_url?: string | null
           created_at?: string
+          experience?: string
+          expertise?: string[]
+          featured_quote?: string
           id?: string
+          introduction?: string
+          languages?: string
+          linkedin_url?: string
+          location?: string
+          meta_description?: string | null
           name?: string
+          noindex?: boolean
+          og_image_url?: string | null
+          public_email?: string
           role?: string
+          seo_title?: string | null
+          show_email?: boolean
           slug?: string
+          topics?: string[]
           updated_at?: string
+          website_url?: string
+          x_url?: string
         }
         Relationships: []
       }
