@@ -1556,8 +1556,8 @@ function PromoBannerSettings() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="promo-icon">Brand icon / image URL (optional)</Label>
-            <Input id="promo-icon" value={config.iconUrl} placeholder="Leave empty to use the MunchReach favicon" onChange={(e) => set("iconUrl", e.target.value)} />
+            <Label htmlFor="promo-icon">Brand logo / image URL (optional)</Label>
+            <Input id="promo-icon" value={config.iconUrl} placeholder="Leave empty to use the MunchReach logo" onChange={(e) => set("iconUrl", e.target.value)} />
           </div>
         </div>
 
