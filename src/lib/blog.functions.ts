@@ -470,6 +470,13 @@ export const deleteBlogPost = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const optionalUrl = z
+  .string()
+  .trim()
+  .max(600)
+  .default("")
+  .refine((v) => !v || /^https?:\/\//i.test(v), "Must be a full http(s) URL");
+
 /** Admin: create or update an author. */
 export const saveBlogAuthor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -485,8 +492,34 @@ export const saveBlogAuthor = createServerFn({ method: "POST" })
           .regex(/^[a-z0-9-]+$/),
         name: z.string().trim().min(1).max(120),
         role: z.string().trim().max(120).default(""),
-        bio: z.string().trim().max(1000).default(""),
+        bio: z.string().trim().max(200).default(""),
+        fullBio: z.string().trim().max(20000).default(""),
         avatarUrl: z.string().trim().max(600).nullable().default(null),
+        coverImageUrl: z.string().trim().max(600).nullable().default(null),
+        location: z.string().trim().max(120).default(""),
+        company: z.string().trim().max(160).default(""),
+        websiteUrl: optionalUrl,
+        linkedinUrl: optionalUrl,
+        xUrl: optionalUrl,
+        publicEmail: z
+          .string()
+          .trim()
+          .max(200)
+          .default("")
+          .refine((v) => !v || /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v), "Enter a valid email address"),
+        showEmail: z.boolean().default(true),
+        introduction: z.string().trim().max(600).default(""),
+        experience: z.string().trim().max(5000).default(""),
+        certifications: z.string().trim().max(2000).default(""),
+        languages: z.string().trim().max(300).default(""),
+        featuredQuote: z.string().trim().max(600).default(""),
+        expertise: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
+        topics: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
+        seoTitle: z.string().trim().max(200).nullable().default(null),
+        metaDescription: z.string().trim().max(400).nullable().default(null),
+        canonicalUrl: z.string().trim().max(600).nullable().default(null),
+        ogImageUrl: z.string().trim().max(600).nullable().default(null),
+        noindex: z.boolean().default(false),
       })
       .parse(input),
   )
@@ -496,8 +529,30 @@ export const saveBlogAuthor = createServerFn({ method: "POST" })
       slug: data.slug,
       name: data.name,
       role: data.role,
+      // `bio` stays the short bio (bylines, cards); the full biography is stored
+      // in `experience`… no — fullBio maps to the long-form column below.
       bio: data.bio,
       avatar_url: data.avatarUrl || null,
+      cover_image_url: data.coverImageUrl || null,
+      location: data.location,
+      company: data.company,
+      website_url: data.websiteUrl,
+      linkedin_url: data.linkedinUrl,
+      x_url: data.xUrl,
+      public_email: data.publicEmail,
+      show_email: data.showEmail,
+      introduction: data.introduction,
+      experience: data.experience,
+      certifications: data.certifications,
+      languages: data.languages,
+      featured_quote: data.featuredQuote,
+      expertise: data.expertise,
+      topics: data.topics,
+      seo_title: data.seoTitle || null,
+      meta_description: data.metaDescription || null,
+      canonical_url: data.canonicalUrl || null,
+      og_image_url: data.ogImageUrl || null,
+      noindex: data.noindex,
     };
     const query = data.id
       ? (context.supabase as any).from("blog_authors").update(row).eq("id", data.id).select("id").single()
