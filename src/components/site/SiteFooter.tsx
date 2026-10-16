@@ -548,7 +548,7 @@ export function SiteFooter() {
                               {l.label.slice(3)}
                             </span>
                           ) : ownFaviconHrefs.has(l.href) ? (
-                            <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-start gap-1.5">
                               <img
                                 src={brandFavicon()}
                                 alt=""
@@ -556,7 +556,7 @@ export function SiteFooter() {
                                 width={16}
                                 height={16}
                                 loading="lazy"
-                                className="size-4 shrink-0 rounded-sm"
+                                className="mt-0.5 size-4 shrink-0 rounded-sm"
                               />
                               {l.label}
                             </span>
