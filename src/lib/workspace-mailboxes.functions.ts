@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { mailboxWindowStart, storedSentToday } from "@/lib/mailbox-daily-usage";
+import { PROGRESSION_COLUMNS, resolveWarmupProgression, type ProgressionSettings } from "@/lib/warmup-progression";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -31,6 +32,11 @@ export type MailboxCampaignRef = {
 };
 
 export type WorkspaceMailboxRow = {
+  warmupDay?: number;
+  warmupStage?: number;
+  warmupMode?: string;
+  warmupSentToday?: number;
+  warmupNextLimit?: number;
   id: string;
   email: string;
   displayName: string | null;
@@ -198,13 +204,14 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const { data: warmupRows } = accountIds.length
       ? await client
           .from("warmup_settings")
-          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason")
+          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason, started_at, current_volume, " + PROGRESSION_COLUMNS)
           .in("sending_account_id", accountIds)
       : { data: [] };
-    type WarmupRecord = {
+    type WarmupRecord = ProgressionSettings & {
       sending_account_id: string;
       enabled: boolean | null;
       max_volume: number | null;
+      current_volume: number | null;
 
       paused_by_system: boolean | null;
       pause_reason: string | null;
@@ -212,6 +219,9 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const warmupByAccount = new Map(
       ((warmupRows ?? []) as WarmupRecord[]).map((row) => [row.sending_account_id, row]),
     );
+    const { data: warmupStats } = accountIds.length ? await client.from("warmup_daily_stats")
+      .select("sending_account_id, sent, target").in("sending_account_id", accountIds).eq("day", new Date().toISOString().slice(0, 10)) : { data: [] };
+    const warmupStatsById = new Map<string, { sent: number; target: number }>((warmupStats ?? []).map((s: { sending_account_id: string; sent: number; target: number }) => [s.sending_account_id, s]));
 
     // Sends in the last hour, counted exactly the way dispatch counts them.
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -266,6 +276,9 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const rows: WorkspaceMailboxRow[] = mailboxes.map((row) => {
       const account = byEmail.get(row.email_address.toLowerCase()) ?? null;
       const warmup = account ? warmupByAccount.get(account.id) ?? null : null;
+      const progression = resolveWarmupProgression(warmup ?? {}, !row.is_active || !warmup?.enabled || !!warmup.paused_by_system || !!account?.paused || account?.customer_enabled === false || (account?.health_score !== null && account?.health_score !== undefined && account.health_score < 70));
+      const automatic = warmup?.progression_mode && warmup.progression_mode !== "legacy";
+      const warmupStat = account ? warmupStatsById.get(account.id) : undefined;
       const auth = authByMailbox.get(row.id) ?? null;
       return {
         id: row.id,
@@ -293,7 +306,12 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
           : null,
         lastSentAt: account?.last_sent_at ?? null,
         warmupStatus: account?.warmup_status ?? null,
-        warmupDailyTarget: warmup?.max_volume ?? account?.warmup_daily_target ?? null,
+        warmupDailyTarget: automatic ? progression.effectiveLimit : warmupStat?.target ?? warmup?.current_volume ?? account?.warmup_daily_target ?? null,
+        warmupDay: progression.day,
+        warmupStage: progression.stage,
+        warmupMode: warmup?.progression_mode ?? "legacy",
+        warmupSentToday: warmupStat?.sent ?? 0,
+        warmupNextLimit: progression.nextLimit,
         warmupEnabled: warmup ? warmup.enabled === true : row.warmup_enabled === true,
         warmupPauseReason: warmup?.paused_by_system ? warmup.pause_reason ?? null : null,
         spf: account?.spf_status ?? null,

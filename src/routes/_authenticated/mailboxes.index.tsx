@@ -85,6 +85,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { MailboxTypeIcon } from "@/components/campaign/MailboxTypeBadge";
 import { WarmupHealthIndicator } from "@/components/mailboxes/WarmupHealthIndicator";
+import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
+import { Progress } from "@/components/ui/progress";
 import { emailProviderOf } from "@/lib/mailbox-type";
 import {
   checkWorkspaceMailboxDeletion,
@@ -145,6 +147,7 @@ function MailboxesPage() {
   const [selected, setSelected] = useState<string[]>([]);
 
   const [detailsRow, setDetailsRow] = useState<WorkspaceMailboxRow | null>(null);
+  const [warmupSettingsRow, setWarmupSettingsRow] = useState<WorkspaceMailboxRow | null>(null);
   const [testRow, setTestRow] = useState<WorkspaceMailboxRow | null>(null);
   const [deleteRow, setDeleteRow] = useState<WorkspaceMailboxRow | null>(null);
 
@@ -243,6 +246,7 @@ function MailboxesPage() {
     onDetails: () => setDetailsRow(row),
     onDelete: () => setDeleteRow(row),
     onWarmup: (enabled: boolean) => setWarmupEnabled.mutate({ ids: [row.id], enabled }),
+    onWarmupSettings: () => setWarmupSettingsRow(row),
   });
 
   return (
@@ -633,6 +637,7 @@ function MailboxesPage() {
         )}
       </div>
 
+      <WarmupSettingsDialog accountId={warmupSettingsRow?.sendingAccountId ?? null} accountEmail={warmupSettingsRow?.email ?? ""} onOpenChange={open => { if (!open) setWarmupSettingsRow(null); }} />
       <MailboxDetails
         row={detailsRow}
         onClose={() => setDetailsRow(null)}
@@ -771,8 +776,11 @@ function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
       <div className="space-y-0.5">
         <Badge variant="outline">Enabled</Badge>
         {row.warmupDailyTarget ? (
-          <p className="text-xs text-muted-foreground">{row.warmupDailyTarget}/day target</p>
+          <p className="text-xs text-muted-foreground">{row.warmupSentToday ?? 0} / {row.warmupDailyTarget} emails sent today</p>
         ) : null}
+        <p className="text-xs text-muted-foreground">Day {row.warmupDay ?? 1} · {row.warmupMode === "legacy" ? "Existing schedule" : `Stage ${row.warmupStage ?? 1}`} · {row.warmupMode === "manual" ? "Manual" : row.warmupMode === "legacy" ? "Legacy" : "Automatic"}</p>
+        <p className="text-xs text-muted-foreground">Next day: {row.warmupNextLimit ?? 0}/day</p>
+        <Progress className="h-1.5" value={row.warmupDailyTarget ? Math.min(100, ((row.warmupSentToday ?? 0) / row.warmupDailyTarget) * 100) : 0} />
         {row.warmupPauseReason ? (
           <p className="text-xs text-muted-foreground">{row.warmupPauseReason}</p>
         ) : null}
@@ -871,6 +879,7 @@ function RowActions({
   busy,
   onRecheck,
   onWarmup,
+  onWarmupSettings,
   onTest,
   onDetails,
   onDelete,
@@ -879,6 +888,7 @@ function RowActions({
   busy: boolean;
   onRecheck: () => void;
   onWarmup: (enabled: boolean) => void;
+  onWarmupSettings: () => void;
   onTest: () => void;
   onDetails: () => void;
   onDelete: () => void;
@@ -920,11 +930,9 @@ function RowActions({
           <Flame className="mr-2 size-4" />
           {warmupOn ? "Turn warm-up off" : "Enable warm-up"}
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/warmup">
+        <DropdownMenuItem disabled={!row.sendingAccountId} onSelect={onWarmupSettings}>
             <Settings2 className="mr-2 size-4" />
             Warm-up settings
-          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onDetails()}>
           <Info className="mr-2 size-4" />
