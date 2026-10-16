@@ -1,0 +1,12 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const state = vi.hoisted(() => ({ verified: true, duplicate: false, apply: vi.fn(), lifetime: vi.fn(), finish: vi.fn() }));
+vi.mock("@/lib/billing/core.server", () => ({ admin: async () => ({ from: () => ({ upsert: async () => ({}) }) }), getBillingSettings: async () => ({ environment: "test" }), applyBillingEvent: state.apply, finishWebhookDelivery: state.finish, touchProviderWebhook: vi.fn(), recordWebhookDelivery: async () => ({ id: "test-delivery", duplicate: state.duplicate }) }));
+vi.mock("@/lib/billing/providers.server", () => ({ getBillingAdapter: () => ({ verify: async () => state.verified ? { ok: true, environment: "test", eventId: "evt_test_only", eventType: "checkout.session.completed", payload: { data: { object: { mode: "payment", payment_status: "paid", metadata: { plan_id: "test-starter", workspace_id: "test-workspace" } } } } } : { ok: false, error: "Invalid signature" }, normalize: () => null }) }));
+vi.mock("@/lib/billing/lifetime-webhook.server", () => ({ applyVerifiedLifetimeCheckout: state.lifetime }));
+import { handleBillingWebhook } from "@/lib/billing/webhook.server";
+beforeEach(() => { state.verified = true; state.duplicate = false; state.apply.mockReset(); state.lifetime.mockReset(); state.finish.mockReset(); });
+describe("lifetime activation signature boundary, mocked test accounts", () => {
+  it("invalid signatures cannot activate a plan", async () => { state.verified = false; const response = await handleBillingWebhook("stripe", new Request("http://localhost/test", { method: "POST", body: "test payload" })); expect(response.status).toBe(401); expect(state.lifetime).not.toHaveBeenCalled(); expect(state.apply).not.toHaveBeenCalled(); });
+  it("verified paid completion reaches shared lifetime handler", async () => { const response = await handleBillingWebhook("stripe", new Request("http://localhost/test", { method: "POST", body: "test payload" })); expect(response.status).toBe(200); expect(state.lifetime).toHaveBeenCalledWith("test", "evt_test_only", expect.objectContaining({ payment_status: "paid" })); });
+  it("duplicate verified event never reactivates", async () => { state.duplicate = true; const response = await handleBillingWebhook("stripe", new Request("http://localhost/test", { method: "POST", body: "test payload" })); expect(response.status).toBe(200); expect(state.lifetime).not.toHaveBeenCalled(); });
+});

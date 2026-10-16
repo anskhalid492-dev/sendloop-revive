@@ -231,6 +231,7 @@ const stripe: ProviderAdapter = {
         workspace_id: input.workspaceId,
         plan_id: input.planId,
         billing_interval: input.interval,
+        ...(oneTime ? { lifetime_price_id: input.priceId } : {}),
       },
       ...(oneTime
         ? {

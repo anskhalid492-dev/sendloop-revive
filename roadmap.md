@@ -1,11 +1,12 @@
 # Roadmap
 
 ## Lifetime Starter
-- [ ] Inspect existing plan configuration, selection, checkout and webhook verification.
-- [ ] Add separate Starter configuration with identical features, 4,000 contacts and $29 price; preserve original plan.
-- [ ] Show both offers on lifetime/customer billing and compare three competitors with favicons.
-- [ ] Validate separate one-time USD prices, selected-plan checkout and verified activation; run tests and inspect compilation.
-- [ ] Report manual production configuration and unverified authenticated/provider flows; do not publish.
+- [x] Inspect existing plan configuration, selection, checkout and webhook verification.
+- [x] Prepare additive Starter data transaction: cloned features, 4,000 contacts, 10,000 monthly emails, $29; preserve original.
+- [x] Show saved lifetime offers on lifetime/customer billing and compare three competitors with favicons.
+- [x] Validate separate one-time USD prices, selected-plan checkout and verified activation; 1,911 tests passed, compilation clean.
+- [x] Report manual production configuration and unverified authenticated/provider flows; no publication.
+- [ ] Production Starter insert, separate Stripe Price ID and authenticated test payment/readback — blocked: owner-managed production data and scoped test session.
 
 ## Independent automatic mailbox warmup
 - [x] Inspect engine, queue, counters, health, settings and permissions.

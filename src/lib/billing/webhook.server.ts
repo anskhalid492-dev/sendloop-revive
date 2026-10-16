@@ -49,7 +49,7 @@ export async function handleBillingWebhook(provider: BillingProvider, request: R
   }
 
   if (!verified) {
-    const env = candidates[0]!;
+    const env = candidates[0] ?? "test";
     await recordWebhookDelivery({
       provider,
       environment: env,
@@ -116,36 +116,9 @@ export async function handleBillingWebhook(provider: BillingProvider, request: R
       });
     }
 
-    // A one-time (lifetime) purchase has no Stripe subscription object. The
-    // paid checkout session itself is the entitlement: it is recorded as a
-    // never-expiring active subscription row so every plan check downstream
-    // works exactly like a recurring plan.
-    if (
-      isCheckoutCompletion &&
-      sessionObj?.mode === "payment" &&
-      (sessionObj?.payment_status === "paid" || sessionObj?.payment_status === "no_payment_required")
-    ) {
-      await applyBillingEvent(provider, {
-        eventId: `${verified.eventId}:lifetime`,
-        eventType: "checkout.session.lifetime_purchase",
-        environment: verified.environment,
-        workspaceId: workspaceRef ?? null,
-        planId: sessionObj?.metadata?.plan_id ?? null,
-        subscription: {
-          externalId: `lifetime_${sessionObj.id}`,
-          customerId: typeof sessionObj.customer === "string" ? sessionObj.customer : null,
-          status: "active",
-          interval: "lifetime",
-          priceId: null,
-          amountCents: sessionObj.amount_total ?? 0,
-          currency: sessionObj.currency ?? "usd",
-          currentPeriodStart: new Date().toISOString(),
-          currentPeriodEnd: null,
-          trialEndsAt: null,
-          cancelAtPeriodEnd: false,
-          cancelledAt: null,
-        },
-      } as any);
+    if (isCheckoutCompletion && sessionObj?.mode === "payment") {
+      const { applyVerifiedLifetimeCheckout } = await import("@/lib/billing/lifetime-webhook.server");
+      await applyVerifiedLifetimeCheckout(verified.environment, verified.eventId, sessionObj);
     }
 
     await finishWebhookDelivery(record.id, "processed");
@@ -184,6 +157,10 @@ export async function retryStoredEvent(eventRowId: string) {
     .eq("id", eventRowId);
   try {
     if (normalized) await applyBillingEvent(data.provider as BillingProvider, normalized);
+    if (data.provider === "stripe" && ["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(data.event_type ?? "")) {
+      const { applyVerifiedLifetimeCheckout } = await import("@/lib/billing/lifetime-webhook.server");
+      await applyVerifiedLifetimeCheckout(data.environment, data.event_id, (data.payload as any)?.data?.object);
+    }
     await finishWebhookDelivery(eventRowId, "processed");
     return { ok: true };
   } catch (e) {
