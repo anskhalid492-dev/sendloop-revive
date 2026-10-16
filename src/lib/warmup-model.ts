@@ -25,6 +25,13 @@ export type WarmupJobStatus =
   | "cancelled";
 
 export type WarmupSettings = {
+  progression_mode?: import("@/lib/warmup-progression").ProgressionMode;
+  progression_stages?: import("@/lib/warmup-progression").ProgressionStage[] | null;
+  manual_daily_limit?: number | null;
+  progression_day?: number | null;
+  progression_date?: string | null;
+  progression_limit?: number | null;
+  progression_review_required?: boolean;
   id: string;
   sending_account_id: string;
   enabled: boolean;

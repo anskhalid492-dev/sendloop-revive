@@ -21,6 +21,7 @@ import {
 } from "@/lib/mailbox-pause-state";
 
 import { WARMUP_MODES } from "@/lib/warmup-model";
+import { PROGRESSION_COLUMNS, DEFAULT_WARMUP_STAGES, resolveWarmupProgression, validateWarmupStages } from "@/lib/warmup-progression";
 import { warmupDeliveryCounts } from "@/lib/warmup-delivery";
 import type {
   MailboxCheck,
@@ -34,9 +35,14 @@ import type {
 type Client = any;
 
 const SETTINGS_COLUMNS =
-  "id, sending_account_id, enabled, mode, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, timezone, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, pause_reason, paused_at, started_at, last_run_reason, last_run_at, ramp_stage, stage_since, stage_reason, current_volume";
+  "id, sending_account_id, enabled, mode, start_volume, max_volume, daily_increase, ramp_days, send_days, send_start_hour, send_end_hour, timezone, reply_rate, max_bounce_rate, min_health_score, auto_pause, paused_by_system, pause_reason, paused_at, started_at, last_run_reason, last_run_at, ramp_stage, stage_since, stage_reason, current_volume, " + PROGRESSION_COLUMNS;
 
 export type WarmupAccountRow = {
+  progression_mode: string;
+  progression_stage: number;
+  next_daily_limit: number;
+  next_progression_at: string;
+  progression_review_required: boolean;
   id: string;
   from_email: string;
   from_name: string;
@@ -264,7 +270,15 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
           ? "blocked"
           : "on";
 
+      const progression = resolveWarmupProgression(setting as WarmupSettings ?? {}, state !== "on" || safetyActive || (base.health_score !== null && base.health_score < 70));
+      const usesProgression = setting?.["progression_mode"] && setting["progression_mode"] !== "legacy";
+
       return {
+        progression_mode: (setting?.["progression_mode"] as string) ?? "legacy",
+        progression_stage: progression.stage,
+        next_daily_limit: usesProgression ? progression.nextLimit : Number(setting?.["current_volume"] ?? 0),
+        next_progression_at: progression.nextAt,
+        progression_review_required: Boolean(setting?.["progression_review_required"]),
         id: a["id"] as string,
         from_email: a["from_email"] as string,
         from_name: a["from_name"] as string,
@@ -279,7 +293,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         paused_by_system: base.paused_by_system,
         pause_reason: (setting?.["pause_reason"] as string | null) ?? null,
         mode: (setting?.["mode"] as string) ?? "balanced",
-        target_today: (stat?.["target"] as number) ?? 0,
+        target_today: usesProgression ? progression.effectiveLimit : (stat?.["target"] as number) ?? 0,
         sent_today: delivery.sent,
         delivered_today: delivery.delivered,
         unconfirmed_today: delivery.unconfirmed,
@@ -319,9 +333,9 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
             ? Math.round((((stat?.["bounced"] as number) ?? 0) / sent) * 1000) / 10
             : null,
         delivery_rate: delivery.rate,
-        ramp_day: rampDay,
+        ramp_day: usesProgression ? progression.day : rampDay,
         ramp_days: rampDays,
-        daily_limit: (stat?.["target"] as number) ?? 0,
+        daily_limit: usesProgression ? progression.effectiveLimit : (stat?.["target"] as number) ?? 0,
         last_activity_at: lastActivity.get(a["id"] as string) ?? null,
       };
     });
@@ -387,6 +401,9 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
 
 const settingsInput = z.object({
   accountId: z.string().uuid(),
+  progression_mode: z.enum(["automatic", "manual", "legacy"]).optional(),
+  progression_stages: z.array(z.object({ start_day: z.number().int(), end_day: z.number().int(), min_emails: z.number().int(), max_emails: z.number().int() })).optional(),
+  manual_daily_limit: z.number().int().min(1).max(400).optional(),
   enabled: z.boolean().optional(),
   mode: z.enum(["conservative", "balanced", "aggressive"]).optional(),
   start_volume: z.number().int().min(1).max(200).optional(),
@@ -412,6 +429,10 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = context.supabase as Client;
     const { accountId, resume, ...patch } = data;
+    if (patch.progression_stages) {
+      const error = validateWarmupStages(patch.progression_stages);
+      if (error) throw new Error(error);
+    }
 
     const { data: account, error: accountError } = await client
       .from("sending_accounts")
@@ -430,13 +451,28 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     const { data: existing } = await client
       .from("warmup_settings")
       .select(
-        "id, enabled, started_at, paused_by_system, pause_reason, max_bounce_rate, min_health_score",
+        "id, enabled, started_at, paused_by_system, pause_reason, max_bounce_rate, min_health_score, current_volume, " + PROGRESSION_COLUMNS,
       )
       .eq("sending_account_id", accountId)
       .maybeSingle();
 
     const preset = patch.mode ? WARMUP_MODES.find((m) => m.id === patch.mode) : undefined;
     const body: Record<string, unknown> = { ...patch };
+    if (patch.progression_mode && patch.progression_mode !== "legacy") {
+      if (existing && !existing.started_at) throw new Error("Warmup start date is unknown. Review this mailbox's historical activity before enabling automatic progression.");
+      if (existing?.progression_mode === "legacy") {
+        const start = existing.started_at as string;
+        const day = Math.max(1, Math.floor((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(new Date(start).toISOString().slice(0, 10))) / 86400000) + 1);
+        body["progression_day"] = day;
+        body["progression_date"] = new Date().toISOString().slice(0, 10);
+        body["progression_limit"] = existing.current_volume ?? 1;
+        body["progression_review_required"] = false;
+      }
+      if (!existing) {
+        body["progression_stages"] = patch.progression_stages ?? DEFAULT_WARMUP_STAGES;
+        body["started_at"] = new Date().toISOString();
+      }
+    }
     if (preset && !existing) {
       body["start_volume"] = patch.start_volume ?? preset.start_volume;
       body["max_volume"] = patch.max_volume ?? preset.max_volume;
@@ -496,6 +532,7 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       body["paused_by_system"] = false;
       body["pause_reason"] = null;
       body["paused_at"] = null;
+      if (existing && (!existing.enabled || existing.paused_by_system)) body["progression_date"] = new Date().toISOString().slice(0, 10);
     }
     if (patch.enabled) {
       body["started_at"] = existing?.started_at ?? new Date().toISOString();
@@ -503,8 +540,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
 
 
     if (existing) {
-      const { error } = await client.from("warmup_settings").update(body).eq("id", existing.id);
+      const { data: updated, error } = await client.from("warmup_settings").update(body).eq("id", existing.id).select("id");
       if (error) throw new Error(error.message);
+      if (!updated?.length) throw new Error("You do not have permission to edit warmup settings.");
     } else {
       const { error } = await client.from("warmup_settings").insert({
         ...body,
