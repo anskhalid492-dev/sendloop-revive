@@ -14,6 +14,7 @@ import { CoverImage, PostCard } from "@/components/blog/BlogCards";
 import { MarketingLayout, Section } from "@/components/site/MarketingPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { authorPersonRef } from "@/lib/blog-author";
 import { CONTENT_TYPE_LABELS, formatBlogDate, initials } from "@/lib/blog-model";
 import { getBlogPost } from "@/lib/blog.functions";
 import { NewsletterCard } from "@/components/blog/NewsletterCard";
