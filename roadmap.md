@@ -1,5 +1,12 @@
 # Roadmap
 
+## Lifetime Starter
+- [ ] Inspect existing plan configuration, selection, checkout and webhook verification.
+- [ ] Add separate Starter configuration with identical features, 4,000 contacts and $29 price; preserve original plan.
+- [ ] Show both offers on lifetime/customer billing and compare three competitors with favicons.
+- [ ] Validate separate one-time USD prices, selected-plan checkout and verified activation; run tests and inspect compilation.
+- [ ] Report manual production configuration and unverified authenticated/provider flows; do not publish.
+
 ## Independent automatic mailbox warmup
 - [x] Inspect engine, queue, counters, health, settings and permissions.
 - [x] Add shared deterministic progression, per-mailbox modes, pause-safe state and additive SQL; applied to development database only.
