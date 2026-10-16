@@ -41,6 +41,7 @@ import {
 import { formatMoney } from "@/lib/billing/model";
 import { PRICING_COMPARISON } from "@/lib/pricing-comparison";
 import { COMPARISON_LIST } from "@/lib/comparison-content";
+import { FEATURE_CATALOG } from "@/lib/billing/features";
 import { cn } from "@/lib/utils";
 import { brandFavicon } from "@/lib/branding";
 import instantlyIcon from "@/assets/lifetime-instantly.png.asset.json";
@@ -302,7 +303,13 @@ function LifetimePage() {
   const { data: plans } = useSuspenseQuery(lifetimeQueryOptions());
   const showSticky = useScrolledPastHero();
 
-  const offers = lifetimeOffers(plans);
+  const offers = lifetimeOffers(plans).map(offer => ({ ...offer, features: [
+    ...offer.features,
+    ...FEATURE_CATALOG.filter(feature => !feature.column && !offer.features.some(row => row.feature_key === feature.key)).map(feature => ({
+      id: `default-${feature.key}`, plan_id: offer.id, category: feature.category, name: feature.label,
+      included: feature.fallback, value: null, sort_order: 0, created_at: "", feature_key: feature.key,
+    })),
+  ] }));
   const plan = offers[0];
   const priceCents = lifetimePriceCents(plan);
   const compareCents = plan ? lifetimeCompareAtCents(plan) : 0;

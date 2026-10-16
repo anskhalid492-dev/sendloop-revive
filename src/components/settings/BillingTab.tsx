@@ -477,7 +477,7 @@ export function BillingTab({
         ) : null}
 
         <div id="plans" ref={plansRef} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {(plansQuery.data ?? [])
+          {[...(plansQuery.data ?? [])]
             .sort((a, b) => isLifetimePlan(a) && isLifetimePlan(b) ? lifetimePriceCents(a) - lifetimePriceCents(b) : 0)
             .map((plan) => {
               const planIsLifetime = isLifetimePlan(plan);

@@ -32,7 +32,7 @@ export async function availableProviders() {
         ? "Not enabled"
         : !state.credentials.ok
           ? "Credentials missing"
-          : !state.planIdsOk
+        : !available
             ? "Plan IDs incomplete"
             : null,
     };
