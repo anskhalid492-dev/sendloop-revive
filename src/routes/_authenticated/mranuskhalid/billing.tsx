@@ -35,6 +35,13 @@ import {
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/billing")({
   component: AdminBillingPage,
+  head: () => ({ meta: [
+    { title: "Billing administration — MunchReach" },
+    { name: "description", content: "Manage MunchReach billing providers, lifetime offers and price mappings." },
+    { property: "og:title", content: "Billing administration — MunchReach" },
+    { property: "og:description", content: "Manage MunchReach billing configuration and lifetime prices." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 const TABS = [
@@ -553,12 +560,16 @@ function PlanPrices({
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        {plans.filter(p => p.billing_type === "lifetime").sort((a, b) => a.one_time_price - b.one_time_price).map(plan => (
+          <LifetimePriceEditor key={`${plan.id}-${prices.filter(p => p.plan_id === plan.id).map(p => p.external_price_id).join()}`} plan={plan} prices={prices} onSave={onSave} saving={saving} />
+        ))}
+      </div>
       <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
           <p className="text-sm font-medium">Auto-create Stripe prices</p>
           <p className="text-xs text-muted-foreground">
-            Creates a Stripe product and monthly/yearly price for every paid plan, then maps them
-            below. Safe to run repeatedly.
+            Creates recurring Stripe prices. Lifetime offers use the separately saved Price IDs below and are never changed by sync.
           </p>
         </div>
         <div className="flex gap-2">
@@ -580,7 +591,7 @@ function PlanPrices({
 
       <div className="surface-card grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-6">
 
-        <Select value={form.planId} onValueChange={(planId) => setForm((f) => ({ ...f, planId }))}>
+        <Select value={form.planId} onValueChange={(planId) => setForm((f) => ({ ...f, planId, interval: plans.find(p => p.id === planId)?.billing_type === "lifetime" ? "lifetime" : "monthly", provider: plans.find(p => p.id === planId)?.billing_type === "lifetime" ? "stripe" : f.provider }))}>
           <SelectTrigger>
             <SelectValue placeholder="Plan" />
           </SelectTrigger>
@@ -621,6 +632,7 @@ function PlanPrices({
           <SelectContent>
             <SelectItem value="monthly">Monthly</SelectItem>
             <SelectItem value="yearly">Yearly</SelectItem>
+            <SelectItem value="lifetime">Lifetime (one-time)</SelectItem>
           </SelectContent>
         </Select>
         <Input
@@ -654,4 +666,19 @@ function PlanPrices({
       />
     </div>
   );
+}
+
+function LifetimePriceEditor({ plan, prices, onSave, saving }: { plan: any; prices: any[]; onSave: (value: any) => void; saving: boolean }) {
+  const [environment, setEnvironment] = useState<"test" | "live">("live");
+  const mapping = prices.find(p => p.plan_id === plan.id && p.provider === "stripe" && p.environment === environment && p.billing_interval === "lifetime");
+  const [values, setValues] = useState<Record<string, string>>({});
+  const priceId = values[environment] ?? mapping?.external_price_id ?? "";
+  return <section className="surface-card space-y-3 p-5">
+    <h3 className="font-semibold">{plan.name}</h3>
+    <p className="text-sm text-muted-foreground">{formatMoney(plan.one_time_price ?? 0)} once · {plan.max_leads?.toLocaleString()} contacts · {plan.max_emails_monthly?.toLocaleString()} emails/month</p>
+    <Select value={environment} onValueChange={value => setEnvironment(value as "test" | "live")}><SelectTrigger aria-label={`${plan.name} Stripe environment`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="test">Test</SelectItem><SelectItem value="live">Live</SelectItem></SelectContent></Select>
+    <label htmlFor={`lifetime-price-${plan.id}`} className="block text-sm font-medium">Stripe Lifetime Price ID</label>
+    <Input id={`lifetime-price-${plan.id}`} value={priceId} onChange={e => setValues(v => ({ ...v, [environment]: e.target.value }))} placeholder="price_…" />
+    <Button disabled={saving || !priceId.trim()} onClick={() => onSave({ planId: plan.id, provider: "stripe", environment, interval: "lifetime", externalPriceId: priceId.trim(), currency: "usd" })}>Save {plan.name} Price ID</Button>
+  </section>;
 }

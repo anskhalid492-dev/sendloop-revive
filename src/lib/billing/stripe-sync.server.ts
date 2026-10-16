@@ -12,6 +12,7 @@
 import type { BillingEnvironment, BillingInterval } from "@/lib/billing/model";
 import { admin, writeAudit } from "@/lib/billing/core.server";
 import { stripeCall } from "@/lib/billing/providers.server";
+import { validateLifetimeStripePrice } from "@/lib/billing/lifetime";
 
 type PlanRow = {
   id: string;
@@ -99,7 +100,7 @@ async function existingPriceIsValid(
     const productActive =
       typeof product === "object" && product !== null ? product.active === true : true;
     if (!productActive) return false;
-    if (interval === "lifetime") return !price?.recurring;
+    if (interval === "lifetime") { validateLifetimeStripePrice(price, amountCents); return true; }
     return price?.recurring?.interval === (interval === "yearly" ? "year" : "month");
   } catch {
     return false;
@@ -146,6 +147,10 @@ export async function ensureStripePrice(
     (await existingPriceIsValid(environment, mapping.external_price_id, amountCents, interval))
   )
     return mapping.external_price_id as string;
+
+  // Lifetime offers only use the explicitly configured price, never silently
+  // create/repoint it or alter the original offer's mapping during checkout.
+  if (interval === "lifetime") throw new Error("This lifetime plan needs a valid one-time USD Stripe Price ID configured by an administrator.");
 
   const productId = await findOrCreateProduct(environment, plan as PlanRow);
   const price = await stripeCall(environment, "prices", {
@@ -197,6 +202,10 @@ export async function syncStripePrices(
 
   for (const plan of (plans ?? []) as PlanRow[]) {
     const lifetime = plan.billing_type === "lifetime";
+    if (lifetime) {
+      result.skipped.push({ planName: plan.name, reason: "Lifetime prices are configured manually; existing mappings are preserved." });
+      continue;
+    }
     const anchorAmount = lifetime ? (plan.one_time_price ?? 0) : (plan.monthly_price ?? 0);
     if (anchorAmount <= 0) {
       result.skipped.push({ planName: plan.name, reason: "Free plan — no Stripe price needed" });

@@ -196,7 +196,7 @@ export function BillingTab({
           workspaceId: workspaceId!,
           planId: plan.id,
           interval: lifetime ? "lifetime" : interval,
-          provider: (available[0]?.provider ||
+          provider: (lifetime ? "stripe" : available[0]?.provider ||
             "stripe") as import("@/lib/billing/model").BillingProvider,
         },
       });
@@ -478,7 +478,7 @@ export function BillingTab({
 
         <div id="plans" ref={plansRef} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {(plansQuery.data ?? [])
-            .filter((plan) => !isLifetimePlan(plan) || plan.slug === highlightPlanSlug)
+            .sort((a, b) => isLifetimePlan(a) && isLifetimePlan(b) ? lifetimePriceCents(a) - lifetimePriceCents(b) : 0)
             .map((plan) => {
               const planIsLifetime = isLifetimePlan(plan);
               const price = planIsLifetime
@@ -490,7 +490,7 @@ export function BillingTab({
               // A $0 plan has no price to charge, so it is never a checkout
               // target — it is the state a workspace starts in.
               const freePlan = !planIsLifetime && (plan.monthly_price ?? 0) <= 0;
-              const picked = Boolean(highlightPlanSlug) && plan.slug === highlightPlanSlug;
+              const picked = Boolean(highlightPlanSlug) && (plan.slug === highlightPlanSlug || plan.id === highlightPlanSlug);
               // Most important limits first, real values only.
               const limits = [
                 { label: "emails / month", value: plan.max_emails_monthly },
@@ -554,7 +554,7 @@ export function BillingTab({
                       current ||
                       freePlan ||
                       checkoutMutation.isPending ||
-                      (available.length === 0 &&
+                      (planIsLifetime ? !available.some(p => p.provider === "stripe") : available.length === 0 &&
                         !(hasRecurringSubscription && !planIsLifetime))
                     }
                     onClick={() => checkoutMutation.mutate(plan)}

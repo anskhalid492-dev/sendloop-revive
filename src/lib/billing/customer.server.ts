@@ -153,6 +153,8 @@ export async function createCheckoutSession(input: {
     .maybeSingle();
   if (!planRow?.is_active) throw new Error("This plan is not available right now.");
   const lifetime = planRow.billing_type === "lifetime";
+  if (lifetime && input.provider !== "stripe") throw new Error("Lifetime access uses Stripe checkout.");
+  if (!lifetime && input.interval === "lifetime") throw new Error("This plan is not a lifetime offer.");
   const interval: BillingInterval = lifetime ? "lifetime" : input.interval;
   if (lifetime) {
     const entitlement = await getEntitlement(input.workspaceId);
@@ -185,8 +187,8 @@ export async function createCheckoutSession(input: {
     mode: lifetime ? ("payment" as const) : ("subscription" as const),
     email: customer?.email ?? profile?.email ?? null,
     customerId: customer?.external_customer_id ?? null,
-    successUrl: `${base}/settings?tab=billing&checkout=success${lifetime ? "&lifetime=1" : ""}`,
-    cancelUrl: `${base}/settings?tab=billing&checkout=cancelled`,
+    successUrl: lifetime ? `${base}/billing?plan=${encodeURIComponent(input.planId)}&checkout=success` : `${base}/settings?tab=billing&checkout=success`,
+    cancelUrl: lifetime ? `${base}/billing?plan=${encodeURIComponent(input.planId)}&checkout=cancelled` : `${base}/settings?tab=billing&checkout=cancelled`,
   };
 
   let result: { url: string };

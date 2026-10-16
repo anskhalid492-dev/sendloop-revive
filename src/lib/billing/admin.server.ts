@@ -2,6 +2,7 @@
 import type { BillingEnvironment, BillingInterval, BillingProvider } from "@/lib/billing/model";
 import { BILLING_ENVIRONMENTS, BILLING_PROVIDERS, PROVIDER_ID_RULES } from "@/lib/billing/model";
 import { admin, getBillingSettings, isConfigured, writeAudit } from "@/lib/billing/core.server";
+import { validateLifetimeStripePrice, type LifetimeStripePrice } from "@/lib/billing/lifetime";
 
 export async function loadConsole() {
   const db = await admin();
@@ -9,7 +10,7 @@ export async function loadConsole() {
 
   const [providerRows, plans, prices, subs, tx, invoices, hooks] = await Promise.all([
     db.from("billing_providers").select("*"),
-    db.from("plans").select("id, name, slug, monthly_price, yearly_price, sort_order").order("sort_order"),
+    db.from("plans").select("id, name, slug, monthly_price, yearly_price, sort_order, billing_type, one_time_price, max_leads, max_emails_monthly").order("sort_order"),
     db.from("billing_plan_prices").select("*"),
     db.from("billing_subscriptions").select("id, status, amount_cents, currency, billing_interval, environment, current_period_start, created_at"),
     db
@@ -131,16 +132,22 @@ export async function savePlanPrice(
   if (!rule.test(input.externalPriceId))
     throw new Error(`Invalid ${rule.label} for ${input.provider}: ${rule.hint}`);
 
+  const db = await admin();
+  const { data: plan, error: planError } = await db.from("plans").select("id, billing_type, one_time_price").eq("id", input.planId).maybeSingle();
+  if (planError || !plan) throw new Error("Plan not found.");
+  if ((plan.billing_type === "lifetime") !== (input.interval === "lifetime")) throw new Error("The price interval must match the plan's billing type.");
+  if (input.interval === "lifetime" && input.provider !== "stripe") throw new Error("Lifetime access uses Stripe checkout.");
+
   // A lifetime plan may only be mapped to a genuinely one-time Stripe price —
   // saving a recurring price here would silently turn the deal into a
   // subscription at checkout.
   if (input.provider === "stripe" && input.interval === "lifetime") {
     const { stripeCall, BillingError } = await import("@/lib/billing/providers.server");
-    let price: { recurring?: unknown; active?: boolean } | null = null;
+    let price: LifetimeStripePrice | null = null;
     try {
       price = await stripeCall(
         input.environment,
-        `prices/${encodeURIComponent(input.externalPriceId)}`,
+        `prices/${encodeURIComponent(input.externalPriceId)}?expand[]=product`,
         undefined,
         "GET",
       );
@@ -152,14 +159,14 @@ export async function savePlanPrice(
         );
       throw new Error(`Stripe rejected this price: ${detail.slice(0, 300)}`);
     }
-    if (price?.recurring)
-      throw new Error(
-        "That Stripe price is recurring. The lifetime plan needs a one-time (non-recurring) price.",
-      );
-    if (price?.active === false) throw new Error("That Stripe price is archived in Stripe.");
+    validateLifetimeStripePrice(price, plan.one_time_price ?? 0);
+    const { data: shared, error: sharedError } = await db.from("billing_plan_prices")
+      .select("plan_id").eq("provider", "stripe").eq("environment", input.environment)
+      .eq("external_price_id", input.externalPriceId).neq("plan_id", input.planId);
+    if (sharedError) throw new Error(sharedError.message);
+    if (shared?.length) throw new Error("Each lifetime plan requires its own separate Stripe Price ID.");
   }
 
-  const db = await admin();
   const { error } = await db.from("billing_plan_prices").upsert(
     {
       plan_id: input.planId,
