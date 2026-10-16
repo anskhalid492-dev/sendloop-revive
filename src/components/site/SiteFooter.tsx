@@ -197,6 +197,15 @@ const ASK_AI_LINKS: AskAiLink[] = [
   },
 ];
 
+/** Competitor domains for favicons in the Comparisons column, keyed by href. */
+const comparisonDomains: Record<string, string> = {
+  "/compare/munchreach-vs-instantly": "instantly.ai",
+  "/compare/munchreach-vs-smartlead": "smartlead.ai",
+  "/compare/munchreach-vs-lemlist": "lemlist.com",
+  "/compare/munchreach-vs-apollo": "apollo.io",
+  "/compare/munchreach-vs-saleshandy": "saleshandy.com",
+};
+
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
   Campaigns: Send,
@@ -521,7 +530,23 @@ export function SiteFooter() {
                           {Icon ? (
                             <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground/70" />
                           ) : null}
-                          {l.label}
+                          {comparisonDomains[l.href] && l.label.startsWith("vs ") ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              vs
+                              <img
+                                src={`https://www.google.com/s2/favicons?domain=${comparisonDomains[l.href]}&sz=64`}
+                                alt=""
+                                aria-hidden="true"
+                                width={16}
+                                height={16}
+                                loading="lazy"
+                                className="size-4 shrink-0 rounded-sm"
+                              />
+                              {l.label.slice(3)}
+                            </span>
+                          ) : (
+                            l.label
+                          )}
                         </a>
                       </li>
                     );
