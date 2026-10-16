@@ -314,6 +314,7 @@ function AdminBlogRoute() {
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="authors">Authors</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts" className="space-y-4">
