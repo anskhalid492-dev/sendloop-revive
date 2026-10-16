@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { authorPersonRef } from "@/lib/blog-author";
 import { CONTENT_TYPE_LABELS, formatBlogDate, initials } from "@/lib/blog-model";
 import { getBlogPost } from "@/lib/blog.functions";
+import { loadBlogPromoBanner } from "@/lib/site-content.server";
+import { BlogPromoBanner } from "@/components/blog/BlogPromoBanner";
 import { NewsletterCard } from "@/components/blog/NewsletterCard";
 import { SITE_URL, absoluteUrl, breadcrumbJsonLd, NOINDEX_META } from "@/lib/seo";
 
