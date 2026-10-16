@@ -450,13 +450,14 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     const { requireWarmup } = await import("@/lib/billing/gates.server");
     await requireWarmup(account.workspace_id as string);
 
-    const { data: existing } = await client
+    const { data: existing, error: existingError } = await client
       .from("warmup_settings")
       .select(
         "id, enabled, started_at, paused_by_system, pause_reason, max_bounce_rate, min_health_score, current_volume, " + PROGRESSION_COLUMNS,
       )
       .eq("sending_account_id", accountId)
       .maybeSingle();
+    if (existingError) throw new Error("Warmup progression is not available yet. The database upgrade must be applied before saving these settings.");
 
     const preset = patch.mode ? WARMUP_MODES.find((m) => m.id === patch.mode) : undefined;
     const body: Record<string, unknown> = { ...patch };

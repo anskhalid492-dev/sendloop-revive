@@ -791,6 +791,10 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
     };
     const mailboxes = (rows ?? []) as Row[];
     if (mailboxes.length === 0) throw new Error("Mailbox not found");
+    for (const workspaceId of new Set(mailboxes.map(row => row.workspace_id))) {
+      const { data: allowed, error: permissionError } = await client.rpc("has_workspace_role", { _workspace_id: workspaceId, _user_id: context.userId, _roles: ["owner", "admin", "campaign_manager"] });
+      if (permissionError || !allowed) throw new Error("You do not have permission to edit warmup settings.");
+    }
 
     // Warmup is a plan feature. Checked per workspace before anything is
     // written, so no route, bulk action or API caller can switch it on without
@@ -881,12 +885,10 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
         enabled: data.enabled,
         paused_by_system: false,
         pause_reason: null,
-        started_at: data.enabled ? (settings?.started_at ?? now) : (settings?.started_at ?? null),
+        started_at: data.enabled ? now : null,
       };
 
-      const { error: writeError } = settings
-        ? await supabaseAdmin.from("warmup_settings").update(body).eq("id", settings.id)
-        : await supabaseAdmin.from("warmup_settings").insert({
+      const { error: writeError } = await supabaseAdmin.from("warmup_settings").insert({
             ...body,
             workspace_id: row.workspace_id,
             sending_account_id: accountId,
