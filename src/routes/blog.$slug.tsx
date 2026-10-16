@@ -75,7 +75,7 @@ export const Route = createFileRoute("/blog/$slug")({
             keywords: post.tags.join(", "),
             datePublished: post.published_at,
             dateModified: post.updated_at,
-            author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
+            author: post.author ? authorPersonRef(post.author) : undefined,
             publisher: { "@type": "Organization", name: "MunchReach", url: SITE_URL },
             ...(image ? { image: absoluteUrl(image) } : {}),
           }),

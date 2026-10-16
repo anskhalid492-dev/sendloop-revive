@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { ExternalLink, Linkedin, Loader2, Mail, Plus, Search, Trash2, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -1011,7 +1011,7 @@ function TagEditor({
   );
 }
 
-function AuthorSection({ title, children }: { title: string; children: React.ReactNode }) {
+function AuthorSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-4 rounded-lg border border-border/60 p-4">
       <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>
