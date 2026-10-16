@@ -1,0 +1,15 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const state = vi.hoisted(() => ({ upsert: vi.fn(), call: vi.fn(), shared: [] as { plan_id: string }[], mapping: { external_price_id: "price_test_starter" } as { external_price_id: string } | null }));
+vi.mock("@/lib/billing/core.server", () => ({ writeAudit: vi.fn(), admin: async () => ({ from: (table: string) => { const q = { select: () => q, eq: () => q, neq: () => q, maybeSingle: async () => ({ data: table === "plans" ? { id: "test-plan-starter", name: "Lifetime Starter", billing_type: "lifetime", one_time_price: 2900, is_active: true } : state.mapping, error: null }), then: (resolve: any) => resolve({ data: state.shared, error: null }), upsert: state.upsert }; return q; } }) }));
+vi.mock("@/lib/billing/providers.server", () => ({ stripeCall: state.call, BillingError: class extends Error { detail = "test provider rejection"; } }));
+import { savePlanPrice } from "@/lib/billing/admin.server";
+import { ensureStripePrice } from "@/lib/billing/stripe-sync.server";
+const input = { planId: "test-plan-starter", provider: "stripe" as const, environment: "test" as const, interval: "lifetime" as const, externalPriceId: "price_test_starter" };
+beforeEach(() => { state.shared = []; state.mapping = { external_price_id: "price_test_starter" }; state.upsert.mockReset().mockResolvedValue({ error: null }); state.call.mockReset().mockResolvedValue({ active: true, type: "one_time", currency: "usd", unit_amount: 2900, product: { active: true } }); });
+describe("isolated lifetime price configuration", () => {
+  it("saves only selected Starter mapping", async () => { await savePlanPrice(input, "test-admin-lifetime"); expect(state.upsert).toHaveBeenCalledWith(expect.objectContaining({ plan_id: "test-plan-starter", external_price_id: "price_test_starter", billing_interval: "lifetime" }), expect.anything()); });
+  it("refuses sharing the original price ID", async () => { state.shared = [{ plan_id: "test-plan-original" }]; await expect(savePlanPrice(input, "test-admin-lifetime")).rejects.toThrow(/separate/); expect(state.upsert).not.toHaveBeenCalled(); });
+  it("refuses non-USD price before saving", async () => { state.call.mockResolvedValue({ active: true, currency: "eur", unit_amount: 2900 }); await expect(savePlanPrice(input, "test-admin-lifetime")).rejects.toThrow(/USD/); expect(state.upsert).not.toHaveBeenCalled(); });
+  it("checkout never auto-creates a missing lifetime price", async () => { state.mapping = null; await expect(ensureStripePrice("test", "test-plan-starter", "lifetime")).rejects.toThrow(/configured/); expect(state.call).not.toHaveBeenCalled(); expect(state.upsert).not.toHaveBeenCalled(); });
+  it("checkout uses saved matching price without changing it", async () => { await expect(ensureStripePrice("test", "test-plan-starter", "lifetime")).resolves.toBe("price_test_starter"); expect(state.call).toHaveBeenCalledTimes(1); expect(state.upsert).not.toHaveBeenCalled(); });
+});
