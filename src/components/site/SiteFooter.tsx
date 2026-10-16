@@ -29,7 +29,7 @@ import { useSiteContent } from "@/lib/page-seo";
 import { communityPath } from "@/lib/community-model";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { BRAND_NAME } from "@/lib/branding";
+import { BRAND_NAME, brandFavicon } from "@/lib/branding";
 
 /**
  * The Company column is fixed in code, in this order, so it stays complete even
@@ -205,6 +205,9 @@ const comparisonDomains: Record<string, string> = {
   "/compare/munchreach-vs-apollo": "apollo.io",
   "/compare/munchreach-vs-saleshandy": "saleshandy.com",
 };
+
+/** Links that lead with MunchReach's own mark instead of a competitor favicon. */
+const ownFaviconHrefs = new Set(["/compare/munchreach-alternatives"]);
 
 /** Small leading icons for the Product column, matched by link label. */
 const productIcons: Record<string, typeof Send> = {
