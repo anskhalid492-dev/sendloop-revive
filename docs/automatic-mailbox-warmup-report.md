@@ -56,3 +56,6 @@ Implemented in the unpublished application. Additive migration applied to the to
 
 ## Release gate
 Do not deploy until production SQL is manually reviewed/applied and a named throwaway mailbox is used to verify settings persistence, dashboard/worker agreement, health pause/resume and provider capacity end-to-end. No live customer-base test sweep.
+
+## Update — legacy mailboxes convert to automatic (2026-10-16)
+Progression is always automatic. `resolveDailyTarget` converts any mailbox still in legacy mode with a known start date on its next tick, seeded exactly like the settings save path (calendar day + current daily volume), so the conversion day holds the legacy limit and progression resumes from there. Mailboxes with no known start date keep the legacy engine. The "Review needed" label (warmup dashboard) and the progression review note/mode picker were removed from the UI. New test file `tests/warmup-legacy-conversion.test.ts` covers seeding, unknown starts and no re-conversion.
