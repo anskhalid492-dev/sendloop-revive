@@ -54,7 +54,7 @@ const GRANT_DURATIONS: { value: string; label: string; days: number | null }[] =
 
 const LIMIT_LABELS: Record<string, string> = {
   max_emails_monthly: "Emails / month",
-  max_emails_daily: "Emails / day",
+  max_emails_daily: "Daily Sending Limit",
   max_leads: "Lead capacity",
   max_sending_accounts: "Mailboxes",
   max_domains: "Domains",

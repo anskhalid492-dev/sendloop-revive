@@ -49,7 +49,7 @@ const NUMBER_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "max_campaigns", label: "Campaign limit" },
   { key: "max_leads", label: "Lead limit" },
   { key: "max_emails_monthly", label: "Emails per month" },
-  { key: "max_emails_daily", label: "Emails per day", hint: "Hard daily sending cap. Blank = no daily cap." },
+  { key: "max_emails_daily", label: "Daily Sending Limit", hint: "Unlimited on all plans — plan-based daily caps are no longer enforced. Leave blank." },
   { key: "max_warmup_daily", label: "Warmup emails per day", hint: "Metered separately from campaign sends." },
   { key: "max_sending_accounts", label: "Sending accounts" },
   { key: "max_automations", label: "Automations" },

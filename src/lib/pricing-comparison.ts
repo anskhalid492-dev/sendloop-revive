@@ -69,7 +69,7 @@ export const PRICING_COMPARISON: PricingComparisonCategory[] = [
       { label: "Automated follow-ups", description: "Send follow-up steps on the configured schedule.", value: campaignFeature },
       { label: "Campaign scheduling", description: "Choose sending days, windows and campaign timing.", value: campaignFeature },
       { label: "Monthly email sends", description: "Plan allowance for campaign sends, follow-ups and replies.", value: monthlyEmails },
-      { label: "Daily send cap", description: "Plan-wide daily send cap where configured, alongside mailbox-level safety limits.", value: (plan) => number(plan.max_emails_daily, " / day") },
+      { label: "Daily Sending Limit", description: "No plan-based daily cap — send throughout the day. Mailbox-level and provider safety limits still apply.", value: () => "Unlimited" },
       { label: "Workflow automations", description: "Trigger, condition and action workflows for outreach operations.", value: (plan) => automationFeature(plan) ? number(plan.max_automations) : false },
     ],
   },

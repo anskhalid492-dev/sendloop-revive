@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { authorPersonRef } from "@/lib/blog-author";
 import { CONTENT_TYPE_LABELS, formatBlogDate, initials } from "@/lib/blog-model";
 import { getBlogPost } from "@/lib/blog.functions";
+import { loadBlogPromoBanner } from "@/lib/site-content.server";
+import { BlogPromoBanner } from "@/components/blog/BlogPromoBanner";
 import { NewsletterCard } from "@/components/blog/NewsletterCard";
 import { SITE_URL, absoluteUrl, breadcrumbJsonLd, NOINDEX_META } from "@/lib/seo";
 
@@ -27,7 +29,8 @@ export const Route = createFileRoute("/blog/$slug")({
       throw redirect({ to: "/blog/$slug", params: { slug: result.redirectTo }, replace: true });
     }
     if (!result.post) throw notFound();
-    return result;
+    const promoBanner = await loadBlogPromoBanner().catch(() => null);
+    return { ...result, promoBanner };
   },
   head: ({ params, loaderData }) => {
     const post = loaderData?.post;
@@ -130,7 +133,7 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 
 function ArticlePage() {
-  const { post, related } = Route.useLoaderData();
+  const { post, related, promoBanner } = Route.useLoaderData();
   if (!post) return null;
   const isHtml = (post as any).content_format === "html";
   const sections = isHtml ? parseHtmlToc(post.content) : parseArticle(post.content);
@@ -246,6 +249,12 @@ function ArticlePage() {
                 <TableOfContents sections={sections} />
               </div>
 
+              {promoBanner ? (
+                <div className="mt-8">
+                  <BlogPromoBanner config={promoBanner} variant="inline" />
+                </div>
+              ) : null}
+
               <div className="mt-8">
                 {isHtml ? <HtmlArticleBody html={post.content} /> : <ArticleBody sections={sections} />}
               </div>
@@ -277,6 +286,7 @@ function ArticlePage() {
             </div>
 
             <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+              {promoBanner ? <BlogPromoBanner config={promoBanner} variant="sidebar" /> : null}
               <div className="hidden lg:block">
                 <TableOfContents sections={sections} />
               </div>

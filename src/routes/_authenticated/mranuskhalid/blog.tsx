@@ -49,6 +49,9 @@ import {
   saveBlogPost,
   setBlogPostStatus,
 } from "@/lib/blog.functions";
+import { getBlogPromoBanner, saveBlogPromoBanner } from "@/lib/site-content.functions";
+import type { BlogPromoBannerConfig } from "@/lib/blog-promo-banner";
+import { BlogPromoBanner } from "@/components/blog/BlogPromoBanner";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/blog")({
   head: () => ({
@@ -314,6 +317,7 @@ function AdminBlogRoute() {
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="authors">Authors</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts" className="space-y-4">
@@ -449,6 +453,10 @@ function AdminBlogRoute() {
 
         <TabsContent value="media">
           <MediaLibraryPanel />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <PromoBannerSettings />
         </TabsContent>
       </Tabs>
 
@@ -1458,6 +1466,149 @@ function AuthorsPanel({ authors, onChanged }: { authors: any[]; onChanged: () =>
           ) : null}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function PromoBannerSettings() {
+  const queryClient = useQueryClient();
+  const getFn = useServerFn(getBlogPromoBanner);
+  const saveFn = useServerFn(saveBlogPromoBanner);
+  const query = useQuery({ queryKey: ["blog-promo-banner"], queryFn: () => getFn() });
+  const [form, setForm] = useState<BlogPromoBannerConfig | null>(null);
+  const config = form ?? query.data ?? null;
+
+  const saveMutation = useMutation({
+    mutationFn: (value: BlogPromoBannerConfig) => saveFn({ data: value }),
+    onSuccess: () => {
+      toast.success("Promotional banner saved");
+      setForm(null);
+      void queryClient.invalidateQueries({ queryKey: ["blog-promo-banner"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save the banner"),
+  });
+
+  if (!config) {
+    return (
+      <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Loading banner settings…
+      </div>
+    );
+  }
+
+  const set = <K extends keyof BlogPromoBannerConfig>(key: K, value: BlogPromoBannerConfig[K]) =>
+    setForm({ ...config, [key]: value });
+
+  const colorField = (label: string, key: keyof BlogPromoBannerConfig) => (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          aria-label={label}
+          className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+          value={String(config[key])}
+          onChange={(e) => set(key, e.target.value as never)}
+        />
+        <Input value={String(config[key])} onChange={(e) => set(key, e.target.value as never)} className="font-mono" />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-6">
+        <div className="rounded-lg border border-border/60 bg-card p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold">Promotional Banner</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                One centrally managed card shown in the sidebar of every published blog post. Disabling hides it
+                everywhere.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="promo-enabled" className="text-xs">Enabled</Label>
+              <Switch id="promo-enabled" checked={config.enabled} onCheckedChange={(v) => set("enabled", v)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-lg border border-border/60 bg-card p-5">
+          <h3 className="text-sm font-semibold">Content</h3>
+          <div className="space-y-1.5">
+            <Label htmlFor="promo-heading">Heading</Label>
+            <Input id="promo-heading" value={config.heading} maxLength={120} onChange={(e) => set("heading", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="promo-description">Description</Label>
+            <Textarea id="promo-description" value={config.description} maxLength={240} rows={2} onChange={(e) => set("description", e.target.value)} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="promo-cta">Button text</Label>
+              <Input id="promo-cta" value={config.ctaLabel} maxLength={80} onChange={(e) => set("ctaLabel", e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="promo-url">Button destination URL</Label>
+              <Input id="promo-url" value={config.ctaUrl} placeholder="/pricing" onChange={(e) => set("ctaUrl", e.target.value)} />
+              <p className="text-xs text-muted-foreground">Internal path like /pricing, or a full https:// URL.</p>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="promo-icon">Brand icon / image URL (optional)</Label>
+            <Input id="promo-icon" value={config.iconUrl} placeholder="Leave empty to use the MunchReach favicon" onChange={(e) => set("iconUrl", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-lg border border-border/60 bg-card p-5">
+          <h3 className="text-sm font-semibold">Appearance</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {colorField("Background color", "backgroundColor")}
+            {colorField("Text color", "textColor")}
+            {colorField("Button background", "buttonBackgroundColor")}
+            {colorField("Button text color", "buttonTextColor")}
+            {colorField("Border color", "borderColor")}
+            <div className="space-y-1.5">
+              <Label htmlFor="promo-radius">Border radius (px)</Label>
+              <Input id="promo-radius" type="number" min={0} max={32} value={config.borderRadius} onChange={(e) => set("borderRadius", Number(e.target.value))} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-lg border border-border/60 bg-card p-5">
+          <h3 className="text-sm font-semibold">Display</h3>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="promo-position">Sidebar position</Label>
+              <Input id="promo-position" type="number" min={0} max={99} value={config.position} onChange={(e) => set("position", Number(e.target.value))} />
+              <p className="text-xs text-muted-foreground">0 = top of the sidebar.</p>
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch id="promo-desktop" checked={config.showOnDesktop} onCheckedChange={(v) => set("showOnDesktop", v)} />
+              <Label htmlFor="promo-desktop" className="text-xs">Show on desktop</Label>
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch id="promo-mobile" checked={config.showOnMobile} onCheckedChange={(v) => set("showOnMobile", v)} />
+              <Label htmlFor="promo-mobile" className="text-xs">Show on mobile</Label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button disabled={saveMutation.isPending} onClick={() => saveMutation.mutate(config)}>
+            {saveMutation.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+            Save banner
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Live preview</p>
+        <div className="rounded-lg border border-dashed border-border/60 bg-secondary/20 p-4">
+          <BlogPromoBanner config={config} variant="sidebar" />
+        </div>
+      </div>
     </div>
   );
 }

@@ -349,6 +349,57 @@ export const saveFooterConfig = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const blogPromoBannerInput = z.object({
+  enabled: z.boolean(),
+  heading: z.string().trim().max(120),
+  description: z.string().trim().max(240),
+  ctaLabel: z.string().trim().max(80),
+  ctaUrl: z.string().trim().max(600),
+  iconUrl: z.string().trim().max(600),
+  backgroundColor: z.string().trim().max(20),
+  textColor: z.string().trim().max(20),
+  buttonBackgroundColor: z.string().trim().max(20),
+  buttonTextColor: z.string().trim().max(20),
+  borderColor: z.string().trim().max(20),
+  borderRadius: z.number().int().min(0).max(32),
+  position: z.number().int().min(0).max(99),
+  showOnDesktop: z.boolean(),
+  showOnMobile: z.boolean(),
+});
+
+/** Admin: read the blog sidebar promo banner config (defaults when unset). */
+export const getBlogPromoBanner = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { loadBlogPromoBanner } = await import("@/lib/site-content.server");
+    return loadBlogPromoBanner();
+  });
+
+/** Admin: save the single, centrally managed blog sidebar promo banner. */
+export const saveBlogPromoBanner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => blogPromoBannerInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { logContentChange } = await import("@/lib/site-content.server");
+    const { normalizeBlogPromoBanner, BLOG_PROMO_BANNER_KEY } = await import("@/lib/blog-promo-banner");
+    const value = normalizeBlogPromoBanner(data);
+    if (!value.heading || !value.ctaLabel || !value.ctaUrl) {
+      throw new Error("Heading, button text and destination URL are required.");
+    }
+    const db = context.supabase as any;
+    const { error } = await db
+      .from("site_settings")
+      .upsert(
+        { key: BLOG_PROMO_BANNER_KEY, value, updated_by: context.userId, updated_at: new Date().toISOString() },
+        { onConflict: "key" },
+      );
+    if (error) throw new Error(error.message);
+    await logContentChange(context.userId, "site_settings.blog_promo_banner", "site_settings", BLOG_PROMO_BANNER_KEY, { after: value });
+    return { ok: true };
+  });
+
 /** Admin: sitemap preview — the exact URLs the live sitemap emits. */
 export const getSitemapPreview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
