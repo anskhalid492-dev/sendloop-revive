@@ -92,7 +92,7 @@ function SocialIcon({ kind }: { kind: "linkedin" | "x" | "email" | "website" }) 
   return <Globe className="size-4" />;
 }
 
-function SocialLinks({ author, size = "icon" }: { author: BlogAuthor; size?: "icon" | "button" }) {
+function SocialLinks({ author, size = "icon" }: { author: BlogAuthor; size?: "icon" | "sm" }) {
   const links = authorSocialLinks(author);
   if (!links.length) return null;
   return (
@@ -105,7 +105,7 @@ function SocialLinks({ author, size = "icon" }: { author: BlogAuthor; size?: "ic
             {...(link.kind === "email" ? {} : { target: "_blank", rel: "noopener noreferrer" })}
           >
             <SocialIcon kind={link.kind} />
-            {size === "button" ? <span className="ml-1.5">{link.label}</span> : null}
+            {size === "sm" ? <span className="ml-1.5">{link.label}</span> : null}
           </a>
         </Button>
       ))}
@@ -119,7 +119,7 @@ function AuthorPage() {
   if (!author) return null;
 
   const visiblePosts = posts.slice(0, shown);
-  const firstPublished = posts.length ? posts[posts.length - 1].published_at : null;
+  const firstPublished = posts.length ? (posts[posts.length - 1]?.published_at ?? null) : null;
   const hasAbout =
     author.full_bio?.trim() || author.experience?.trim() || author.certifications?.trim() || author.languages?.trim();
   const hasTags = (author.expertise?.length ?? 0) > 0 || (author.topics?.length ?? 0) > 0;
@@ -294,7 +294,7 @@ function AuthorPage() {
         <Section>
           <div className="surface-card mx-auto flex max-w-3xl flex-col items-center gap-4 p-8 text-center">
             <h2 className="text-xl font-semibold">Connect with {author.name}</h2>
-            <SocialLinks author={author} size="button" />
+            <SocialLinks author={author} size="sm" />
           </div>
         </Section>
       ) : null}

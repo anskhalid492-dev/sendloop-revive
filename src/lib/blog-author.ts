@@ -68,10 +68,10 @@ export function authorProfileJsonLd(author: BlogAuthor): Record<string, unknown>
     url,
     description: authorMetaDescription(author),
   };
-  if (author.avatar_url) person.image = absoluteUrl(author.avatar_url);
-  if (author.role?.trim()) person.jobTitle = author.role.trim();
-  if (author.company?.trim()) person.worksFor = { "@type": "Organization", name: author.company.trim() };
-  if (sameAs.length) person.sameAs = sameAs;
+  if (author.avatar_url) person["image"] = absoluteUrl(author.avatar_url);
+  if (author.role?.trim()) person["jobTitle"] = author.role.trim();
+  if (author.company?.trim()) person["worksFor"] = { "@type": "Organization", name: author.company.trim() };
+  if (sameAs.length) person["sameAs"] = sameAs;
 
   return {
     "@context": "https://schema.org",
