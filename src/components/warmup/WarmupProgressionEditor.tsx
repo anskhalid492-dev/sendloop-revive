@@ -19,6 +19,6 @@ export function WarmupProgressionEditor({ mode, stages, limit, settings, onChang
     </tbody></table></div>
     <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={stages.length >= 12} onClick={() => { const last = stages.at(-1); if (last) onChange({ progression_stages: [...stages, { start_day: last.end_day + 1, end_day: last.end_day + 7, min_emails: last.max_emails, max_emails: Math.min(400, last.max_emails + 10) }] }); }}><Plus className="mr-1 size-3.5" />Add stage</Button>
       <Button size="sm" variant="ghost" onClick={() => onChange({ progression_stages: DEFAULT_WARMUP_STAGES.map(s => ({ ...s })) })}><RotateCcw className="mr-1 size-3.5" />Restore default schedule</Button></div>
-    {error ? <p role="alert" className="text-xs text-destructive">{error}</p> : <div className="flex flex-wrap gap-2">{Array.from({ length: 7 }, (_, i) => current.day + i).map(day => <span key={day} className="text-xs text-muted-foreground">Day {day}: {mode === "manual" ? limit : warmupStageLimit(day, stages).limit}/day</span>)}</div>}
+    {error ? <p role="alert" className="text-xs text-destructive">{error}</p> : null}
   </section>;
 }
