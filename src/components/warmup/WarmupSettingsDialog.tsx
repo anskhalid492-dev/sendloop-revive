@@ -154,7 +154,7 @@ export function WarmupSettingsDialog({
 
         <div className="space-y-5">
           {detail.error && <p role="alert" className="text-sm text-destructive">{detail.error.message}</p>}
-          <WarmupProgressionEditor mode={draft.progression_mode} stages={draft.progression_stages} limit={draft.manual_daily_limit} settings={settings} onChange={patch => setDraft(prev => ({ ...prev, ...patch }))} />
+          <WarmupProgressionEditor mode={draft.progression_mode} stages={draft.progression_stages} limit={draft.manual_daily_limit} onChange={patch => setDraft(prev => ({ ...prev, ...patch }))} />
           {draft.progression_mode === "legacy" && <>
           <div className="grid gap-2 sm:grid-cols-3">
             {WARMUP_MODES.map((mode) => (
