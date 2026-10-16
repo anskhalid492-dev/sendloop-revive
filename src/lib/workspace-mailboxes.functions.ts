@@ -204,7 +204,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const { data: warmupRows, error: warmupError } = accountIds.length
       ? await client
           .from("warmup_settings")
-          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason, started_at, current_volume, " + PROGRESSION_COLUMNS)
+          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason, started_at, current_volume, ramp_stage, " + PROGRESSION_COLUMNS)
           .in("sending_account_id", accountIds)
       : { data: [], error: null };
     if (warmupError) throw new Error("Warmup progression requires the database upgrade before mailbox details can be displayed.");
@@ -213,6 +213,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       enabled: boolean | null;
       max_volume: number | null;
       current_volume: number | null;
+      ramp_stage: string | null;
 
       paused_by_system: boolean | null;
       pause_reason: string | null;
@@ -277,7 +278,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const rows: WorkspaceMailboxRow[] = mailboxes.map((row) => {
       const account = byEmail.get(row.email_address.toLowerCase()) ?? null;
       const warmup = account ? warmupByAccount.get(account.id) ?? null : null;
-      const progression = resolveWarmupProgression(warmup ?? {}, !row.is_active || !warmup?.enabled || !!warmup.paused_by_system || !!account?.paused || account?.customer_enabled === false || (account?.health_score !== null && account?.health_score !== undefined && account.health_score < 70));
+      const progression = resolveWarmupProgression(warmup ?? {}, !row.is_active || !warmup?.enabled || !!warmup.paused_by_system || warmup.ramp_stage === "recovery" || !!account?.paused || account?.customer_enabled === false || (account?.health_score !== null && account?.health_score !== undefined && account.health_score < 70));
       const automatic = warmup?.progression_mode && warmup.progression_mode !== "legacy";
       const warmupStat = account ? warmupStatsById.get(account.id) : undefined;
       const auth = authByMailbox.get(row.id) ?? null;

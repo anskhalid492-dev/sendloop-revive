@@ -271,7 +271,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
           ? "blocked"
           : "on";
 
-      const progression = resolveWarmupProgression(setting as WarmupSettings ?? {}, state !== "on" || safetyActive || (base.health_score !== null && base.health_score < 70));
+      const progression = resolveWarmupProgression(setting as WarmupSettings ?? {}, state !== "on" || safetyActive || setting?.["ramp_stage"] === "recovery" || (base.health_score !== null && base.health_score < 70));
       const usesProgression = setting?.["progression_mode"] && setting["progression_mode"] !== "legacy";
 
       return {
