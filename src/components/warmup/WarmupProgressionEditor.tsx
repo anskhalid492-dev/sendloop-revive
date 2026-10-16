@@ -19,7 +19,7 @@ export function WarmupProgressionEditor({ mode, stages, limit, settings, onChang
       {mode === "legacy" && <span className="text-xs text-muted-foreground">Existing schedule · review before switching</span>}
     </div>
     {settings?.progression_review_required && <p className="text-xs text-muted-foreground">Existing mailbox: review its start date and current limit before enabling progression.</p>}
-    {mode === "manual" && <div className="space-y-2"><Label htmlFor="manual-warmup-limit">Manual daily limit</Label><div className="flex items-center gap-2">
+    {mode === "manual" && <div className="space-y-2"><Label htmlFor="manual-warmup-limit">Manual daily limit</Label><div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="icon" aria-label="Decrease daily limit" onClick={() => onChange({ manual_daily_limit: Math.max(1, limit - 1) })}><Minus className="size-4" /></Button>
       <Input id="manual-warmup-limit" className="w-24" type="number" min={1} max={400} value={limit} onChange={e => onChange({ manual_daily_limit: Number(e.target.value) })} />
       <Button variant="outline" size="icon" aria-label="Increase daily limit" onClick={() => onChange({ manual_daily_limit: Math.min(400, limit + 1) })}><Plus className="size-4" /></Button>

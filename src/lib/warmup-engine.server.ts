@@ -25,6 +25,7 @@ import {
   type WarmupStageAction,
 } from "@/lib/warmup-ramp";
 import { evaluateMailboxCapacity } from "@/lib/mailbox-capacity";
+import { warmupHourlyLimit } from "@/lib/mailbox-hourly-cap";
 import { PROGRESSION_COLUMNS, resolveWarmupProgression, type ProgressionSettings } from "@/lib/warmup-progression";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -868,6 +869,16 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
   if (!await applySafety(admin, account as AccountRow, liveSettings as SettingsRow, summary)) return cancel("Warmup safety protection is active.");
   const liveDecision = await resolveDailyTarget(admin, account as AccountRow, liveSettings as SettingsRow);
   if (liveDecision.target <= 0) return cancel(liveDecision.reason);
+  const hourSince = new Date(Date.now() - 3600000).toISOString();
+  const [{ data: limits }, { count: warmupAttempts }, { count: campaignSends }] = await Promise.all([
+    admin.from("sending_accounts").select("hourly_limit").eq("id", accountId).maybeSingle(),
+    admin.from("warmup_jobs").select("id", { count: "exact", head: true }).eq("sending_account_id", accountId).gte("send_reserved_at", hourSince),
+    admin.from("campaign_messages").select("id", { count: "exact", head: true }).eq("sending_account_id", accountId).eq("status", "sent").gte("sent_at", hourSince),
+  ]);
+  if ((warmupAttempts ?? 0) + (campaignSends ?? 0) >= warmupHourlyLimit(limits?.hourly_limit)) {
+    await admin.from("warmup_jobs").update({ status: "queued", locked_by: null, locked_at: null, next_attempt_at: new Date(Date.now() + 3600000).toISOString(), error: "Mailbox hourly capacity is temporarily unavailable." }).eq("id", jobId);
+    return;
+  }
   if (!withinWindow(liveSettings as SettingsRow, new Date()) || new Date().getUTCHours() < liveSettings.send_start_hour || new Date().getUTCHours() >= liveSettings.send_end_hour) {
     return cancel("Outside the warmup sending window.");
   }

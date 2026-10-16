@@ -153,7 +153,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
       .toISOString()
       .slice(0, 10);
 
-    const [{ data: settings }, { data: stats }, { data: windowStats }] = await Promise.all([
+    const [{ data: settings, error: settingsError }, { data: stats }, { data: windowStats }] = await Promise.all([
       client.from("warmup_settings").select(SETTINGS_COLUMNS).in("sending_account_id", ids),
       client
         .from("warmup_daily_stats")
@@ -166,6 +166,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
         .in("sending_account_id", ids)
         .gte("day", safetySince),
     ]);
+    if (settingsError) throw new Error("Warmup progression requires the database upgrade before it can be displayed.");
 
     const windowStatsById = new Map<string, SafetyStatRow[]>();
     for (const row of (windowStats ?? []) as Array<Record<string, unknown>>) {
@@ -270,7 +271,7 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
           ? "blocked"
           : "on";
 
-      const progression = resolveWarmupProgression(setting as WarmupSettings ?? {}, state !== "on" || safetyActive || (base.health_score !== null && base.health_score < 70));
+      const progression = resolveWarmupProgression(setting as WarmupSettings ?? {}, state !== "on" || safetyActive || setting?.["ramp_stage"] === "recovery" || (base.health_score !== null && base.health_score < 70));
       const usesProgression = setting?.["progression_mode"] && setting["progression_mode"] !== "legacy";
 
       return {
@@ -390,6 +391,7 @@ export const getWarmupAccount = createServerFn({ method: "GET" })
 
     if (account.error) throw new Error(account.error.message);
     if (!account.data) throw new Error("Mailbox not found");
+    if (settings.error) throw new Error("Warmup progression requires the database upgrade before settings can be opened.");
 
     return {
       account: account.data,
@@ -450,13 +452,14 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     const { requireWarmup } = await import("@/lib/billing/gates.server");
     await requireWarmup(account.workspace_id as string);
 
-    const { data: existing } = await client
+    const { data: existing, error: existingError } = await client
       .from("warmup_settings")
       .select(
         "id, enabled, started_at, paused_by_system, pause_reason, max_bounce_rate, min_health_score, current_volume, " + PROGRESSION_COLUMNS,
       )
       .eq("sending_account_id", accountId)
       .maybeSingle();
+    if (existingError) throw new Error("Warmup progression is not available yet. The database upgrade must be applied before saving these settings.");
 
     const preset = patch.mode ? WARMUP_MODES.find((m) => m.id === patch.mode) : undefined;
     const body: Record<string, unknown> = { ...patch };
@@ -543,6 +546,10 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     }
     if (patch.enabled) {
       body["started_at"] = existing ? existing.started_at : new Date().toISOString();
+    }
+    if (patch.send_start_hour !== undefined || patch.send_end_hour !== undefined) {
+      const { data: hours } = await client.from("warmup_settings").select("send_start_hour, send_end_hour").eq("sending_account_id", accountId).maybeSingle();
+      if ((patch.send_start_hour ?? hours?.send_start_hour ?? 8) >= (patch.send_end_hour ?? hours?.send_end_hour ?? 18)) throw new Error("Sending window end must be after its start.");
     }
 
 

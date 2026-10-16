@@ -153,6 +153,7 @@ export function WarmupSettingsDialog({
         </DialogHeader>
 
         <div className="space-y-5">
+          {detail.error && <p role="alert" className="text-sm text-destructive">{detail.error.message}</p>}
           <WarmupProgressionEditor mode={draft.progression_mode} stages={draft.progression_stages} limit={draft.manual_daily_limit} settings={settings} onChange={patch => setDraft(prev => ({ ...prev, ...patch }))} />
           {draft.progression_mode === "legacy" && <>
           <div className="grid gap-2 sm:grid-cols-3">
@@ -355,7 +356,7 @@ export function WarmupSettingsDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || detail.isPending || Boolean(validateWarmupStages(draft.progression_stages))}>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || detail.isPending || detail.isError || Boolean(validateWarmupStages(draft.progression_stages))}>
             {saveMutation.isPending ? "Saving…" : "Save progression settings"}
           </Button>
         </DialogFooter>

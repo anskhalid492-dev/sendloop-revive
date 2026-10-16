@@ -201,17 +201,19 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const accountIds = accounts.map((row) => row.id);
 
     // Real warmup state lives in warmup_settings, keyed by sending account.
-    const { data: warmupRows } = accountIds.length
+    const { data: warmupRows, error: warmupError } = accountIds.length
       ? await client
           .from("warmup_settings")
-          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason, started_at, current_volume, " + PROGRESSION_COLUMNS)
+          .select("sending_account_id, enabled, max_volume, paused_by_system, pause_reason, started_at, current_volume, ramp_stage, " + PROGRESSION_COLUMNS)
           .in("sending_account_id", accountIds)
-      : { data: [] };
+      : { data: [], error: null };
+    if (warmupError) throw new Error("Warmup progression requires the database upgrade before mailbox details can be displayed.");
     type WarmupRecord = ProgressionSettings & {
       sending_account_id: string;
       enabled: boolean | null;
       max_volume: number | null;
       current_volume: number | null;
+      ramp_stage: string | null;
 
       paused_by_system: boolean | null;
       pause_reason: string | null;
@@ -276,7 +278,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
     const rows: WorkspaceMailboxRow[] = mailboxes.map((row) => {
       const account = byEmail.get(row.email_address.toLowerCase()) ?? null;
       const warmup = account ? warmupByAccount.get(account.id) ?? null : null;
-      const progression = resolveWarmupProgression(warmup ?? {}, !row.is_active || !warmup?.enabled || !!warmup.paused_by_system || !!account?.paused || account?.customer_enabled === false || (account?.health_score !== null && account?.health_score !== undefined && account.health_score < 70));
+      const progression = resolveWarmupProgression(warmup ?? {}, !row.is_active || !warmup?.enabled || !!warmup.paused_by_system || warmup.ramp_stage === "recovery" || !!account?.paused || account?.customer_enabled === false || (account?.health_score !== null && account?.health_score !== undefined && account.health_score < 70));
       const automatic = warmup?.progression_mode && warmup.progression_mode !== "legacy";
       const warmupStat = account ? warmupStatsById.get(account.id) : undefined;
       const auth = authByMailbox.get(row.id) ?? null;
@@ -791,6 +793,10 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
     };
     const mailboxes = (rows ?? []) as Row[];
     if (mailboxes.length === 0) throw new Error("Mailbox not found");
+    for (const workspaceId of new Set(mailboxes.map(row => row.workspace_id))) {
+      const { data: allowed, error: permissionError } = await client.rpc("has_workspace_role", { _workspace_id: workspaceId, _user_id: context.userId, _roles: ["owner", "admin", "campaign_manager"] });
+      if (permissionError || !allowed) throw new Error("You do not have permission to edit warmup settings.");
+    }
 
     // Warmup is a plan feature. Checked per workspace before anything is
     // written, so no route, bulk action or API caller can switch it on without
@@ -881,12 +887,10 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
         enabled: data.enabled,
         paused_by_system: false,
         pause_reason: null,
-        started_at: data.enabled ? (settings?.started_at ?? now) : (settings?.started_at ?? null),
+        started_at: data.enabled ? now : null,
       };
 
-      const { error: writeError } = settings
-        ? await supabaseAdmin.from("warmup_settings").update(body).eq("id", settings.id)
-        : await supabaseAdmin.from("warmup_settings").insert({
+      const { error: writeError } = await supabaseAdmin.from("warmup_settings").insert({
             ...body,
             workspace_id: row.workspace_id,
             sending_account_id: accountId,
