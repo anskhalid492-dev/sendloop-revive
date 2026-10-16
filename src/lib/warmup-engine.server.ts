@@ -503,7 +503,7 @@ export async function resolveDailyTarget(
 
   if (settings.progression_mode && settings.progression_mode !== "legacy") {
     const unhealthy = account.health_score !== null && account.health_score < 70;
-    const blocked = settings.paused_by_system || !settings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || ["paused", "recovery", "hold"].includes(decision.stage) && decision.action !== "hold" || decision.stage === "recovery";
+    const blocked = settings.paused_by_system || !settings.enabled || account.paused || !account.customer_enabled || unhealthy || throttled || decision.stage === "paused" || decision.stage === "recovery";
     const progression = resolveWarmupProgression(settings, blocked);
     let limit = progression.effectiveLimit;
     if (decision.stage === "recovery" && !unhealthy) limit = Math.min(progression.limit, decision.target);

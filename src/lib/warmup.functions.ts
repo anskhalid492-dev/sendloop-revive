@@ -445,6 +445,8 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     if (!account) throw new Error("Mailbox not found");
 
     // Warmup is a plan feature; enforced here so API callers cannot enable it.
+    const { data: canManage, error: permissionError } = await client.rpc("has_workspace_role", { _workspace_id: account.workspace_id, _user_id: context.userId, _roles: ["owner", "admin", "campaign_manager"] });
+    if (permissionError || !canManage) throw new Error("You do not have permission to edit warmup settings.");
     const { requireWarmup } = await import("@/lib/billing/gates.server");
     await requireWarmup(account.workspace_id as string);
 
@@ -459,7 +461,12 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     const preset = patch.mode ? WARMUP_MODES.find((m) => m.id === patch.mode) : undefined;
     const body: Record<string, unknown> = { ...patch };
     if (patch.progression_mode && patch.progression_mode !== "legacy") {
-      if (existing && !existing.started_at) throw new Error("Warmup start date is unknown. Review this mailbox's historical activity before enabling automatic progression.");
+      if (existing && !existing.started_at) {
+        const { data: first } = await client.from("warmup_daily_stats").select("day").eq("sending_account_id", accountId).gt("sent", 0).order("day").limit(1);
+        if (!first?.[0]?.day) throw new Error("Warmup start date is unknown. Keep the existing schedule until this mailbox's historical activity can be reviewed.");
+        existing.started_at = `${first[0].day}T00:00:00Z`;
+        body["started_at"] = existing.started_at;
+      }
       if (existing?.progression_mode === "legacy") {
         const start = existing.started_at as string;
         const day = Math.max(1, Math.floor((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(new Date(start).toISOString().slice(0, 10))) / 86400000) + 1);
@@ -535,7 +542,7 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       if (existing && (!existing.enabled || existing.paused_by_system)) body["progression_date"] = new Date().toISOString().slice(0, 10);
     }
     if (patch.enabled) {
-      body["started_at"] = existing?.started_at ?? new Date().toISOString();
+      body["started_at"] = existing ? existing.started_at : new Date().toISOString();
     }
 
 
@@ -604,6 +611,12 @@ export const bulkSetWarmup = createServerFn({ method: "POST" })
         .select("id, started_at")
         .eq("sending_account_id", account.id)
         .maybeSingle();
+      if (existing) {
+        const result = await saveWarmupSettings({ data: { accountId: account.id, enabled: data.enabled, resume: data.enabled } });
+        if (result.blocked) throw new Error(result.message);
+        changed += 1;
+        continue;
+      }
       const body = {
         enabled: data.enabled,
         paused_by_system: false,

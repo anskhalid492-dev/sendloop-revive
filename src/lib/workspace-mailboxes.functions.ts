@@ -866,6 +866,17 @@ export const setMailboxWarmup = createServerFn({ method: "POST" })
         .maybeSingle();
       const settings = existingSettings as { id: string; started_at: string | null } | null;
 
+      // Delegate existing settings to the same permission/safety-aware action
+      // as the dashboard; a list toggle cannot clear an active system pause.
+      if (settings) {
+        const { saveWarmupSettings } = await import("@/lib/warmup.functions");
+        const result = await saveWarmupSettings({ data: { accountId, enabled: data.enabled, resume: data.enabled } });
+        if (result.blocked) throw new Error(result.message);
+        await supabaseAdmin.from("mailboxes").update({ warmup_enabled: data.enabled, updated_at: now }).eq("id", row.id);
+        changed += 1;
+        continue;
+      }
+
       const body = {
         enabled: data.enabled,
         paused_by_system: false,
