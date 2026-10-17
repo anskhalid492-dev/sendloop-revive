@@ -1,5 +1,10 @@
 # Roadmap
 
+## Warmup table activity and spam guidance
+- [x] Replace Replied with relative successful warmup activity; change unknown spam guidance at 100/below 80 health only.
+- [x] Verify isolated rules and 104 warmup regressions; automatic production compilation passed. No publication or sending changes.
+- [ ] Verify signed-in table with named throwaway mailbox — blocked: externally managed sign-in has no available test-account session.
+
 ## Lifetime Starter
 - [x] Inspect existing plan configuration, selection, checkout and webhook verification.
 - [x] Prepare additive Starter data transaction: cloned features, 4,000 contacts, 10,000 monthly emails, $29; preserve original.

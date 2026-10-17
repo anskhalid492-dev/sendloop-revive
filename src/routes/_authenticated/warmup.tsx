@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -37,6 +37,7 @@ import { usePlanGates } from "@/hooks/usePlanGates";
 import { Link } from "@tanstack/react-router";
 import { listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
 import { cn } from "@/lib/utils";
+import { warmupActivityLabel, warmupSpamLabel } from "@/lib/warmup-table";
 
 
 export const Route = createFileRoute("/_authenticated/warmup")({
@@ -96,6 +97,12 @@ function WarmupPage() {
   const runNowFn = useServerFn(runWarmupNow);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [activityNow, setActivityNow] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    setActivityNow(Date.now());
+    const timer = setInterval(() => setActivityNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
   const { connected: liveConnected } = useWarmupRealtime();
   const { workspace } = useWorkspace();
   // UX only — saveWarmupSettings / runWarmupNow re-check the plan server-side.
@@ -257,7 +264,7 @@ function WarmupPage() {
                   <th className="px-3 py-2.5 text-right font-medium">Inbox</th>
                   <th className="px-3 py-2.5 text-right font-medium">Spam</th>
                   <th className="px-3 py-2.5 text-right font-medium">Bounced</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Replied</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Last Activity</th>
                   <th className="px-3 py-2.5 text-right font-medium">Actions</th>
                 </tr>
               </thead>
@@ -410,11 +417,26 @@ function WarmupPage() {
                         row.spam_today > 0 ? "text-amber-600" : "",
                       )}
                     >
-                      {placement(row.spam_today, row.inbox_today, row.sent_today)}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>{warmupSpamLabel(row.spam_today, row.inbox_today, row.sent_today, row.health_score)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          {row.spam_today > 0 || row.inbox_today > 0
+                            ? "Measured spam-folder placement."
+                            : "Health-based guidance only; spam-folder placement has not been measured."}
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
 
                     <td className="px-3 py-2.5 text-right tabular-nums">{row.bounced_today}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{row.replied_today}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">
+                      {row.last_activity_at ? (
+                        <time dateTime={row.last_activity_at} title={new Date(row.last_activity_at).toLocaleString()}>
+                          {warmupActivityLabel(row.last_activity_at, activityNow)}
+                        </time>
+                      ) : "Not available"}
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className="flex justify-end gap-1.5">
                         <Button
