@@ -177,18 +177,9 @@ export const listWarmupAccounts = createServerFn({ method: "GET" })
     }
 
 
-    // Last real warmup activity per mailbox (send/delivery/bounce/reply event).
-    const { data: recentEvents } = await client
-      .from("warmup_events")
-      .select("sending_account_id, occurred_at")
-      .in("sending_account_id", ids)
-      .order("occurred_at", { ascending: false })
-      .limit(300);
-    const lastActivity = new Map<string, string>();
-    for (const row of (recentEvents ?? []) as Array<Record<string, unknown>>) {
-      const key = row["sending_account_id"] as string;
-      if (!lastActivity.has(key)) lastActivity.set(key, row["occurred_at"] as string);
-    }
+    // Success-only history, never scheduler execution or failed attempts.
+    const { latestSuccessfulWarmupActivity } = await import("@/lib/warmup-table");
+    const lastActivity = await latestSuccessfulWarmupActivity(client, ids);
 
     const settingsById = new Map(
       ((settings ?? []) as Array<Record<string, unknown>>).map((s) => [
