@@ -350,7 +350,7 @@ function WarmupPage() {
                       />
                     </td>
                     <td className="w-44 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-medium">Day {row.ramp_day || 1} · {row.progression_mode === "legacy" ? STAGE_LABEL[row.ramp_stage as keyof typeof STAGE_LABEL] : `Stage ${row.progression_stage}`} · {row.progression_mode === "manual" ? "Manual" : row.progression_mode === "legacy" ? "Legacy" : "Automatic"}</p>
+                      <p className="mb-1 text-xs font-medium">Day {row.ramp_day || 1}</p>
                       <p className="mb-1 text-xs text-muted-foreground">Next day: {row.next_daily_limit}/day</p>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
@@ -390,9 +390,11 @@ function WarmupPage() {
                         {STAGE_LABEL[(row.ramp_stage as keyof typeof STAGE_LABEL) ?? "ramp_up"] ??
                           "Ramping up"}
                       </span>
-                      <span className="block text-xs capitalize text-muted-foreground">
-                        {row.mode} · {row.max_volume || "—"}/day
-                      </span>
+                      {row.progression_mode === "legacy" ? (
+                        <span className="block text-xs capitalize text-muted-foreground">
+                          {row.mode} · {row.max_volume || "—"}/day
+                        </span>
+                      ) : null}
                       {row.temp_failure_rate !== null ? (
                         <span className="block text-[11px] text-muted-foreground">
                           {row.temp_failure_rate}% failures
