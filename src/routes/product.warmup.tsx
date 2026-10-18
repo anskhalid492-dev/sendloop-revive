@@ -42,14 +42,15 @@ import {
   WarmupSettingsMock,
 } from "@/components/site/WarmupProductMocks";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_WARMUP_STAGES } from "@/lib/warmup-progression";
 
 const faqs = [
-  { q: "What is email warmup?", a: "Email warmup is the gradual building of sending activity on a mailbox while its delivery, reply, bounce, complaint, authentication, and provider signals are monitored." },
+  { q: "What is email warmup?", a: "Email warmup is scheduled, gradual activity through your connected mailbox. MunchReach records provider acceptance, confirmed arrivals where observable, replies and failures separately. These are not a guarantee of campaign inbox placement." },
   { q: "Why should I warm up a new mailbox?", a: "A new mailbox has little sending history. Controlled activity gives it time to establish a consistent pattern before campaign volume increases." },
-  { q: "How does MunchReach warmup work?", a: "Connect a mailbox, choose its settings, and enable warmup. MunchReach schedules bounded activity, monitors real health signals, and moves the mailbox through Ramp Up, Stable, Hold, Recovery, or Pause." },
+  { q: "How does MunchReach warmup work?", a: "Connect your own mailbox and enable warmup. Each mailbox progresses independently by UTC day within its configured stages. Health safeguards and capacity can hold, reduce or pause activity. Messages are delivered through your connected provider or SMTP server, subject to its policies." },
   { q: "Does warmup count toward my campaign sending numbers?", a: "No. Warmup activity is kept out of campaign analytics, campaign conversations, CRM activity, and your normal Unified Inbox. It still respects the mailbox's real sending capacity." },
   { q: "Can I control the warmup volume?", a: "Yes. Supported settings include starting volume, maximum daily volume, ramp behavior, sending days and window, plus health and bounce protections." },
-  { q: "What are Conservative, Balanced and Aggressive warmup presets?", a: "They are starting configurations for a slower, standard, or faster ramp. Aggressive does not override mailbox health, provider limits, campaign priority, or safety controls." },
+  { q: "How does automatic progression handle pauses?", a: "Automatic progression keeps per-mailbox day and volume checkpoints. Pauses and poor health freeze progression; downtime does not trigger a catch-up jump. A manual daily limit does not reset the mailbox start or history, and safety controls remain authoritative." },
   { q: "How do I know if my mailbox needs attention?", a: "The Warmup page shows mailbox health, current ramp state, recent activity, failures, and a plain-language reason when volume is held, reduced, or paused." },
   { q: "Can MunchReach automatically pause a mailbox?", a: "Yes. When configured protection rules are triggered by serious bounce, complaint, authentication, or health signals, MunchReach can pause warmup and show the reason." },
   { q: "Can I warm up multiple mailboxes?", a: "Yes. Each connected mailbox has its own settings, health, volume, ramp state, history, and pause or resume controls." },
@@ -59,7 +60,7 @@ const faqs = [
 export const Route = createFileRoute("/product/warmup")({
   head: () => metaFor(
     "MunchReach Warmup — Warm Up Your Email Mailboxes Before Scaling",
-    "Warm up your email mailboxes gradually with MunchReach. Monitor mailbox health, control warmup volume, track activity and protect your sending reputation.",
+    "Warm up your email mailboxes gradually with MunchReach. Monitor available mailbox health signals, control automatic warmup progression and track activity separately from campaign inbox placement.",
     "/product/warmup",
     faqs,
   ),
@@ -130,11 +131,19 @@ function WarmupProductPage() {
       <div className="space-y-7"><WarmupDashboardMock /><ProductCallouts /></div>
     </Section>
 
-    <Section title="Control How Each Mailbox Warms Up" description="Choose a starting point, then keep the real limits and protections in control."><WarmupSettingsMock /></Section>
+    <Section title="Control How Each Mailbox Warms Up" description="Each mailbox has its own UTC start, progression and limits. The default schedule below is configuration, not a performance result; health safeguards, pauses, manual limits and provider capacity can reduce actual activity.">
+      <div className="mb-7 overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-secondary"><tr><th className="px-4 py-3">Effective warmup days</th><th className="px-4 py-3">Default daily range</th></tr></thead>
+          <tbody>{DEFAULT_WARMUP_STAGES.map(stage => <tr key={stage.start_day} className="border-t border-border"><td className="px-4 py-3">Days {stage.start_day}–{stage.end_day}</td><td className="px-4 py-3">{stage.min_emails}–{stage.max_emails} warmup emails</td></tr>)}</tbody>
+        </table>
+      </div>
+      <WarmupSettingsMock />
+    </Section>
 
     <Section muted title="Warmup Doesn't Steal Your Campaign Numbers" description="MunchReach keeps warmup activity separate from campaign metrics so you can understand what your mailbox is doing without confusing warmup activity with real campaign performance."><SeparateTracksMock /></Section>
 
-    <Section title="Know When a Mailbox Needs Attention" description="Health reflects real available signals such as recent sends, delivery failures, bounces, complaints, replies, throttling, and authentication.">
+    <Section title="Know When a Mailbox Needs Attention" description="Mailbox health is a MunchReach-calculated indicator from recent warmup events and available account/authentication signals. It is not an external provider reputation score or an inbox placement percentage.">
       <div className="space-y-8">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{[
           ["Active", "bg-success/10 text-success"], ["Warming", "bg-primary/10 text-primary"], ["Paused", "bg-muted text-muted-foreground"], ["Inactive", "bg-secondary text-secondary-foreground"], ["Error", "bg-destructive/10 text-destructive"],
@@ -146,25 +155,34 @@ function WarmupProductPage() {
           <span className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive">Poor</span>
         </div>
         <HealthTimeline />
-        <p className="mx-auto max-w-3xl text-center text-sm text-muted-foreground">Authentication is shown when it can be verified; otherwise MunchReach shows that manual verification is required. Mailbox health helps explain current signals—it does not guarantee inbox placement.</p>
+        <p className="mx-auto max-w-3xl text-center text-sm text-muted-foreground">Authentication is shown when it can be verified; otherwise manual verification is required. Inbox or spam placement is recorded only when receiving-side evidence is available. Missing placement evidence stays unavailable—it is never counted as inbox success. Warmup placement does not establish campaign deliverability.</p>
       </div>
     </Section>
 
     <Section muted title="Built-In Protection When Something Looks Wrong">
       <div className="grid gap-4 sm:grid-cols-2">{[
         { icon: ShieldAlert, title: "Bounce Protection", text: "Detect unusual bounce behavior, suppress hard-bounced addresses, and prevent continued sending when protection rules are triggered." },
-        { icon: AlertTriangle, title: "Complaint Protection", text: "Monitor complaint signals, suppress complained addresses immediately, and protect the mailbox from a risky condition." },
+        { icon: AlertTriangle, title: "Complaint Protection", text: "Use complaint signals when available to restrict activity under configured safety rules; provider feedback is not available for every mailbox." },
         { icon: PauseCircle, title: "Automatic Pause", text: "A mailbox can be paused when configured safety thresholds are reached." },
         { icon: RotateCcw, title: "Clear Recovery", text: "See why activity was reduced or paused and what needs attention before the mailbox resumes." },
       ].map((item) => <MiniControl key={item.title} {...item} />)}</div>
     </Section>
 
-    <Section title="See What Your Mailboxes Are Doing" description="Monitor warmup volume, health, recent events, and ramp decisions without digging through multiple screens."><WarmupActivityMock /></Section>
+    <Section title="What Warmup Activity Can—and Cannot—Show" description="We do not publish a verified platform-wide deliverability rate, inbox placement rate or average mailbox health. The examples on this page are not customer results or an aggregated benchmark.">
+      <WarmupActivityMock />
+      <div className="mt-7 grid gap-5 sm:grid-cols-3">
+        {[
+          ["Provider acceptance", "A sent event records the provider accepting a message. It does not prove arrival or inbox placement."],
+          ["Confirmed arrival and placement", "Arrival is confirmed separately when observable. Inbox/spam placement requires receiving-side evidence; unobservable messages remain unavailable."],
+          ["Your mailbox history", "Review warmup activity for your selected period and mailboxes. Counts reflect recorded events, not every recipient provider or future campaign outcome."],
+        ].map(([title, text]) => <div key={title} className="border-l-2 border-primary/30 pl-4"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p></div>)}
+      </div>
+    </Section>
 
     <Section muted title="Manage Every Sending Account From One Workspace" description="Monitor multiple sending accounts without opening each mailbox individually."><MailboxManagementMock /></Section>
 
-    <Section title="Build Mailbox Health Before You Build Sending Volume">
-      <BeforeAfter beforeTitle="Before" afterTitle="After" before={["New mailbox", "No sending history", "Low sending activity", "Needs gradual ramp"]} after={["Consistent sending activity", "Monitored health", "Controlled volume", "Ready to scale responsibly"]} />
+    <Section title="Build Sending Activity With Health Safeguards">
+      <BeforeAfter beforeTitle="Before" afterTitle="After" before={["New mailbox", "No sending history", "Low sending activity", "Needs gradual ramp"]} after={["Consistent sending activity", "Monitored health", "Controlled volume", "Review signals before scaling"]} />
     </Section>
 
     <Section muted title="Built for Teams That Depend on Email Outreach"><UseCaseGrid items={audiences} /></Section>
@@ -175,6 +193,6 @@ function WarmupProductPage() {
 
     <Section muted><FaqBlock faqs={faqs} title="Frequently Asked Questions" description="Clear answers about mailbox warmup, health, capacity, and campaigns." /></Section>
 
-    <CtaBlock title="Build Mailbox Health Before You Build Sending Volume" description="Start warming your sending accounts and monitor their health from one workspace." cta="Start Sending Free" secondaryCta="Explore MunchReach" secondaryHref="/why-munchreach" />
+    <CtaBlock title="Build Sending Activity With Health Safeguards" description="Start warming your sending accounts and monitor their health from one workspace." cta="Start Sending Free" secondaryCta="Explore MunchReach" secondaryHref="/why-munchreach" />
   </MarketingLayout>;
 }

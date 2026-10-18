@@ -19,6 +19,7 @@ import {
 
 import { AppWindow, Pill } from "@/components/site/CampaignsProductMocks";
 import { cn } from "@/lib/utils";
+import { DEFAULT_WARMUP_STAGES } from "@/lib/warmup-progression";
 
 type Tone = "ok" | "warn" | "danger" | "muted" | "primary";
 
@@ -44,7 +45,7 @@ function Label({ children }: { children: ReactNode }) {
 function IllustrativeLabel() {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
-      <Activity className="size-3" /> Illustrative product view
+      <Activity className="size-3" /> Example data · not platform results
     </span>
   );
 }
@@ -59,7 +60,7 @@ export function HeroWarmupMock() {
             <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary"><Flame className="size-4" /></span>
             <div><p className="text-xs font-semibold">Mailbox warmup</p><p className="text-[10px] text-muted-foreground">Sending health</p></div>
           </div>
-          <Pill tone="primary">Warming</Pill>
+          <IllustrativeLabel />
         </div>
         <div className="space-y-4 p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
@@ -127,26 +128,25 @@ export function ProductCallouts() {
 }
 
 export function WarmupSettingsMock() {
-  const presets = [
-    { name: "Conservative", text: "Slower ramp for newer or more sensitive mailboxes." },
-    { name: "Balanced", text: "A sensible default for most mailboxes." },
-    { name: "Aggressive", text: "Faster ramp for established mailboxes with clean history." },
-  ];
+  const presets = DEFAULT_WARMUP_STAGES.map(stage => ({
+    name: `Days ${stage.start_day}–${stage.end_day}`,
+    text: `${stage.min_emails}–${stage.max_emails} warmup emails/day before safety and capacity checks.`,
+  }));
   return <AppWindow title="Warmup settings" breadcrumb="hello@yourcompany.com">
     <div className="space-y-5 p-4 sm:p-6">
       <div className="grid gap-3 sm:grid-cols-3">{presets.map((preset, index) => <div key={preset.name} className={cn("rounded-lg border p-4", index === 1 ? "border-primary bg-primary/5" : "border-border bg-background")}><div className="flex items-center justify-between"><p className="text-sm font-semibold">{preset.name}</p>{index === 1 ? <CheckCircle2 className="size-4 text-primary" /> : null}</div><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{preset.text}</p></div>)}</div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[
-        ["Starting warmup volume", "4 / day"], ["Target daily volume", "40 / day"], ["Ramp speed", "Controlled increase"], ["Warmup schedule", "Weekdays · 8:00–18:00"], ["Bounce protection", "Monitoring"], ["Minimum health", "Safety threshold set"],
+        ["Progression", "Independent per mailbox"], ["Manual daily limit", "Optional override"], ["Day boundary", "UTC"], ["Warmup schedule", "Weekdays · 8:00–18:00"], ["Bounce protection", "Monitoring"], ["Minimum health", "Safety threshold set"],
       ].map(([label, value]) => <div key={label} className="rounded-lg border border-border bg-secondary/35 p-3"><Label>{label}</Label><p className="mt-1.5 text-sm font-semibold">{value}</p></div>)}</div>
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"><div><p className="text-sm font-semibold">Auto-pause on poor health</p><p className="text-xs text-muted-foreground">Stops warmup when configured protection rules are triggered.</p></div><span className="relative h-5 w-9 shrink-0 rounded-full bg-primary"><span className="absolute right-0.5 top-0.5 size-4 rounded-full bg-primary-foreground" /></span></div>
-      <p className="text-xs text-muted-foreground">Preset examples are illustrative. Actual volume stays bounded by mailbox health, account limits, and available sending capacity.</p>
+      <p className="text-xs text-muted-foreground">Default automatic stages are configuration, not measured performance. The remaining settings are examples. Pauses freeze progression; actual volume stays bounded by health safeguards, mailbox limits and provider capacity.</p>
     </div>
   </AppWindow>;
 }
 
 export function SeparateTracksMock() {
   const columns = [
-    { icon: Flame, title: "Warmup", tone: "bg-primary/8 text-primary", items: ["Gradual mailbox activity", "Mailbox health", "Warmup volume", "Warmup progress", "Reputation monitoring"] },
+    { icon: Flame, title: "Warmup", tone: "bg-primary/8 text-primary", items: ["Gradual mailbox activity", "Mailbox health", "Warmup volume", "Warmup progress", "Available health signals"] },
     { icon: Mail, title: "Campaign sending", tone: "bg-tint-violet text-tint-violet-foreground", items: ["Prospect emails", "Campaign limits", "Sending schedule", "Follow-ups", "Campaign analytics"] },
   ];
   return <div className="grid gap-4 md:grid-cols-2">{columns.map((column) => <div key={column.title} className="rounded-lg border border-border bg-card p-5 sm:p-6"><div className="flex items-center gap-3"><span className={cn("grid size-9 place-items-center rounded-lg", column.tone)}><column.icon className="size-4" /></span><h3 className="text-lg font-bold">{column.title}</h3></div><ul className="mt-5 space-y-3">{column.items.map((item) => <li key={item} className="flex items-center gap-2.5 text-sm text-muted-foreground"><CheckCircle2 className="size-4 shrink-0 text-primary" />{item}</li>)}</ul></div>)}</div>;
