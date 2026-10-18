@@ -159,6 +159,8 @@ export async function createCheckoutSession(input: {
   const option = options.find((o) => o.provider === input.provider);
   if (!option?.available)
     throw new Error("This payment method is not available right now. Please try another option.");
+  // The specific plan's price mapping is enforced by priceFor() below, so a
+  // configured plan can check out even while another plan's ID is missing.
 
   // Lifetime plans are charged once. The plan row is authoritative here so a
   // recurring interval can never be used to buy a lifetime deal (or vice versa).
