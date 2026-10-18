@@ -1,0 +1,20 @@
+ALTER TABLE public.referral_commissions ADD COLUMN IF NOT EXISTS affiliate_environment text;
+DO $$ DECLARE definition text; BEGIN
+SELECT pg_get_functiondef('public.process_affiliate_payment(jsonb)'::regprocedure) INTO definition;
+definition:=replace(definition,'IF NOT prog.enabled OR prog.operational_verified_at IS NULL OR p.commission_id IS NOT NULL THEN','IF ((_input->>''environment''=''live'') AND (NOT prog.enabled OR prog.operational_verified_at IS NULL)) OR p.commission_id IS NOT NULL THEN');
+definition:=replace(definition,'IF p.commission_id IS NOT NULL THEN'||chr(10)||'   SELECT * INTO c','IF p.commission_id IS NOT NULL THEN'||chr(10)||'   PERFORM 1 FROM public.referral_profiles WHERE id=(SELECT referral_profile_id FROM public.referral_commissions WHERE id=p.commission_id) FOR UPDATE;'||chr(10)||'   SELECT * INTO c');
+definition:=replace(definition,'UPDATE public.affiliate_payments SET commission_id=c.id','UPDATE public.referral_commissions SET affiliate_environment=_input->>''environment'' WHERE id=c.id;'||chr(10)||'           UPDATE public.affiliate_payments SET commission_id=c.id');
+EXECUTE definition;
+SELECT pg_get_functiondef('public.request_referral_payout(integer,text,text)'::regprocedure) INTO definition;
+definition:=replace(definition,'AND currency=''usd''','AND currency=''usd'' AND affiliate_environment=''live'''); EXECUTE definition;
+SELECT pg_get_functiondef('public.review_affiliate_payout(uuid,text,text,text)'::regprocedure) INTO definition;
+definition:=replace(definition,'AND currency=p.currency','AND currency=p.currency AND affiliate_environment=''live'''); EXECUTE definition;
+SELECT pg_get_functiondef('public.affiliate_dashboard_stats()'::regprocedure) INTO definition;
+definition:=replace(definition,'AND currency=''usd''','AND currency=''usd'' AND affiliate_environment=''live'''); EXECUTE definition;
+END $$;
+GRANT SELECT(affiliate_environment) ON public.referral_commissions TO authenticated;
+REVOKE ALL ON FUNCTION public.process_affiliate_payment(jsonb) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.process_affiliate_payment(jsonb) TO service_role;
+REVOKE EXECUTE ON FUNCTION public.review_affiliate_payout(uuid,text,text,text),public.request_referral_payout(integer,text,text),public.affiliate_dashboard_stats() FROM anon,PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.affiliate_dashboard_stats() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.affiliate_dashboard_stats() TO service_role;
