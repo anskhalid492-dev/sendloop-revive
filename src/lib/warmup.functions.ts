@@ -459,7 +459,8 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
         const { data: first } = await client.from("warmup_daily_stats").select("day").eq("sending_account_id", accountId).gt("sent", 0).order("day").limit(1);
         // No reliable history means the mailbox never ran: start fresh at Day 1
         // instead of blocking the save or pinning it at Day 1 forever.
-        existing.started_at = first?.[0]?.day ? `${first[0].day}T00:00:00Z` : new Date().toISOString();
+        const { resolveWarmupStartAt } = await import("@/lib/warmup-start");
+        existing.started_at = resolveWarmupStartAt(null, first?.[0]?.day ?? null);
         body["started_at"] = existing.started_at;
       }
       if (existing?.progression_mode === "legacy") {
