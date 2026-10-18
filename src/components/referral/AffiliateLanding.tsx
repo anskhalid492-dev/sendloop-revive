@@ -33,7 +33,7 @@ export function AffiliateLanding({ program, agency = false }: { program: Referra
   return <MarketingLayout>
     <section className="relative overflow-hidden border-b border-border bg-background">
       <div className="mx-auto max-w-5xl px-4 py-14 text-center sm:px-6 sm:py-20">
-        <BrandLogo className="mx-auto h-9 max-w-56" />
+        {!agency && <BrandLogo className="mx-auto h-9 max-w-56" />}
         <p className="mt-7 text-sm font-medium uppercase text-primary">{agency ? 'Agency partners' : 'Affiliate program'}</p>
         <h1 className="mt-4 text-4xl font-bold sm:text-5xl">MunchReach {agency ? 'Agency Partners' : 'Affiliate Program'}</h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">{agency ? 'Recommend an outbound workspace you can stand behind. Help clients connect mailboxes, follow up and manage replies — with transparent affiliate earnings.' : 'Introduce teams to better outbound workflows. Earn on eligible paid subscriptions and lifetime purchases, with transparent tracking and reviewed payouts.'}</p>
