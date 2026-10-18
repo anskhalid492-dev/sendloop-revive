@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 
 import { REFERRAL_COOKIE, REFERRAL_STORAGE_KEY, normalizeCode } from "@/lib/referral-model";
 import { claimReferralCode } from "@/lib/referral.functions";
@@ -24,6 +25,7 @@ function clearStoredCode() {
  * proposes the code and then forgets it.
  */
 export function useReferralClaim(enabled: boolean) {
+  const claim = useServerFn(claimReferralCode);
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
     let stored: string | null = null;
@@ -36,15 +38,14 @@ export function useReferralClaim(enabled: boolean) {
     if (!code) return;
 
     let cancelled = false;
-    void claimReferralCode({ data: { code } })
-      .catch(() => null)
-      .finally(() => {
-        if (!cancelled) clearStoredCode();
+    void claim({ data: { code } })
+      .then((result) => {
+        if (!cancelled && (result.attributed || ["already_attributed", "self_referral", "account_too_old", "invalid_code"].includes(result.reason ?? ""))) clearStoredCode();
       });
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, claim]);
 }
 
 /** Stores a referral code seen in the URL so it survives the signup flow. */
