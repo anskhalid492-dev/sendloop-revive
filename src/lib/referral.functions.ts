@@ -88,6 +88,9 @@ export const getReferralOverview = createServerFn({ method: "GET" })
     ]);
 
     const statsRow = (Array.isArray(statsRes.data) ? statsRes.data[0] : statsRes.data) as ReferralStats | null;
+    for (const result of [statsRes, commissionsRes, payoutsRes, referralsRes, activityRes]) {
+      if (result.error) throw new Error("Affiliate data is unavailable. Production setup may still be required.");
+    }
 
     return {
       program,

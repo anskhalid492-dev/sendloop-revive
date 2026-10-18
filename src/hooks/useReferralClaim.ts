@@ -41,7 +41,7 @@ export function useReferralClaim(enabled: boolean) {
     void claim({ data: { code } })
       .then((result) => {
         if (!cancelled && (result.attributed || ["already_attributed", "self_referral", "account_too_old", "invalid_code"].includes(result.reason ?? ""))) clearStoredCode();
-      });
+      }).catch(() => { /* Keep attribution for a later authenticated retry. */ });
     return () => {
       cancelled = true;
     };
