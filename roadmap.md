@@ -1,5 +1,10 @@
 # Roadmap
 
+## Customer lifecycle and System Emails
+- [ ] Audit eight requested triggers, existing templates, scheduler, preferences and duplicate prevention; preserve working messages.
+- [ ] Implement only missing eligible messages and sending-time safeguards through existing System Emails; retain provider settings.
+- [ ] Add admin trigger visibility, isolated tests and completion report; no customer sends, publication or deployment.
+
 ## Affiliate program upgrade
 - [x] Audit existing tracking, payments, dashboards, permissions and available development schema; production applied schema remains unverified.
 - [x] Add payment-based monthly/lifetime/annual commissions, idempotency, reversals and protected payout management; isolate test earnings.
