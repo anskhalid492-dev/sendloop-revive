@@ -1,10 +1,8 @@
 /**
  * Referral engine (server only).
  *
- * Everything that creates money-relevant records lives here: click tracking,
- * signup attribution, commission creation from *verified* billing events,
- * reversals on refunds/cancellations and the audit trail. Commissions are
- * never created from client input — only from a signed provider webhook.
+ * Click tracking, signup attribution and the audit trail. Payment commissions
+ * and refund adjustments use the native Stripe bridge and transaction RPC.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizeCode, type ReferralProgram } from "@/lib/referral-model";
@@ -31,7 +29,7 @@ export function clientIp(request: Request): string | null {
   return header.split(",")[0]?.trim() || null;
 }
 
-export async function getProgram(): Promise<ReferralProgram & { id: string }> {
+export async function getProgram(): Promise<ReferralProgram & { id: string; operational_verified_at?: string | null }> {
   const { data, error } = await supabaseAdmin
     .from("referral_programs")
     .select("*")
@@ -39,7 +37,7 @@ export async function getProgram(): Promise<ReferralProgram & { id: string }> {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Referral program is not configured");
-  return data as unknown as ReferralProgram & { id: string };
+  return data as unknown as ReferralProgram & { id: string; operational_verified_at?: string | null };
 }
 
 export async function writeAudit(entry: {
