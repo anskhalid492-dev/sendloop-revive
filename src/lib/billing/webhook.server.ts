@@ -121,6 +121,10 @@ export async function handleBillingWebhook(provider: BillingProvider, request: R
       await applyVerifiedLifetimeCheckout(verified.environment, verified.eventId, sessionObj);
     }
 
+    if (provider === "stripe") {
+      const { processStripeAffiliateEvent } = await import("@/lib/affiliate-stripe.server");
+      await processStripeAffiliateEvent(verified);
+    }
     await finishWebhookDelivery(record.id, "processed");
     return new Response("ok", { status: 200 });
   } catch (error) {
@@ -160,6 +164,10 @@ export async function retryStoredEvent(eventRowId: string) {
     if (data.provider === "stripe" && ["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(data.event_type ?? "")) {
       const { applyVerifiedLifetimeCheckout } = await import("@/lib/billing/lifetime-webhook.server");
       await applyVerifiedLifetimeCheckout(data.environment, data.event_id, (data.payload as any)?.data?.object);
+    }
+    if (data.provider === "stripe") {
+      const { processStripeAffiliateEvent } = await import("@/lib/affiliate-stripe.server");
+      await processStripeAffiliateEvent({ ok: true, environment: data.environment, eventId: data.event_id, eventType: data.event_type ?? "", payload: data.payload });
     }
     await finishWebhookDelivery(eventRowId, "processed");
     return { ok: true };

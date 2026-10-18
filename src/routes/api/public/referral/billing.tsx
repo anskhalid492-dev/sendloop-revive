@@ -62,6 +62,11 @@ async function logDelivery(entry: {
 }
 
 async function post({ request }: { request: Request }) {
+  // Money is processed exclusively by native signature-verified billing webhooks.
+  return json({ error: "Use the native billing webhook endpoint" }, 410);
+}
+
+async function legacyPost({ request }: { request: Request }) {
   const secret = process.env["REFERRAL_BILLING_SECRET"] ?? process.env["INBOUND_EMAIL_SECRET"];
   if (!secret) {
     await logDelivery({ signatureOk: false, statusCode: 503, result: "error", error: "Billing webhook secret is not configured", request });

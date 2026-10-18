@@ -9,6 +9,12 @@ export const REFERRAL_COOKIE = "sl_ref";
 export const REFERRAL_STORAGE_KEY = "sendloop.referral.code";
 
 export type ReferralProgram = {
+  monthly_commission_percent?: number;
+  monthly_paid_periods?: number;
+  lifetime_commission_percent?: number;
+  annual_commission_percent?: number;
+  cookie_duration_days?: number;
+  affiliate_approval_required?: boolean;
   enabled: boolean;
   commission_type: "percentage" | "fixed";
   commission_percent: number;
@@ -30,7 +36,7 @@ export type ReferralProfile = {
   id: string;
   user_id: string;
   code: string;
-  status: "active" | "suspended";
+  status: "pending" | "active" | "suspended" | "rejected";
   payout_method: string | null;
   payout_destination_hint: string | null;
   created_at: string;
@@ -50,6 +56,9 @@ export type ReferralStats = {
 };
 
 export type ReferralCommission = {
+  reversed_cents?: number;
+  settled_cents?: number;
+  payable_at?: string | null;
   id: string;
   provider: string;
   plan_name: string | null;
@@ -84,7 +93,6 @@ export type ReferralAttributionRow = {
   status: string;
   signed_up_at: string;
   converted_at: string | null;
-  referred_user_id: string;
 };
 
 export const PAYOUT_METHOD_LABELS: Record<string, string> = {

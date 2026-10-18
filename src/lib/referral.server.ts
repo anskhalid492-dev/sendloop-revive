@@ -13,7 +13,7 @@ import { notifyReferrer } from "@/lib/referral-notify.server";
 type Json = Record<string, unknown>;
 
 export async function hashIp(ip: string | null, salt = process.env["REFERRAL_HASH_SALT"] ?? "sendloop"): Promise<string | null> {
-  if (!ip) return null;
+  if (!ip || salt === "sendloop") return null;
   const data = new TextEncoder().encode(`${salt}:${ip}`);
   const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest))
@@ -185,6 +185,10 @@ export async function claimAttribution(input: {
       signed_up_at: signedUpAt.toISOString(),
       expires_at: new Date(signedUpAt.getTime() + program.attribution_window_days * 86400000).toISOString(),
       program_snapshot: {
+        monthly_commission_percent: program.monthly_commission_percent,
+        monthly_paid_periods: program.monthly_paid_periods,
+        lifetime_commission_percent: program.lifetime_commission_percent,
+        annual_commission_percent: program.annual_commission_percent,
         commission_type: program.commission_type,
         commission_percent: program.commission_percent,
         commission_fixed_cents: program.commission_fixed_cents,
