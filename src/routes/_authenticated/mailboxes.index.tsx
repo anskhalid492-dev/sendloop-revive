@@ -86,7 +86,6 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { MailboxTypeIcon } from "@/components/campaign/MailboxTypeBadge";
 import { WarmupHealthIndicator } from "@/components/mailboxes/WarmupHealthIndicator";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
-import { Progress } from "@/components/ui/progress";
 import { emailProviderOf } from "@/lib/mailbox-type";
 import {
   checkWorkspaceMailboxDeletion,
@@ -772,19 +771,12 @@ function SendingCell({ row }: { row: WorkspaceMailboxRow }) {
 
 function WarmupCell({ row }: { row: WorkspaceMailboxRow }) {
   if (row.warmupEnabled === true) {
+    // Compact column: the schedule, daily target and next-day limit live in the
+    // mailbox detail sheet. A system pause stays discoverable on hover.
     return (
-      <div className="space-y-0.5">
-        <Badge variant="outline">Enabled</Badge>
-        {row.warmupDailyTarget ? (
-          <p className="text-xs text-muted-foreground">{row.warmupSentToday ?? 0} / {row.warmupDailyTarget} emails sent today</p>
-        ) : null}
-        <p className="text-xs text-muted-foreground">Day {row.warmupDay ?? 1} · {row.warmupMode === "legacy" ? "Existing schedule" : `Stage ${row.warmupStage ?? 1}`} · {row.warmupMode === "manual" ? "Manual" : row.warmupMode === "legacy" ? "Legacy" : "Automatic"}</p>
-        <p className="text-xs text-muted-foreground">Next day: {row.warmupNextLimit ?? 0}/day</p>
-        <Progress className="h-1.5" value={row.warmupDailyTarget ? Math.min(100, ((row.warmupSentToday ?? 0) / row.warmupDailyTarget) * 100) : 0} />
-        {row.warmupPauseReason ? (
-          <p className="text-xs text-muted-foreground">{row.warmupPauseReason}</p>
-        ) : null}
-      </div>
+      <Badge variant="outline" title={row.warmupPauseReason ?? undefined}>
+        Enabled
+      </Badge>
     );
   }
   return <span className="text-sm text-muted-foreground">Disabled</span>;
