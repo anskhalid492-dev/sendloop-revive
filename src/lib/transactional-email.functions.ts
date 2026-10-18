@@ -380,13 +380,16 @@ export const listTransactionalTemplates = createServerFn({ method: "GET" })
 
     const { data: counts } = await supabaseAdmin
       .from("transactional_emails")
-      .select("event_key, status")
+      .select("event_key, status, created_at, sent_at, idempotency_key")
       .gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+      .order("created_at", { ascending: false })
       .limit(5000);
 
-    const usage: Record<string, { sent: number; failed: number }> = {};
-    for (const row of (counts ?? []) as { event_key: string; status: string }[]) {
-      const bucket = (usage[row.event_key] ??= { sent: 0, failed: 0 });
+    const usage: Record<string, { sent: number; failed: number; lastExecution: string | null; keyed: number; records: number }> = {};
+    for (const row of (counts ?? []) as { event_key: string; status: string; created_at: string; idempotency_key: string | null }[]) {
+      const bucket = (usage[row.event_key] ??= { sent: 0, failed: 0, lastExecution: row.created_at, keyed: 0, records: 0 });
+      bucket.records += 1;
+      if (row.idempotency_key) bucket.keyed += 1;
       if (["sent", "delivered"].includes(row.status)) bucket.sent += 1;
       if (["failed", "bounced", "complained"].includes(row.status)) bucket.failed += 1;
     }

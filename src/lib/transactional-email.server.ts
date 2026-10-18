@@ -516,6 +516,7 @@ export async function triggerTransactionalEmail(
       .eq("event_key", input.eventKey)
       .maybeSingle();
     if (tpl && tpl.enabled === false) return { queued: false, reason: "Template disabled." };
+    if (input.eventKey.startsWith("onboarding.") && tpl?.enabled !== true) return { queued: false, reason: "Onboarding template requires explicit administrator activation." };
 
     const variables = withGlobals(input.variables ?? {});
     const render = await renderTemplate(admin, input.eventKey, variables);

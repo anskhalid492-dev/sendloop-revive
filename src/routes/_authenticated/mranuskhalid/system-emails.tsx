@@ -47,6 +47,7 @@ import { systemEmailPurpose } from "@/lib/system-email-senders";
 import { listBirthdayGifts } from "@/lib/birthday-gift.functions";
 import { SesSystemEmailPanel } from "@/components/admin/SesSystemEmailPanel";
 import { LifecyclePanel } from "@/components/admin/LifecyclePanel";
+import { EngagementTriggerTable } from "@/components/admin/EngagementTriggerTable";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/system-emails")({
   head: () => ({
@@ -424,6 +425,7 @@ function SystemEmailsPage() {
       </div>
 
       <Tabs defaultValue="templates">
+        <EngagementTriggerTable templates={listQuery.data?.templates ?? []} usage={listQuery.data?.usage ?? {}} />
         <TabsList>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="settings">Delivery settings</TabsTrigger>

@@ -5,7 +5,7 @@ type Db = any;
 export async function checkActionNotice(client: Db, row: { event_key?: string; user_id?: string | null; workspace_id?: string | null; to_email: string; id?: string }) {
   if (!isActionOnboarding(row.event_key)) return { decision: "send" as const };
   if (!row.user_id || !row.workspace_id) return { decision: "cancel" as const };
-  const [auth, workspace, preferences, suppression, subscriber, mailbox, leads, campaigns, notices] = await Promise.all([
+  const [auth, workspace, preferences, suppression, subscriber, mailbox, leads, campaigns, notices, template, automation] = await Promise.all([
     client.auth.admin.getUserById(row.user_id),
     client.from("workspaces").select("owner_id, status").eq("id", row.workspace_id).maybeSingle(),
     client.from("notification_preferences").select("email_enabled").eq("user_id", row.user_id).maybeSingle(),
@@ -15,8 +15,13 @@ export async function checkActionNotice(client: Db, row: { event_key?: string; u
     client.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", row.workspace_id),
     client.from("campaigns").select("id", { count: "exact", head: true }).eq("workspace_id", row.workspace_id),
     client.from("transactional_emails").select("id, sent_at, queued_at, status").eq("user_id", row.user_id).in("event_key", ["user.created", "onboarding.mailbox_ready", "onboarding.leads_imported"]).in("status", ["sent", "delivered", "sending"]).order("queued_at", { ascending: false }).limit(10),
+    client.from("transactional_templates").select("enabled").eq("event_key", row.event_key).maybeSingle(),
+    client.from("marketing_automations").select("id").eq("status", "active").limit(1),
   ]);
-  if ([auth, workspace, preferences, suppression, subscriber, mailbox, leads, campaigns, notices].some((value) => value.error)) return { decision: "defer" as const };
+  if ([auth, workspace, preferences, suppression, subscriber, mailbox, leads, campaigns, notices, template, automation].some((value) => value.error)) return { decision: "defer" as const };
+  // Until an owner audits cross-system overlap, active marketing automations
+  // conservatively block these optional notices rather than duplicate nudges.
+  if (template.data?.enabled !== true || (automation.data ?? []).length) return { decision: "cancel" as const };
   const user = auth.data?.user;
   const last = (notices.data ?? []).find((notice: any) => notice.id !== row.id);
   const optedOut = preferences.data?.email_enabled === false || (suppression.data ?? []).length > 0 || (subscriber.data ?? []).some((s: any) => ["unsubscribed", "bounced", "complained", "suppressed"].includes(s.status));
@@ -34,6 +39,6 @@ export async function notifyOnboardingAction(client: Db, workspaceId: string, ev
     const check = await checkActionNotice(client, { event_key: event, user_id: workspace.owner_id, workspace_id: workspaceId, to_email: profile.email });
     if (check.decision === "cancel") return;
     const { triggerTransactionalEmail } = await import("@/lib/transactional-email.server");
-    await triggerTransactionalEmail(client, { eventKey: event, userId: workspace.owner_id, workspaceId, to: profile.email, idempotencyKey: `${event}:${workspace.owner_id}:${workspaceId}`, notBefore: check.decision === "defer" ? check.nextAt ?? new Date(Date.now() + ONBOARDING_GAP_MS).toISOString() : undefined, variables: { "user.first_name": String(profile.full_name ?? "").trim().split(/\s+/)[0] || "there", "workspace.name": workspace.name, action_url: `https://munchreach.com/${event === "onboarding.mailbox_ready" ? "leads" : "campaigns"}` } });
+    await triggerTransactionalEmail(client, { eventKey: event, userId: workspace.owner_id, workspaceId, to: profile.email, idempotencyKey: `${event}:${workspace.owner_id}:${workspaceId}`, ...(check.decision === "defer" ? { notBefore: check.nextAt ?? new Date(Date.now() + ONBOARDING_GAP_MS).toISOString() } : {}), variables: { "user.first_name": String(profile.full_name ?? "").trim().split(/\s+/)[0] || "there", "workspace.name": workspace.name, action_url: `https://munchreach.com/${event === "onboarding.mailbox_ready" ? "leads" : "campaigns"}` } });
   } catch { /* never fail the successful customer action */ }
 }

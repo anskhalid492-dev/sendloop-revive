@@ -492,13 +492,17 @@ export const recheckWorkspaceMailbox = createServerFn({ method: "POST" })
       },
     );
 
-    await client
+    const { error: saveError } = await client
       .from("mailboxes")
       .update({
         status: result.ok ? "connected" : "failed",
         last_tested_at: result.testedAt,
       })
       .eq("id", data.id);
+    if (result.ok && !saveError) {
+      const { notifyOnboardingAction } = await import("@/lib/engagement-notices.server");
+      await notifyOnboardingAction(supabaseAdmin, member.workspace_id, "onboarding.mailbox_ready");
+    }
 
     return {
       ok: result.ok,
