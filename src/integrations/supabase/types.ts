@@ -7245,6 +7245,7 @@ export type Database = {
       }
       referral_commissions: {
         Row: {
+          affiliate_environment: string | null
           affiliate_payment_key: string | null
           amount_cents: number
           approved_at: string | null
@@ -7276,6 +7277,7 @@ export type Database = {
           subscription_id: string | null
         }
         Insert: {
+          affiliate_environment?: string | null
           affiliate_payment_key?: string | null
           amount_cents?: number
           approved_at?: string | null
@@ -7307,6 +7309,7 @@ export type Database = {
           subscription_id?: string | null
         }
         Update: {
+          affiliate_environment?: string | null
           affiliate_payment_key?: string | null
           amount_cents?: number
           approved_at?: string | null
