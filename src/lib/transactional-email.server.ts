@@ -646,6 +646,8 @@ export type DeliverRow = {
 };
 
 export type DeliverHooks = {
+  /** Trusted immediate admin test only; never inferred from stored test_mode. */
+  adminTest?: boolean;
   /**
    * Called immediately before the external provider request. Throwing aborts
    * the send without contacting the provider (the queue uses this to record
@@ -670,9 +672,9 @@ async function deliver(
   hooks: DeliverHooks = {},
 ) {
   const { checkActionNotice } = await import("@/lib/engagement-notices.server");
-  const notice = await checkActionNotice(admin, row);
+  const notice = await checkActionNotice(admin, row, { adminTest: hooks.adminTest === true });
   if (notice.decision !== "send") return { ok: false, provider: null, noticeDecision: notice.decision, nextAt: notice.nextAt, error: "Onboarding notice is no longer relevant or is deferred by preferences/frequency checks." };
-  if (row.event_key?.startsWith("onboarding.") && row.user_id) {
+  if (hooks.adminTest !== true && row.event_key?.startsWith("onboarding.") && row.user_id) {
     const { acquireWorkerLease } = await import("@/lib/worker-lease.server");
     // Reserve the recipient window atomically across both delivery modes.
     // A failed/no-provider attempt retains it conservatively for 24 hours.
@@ -842,7 +844,7 @@ export async function processTransactionalQueue(
    * `onlyId` delivers exactly one queued row. Admin test sends use it so a test
    * never depends on — or drags along — whatever else is sitting in the queue.
    */
-  options: { limit?: number; onlyId?: string } = {},
+  options: { limit?: number; onlyId?: string; adminTest?: boolean } = {},
 ): Promise<QueueRunSummary> {
   const summary: QueueRunSummary = { ok: true, claimed: 0, sent: 0, failed: 0, retried: 0, errors: [] };
 
@@ -898,7 +900,7 @@ export async function processTransactionalQueue(
       const attempt = row.attempts + 1;
       let outcome;
       try {
-        outcome = await deliver(admin, row, settings);
+        outcome = await deliver(admin, row, settings, { adminTest: options.adminTest === true && options.onlyId === row.id });
       } catch (error) {
         outcome = { ok: false, provider: null, error: error instanceof Error ? error.message : "Send failed" };
       }
@@ -978,6 +980,7 @@ export async function processTransactionalQueue(
 export async function sendTransactionalNow(
   admin: Admin,
   input: TriggerInput,
+  options: { adminTest?: boolean } = {},
 ): Promise<{
   ok: boolean;
   message: string;
@@ -989,7 +992,7 @@ export async function sendTransactionalNow(
 }> {
   const queued = await triggerTransactionalEmail(admin, input);
   if (!queued.queued || !queued.id) return { ok: false, message: queued.reason ?? "Could not queue email." };
-  const run = await processTransactionalQueue(admin, { onlyId: queued.id });
+  const run = await processTransactionalQueue(admin, { onlyId: queued.id, adminTest: options.adminTest === true && input.testMode === true });
   const { data } = await admin
     .from("transactional_emails")
     .select("status, error, provider, provider_message_id, from_email, subject")
