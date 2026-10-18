@@ -206,6 +206,180 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_adjustments: {
+        Row: {
+          actor_id: string | null
+          commission_id: string
+          created_at: string
+          delta_cents: number
+          event_key: string
+          id: string
+          payment_key: string
+          reason: string
+        }
+        Insert: {
+          actor_id?: string | null
+          commission_id: string
+          created_at?: string
+          delta_cents: number
+          event_key: string
+          id?: string
+          payment_key: string
+          reason: string
+        }
+        Update: {
+          actor_id?: string | null
+          commission_id?: string
+          created_at?: string
+          delta_cents?: number
+          event_key?: string
+          id?: string
+          payment_key?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_adjustments_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "referral_commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_adjustments_payment_key_fkey"
+            columns: ["payment_key"]
+            isOneToOne: false
+            referencedRelation: "affiliate_payments"
+            referencedColumns: ["payment_key"]
+          },
+        ]
+      }
+      affiliate_event_receipts: {
+        Row: {
+          created_at: string
+          event_key: string
+          result: string
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          result: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          result?: string
+        }
+        Relationships: []
+      }
+      affiliate_payments: {
+        Row: {
+          attribution_id: string | null
+          commission_id: string | null
+          created_at: string
+          currency: string
+          customer_id: string | null
+          disputed: boolean
+          eligible_cents: number
+          environment: string
+          invoice_id: string | null
+          paid_cents: number
+          payment_id: string
+          payment_key: string
+          period_key: string | null
+          purchase_kind: string | null
+          refunded_cents: number
+          updated_at: string
+        }
+        Insert: {
+          attribution_id?: string | null
+          commission_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          disputed?: boolean
+          eligible_cents?: number
+          environment: string
+          invoice_id?: string | null
+          paid_cents?: number
+          payment_id: string
+          payment_key: string
+          period_key?: string | null
+          purchase_kind?: string | null
+          refunded_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          attribution_id?: string | null
+          commission_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          disputed?: boolean
+          eligible_cents?: number
+          environment?: string
+          invoice_id?: string | null
+          paid_cents?: number
+          payment_id?: string
+          payment_key?: string
+          period_key?: string | null
+          purchase_kind?: string | null
+          refunded_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payments_attribution_id_fkey"
+            columns: ["attribution_id"]
+            isOneToOne: false
+            referencedRelation: "referral_attributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_payments_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "referral_commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_payout_allocations: {
+        Row: {
+          amount_cents: number
+          commission_id: string
+          created_at: string
+          payout_id: string
+        }
+        Insert: {
+          amount_cents: number
+          commission_id: string
+          created_at?: string
+          payout_id: string
+        }
+        Update: {
+          amount_cents?: number
+          commission_id?: string
+          created_at?: string
+          payout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payout_allocations_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "referral_commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_payout_allocations_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "referral_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_personalizations: {
         Row: {
           accepted: boolean
@@ -7071,6 +7245,7 @@ export type Database = {
       }
       referral_commissions: {
         Row: {
+          affiliate_payment_key: string | null
           amount_cents: number
           approved_at: string | null
           attribution_id: string
@@ -7082,6 +7257,7 @@ export type Database = {
           id: string
           notes: string | null
           paid_at: string | null
+          payable_at: string | null
           payment_id: string | null
           payout_id: string | null
           plan_name: string | null
@@ -7094,10 +7270,13 @@ export type Database = {
           rejected_at: string | null
           reversal_of: string | null
           reversed_at: string | null
+          reversed_cents: number
+          settled_cents: number
           status: string
           subscription_id: string | null
         }
         Insert: {
+          affiliate_payment_key?: string | null
           amount_cents?: number
           approved_at?: string | null
           attribution_id: string
@@ -7109,6 +7288,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payable_at?: string | null
           payment_id?: string | null
           payout_id?: string | null
           plan_name?: string | null
@@ -7121,10 +7301,13 @@ export type Database = {
           rejected_at?: string | null
           reversal_of?: string | null
           reversed_at?: string | null
+          reversed_cents?: number
+          settled_cents?: number
           status?: string
           subscription_id?: string | null
         }
         Update: {
+          affiliate_payment_key?: string | null
           amount_cents?: number
           approved_at?: string | null
           attribution_id?: string
@@ -7136,6 +7319,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payable_at?: string | null
           payment_id?: string | null
           payout_id?: string | null
           plan_name?: string | null
@@ -7148,6 +7332,8 @@ export type Database = {
           rejected_at?: string | null
           reversal_of?: string | null
           reversed_at?: string | null
+          reversed_cents?: number
+          settled_cents?: number
           status?: string
           subscription_id?: string | null
         }
@@ -7354,6 +7540,8 @@ export type Database = {
       }
       referral_programs: {
         Row: {
+          affiliate_approval_required: boolean
+          annual_commission_percent: number
           approval_delay_days: number
           approval_mode: string
           attribution_window_days: number
@@ -7361,11 +7549,16 @@ export type Database = {
           commission_fixed_cents: number
           commission_percent: number
           commission_type: string
+          cookie_duration_days: number
           created_at: string
           eligibility: string
           enabled: boolean
           id: string
+          lifetime_commission_percent: number
           minimum_payout_cents: number
+          monthly_commission_percent: number
+          monthly_paid_periods: number
+          operational_verified_at: string | null
           payout_methods: string[]
           payout_provider_configured: boolean
           payout_schedule: string
@@ -7377,6 +7570,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          affiliate_approval_required?: boolean
+          annual_commission_percent?: number
           approval_delay_days?: number
           approval_mode?: string
           attribution_window_days?: number
@@ -7384,11 +7579,16 @@ export type Database = {
           commission_fixed_cents?: number
           commission_percent?: number
           commission_type?: string
+          cookie_duration_days?: number
           created_at?: string
           eligibility?: string
           enabled?: boolean
           id?: string
+          lifetime_commission_percent?: number
           minimum_payout_cents?: number
+          monthly_commission_percent?: number
+          monthly_paid_periods?: number
+          operational_verified_at?: string | null
           payout_methods?: string[]
           payout_provider_configured?: boolean
           payout_schedule?: string
@@ -7400,6 +7600,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          affiliate_approval_required?: boolean
+          annual_commission_percent?: number
           approval_delay_days?: number
           approval_mode?: string
           attribution_window_days?: number
@@ -7407,11 +7609,16 @@ export type Database = {
           commission_fixed_cents?: number
           commission_percent?: number
           commission_type?: string
+          cookie_duration_days?: number
           created_at?: string
           eligibility?: string
           enabled?: boolean
           id?: string
+          lifetime_commission_percent?: number
           minimum_payout_cents?: number
+          monthly_commission_percent?: number
+          monthly_paid_periods?: number
+          operational_verified_at?: string | null
           payout_methods?: string[]
           payout_provider_configured?: boolean
           payout_schedule?: string
@@ -10071,6 +10278,7 @@ export type Database = {
         Args: { _bucket: string; _limit: number; _window_seconds: number }
         Returns: Json
       }
+      affiliate_program_public: { Args: never; Returns: Json }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
         Returns: {
@@ -10542,6 +10750,7 @@ export type Database = {
         Args: { _lead_ids: string[]; _stage_id: string }
         Returns: number
       }
+      process_affiliate_payment: { Args: { _input: Json }; Returns: Json }
       provider_record_usage: {
         Args: { _failed?: number; _provider_id: string; _sent?: number }
         Returns: undefined
@@ -10692,6 +10901,19 @@ export type Database = {
       reserve_mailbox_warmup_send: {
         Args: { _job: string; _limit: number }
         Returns: boolean
+      }
+      review_affiliate_commission: {
+        Args: { _action: string; _id: string; _notes: string }
+        Returns: undefined
+      }
+      review_affiliate_payout: {
+        Args: {
+          _id: string
+          _notes: string
+          _reference: string
+          _status: string
+        }
+        Returns: undefined
       }
       revoke_appsumo_code: {
         Args: { _actor: string; _code_id: string }
