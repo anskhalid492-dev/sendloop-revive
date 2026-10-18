@@ -21,13 +21,27 @@ export async function availableProviders() {
     const state = states.find(
       (s) => s.provider === provider && s.environment === settings.environment,
     );
-    // A not-yet-configured optional lifetime offer must not disable checkout
-    // for existing plans. Its own price is validated before session creation.
-    const available = Boolean(state?.enabled && state.credentials.ok && state.plans.length && state.plans.every(p => p.monthly.ok && p.yearly.ok));
+    // Checkout availability is per plan, not all-or-nothing: one plan with a
+    // missing price mapping must not disable checkout for the plans that are
+    // fully configured. Each plan's own mapping is re-validated server-side
+    // before a session is created.
+    const planAvailability = Object.fromEntries(
+      (state?.plans ?? []).map((p) => [
+        p.planId,
+        p.billingType === "lifetime"
+          ? { monthly: false, yearly: false, lifetime: p.lifetime.ok }
+          : { monthly: p.monthly.ok, yearly: p.yearly.ok, lifetime: false },
+      ]),
+    );
+    const anyPlanPurchasable = Object.values(planAvailability).some(
+      (p) => p.monthly || p.yearly || p.lifetime,
+    );
+    const available = Boolean(state?.enabled && state.credentials.ok && anyPlanPurchasable);
     return {
       provider,
       environment: settings.environment,
       available,
+      plans: planAvailability,
       reason: !state?.enabled
         ? "Not enabled"
         : !state.credentials.ok
@@ -145,6 +159,8 @@ export async function createCheckoutSession(input: {
   const option = options.find((o) => o.provider === input.provider);
   if (!option?.available)
     throw new Error("This payment method is not available right now. Please try another option.");
+  // The specific plan's price mapping is enforced by priceFor() below, so a
+  // configured plan can check out even while another plan's ID is missing.
 
   // Lifetime plans are charged once. The plan row is authoritative here so a
   // recurring interval can never be used to buy a lifetime deal (or vice versa).

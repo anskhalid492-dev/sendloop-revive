@@ -20,6 +20,8 @@ export type CheckoutProviderOption = {
   provider: BillingProvider;
   environment: BillingEnvironment;
   available: boolean;
+  /** Per-plan price-mapping status; a plan is purchasable only via its own entry. */
+  plans: Record<string, { monthly: boolean; yearly: boolean; lifetime: boolean }>;
   reason: string | null;
 };
 
