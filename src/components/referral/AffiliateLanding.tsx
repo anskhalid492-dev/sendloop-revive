@@ -37,7 +37,6 @@ export function AffiliateLanding({ program, agency = false }: { program: Referra
         <p className="mt-7 text-sm font-medium uppercase text-primary">{agency ? 'Agency partners' : 'Affiliate program'}</p>
         <h1 className="mt-4 text-4xl font-bold sm:text-5xl">MunchReach {agency ? 'Agency Partners' : 'Affiliate Program'}</h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">{agency ? 'Recommend an outbound workspace you can stand behind. Help clients connect mailboxes, follow up and manage replies — with transparent affiliate earnings.' : 'Introduce teams to better outbound workflows. Earn on eligible paid subscriptions and lifetime purchases, with transparent tracking and reviewed payouts.'}</p>
-        {!live && <p className="mx-auto mt-5 max-w-xl rounded-md border border-border bg-muted p-3 text-sm text-muted-foreground">Applications can be submitted. Commission earning and payouts are not active until payment tracking and payout review are verified.</p>}
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Button size="lg" asChild><Link to="/referrals">{agency ? 'Apply as an Agency Partner' : 'Apply to Join'}<ArrowRight className="ml-2 size-4" /></Link></Button>
           <Button size="lg" variant="outline" asChild><Link to={agency ? '/referral' : '/referral/agencies'}>{agency ? 'Affiliate Program' : 'Agency Partners'}</Link></Button>
