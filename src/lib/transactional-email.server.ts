@@ -161,7 +161,7 @@ export async function ensureDefaultTemplates(admin: Admin): Promise<{ created: n
       text_body: t.text,
       variables: t.variables,
       is_default: true,
-      enabled: true,
+      enabled: !t.eventKey.startsWith("onboarding."),
       status: "published",
       version: 1,
     })),
@@ -461,6 +461,8 @@ export type TriggerInput = {
   workspaceId?: string | null;
   userId?: string | null;
   testMode?: boolean;
+  /** Only action-confirmed onboarding notices use delayed delivery. */
+  notBefore?: string;
 };
 
 export type TriggerResult = {
@@ -539,6 +541,7 @@ export async function triggerTransactionalEmail(
       test_mode: testMode,
       workspace_id: input.workspaceId ?? null,
       user_id: input.userId ?? null,
+      ...(input.eventKey.startsWith("onboarding.") && input.notBefore ? { next_attempt_at: input.notBefore } : {}),
     };
 
     const { data, error } = await admin
@@ -630,6 +633,9 @@ export async function describeNoSystemProvider(admin: Admin): Promise<string> {
 
 export type DeliverRow = {
   id: string;
+  event_key?: string;
+  user_id?: string | null;
+  workspace_id?: string | null;
   to_email: string;
   from_email: string | null;
   reply_to: string | null;
@@ -662,6 +668,9 @@ async function deliver(
   settings: TransactionalSettings,
   hooks: DeliverHooks = {},
 ) {
+  const { checkActionNotice } = await import("@/lib/engagement-notices.server");
+  const notice = await checkActionNotice(admin, row);
+  if (notice.decision !== "send") return { ok: false, provider: null, noticeDecision: notice.decision, nextAt: notice.nextAt, error: "Onboarding notice is no longer relevant or is deferred by preferences/frequency checks." };
   const beforeCall = hooks.beforeProviderCall ?? (async () => {});
   const { resolveManagedProvider, recordProviderIncident } = await import("@/lib/managed-sending.server");
   const { getAdapter } = await import("@/lib/providers/adapter.server");
@@ -845,7 +854,7 @@ export async function processTransactionalQueue(
     const nowIso = new Date().toISOString();
     let query = admin
       .from("transactional_emails")
-      .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts")
+      .select("id, event_key, user_id, workspace_id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts")
       .in("status", ["queued", "retrying"]);
     if (options.onlyId) query = query.eq("id", options.onlyId);
     else query = query.lte("next_attempt_at", nowIso);
@@ -863,6 +872,9 @@ export async function processTransactionalQueue(
       text_body: string | null;
       attempts: number;
       max_attempts: number;
+      event_key?: string;
+      user_id?: string | null;
+      workspace_id?: string | null;
     }>) {
       // Atomic claim: only one runner can move a row out of the queued state.
       const { data: claimed } = await admin
@@ -883,6 +895,10 @@ export async function processTransactionalQueue(
         outcome = { ok: false, provider: null, error: error instanceof Error ? error.message : "Send failed" };
       }
 
+      if ("noticeDecision" in outcome && outcome.noticeDecision) {
+        await admin.from("transactional_emails").update({ status: outcome.noticeDecision === "cancel" ? "cancelled" : "retrying", attempts: row.attempts, error: outcome.error, ...("nextAt" in outcome && outcome.nextAt ? { next_attempt_at: outcome.nextAt } : { next_attempt_at: new Date(Date.now() + 86400000).toISOString() }) }).eq("id", row.id);
+        continue;
+      }
       if (outcome.ok) {
         summary.sent += 1;
         await admin

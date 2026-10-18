@@ -976,6 +976,9 @@ export const importLeads = createServerFn({ method: "POST" })
     if (insertedIds.length) {
       const { emitLeadCreated } = await import("@/lib/lead-events.server");
       await emitLeadCreated({ workspaceId: data.workspaceId, leadIds: insertedIds });
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { notifyOnboardingAction } = await import("@/lib/engagement-notices.server");
+      await notifyOnboardingAction(supabaseAdmin, data.workspaceId, "onboarding.leads_imported");
     }
 
     return {
