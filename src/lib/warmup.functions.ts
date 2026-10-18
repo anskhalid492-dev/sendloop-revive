@@ -457,8 +457,9 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
     if (patch.progression_mode && patch.progression_mode !== "legacy") {
       if (existing && !existing.started_at) {
         const { data: first } = await client.from("warmup_daily_stats").select("day").eq("sending_account_id", accountId).gt("sent", 0).order("day").limit(1);
-        if (!first?.[0]?.day) throw new Error("Warmup start date is unknown. Keep the existing schedule until this mailbox's historical activity can be reviewed.");
-        existing.started_at = `${first[0].day}T00:00:00Z`;
+        // No reliable history means the mailbox never ran: start fresh at Day 1
+        // instead of blocking the save or pinning it at Day 1 forever.
+        existing.started_at = first?.[0]?.day ? `${first[0].day}T00:00:00Z` : new Date().toISOString();
         body["started_at"] = existing.started_at;
       }
       if (existing?.progression_mode === "legacy") {
@@ -536,7 +537,7 @@ export const saveWarmupSettings = createServerFn({ method: "POST" })
       if (existing && (!existing.enabled || existing.paused_by_system)) body["progression_date"] = new Date().toISOString().slice(0, 10);
     }
     if (patch.enabled) {
-      body["started_at"] = existing ? existing.started_at : new Date().toISOString();
+      body["started_at"] = existing?.started_at ?? new Date().toISOString();
     }
     if (patch.send_start_hour !== undefined || patch.send_end_hour !== undefined) {
       const { data: hours } = await client.from("warmup_settings").select("send_start_hour, send_end_hour").eq("sending_account_id", accountId).maybeSingle();
