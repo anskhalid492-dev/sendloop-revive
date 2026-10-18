@@ -29,3 +29,5 @@
 - Affiliates use the native verified Stripe billing webhook and transactional payment-key ledger; privacy-safe reads and locked reviewed payouts prevent duplicate rewards and overpayment. Public activation requires explicit operational verification, and production migrations remain owner-applied.
 - Action-confirmed onboarding notices reuse System Emails through engagement-notices.server, are opt-in per template and revalidated by both delivery paths; active marketing automations block them conservatively to prevent cross-system duplicate nudges.
 - Immediate admin System Email tests pass a trusted, single-row delivery option to skip onboarding relevance and cooldown only; recipient preferences/suppression still apply and stored test flags never grant bypass, so testing cannot weaken automatic delivery safeguards.
+
+- Public warmup schedule descriptions derive from the client-safe DEFAULT_WARMUP_STAGES constant; configuration is labeled separately from performance evidence so marketing and engine defaults cannot drift.

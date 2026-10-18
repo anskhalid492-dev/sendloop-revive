@@ -42,11 +42,11 @@ const sendloopCells = {
   followups:
     "Follow-ups run on the campaign schedule and stop automatically when a prospect replies or unsubscribes.",
   accounts:
-    "Connect your own mailboxes (SMTP/IMAP and API providers) or use managed sending; health, caps and pauses per account.",
+    "Connect mailboxes you own; MunchReach orchestrates scheduling and follow-ups through your provider or SMTP server. No shared rented mailbox pool; provider limits and policies remain your responsibility.",
   domains:
-    "Sending domains with SPF/DKIM/DMARC checks and DNS setup guidance before a domain can send.",
+    "Available mailbox authentication checks, with provider-supplied SPF/DKIM/DMARC records and manual verification when signals are unavailable.",
   warmup:
-    "Built-in warmup engine with per-mailbox ramp schedules, daily stats and health scoring.",
+    "Built-in warmup with independent per-mailbox progression, activity history and calculated health indicators—not inbox placement guarantees.",
   deliverability:
     "Per-account daily caps, sending windows, suppression lists, bounce/complaint handling and domain alerts.",
   inbox:
@@ -55,7 +55,7 @@ const sendloopCells = {
   automations:
     "Visual automation builder (trigger, condition, action, wait) running on a server-side scheduler.",
   analytics:
-    "Campaign, account and workspace analytics with a sent → delivered → opened → replied funnel and drill-downs.",
+    "Recorded sends, opens, replies and bounces by campaign and workspace; confirmed delivery where available, separately from estimates. No inbox placement inference.",
   integrations:
     "Integrations directory with connection health, sync logs and webhook endpoints.",
   teams:
@@ -133,12 +133,12 @@ const instantly: Comparison = {
   ],
   migration: [
     { title: "1. Bring your lists", body: "Export leads from Instantly as CSV and import them into MunchReach with field mapping and custom fields." },
-    { title: "2. Reconnect mailboxes", body: "Add the same mailboxes or domains in MunchReach; DNS and authentication are verified before sending resumes." },
-    { title: "3. Keep warming", body: "Turn on MunchReach warmup so mailbox reputation keeps building during the switch." },
+    { title: "2. Reconnect mailboxes", body: "Reconnect your own mailboxes, review connection checks and verify authentication with your provider before resuming campaigns." },
+    { title: "3. Keep warming", body: "Enable gradual warmup activity and review available health signals during the switch; reputation and placement are not guaranteed." },
     { title: "4. Rebuild sequences", body: "Recreate active sequences step by step, then run a test send and check the variable report before launch." },
   ],
   faqs: [
-    { q: "Can I use my own mailboxes with MunchReach?", a: "Yes. You can connect your own SMTP/IMAP or API-based sending accounts, or use managed sending. Domains are checked for SPF, DKIM and DMARC before they can send." },
+    { q: "Can I use my own mailboxes with MunchReach?", a: "Yes. Connect mailboxes you own using a supported connection or IMAP/SMTP details. MunchReach automates campaigns and follow-ups; your provider or SMTP server delivers messages under its policies. We do not supply a shared rented mailbox pool." },
     { q: "Do I still need a separate CRM?", a: "Not for outbound. MunchReach includes a pipeline, contact records, tasks and notes that update from replies. You can still sync to an external CRM through integrations." },
     { q: "Is this comparison up to date?", a: "It was last reviewed on 20 August 2026 and describes publicly documented capabilities. Products change often — check the vendor's site before making a decision." },
   ],
@@ -206,7 +206,7 @@ const smartlead: Comparison = {
   migration: [
     { title: "1. Export campaigns and leads", body: "Pull your lead lists and sequence copy out of Smartlead; CSV import in MunchReach maps fields and custom variables." },
     { title: "2. Reconnect sending accounts", body: "Add each mailbox in MunchReach and verify domain authentication before enabling sending." },
-    { title: "3. Warm up in parallel", body: "Run MunchReach warmup while you finish the migration so reputation is unaffected." },
+    { title: "3. Warm up in parallel", body: "Run warmup within mailbox capacity while reviewing available health signals; migration and warmup cannot guarantee unchanged reputation." },
     { title: "4. Rebuild and test", body: "Recreate sequences, send a test email, review the variable report, then launch." },
   ],
   faqs: [
@@ -295,7 +295,7 @@ const apollo: Comparison = {
   competitorSite: "https://apollo.io",
   reviewedOn: "2026-08-20",
   heroSummary:
-    "Apollo pairs a large B2B contact database with sales engagement. MunchReach is the execution layer for email: sending infrastructure, deliverability, a unified inbox, CRM and automations in one workspace.",
+    "Apollo pairs a large B2B contact database with sales engagement. MunchReach automates outreach through your own connected mailboxes, with sending-health controls, a unified inbox, CRM and automations in one workspace.",
   sendloopBestFor:
     "Teams that already have (or buy) their data and want the email motion itself — mailboxes, warmup, replies, pipeline — to be excellent.",
   competitorBestFor:

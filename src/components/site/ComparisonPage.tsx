@@ -338,7 +338,7 @@ export function ComparisonPage({ data }: { data: Comparison }) {
       <Section
         id="migration"
         title="Migration to MunchReach"
-        description="Four steps most teams follow when moving an active outbound motion without losing sending reputation."
+        description="Four steps for reconnecting your mailboxes and reviewing sending health during a move. Reputation and placement outcomes are not guaranteed."
       >
         <ol className="grid gap-4 sm:grid-cols-2">
           {data.migration.map((m, i) => (
