@@ -140,11 +140,10 @@ function ReferralsPage() {
             <CardTitle className="flex items-center gap-2">
               <Gift className="size-5 text-primary" /> Apply to the affiliate program
             </CardTitle>
-            <CardDescription>
-              {program?.enabled && program
-                ? commissionText
-                : "Applications are open; earning and payouts remain inactive until operational verification."}
-            </CardDescription>
+            {program?.enabled && program ? (
+              <CardDescription>{commissionText}</CardDescription>
+            ) : null}
+
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{program?.eligibility}</p>
