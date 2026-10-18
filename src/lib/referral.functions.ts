@@ -170,7 +170,7 @@ export const getAdminReferralOverview = createServerFn({ method: "GET" })
         .limit(200),
       supabaseAdmin
         .from("referral_commissions")
-        .select("id, referral_profile_id, referrer_user_id, referred_user_id, provider, plan_name, amount_cents, currency, commission_amount_cents, status, created_at")
+        .select("id, referral_profile_id, referrer_user_id, referred_user_id, provider, plan_name, amount_cents, currency, commission_amount_cents, reversed_cents, settled_cents, affiliate_environment, status, created_at")
         .order("created_at", { ascending: false })
         .limit(200),
       supabaseAdmin.from("referral_payouts").select("*").order("created_at", { ascending: false }).limit(200),
