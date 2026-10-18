@@ -36,7 +36,7 @@ const resources = [
     to: "/deliverability-guide",
     icon: ShieldCheck,
     title: "Deliverability guide",
-    text: "Everything that decides whether your cold email reaches the inbox.",
+    text: "Key factors that can influence email delivery and inbox placement, with practical monitoring guidance.",
   },
   {
     to: "/cold-email-templates",

@@ -64,27 +64,9 @@ const benefits = [
 ];
 
 const wins = [
-  {
-    name: "Dana R.",
-    role: "Founder, B2B data agency",
-    quote:
-      "Rewrote our first line after feedback in the group and reply rate went from 3% to 11% on the same list.",
-    metric: "11% reply rate",
-  },
-  {
-    name: "Marcus T.",
-    role: "SDR lead, SaaS",
-    quote:
-      "Copied the two-step follow-up structure someone posted. Booked 14 meetings out of a 900-lead campaign.",
-    metric: "14 meetings",
-  },
-  {
-    name: "Priya S.",
-    role: "Growth consultant",
-    quote:
-      "Members caught a DNS issue tanking my inbox placement within an hour. Deliverability recovered the same week.",
-    metric: "Inbox rate restored",
-  },
+  { name: "Campaign feedback", role: "Discussion topic", quote: "Share the sequence, audience and measurement period when asking for feedback. Compare recorded replies without assuming the same outcome for another campaign.", metric: "Reply analysis" },
+  { name: "Follow-up review", role: "Discussion topic", quote: "Discuss follow-up timing, recipient relevance and how your team handles responses. Include sample size when sharing any measured results.", metric: "Workflow feedback" },
+  { name: "Mailbox troubleshooting", role: "Discussion topic", quote: "Review provider feedback, authentication and warmup activity. Sending-health signals are not inbox placement measurements, and recovery varies by provider.", metric: "Sending-health review" },
 ];
 
 const postIdeas = [
@@ -321,8 +303,8 @@ function CommunityPage() {
 
       <Section
         muted
-        title="Wins from the community"
-        description="A sample of the kind of results members post — specific, measurable and repeatable."
+        title="Conversations to bring to the community"
+        description="Discussion topics, not verified customer testimonials or performance results."
       >
         <div className="grid gap-4 lg:grid-cols-3">
           {wins.map((win) => (
@@ -331,7 +313,7 @@ function CommunityPage() {
                 <Sparkles className="size-3.5" /> {win.metric}
               </span>
               <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
-                “{win.quote}”
+                {win.quote}
               </blockquote>
               <figcaption className="mt-5 text-sm font-semibold">
                 {win.name}
