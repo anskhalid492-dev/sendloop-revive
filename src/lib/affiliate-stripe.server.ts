@@ -12,7 +12,7 @@ async function submit(event: VerifiedWebhook, input: Record<string, unknown>) {
 /** Only invoked AFTER the native billing endpoint verifies the Stripe signature. */
 export async function processStripeAffiliateEvent(event: VerifiedWebhook) {
   if (!event.ok) throw new Error('Verified Stripe event required');
-  if (!['invoice.paid', 'invoice.payment_succeeded', 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'].includes(event.eventType)) return;
+  if (!['invoice.paid', 'invoice.payment_succeeded', 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed', 'checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.eventType)) return;
   // Old production databases remain inactive; ordinary billing must continue until activation.
   const { data: program, error } = await supabaseAdmin.from('referral_programs').select('operational_verified_at, enabled').eq('singleton', true).maybeSingle();
   if (error) {
