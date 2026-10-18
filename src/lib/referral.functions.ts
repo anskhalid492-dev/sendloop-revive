@@ -72,7 +72,7 @@ export const getReferralOverview = createServerFn({ method: "GET" })
       supabase
         .from("referral_commissions")
         .select("id, provider, plan_name, currency, commission_amount_cents, commission_rate, commission_type, status, created_at, approved_at, paid_at, reversed_at, reversed_cents, settled_cents, payable_at")
-        .eq("affiliate_environment", "live")
+        .or("affiliate_environment.is.null,affiliate_environment.eq.live")
         .order("created_at", { ascending: false })
         .limit(100),
       supabase.from("referral_payouts").select("id,amount_cents,currency,status,method,destination_hint,reference,requested_at,paid_at").order("created_at", { ascending: false }).limit(50),

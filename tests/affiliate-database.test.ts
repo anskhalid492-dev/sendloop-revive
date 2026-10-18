@@ -7,6 +7,11 @@ const customer = '00000000-0000-4000-8000-00000000a002';
 const workspace = '00000000-0000-4000-8000-00000000a003';
 const profile = '00000000-0000-4000-8000-00000000a004';
 const attribution = '00000000-0000-4000-8000-00000000a005';
+const affiliate2 = '00000000-0000-4000-8000-00000000b001';
+const customer2 = '00000000-0000-4000-8000-00000000b002';
+const workspace2 = '00000000-0000-4000-8000-00000000b003';
+const profile2 = '00000000-0000-4000-8000-00000000b004';
+const attribution2 = '00000000-0000-4000-8000-00000000b005';
 async function payment(n: number, kind = 'monthly', action = 'payment', overrides = {}) {
   const input = { eventKey: `affiliate-test:event-${n}`, paymentKey: `stripe:live:affiliate-test-payment-${n}`, environment: 'live', paymentId: `affiliate-test-payment-${n}`, workspaceId: workspace, kind, periodKey: `affiliate-test-period-${n}`, paidCents: 12000, eligibleCents: 10000, currency: 'usd', paidAt: Math.floor(Date.now()/1000), action, ...overrides };
   return (await db.query<{result: {status:string}}>('select process_affiliate_payment($1::jsonb) result', [JSON.stringify(input)])).rows[0].result;
@@ -40,5 +45,17 @@ describe('affiliate transactional ledger — named throwaway account fixtures on
     expect((await payment(70,'annual','payment',{environment:'test',paymentKey:'stripe:test:affiliate-test-70'})).status).toBe('commission_created');
     expect((await db.query('select sum(settled_cents)::int n from referral_commissions')).rows[0]).toEqual({n:1000});
     await db.exec(`UPDATE referral_programs SET operational_verified_at=now(),enabled=true;`);
+  });
+});describe('legacy pre-upgrade commissions — named throwaway fixtures only', () => {
+  it('pays out an approved legacy commission with no environment marker', async () => {
+    // Fresh affiliate whose ONLY balance is a pre-upgrade commission (affiliate_environment IS NULL).
+    // Under the old filter the available balance read 0 and the review threw 'Balance changed'.
+    await db.exec(`INSERT INTO workspaces VALUES('${workspace2}','${customer2}'); INSERT INTO referral_profiles(id,user_id,code,status) VALUES('${profile2}','${affiliate2}','AFFTEST002','active'); INSERT INTO referral_attributions(id,referral_profile_id,referrer_user_id,referred_user_id,code,expires_at) VALUES('${attribution2}','${profile2}','${affiliate2}','${customer2}','AFFTEST002',now()+interval '60 days'); INSERT INTO referral_commissions(attribution_id,referral_profile_id,referrer_user_id,referred_user_id,provider,provider_event_id,plan_name,currency,commission_type,commission_rate,commission_amount_cents,status,approved_at) VALUES('${attribution2}','${profile2}','${affiliate2}','${customer2}','stripe','affiliate-test-legacy-event','Legacy plan','usd','percentage',30,500,'approved',now());`);
+    await db.exec(`SELECT set_config('request.jwt.claim.sub','${affiliate2}',false);`);
+    const p = (await db.query<{id:string}>("select (request_referral_payout(500,'paypal','affiliate-test@example.invalid')).id")).rows[0];
+    await db.exec("SELECT set_config('affiliate_test.admin','true',false)");
+    await db.query("select review_affiliate_payout($1,'paid','affiliate-test-legacy-reference','Legacy payout')",[p.id]);
+    expect((await db.query("select settled_cents,status from referral_commissions where provider_event_id='affiliate-test-legacy-event'")).rows[0]).toEqual({settled_cents:500,status:'paid'});
+    expect((await db.query("select sum(amount_cents)::int n from affiliate_payout_allocations where payout_id=$1",[p.id])).rows[0]).toEqual({n:500});
   });
 });
