@@ -12,9 +12,14 @@ async function submit(event: VerifiedWebhook, input: Record<string, unknown>) {
 /** Only invoked AFTER the native billing endpoint verifies the Stripe signature. */
 export async function processStripeAffiliateEvent(event: VerifiedWebhook) {
   if (!event.ok) throw new Error('Verified Stripe event required');
+  if (!['invoice.paid', 'invoice.payment_succeeded', 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'].includes(event.eventType)) return;
   // Old production databases remain inactive; ordinary billing must continue until activation.
   const { data: program, error } = await supabaseAdmin.from('referral_programs').select('operational_verified_at, enabled').eq('singleton', true).maybeSingle();
-  if (error || !program?.operational_verified_at) return;
+  if (error) {
+    if (['42703', 'PGRST204', 'PGRST205'].includes(error.code)) return;
+    throw new Error('Affiliate readiness could not be read; retry payment processing');
+  }
+  if (event.environment === 'live' && !program?.operational_verified_at) return;
   const obj = event.payload?.data?.object;
   if (!obj) return;
   const paymentKey = (id: string) => `stripe:${event.environment}:${id}`;
@@ -68,7 +73,7 @@ export async function processStripeAffiliateEvent(event: VerifiedWebhook) {
   const net = eligiblePaidAmount(invoice.amount_paid, invoice.total, tax, subtotal);
   const normalLine = recurring.find((l) => !(l.proration ?? l.parent?.subscription_item_details?.proration));
   // Proration-only upgrades use their existing billing period, never consume an extra paid month.
-  const period = normalLine?.period ?? eligible[0]?.period;
+  const period = normalLine?.period ?? (sub ? { start: sub.current_period_start, end: sub.current_period_end } : eligible[0]?.period);
   await submit(event, {
     action: 'payment', paymentKey: paymentKey(pi), paymentId: pi, invoiceId: invoice.id,
     customerId: identity(invoice.customer), workspaceId, subscriptionId: identity(invoice.subscription),

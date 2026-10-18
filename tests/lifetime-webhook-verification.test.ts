@@ -3,6 +3,7 @@ const state = vi.hoisted(() => ({ verified: true, duplicate: false, apply: vi.fn
 vi.mock("@/lib/billing/core.server", () => ({ admin: async () => ({ from: () => ({ upsert: async () => ({}) }) }), getBillingSettings: async () => ({ environment: "test" }), applyBillingEvent: state.apply, finishWebhookDelivery: state.finish, touchProviderWebhook: vi.fn(), recordWebhookDelivery: async () => ({ id: "test-delivery", duplicate: state.duplicate }) }));
 vi.mock("@/lib/billing/providers.server", () => ({ getBillingAdapter: () => ({ verify: async () => state.verified ? { ok: true, environment: "test", eventId: "evt_test_only", eventType: "checkout.session.completed", payload: { data: { object: { mode: "payment", payment_status: "paid", metadata: { plan_id: "test-starter", workspace_id: "test-workspace" } } } } } : { ok: false, error: "Invalid signature" }, normalize: () => null }) }));
 vi.mock("@/lib/billing/lifetime-webhook.server", () => ({ applyVerifiedLifetimeCheckout: state.lifetime }));
+vi.mock("@/lib/affiliate-stripe.server", () => ({ processStripeAffiliateEvent: vi.fn() }));
 import { handleBillingWebhook } from "@/lib/billing/webhook.server";
 beforeEach(() => { state.verified = true; state.duplicate = false; state.apply.mockReset(); state.lifetime.mockReset(); state.finish.mockReset(); });
 describe("lifetime activation signature boundary, mocked test accounts", () => {
