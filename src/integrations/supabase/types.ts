@@ -10278,6 +10278,7 @@ export type Database = {
         Args: { _bucket: string; _limit: number; _window_seconds: number }
         Returns: Json
       }
+      affiliate_dashboard_stats: { Args: never; Returns: Json }
       affiliate_program_public: { Args: never; Returns: Json }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
@@ -10940,6 +10941,10 @@ export type Database = {
       run_provider_health_runner: { Args: never; Returns: undefined }
       run_transactional_email_runner: { Args: never; Returns: undefined }
       run_warmup_runner: { Args: never; Returns: undefined }
+      save_affiliate_payout_details: {
+        Args: { _details: string; _method: string }
+        Returns: undefined
+      }
       sending_account_stats: {
         Args: { _account_ids: string[] }
         Returns: {
