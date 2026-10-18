@@ -1,9 +1,11 @@
 # Roadmap
 
 ## Customer lifecycle and System Emails
-- [ ] Audit eight requested triggers, existing templates, scheduler, preferences and duplicate prevention; preserve working messages.
-- [ ] Implement only missing eligible messages and sending-time safeguards through existing System Emails; retain provider settings.
-- [ ] Add admin trigger visibility, isolated tests and completion report; no customer sends, publication or deployment.
+- [x] Audit eight requested triggers, existing templates, scheduler, preferences and duplicate prevention; preserve working messages.
+- [x] Add two action-confirmed notices, disabled by default, through existing System Emails with send-time revalidation; preserve provider settings.
+- [x] Add admin trigger visibility, isolated tests and completion report; no customer sends, publication or deployment.
+- [ ] Delayed mailbox/launch nudges, usage-based upgrade and seven-day re-engagement — blocked: promotional/drip sending unsupported by Lovable app-email policy; existing marketing system needs a separately agreed supported sending path.
+- [ ] Verify signed-in Admin and end-to-end on explicitly named throwaway accounts — blocked: no external-backend test session available. New notices stay disabled; marketing-overlap and timezone delivery audit required before activation.
 
 ## Affiliate program upgrade
 - [x] Audit existing tracking, payments, dashboards, permissions and available development schema; production applied schema remains unverified.
