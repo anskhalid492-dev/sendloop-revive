@@ -13,7 +13,7 @@ import { notifyReferrer } from "@/lib/referral-notify.server";
 type Json = Record<string, unknown>;
 
 export async function hashIp(ip: string | null, salt = process.env["REFERRAL_HASH_SALT"] ?? "sendloop"): Promise<string | null> {
-  if (!ip) return null;
+  if (!ip || salt === "sendloop") return null;
   const data = new TextEncoder().encode(`${salt}:${ip}`);
   const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest))
@@ -185,6 +185,10 @@ export async function claimAttribution(input: {
       signed_up_at: signedUpAt.toISOString(),
       expires_at: new Date(signedUpAt.getTime() + program.attribution_window_days * 86400000).toISOString(),
       program_snapshot: {
+        monthly_commission_percent: program.monthly_commission_percent,
+        monthly_paid_periods: program.monthly_paid_periods,
+        lifetime_commission_percent: program.lifetime_commission_percent,
+        annual_commission_percent: program.annual_commission_percent,
         commission_type: program.commission_type,
         commission_percent: program.commission_percent,
         commission_fixed_cents: program.commission_fixed_cents,
@@ -257,199 +261,3 @@ export async function claimAttribution(input: {
   return { attributed: true };
 }
 
-export type BillingEventInput = {
-  provider: string;
-  eventId: string;
-  eventType: string;
-  userId?: string | null;
-  email?: string | null;
-  workspaceId?: string | null;
-  amountCents?: number;
-  currency?: string;
-  subscriptionId?: string | null;
-  paymentId?: string | null;
-  planName?: string | null;
-  raw?: Json;
-};
-
-async function resolveUserId(input: BillingEventInput): Promise<string | null> {
-  if (input.userId) return input.userId;
-  if (input.email) {
-    const { data } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .ilike("email", input.email)
-      .maybeSingle();
-    if (data?.id) return data.id;
-  }
-  if (input.workspaceId) {
-    const { data } = await supabaseAdmin
-      .from("workspaces")
-      .select("owner_id")
-      .eq("id", input.workspaceId)
-      .maybeSingle();
-    if (data?.owner_id) return data.owner_id;
-  }
-  return null;
-}
-
-function commissionFor(program: ReferralProgram, snapshot: Json | null, amountCents: number) {
-  const type = ((snapshot?.["commission_type"] as string) ?? program.commission_type) as "percentage" | "fixed";
-  const percent = Number(snapshot?.["commission_percent"] ?? program.commission_percent);
-  const fixed = Number(snapshot?.["commission_fixed_cents"] ?? program.commission_fixed_cents);
-  const amount = type === "percentage" ? Math.round((amountCents * percent) / 100) : fixed;
-  return { type, rate: type === "percentage" ? percent : 0, amount: Math.max(amount, 0) };
-}
-
-/**
- * Turns one verified billing event into a commission (or a reversal).
- * Idempotent: the same provider event id is only ever processed once.
- */
-export async function processBillingEvent(input: BillingEventInput): Promise<{ status: string; detail?: string }> {
-  const { data: seen } = await supabaseAdmin
-    .from("referral_billing_events")
-    .select("id, result")
-    .eq("provider", input.provider)
-    .eq("event_id", input.eventId)
-    .maybeSingle();
-  if (seen) return seen.result ? { status: "duplicate", detail: seen.result } : { status: "duplicate" };
-
-  const finish = async (result: string, detail?: string) => {
-    await supabaseAdmin.from("referral_billing_events").insert({
-      provider: input.provider,
-      event_id: input.eventId,
-      event_type: input.eventType,
-      payload: (input.raw ?? {}) as never,
-      result,
-      error: detail ?? null,
-    });
-    return { status: result, ...(detail ? { detail } : {}) };
-  };
-
-  const program = await getProgram();
-  if (!program.enabled) return finish("ignored", "Referral program disabled");
-
-  const userId = await resolveUserId(input);
-  if (!userId) return finish("ignored", "No matching MunchReach account");
-
-  const { data: attribution } = await supabaseAdmin
-    .from("referral_attributions")
-    .select("id, referral_profile_id, referrer_user_id, referred_user_id, status, program_snapshot, signed_up_at, converted_at")
-    .eq("referred_user_id", userId)
-    .maybeSingle();
-  if (!attribution) return finish("ignored", "Customer was not referred");
-
-  const { data: referrer } = await supabaseAdmin
-    .from("referral_profiles")
-    .select("id, status")
-    .eq("id", attribution.referral_profile_id)
-    .maybeSingle();
-  if (!referrer || referrer.status !== "active") return finish("ignored", "Referrer is not active");
-
-  const refundish = /refund|chargeback|dispute|canceled|cancelled|payment_failed|subscription\.deleted/i.test(input.eventType);
-
-  if (refundish) {
-    const { data: original } = await supabaseAdmin
-      .from("referral_commissions")
-      .select("id, commission_amount_cents, status, currency, subscription_id")
-      .eq("attribution_id", attribution.id)
-      .in("status", ["pending", "approved", "paid"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!original) return finish("ignored", "No commission to reverse");
-
-    await supabaseAdmin
-      .from("referral_commissions")
-      .update({ status: "reversed", reversed_at: new Date().toISOString(), notes: `Reversed by ${input.eventType}` })
-      .eq("id", original.id);
-
-    await writeAudit({
-      action: "commission_reversed",
-      entityType: "referral_commission",
-      entityId: original.id,
-      referralProfileId: attribution.referral_profile_id,
-      detail: `Commission reversed after ${input.eventType}`,
-      metadata: { provider: input.provider, event_id: input.eventId },
-    });
-    return finish("reversed");
-  }
-
-  const amountCents = Math.max(Math.round(input.amountCents ?? 0), 0);
-  if (amountCents <= 0) return finish("ignored", "Event has no payable amount");
-
-  // Recurring window enforcement.
-  if (!program.recurring) {
-    const { data: prior } = await supabaseAdmin
-      .from("referral_commissions")
-      .select("id")
-      .eq("attribution_id", attribution.id)
-      .neq("status", "reversed")
-      .limit(1);
-    if (prior && prior.length > 0) return finish("ignored", "One-time commission already paid");
-  } else if (program.commission_duration_months > 0) {
-    const start = new Date(attribution.converted_at ?? attribution.signed_up_at).getTime();
-    const limit = start + program.commission_duration_months * 30 * 86400000;
-    if (Date.now() > limit) return finish("ignored", "Commission duration elapsed");
-  }
-
-  const snapshot = (attribution.program_snapshot ?? null) as Json | null;
-  const { type, rate, amount } = commissionFor(program, snapshot, amountCents);
-  if (amount <= 0) return finish("ignored", "Commission resolves to zero");
-
-  const autoApprove = ((snapshot?.["approval_mode"] as string) ?? program.approval_mode) === "auto";
-
-  const { data: commission, error } = await supabaseAdmin
-    .from("referral_commissions")
-    .insert({
-      attribution_id: attribution.id,
-      referral_profile_id: attribution.referral_profile_id,
-      referrer_user_id: attribution.referrer_user_id,
-      referred_user_id: userId,
-      referred_workspace_id: input.workspaceId ?? null,
-      provider: input.provider,
-      provider_event_id: input.eventId,
-      subscription_id: input.subscriptionId ?? null,
-      payment_id: input.paymentId ?? null,
-      plan_name: input.planName ?? null,
-      amount_cents: amountCents,
-      currency: (input.currency ?? "usd").toLowerCase(),
-      commission_type: type,
-      commission_rate: rate,
-      commission_amount_cents: amount,
-      status: autoApprove ? "approved" : "pending",
-      approved_at: autoApprove ? new Date().toISOString() : null,
-    })
-    .select("id")
-    .single();
-  if (error) return finish("error", error.message);
-
-  if (attribution.status !== "converted") {
-    await supabaseAdmin
-      .from("referral_attributions")
-      .update({ status: "converted", converted_at: new Date().toISOString() })
-      .eq("id", attribution.id);
-  }
-
-  // Auto-approved commissions are immediately spendable, so tell the referrer.
-  await notifyReferrer({
-    userId: attribution.referrer_user_id,
-    kind: autoApprove ? "commission_approved" : "referral_attributed",
-    amountCents: amount,
-    currency: input.currency ?? "usd",
-    detail: autoApprove ? null : "A referred customer started paying. The commission is pending review.",
-    entityType: "referral_commission",
-    entityId: commission.id,
-  });
-
-  await writeAudit({
-    action: "commission_created",
-    entityType: "referral_commission",
-    entityId: commission.id,
-    referralProfileId: attribution.referral_profile_id,
-    detail: `Commission recorded from ${input.provider} ${input.eventType}`,
-    metadata: { amount_cents: amount, payment_cents: amountCents, auto_approved: autoApprove },
-  });
-
-  return finish("commission_created");
-}

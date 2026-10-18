@@ -8,6 +8,8 @@ import { SUPABASE_URL as PINNED_URL, SUPABASE_PUBLISHABLE_KEY as PINNED_ANON } f
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
+import { affiliateRules } from "@/lib/affiliate-rules";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
@@ -30,10 +32,10 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 
 /** Public program terms for the marketing page (no auth, no PII). */
 export const getPublicReferralProgram = createServerFn({ method: "GET" }).handler(async (): Promise<ReferralProgram | null> => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.rpc("referral_program_public");
-  const row = Array.isArray(data) ? data[0] : data;
-  return (row as ReferralProgram) ?? null;
+  const client = createClient(PINNED_URL, PINNED_ANON, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await client.rpc("affiliate_program_public");
+  if (error || !data) return null;
+  return data as unknown as ReferralProgram;
 });
 
 export type ReferralOverview = {
@@ -51,7 +53,7 @@ export const getReferralOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<ReferralOverview> => {
     const { supabase } = context;
     const [{ data: programRows }, { data: profile }] = await Promise.all([
-      (await import("@/integrations/supabase/client.server")).supabaseAdmin.rpc("referral_program_public"),
+      (await import("@/integrations/supabase/client.server")).supabaseAdmin.rpc("affiliate_program_public"),
       supabase.from("referral_profiles").select("*").eq("user_id", context.userId).maybeSingle(),
     ]);
     const program = ((Array.isArray(programRows) ? programRows[0] : programRows) ?? null) as ReferralProgram;
@@ -66,16 +68,16 @@ export const getReferralOverview = createServerFn({ method: "GET" })
     }
 
     const [statsRes, commissionsRes, payoutsRes, referralsRes, activityRes] = await Promise.all([
-      supabase.rpc("referral_dashboard_stats"),
+      supabase.rpc("affiliate_dashboard_stats"),
       supabase
         .from("referral_commissions")
-        .select("id, provider, plan_name, amount_cents, currency, commission_amount_cents, commission_rate, commission_type, status, created_at, approved_at, paid_at, reversed_at, notes")
+        .select("id, provider, plan_name, currency, commission_amount_cents, commission_rate, commission_type, status, created_at, approved_at, paid_at, reversed_at, reversed_cents, settled_cents, payable_at")
         .order("created_at", { ascending: false })
         .limit(100),
-      supabase.from("referral_payouts").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("referral_payouts").select("id,amount_cents,currency,status,method,destination_hint,reference,requested_at,paid_at").order("created_at", { ascending: false }).limit(50),
       supabase
         .from("referral_attributions")
-        .select("id, status, signed_up_at, converted_at, referred_user_id")
+        .select("id, status, signed_up_at, converted_at")
         .order("signed_up_at", { ascending: false })
         .limit(100),
       supabase
@@ -205,8 +207,8 @@ export const getAdminReferralOverview = createServerFn({ method: "GET" })
     const recent = webhookRows ?? [];
     const lastVerified = recent.find((r) => r.signature_ok) ?? null;
     const webhook = {
-      configured: Boolean(process.env["REFERRAL_BILLING_SECRET"] ?? process.env["INBOUND_EMAIL_SECRET"]),
-      endpoint: "/api/public/referral/billing",
+      configured: Boolean(program.data?.operational_verified_at),
+      endpoint: "/api/public/billing/stripe",
       recent,
       lastEventAt: recent[0]?.received_at ?? null,
       lastVerifiedAt: lastVerified?.received_at ?? null,
@@ -266,6 +268,12 @@ export const updateReferralProgram = createServerFn({ method: "POST" })
     z
       .object({
         enabled: z.boolean(),
+        monthly_commission_percent: z.number().min(0).max(100),
+        monthly_paid_periods: z.number().int().min(1).max(120),
+        lifetime_commission_percent: z.number().min(0).max(100),
+        annual_commission_percent: z.number().min(0).max(100),
+        cookie_duration_days: z.number().int().min(1).max(365),
+        affiliate_approval_required: z.boolean(),
         commission_type: z.enum(["percentage", "fixed"]),
         commission_percent: z.number().min(0).max(100),
         commission_fixed_cents: z.number().int().min(0),
@@ -287,6 +295,8 @@ export const updateReferralProgram = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { writeAudit } = await import("@/lib/referral.server");
+    const { data: readiness } = await supabaseAdmin.from("referral_programs").select("operational_verified_at").eq("singleton", true).maybeSingle();
+    if (data.enabled && !readiness?.operational_verified_at) throw new Error("Activation requires a verified test-account payment, attribution and completed payout review first.");
     const { error } = await supabaseAdmin
       .from("referral_programs")
       .update({ ...data, updated_by: context.userId })
@@ -316,46 +326,8 @@ export const reviewReferralCommission = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { writeAudit } = await import("@/lib/referral.server");
-    const now = new Date().toISOString();
-    const patch =
-      data.action === "approve"
-        ? { status: "approved", approved_at: now }
-        : data.action === "reject"
-          ? { status: "rejected", rejected_at: now }
-          : { status: "reversed", reversed_at: now };
-    const { data: row, error } = await supabaseAdmin
-      .from("referral_commissions")
-      .update({ ...patch, notes: data.notes ?? null })
-      .eq("id", data.id)
-      .select("id, referral_profile_id, referrer_user_id, commission_amount_cents, currency")
-      .single();
+    const { error } = await context.supabase.rpc("review_affiliate_commission", { _id: data.id, _action: data.action, _notes: data.notes ?? "" });
     if (error) throw new Error(error.message);
-    const { notifyReferrer } = await import("@/lib/referral-notify.server");
-    await notifyReferrer({
-      userId: row.referrer_user_id,
-      kind:
-        data.action === "approve"
-          ? "commission_approved"
-          : data.action === "reject"
-            ? "commission_rejected"
-            : "commission_reversed",
-      amountCents: row.commission_amount_cents,
-      currency: row.currency,
-      detail: data.notes ?? null,
-      entityType: "referral_commission",
-      entityId: row.id,
-    });
-    await writeAudit({
-      actorId: context.userId,
-      actorRole: "admin",
-      action: `commission_${data.action}d`,
-      entityType: "referral_commission",
-      entityId: row.id,
-      referralProfileId: row.referral_profile_id,
-      detail: data.notes ?? `Commission ${data.action}d by staff`,
-    });
     return { ok: true };
   });
 
@@ -373,64 +345,18 @@ export const updateReferralPayout = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { writeAudit } = await import("@/lib/referral.server");
-    const now = new Date().toISOString();
-    const { data: payout, error } = await supabaseAdmin
-      .from("referral_payouts")
-      .update({
-        status: data.status,
-        reference: data.reference ?? null,
-        admin_notes: data.notes ?? null,
-        decided_at: now,
-        paid_at: data.status === "paid" ? now : null,
-      })
-      .eq("id", data.id)
-      .select("id, referral_profile_id, amount_cents, currency, user_id")
-      .single();
+    const { error } = await context.supabase.rpc("review_affiliate_payout", { _id: data.id, _status: data.status, _reference: data.reference ?? "", _notes: data.notes ?? "" });
     if (error) throw new Error(error.message);
-
-    if (data.status === "processing" || data.status === "paid" || data.status === "rejected") {
-      const { notifyReferrer } = await import("@/lib/referral-notify.server");
-      await notifyReferrer({
-        userId: payout.user_id,
-        kind: data.status === "paid" ? "payout_paid" : data.status === "processing" ? "payout_processing" : "payout_rejected",
-        amountCents: payout.amount_cents,
-        currency: payout.currency ?? "usd",
-        detail: data.notes ?? null,
-        entityType: "referral_payout",
-        entityId: payout.id,
-      });
-    }
-
-    if (data.status === "paid") {
-      await supabaseAdmin
-        .from("referral_commissions")
-        .update({ status: "paid", paid_at: now, payout_id: payout.id })
-        .eq("referral_profile_id", payout.referral_profile_id)
-        .eq("status", "approved");
-    }
-
-    await writeAudit({
-      actorId: context.userId,
-      actorRole: "admin",
-      action: `payout_${data.status}`,
-      entityType: "referral_payout",
-      entityId: payout.id,
-      referralProfileId: payout.referral_profile_id,
-      detail: data.notes ?? `Payout marked ${data.status}`,
-      metadata: { amount_cents: payout.amount_cents, reference: data.reference ?? null },
-    });
     return { ok: true };
   });
 
 export const setReferrerStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; status: "active" | "suspended"; reason?: string }) =>
+  .inputValidator((input: { id: string; status: "pending" | "active" | "suspended" | "rejected"; reason?: string }) =>
     z
       .object({
         id: z.string().uuid(),
-        status: z.enum(["active", "suspended"]),
+        status: z.enum(["pending", "active", "suspended", "rejected"]),
         reason: z.string().max(300).optional(),
       })
       .parse(input),
