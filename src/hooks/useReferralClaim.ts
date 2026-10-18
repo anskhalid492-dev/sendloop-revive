@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 
 import { REFERRAL_COOKIE, REFERRAL_STORAGE_KEY, normalizeCode } from "@/lib/referral-model";
-import { claimReferralCode } from "@/lib/referral.functions";
+import { claimReferralCode, getPublicReferralProgram } from "@/lib/referral.functions";
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -34,7 +34,8 @@ export function useReferralClaim(enabled: boolean) {
     } catch {
       stored = null;
     }
-    const code = normalizeCode(stored ?? readCookie(REFERRAL_COOKIE));
+    const cookie = readCookie(REFERRAL_COOKIE);
+    const code = normalizeCode(cookie ? stored ?? cookie : null);
     if (!code) return;
 
     let cancelled = false;
@@ -52,10 +53,19 @@ export function useReferralClaim(enabled: boolean) {
 export function captureReferralCode(raw: string | null | undefined) {
   const code = normalizeCode(raw);
   if (!code || typeof window === "undefined") return;
+  const existing = normalizeCode(readCookie(REFERRAL_COOKIE));
+  if (existing) {
+    try { window.localStorage.setItem(REFERRAL_STORAGE_KEY, existing); } catch { /* optional cache */ }
+    return;
+  }
   try {
     window.localStorage.setItem(REFERRAL_STORAGE_KEY, code);
   } catch {
     /* storage may be blocked */
   }
   document.cookie = `${REFERRAL_COOKIE}=${code}; Path=/; Max-Age=${60 * 60 * 24 * 60}; SameSite=Lax`;
+  void getPublicReferralProgram().then((program) => {
+    if (readCookie(REFERRAL_COOKIE) !== code) return;
+    document.cookie = `${REFERRAL_COOKIE}=${code}; Path=/; Max-Age=${60 * 60 * 24 * (program?.cookie_duration_days ?? 60)}; SameSite=Lax`;
+  }).catch(() => { /* Tracking never blocks signup. */ });
 }

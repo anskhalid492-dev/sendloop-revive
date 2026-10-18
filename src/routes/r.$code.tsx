@@ -20,8 +20,11 @@ async function handle(request: Request, code: string) {
 
   destination.searchParams.set("ref", normalized);
 
-  const { recordClick, hashIp, clientIp } = await import("@/lib/referral.server");
+  const { recordClick, hashIp, clientIp, getProgram } = await import("@/lib/referral.server");
+  let cookieDays = 60;
   try {
+    const program = await getProgram();
+    cookieDays = program.cookie_duration_days ?? 60;
     await recordClick({
       code: normalized,
       ipHash: await hashIp(clientIp(request)),
@@ -33,7 +36,7 @@ async function handle(request: Request, code: string) {
     // Never block the visitor if tracking fails.
   }
 
-  const maxAge = 60 * 60 * 24 * 60;
+  const maxAge = 60 * 60 * 24 * cookieDays;
   return new Response(null, {
     status: 302,
     headers: {

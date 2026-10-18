@@ -6,6 +6,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequestHeader } from "@tanstack/react-start/server";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
@@ -114,6 +115,12 @@ export const startCheckout = createServerFn({ method: "POST" })
     const { assertWorkspaceBillingManager } = await import("@/lib/billing/access.server");
     const { createCheckoutSession } = await import("@/lib/billing/customer.server");
     await assertWorkspaceBillingManager(context, data.workspaceId);
+    const cookie = getRequestHeader("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith("sl_ref="));
+    if (cookie) {
+      const { claimAttribution } = await import("@/lib/referral.server");
+      const { data: auth } = await context.supabase.auth.getUser();
+      if (auth.user) await claimAttribution({ code: cookie.slice("sl_ref=".length), userId: context.userId, userEmail: auth.user.email ?? null, signedUpAt: auth.user.created_at, workspaceId: data.workspaceId });
+    }
     return createCheckoutSession({ ...data, userId: context.userId });
   });
 

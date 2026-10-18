@@ -8,7 +8,7 @@ const workspace = '00000000-0000-4000-8000-00000000a003';
 const profile = '00000000-0000-4000-8000-00000000a004';
 const attribution = '00000000-0000-4000-8000-00000000a005';
 async function payment(n: number, kind = 'monthly', action = 'payment', overrides = {}) {
-  const input = { eventKey: `affiliate-test:event-${n}`, paymentKey: `stripe:test:affiliate-test-payment-${n}`, environment: 'test', paymentId: `affiliate-test-payment-${n}`, workspaceId: workspace, kind, periodKey: `affiliate-test-period-${n}`, paidCents: 12000, eligibleCents: 10000, currency: 'usd', paidAt: Math.floor(Date.now()/1000), action, ...overrides };
+  const input = { eventKey: `affiliate-test:event-${n}`, paymentKey: `stripe:live:affiliate-test-payment-${n}`, environment: 'live', paymentId: `affiliate-test-payment-${n}`, workspaceId: workspace, kind, periodKey: `affiliate-test-period-${n}`, paidCents: 12000, eligibleCents: 10000, currency: 'usd', paidAt: Math.floor(Date.now()/1000), action, ...overrides };
   return (await db.query<{result: {status:string}}>('select process_affiliate_payment($1::jsonb) result', [JSON.stringify(input)])).rows[0].result;
 }
 beforeAll(async () => {

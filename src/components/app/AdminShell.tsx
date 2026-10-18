@@ -147,7 +147,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/templates", label: "Templates", icon: FileText },
       { to: "/mranuskhalid/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
       { to: "/mranuskhalid/faqs", label: "Website FAQs", icon: HelpCircle },
-      { to: "/mranuskhalid/referrals", label: "Referral Program", icon: Gift },
+      { to: "/mranuskhalid/referrals", label: "Affiliate Management", icon: Gift },
       { to: "/mranuskhalid/integrations", label: "Integrations", icon: Plug },
     ],
   },

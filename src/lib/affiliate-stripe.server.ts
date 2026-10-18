@@ -68,7 +68,7 @@ export async function processStripeAffiliateEvent(event: VerifiedWebhook) {
   const priceIds = new Set((mappings ?? []).map((p) => p.external_price_id));
   const eligible = lines.filter((l) => priceIds.has(l.price?.id));
   if (!eligible.length) return;
-  const subtotal = eligible.reduce((sum, l) => sum + (l.amount ?? 0) - (l.discount_amounts ?? []).reduce((s: number, d: any) => s + d.amount, 0), 0);
+  const subtotal = eligible.reduce((sum, l) => sum + (l.amount_excluding_tax ?? ((l.amount ?? 0) - (l.tax_amounts ?? []).filter((t: any) => t.inclusive).reduce((s: number, t: any) => s + t.amount, 0))) - (l.discount_amounts ?? []).reduce((s: number, d: any) => s + d.amount, 0), 0);
   const tax = (invoice.total_tax_amounts ?? []).reduce((s: number, t: any) => s + t.amount, 0);
   const net = eligiblePaidAmount(invoice.amount_paid, invoice.total, tax, subtotal);
   const normalLine = recurring.find((l) => !(l.proration ?? l.parent?.subscription_item_details?.proration));
