@@ -1,10 +1,12 @@
 # Roadmap
 
 ## Affiliate program upgrade
-- [ ] Audit existing tracking, payments, dashboards, permissions and production schema.
-- [ ] Add payment-based monthly/lifetime/annual commissions, idempotency, reversals and protected payout management.
-- [ ] Upgrade customer/admin affiliate management, public referral/agency pages and footer links.
-- [ ] Run scoped regressions, full suite and automatic compilation; report manual production activation prerequisites without publishing.
+- [x] Audit existing tracking, payments, dashboards, permissions and available development schema; production applied schema remains unverified.
+- [x] Add payment-based monthly/lifetime/annual commissions, idempotency, reversals and protected payout management; isolate test earnings.
+- [x] Upgrade customer/admin affiliate management, public referral/agency pages and footer links.
+- [x] Run scoped regressions, full suite and automatic compilation; report manual production activation prerequisites without publishing.
+- [ ] Verify signed-in attribution, Stripe test checkout and payout review on explicitly named throwaway accounts — blocked: external backend has no available test-account session; no real payment-provider actions permitted in verification.
+- [ ] Activate production only after owner-applied migrations, historical-balance reconciliation and verified test-account flow — blocked: production database changes are manual; no publication/deployment requested.
 
 ## Warmup table activity and spam guidance
 - [x] Replace Replied with relative successful warmup activity; change unknown spam guidance at 100/below 80 health only.

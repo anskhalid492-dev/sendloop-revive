@@ -35,4 +35,10 @@ describe('affiliate transactional ledger — named throwaway account fixtures on
   it('requires admin for payout review', async () => { await expect(db.query("select review_affiliate_payout(gen_random_uuid(),'paid','test-ref','test')")).rejects.toThrow('Forbidden'); });
   it('settles only the requested amount and records allocation', async () => { await db.exec(`SELECT set_config('request.jwt.claim.sub','${affiliate}',false);`); const p = (await db.query<{id:string}>("select (request_referral_payout(1000,'paypal','affiliate-test@example.invalid')).id")).rows[0]; await db.exec("SELECT set_config('affiliate_test.admin','true',false)"); await db.query("select review_affiliate_payout($1,'paid','affiliate-test-payment-reference','Test review')",[p.id]); expect((await db.query('select sum(settled_cents)::int n from referral_commissions')).rows[0]).toEqual({n:1000}); expect((await db.query('select sum(amount_cents)::int n from affiliate_payout_allocations')).rows[0]).toEqual({n:1000}); });
   it('denies browser payment processing and private table reads', async () => { expect((await db.query("select has_function_privilege('anon','process_affiliate_payment(jsonb)','execute') allowed")).rows[0]).toEqual({allowed:false}); expect((await db.query("select has_column_privilege('authenticated','referral_attributions','referred_user_id','select') allowed")).rows[0]).toEqual({allowed:false}); });
+  it('test annual earnings do not consume live first-payment eligibility or spendable balance', async () => {
+    await db.exec(`UPDATE referral_programs SET operational_verified_at=NULL,enabled=false;`);
+    expect((await payment(70,'annual','payment',{environment:'test',paymentKey:'stripe:test:affiliate-test-70'})).status).toBe('commission_created');
+    expect((await db.query('select sum(settled_cents)::int n from referral_commissions')).rows[0]).toEqual({n:1000});
+    await db.exec(`UPDATE referral_programs SET operational_verified_at=now(),enabled=true;`);
+  });
 });
