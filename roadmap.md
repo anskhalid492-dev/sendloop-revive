@@ -1,5 +1,10 @@
 # Roadmap
 
+## Public sending and warmup claims
+- [ ] Audit public claims against connected-mailbox sending and warmup implementation; do not access customer data.
+- [ ] Correct relevant copy, example labels and evidence context while preserving page layouts and sending logic.
+- [ ] Run relevant isolated tests and public-page checks; inspect automatic production build and report changed claims. No publishing.
+
 ## Onboarding System Email test correction
 - [x] Identify missing workspace context in admin tests and separate trusted single-message tests from automatic relevance/cooldown checks while preserving recipient safeguards.
 - [x] Run isolated test-send and onboarding/transactional regressions: 77 tests passed; automatic compilation passed. No customer emails or publication.
