@@ -4,7 +4,7 @@
  * queries — nothing here is mocked.
  */
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Gift, Loader2, MousePointerClick, Users, Wallet } from "lucide-react";
@@ -31,12 +31,13 @@ import {
   getReferralOverview,
   joinReferralProgram,
   requestReferralPayout,
+  saveAffiliatePayoutDetails,
 } from "@/lib/referral.functions";
+import { affiliateRules } from "@/lib/affiliate-rules";
 import {
   PAYOUT_METHOD_LABELS,
   PAYOUT_STATUS_LABELS,
   conversionRate,
-  describeCommission,
   formatMoney,
   referralLink,
 } from "@/lib/referral-model";
@@ -68,6 +69,8 @@ function ReferralsPage() {
   const fetchOverview = useServerFn(getReferralOverview);
   const join = useServerFn(joinReferralProgram);
   const requestPayout = useServerFn(requestReferralPayout);
+  const saveDetails = useServerFn(saveAffiliatePayoutDetails);
+  const detailsMutation = useMutation({ mutationFn: () => saveDetails({ data: { method, details: destination } }), onSuccess: () => { toast.success("Payout details saved"); invalidate(); }, onError: (error: Error) => toast.error(error.message) });
 
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("");
@@ -112,15 +115,21 @@ function ReferralsPage() {
 
   const link = useMemo(() => {
     if (!data?.profile) return "";
-    const origin = typeof window === "undefined" ? "https://munchreach.app" : window.location.origin;
+    const origin = typeof window === "undefined" ? "https://munchreach.com" : window.location.origin;
     return referralLink(origin, data.profile.code);
   }, [data?.profile]);
 
   const program = data?.program;
   const stats = data?.stats;
+  const rules = affiliateRules(program);
+  const commissionText = program ? `${rules.monthly_commission_percent}% for ${rules.monthly_paid_periods} paid monthly periods · ${rules.lifetime_commission_percent}% lifetime · ${rules.annual_commission_percent}% first annual payment` : "Settings unavailable";
+  const earned = (stats?.pending_cents ?? 0) + (stats?.approved_cents ?? 0) + (stats?.paid_cents ?? 0);
+  const history = new Map<string, number>();
+  for (const c of data?.commissions ?? []) { const key = `${c.created_at.slice(0, 7)} ${c.currency.toUpperCase()}`; if (!["rejected", "reversed"].includes(c.status)) history.set(key, (history.get(key) ?? 0) + c.commission_amount_cents - (c.reversed_cents ?? 0)); }
+  const nextHold = data?.commissions.filter((c) => c.status === "approved" && c.payable_at && new Date(c.payable_at).getTime() > Date.now()).map((c) => c.payable_at as string).sort()[0];
 
   return (
-    <AppShell title="Referrals" description="Share MunchReach, earn commission on verified payments.">
+    <AppShell title="Affiliate Dashboard" description="Share MunchReach, earn commission on verified payments.">
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -129,19 +138,19 @@ function ReferralsPage() {
         <Card className="mx-auto max-w-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Gift className="size-5 text-primary" /> Join the referral program
+              <Gift className="size-5 text-primary" /> Apply to the affiliate program
             </CardTitle>
             <CardDescription>
               {program?.enabled && program
-                ? describeCommission(program)
-                : "The program is not accepting commissions yet, but you can create your link now."}
+                ? commissionText
+                : "Applications are open; earning and payouts remain inactive until operational verification."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{program?.eligibility}</p>
             <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending}>
               {joinMutation.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Create my referral link
+              Submit affiliate application
             </Button>
           </CardContent>
         </Card>
@@ -155,11 +164,12 @@ function ReferralsPage() {
             </Card>
           ) : null}
 
+          <div className="flex flex-wrap items-center gap-3"><Badge variant="secondary">{data.profile.status === "active" ? "Approved" : data.profile.status === "pending" ? "Pending" : data.profile.status === "rejected" ? "Rejected" : "Suspended"}</Badge><p className="text-sm text-muted-foreground">{commissionText}</p></div>
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Your referral link</CardTitle>
               <CardDescription>
-                {program?.enabled && program ? describeCommission(program) : "Commissions start once the program goes live."}
+                {program?.enabled && program ? commissionText : "Commissions start once the program goes live."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 sm:flex-row">
@@ -177,7 +187,7 @@ function ReferralsPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    void navigator.clipboard.writeText(data.profile!.code);
+                    void navigator.clipboard.writeText(data.profile?.code ?? "");
                     toast.success("Referral code copied");
                   }}
                 >
@@ -207,12 +217,18 @@ function ReferralsPage() {
             ))}
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
+            ["Total earned (USD)", earned], ["Pending commission", stats?.pending_cents ?? 0], ["Approved commission", stats?.approved_cents ?? 0], ["Paid commission", stats?.paid_cents ?? 0],
+          ].map(([label, value]) => <Card key={label}><CardContent className="p-5"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold">{formatMoney(Number(value))}</p></CardContent></Card>)}</div>
+          <p className="text-sm text-muted-foreground">Next payout eligibility: {(stats?.available_cents ?? 0) >= (program?.minimum_payout_cents ?? Infinity) ? "Threshold met — subject to payout readiness and review" : nextHold ? `Next hold release ${new Date(nextHold).toLocaleDateString()}` : `${formatMoney(Math.max((program?.minimum_payout_cents ?? 0) - (stats?.available_cents ?? 0), 0))} more approved, settled earnings needed`}. Tax, refunds and chargebacks are excluded. Failed payments earn nothing; cancellation stops future earnings only.</p>
           <Tabs defaultValue="commissions">
             <TabsList>
               <TabsTrigger value="commissions">Commissions</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="history">Monthly history</TabsTrigger>
+              <TabsTrigger value="resources">Resources</TabsTrigger>
             </TabsList>
 
             <TabsContent value="commissions" className="mt-4">
@@ -223,7 +239,6 @@ function ReferralsPage() {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Plan</TableHead>
-                        <TableHead>Payment</TableHead>
                         <TableHead>Commission</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
@@ -231,7 +246,7 @@ function ReferralsPage() {
                     <TableBody>
                       {data.commissions.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
                             No commissions yet. They appear as soon as a referred customer pays.
                           </TableCell>
                         </TableRow>
@@ -240,8 +255,7 @@ function ReferralsPage() {
                           <TableRow key={c.id}>
                             <TableCell>{new Date(c.created_at).toLocaleDateString()}</TableCell>
                             <TableCell>{c.plan_name ?? "—"}</TableCell>
-                            <TableCell>{formatMoney(c.amount_cents, c.currency)}</TableCell>
-                            <TableCell className="font-medium">{formatMoney(c.commission_amount_cents, c.currency)}</TableCell>
+                            <TableCell className="font-medium">{formatMoney(c.commission_amount_cents - (c.reversed_cents ?? 0), c.currency)}</TableCell>
                             <TableCell>
                               <Badge variant="secondary" className={statusTone[c.status] ?? ""}>
                                 {c.status}
@@ -262,6 +276,7 @@ function ReferralsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Referral</TableHead>
                         <TableHead>Signed up</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Converted</TableHead>
@@ -275,8 +290,9 @@ function ReferralsPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        data.referrals.map((r) => (
+                        data.referrals.map((r, index) => (
                           <TableRow key={r.id}>
+                            <TableCell>Referral {index + 1}</TableCell>
                             <TableCell>{new Date(r.signed_up_at).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <Badge variant="secondary">{r.status}</Badge>
@@ -341,11 +357,12 @@ function ReferralsPage() {
                   <div className="sm:col-span-3">
                     <Button
                       onClick={() => payoutMutation.mutate()}
-                      disabled={payoutMutation.isPending || !amount || !method}
+                      disabled={payoutMutation.isPending || !amount || !method || !destination || data.profile.status !== "active" || !program?.enabled || !program?.payout_provider_configured || Number(amount) * 100 > (stats?.available_cents ?? 0) || Number(amount) * 100 < (program?.minimum_payout_cents ?? Infinity)}
                     >
                       {payoutMutation.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                       Request payout
                     </Button>
+                    <Button className="ml-3" variant="outline" disabled={detailsMutation.isPending || !method || destination.trim().length < 3} onClick={() => detailsMutation.mutate()}>Save payout details</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -388,6 +405,8 @@ function ReferralsPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="history"><Table><TableHeader><TableRow><TableHead>Month / currency</TableHead><TableHead>Net earnings</TableHead></TableRow></TableHeader><TableBody>{[...history].map(([key, value]) => <TableRow key={key}><TableCell>{key}</TableCell><TableCell>{formatMoney(value, key.split(" ")[1])}</TableCell></TableRow>)}</TableBody></Table><p className="mt-3 text-xs text-muted-foreground">Latest 100 commission records. Amounts are grouped by currency and exclude reversals.</p></TabsContent>
+            <TabsContent value="resources"><div className="space-y-5 py-5"><h2 className="text-xl font-semibold">Promotional resources</h2><div className="flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/features">Product overview</Link></Button><Button variant="outline" asChild><Link to="/pricing">Pricing</Link></Button><Button variant="outline" asChild><Link to="/referral/agencies">Agency partners</Link></Button></div><p className="text-sm text-muted-foreground">Suggested disclosure: “I may earn a commission if you purchase MunchReach through my link, at no extra cost to you.”</p><Button variant="outline" onClick={() => { void navigator.clipboard.writeText(`MunchReach helps teams connect mailboxes, manage campaigns and follow up with prospects. ${link} I may earn a commission if you purchase through my link, at no extra cost to you.`); toast.success("Promotional copy copied"); }}><Copy className="mr-2 size-4" />Copy promotional text</Button></div></TabsContent>
             <TabsContent value="activity" className="mt-4">
               <Card>
                 <CardContent className="space-y-3 p-5">

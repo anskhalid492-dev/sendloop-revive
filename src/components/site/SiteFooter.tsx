@@ -44,7 +44,8 @@ const COMPANY_LINKS = [
   { label: "Contact", href: "/contact" },
   { label: "Pricing", href: "/pricing" },
   { label: "Customer Reviews", href: "/customer-reviews" },
-  { label: "Referral Program", href: "/referral" },
+  { label: "Affiliate Program", href: "/referral" },
+  { label: "Agency Partners", href: "/referral/agencies" },
 ];
 
 /**

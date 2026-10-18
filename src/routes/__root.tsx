@@ -34,6 +34,7 @@ import {
 } from "@/lib/platform-config-store";
 import { CookieConsentBanner } from "@/components/platform/CookieConsentBanner";
 import { NotFoundPage } from "@/components/site/NotFoundPage";
+import { captureReferralCode } from "@/hooks/useReferralClaim";
 
 // Initialise stale-chunk recovery as early as possible in the browser bundle.
 // It is a no-op during SSR.
@@ -345,6 +346,10 @@ function RootComponent() {
   if (siteContent) setSiteContent(siteContent);
   if (platformConfig) setPlatformConfig(platformConfig);
   const router = useRouter();
+
+  useEffect(() => {
+    captureReferralCode(new URLSearchParams(window.location.search).get("ref"));
+  }, [router.state.location.href]);
 
   useEffect(() => {
     // Browser error monitoring. Loaded after hydration so the SDK never runs

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Download, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -35,12 +35,17 @@ import {
   updateReferralPayout,
   updateReferralProgram,
 } from "@/lib/referral.functions";
+import { affiliateRules } from "@/lib/affiliate-rules";
 import { PAYOUT_METHOD_LABELS, PAYOUT_STATUS_LABELS, formatMoney } from "@/lib/referral-model";
 
 export const Route = createFileRoute("/_authenticated/mranuskhalid/referrals")({
   head: () => ({
     meta: [
-      { title: "Referral Program — MunchReach Admin" },
+      { title: "Affiliate Management — MunchReach Admin" },
+      { property: "og:title", content: "Affiliate Management — MunchReach Admin" },
+      { property: "og:description", content: "Manage MunchReach affiliate rules, approvals and payouts." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "description", content: "Configure commissions, review referral activity and approve affiliate payouts." },
     ],
   }),
@@ -48,6 +53,7 @@ export const Route = createFileRoute("/_authenticated/mranuskhalid/referrals")({
 });
 
 type ProgramForm = {
+  monthly_commission_percent: number; monthly_paid_periods: number; lifetime_commission_percent: number; annual_commission_percent: number; cookie_duration_days: number; affiliate_approval_required: boolean;
   enabled: boolean;
   commission_type: "percentage" | "fixed";
   commission_percent: number;
@@ -84,11 +90,16 @@ function AdminReferralsPage() {
   // Clicks, signups, commissions and payout statuses stream in live.
   useReferralRealtime(["admin", "referrals"], "admin");
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [reason, setReason] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [form, setForm] = useState<ProgramForm | null>(null);
   useEffect(() => {
     if (data?.program && !form) {
       const p = data.program as unknown as ProgramForm;
       setForm({
+        ...affiliateRules(p),
         enabled: p.enabled,
         commission_type: p.commission_type,
         commission_percent: Number(p.commission_percent),
@@ -112,7 +123,7 @@ function AdminReferralsPage() {
   const onError = (error: Error) => toast.error(error.message);
 
   const programMutation = useMutation({
-    mutationFn: () => saveProgram({ data: form! }),
+    mutationFn: () => { if (!form) throw new Error("Settings unavailable"); return saveProgram({ data: form }); },
     onSuccess: () => {
       toast.success("Referral program updated");
       invalidate();
@@ -121,7 +132,7 @@ function AdminReferralsPage() {
   });
 
   const commissionMutation = useMutation({
-    mutationFn: (vars: { id: string; action: "approve" | "reject" | "reverse" }) => reviewCommission({ data: vars }),
+    mutationFn: (vars: { id: string; action: "approve" | "reject" | "reverse" }) => reviewCommission({ data: { ...vars, notes: reason } }),
     onSuccess: () => {
       toast.success("Commission updated");
       invalidate();
@@ -131,7 +142,7 @@ function AdminReferralsPage() {
 
   const payoutMutation = useMutation({
     mutationFn: (vars: { id: string; status: "under_review" | "approved" | "processing" | "paid" | "rejected" }) =>
-      savePayout({ data: vars }),
+      savePayout({ data: { ...vars, notes: reason, reference: paymentReference } }),
     onSuccess: () => {
       toast.success("Payout updated");
       invalidate();
@@ -140,7 +151,7 @@ function AdminReferralsPage() {
   });
 
   const referrerMutation = useMutation({
-    mutationFn: (vars: { id: string; status: "active" | "suspended" }) => setStatus({ data: vars }),
+    mutationFn: (vars: { id: string; status: "pending" | "active" | "suspended" | "rejected" }) => setStatus({ data: vars }),
     onSuccess: () => {
       toast.success("Referrer updated");
       invalidate();
@@ -170,9 +181,20 @@ function AdminReferralsPage() {
 
   return (
     <Tabs defaultValue="settings" className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <Input className="max-w-xs" aria-label="Search affiliates" placeholder="Search affiliates" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent>{["all","pending","active","suspended","rejected"].map((value) => <SelectItem key={value} value={value}>{value === "active" ? "Approved" : value}</SelectItem>)}</SelectContent></Select>
+        <Button variant="outline" onClick={() => {
+          const rows = data?.referrers ?? [];
+          const csv = ["Code,Status,Registrations,Customers", ...rows.map((r) => `${r.code},${r.status},${r.signups},${r.customers}`)].join("\n");
+          const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+          const a = document.createElement("a"); a.href = url; a.download = "munchreach-affiliates.csv"; a.click(); URL.revokeObjectURL(url);
+        }}><Download className="mr-2 size-4" />Export affiliates</Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2"><Input aria-label="Review reason" placeholder="Required reason for commission review" value={reason} onChange={(e) => setReason(e.target.value)} /><Input aria-label="Payout payment reference" placeholder="Payment reference (required to mark paid)" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} /></div>
       <TabsList>
-        <TabsTrigger value="settings">Program</TabsTrigger>
-        <TabsTrigger value="referrers">Referrers</TabsTrigger>
+        <TabsTrigger value="settings">Affiliate Settings</TabsTrigger>
+        <TabsTrigger value="referrers">Affiliates</TabsTrigger>
         <TabsTrigger value="commissions">Commissions</TabsTrigger>
         <TabsTrigger value="payouts">Payouts</TabsTrigger>
         <TabsTrigger value="fraud">
@@ -197,54 +219,14 @@ function AdminReferralsPage() {
               <Switch checked={form.enabled} onCheckedChange={(v) => update("enabled", v)} />
             </div>
 
-            <div className="space-y-2">
-              <Label>Commission type</Label>
-              <Select value={form.commission_type} onValueChange={(v) => update("commission_type", v as "percentage" | "fixed")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percentage">Percentage of payment</SelectItem>
-                  <SelectItem value="fixed">Fixed amount</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {form.commission_type === "percentage" ? (
-              <div className="space-y-2">
-                <Label>Percentage (%)</Label>
-                <Input
-                  type="number"
-                  value={form.commission_percent}
-                  onChange={(e) => update("commission_percent", Number(e.target.value))}
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Fixed amount (cents)</Label>
-                <Input
-                  type="number"
-                  value={form.commission_fixed_cents}
-                  onChange={(e) => update("commission_fixed_cents", Number(e.target.value))}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between rounded-lg border border-border/60 p-4">
-              <div>
-                <p className="text-sm font-medium">Recurring</p>
-                <p className="text-sm text-muted-foreground">Pay on every renewal, not just the first payment.</p>
-              </div>
-              <Switch checked={form.recurring} onCheckedChange={(v) => update("recurring", v)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Recurring duration (months, 0 = lifetime)</Label>
-              <Input
-                type="number"
-                value={form.commission_duration_months}
-                onChange={(e) => update("commission_duration_months", Number(e.target.value))}
-              />
-            </div>
-
+            {([
+              ["monthly_commission_percent", "Monthly commission (%)"], ["monthly_paid_periods", "Eligible paid monthly periods"],
+              ["lifetime_commission_percent", "Lifetime commission (%)"], ["annual_commission_percent", "First annual payment commission (%)"],
+              ["cookie_duration_days", "Cookie duration (days)"],
+            ] as const).map(([key, label]) => <div className="space-y-2" key={key}><Label>{label}</Label><Input type="number" min={0} value={form[key]} onChange={(e) => update(key, Number(e.target.value))} /></div>)}
+            <div className="flex items-center justify-between"><Label>Require affiliate application approval</Label><Switch checked={form.affiliate_approval_required} onCheckedChange={(v) => update("affiliate_approval_required", v)} /></div>
+            <div className="flex items-center justify-between"><Label>Payout method is ready for manual payments</Label><Switch checked={form.payout_provider_configured} onCheckedChange={(v) => update("payout_provider_configured", v)} /></div>
+            <p className="text-sm text-muted-foreground sm:col-span-2">Activation remains blocked until payment attribution, commission creation and an administrator payout review are verified. Annual renewals never earn commission.</p>
             <div className="space-y-2">
               <Label>Attribution window (days)</Label>
               <Input
@@ -348,13 +330,13 @@ function AdminReferralsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(data?.referrers ?? []).map((r: any) => (
+                {(data?.referrers ?? []).filter((r) => (statusFilter === "all" || r.status === statusFilter) && `${r.email} ${r.code}`.toLowerCase().includes(search.toLowerCase())).map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.email}</TableCell>
                     <TableCell className="font-mono text-xs">{r.code}</TableCell>
                     <TableCell>{r.signups}</TableCell>
                     <TableCell>{r.customers}</TableCell>
-                    <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
+                    <TableCell><Badge variant="secondary">{r.status === "active" ? "Approved" : r.status}</Badge></TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"
@@ -363,8 +345,9 @@ function AdminReferralsPage() {
                           referrerMutation.mutate({ id: r.id, status: r.status === "active" ? "suspended" : "active" })
                         }
                       >
-                        {r.status === "active" ? "Suspend" : "Reactivate"}
+                        {r.status === "active" ? "Suspend" : r.status === "pending" ? "Approve" : "Reactivate"}
                       </Button>
+                      {r.status === "pending" ? <Button size="sm" variant="ghost" onClick={() => referrerMutation.mutate({ id: r.id, status: "rejected" })}>Reject</Button> : null}
                     </TableCell>
                   </TableRow>
                 ))}

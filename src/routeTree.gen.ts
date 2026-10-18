@@ -100,6 +100,7 @@ import { Route as ProductWarmupRouteImport } from './routes/product.warmup'
 import { Route as ProductWorkspacesRouteImport } from './routes/product.workspaces'
 import { Route as ProductsAiCampaignWriterRouteImport } from './routes/products.ai-campaign-writer'
 import { Route as RCodeRouteImport } from './routes/r.$code'
+import { Route as ReferralAgenciesRouteImport } from './routes/referral_.agencies'
 import { Route as SolutionsIndexRouteImport } from './routes/solutions.index'
 import { Route as SolutionsSlugRouteImport } from './routes/solutions.$slug'
 import { Route as AuthenticatedAutomationsIdRouteImport } from './routes/_authenticated/automations.$id'
@@ -699,6 +700,11 @@ const ProductsAiCampaignWriterRoute =
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferralAgenciesRoute = ReferralAgenciesRouteImport.update({
+  id: '/referral_/agencies',
+  path: '/referral/agencies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SolutionsIndexRoute = SolutionsIndexRouteImport.update({
@@ -1585,6 +1591,7 @@ export interface FileRoutesByFullPath {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
   '/r/$code': typeof RCodeRoute
+  '/referral/agencies': typeof ReferralAgenciesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
@@ -1811,6 +1818,7 @@ export interface FileRoutesByTo {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
   '/r/$code': typeof RCodeRoute
+  '/referral/agencies': typeof ReferralAgenciesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog': typeof BlogIndexRoute
   '/help-center': typeof HelpCenterIndexRoute
@@ -2040,6 +2048,7 @@ export interface FileRoutesById {
   '/product/workspaces': typeof ProductWorkspacesRoute
   '/products/ai-campaign-writer': typeof ProductsAiCampaignWriterRoute
   '/r/$code': typeof RCodeRoute
+  '/referral_/agencies': typeof ReferralAgenciesRoute
   '/solutions/$slug': typeof SolutionsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/help-center/': typeof HelpCenterIndexRoute
@@ -2270,6 +2279,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
     | '/r/$code'
+    | '/referral/agencies'
     | '/solutions/$slug'
     | '/blog/'
     | '/help-center/'
@@ -2496,6 +2506,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
     | '/r/$code'
+    | '/referral/agencies'
     | '/solutions/$slug'
     | '/blog'
     | '/help-center'
@@ -2724,6 +2735,7 @@ export interface FileRouteTypes {
     | '/product/workspaces'
     | '/products/ai-campaign-writer'
     | '/r/$code'
+    | '/referral_/agencies'
     | '/solutions/$slug'
     | '/blog/'
     | '/help-center/'
@@ -2935,6 +2947,7 @@ export interface RootRouteChildren {
   ProductWorkspacesRoute: typeof ProductWorkspacesRoute
   ProductsAiCampaignWriterRoute: typeof ProductsAiCampaignWriterRoute
   RCodeRoute: typeof RCodeRoute
+  ReferralAgenciesRoute: typeof ReferralAgenciesRoute
   SolutionsSlugRoute: typeof SolutionsSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   IntegrationsIndexRoute: typeof IntegrationsIndexRoute
@@ -3622,6 +3635,13 @@ declare module '@tanstack/react-router' {
       path: '/r/$code'
       fullPath: '/r/$code'
       preLoaderRoute: typeof RCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/referral_/agencies': {
+      id: '/referral_/agencies'
+      path: '/referral/agencies'
+      fullPath: '/referral/agencies'
+      preLoaderRoute: typeof ReferralAgenciesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/solutions/': {
@@ -5084,6 +5104,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductWorkspacesRoute: ProductWorkspacesRoute,
   ProductsAiCampaignWriterRoute: ProductsAiCampaignWriterRoute,
   RCodeRoute: RCodeRoute,
+  ReferralAgenciesRoute: ReferralAgenciesRoute,
   SolutionsSlugRoute: SolutionsSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   IntegrationsIndexRoute: IntegrationsIndexRoute,

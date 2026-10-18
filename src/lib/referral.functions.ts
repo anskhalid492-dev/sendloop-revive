@@ -9,7 +9,7 @@ import { SUPABASE_URL as PINNED_URL, SUPABASE_PUBLISHABLE_KEY as PINNED_ANON } f
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
-import { affiliateRules } from "@/lib/affiliate-rules";
+
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
@@ -68,7 +68,7 @@ export const getReferralOverview = createServerFn({ method: "GET" })
     }
 
     const [statsRes, commissionsRes, payoutsRes, referralsRes, activityRes] = await Promise.all([
-      supabase.rpc("affiliate_dashboard_stats"),
+      (await import("@/integrations/supabase/client.server")).supabaseAdmin.rpc("affiliate_private_summary", { _user_id: context.userId }),
       supabase
         .from("referral_commissions")
         .select("id, provider, plan_name, currency, commission_amount_cents, commission_rate, commission_type, status, created_at, approved_at, paid_at, reversed_at, reversed_cents, settled_cents, payable_at")
@@ -88,6 +88,9 @@ export const getReferralOverview = createServerFn({ method: "GET" })
     ]);
 
     const statsRow = (Array.isArray(statsRes.data) ? statsRes.data[0] : statsRes.data) as ReferralStats | null;
+    for (const result of [statsRes, commissionsRes, payoutsRes, referralsRes, activityRes]) {
+      if (result.error) throw new Error("Affiliate data is unavailable. Production setup may still be required.");
+    }
 
     return {
       program,
@@ -394,6 +397,16 @@ export const resolveFraudFlag = createServerFn({ method: "POST" })
       .from("referral_fraud_flags")
       .update({ status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
       .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const saveAffiliatePayoutDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ method: z.string().min(2).max(40), details: z.string().min(3).max(160) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.rpc("affiliate_private_preferences", { _user_id: context.userId, _method: data.method, _details: data.details });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -86,7 +86,7 @@ const navGroups = [
 
   {
     label: "Grow",
-    items: [{ to: "/referrals", label: "Referrals", icon: Gift }],
+    items: [{ to: "/referrals", label: "Affiliates", icon: Gift }],
   },
   {
     label: "Conversations",
