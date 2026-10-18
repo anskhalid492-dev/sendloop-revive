@@ -38,6 +38,37 @@ export async function processStripeAffiliateEvent(event: VerifiedWebhook) {
     await submit(event, { action: 'adjust', paymentKey: paymentKey(pi), paymentId: pi, refundedCents: charge.amount_refunded ?? 0, disputed });
     return;
   }
+  // One-time lifetime checkouts may never produce an invoice, so commission them
+  // from the verified checkout session itself. The PaymentIntent payment key is
+  // shared with the invoice path, so a late invoice event deduplicates safely.
+  if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.eventType)) {
+    if (obj.mode !== 'payment') return; // Subscription checkouts are commissioned via invoice events.
+    const session = await stripeCall(event.environment, `checkout/sessions/${encodeURIComponent(obj.id)}?expand[]=line_items&expand[]=payment_intent`, undefined, 'GET');
+    const pi = identity(session.payment_intent);
+    if (!pi || session.payment_intent?.status !== 'succeeded') return;
+    if (session.payment_status !== 'paid' || !(session.amount_total > 0)) return;
+    const workspaceId = session.metadata?.workspace_id ?? session.payment_intent?.metadata?.workspace_id;
+    const planId = session.metadata?.plan_id ?? session.payment_intent?.metadata?.plan_id;
+    if (!workspaceId || !planId) return;
+    const { data: plan } = await supabaseAdmin.from('plans').select('id,name,billing_type').eq('id', planId).maybeSingle();
+    if (!plan || plan.billing_type !== 'lifetime') return;
+    const { data: mappings } = await supabaseAdmin.from('billing_plan_prices').select('external_price_id').eq('plan_id', plan.id).eq('provider', 'stripe').eq('environment', event.environment);
+    const priceIds = new Set((mappings ?? []).map((p) => p.external_price_id));
+    const lines: any[] = session.line_items?.data ?? [];
+    const eligible = lines.filter((l) => priceIds.has(l.price?.id));
+    if (!eligible.length) return;
+    const subtotal = eligible.reduce((sum, l) => sum + (l.amount_subtotal ?? l.amount_total ?? 0) - (l.discount_amounts ?? []).reduce((s: number, d: any) => s + d.amount, 0), 0);
+    const tax = (session.total_details?.amount_tax ?? 0);
+    const net = eligiblePaidAmount(session.amount_total, session.amount_total, tax, subtotal);
+    await submit(event, {
+      action: 'payment', paymentKey: paymentKey(pi), paymentId: pi,
+      customerId: identity(session.customer), workspaceId,
+      kind: 'lifetime', periodKey: `lifetime:${session.id}`,
+      paidCents: session.amount_total, eligibleCents: net, currency: session.currency,
+      planName: plan.name, paidAt: session.created,
+    });
+    return;
+  }
   // invoice.paid and invoice.payment_succeeded deduplicate on PaymentIntent, not webhook ID.
   if (!['invoice.paid', 'invoice.payment_succeeded'].includes(event.eventType)) return;
   const invoice = await stripeCall(event.environment, `invoices/${encodeURIComponent(obj.id)}?expand[]=payment_intent&expand[]=subscription`, undefined, 'GET');
