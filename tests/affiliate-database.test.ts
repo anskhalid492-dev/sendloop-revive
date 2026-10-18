@@ -14,7 +14,7 @@ async function payment(n: number, kind = 'monthly', action = 'payment', override
 beforeAll(async () => {
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth; CREATE SCHEMA extensions;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-    CREATE FUNCTION has_role(uuid,text) RETURNS boolean LANGUAGE sql AS $$ SELECT current_setting('affiliate_test.admin',true)='true' $$;
+    CREATE FUNCTION has_role(uuid,text) RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce(current_setting('affiliate_test.admin',true)='true',false) $$;
     CREATE FUNCTION set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at=now(); RETURN NEW; END $$;
     CREATE TABLE workspaces(id uuid PRIMARY KEY,owner_id uuid); CREATE TABLE workspace_members(workspace_id uuid,user_id uuid);`);
   // Isolated empty schema, no network or customer fixtures.
