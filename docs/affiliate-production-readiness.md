@@ -90,3 +90,13 @@ Date: 2026-10-18. Review only — no migrations executed, no production data tou
 - **Must fix before migration/payout use:** legacy-commission exclusion in admin payout review; verify string-patch migrations actually applied on production.
 - **Must verify before activation:** lifetime invoice creation, Stripe webhook event subscriptions, Price ID mappings for all plans, full Test Mode checklist.
 - **Remaining limitations:** payouts are manual (external payment + reference); no automatic reconciliation job for missed webhooks (manual retry only); multi-currency balances are computed per currency but displayed assuming USD.
+
+## Update 2026-10-18 — Blockers fixed
+
+**Legacy payout mismatch — fixed.** `review_affiliate_payout`, `request_referral_payout`, and `affiliate_dashboard_stats` now treat a NULL `affiliate_environment` as a legacy live earning (`coalesce(affiliate_environment,'live')='live'`). No records were backfilled or modified. During the fix, a second instance of the string-patch fragility was confirmed: migration 6's patch to `request_referral_payout` silently no-oped because its search text did not match the actual function body — the two new migrations use full `CREATE OR REPLACE` definitions instead of string patches, so they apply regardless of drift. The affiliate dashboard commission list (`referral.functions.ts`) also excluded legacy rows; it now includes them.
+
+**Lifetime commission gap — fixed.** The Stripe bridge now commissions one-time lifetime purchases directly from verified `checkout.session.completed` / `checkout.session.async_payment_succeeded` events (payment mode only). It re-fetches the session from Stripe, requires a succeeded PaymentIntent and paid status, requires a saved plan with `billing_type='lifetime'` and a matching Price ID mapping, and uses the same PaymentIntent-based payment key as the invoice path — so a late invoice event for the same payment deduplicates safely. Refund/dispute reversal, test/live isolation, and monthly/annual rules are unchanged.
+
+**Tests:** 8 new regression tests (legacy-only payout approval, lifetime checkout creation, checkout/invoice dedup, subscription-mode ignore, unpaid/processing ignore, plan/price mapping rejection, test/live isolation, lifetime refund). Full suite: 2,006 tests across 210 files, all passing. Preview build: OK.
+
+**Still unverified:** signed-in end-to-end payout flow against a real database session; real Stripe Test Mode delivery of the checkout session events (code path is mocked in tests); production application of the two new migrations remains manual.
