@@ -41,4 +41,14 @@ describe('affiliate transactional ledger — named throwaway account fixtures on
     expect((await db.query('select sum(settled_cents)::int n from referral_commissions')).rows[0]).toEqual({n:1000});
     await db.exec(`UPDATE referral_programs SET operational_verified_at=now(),enabled=true;`);
   });
+});describe('legacy pre-upgrade commissions — named throwaway fixtures only', () => {
+  it('pays out an approved legacy commission with no environment marker', async () => {
+    await db.exec(`INSERT INTO referral_commissions(attribution_id,referral_profile_id,referrer_user_id,referred_user_id,provider,provider_event_id,plan_name,currency,commission_type,commission_rate,commission_amount_cents,status,approved_at) VALUES('${attribution}','${profile}','${affiliate}','${customer}','stripe','affiliate-test-legacy-event','Legacy plan','usd','percentage',30,500,'approved',now());`);
+    await db.exec(`SELECT set_config('request.jwt.claim.sub','${affiliate}',false);`);
+    const p = (await db.query<{id:string}>("select (request_referral_payout(500,'paypal','affiliate-test@example.invalid')).id")).rows[0];
+    await db.exec("SELECT set_config('affiliate_test.admin','true',false)");
+    await db.query("select review_affiliate_payout($1,'paid','affiliate-test-legacy-reference','Legacy payout')",[p.id]);
+    expect((await db.query("select settled_cents,status from referral_commissions where provider_event_id='affiliate-test-legacy-event'")).rows[0]).toEqual({settled_cents:500,status:'paid'});
+    expect((await db.query("select sum(amount_cents)::int n from affiliate_payout_allocations where payout_id=$1",[p.id])).rows[0]).toEqual({n:500});
+  });
 });
