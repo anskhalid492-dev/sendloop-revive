@@ -82,7 +82,7 @@ export const PRICING_COMPARISON: PricingComparisonCategory[] = [
       { label: "Bounce handling", description: "Hard bounces are recorded and protected from repeat sending.", value: included },
       { label: "Complaint handling", description: "Complaints and sender-policy blocks are handled as safety events.", value: included },
       { label: "Per-mailbox signatures", description: "Rich and plain-text signatures for connected mailboxes.", value: included },
-      { label: "Managed email sending", description: "Campaign delivery runs through the MunchReach sending workflow.", value: included },
+      { label: "Connected-mailbox automation", description: "MunchReach schedules campaigns and follow-ups; your connected email provider or SMTP server delivers messages under its limits and policies.", value: included },
     ],
   },
   {

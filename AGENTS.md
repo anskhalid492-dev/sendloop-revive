@@ -8,9 +8,9 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
-- Background worker single-flight uses `acquireWorkerLease`/`releaseWorkerLease` (src/lib/worker-lease.server.ts) on a platform_settings row — never read-then-write lease checks, because overlapping cron ticks race.
-- Background workers choose their path per tick from `platform_settings.worker_mode` via `getWorkerMode` (src/lib/worker-mode.server.ts); anything but an explicit "queue" runs the legacy path, so flipping the flag back is the rollback.
-- Tests block all network calls to the production project (tests/setup/block-production-network.ts, loaded via vite.config.ts), because the server client is hard-pinned to production and unmocked tests leaked fixture IDs ("ws-1", "lead-1") into it.
+- Workers use atomic `acquireWorkerLease`/`releaseWorkerLease` (src/lib/worker-lease.server.ts), never read-then-write checks, to prevent overlapping cron races.
+- Workers read `platform_settings.worker_mode` each tick via `getWorkerMode` (src/lib/worker-mode.server.ts); only "queue" selects queues, otherwise legacy runs, preserving flag-based rollback.
+- Tests block production network via tests/setup/block-production-network.ts in vite.config.ts: the hard-pinned server client otherwise leaks unmocked fixture writes.
 - AI Sales Agent (AI Decision branch `node.ai`, `ai.generate_reply`, `human.review`) calls only the MunchReach-owned provider in src/lib/sales-agent-ai.server.ts; AI Campaign Writer/Personalization keep the customer-key path and must never import it (and vice versa), because the two AI systems have separate billing and credentials.
 - More rules for workers, campaigns, warmup and automations: src/lib/AGENTS.md.
 - Automatic warmup uses the pure `warmup-progression` UTC schedule shared by UI and engine, with persisted per-mailbox day/limit checkpoints and atomic `reserve_mailbox_warmup_send` before provider attempts; legacy settings stay opt-in so history and existing volume are preserved, and downtime/pause never causes catch-up jumps.
@@ -29,3 +29,5 @@
 - Affiliates use the native verified Stripe billing webhook and transactional payment-key ledger; privacy-safe reads and locked reviewed payouts prevent duplicate rewards and overpayment. Public activation requires explicit operational verification, and production migrations remain owner-applied.
 - Action-confirmed onboarding notices reuse System Emails through engagement-notices.server, are opt-in per template and revalidated by both delivery paths; active marketing automations block them conservatively to prevent cross-system duplicate nudges.
 - Immediate admin System Email tests pass a trusted, single-row delivery option to skip onboarding relevance and cooldown only; recipient preferences/suppression still apply and stored test flags never grant bypass, so testing cannot weaken automatic delivery safeguards.
+
+- Public warmup schedule descriptions derive from the client-safe DEFAULT_WARMUP_STAGES constant; configuration is labeled separately from performance evidence so marketing and engine defaults cannot drift.

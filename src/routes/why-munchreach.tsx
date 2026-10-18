@@ -40,7 +40,7 @@ export const Route = createFileRoute("/why-munchreach")({
   head: () =>
     metaFor(
       "Why MunchReach — One Outbound Workspace",
-      "Campaigns, unified inbox, CRM, warmup, analytics and automation on infrastructure you own. See why outbound teams consolidate on MunchReach.",
+      "Campaigns, unified inbox, CRM, warmup, analytics and automation through mailboxes you own. See why outbound teams consolidate on MunchReach.",
       "/why-munchreach",
     ),
   component: WhySendloop,
@@ -84,7 +84,7 @@ const unified = [
   { icon: Inbox, title: "Unified Inbox", text: "Every reply from every mailbox in one thread view your whole team can work." },
   { icon: Users, title: "CRM", text: "Contacts, pipeline stages, tasks and notes that update as replies come in." },
   { icon: Flame, title: "Warmup", text: "Continuous warmup and health scoring on the mailboxes you actually send from." },
-  { icon: BarChart3, title: "Analytics", text: "Sent, delivered, opened, replied and bounced by campaign, mailbox and day." },
+  { icon: BarChart3, title: "Analytics", text: "Recorded sends, opens, replies and bounces by campaign, mailbox and day; confirmed delivery where available." },
   { icon: Repeat, title: "Automations", text: "Triggers, conditions, waits and actions that run without anyone watching." },
 ];
 
@@ -96,8 +96,8 @@ const controlRows = [
     bullets: [
       "Per-mailbox daily caps, ramp-up and sending windows",
       "Rotation across accounts so no single mailbox carries a campaign",
-      "Automatic pause on bounce and complaint thresholds",
-      "Delivery diagnostics on every test and live send",
+      "Configured safety blocks and pauses for sending-health issues",
+      "Provider responses and send failures for troubleshooting",
     ],
     visual: (
       <MockPanel title="Sending accounts">
@@ -114,7 +114,7 @@ const controlRows = [
   {
     eyebrow: "Your mailboxes",
     title: "Your mailboxes, your reputation",
-    text: "You connect the mailboxes you already own and campaigns send through them. Sending reputation is built on accounts that stay with you, not on a shared pool you rent by the month.",
+    text: "You connect mailboxes you own. MunchReach manages campaigns, scheduling, follow-ups and mailbox rotation; your connected email provider or SMTP server delivers each message. We do not supply a shared rented mailbox pool. You remain responsible for your provider's sending limits and policies.",
     bullets: [
       "Every mailbox is tested for sending and receiving before it is enabled",
       "Bring your own mailbox: Gmail, Microsoft 365 or any IMAP/SMTP provider",
@@ -122,7 +122,7 @@ const controlRows = [
       "Leave whenever you want — your mailboxes keep working",
     ],
     visual: (
-      <MockPanel title="Mailbox connection">
+      <MockPanel title="Mailbox connection — example">
         <MockRows
           rows={[
             { left: "SPF", muted: "v=spf1 include:… -all", badge: "Verified" },
@@ -137,7 +137,7 @@ const controlRows = [
   {
     eyebrow: "Analytics",
     title: "Numbers you can act on the same day",
-    text: "Every send, delivery, open, click, reply, bounce and unsubscribe is recorded against the campaign, the step and the mailbox that produced it — so the funnel explains itself.",
+    text: "Recorded sends, opens, clicks, replies, bounces and unsubscribes stay tied to their campaign. Confirmed delivery is shown only when available; accepted-minus-bounced estimates are separate and do not measure inbox placement.",
     bullets: [
       "Conversion funnel from sent through to replied",
       "Per-mailbox and per-campaign breakdowns",
@@ -145,7 +145,7 @@ const controlRows = [
       "Reply volume tied back to the exact step and variant",
     ],
     visual: (
-      <MockPanel title="Campaign performance">
+      <MockPanel title="Campaign performance — example, not platform results">
         <MockBars
           bars={[
             { label: "Delivered", value: 97 },
@@ -226,7 +226,7 @@ function WhySendloop() {
         eyebrow="Why MunchReach"
         title="Stop running outbound across"
         highlight="six disconnected tools"
-        description="Campaigns, replies, contacts, warmup, analytics and automation belong to the same workflow. MunchReach puts them in one workspace, on sending infrastructure you own."
+        description="Campaigns, replies, contacts, warmup, analytics and automation belong to the same workflow. MunchReach puts them in one workspace, through mailboxes you own."
         primaryCta="Start for Free"
       />
 
@@ -247,7 +247,7 @@ function WhySendloop() {
 
       <Section
         title="Control, not guesswork"
-        description="Four areas where owning the infrastructure changes the outcome."
+        description="Four areas where connected mailboxes and one workflow give you more control."
       >
         <SolutionSplit rows={controlRows} />
       </Section>

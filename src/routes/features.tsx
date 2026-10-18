@@ -57,7 +57,7 @@ import dashboardPreviewAsset from "@/assets/munchreach-dashboard.png.asset.json"
 const dashboardPreview = dashboardPreviewAsset.url;
 
 const CANONICAL = "https://munchreach.com/features";
-const SEO_TITLE = "Features — Cold Email & Outreach Automation";
+const SEO_TITLE = "MunchReach Features — Cold Email & Outreach Automation";
 const SEO_DESCRIPTION =
   "Campaigns, follow-ups, unified inbox, warmup, AI personalization, CRM, automations and analytics — every MunchReach feature explained.";
 
@@ -80,11 +80,11 @@ const faqs = [
   },
   {
     q: "Can I connect multiple email accounts?",
-    a: "Yes. You can connect several sending accounts to a workspace, see their status and health, and assign them to campaigns.",
+    a: "Yes. Connect mailboxes you own, monitor their status and assign them to campaigns. MunchReach manages scheduling and follow-ups; your email provider or SMTP server delivers messages under its limits and policies. We do not supply a shared rented mailbox pool.",
   },
   {
     q: `Does ${BRAND_NAME} include warmup?`,
-    a: "Yes. Warmup runs separately from campaign sending, ramps activity gradually, and tracks mailbox health with a per-message warmup timeline. Warmup activity is never mixed into campaign metrics.",
+    a: "Yes. Warmup runs separately from campaign sending, ramps activity gradually, and tracks mailbox health with a per-message warmup timeline. Warmup activity is never mixed into campaign metrics. Health scores and activity counts are not inbox placement measurements or delivery guarantees.",
   },
   {
     q: "How does lead management work?",
@@ -413,7 +413,7 @@ function FeaturesPage() {
         icon={Mail}
         eyebrow="Email accounts"
         title="Connect your sending accounts in minutes."
-        description="Connect and manage the mailboxes you use for outbound campaigns, keep an eye on their status, and choose which accounts each campaign sends from."
+        description="Connect your own mailboxes and choose which accounts each campaign uses. MunchReach manages the workflow and sending schedule; your provider or SMTP server delivers messages. You remain responsible for its limits and policies."
         points={[
           "Multiple sending accounts",
           "Account health",
@@ -432,8 +432,8 @@ function FeaturesPage() {
         index={6}
         icon={Flame}
         eyebrow="Warmup"
-        title="Protect your sending reputation."
-        description="Warmup builds up gentle, natural activity on a mailbox before and alongside your campaigns, so a new sending account isn't pushed to full volume on day one."
+        title="Warm up gradually, with health safeguards."
+        description="Warmup schedules gradual activity before and alongside campaigns, with independent per-mailbox progression, manual daily limits and safety controls. Activity and calculated health indicators do not guarantee delivery or inbox placement."
         points={[
           "Automated warmup",
           "Mailbox health",

@@ -37,12 +37,12 @@ export const Route = createFileRoute("/signup")({
       {
         name: "description",
         content:
-          "Start free with MunchReach. Import leads, launch cold email sequences and let MunchReach handle the sending infrastructure for you.",
+          "Start free with MunchReach. Connect your own mailbox, import leads and automate cold email campaigns through your email provider.",
       },
       { property: "og:title", content: "Create your free MunchReach account" },
       {
         property: "og:description",
-        content: "Launch cold email campaigns in minutes — no sending setup required.",
+        content: "Connect your own mailbox and automate campaigns, scheduling and follow-ups with MunchReach.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

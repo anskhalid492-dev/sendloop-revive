@@ -41,7 +41,7 @@ import analyticsOverview from "@/assets/analytics-engagement-overview.png.asset.
 const faqs = [
   {
     q: "What metrics does MunchReach Analytics track?",
-    a: "Emails sent, delivered, opens, clicks, replies and reply rate, positive replies, bounces and bounce rate, failed sends, unsubscribes, and meetings booked — per campaign, per mailbox and across the workspace.",
+    a: "Recorded sends, opens, clicks, replies, positive replies, bounces, failed sends, unsubscribes and meetings — per campaign and workspace. Confirmed delivery is shown where available, separately from accepted-minus-bounced estimates; neither is inbox placement.",
   },
   {
     q: "Can I see campaign performance over time?",
@@ -61,7 +61,7 @@ const faqs = [
   },
   {
     q: "Does Analytics show bounce and delivery performance?",
-    a: "Yes. Delivery rate, bounce rate and failed sends are reported separately — a bounce is a rejection by the receiving provider, a failed send is a message that never left. Mailbox health and warmup are reported apart from campaign results.",
+    a: "Yes. Confirmed delivery is shown only when available; accepted-minus-bounced estimates are separate. Provider acceptance does not prove arrival or inbox placement. Bounces and failed sends are distinct outcomes, and mailbox health and warmup stay separate from campaign results.",
   },
 ];
 
@@ -214,7 +214,7 @@ function Page() {
 
       <Section
         title="See which campaigns are working"
-        description="Sent, delivered, replies, reply rate, positive replies, meetings and bounce rate for every campaign, sortable and filterable."
+        description="Recorded sends, replies, positive replies, meetings and bounces by campaign, with confirmed delivery where available. The figures below are example data, not platform results."
       >
         <CampaignPerformanceTableMock />
         <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
@@ -242,7 +242,7 @@ function Page() {
       <Section
         muted
         title="Spot sending problems early"
-        description="Delivery, bounces and failed sends are three different things — and mixing them hides real problems."
+        description="Provider acceptance, confirmed delivery, bounces and failed sends are different outcomes. Estimates are labeled separately; no metric here proves inbox placement."
       >
         <DeliveryHealthMock />
       </Section>

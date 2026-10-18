@@ -86,7 +86,7 @@ const FAQS = [
   },
   {
     q: "Can I connect my own sending accounts?",
-    a: "Yes. Both offers support your own mailboxes, with the connected-account limit shown in the plan comparison.",
+    a: "Yes. Both offers support your own mailboxes, with the connected-account limit shown in the plan comparison. MunchReach automates the workflow; your provider or SMTP server delivers messages, subject to its limits and policies.",
   },
   {
     q: "Does this include warmup?",
@@ -156,12 +156,12 @@ const FEATURES = [
   {
     icon: Flame,
     title: "Email warmup",
-    text: "Continuous warmup keeps your mailboxes trusted and out of the spam folder.",
+    text: "Gradual warmup activity with per-mailbox progression and health safeguards. Warmup does not guarantee inbox placement.",
   },
   {
     icon: ShieldCheck,
     title: "Deliverability monitoring",
-    text: "SPF, DKIM and DMARC checks with domain alerts when something breaks.",
+    text: "Monitor available sending-health and authentication signals; unavailable checks require manual verification.",
   },
   {
     icon: BarChart3,

@@ -252,7 +252,7 @@ const WORKSPACE_AREAS: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Inbox, title: "Inbox", text: "Replies from every campaign and mailbox in one shared thread list." },
   { icon: BarChart3, title: "Analytics", text: "Delivery, reply and positive-reply performance you can act on." },
   { icon: Mail, title: "CRM", text: "Statuses, owners and notes carrying conversations to an outcome." },
-  { icon: ShieldCheck, title: "Warmup", text: "Sending reputation built and maintained in the background." },
+  { icon: ShieldCheck, title: "Warmup", text: "Gradual warmup activity and available mailbox health signals, separate from campaign results." },
 ];
 
 function WorkspaceShowcase() {
@@ -344,8 +344,8 @@ const SHOWCASES = [
   },
   {
     eyebrow: "Warmup",
-    title: "Sending reputation maintained quietly",
-    text: "New mailboxes ramp gradually and established ones keep a steady background pattern, so a campaign is not the first serious traffic an account has ever sent.",
+    title: "Gradual warmup with visible safeguards",
+    text: "Enabled warmup schedules gradual activity through your connected mailboxes, with independent progression and health safeguards. Activity and health indicators do not guarantee reputation or inbox placement.",
     bullets: [
       "Gradual ramp for new accounts",
       "Ongoing activity for established mailboxes",
@@ -427,7 +427,7 @@ function OutcomesSection({ content }: { content: SolutionContent }) {
 const WHY: { title: string; text: string }[] = [
   { title: "One platform", text: "Manage the moving parts of outbound from one workspace instead of stitching tools together." },
   { title: "Unified inbox", text: "Prospect conversations stay together, with the exact message that was sent attached to the thread." },
-  { title: "Multiple sending accounts", text: "Sending infrastructure is managed centrally, with limits, health and warmup per account." },
+  { title: "Multiple sending accounts", text: "Manage your own connected mailboxes centrally. MunchReach orchestrates campaigns and follow-ups; your email provider or SMTP server delivers messages under its limits and policies." },
   { title: "Campaign control", text: "Schedules, sequences, sending windows and daily limits are yours to set per campaign." },
   { title: "Analytics", text: "Delivery, reply and positive-reply performance at campaign, segment and mailbox level." },
   { title: "Built for outbound", text: "The product is designed around the operational workflow of outbound teams, not adapted from a generic mail tool." },

@@ -15,20 +15,19 @@ import {
   MarketingLayout,
   FaqBlock,
   CtaBlock,
-  MockBars,
-  QuoteBlock,
   metaFor,
 } from "@/components/site/MarketingPage";
 import { CopyButton } from "@/components/site/CopyButton";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_WARMUP_STAGES } from "@/lib/warmup-progression";
 
 const faqs = [
-  { q: "Why do my emails go to spam?", a: "Usually a mix of missing authentication, a cold domain, unverified lists or overly promotional copy. Fix authentication and warmup first — they account for most cases." },
-  { q: "How many emails per mailbox per day?", a: "Cap at 30–50 for a healthy warmed mailbox. Scale by adding mailboxes, never by pushing one mailbox harder." },
+  { q: "Why do my emails go to spam?", a: "Authentication, sender history, list quality, recipient expectations and message content can all affect filtering. Review provider feedback and investigate these factors together." },
+  { q: "How many emails per mailbox per day?", a: "Choose conservative mailbox limits within your provider's policies. Consider account history and recipient engagement, increase gradually, and investigate failures before raising volume." },
   { q: "Do links hurt deliverability?", a: "Multiple links, tracking pixels and image-heavy HTML all add risk. Keep the first email plain text with at most one link." },
   { q: "Should I use a catch-all domain?", a: "No. Catch-all recipients cannot be verified, so they inflate invalid sends and hurt reputation." },
   { q: "What is the difference between SPF, DKIM and DMARC?", a: "SPF authorizes which servers can send for your domain, DKIM cryptographically signs the message, and DMARC tells receiving servers what to do when SPF or DKIM fail — and where to send reports." },
-  { q: "How long does it take to see the effect of a fix?", a: "Authentication changes propagate within hours, but sender reputation is cumulative — expect 1–3 weeks of clean sending before inbox placement fully recovers." },
+  { q: "How long does it take to see the effect of a fix?", a: "Recovery varies by provider, sender history and the issue involved. DNS changes depend on caching and provider processing; no recovery time or inbox placement is guaranteed." },
 ];
 
 export const Route = createFileRoute("/deliverability-guide")({
@@ -62,44 +61,37 @@ const sections = [
 ];
 
 const problems = [
-  { title: "One missing DNS record", text: "A single missing or misconfigured SPF, DKIM or DMARC entry can silently route every send straight to spam, with no error shown anywhere." },
-  { title: "Reputation decays fast", text: "A cold or newly-purchased domain has zero sending history — providers throttle and filter aggressively until you prove consistent, low-complaint behavior." },
-  { title: "One bad list ruins the domain", text: "A single unverified list with a high bounce rate can tank a domain's reputation for weeks, dragging every future campaign down with it." },
+  { title: "Check authentication", text: "Missing or misconfigured authentication can contribute to rejection or filtering. Check the records supplied by your mailbox provider and inspect available results." },
+  { title: "Review sender history", text: "New accounts may have limited sending history. Provider restrictions and filtering vary, so begin conservatively and monitor feedback." },
+  { title: "Investigate list quality", text: "Invalid recipients and unwanted messages can create bounces and complaints. Review your list and stop problematic activity before scaling." },
 ];
 
 const pillars = [
   { title: "Infrastructure", text: "Dedicated sending domains, correct MX and a custom tracking domain that matches your brand." },
   { title: "Authentication", text: "SPF, DKIM and DMARC aligned and published before your first send." },
-  { title: "Reputation", text: "Warmup for two to four weeks, then ramp volume gradually per mailbox." },
+  { title: "Reputation", text: "Build activity gradually and review available health signals before increasing volume." },
   { title: "List hygiene", text: "Verified addresses, no catch-alls at scale, and aggressive suppression." },
   { title: "Content signals", text: "Plain text, few links, no spam trigger phrases and a real unsubscribe path." },
   { title: "Volume pacing", text: "Stay under provider limits, spread sends across the day and rotate mailboxes." },
 ];
 
-const rampTable = [
-  { week: "Week 1", volume: "5–10 emails/day", notes: "Warmup network only, internal replies encouraged" },
-  { week: "Week 2", volume: "15–25 emails/day", notes: "Warmup continues, first small campaign batches allowed" },
-  { week: "Week 3", volume: "30–40 emails/day", notes: "Real campaign traffic, monitor bounce and complaint rate daily" },
-  { week: "Week 4+", volume: "40–50 emails/day", notes: "Full campaign volume if bounce stays under 2%, complaints under 0.1%" },
-];
+const rampTable = DEFAULT_WARMUP_STAGES.map(stage => ({
+  week: `Days ${stage.start_day}–${stage.end_day}`,
+  volume: `${stage.min_emails}–${stage.max_emails} warmup emails/day`,
+  notes: "Default UTC progression; safety and capacity may reduce activity",
+}));
 
 const checklist = [
   "SPF record exists and passes alignment",
   "DKIM signature verifies for the sending domain",
   "DMARC published and monitored",
   "Custom tracking domain with valid TLS",
-  "Bounce rate under 2% and complaints under 0.1%",
+  "Review available bounce and complaint signals against your provider policies",
   "Every list verified before import",
   "Unsubscribe link or plain-text opt-out in every message",
-  "Warmup running continuously on every mailbox",
+  "Review each mailbox's warmup settings, safeguards and recent activity",
 ];
 
-const placement = [
-  { label: "Inbox", value: 78, caption: "78% of test sends" },
-  { label: "Promotions / Other tab", value: 14, caption: "14%" },
-  { label: "Spam", value: 6, caption: "6%" },
-  { label: "Blocked / not delivered", value: 2, caption: "2%" },
-];
 
 function Callout({
   tone,
@@ -192,13 +184,13 @@ function Guide() {
             Cold email <span className="text-gradient">deliverability guide</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Everything that decides whether your cold email is read or filtered — domain setup,
+            Key factors that can influence whether cold email is delivered or filtered — domain setup,
             authentication, warmup, volume, list quality, bounces, replies and monitoring — in the
-            exact order to fix it in.
+            a practical review checklist.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>
-              <Link to="/auth">Run a free audit</Link>
+              <Link to="/auth">Connect your mailbox</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <a href="#why-it-breaks">Read the guide</a>
@@ -255,17 +247,18 @@ function Guide() {
 
           <GuideSection id="domain-setup" title="Domain setup">
             <p>
-              Use a lookalike domain for outbound so campaign activity can never affect your primary
-              domain. Point the correct MX records at your receiving infrastructure and add a custom
+              Use an authorized sending domain that clearly identifies your business. Separating outreach
+              can help manage operational risk, but does not guarantee reputation isolation. Point the correct MX records at your receiving infrastructure and add a custom
               tracking domain with valid TLS that matches your brand.
             </p>
-            <Callout tone="warning" title="Never send cold email from your primary domain">
-              A reputation problem on your outbound domain is recoverable. The same problem on the
-              domain your invoices and support email leave from is not.
+            <Callout tone="warning" title="Consider reputation risk">
+              Consider how outreach could affect important business email. Follow provider policies;
+              no domain setup guarantees protection or recovery.
             </Callout>
             <p>
-              In MunchReach, a domain has to pass DNS verification before any mailbox on it can go
-              active — see{" "}
+              Connect your own mailbox and use the authentication records supplied by its provider.
+              MunchReach shows available connection and authentication checks; unavailable checks
+              require manual verification — see{" "}
               <Link to="/product/email-accounts" className="text-primary underline-offset-4 hover:underline">
                 Email Accounts
               </Link>
@@ -279,8 +272,8 @@ function Guide() {
               of your domain.
             </p>
             <DnsRecord
-              desc="Add one SPF TXT record per domain — multiple SPF records invalidate each other."
-              example="v=spf1 include:_spf.munchreach.app ~all"
+              desc="Use the SPF record supplied by your email provider, not a MunchReach sending include. This is a placeholder example only; do not publish it unchanged."
+              example="v=spf1 include:YOUR_PROVIDER_SPF_DOMAIN ~all"
             />
           </GuideSection>
 
@@ -305,14 +298,14 @@ function Guide() {
               example="v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com"
             />
             <Callout tone="info" title="Publish all three before your first send">
-              Authentication changes propagate within hours, but reputation is cumulative — fixing
-              DNS after a bad launch does not undo the damage.
+              Propagation depends on DNS caching and provider processing. Authentication helps receiving
+              servers verify identity; it does not guarantee delivery or inbox placement.
             </Callout>
           </GuideSection>
 
           <GuideSection id="mailbox-setup" title="Mailbox setup">
             <p>
-              Connect mailboxes only on verified domains. Each mailbox is connection-tested when it
+              Connect mailboxes you own or are authorized to use. Each mailbox is connection-tested when it
               is added, and the result is recorded so you can see when a connection starts failing.
               Scale sending by adding mailboxes rather than pushing a single mailbox harder.
             </p>
@@ -324,8 +317,10 @@ function Guide() {
 
           <GuideSection id="warmup" title="Warmup">
             <p>
-              Warm up for two to four weeks before campaign traffic, then ramp gradually. This
-              conservative four-week schedule keeps reputation intact.
+              MunchReach's default automatic schedule below describes configured warmup activity, not
+              performance or a required waiting period. Each mailbox progresses independently by
+              UTC day; health safeguards and pauses can hold or reduce activity. Legacy or customized
+              settings may differ.
             </p>
             <div className="overflow-hidden rounded-xl border border-border">
               <table className="w-full text-left text-sm">
@@ -352,15 +347,17 @@ function Guide() {
               <Link to="/product/warmup" className="text-primary underline-offset-4 hover:underline">
                 warmup engine
               </Link>{" "}
-              paces this automatically and keeps running alongside campaign traffic.
+              uses per-mailbox progression checkpoints and capacity checks. Warmup can run alongside
+              campaigns, but does not guarantee reputation or campaign inbox placement.
             </p>
           </GuideSection>
 
           <GuideSection id="sending-volume" title="Sending volume">
             <p>
-              Cap a healthy warmed mailbox at 30–50 emails per day. Stay under provider limits,
-              spread sends across the day and rotate mailboxes. Scale by adding mailboxes, never by
-              pushing one mailbox harder.
+              Choose mailbox limits within your provider's policies and account restrictions. MunchReach
+              orchestrates campaigns and follow-ups through your connected provider or SMTP server;
+              that provider performs delivery. Spread activity through your sending window and
+              review feedback before increasing volume.
             </p>
           </GuideSection>
 
@@ -379,7 +376,7 @@ function Guide() {
 
           <GuideSection id="bounce-management" title="Bounce management">
             <p>
-              Keep bounce rate under 2%. Hard bounces should be suppressed immediately and never
+              Review bounces against your provider's requirements. Hard bounces should be suppressed and not
               retried — a repeated send to a dead address is one of the strongest negative signals a
               provider tracks. Pause and investigate the list rather than the copy when bounces
               spike.
@@ -393,14 +390,14 @@ function Guide() {
               suppression has to apply before the next batch is queued.
             </p>
             <Callout tone="info" title="Complaints matter more than unsubscribes">
-              Keep complaints under 0.1%. Making the opt-out obvious is what keeps that number low.
+              Follow your provider's complaint policies, make opting out clear, and investigate available complaint feedback. Feedback coverage varies by provider.
             </Callout>
           </GuideSection>
 
           <GuideSection id="reply-management" title="Reply management">
             <p>
-              Replies are the strongest positive signal a mailbox can generate, so route them
-              somewhere they get answered. Sequences stop automatically on reply, bounce and
+              Replies help you understand engagement, so route them somewhere they get answered.
+              Reply counts alone do not prove inbox placement. Sequences stop automatically on reply, bounce and
               unsubscribe, so a prospect never receives a follow-up after answering. Every reply
               lands in the{" "}
               <Link to="/product/unified-inbox" className="text-primary underline-offset-4 hover:underline">
@@ -418,36 +415,37 @@ function Guide() {
               variable report before launching.
             </p>
             <p>
-              Three to four touches over 10–14 days is the sweet spot — after that, response rate
-              per additional email drops sharply. Ready-made structures live in the{" "}
+              Choose follow-up timing and frequency based on relevance, recipient feedback and your
+              provider's policies rather than a universal response-rate formula. Ready-made structures live in the{" "}
               <Link to="/cold-email-templates" className="text-primary underline-offset-4 hover:underline">
                 cold email template library
               </Link>
               .
             </p>
             <p>
-              Setup in the right order: buy a sending domain, publish DNS records, warm up the
-              mailbox, then send small, measure and scale — increasing only while bounces stay under
-              2%.
+              Review your provider's setup and authentication, connect your mailbox, configure conservative
+              limits, and send small batches before scaling based on observed feedback.
             </p>
           </GuideSection>
 
           <GuideSection id="monitoring" title="Monitoring deliverability">
             <p>
-              Watch bounce rate, complaint rate and reply rate daily during a ramp. This is what
-              good inbox placement looks like on a properly authenticated, warmed domain sending
-              under 50 emails per day per mailbox with a verified list.
+              Review bounces, complaints where available, failures and replies during a ramp. MunchReach
+              does not publish verified aggregate placement results; these signals cannot establish
+              a platform-wide inbox rate.
             </p>
             <div className="surface-card p-6">
-              <MockBars bars={placement} />
+              <h3 className="font-semibold text-foreground">Acceptance is not inbox placement</h3>
+              <p className="mt-3 text-sm">Provider acceptance records a send handoff. Confirmed arrival is a separate signal, and inbox/spam placement requires receiving-side evidence. Missing evidence stays unavailable. Warmup observations do not predict campaign placement.</p>
             </div>
             <p>
               The{" "}
               <Link to="/product/analytics" className="text-primary underline-offset-4 hover:underline">
                 analytics funnel
               </Link>{" "}
-              separates a delivery problem from a copy problem: delivery falling off points at
-              infrastructure, healthy delivery with no replies points at the message.
+              helps investigate recorded sending and engagement outcomes. Confirmed delivery, where
+              available, is distinct from accepted-minus-bounced estimates; neither proves inbox
+              placement or identifies a single cause of low replies.
             </p>
           </GuideSection>
 
@@ -489,11 +487,8 @@ function Guide() {
 
       <section className="border-y border-border/60 bg-secondary/40 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <QuoteBlock
-            quote="We went from 40% spam placement to consistent inbox delivery just by fixing DMARC alignment and slowing our ramp down."
-            name="Marcus Webb"
-            role="Founder, B2B lead gen agency"
-          />
+          <h2 className="text-2xl font-bold">Measure your own sending context</h2>
+          <p className="mt-4 max-w-3xl text-muted-foreground">When reviewing results, record the period, mailbox sample, receiving providers and observable message count. A small or incomplete placement sample is not a customer success benchmark or a performance guarantee.</p>
         </div>
       </section>
 
@@ -505,7 +500,7 @@ function Guide() {
 
       <CtaBlock
         title="Check your setup in minutes"
-        description="Connect a mailbox and MunchReach validates authentication, warmup status and sending limits automatically."
+        description="Connect your own mailbox, review available health signals and configure outreach automation within your provider limits."
       />
     </MarketingLayout>
   );

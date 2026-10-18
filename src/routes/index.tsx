@@ -47,7 +47,7 @@ const faqs = [
   },
   {
     q: "Do I need my own mailbox?",
-    a: "Yes. Campaigns send from mailboxes you connect to your workspace. MunchReach does not sell mailboxes or send on a shared address for you.",
+    a: "Yes. Campaigns send from mailboxes you connect to your workspace. MunchReach automates campaigns and follow-ups through your connected provider or SMTP server. We do not supply a shared rented mailbox pool; you remain responsible for provider limits and policies.",
   },
   {
     q: "Can I connect Gmail or Google Workspace?",
@@ -79,7 +79,7 @@ const faqs = [
   },
   {
     q: "How does warmup work?",
-    a: "Warmup gradually builds sending activity on your connected mailboxes, tracks mailbox health, and warns you about deliverability problems. It improves your odds but cannot guarantee inbox placement.",
+    a: "Warmup schedules gradual activity on your connected mailboxes, with independent automatic progression and health safeguards. Activity counts and health signals are not inbox placement measurements and do not guarantee delivery.",
   },
   {
     q: "Can I manage replies in one inbox?",
@@ -509,9 +509,9 @@ function Home() {
           id="warmup"
           reverse
           label="Warmup"
-          title="Protect Your Sending Reputation"
-          body="Warmup builds sending activity gradually on your connected mailboxes and keeps an eye on mailbox health, so problems show up before they hurt your campaigns."
-          benefits={["Mailbox warmup", "Health monitoring and warmup status", "Sending activity tracking", "Deliverability warnings"]}
+          title="Build Sending Activity With Clear Controls"
+          body="Warmup builds activity gradually on your connected mailboxes, tracks available health signals, and can hold or pause activity when configured safeguards are triggered. Warmup activity is separate from campaign results and inbox placement."
+          benefits={["Mailbox warmup", "Health monitoring and warmup status", "Sending activity tracking", "Sending-health warnings"]}
           cta={{ to: "/product/warmup", text: "Explore Warmup" }}
           visual={<WarmupDashboardMock />}
         />

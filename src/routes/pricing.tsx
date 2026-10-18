@@ -185,8 +185,9 @@ function PricingPage() {
 
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
-          Prices in USD. Sending is fully managed by MunchReach — there is nothing to set up or
-          maintain on your side.
+          Prices in USD. Connect your own mailboxes; MunchReach manages campaigns, scheduling and
+          automated follow-ups. Your connected email provider or SMTP server delivers the messages.
+          You remain responsible for its sending limits and policies.
         </p>
       </Section>
 
@@ -205,7 +206,7 @@ function PricingPage() {
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
             Start free and upgrade whenever you need more prospects, campaigns or seats. Every plan
-            includes managed sending.
+            includes outreach automation through your connected mailboxes.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>
@@ -438,8 +439,8 @@ const pricingFaqs = [
       a: "Leads are a fixed storage capacity — the total number of contacts your workspace can hold at once. Paid plans include a monthly email allowance; the free trial includes a one-time email allowance.",
     },
     {
-      q: "Do I need my own SMTP or email API?",
-      a: "No. MunchReach manages the sending infrastructure behind the scenes. You add prospects, build your campaign and launch — we handle delivery.",
+      q: "Do I need my own email mailbox?",
+      a: "Yes. Connect a mailbox you own using a supported provider connection or its IMAP/SMTP details. MunchReach manages the outreach workflow and sending schedule; your provider or SMTP server handles delivery. No shared rented mailbox pool is supplied, and your provider's limits and policies still apply.",
     },
     {
       q: "What counts as a lead contact?",
