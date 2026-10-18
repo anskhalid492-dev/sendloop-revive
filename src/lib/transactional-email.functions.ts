@@ -587,7 +587,7 @@ export const sendTransactionalTest = createServerFn({ method: "POST" })
       testMode: true,
       idempotencyKey: `test-${data.eventKey}-${Date.now()}`,
       userId: context.userId,
-    });
+    }, { adminTest: true });
   });
 
 export const updateTransactionalSettings = createServerFn({ method: "POST" })

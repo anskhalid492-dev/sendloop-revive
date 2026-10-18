@@ -1,5 +1,9 @@
 # Roadmap
 
+## Onboarding System Email test correction
+- [x] Identify missing workspace context in admin tests and separate trusted single-message tests from automatic relevance/cooldown checks while preserving recipient safeguards.
+- [ ] Run isolated test-send and onboarding/transactional regressions; confirm automatic compilation without sending customer emails or publishing.
+
 ## Customer lifecycle and System Emails
 - [x] Audit eight requested triggers, existing templates, scheduler, preferences and duplicate prevention; preserve working messages.
 - [x] Add two action-confirmed notices, disabled by default, through existing System Emails with send-time revalidation; preserve provider settings.

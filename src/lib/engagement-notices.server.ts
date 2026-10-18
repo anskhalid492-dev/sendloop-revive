@@ -2,8 +2,30 @@ import { isActionOnboarding, onboardingDecision, ONBOARDING_GAP_MS } from "@/lib
 
 // This is a guard/bridge for the existing engine, never a scheduler or sender.
 type Db = any;
-export async function checkActionNotice(client: Db, row: { event_key?: string; user_id?: string | null; workspace_id?: string | null; to_email: string; id?: string }) {
+export async function checkActionNotice(client: Db, row: { event_key?: string; user_id?: string | null; workspace_id?: string | null; to_email: string; id?: string }, options: { adminTest?: boolean } = {}) {
   if (!isActionOnboarding(row.event_key)) return { decision: "send" as const };
+  // Only the authenticated admin test entry supplies this option. A stored
+  // test_mode flag (including global recipient redirection) never grants it.
+  if (options.adminTest === true) {
+    const email = row.to_email.trim().toLowerCase();
+    const [profile, suppression, subscriber] = await Promise.all([
+      client.from("profiles").select("id").eq("email", email).maybeSingle(),
+      client.from("email_suppressions").select("id").eq("email", email).limit(1),
+      client.from("marketing_subscribers").select("status").eq("email", email).limit(1),
+    ]);
+    if ([profile, suppression, subscriber].some((value) => value.error)) return { decision: "defer" as const };
+    if ((suppression.data ?? []).length || (subscriber.data ?? []).some((s: any) => ["unsubscribed", "bounced", "complained", "suppressed"].includes(s.status))) return { decision: "cancel" as const };
+    if (profile.data?.id) {
+      const [preferences, auth] = await Promise.all([
+        client.from("notification_preferences").select("email_enabled").eq("user_id", profile.data.id).maybeSingle(),
+        client.auth.admin.getUserById(profile.data.id),
+      ]);
+      if (preferences.error || auth.error) return { decision: "defer" as const };
+      const user = auth.data?.user;
+      if (preferences.data?.email_enabled === false || !user || (user.banned_until && Date.parse(user.banned_until) > Date.now())) return { decision: "cancel" as const };
+    }
+    return { decision: "send" as const };
+  }
   if (!row.user_id || !row.workspace_id) return { decision: "cancel" as const };
   const [auth, workspace, preferences, suppression, subscriber, mailbox, leads, campaigns, notices, template, automation] = await Promise.all([
     client.auth.admin.getUserById(row.user_id),
@@ -14,7 +36,7 @@ export async function checkActionNotice(client: Db, row: { event_key?: string; u
     client.from("mailboxes").select("id", { count: "exact", head: true }).eq("workspace_id", row.workspace_id).eq("status", "connected").eq("is_active", true),
     client.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", row.workspace_id),
     client.from("campaigns").select("id", { count: "exact", head: true }).eq("workspace_id", row.workspace_id),
-    client.from("transactional_emails").select("id, sent_at, queued_at, status").eq("user_id", row.user_id).in("event_key", ["user.created", "onboarding.mailbox_ready", "onboarding.leads_imported"]).in("status", ["sent", "delivered", "sending"]).order("queued_at", { ascending: false }).limit(10),
+    client.from("transactional_emails").select("id, sent_at, queued_at, status").eq("user_id", row.user_id).eq("test_mode", false).in("event_key", ["user.created", "onboarding.mailbox_ready", "onboarding.leads_imported"]).in("status", ["sent", "delivered", "sending"]).order("queued_at", { ascending: false }).limit(10),
     client.from("transactional_templates").select("enabled").eq("event_key", row.event_key).maybeSingle(),
     client.from("marketing_automations").select("id").eq("status", "active").limit(1),
   ]);
