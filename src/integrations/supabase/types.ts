@@ -10279,6 +10279,11 @@ export type Database = {
         Returns: Json
       }
       affiliate_dashboard_stats: { Args: never; Returns: Json }
+      affiliate_private_preferences: {
+        Args: { _details: string; _method: string; _user_id: string }
+        Returns: undefined
+      }
+      affiliate_private_summary: { Args: { _user_id: string }; Returns: Json }
       affiliate_program_public: { Args: never; Returns: Json }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
