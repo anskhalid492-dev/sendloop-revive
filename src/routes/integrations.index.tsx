@@ -21,7 +21,7 @@ import { PageFaqs } from "@/components/site/PageFaqs";
 const faqs = [
   {
     q: "Do I connect an email provider here?",
-    a: "No. MunchReach operates the sending infrastructure. Integrations connect the other tools in your stack — AI, CRM, automation, calendar, notifications and spreadsheets.",
+    a: "Connect your own email provider or IMAP/SMTP mailbox on the Email Accounts page. MunchReach orchestrates sending through that connection. This directory covers the other tools in your stack — AI, CRM, automation, calendar, notifications and spreadsheets.",
   },
   {
     q: "Where do I connect an integration?",
@@ -62,7 +62,7 @@ function IntegrationsDirectory() {
         eyebrow="Integrations"
         title="MunchReach fits into"
         highlight="the stack you already use"
-        description="MunchReach runs your sending infrastructure. Integrations connect everything around it — AI copy, CRM records, automation platforms, calendars, Slack alerts and spreadsheets."
+        description="MunchReach automates outreach through your connected mailboxes. Integrations connect everything around that workflow — AI copy, CRM records, automation platforms, calendars, Slack alerts and spreadsheets."
         secondaryCta="Browse integrations"
         secondaryHref="#directory"
       />
@@ -70,7 +70,7 @@ function IntegrationsDirectory() {
       <Section
         id="directory"
         title="Every MunchReach integration"
-        description="Connect in a minute from Settings → Integrations. No email provider setup — ever."
+        description="Connect your tools from Settings → Integrations. Connect your email provider separately on the Email Accounts page."
       >
         <div className="flex flex-wrap gap-2">
           {[{ id: "all", label: "All" }, ...INTEGRATION_CATEGORIES].map((c) => (
@@ -140,7 +140,7 @@ function IntegrationsDirectory() {
 
       <CtaBlock
         title="Ready to simplify your cold outreach?"
-        description="Start free, import your leads, and let MunchReach handle the sending."
+        description="Start free, connect your mailbox, import leads, and automate your outreach workflow."
         secondaryCta="See how it works"
         secondaryHref="/features"
       />

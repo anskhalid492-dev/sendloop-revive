@@ -343,7 +343,7 @@ const threadsByFolder: Record<PreviewFolder, Thread[]> = {
           to: "Nina Alvarez",
           time: "May 19",
           outbound: true,
-          body: ["Hi Nina,", "Sharing the warmup results from the first two weeks — inbox placement is up to 96%."],
+          body: ["Hi Nina,", "Sharing the warmup activity from the first two weeks — daily volumes and recent mailbox events are ready to review."],
         },
       ],
     },
