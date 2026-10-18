@@ -485,7 +485,7 @@ export function BillingTab({
           </div>
         </div>
 
-        {available.length === 0 && !hasRecurringSubscription ? (
+        {available.length === 0 && !hasRecurringSubscription && !providersQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">
             Online checkout is not available right now. Contact support to change your plan.
           </p>
@@ -569,7 +569,7 @@ export function BillingTab({
                       current ||
                       freePlan ||
                       checkoutMutation.isPending ||
-                      (planIsLifetime ? !available.some(p => p.provider === "stripe") : available.length === 0 &&
+                      (!planPurchasable(plan) &&
                         !(hasRecurringSubscription && !planIsLifetime))
                     }
                     onClick={() => checkoutMutation.mutate(plan)}
