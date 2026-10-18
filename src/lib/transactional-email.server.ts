@@ -672,6 +672,13 @@ async function deliver(
   const { checkActionNotice } = await import("@/lib/engagement-notices.server");
   const notice = await checkActionNotice(admin, row);
   if (notice.decision !== "send") return { ok: false, provider: null, noticeDecision: notice.decision, nextAt: notice.nextAt, error: "Onboarding notice is no longer relevant or is deferred by preferences/frequency checks." };
+  if (row.event_key?.startsWith("onboarding.") && row.user_id) {
+    const { acquireWorkerLease } = await import("@/lib/worker-lease.server");
+    // Reserve the recipient window atomically across both delivery modes.
+    // A failed/no-provider attempt retains it conservatively for 24 hours.
+    const reservation = await acquireWorkerLease(admin, `onboarding_notice:${row.user_id}`, 86400000);
+    if (!reservation) return { ok: false, provider: null, noticeDecision: "defer" as const, nextAt: new Date(Date.now() + 86400000).toISOString(), error: "Onboarding frequency window already reserved." };
+  }
   const beforeCall = hooks.beforeProviderCall ?? (async () => {});
   const { resolveManagedProvider, recordProviderIncident } = await import("@/lib/managed-sending.server");
   const { getAdapter } = await import("@/lib/providers/adapter.server");
