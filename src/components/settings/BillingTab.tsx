@@ -245,6 +245,21 @@ export function BillingTab({
   });
 
   const available = (providersQuery.data ?? []).filter((p) => p.available);
+  /**
+   * A plan is purchasable when some enabled provider has its price ID for the
+   * selected interval. Lifetime offers are Stripe-only. Availability is per
+   * plan — one plan missing a mapping never disables the others.
+   */
+  const planPurchasable = (plan: { id: string; billing_type?: string | null }) => {
+    const lifetime = isLifetimePlan(plan);
+    return (providersQuery.data ?? []).some((p) => {
+      if (!p.available) return false;
+      if (lifetime && p.provider !== "stripe") return false;
+      const mapping = (p.plans as Record<string, { monthly: boolean; yearly: boolean; lifetime: boolean }> | undefined)?.[plan.id];
+      if (!mapping) return false;
+      return lifetime ? mapping.lifetime : interval === "yearly" ? mapping.yearly : mapping.monthly;
+    });
+  };
 
   if (!workspaceId) {
     return (
