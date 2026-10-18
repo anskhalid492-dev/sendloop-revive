@@ -1,5 +1,11 @@
 # Roadmap
 
+## Affiliate program upgrade
+- [ ] Audit existing tracking, payments, dashboards, permissions and production schema.
+- [ ] Add payment-based monthly/lifetime/annual commissions, idempotency, reversals and protected payout management.
+- [ ] Upgrade customer/admin affiliate management, public referral/agency pages and footer links.
+- [ ] Run scoped regressions, full suite and automatic compilation; report manual production activation prerequisites without publishing.
+
 ## Warmup table activity and spam guidance
 - [x] Replace Replied with relative successful warmup activity; change unknown spam guidance at 100/below 80 health only.
 - [x] Verify isolated rules and 104 warmup regressions; automatic production compilation passed. No publication or sending changes.
