@@ -297,6 +297,10 @@ export async function processLeadImportJob(
       }
 
       if (updated && reachedEnd) {
+        if (counters.imported > 0) {
+          const { notifyOnboardingAction } = await import("@/lib/engagement-notices.server");
+          await notifyOnboardingAction(admin, job.workspace_id, "onboarding.leads_imported");
+        }
         const status = hadProblemsNow ? "completed_with_errors" : "completed";
         return {
           jobId,
@@ -325,6 +329,10 @@ export async function processLeadImportJob(
       total_rows: counters.processed,
       error_message: null,
     });
+    if (counters.imported > 0) {
+      const { notifyOnboardingAction } = await import("@/lib/engagement-notices.server");
+      await notifyOnboardingAction(admin, job.workspace_id, "onboarding.leads_imported");
+    }
     return {
       jobId,
       status: hadProblems ? "completed_with_errors" : "completed",

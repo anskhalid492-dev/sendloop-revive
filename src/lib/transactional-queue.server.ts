@@ -77,6 +77,8 @@ export type DeliverOutcome = {
   messageId?: string | null;
   statusCode?: number | null;
   error?: string | null;
+  noticeDecision?: "cancel" | "defer";
+  nextAt?: string;
 };
 
 export type TransactionalEngine = {
@@ -315,7 +317,7 @@ export async function runTransactionalQueue(deps: TransactionalQueueDeps): Promi
         const limit = Math.min(Math.max(1, deps.limit ?? settings.batch_size), 100);
         const { data: pendingData, error: pendingError } = await client
           .from("transactional_emails")
-          .select("id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts, status, error")
+          .select("id, event_key, user_id, workspace_id, to_email, from_email, reply_to, subject, html, text_body, attempts, max_attempts, status, error")
           .in("status", ["queued", "retrying"])
           .lte("next_attempt_at", new Date(nowMs()).toISOString())
           .order("queued_at", { ascending: true })
@@ -432,6 +434,10 @@ async function processOne(
     }
   }
 
+  if (outcome.noticeDecision) {
+    await updateWithRetry(client, row.id, { status: outcome.noticeDecision === "cancel" ? "cancelled" : "retrying", attempts: row.attempts, error: outcome.error, next_attempt_at: outcome.nextAt ?? new Date(nowMs() + 86400000).toISOString() });
+    return false;
+  }
   if (outcome.ok) {
     summary.sent += 1;
     const saved = await updateWithRetry(client, row.id, {

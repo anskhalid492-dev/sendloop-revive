@@ -159,6 +159,12 @@ export const saveMailboxConnection = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // A mailbox that already has a warm-up / sending bookkeeping row keeps its
+    if (result.ok) {
+      const { notifyOnboardingAction } = await import("@/lib/engagement-notices.server");
+      await notifyOnboardingAction(supabaseAdmin, data.workspaceId, "onboarding.mailbox_ready");
+    }
+
+    // A mailbox that already has a warm-up / sending bookkeeping row keeps its
     // sender name in step. No row is created here — that stays owned by the
     // existing warm-up and sending services.
     const senderName = data.fromName ?? data.displayName ?? null;

@@ -687,6 +687,27 @@ const SPECS: Spec[] = [
     heading: "Service restored",
     blocks: [p("{{announcement.message}}"), p("All queued emails have resumed processing.")],
   },
+  // Action confirmations: preserve every existing lifecycle template.
+  {
+    eventKey: "onboarding.mailbox_ready",
+    name: "First mailbox ready — import leads",
+    category: "Account",
+    subject: "Your mailbox is ready — add your first leads",
+    preheader: "Connection confirmed. Your next step is adding contacts.",
+    heading: "Your mailbox connection is ready",
+    blocks: [p("Hi {{user.first_name}}, your mailbox connected successfully to {{workspace.name}}. Next, import a verified CSV of the people you want to contact. Check your column mapping before saving, so names and email addresses land in the right fields."), cta("Import my leads"), p("Need a hand preparing your list? Reply and tell us where you are stuck.")],
+    reason: "You received this because you successfully connected a mailbox to your MunchReach workspace.",
+  },
+  {
+    eventKey: "onboarding.leads_imported",
+    name: "First lead import complete — create campaign",
+    category: "Account",
+    subject: "Your leads are imported — create your first campaign",
+    preheader: "Import complete. Turn your list into a focused campaign.",
+    heading: "Your leads are ready",
+    blocks: [p("Hi {{user.first_name}}, your lead import in {{workspace.name}} finished with contacts saved. Your next step is creating a campaign: choose your list, write a short opening email, and review your sending mailbox and schedule before launching."), cta("Create my campaign"), p("You can review and edit everything before any campaign email is sent.")],
+    reason: "You received this because you successfully imported leads into your MunchReach workspace.",
+  },
   // ── Lifecycle ───────────────────────────────────────────────────────────
   {
     eventKey: "lifecycle.free_offer_5",
