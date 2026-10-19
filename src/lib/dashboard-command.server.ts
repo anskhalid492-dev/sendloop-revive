@@ -311,7 +311,7 @@ supabase
   // no bounce) was sent, yet never delivered. Without this, delivered == sent
   // while the failed-event list shows the rejection.
   const rejectedAfterSend = (m: Record<string, unknown>) =>
-    ts(m["sent_at"]) !== null && !m["bounced_at"] && (m["status"] === "failed" || ts(m["failed_at"]) !== null);
+    ts(m["sent_at"]) !== null && !m["bounced_at"] && m["status"] === "failed";
   const totalsFor = (from: number, to: number): PeriodTotals => {
     const sentMsgs = messageRows.filter((m) => within(m["sent_at"], from, to));
     const sentRejected = sentMsgs.filter(rejectedAfterSend).length;

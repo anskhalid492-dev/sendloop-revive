@@ -440,7 +440,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       if (bounced) {
         sentBounced += 1;
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
-      } else if (s.failed_at || unit.status === "failed") {
+      } else if (unit.status === "failed") {
         // Accepted for sending, then rejected by the provider: sent, not delivered.
         sentRejected += 1;
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
