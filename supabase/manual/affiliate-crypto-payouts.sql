@@ -36,12 +36,12 @@ ALTER TABLE public.referral_payouts ADD COLUMN IF NOT EXISTS request_key uuid;
 ALTER TABLE public.referral_payouts ADD COLUMN IF NOT EXISTS processing_due_at timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS affiliate_payout_request_key_idx ON public.referral_payouts(request_key) WHERE request_key IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS affiliate_crypto_transaction_idx ON public.referral_payouts(crypto_network,lower(regexp_replace(reference,'^(0x|0X)',''))) WHERE status='paid' AND crypto_network IS NOT NULL AND reference IS NOT NULL;
-GRANT SELECT(crypto_network,wallet_address,actual_paid_cents,payout_environment,processing_due_at) ON public.referral_payouts TO authenticated;
+GRANT SELECT(user_id,crypto_network,wallet_address,actual_paid_cents,payout_environment,processing_due_at) ON public.referral_payouts TO authenticated;
 
 -- One shared calculation for dashboard, reservation, settlement and adjustments.
 -- NULL environment is legacy live. Historical paid records/allocations remain untouched.
 CREATE OR REPLACE FUNCTION public.affiliate_spendable(_profile uuid,_environment text) RETURNS bigint LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT coalesce((SELECT sum(commission_amount_cents-reversed_cents-settled_cents) FILTER(WHERE status IN('approved','paid') AND coalesce(payable_at,approved_at)<=now()) - coalesce(sum(greatest(settled_cents-(commission_amount_cents-reversed_cents),0)) FILTER(WHERE status NOT IN('approved','paid')),0) FROM referral_commissions WHERE referral_profile_id=_profile AND currency='usd' AND coalesce(affiliate_environment,'live')=_environment),0)
+ SELECT coalesce((SELECT sum(commission_amount_cents-reversed_cents-settled_cents) FILTER(WHERE (status='approved' OR (status='paid' AND (settled_cents>0 OR affiliate_payment_key IS NOT NULL))) AND coalesce(payable_at,approved_at)<=now()) - coalesce(sum(greatest(settled_cents-(commission_amount_cents-reversed_cents),0)) FILTER(WHERE status NOT IN('approved','paid')),0) FROM referral_commissions WHERE referral_profile_id=_profile AND currency='usd' AND coalesce(affiliate_environment,'live')=_environment),0)
  +coalesce((SELECT sum(delta_cents) FROM affiliate_balance_adjustments WHERE referral_profile_id=_profile AND environment=_environment),0)
  -coalesce((SELECT sum(adjustment_allocated_cents) FROM referral_payouts WHERE referral_profile_id=_profile AND status='paid' AND coalesce(payout_environment,'live')=_environment),0)
 $$;
@@ -131,6 +131,7 @@ BEGIN
  IF _status='rejected' AND length(trim(coalesce(_notes,'')))<3 THEN RAISE EXCEPTION 'Rejection reason required'; END IF;
  env:=coalesce(p.payout_environment,'live');
  IF _status='paid' THEN
+ IF p.crypto_network IS NULL OR p.method<>'crypto' THEN RAISE EXCEPTION 'Historical requests retain their original records; reject and request again using a saved crypto wallet'; END IF;
  IF p.status NOT IN('approved','processing') THEN RAISE EXCEPTION 'Approve the payout before marking paid'; END IF;
  IF _actual IS NULL OR _actual<=0 OR _actual>p.amount_cents OR length(trim(coalesce(_reference,'')))<3 THEN RAISE EXCEPTION 'Valid actual paid amount and transaction ID required'; END IF;
  IF p.crypto_network IS NOT NULL AND trim(_reference) !~ '^(0x)?[0-9a-fA-F]{64}$' THEN RAISE EXCEPTION 'Enter the blockchain transaction hash'; END IF;
@@ -138,7 +139,7 @@ BEGIN
  outstanding:=affiliate_reserved(p.referral_profile_id,env)-p.amount_cents;
  IF affiliate_spendable(p.referral_profile_id,env)-outstanding<_actual THEN RAISE EXCEPTION 'Balance changed; review refunds before payment'; END IF;
  remaining:=_actual;
- FOR c IN SELECT * FROM referral_commissions WHERE referral_profile_id=p.referral_profile_id AND currency='usd' AND coalesce(affiliate_environment,'live')=env AND status IN('approved','paid') AND coalesce(payable_at,approved_at)<=now() AND commission_amount_cents-reversed_cents-settled_cents>0 ORDER BY created_at,id FOR UPDATE LOOP
+ FOR c IN SELECT * FROM referral_commissions WHERE referral_profile_id=p.referral_profile_id AND currency='usd' AND coalesce(affiliate_environment,'live')=env AND (status='approved' OR (status='paid' AND (settled_cents>0 OR affiliate_payment_key IS NOT NULL))) AND coalesce(payable_at,approved_at)<=now() AND commission_amount_cents-reversed_cents-settled_cents>0 ORDER BY created_at,id FOR UPDATE LOOP
  take:=least(remaining,c.commission_amount_cents-c.reversed_cents-c.settled_cents);
  INSERT INTO affiliate_payout_allocations(payout_id,commission_id,amount_cents) VALUES(p.id,c.id,take);
  UPDATE referral_commissions SET settled_cents=settled_cents+take,status=CASE WHEN settled_cents+take>=commission_amount_cents-reversed_cents THEN 'paid' ELSE status END,paid_at=now() WHERE id=c.id;
