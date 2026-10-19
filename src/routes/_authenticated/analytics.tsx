@@ -42,7 +42,6 @@ import {
   bounceRate,
   rate,
   formatCount,
-  failedSendCount,
   deliveryPresentation,
   formatPct,
   formatOpenRate,
