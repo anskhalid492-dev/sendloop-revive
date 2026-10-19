@@ -7161,6 +7161,54 @@ export type Database = {
           },
         ]
       }
+      reclass_550_no_mailbox_backup: {
+        Row: {
+          backed_up_at: string | null
+          bounce_reason: string | null
+          bounced_at: string | null
+          delivery_status: string | null
+          id: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          delivery_status?: string | null
+          id?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          delivery_status?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
+      reclass_bounce_backup_2026_10_19: {
+        Row: {
+          backed_up_at: string | null
+          bounce_reason: string | null
+          bounced_at: string | null
+          delivery_status: string | null
+          id: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          delivery_status?: string | null
+          id?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          delivery_status?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
       referral_attributions: {
         Row: {
           code: string
