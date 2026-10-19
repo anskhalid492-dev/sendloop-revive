@@ -16,7 +16,7 @@ export function validWallet(network: string, input: string): boolean {
     const body = address.slice(2);
     if (body === body.toLowerCase() || body === body.toUpperCase()) return true;
     const hash = Array.from(keccak_256(new TextEncoder().encode(body.toLowerCase())), b => b.toString(16).padStart(2, '0')).join('');
-    return [...body].every((char, index) => !/[a-f]/i.test(char) || (parseInt(hash[index], 16) >= 8 ? char === char.toUpperCase() : char === char.toLowerCase()));
+    return [...body].every((char, index) => !/[a-f]/i.test(char) || (parseInt(hash[index] ?? '0', 16) >= 8 ? char === char.toUpperCase() : char === char.toLowerCase()));
   }
   if (network === 'usdt_tron') {
     try {

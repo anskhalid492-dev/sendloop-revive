@@ -56,7 +56,7 @@ export const getAdminPayoutSummary = createServerFn({ method: 'POST' }).middlewa
       (context.supabase as any).from('affiliate_balance_adjustments').select('*').eq('environment', data.environment).order('created_at', { ascending: false }).limit(100),
     ]);
     if (error || adjustmentError) throw new Error('Payout overview is unavailable. The payout database update is required.');
-    return { summary: summary as Record<string, number>, adjustments: adjustments as { id: string; referral_profile_id: string; delta_cents: number; before_cents: number; after_cents: number; reason: string; actor_id: string; created_at: string; environment: string }[] };
+    return { summary: summary as { commission_count: number; commission_cents: number; pending_cents: number; approved_cents: number; paid_commission_cents: number; pending_payout_count: number; completed_payout_count: number; liability_cents: number }, adjustments: adjustments as { id: string; referral_profile_id: string; delta_cents: number; before_cents: number; after_cents: number; reason: string; actor_id: string; created_at: string; environment: string }[] };
   });
 async function payoutAccess(context: Context, id: string, requireAdmin = false) {
   if (requireAdmin) await admin(context);

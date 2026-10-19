@@ -75,7 +75,7 @@ export const getReferralOverview = createServerFn({ method: "GET" })
         .or("affiliate_environment.is.null,affiliate_environment.eq.live")
         .order("created_at", { ascending: false })
         .limit(100),
-      supabase.from("referral_payouts").select("id,amount_cents,currency,status,method,destination_hint,reference,requested_at,paid_at,crypto_network,wallet_address,actual_paid_cents,processing_due_at,payout_environment").or("payout_environment.is.null,payout_environment.eq.live").order("created_at", { ascending: false }).limit(50),
+      (supabase as any).from("referral_payouts").select("id,amount_cents,currency,status,method,destination_hint,reference,requested_at,paid_at,crypto_network,wallet_address,actual_paid_cents,processing_due_at,payout_environment").or("payout_environment.is.null,payout_environment.eq.live").order("created_at", { ascending: false }).limit(50),
       supabase
         .from("referral_attributions")
         .select("id, status, signed_up_at, converted_at")

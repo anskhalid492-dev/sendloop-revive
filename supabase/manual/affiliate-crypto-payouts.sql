@@ -35,7 +35,7 @@ ALTER TABLE public.referral_payouts ADD COLUMN IF NOT EXISTS payout_environment 
 ALTER TABLE public.referral_payouts ADD COLUMN IF NOT EXISTS request_key uuid;
 ALTER TABLE public.referral_payouts ADD COLUMN IF NOT EXISTS processing_due_at timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS affiliate_payout_request_key_idx ON public.referral_payouts(request_key) WHERE request_key IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS affiliate_crypto_transaction_idx ON public.referral_payouts(crypto_network,lower(reference)) WHERE status='paid' AND crypto_network IS NOT NULL AND reference IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS affiliate_crypto_transaction_idx ON public.referral_payouts(crypto_network,lower(regexp_replace(reference,'^(0x|0X)',''))) WHERE status='paid' AND crypto_network IS NOT NULL AND reference IS NOT NULL;
 GRANT SELECT(crypto_network,wallet_address,actual_paid_cents,payout_environment,processing_due_at) ON public.referral_payouts TO authenticated;
 
 -- One shared calculation for dashboard, reservation, settlement and adjustments.
@@ -119,6 +119,7 @@ BEGIN
  PERFORM 1 FROM referral_profiles WHERE id=p.referral_profile_id FOR UPDATE;
  SELECT * INTO p FROM referral_payouts WHERE id=_id FOR UPDATE;
  IF p.id IS NULL THEN RAISE EXCEPTION 'Payout not found'; END IF;
+ IF p.currency<>'usd' THEN RAISE EXCEPTION 'Only USD balances can be settled; retain other currency history for reconciliation'; END IF;
  IF p.status='paid' AND _status='paid' THEN
  IF coalesce(p.actual_paid_cents,p.amount_cents)<>_actual OR coalesce(p.reference,'')<>trim(coalesce(_reference,'')) THEN RAISE EXCEPTION 'Paid payout is immutable'; END IF; RETURN;
  END IF;
