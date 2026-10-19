@@ -1,6 +1,8 @@
 -- Owner-applied additive migration AFTER all nine 20261018 affiliate migrations.
 -- Not executed by Lovable. No historical rows, commission rates or program activation are changed.
 BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL statement_timeout='60s';
 CREATE TABLE IF NOT EXISTS public.affiliate_wallets (
  user_id uuid PRIMARY KEY, network text NOT NULL, address text NOT NULL,
  updated_at timestamptz NOT NULL DEFAULT now()
@@ -41,7 +43,7 @@ GRANT SELECT(user_id,crypto_network,wallet_address,actual_paid_cents,payout_envi
 -- One shared calculation for dashboard, reservation, settlement and adjustments.
 -- NULL environment is legacy live. Historical paid records/allocations remain untouched.
 CREATE OR REPLACE FUNCTION public.affiliate_spendable(_profile uuid,_environment text) RETURNS bigint LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT coalesce((SELECT sum(commission_amount_cents-reversed_cents-settled_cents) FILTER(WHERE (status='approved' OR (status='paid' AND (settled_cents>0 OR affiliate_payment_key IS NOT NULL))) AND coalesce(payable_at,approved_at)<=now()) - coalesce(sum(greatest(settled_cents-(commission_amount_cents-reversed_cents),0)) FILTER(WHERE status NOT IN('approved','paid')),0) FROM referral_commissions WHERE referral_profile_id=_profile AND currency='usd' AND coalesce(affiliate_environment,'live')=_environment),0)
+ SELECT coalesce((SELECT coalesce(sum(commission_amount_cents-reversed_cents-settled_cents) FILTER(WHERE (status='approved' OR (status='paid' AND (settled_cents>0 OR affiliate_payment_key IS NOT NULL))) AND coalesce(payable_at,approved_at)<=now()),0) - coalesce(sum(greatest(settled_cents-(commission_amount_cents-reversed_cents),0)) FILTER(WHERE status NOT IN('approved','paid')),0) FROM referral_commissions WHERE referral_profile_id=_profile AND currency='usd' AND coalesce(affiliate_environment,'live')=_environment),0)
  +coalesce((SELECT sum(delta_cents) FROM affiliate_balance_adjustments WHERE referral_profile_id=_profile AND environment=_environment),0)
  -coalesce((SELECT sum(adjustment_allocated_cents) FROM referral_payouts WHERE referral_profile_id=_profile AND status='paid' AND coalesce(payout_environment,'live')=_environment),0)
 $$;
