@@ -32,9 +32,9 @@ import {
   resolveFraudFlag,
   reviewReferralCommission,
   setReferrerStatus,
-  updateReferralPayout,
   updateReferralProgram,
 } from "@/lib/referral.functions";
+import { AdminCryptoPayouts } from "@/components/referral/AdminCryptoPayouts";
 import { affiliateRules } from "@/lib/affiliate-rules";
 import { PAYOUT_METHOD_LABELS, PAYOUT_STATUS_LABELS, formatMoney } from "@/lib/referral-model";
 
@@ -71,14 +71,12 @@ type ProgramForm = {
   terms: string;
 };
 
-const ALL_METHODS = ["paypal", "bank_transfer", "wise", "stripe_connect", "credit"];
 
 function AdminReferralsPage() {
   const queryClient = useQueryClient();
   const fetchOverview = useServerFn(getAdminReferralOverview);
   const saveProgram = useServerFn(updateReferralProgram);
   const reviewCommission = useServerFn(reviewReferralCommission);
-  const savePayout = useServerFn(updateReferralPayout);
   const setStatus = useServerFn(setReferrerStatus);
   const resolveFlag = useServerFn(resolveFraudFlag);
 
@@ -93,7 +91,6 @@ function AdminReferralsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [reason, setReason] = useState("");
-  const [paymentReference, setPaymentReference] = useState("");
   const [form, setForm] = useState<ProgramForm | null>(null);
   useEffect(() => {
     if (data?.program && !form) {
@@ -106,12 +103,12 @@ function AdminReferralsPage() {
         commission_fixed_cents: p.commission_fixed_cents,
         recurring: p.recurring,
         commission_duration_months: p.commission_duration_months,
-        minimum_payout_cents: p.minimum_payout_cents,
+        minimum_payout_cents: 10000,
         attribution_window_days: p.attribution_window_days,
         approval_mode: p.approval_mode,
         approval_delay_days: p.approval_delay_days,
-        payout_schedule: p.payout_schedule,
-        payout_methods: p.payout_methods,
+        payout_schedule: "within 60 days",
+        payout_methods: ["crypto"],
         payout_provider_configured: p.payout_provider_configured,
         eligibility: p.eligibility,
         terms: p.terms,
@@ -135,16 +132,6 @@ function AdminReferralsPage() {
     mutationFn: (vars: { id: string; action: "approve" | "reject" | "reverse" }) => reviewCommission({ data: { ...vars, notes: reason } }),
     onSuccess: () => {
       toast.success("Commission updated");
-      invalidate();
-    },
-    onError,
-  });
-
-  const payoutMutation = useMutation({
-    mutationFn: (vars: { id: string; status: "under_review" | "approved" | "processing" | "paid" | "rejected" }) =>
-      savePayout({ data: { ...vars, notes: reason, reference: paymentReference } }),
-    onSuccess: () => {
-      toast.success("Payout updated");
       invalidate();
     },
     onError,
@@ -191,8 +178,8 @@ function AdminReferralsPage() {
           const a = document.createElement("a"); a.href = url; a.download = "munchreach-affiliates.csv"; a.click(); URL.revokeObjectURL(url);
         }}><Download className="mr-2 size-4" />Export affiliates</Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2"><Input aria-label="Review reason" placeholder="Required reason for commission review" value={reason} onChange={(e) => setReason(e.target.value)} /><Input aria-label="Payout payment reference" placeholder="Payment reference (required to mark paid)" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} /></div>
-      <TabsList>
+      <Input aria-label="Review reason" placeholder="Required reason for commission review" value={reason} onChange={(e) => setReason(e.target.value)} />
+      <TabsList className="h-auto max-w-full flex-wrap justify-start">
         <TabsTrigger value="settings">Affiliate Settings</TabsTrigger>
         <TabsTrigger value="referrers">Affiliates</TabsTrigger>
         <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -225,7 +212,7 @@ function AdminReferralsPage() {
               ["cookie_duration_days", "Cookie duration (days)"],
             ] as const).map(([key, label]) => <div className="space-y-2" key={key}><Label>{label}</Label><Input type="number" min={0} value={form[key]} onChange={(e) => update(key, Number(e.target.value))} /></div>)}
             <div className="flex items-center justify-between"><Label>Require affiliate application approval</Label><Switch checked={form.affiliate_approval_required} onCheckedChange={(v) => update("affiliate_approval_required", v)} /></div>
-            <div className="flex items-center justify-between"><Label>Payout method is ready for manual payments</Label><Switch checked={form.payout_provider_configured} onCheckedChange={(v) => update("payout_provider_configured", v)} /></div>
+            <div className="flex items-center justify-between"><Label>Team is ready for manual crypto payouts</Label><Switch checked={form.payout_provider_configured} onCheckedChange={(v) => update("payout_provider_configured", v)} /></div>
             <p className="text-sm text-muted-foreground sm:col-span-2">Activation remains blocked until payment attribution, commission creation and an administrator payout review are verified. Annual renewals never earn commission.</p>
             <div className="space-y-2">
               <Label>Attribution window (days)</Label>
@@ -240,8 +227,8 @@ function AdminReferralsPage() {
               <Label>Minimum payout (cents)</Label>
               <Input
                 type="number"
-                value={form.minimum_payout_cents}
-                onChange={(e) => update("minimum_payout_cents", Number(e.target.value))}
+                value={10000}
+                readOnly
               />
             </div>
 
@@ -265,35 +252,7 @@ function AdminReferralsPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Payout schedule</Label>
-              <Input value={form.payout_schedule} onChange={(e) => update("payout_schedule", e.target.value)} />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Payout methods</Label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_METHODS.map((m) => {
-                  const active = form.payout_methods.includes(m);
-                  return (
-                    <Button
-                      key={m}
-                      type="button"
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      onClick={() =>
-                        update(
-                          "payout_methods",
-                          active ? form.payout_methods.filter((x) => x !== m) : [...form.payout_methods, m],
-                        )
-                      }
-                    >
-                      {PAYOUT_METHOD_LABELS[m] ?? m}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground sm:col-span-2">Crypto payouts only: USDC on Ethereum or USDT on Tron (TRC20). Minimum $100; eligible requests are manually processed within 60 days. No automatic transfers.</p>
 
             <div className="space-y-2 sm:col-span-2">
               <Label>Eligibility</Label>
@@ -414,50 +373,7 @@ function AdminReferralsPage() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="payouts">
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Requested</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Update</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(data?.payouts ?? []).map((p: any) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{new Date(p.requested_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{formatMoney(p.amount_cents, p.currency)}</TableCell>
-                    <TableCell>{PAYOUT_METHOD_LABELS[p.method ?? ""] ?? p.method ?? "—"}</TableCell>
-                    <TableCell><Badge variant="secondary">{PAYOUT_STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Select onValueChange={(v) => payoutMutation.mutate({ id: p.id, status: v as never })}>
-                        <SelectTrigger className="ml-auto w-40"><SelectValue placeholder="Set status" /></SelectTrigger>
-                        <SelectContent>
-                          {["under_review", "approved", "processing", "paid", "rejected"].map((s) => (
-                            <SelectItem key={s} value={s}>{PAYOUT_STATUS_LABELS[s] ?? s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(data?.payouts ?? []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                      No payout requests.
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </TabsContent>
+      <TabsContent value="payouts"><AdminCryptoPayouts payouts={(data?.payouts ?? []) as any} referrers={data?.referrers ?? []} /></TabsContent>
 
       <TabsContent value="fraud">
         <Card>

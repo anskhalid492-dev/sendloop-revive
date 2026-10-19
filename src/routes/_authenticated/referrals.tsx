@@ -30,9 +30,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getReferralOverview,
   joinReferralProgram,
-  requestReferralPayout,
-  saveAffiliatePayoutDetails,
 } from "@/lib/referral.functions";
+import { CryptoWalletTab } from "@/components/referral/CryptoWalletTab";
+import { CryptoPayouts } from "@/components/referral/CryptoPayouts";
 import { affiliateRules } from "@/lib/affiliate-rules";
 import {
   PAYOUT_METHOD_LABELS,
@@ -68,14 +68,6 @@ function ReferralsPage() {
   const queryClient = useQueryClient();
   const fetchOverview = useServerFn(getReferralOverview);
   const join = useServerFn(joinReferralProgram);
-  const requestPayout = useServerFn(requestReferralPayout);
-  const saveDetails = useServerFn(saveAffiliatePayoutDetails);
-  const detailsMutation = useMutation({ mutationFn: () => saveDetails({ data: { method, details: destination } }), onSuccess: () => { toast.success("Payout details saved"); invalidate(); }, onError: (error: Error) => toast.error(error.message) });
-
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("");
-  const [destination, setDestination] = useState("");
-
   const { data, isLoading } = useQuery({
     queryKey: ["referrals", "overview"],
     queryFn: () => fetchOverview(),
@@ -90,24 +82,6 @@ function ReferralsPage() {
     mutationFn: () => join(),
     onSuccess: () => {
       toast.success("Your referral link is ready");
-      invalidate();
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
-  const payoutMutation = useMutation({
-    mutationFn: () =>
-      requestPayout({
-        data: {
-          amountCents: Math.round(Number(amount) * 100),
-          method,
-          ...(destination.trim() ? { destinationHint: destination.trim() } : {}),
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Payout requested. MunchReach will review it shortly.");
-      setAmount("");
-      setDestination("");
       invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -219,12 +193,13 @@ function ReferralsPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
             ["Total earned (USD)", earned], ["Pending commission", stats?.pending_cents ?? 0], ["Approved commission", stats?.approved_cents ?? 0], ["Paid commission", stats?.paid_cents ?? 0],
           ].map(([label, value]) => <Card key={label}><CardContent className="p-5"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold">{formatMoney(Number(value))}</p></CardContent></Card>)}</div>
-          <p className="text-sm text-muted-foreground">Next payout eligibility: {(stats?.available_cents ?? 0) >= (program?.minimum_payout_cents ?? Infinity) ? "Threshold met — subject to payout readiness and review" : nextHold ? `Next hold release ${new Date(nextHold).toLocaleDateString()}` : `${formatMoney(Math.max((program?.minimum_payout_cents ?? 0) - (stats?.available_cents ?? 0), 0))} more approved, settled earnings needed`}. Tax, refunds and chargebacks are excluded. Failed payments earn nothing; cancellation stops future earnings only.</p>
+          <p className="text-sm text-muted-foreground">Next payout eligibility: {(stats?.available_cents ?? 0) >= 10000 ? "Threshold met — subject to payout readiness and review" : nextHold ? `Next hold release ${new Date(nextHold).toLocaleDateString()}` : `${formatMoney(Math.max(10000 - (stats?.available_cents ?? 0), 0))} more approved, settled earnings needed`}. Tax, refunds and chargebacks are excluded. Failed payments earn nothing; cancellation stops future earnings only.</p>
           <Tabs defaultValue="commissions">
-            <TabsList>
+            <TabsList className="h-auto max-w-full flex-wrap justify-start">
               <TabsTrigger value="commissions">Commissions</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
+              <TabsTrigger value="wallet">Add Wallet Address</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="history">Monthly history</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
@@ -309,100 +284,8 @@ function ReferralsPage() {
               </p>
             </TabsContent>
 
-            <TabsContent value="payouts" className="mt-4 space-y-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Request a payout</CardTitle>
-                  <CardDescription>
-                    Available {formatMoney(stats?.available_cents ?? 0)} · minimum {formatMoney(program?.minimum_payout_cents ?? 0)} ·
-                    paid {program?.payout_schedule ?? "monthly"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="payout-amount">Amount (USD)</Label>
-                    <Input
-                      id="payout-amount"
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="100.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Method</Label>
-                    <Select value={method} onValueChange={setMethod}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(program?.payout_methods ?? []).map((m) => (
-                          <SelectItem key={m} value={m}>
-                            {PAYOUT_METHOD_LABELS[m] ?? m}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="payout-destination">Payout details</Label>
-                    <Input
-                      id="payout-destination"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      placeholder="PayPal email or bank reference"
-                    />
-                  </div>
-                  <div className="sm:col-span-3">
-                    <Button
-                      onClick={() => payoutMutation.mutate()}
-                      disabled={payoutMutation.isPending || !amount || !method || !destination || data.profile.status !== "active" || !program?.enabled || !program?.payout_provider_configured || Number(amount) * 100 > (stats?.available_cents ?? 0) || Number(amount) * 100 < (program?.minimum_payout_cents ?? Infinity)}
-                    >
-                      {payoutMutation.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-                      Request payout
-                    </Button>
-                    <Button className="ml-3" variant="outline" disabled={detailsMutation.isPending || !method || destination.trim().length < 3} onClick={() => detailsMutation.mutate()}>Save payout details</Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Requested</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Reference</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.payouts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                            No payouts requested yet.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        data.payouts.map((p) => (
-                          <TableRow key={p.id}>
-                            <TableCell>{new Date(p.requested_at).toLocaleDateString()}</TableCell>
-                            <TableCell>{formatMoney(p.amount_cents, p.currency)}</TableCell>
-                            <TableCell>{PAYOUT_METHOD_LABELS[p.method ?? ""] ?? p.method ?? "—"}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{PAYOUT_STATUS_LABELS[p.status] ?? p.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">{p.reference ?? "—"}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
+            <TabsContent value="wallet"><CryptoWalletTab /></TabsContent>
+            <TabsContent value="payouts"><CryptoPayouts stats={data.stats} payouts={data.payouts} eligible={data.profile.status === "active" && Boolean(program?.enabled && program?.payout_provider_configured)} /></TabsContent>
 
             <TabsContent value="history"><Table><TableHeader><TableRow><TableHead>Month / currency</TableHead><TableHead>Net earnings</TableHead></TableRow></TableHeader><TableBody>{[...history].map(([key, value]) => <TableRow key={key}><TableCell>{key}</TableCell><TableCell>{formatMoney(value, key.split(" ")[1])}</TableCell></TableRow>)}</TableBody></Table><p className="mt-3 text-xs text-muted-foreground">Latest 100 commission records. Amounts are grouped by currency and exclude reversals.</p></TabsContent>
             <TabsContent value="resources"><div className="space-y-5 py-5"><h2 className="text-xl font-semibold">Promotional resources</h2><div className="flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/features">Product overview</Link></Button><Button variant="outline" asChild><Link to="/pricing">Pricing</Link></Button><Button variant="outline" asChild><Link to="/referral/agencies">Agency partners</Link></Button></div><p className="text-sm text-muted-foreground">Suggested disclosure: “I may earn a commission if you purchase MunchReach through my link, at no extra cost to you.”</p><Button variant="outline" onClick={() => { void navigator.clipboard.writeText(`MunchReach helps teams connect mailboxes, manage campaigns and follow up with prospects. ${link} I may earn a commission if you purchase through my link, at no extra cost to you.`); toast.success("Promotional copy copied"); }}><Copy className="mr-2 size-4" />Copy promotional text</Button></div></TabsContent>
