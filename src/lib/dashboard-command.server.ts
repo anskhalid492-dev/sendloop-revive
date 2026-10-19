@@ -307,8 +307,14 @@ supabase
     if (lid && !leadCampaign.has(lid)) leadCampaign.set(lid, cid);
   }
 
+  // A message the provider accepted for sending but then rejected (failed_at set,
+  // no bounce) was sent, yet never delivered. Without this, delivered == sent
+  // while the failed-event list shows the rejection.
+  const rejectedAfterSend = (m: Record<string, unknown>) =>
+    ts(m["sent_at"]) !== null && !m["bounced_at"] && (m["status"] === "failed" || ts(m["failed_at"]) !== null);
   const totalsFor = (from: number, to: number): PeriodTotals => {
     const sentMsgs = messageRows.filter((m) => within(m["sent_at"], from, to));
+    const sentRejected = sentMsgs.filter(rejectedAfterSend).length;
     const windowReplies = replyRows.filter((r) => within(r["received_at"], from, to));
     const uniqueReplyLeads = new Set(
       windowReplies.map((r) => r["lead_id"] ?? r["from_email"]).filter(Boolean),
@@ -327,7 +333,7 @@ supabase
       // filtering send rows left delivered == sent next to a non-zero bounce
       // count. Customer mailboxes send over SMTP and never report a delivery
       // confirmation, so `delivered_at` can never be the base.
-      delivered: Math.max(0, sentMsgs.length - windowBounced),
+      delivered: Math.max(0, sentMsgs.length - windowBounced - sentRejected),
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
@@ -344,7 +350,7 @@ supabase
   const rangePrevious = totalsFor(prevStart, rangeStart);
 
   /* -------------------------------------------------------------- series */
-  const buckets = new Map<string, SeriesPoint>();
+  const buckets = new Map<string, SeriesPoint & { rejected?: number }>();
   for (let i = days - 1; i >= 0; i--) {
     const key = new Date(nowMs - i * DAY).toISOString().slice(0, 10);
     buckets.set(key, { date: key, sent: 0, delivered: 0, replies: 0, positive: 0, meetings: 0 });
@@ -355,6 +361,7 @@ supabase
     const b = buckets.get(new Date(t).toISOString().slice(0, 10));
     if (!b) continue;
     b.sent += 1;
+    if (rejectedAfterSend(m)) b.rejected = (b.rejected ?? 0) + 1;
   }
   // Delivered per day = that day's sends minus that day's bounced people.
   const bouncesPerDay = new Map<string, number>();
@@ -364,7 +371,8 @@ supabase
     bouncesPerDay.set(key, (bouncesPerDay.get(key) ?? 0) + 1);
   }
   for (const [key, b] of buckets) {
-    b.delivered = Math.max(0, b.sent - (bouncesPerDay.get(key) ?? 0));
+    b.delivered = Math.max(0, b.sent - (bouncesPerDay.get(key) ?? 0) - (b.rejected ?? 0));
+    delete b.rejected;
   }
   for (const r of replyRows) {
     const t = ts(r["received_at"]);
@@ -439,7 +447,7 @@ supabase
       sentToday,
       delivered: Math.max(
         0,
-        inRange.length - countBounced(bounceAtByCampaign.get(id), rangeStart, nowMs + 1),
+        inRange.length - inRange.filter(rejectedAfterSend).length - countBounced(bounceAtByCampaign.get(id), rangeStart, nowMs + 1),
       ),
       replies: uniqueReplies,
       positive,
@@ -522,7 +530,7 @@ supabase
       sent: inRange.length,
       delivered: Math.max(
         0,
-        inRange.length - countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
+        inRange.length - inRange.filter(rejectedAfterSend).length - countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
       ),
       bounced: countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
       replies: replyCount,

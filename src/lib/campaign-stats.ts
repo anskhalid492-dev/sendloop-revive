@@ -425,6 +425,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     }
   }
 
+  let sentRejected = 0;
   for (const unit of units.values()) {
     const s = unit.signals;
     const step = stepOf(unit.step);
@@ -438,6 +439,10 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       contacted.add(unit.leadKey);
       if (bounced) {
         sentBounced += 1;
+        stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
+      } else if (s.failed_at || unit.status === "failed") {
+        // Accepted for sending, then rejected by the provider: sent, not delivered.
+        sentRejected += 1;
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
       }
     }
@@ -480,7 +485,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   // equal to sent while the bounced tile showed 3. Always subtract the bounced
   // people, so delivered + bounced can never exceed sent.
   void sentBounced;
-  stats.delivered = Math.max(0, stats.sent - stats.bounced);
+  stats.delivered = Math.max(0, stats.sent - stats.bounced - sentRejected);
   for (const [stepNumber, step] of steps) {
     step.delivered = Math.max(step.delivered, Math.max(0, step.sent - (stepBounces.get(stepNumber) ?? 0)));
   }
