@@ -185,6 +185,8 @@ const PENDING_STATUSES = new Set(["pending", "scheduled", "queued"]);
 export type Unit = {
   leadKey: string;
   step: number;
+  /** Sent, then rejected by the provider without a bounce. */
+  rejectedAfterSend?: boolean;
   status: string;
   /** Mailbox that sent (or is due to send) this unit. */
   accountId: string | null;
