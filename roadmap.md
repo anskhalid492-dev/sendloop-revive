@@ -1,10 +1,11 @@
 # Roadmap
 
 ## Crypto-only affiliate payouts
-- [ ] Inspect existing ledger, portals, policies and private R2 integration; preserve historical records and Stripe behavior.
-- [ ] Prepare owner-applied additive SQL for verified wallets, $100 requests, locked manual settlements, auditable adjustments and private proofs; execute no migrations.
-- [ ] Replace existing payout controls and refresh affiliate/agency pages with distinct branded layouts.
-- [ ] Run isolated database/security/storage regressions and desktop/mobile checks; report production setup and authenticated verification blockers. Do not activate or publish.
+- [x] Inspect existing ledger, portals, development policies and private R2 integration; preserve historical records and Stripe behavior.
+- [x] Prepare owner-applied additive SQL for verified wallets, $100 requests, locked manual settlements, auditable adjustments and private proofs; no migrations executed.
+- [x] Replace existing payout controls and refresh affiliate/agency pages with distinct branded layouts.
+- [x] Verify 70 affiliate regressions, 2,032 full-suite tests, public desktop/mobile pages and automatic production compilation; report in docs/affiliate-crypto-payouts-report.md. No activation or publishing.
+- [ ] Apply owner-reviewed production SQL and verify authenticated wallet/payout/proof readback on named throwaway accounts — blocked: production schema is owner-managed; external backend has no test-account session; actual private R2 proof upload is unverified.
 
 ## Public sending and warmup claims
 - [x] Audit public claims against connected-mailbox sending and warmup implementation; no customer data accessed.
