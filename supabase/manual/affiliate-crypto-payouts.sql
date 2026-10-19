@@ -162,7 +162,7 @@ DECLARE pid uuid; result jsonb; BEGIN SELECT id INTO pid FROM referral_profiles 
  SELECT jsonb_build_object('clicks',(SELECT count(*) FROM referral_clicks WHERE referral_profile_id=pid),'signups',(SELECT count(*) FROM referral_attributions WHERE referral_profile_id=pid),'customers',(SELECT count(*) FROM referral_attributions WHERE referral_profile_id=pid AND converted_at IS NOT NULL),'active_customers',0,
  'pending_cents',coalesce(sum(greatest(commission_amount_cents-reversed_cents,0)) FILTER(WHERE status='pending'),0),
  'approved_cents',coalesce(sum(greatest(commission_amount_cents-reversed_cents-settled_cents,0)) FILTER(WHERE status='approved'),0),
- 'paid_cents',coalesce(sum(settled_cents),0), 'reversed_cents',coalesce(sum(reversed_cents),0),
+ 'paid_cents',coalesce(sum(CASE WHEN status='paid' AND settled_cents=0 AND affiliate_payment_key IS NULL THEN greatest(commission_amount_cents-reversed_cents,0) ELSE settled_cents END),0), 'reversed_cents',coalesce(sum(reversed_cents),0),
  'requested_cents',affiliate_reserved(pid,'live'),'available_cents',greatest(affiliate_spendable(pid,'live')-affiliate_reserved(pid,'live'),0),
  'total_payout_paid_cents',(SELECT coalesce(sum(coalesce(actual_paid_cents,amount_cents)),0) FROM referral_payouts WHERE referral_profile_id=pid AND status='paid' AND currency='usd' AND coalesce(payout_environment,'live')='live')) INTO result
  FROM referral_commissions WHERE referral_profile_id=pid AND currency='usd' AND coalesce(affiliate_environment,'live')='live'; RETURN result; END $$;
@@ -172,7 +172,7 @@ GRANT EXECUTE ON FUNCTION public.affiliate_dashboard_stats() TO service_role;
 CREATE OR REPLACE FUNCTION public.affiliate_admin_earnings(_environment text DEFAULT 'live') RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
 BEGIN IF auth.uid() IS NULL OR NOT has_role(auth.uid(),'admin') THEN RAISE EXCEPTION 'Forbidden'; END IF;
  IF _environment NOT IN('test','live') THEN RAISE EXCEPTION 'Invalid environment'; END IF;
- RETURN (SELECT jsonb_build_object('commission_count',count(*),'commission_cents',coalesce(sum(commission_amount_cents),0),'pending_cents',coalesce(sum(greatest(commission_amount_cents-reversed_cents,0)) FILTER(WHERE status='pending'),0),'approved_cents',coalesce(sum(greatest(commission_amount_cents-reversed_cents-settled_cents,0)) FILTER(WHERE status='approved'),0),'paid_commission_cents',coalesce(sum(settled_cents),0),
+ RETURN (SELECT jsonb_build_object('commission_count',count(*),'commission_cents',coalesce(sum(commission_amount_cents),0),'pending_cents',coalesce(sum(greatest(commission_amount_cents-reversed_cents,0)) FILTER(WHERE status='pending'),0),'approved_cents',coalesce(sum(greatest(commission_amount_cents-reversed_cents-settled_cents,0)) FILTER(WHERE status='approved'),0),'paid_commission_cents',coalesce(sum(CASE WHEN status='paid' AND settled_cents=0 AND affiliate_payment_key IS NULL THEN greatest(commission_amount_cents-reversed_cents,0) ELSE settled_cents END),0),
  'pending_payout_count',(SELECT count(*) FROM referral_payouts WHERE status IN('requested','under_review','approved','processing') AND coalesce(payout_environment,'live')=_environment),
  'completed_payout_count',(SELECT count(*) FROM referral_payouts WHERE status='paid' AND coalesce(payout_environment,'live')=_environment),
  'liability_cents',(SELECT coalesce(sum(greatest(affiliate_spendable(id,_environment),0)),0) FROM referral_profiles)) FROM referral_commissions WHERE currency='usd' AND coalesce(affiliate_environment,'live')=_environment);
