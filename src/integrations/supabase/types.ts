@@ -254,6 +254,53 @@ export type Database = {
           },
         ]
       }
+      affiliate_balance_adjustments: {
+        Row: {
+          actor_id: string
+          after_cents: number
+          before_cents: number
+          created_at: string
+          delta_cents: number
+          environment: string
+          id: string
+          reason: string
+          referral_profile_id: string
+          request_key: string
+        }
+        Insert: {
+          actor_id: string
+          after_cents: number
+          before_cents: number
+          created_at?: string
+          delta_cents: number
+          environment: string
+          id?: string
+          reason: string
+          referral_profile_id: string
+          request_key: string
+        }
+        Update: {
+          actor_id?: string
+          after_cents?: number
+          before_cents?: number
+          created_at?: string
+          delta_cents?: number
+          environment?: string
+          id?: string
+          reason?: string
+          referral_profile_id?: string
+          request_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_balance_adjustments_referral_profile_id_fkey"
+            columns: ["referral_profile_id"]
+            isOneToOne: false
+            referencedRelation: "referral_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_event_receipts: {
         Row: {
           created_at: string
@@ -379,6 +426,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      affiliate_payout_proofs: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          object_key: string
+          payout_id: string
+          size: number
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          object_key: string
+          payout_id: string
+          size: number
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          object_key?: string
+          payout_id?: string
+          size?: number
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payout_proofs_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "referral_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_wallets: {
+        Row: {
+          address: string
+          network: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          network: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          network?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       ai_personalizations: {
         Row: {
@@ -7434,55 +7543,76 @@ export type Database = {
       }
       referral_payouts: {
         Row: {
+          actual_paid_cents: number | null
+          adjustment_allocated_cents: number
           admin_notes: string | null
           amount_cents: number
           created_at: string
+          crypto_network: string | null
           currency: string
           decided_at: string | null
           destination_hint: string | null
           id: string
           method: string | null
           paid_at: string | null
+          payout_environment: string | null
+          processing_due_at: string | null
           reference: string | null
           referral_profile_id: string
+          request_key: string | null
           requested_at: string
           status: string
           updated_at: string
           user_id: string
+          wallet_address: string | null
         }
         Insert: {
+          actual_paid_cents?: number | null
+          adjustment_allocated_cents?: number
           admin_notes?: string | null
           amount_cents: number
           created_at?: string
+          crypto_network?: string | null
           currency?: string
           decided_at?: string | null
           destination_hint?: string | null
           id?: string
           method?: string | null
           paid_at?: string | null
+          payout_environment?: string | null
+          processing_due_at?: string | null
           reference?: string | null
           referral_profile_id: string
+          request_key?: string | null
           requested_at?: string
           status?: string
           updated_at?: string
           user_id: string
+          wallet_address?: string | null
         }
         Update: {
+          actual_paid_cents?: number | null
+          adjustment_allocated_cents?: number
           admin_notes?: string | null
           amount_cents?: number
           created_at?: string
+          crypto_network?: string | null
           currency?: string
           decided_at?: string | null
           destination_hint?: string | null
           id?: string
           method?: string | null
           paid_at?: string | null
+          payout_environment?: string | null
+          processing_due_at?: string | null
           reference?: string | null
           referral_profile_id?: string
+          request_key?: string | null
           requested_at?: string
           status?: string
           updated_at?: string
           user_id?: string
+          wallet_address?: string | null
         }
         Relationships: [
           {
@@ -10277,8 +10407,22 @@ export type Database = {
     }
     Functions: {
       accept_workspace_invitation: { Args: { _token: string }; Returns: string }
+      adjust_affiliate_balance: {
+        Args: {
+          _delta: number
+          _environment?: string
+          _profile: string
+          _reason: string
+          _request_key: string
+        }
+        Returns: string
+      }
       admin_rate_limit_hit: {
         Args: { _bucket: string; _limit: number; _window_seconds: number }
+        Returns: Json
+      }
+      affiliate_admin_earnings: {
+        Args: { _environment?: string }
         Returns: Json
       }
       affiliate_dashboard_stats: { Args: never; Returns: Json }
@@ -10288,6 +10432,14 @@ export type Database = {
       }
       affiliate_private_summary: { Args: { _user_id: string }; Returns: Json }
       affiliate_program_public: { Args: never; Returns: Json }
+      affiliate_reserved: {
+        Args: { _environment: string; _profile: string }
+        Returns: number
+      }
+      affiliate_spendable: {
+        Args: { _environment: string; _profile: string }
+        Returns: number
+      }
       analytics_by_account: {
         Args: { _from: string; _to: string; _workspace_id: string }
         Returns: {
@@ -10791,6 +10943,17 @@ export type Database = {
         }[]
       }
       publish_due_blog_posts: { Args: never; Returns: number }
+      record_affiliate_payout_proof: {
+        Args: {
+          _id: string
+          _key: string
+          _mime: string
+          _name: string
+          _payout: string
+          _size: number
+        }
+        Returns: undefined
+      }
       redeem_appsumo_code: {
         Args: {
           _code: string
@@ -10869,6 +11032,39 @@ export type Database = {
         Args: { _since?: string; _workspace_id?: string }
         Returns: number
       }
+      request_affiliate_crypto_payout: {
+        Args: { _amount: number; _request_key: string }
+        Returns: {
+          actual_paid_cents: number | null
+          adjustment_allocated_cents: number
+          admin_notes: string | null
+          amount_cents: number
+          created_at: string
+          crypto_network: string | null
+          currency: string
+          decided_at: string | null
+          destination_hint: string | null
+          id: string
+          method: string | null
+          paid_at: string | null
+          payout_environment: string | null
+          processing_due_at: string | null
+          reference: string | null
+          referral_profile_id: string
+          request_key: string | null
+          requested_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_address: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "referral_payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_referral_payout: {
         Args: {
           _amount_cents: number
@@ -10876,21 +11072,28 @@ export type Database = {
           _method: string
         }
         Returns: {
+          actual_paid_cents: number | null
+          adjustment_allocated_cents: number
           admin_notes: string | null
           amount_cents: number
           created_at: string
+          crypto_network: string | null
           currency: string
           decided_at: string | null
           destination_hint: string | null
           id: string
           method: string | null
           paid_at: string | null
+          payout_environment: string | null
+          processing_due_at: string | null
           reference: string | null
           referral_profile_id: string
+          request_key: string | null
           requested_at: string
           status: string
           updated_at: string
           user_id: string
+          wallet_address: string | null
         }
         SetofOptions: {
           from: "*"
@@ -10913,6 +11116,16 @@ export type Database = {
       }
       review_affiliate_commission: {
         Args: { _action: string; _id: string; _notes: string }
+        Returns: undefined
+      }
+      review_affiliate_crypto_payout: {
+        Args: {
+          _actual: number
+          _id: string
+          _notes: string
+          _reference: string
+          _status: string
+        }
         Returns: undefined
       }
       review_affiliate_payout: {
@@ -10949,6 +11162,10 @@ export type Database = {
       run_provider_health_runner: { Args: never; Returns: undefined }
       run_transactional_email_runner: { Args: never; Returns: undefined }
       run_warmup_runner: { Args: never; Returns: undefined }
+      save_affiliate_crypto_wallet: {
+        Args: { _address: string; _network: string; _user: string }
+        Returns: undefined
+      }
       save_affiliate_payout_details: {
         Args: { _details: string; _method: string }
         Returns: undefined
