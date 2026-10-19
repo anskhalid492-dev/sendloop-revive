@@ -64,7 +64,7 @@ const SENDER_SIDE_HINTS =
 const SENDER_SIDE_BASIC_CODES = new Set(["530", "534", "535", "538"]);
 
 const RECIPIENT_HINTS =
-  /(user\s+unknown|unknown\s+(user|recipient|mailbox|address)|no\s+such\s+(user|recipient|mailbox|address|account)|(mailbox|recipient|user|address|account)\s+(does\s+not|doesn'?t)\s+exist|(email\s+)?account\s+that\s+you\s+tried\s+to\s+reach\s+(does\s+not|doesn'?t)\s+exist|doesn'?t\s+have\s+an?\s+\S+\s+account|mailbox\s+(not\s+found|unavailable|is\s+disabled|disabled|inactive)|requested\s+action\s+not\s+taken:?\s*mailbox\s+unavailable|recipient\s+(not\s+found|unavailable|invalid|unknown|rejected[^\r\n]{0,40}(unknown|invalid|not\s+found|does\s+not\s+exist))|invalid\s+(recipient|address|mailbox|destination\s+mailbox)|address\s+(not\s+found|invalid|does\s+not\s+exist)|undeliverable\s+address|account\s+(has\s+been\s+)?disabled|mailbox\s+(is\s+)?full|over\s+quota|quota\s+exceeded|mailbox\s+full)/i;
+  /(user\s+unknown|no\s+mailbox\b|unknown\s+(user|recipient|mailbox|address)|no\s+such\s+(user|recipient|mailbox|address|account)|(mailbox|recipient|user|address|account)\s+(does\s+not|doesn'?t)\s+exist|(email\s+)?account\s+that\s+you\s+tried\s+to\s+reach\s+(does\s+not|doesn'?t)\s+exist|doesn'?t\s+have\s+an?\s+\S+\s+account|mailbox\s+(not\s+found|unavailable|is\s+disabled|disabled|inactive)|requested\s+action\s+not\s+taken:?\s*mailbox\s+unavailable|recipient\s+(not\s+found|unavailable|invalid|unknown|rejected[^\r\n]{0,40}(unknown|invalid|not\s+found|does\s+not\s+exist))|invalid\s+(recipient|address|mailbox|destination\s+mailbox)|address\s+(not\s+found|invalid|does\s+not\s+exist)|undeliverable\s+address|account\s+(has\s+been\s+)?disabled|mailbox\s+(is\s+)?full|over\s+quota|quota\s+exceeded|mailbox\s+full)/i;
 
 /** Enhanced codes that, under a permanent reply, establish recipient failure. */
 const RECIPIENT_CODES = new Set(["5.1.0", "5.1.1", "5.1.2", "5.1.3", "5.1.6", "5.1.10", "5.2.1", "5.2.2"]);
@@ -73,6 +73,8 @@ const RECIPIENT_CODES = new Set(["5.1.0", "5.1.1", "5.1.2", "5.1.3", "5.1.6", "5
 const FORCED_BOUNCE_PATTERNS: RegExp[] = [
   /\b550\s+5\.7\.1_etr\b/i,
   /this\s+message\s+could\s+not\s+be\s+delivered\.?\s*please\s+contact\s+support/i,
+  /\b554\s+read\b/i,
+  /\b550\s+permanent\b/i,
 ];
 
 const MS_DBEB = /recipient\s+address\s+rejected\s*:?\s*access\s+denied[\s\S]{0,80}\bAS\(201806281\)/i;

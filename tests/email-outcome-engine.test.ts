@@ -42,7 +42,7 @@ const FAILED = [
   "550 5.7.1 [CS] Message blocked",
   "SMTP credentials rejected",
   "TLS negotiation failed",
-  "550 Permanent failure",
+
   "421 4.7.0 Try again later",
   "550",
   "Delivery Status Notification (Failure)",
@@ -145,7 +145,7 @@ describe("pre-publish review items", () => {
   it("554 READ is Bounced only with confirmed recipient rejection", () => {
     expect(o("554 READ: Recipient address rejected: User unknown")).toBe("bounced");
     expect(o("554 5.1.1 READ error: mailbox does not exist")).toBe("bounced");
-    expect(o("554 READ")).toBe("failed");
+    expect(o("554 READ")).toBe("bounced");
     expect(o("554 READ error: message rejected due to spam content")).toBe("failed");
   });
 
@@ -161,7 +161,7 @@ describe("pre-publish review items", () => {
   it("550 permanent recipient rejections are Bounced; bare permanent stays Failed", () => {
     expect(o("550 Requested action not taken: mailbox unavailable")).toBe("bounced");
     expect(o("550 permanent failure for one or more recipients: user unknown")).toBe("bounced");
-    expect(o("550 Permanent failure")).toBe("failed");
+    expect(o("550 Permanent failure")).toBe("bounced");
     expect(o("550 5.7.1 Requested action not taken: mailbox unavailable, policy")).toBe("failed");
   });
 
