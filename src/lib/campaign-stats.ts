@@ -337,6 +337,10 @@ export function collapseMessageUnits(
       if (unit.status !== "sent") unit.status = "failed";
     }
     if (m.sent_at) {
+      // Accepted for sending, then rejected by the provider (no bounce). A later
+      // successful row for the same unit clears it, so recovered retries never count.
+      if (status === "failed") unit.rejectedAfterSend = unit.rejectedAfterSend !== false;
+      else unit.rejectedAfterSend = false;
       unit.status = "sent";
       if (m.sending_account_id) unit.accountId = String(m.sending_account_id);
       if (m.variant_id) unit.variantId = String(m.variant_id);
@@ -440,7 +444,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       if (bounced) {
         sentBounced += 1;
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
-      } else if (unit.status === "failed") {
+      } else if (unit.rejectedAfterSend) {
         // Accepted for sending, then rejected by the provider: sent, not delivered.
         sentRejected += 1;
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
