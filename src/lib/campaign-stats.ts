@@ -185,6 +185,8 @@ const PENDING_STATUSES = new Set(["pending", "scheduled", "queued"]);
 export type Unit = {
   leadKey: string;
   step: number;
+  /** Sent, then rejected by the provider without a bounce. */
+  rejectedAfterSend?: boolean;
   status: string;
   /** Mailbox that sent (or is due to send) this unit. */
   accountId: string | null;
@@ -337,6 +339,10 @@ export function collapseMessageUnits(
       if (unit.status !== "sent") unit.status = "failed";
     }
     if (m.sent_at) {
+      // Accepted for sending, then rejected by the provider (no bounce). A later
+      // successful row for the same unit clears it, so recovered retries never count.
+      if (status === "failed") unit.rejectedAfterSend = unit.rejectedAfterSend !== false;
+      else unit.rejectedAfterSend = false;
       unit.status = "sent";
       if (m.sending_account_id) unit.accountId = String(m.sending_account_id);
       if (m.variant_id) unit.variantId = String(m.variant_id);
@@ -425,6 +431,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     }
   }
 
+  let sentRejected = 0;
   for (const unit of units.values()) {
     const s = unit.signals;
     const step = stepOf(unit.step);
@@ -438,6 +445,10 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       contacted.add(unit.leadKey);
       if (bounced) {
         sentBounced += 1;
+        stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
+      } else if (unit.rejectedAfterSend) {
+        // Accepted for sending, then rejected by the provider: sent, not delivered.
+        sentRejected += 1;
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
       }
     }
@@ -480,7 +491,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   // equal to sent while the bounced tile showed 3. Always subtract the bounced
   // people, so delivered + bounced can never exceed sent.
   void sentBounced;
-  stats.delivered = Math.max(0, stats.sent - stats.bounced);
+  stats.delivered = Math.max(0, stats.sent - stats.bounced - sentRejected);
   for (const [stepNumber, step] of steps) {
     step.delivered = Math.max(step.delivered, Math.max(0, step.sent - (stepBounces.get(stepNumber) ?? 0)));
   }
