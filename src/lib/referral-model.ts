@@ -53,6 +53,7 @@ export type ReferralStats = {
   reversed_cents: number;
   requested_cents: number;
   available_cents: number;
+  total_payout_paid_cents?: number;
 };
 
 export type ReferralCommission = {
@@ -76,6 +77,11 @@ export type ReferralCommission = {
 };
 
 export type ReferralPayout = {
+  crypto_network?: string | null;
+  wallet_address?: string | null;
+  actual_paid_cents?: number | null;
+  processing_due_at?: string | null;
+  payout_environment?: string | null;
   id: string;
   amount_cents: number;
   currency: string;
@@ -96,17 +102,13 @@ export type ReferralAttributionRow = {
 };
 
 export const PAYOUT_METHOD_LABELS: Record<string, string> = {
-  paypal: "PayPal",
-  bank_transfer: "Bank transfer",
-  wise: "Wise",
-  stripe_connect: "Stripe Connect",
-  credit: "MunchReach account credit",
+  crypto: "Crypto",
 };
 
 export const PAYOUT_STATUS_LABELS: Record<string, string> = {
-  requested: "Requested",
-  under_review: "Under review",
-  approved: "Approved",
+  requested: "Pending",
+  under_review: "Pending",
+  approved: "Pending — approved",
   processing: "Processing",
   paid: "Paid",
   rejected: "Rejected",

@@ -26,7 +26,7 @@
 - The sequence toolbar uses one Spintax Builder that captures step key, variant index, field and selection before opening; insertion uses the existing selection helper, so modal focus and option editing cannot retarget the email.
 - Lifetime offers use separate manually configured Stripe mappings, never catalogue repair; verified checkout line items must match the selected plan before activation, so a new offer cannot alter original pricing or grant the wrong entitlements.
 - Warmup table presentation uses warmup-table helpers and success-only per-mailbox event reads, so scheduler/failure timestamps and busy-mailbox history cannot misrepresent Last Activity.
-- Affiliates use the native verified Stripe billing webhook and transactional payment-key ledger; privacy-safe reads and locked reviewed payouts prevent duplicate rewards and overpayment. Public activation requires explicit operational verification, and production migrations remain owner-applied.
+- Affiliates retain verified Stripe/payment-key tracking; payouts share locked balance math and append-only adjustments. Proofs use purpose-bound owner/admin signing. Activation requires operational verification; production SQL is owner-applied.
 - Action-confirmed onboarding notices reuse System Emails through engagement-notices.server, are opt-in per template and revalidated by both delivery paths; active marketing automations block them conservatively to prevent cross-system duplicate nudges.
 - Immediate admin System Email tests pass a trusted, single-row delivery option to skip onboarding relevance and cooldown only; recipient preferences/suppression still apply and stored test flags never grant bypass, so testing cannot weaken automatic delivery safeguards.
 

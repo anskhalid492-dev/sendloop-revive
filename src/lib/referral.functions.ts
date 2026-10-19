@@ -75,7 +75,7 @@ export const getReferralOverview = createServerFn({ method: "GET" })
         .or("affiliate_environment.is.null,affiliate_environment.eq.live")
         .order("created_at", { ascending: false })
         .limit(100),
-      supabase.from("referral_payouts").select("id,amount_cents,currency,status,method,destination_hint,reference,requested_at,paid_at").order("created_at", { ascending: false }).limit(50),
+      (supabase as any).from("referral_payouts").select("id,amount_cents,currency,status,method,destination_hint,reference,requested_at,paid_at,crypto_network,wallet_address,actual_paid_cents,processing_due_at,payout_environment").or("payout_environment.is.null,payout_environment.eq.live").order("created_at", { ascending: false }).limit(50),
       supabase
         .from("referral_attributions")
         .select("id, status, signed_up_at, converted_at")
@@ -259,7 +259,7 @@ export const getAdminReferralOverview = createServerFn({ method: "GET" })
         referrer_email: emails[c.referrer_user_id] ?? "—",
         referred_email: emails[c.referred_user_id] ?? "—",
       })),
-      payouts: payouts.data ?? [],
+      payouts: (payouts.data ?? []).map(p => ({ ...p, affiliate_name: emails[p.user_id] ?? p.user_id })),
       flags: flags.data ?? [],
       audit: audit.data ?? [],
       webhook,
@@ -283,12 +283,12 @@ export const updateReferralProgram = createServerFn({ method: "POST" })
         commission_fixed_cents: z.number().int().min(0),
         recurring: z.boolean(),
         commission_duration_months: z.number().int().min(0).max(120),
-        minimum_payout_cents: z.number().int().min(0),
+        minimum_payout_cents: z.literal(10000),
         attribution_window_days: z.number().int().min(1).max(365),
         approval_mode: z.enum(["manual", "auto"]),
         approval_delay_days: z.number().int().min(0).max(180),
-        payout_schedule: z.string().min(2).max(40),
-        payout_methods: z.array(z.string().min(2).max(40)).min(1),
+        payout_schedule: z.literal("within 60 days"),
+        payout_methods: z.tuple([z.literal("crypto")]),
         payout_provider_configured: z.boolean(),
         eligibility: z.string().max(2000),
         terms: z.string().max(8000),
