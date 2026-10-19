@@ -274,15 +274,33 @@ export function FaqBlock({
   title?: string;
   description?: string;
 }) {
+  // A section that already names the block (e.g. "Agency partner questions")
+  // passes empty strings so the questions follow its own heading directly.
+  const hasHeader = Boolean(eyebrow || title || description);
   return (
     <div className="mx-auto w-full max-w-[840px] text-center">
-      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-        {eyebrow}
-      </span>
-      <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
-      <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
+      {hasHeader ? (
+        <>
+          {eyebrow ? (
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              {eyebrow}
+            </span>
+          ) : null}
+          {title ? (
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
+          ) : null}
+          {description ? (
+            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
+          ) : null}
+        </>
+      ) : null}
 
-      <Accordion type="single" collapsible className="mt-10 text-left">
+      <Accordion
+        type="single"
+        collapsible
+        className={hasHeader ? "mt-10 text-left" : "text-left"}
+      >
+
         {faqs.map((f) => (
           <AccordionItem key={f.q} value={f.q} className="border-b border-border/70">
             <AccordionTrigger className="group min-h-14 py-5 text-left text-base font-medium hover:no-underline [&>svg]:hidden">

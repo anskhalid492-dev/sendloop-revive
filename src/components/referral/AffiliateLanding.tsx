@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MarketingLayout, Section, StepList, FaqBlock, BulletList } from '@/components/site/MarketingPage';
-import { BrandLogo } from '@/components/brand/BrandLogo';
 import { affiliateRules, affiliateEarnings } from '@/lib/affiliate-rules';
 import { formatMoney, type ReferralProgram } from '@/lib/referral-model';
 import dashboardAsset from '@/assets/munchreach-dashboard-overview.jpg.asset.json';
