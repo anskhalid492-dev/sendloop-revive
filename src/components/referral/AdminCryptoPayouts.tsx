@@ -19,8 +19,9 @@ type Referrer = { id: string; email: string; code: string };
 export function AdminCryptoPayouts({ payouts, referrers }: { payouts: AdminPayout[]; referrers: Referrer[] }) {
   const client = useQueryClient();
   const [environment,setEnvironment] = useState<'live'|'test'>('live');
+  const [auditOffset,setAuditOffset] = useState(0);
   const summaryFn = useServerFn(getAdminPayoutSummary);
-  const summary = useQuery({ queryKey: ['admin','payout-summary',environment], queryFn: () => summaryFn({ data: { environment } }) });
+  const summary = useQuery({ queryKey: ['admin','payout-summary',environment,auditOffset], queryFn: () => summaryFn({ data: { environment, offset: auditOffset } }) });
   const [selected,setSelected] = useState<AdminPayout | null>(null);
   const [actual,setActual] = useState('');
   const [reference,setReference] = useState('');
