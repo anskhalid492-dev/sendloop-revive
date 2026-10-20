@@ -208,12 +208,12 @@ function MessageRow({
             </dl>
           ) : null}
 
-          {message.html ? (
-            // Sent with formatting: show what the recipient received. The HTML
-            // was sanitized to the email allow-list before it was stored.
+          {renderedHtml ? (
+            // Formatted message: document scaffolding (DOCTYPE, head, Outlook
+            // comments) is removed and the body sanitized to the email allow-list.
             <div
-              className="mt-3 max-w-[76ch] break-words text-[15px] leading-7 text-foreground [&_a]:text-primary [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: sanitizeComposerHtml(message.html) }}
+              className="mt-3 max-w-[76ch] break-words text-[15px] leading-7 text-foreground [&_a]:text-primary [&_a]:underline [&_img]:inline-block [&_img]:h-auto [&_img]:max-w-full [&_table]:max-w-full"
+              dangerouslySetInnerHTML={{ __html: renderedHtml }}
             />
           ) : parts.reply ? (
             <div className="mt-3 max-w-[76ch] whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
