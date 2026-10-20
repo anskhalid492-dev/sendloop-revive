@@ -75,6 +75,7 @@ import { replyPreview, splitReplyBody } from "@/lib/email-body";
 import { RichTextEditor } from "@/components/inbox/RichTextEditor";
 import { AiReplyButton } from "@/components/inbox/AiReplyButton";
 import { composerHtmlToText, sanitizeComposerHtml, textToComposerHtml } from "@/lib/rich-text";
+import { sanitizeInboundHtml } from "@/lib/inbound-html";
 import { cn } from "@/lib/utils";
 
 function snoozeOptions() {
@@ -129,6 +130,15 @@ function MessageRow({
   const [showQuoted, setShowQuoted] = useState(false);
   const outbound = message.direction !== "inbound";
   const parts = useMemo(() => splitReplyBody(message.body), [message.body]);
+  const renderedHtml = useMemo(
+    () =>
+      message.html
+        ? outbound
+          ? sanitizeComposerHtml(message.html)
+          : sanitizeInboundHtml(message.html)
+        : "",
+    [message.html, outbound],
+  );
 
   return (
     <article className="border-b border-border/60 py-4 last:border-b-0">
