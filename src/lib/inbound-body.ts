@@ -113,6 +113,7 @@ function stripCssBlocks(value: string): string {
 export function htmlBodyToText(html: string): string {
   const withoutStyles = html
     // Closed blocks first, then any unterminated one (broken or truncated mail).
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<head\b[\s\S]*?<\/head\s*>/gi, "")
     .replace(/<title\b[\s\S]*?<\/title\s*>/gi, "")
     .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, "")
