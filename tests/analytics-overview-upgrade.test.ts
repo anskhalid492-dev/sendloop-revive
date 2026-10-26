@@ -24,10 +24,12 @@ describe("analytics overview actual units", () => {
     const summary = summarizeEngagement(units(), from, to);
     expect(summary.delivered).toBe(0);
   });
-  it("uses confirmed delivery for rates only with complete receipts", () => {
-    expect(openRate({ sent: 10, delivered: 8, opens: 4, deliveryComplete: true })).toBe(50);
-    expect(replyRate({ sent: 10, delivered: 8, replies: 2, deliveryComplete: true })).toBe(25);
-    expect(openRate({ sent: 10, delivered: 1, opens: 4, deliveryComplete: false })).toBe(40);
+  it("divides unique people by reachable people, never by emails sent", () => {
+    // A 3-step sequence sends one person 3 emails: 30 sends, 10 contacted.
+    expect(openRate({ sent: 30, contacted: 10, bounced: 2, delivered: 0, opens: 4 })).toBe(50);
+    expect(replyRate({ sent: 30, contacted: 10, delivered: 0, replies: 2 })).toBe(20);
+    // Rows without a contacted count (single step) fall back to sends.
+    expect(openRate({ sent: 10, delivered: 1, opens: 4 })).toBe(40);
   });
   it("shows real zero buckets and deduplicates same-day follow-up opens/replies", () => {
     const points = engagementTrend(units(), from, to, "day");
