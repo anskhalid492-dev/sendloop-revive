@@ -47,7 +47,7 @@ export async function campaignOverviewRollupFallback(
         .select("id", { count: "exact", head: true })
         .eq("campaign_id", campaignId);
 
-    const [leads, sent, sentToday, bounced, failed, replies] = await Promise.all([
+    const [leads, sent, sentToday, bounced, failed, replies, uncontacted] = await Promise.all([
       supabase
         .from("campaign_recipients")
         .select("id", { count: "exact", head: true })
@@ -57,9 +57,15 @@ export async function campaignOverviewRollupFallback(
       messages().not("bounced_at", "is", null),
       messages().not("failed_at", "is", null),
       messages().not("replied_at", "is", null),
+      // Recipients still pending have never been emailed; everyone else has.
+      supabase
+        .from("campaign_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", campaignId)
+        .eq("status", "pending"),
     ]);
 
-    for (const res of [leads, sent, sentToday, bounced, failed, replies]) {
+    for (const res of [leads, sent, sentToday, bounced, failed, replies, uncontacted]) {
       if (res.error) throw new Error(res.error.message);
     }
     const n = (res: { count: number | null }) => Number(res.count ?? 0) || 0;
@@ -68,6 +74,7 @@ export async function campaignOverviewRollupFallback(
       campaign_id: campaignId,
       leads: n(leads),
       sent: n(sent),
+      contacted: Math.max(0, n(leads) - n(uncontacted)),
       sent_today: n(sentToday),
       bounced: n(bounced),
       failed: n(failed),

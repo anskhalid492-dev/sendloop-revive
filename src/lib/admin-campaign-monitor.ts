@@ -71,6 +71,8 @@ export function addClass(t: SendTotals, c: MessageClass): void {
 
 export type CampaignMetrics = SendTotals & {
   leads: number;
+  /** Unique people emailed; defaults to sent when unknown (single-step). */
+  contacted?: number;
   opens: number;
   clicks: number;
   replies: number;
