@@ -366,6 +366,7 @@ export async function getAdminCampaign(campaignId: string) {
     replies,
     engagementRows,
     statsRecipients,
+    statsContacted,
     statsQueued,
     statsSent,
     statsFailed,
@@ -626,19 +627,19 @@ export async function getAdminCampaign(campaignId: string) {
       rawOpens,
       prefetchOpens,
       openRate: openRatePercent(Math.max(openKeys.size, uniqueOpeners.size), {
-        sent: statsSent,
+        contacted: statsContacted || statsSent,
         bounced: bounceKeys.size,
       }),
       clicks: Math.max(clickKeys.size, uniqueClickers.size),
       uniqueClicks: uniqueClickers.size,
       rawClicks,
       clickRate: clickRatePercent(Math.max(clickKeys.size, uniqueClickers.size), {
-        sent: statsSent,
+        contacted: statsContacted || statsSent,
         bounced: bounceKeys.size,
       }),
       unsubscribes: unsubscribedEmails.size,
       unsubscribeRate: clickRatePercent(unsubscribedEmails.size, {
-        sent: statsSent,
+        contacted: statsContacted || statsSent,
         bounced: bounceKeys.size,
       }),
 
