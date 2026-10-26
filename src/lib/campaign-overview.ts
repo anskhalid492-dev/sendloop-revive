@@ -31,11 +31,13 @@ export type CampaignOverviewRow = {
   accountCount: number;
   leads: number;
   sent: number;
+  /** Unique people emailed — the base for people-based rates. */
+  contacted: number;
   /** Emails accepted for sending minus confirmed bounces. */
   reached: number;
   /** Unique recipients/people with a real open signal. */
   opened: number;
-  /** Opened divided by reachable emails, using the shared engagement formula. */
+  /** Opened divided by reachable people, using the shared engagement formula. */
   openRate: number;
   /** Bounces (bounced_at set) — never included in `failed`. */
   bounced: number;
@@ -133,6 +135,13 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       messages
         .filter((m) => m.opened_at != null)
         .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:open`),
+    ).size;
+    // Unique people emailed: the rate base, so multi-step sequences never
+    // dilute open/reply rates (one person, three steps = one contact).
+    const contacted = new Set(
+      messages
+        .filter((m) => m.status === "sent" || m.sent_at)
+        .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? m.id),
     ).size;
     const reached = deliveredCount({ sent, bounced, confirmedDelivered });
 
