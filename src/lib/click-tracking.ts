@@ -208,10 +208,13 @@ export function rewriteLinksForClickTracking(
  */
 export function clickRatePercent(
   uniqueClicks: number,
-  base: ReachableBase | number,
+  base: ReachableBase | PeopleBase | number,
 ): number {
   // The shared helper is people-based: a bare send count is the people base
   // for single-step scopes, where one email = one person.
-  const people = typeof base === "number" ? base : { contacted: base.sent, bounced: base.bounced };
+  const people =
+    typeof base === "number"
+      ? base
+      : { contacted: (base as PeopleBase).contacted ?? (base as ReachableBase).sent, bounced: base.bounced };
   return sharedClickRate(uniqueClicks, people);
 }
