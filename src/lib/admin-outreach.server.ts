@@ -414,6 +414,13 @@ export async function getAdminCampaign(campaignId: string) {
       ),
       exactCount(() =>
         db()
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .not("last_sent_at", "is", null),
+      ),
+      exactCount(() =>
+        db()
           .from("campaign_messages")
           .select("id", { count: "exact", head: true })
           .eq("campaign_id", campaignId)
