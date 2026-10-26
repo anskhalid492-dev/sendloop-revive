@@ -48,6 +48,9 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
   // tab always matches the workspace Analytics page for the same campaign.
   const total = delivery?.totalLeads ?? queue?.total ?? 0;
   const sent = delivery?.sent ?? 0;
+  // People emailed — the base for per-person rates, so multi-step sequences
+  // never dilute them (one person receiving three steps is one contact).
+  const contactedPeople = delivery?.contacted ?? 0;
   const replied = delivery?.replied ?? 0;
   const bounced = delivery?.bounced ?? 0;
   const unsubscribed = delivery?.unsubscribed ?? 0;
@@ -83,13 +86,13 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Kpi label="Leads Queued" value={total.toLocaleString()} icon={Users} />
         <Kpi label="Emails Sent" value={sent.toLocaleString()} icon={Send} sub={`${pct(sent, total)}% of queue`} />
-        <Kpi label="Replies" value={replied.toLocaleString()} icon={MessageSquareReply} sub={`${pct(replied, sent)}% reply rate`} />
+        <Kpi label="Replies" value={replied.toLocaleString()} icon={MessageSquareReply} sub={`${pct(replied, contactedPeople)}% reply rate`} />
         <Kpi label="Bounced" value={bounced.toLocaleString()} icon={ShieldAlert} sub={`${pct(bounced, sent)}% bounce rate`} />
         <Kpi
           label="Unsubscribed"
           value={unsubscribed.toLocaleString()}
           icon={MailMinus}
-          sub={`${pct(unsubscribed, sent)}% opt-out`}
+          sub={`${pct(unsubscribed, contactedPeople)}% opt-out`}
         />
       </div>
 
