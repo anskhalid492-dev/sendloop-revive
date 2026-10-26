@@ -142,6 +142,7 @@ export function sumKpis(rows: readonly KpiRow[]): KpiTotals {
   let completed = 0;
   for (const r of rows) {
     m.sent += r.sent;
+    m.contacted = (m.contacted ?? 0) + (r.contacted ?? r.sent);
     m.bounced += r.bounced;
     m.bouncedAfterSend += r.bouncedAfterSend;
     m.failed += r.failed;

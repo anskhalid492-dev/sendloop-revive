@@ -168,7 +168,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
     fetchByIds<any>(ids, (chunk) =>
       db()
         .from("campaign_messages")
-        .select("id, campaign_id, status, sent_at, bounced_at")
+        .select("id, campaign_id, status, sent_at, bounced_at, recipient_id, lead_id")
         .in("campaign_id", chunk)
         .in("status", ["sent", "failed"]),
     ),
