@@ -5,7 +5,7 @@
  * so the table never shows synthetic statistics.
  */
 
-import { deliveredCount, openRatePercent } from "@/lib/engagement-rates";
+import { deliveredCount, openRatePercent, replyRatePercent } from "@/lib/engagement-rates";
 
 export type CampaignOverviewAccount = {
   id: string;
@@ -202,6 +202,8 @@ export type CampaignRollupRow = {
   campaign_id: string;
   leads?: number | null;
   sent?: number | null;
+  /** Unique people emailed; older rollups may not return it. */
+  contacted?: number | null;
   sent_today?: number | null;
   delivered?: number | null;
   reached?: number | null;
@@ -234,6 +236,7 @@ export function applyCampaignRollup(
     if (!hit) continue;
     if (hit.leads != null) row.leads = n(hit.leads);
     if (hit.sent != null) row.sent = n(hit.sent);
+    if (hit.contacted != null) row.contacted = n(hit.contacted);
     if (hit.sent_today != null) row.sentToday = n(hit.sent_today);
     if (hit.bounced != null) row.bounced = n(hit.bounced);
     if (hit.reached != null || hit.delivered != null) {
