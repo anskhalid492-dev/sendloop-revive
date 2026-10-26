@@ -87,7 +87,7 @@ export type AnalyticsAccountRow = {
   unsubscribed: number;
 };
 
-type RateBase = { sent: number; delivered: number; bounced?: number; contacted?: number };
+type RateBase = { sent: number; delivered?: number; bounced?: number; contacted?: number };
 
 export function rate(numerator: number, denominator: number): number {
   if (!denominator) return 0;

@@ -37,7 +37,7 @@ export type PeopleBase = {
   /** Unique people emailed (contacted) in the measured scope. */
   contacted: number;
   /** Unique people whose mail confirmed-bounced. */
-  bounced?: number;
+  bounced?: number | undefined;
 };
 
 /** Emails that reached a real mailbox as far as we can confirm. */

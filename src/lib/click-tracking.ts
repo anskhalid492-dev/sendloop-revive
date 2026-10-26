@@ -210,5 +210,8 @@ export function clickRatePercent(
   uniqueClicks: number,
   base: ReachableBase | number,
 ): number {
-  return sharedClickRate(uniqueClicks, typeof base === "number" ? { sent: base } : base);
+  // The shared helper is people-based: a bare send count is the people base
+  // for single-step scopes, where one email = one person.
+  const people = typeof base === "number" ? base : { contacted: base.sent, bounced: base.bounced };
+  return sharedClickRate(uniqueClicks, people);
 }
