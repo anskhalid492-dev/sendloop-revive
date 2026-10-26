@@ -12,6 +12,8 @@ import {
 
 export type SequenceTotals = {
   sent: number;
+  /** Unique people emailed in this scope — the people-based rate base. */
+  contacted: number;
   delivered: number;
   opens: number;
   clicks: number;
@@ -36,6 +38,7 @@ export type SequenceVariantRow = SequenceTotals & {
 export function emptySequenceTotals(): SequenceTotals {
   return {
     sent: 0,
+    contacted: 0,
     delivered: 0,
     opens: 0,
     clicks: 0,
