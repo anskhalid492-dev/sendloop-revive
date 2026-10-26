@@ -223,6 +223,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   }
 
   const totals: Dict<ReturnType<typeof emptyTotals>> = {};
+  const contactedPeople: Dict<Set<string>> = {};
   const lastActivity: Dict<string> = {};
   const sentDates: string[] = [];
   const bounceDates: string[] = [];
@@ -233,6 +234,11 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       bounceEvent: bounceEventMessages.has(String(m.id)),
     });
     addClass(t, cls);
+    if (m.sent_at) {
+      // Unique people emailed — the people-based rate base.
+      const who = String(m.recipient_id ?? m.lead_id ?? m.id);
+      (contactedPeople[m.campaign_id] ??= new Set<string>()).add(who);
+    }
     if (m.sent_at) {
       sentDates.push(m.sent_at);
       if (!lastActivity[m.campaign_id] || m.sent_at > lastActivity[m.campaign_id]!)
@@ -287,6 +293,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       bounced: t.bounced + extraBounces,
       bouncedAfterSend: t.bouncedAfterSend + extraBounces,
       leads: recipientCounts[c.id] ?? 0,
+      contacted: contactedPeople[c.id]?.size ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
       clicks: clickKeysByCampaign[c.id]?.size ?? 0,
       replies: replyCounts[c.id] ?? 0,
