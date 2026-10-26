@@ -249,14 +249,17 @@ export function applyCampaignRollup(
       row.reached = deliveredCount({ sent: row.sent, bounced: row.bounced });
     }
     if (hit.opened != null) row.opened = n(hit.opened);
-    row.openRate = openRatePercent(row.opened, { sent: row.sent, bounced: row.bounced });
+    // People-based base; an older rollup without `contacted` falls back to
+    // the send count rather than hiding the rate.
+    const base = { contacted: row.contacted || row.sent, bounced: row.bounced };
+    row.openRate = openRatePercent(row.opened, base);
     if (hit.failed != null) row.failed = n(hit.failed);
     if (hit.replies != null || hit.replied != null) row.replies = n(hit.replies ?? hit.replied);
     if (hit.positive_replies != null || hit.positive_replied != null) {
       row.positiveReplies = n(hit.positive_replies ?? hit.positive_replied);
     }
     if (hit.meetings != null) row.meetings = n(hit.meetings);
-    row.replyRate = row.sent > 0 ? (row.replies / row.sent) * 100 : 0;
+    row.replyRate = replyRatePercent(row.replies, base);
     row.displayStatus = displayStatus(row.status, row.sent, row.failed);
   }
   return rows;
