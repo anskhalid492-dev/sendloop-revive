@@ -245,7 +245,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <h2 className="text-sm font-semibold">Send outcomes</h2>
           <span className="text-xs text-muted-foreground">
             Bounce rate {pct(rate(bounced, sent))} · Unsubscribe rate{" "}
-            {sent ? `${unsubscribeRatePercent(unsubscribed, { sent, bounced })}%` : "—"}
+            {contacted ? `${unsubscribeRatePercent(unsubscribed, { contacted, bounced })}%` : "—"}
           </span>
         </div>
 
