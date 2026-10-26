@@ -12,6 +12,8 @@ import {
 
 export type SequenceTotals = {
   sent: number;
+  /** Unique people emailed in this scope — the people-based rate base. */
+  contacted: number;
   delivered: number;
   opens: number;
   clicks: number;
@@ -36,6 +38,7 @@ export type SequenceVariantRow = SequenceTotals & {
 export function emptySequenceTotals(): SequenceTotals {
   return {
     sent: 0,
+    contacted: 0,
     delivered: 0,
     opens: 0,
     clicks: 0,
@@ -63,10 +66,10 @@ function makeInRange({ from, to }: Window) {
  * Per-row counters that must only ever count a PERSON once, however many of
  * their queued follow-ups were stopped by the same bounce or unsubscribe.
  */
-type PeopleCounted = { bounced: Set<string>; unsubscribed: Set<string> };
+type PeopleCounted = { bounced: Set<string>; unsubscribed: Set<string>; contacted: Set<string> };
 
 function newPeopleCounted(): PeopleCounted {
-  return { bounced: new Set<string>(), unsubscribed: new Set<string>() };
+  return { bounced: new Set<string>(), unsubscribed: new Set<string>(), contacted: new Set<string>() };
 }
 
 function accumulate(
@@ -80,7 +83,15 @@ function accumulate(
   // and a bounce applies to the whole person, not just the row carrying it.
   const bouncedAt = unitBounceAt(unit);
   const personBounced = bouncedPeople.has(unit.leadKey);
-  if (inRange(unit.sentAt)) target.sent += 1;
+  if (inRange(unit.sentAt)) {
+    target.sent += 1;
+    // People-based rate base: one person emailed counts once, however many
+    // sequence steps reached them.
+    if (!counted.contacted.has(unit.leadKey)) {
+      counted.contacted.add(unit.leadKey);
+      target.contacted += 1;
+    }
+  }
   // Relay/SMTP sends never get a provider delivery confirmation, so a send that
   // did not bounce or fail counts as delivered. Same rule as `deliveredCount`
   // in engagement-rates.ts.

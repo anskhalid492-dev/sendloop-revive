@@ -58,6 +58,8 @@ export type AnalyticsCampaignRow = {
   /** Audience size for the campaign, when known. */
   leads?: number;
   sent: number;
+  /** Unique people emailed — the denominator for people-based rates. */
+  contacted?: number;
   delivered: number;
   opens: number;
   clicks: number;
@@ -85,7 +87,7 @@ export type AnalyticsAccountRow = {
   unsubscribed: number;
 };
 
-type RateBase = { sent: number; delivered: number; bounced?: number };
+type RateBase = { sent: number; delivered?: number; bounced?: number; contacted?: number };
 
 export function rate(numerator: number, denominator: number): number {
   if (!denominator) return 0;
@@ -94,26 +96,31 @@ export function rate(numerator: number, denominator: number): number {
 
 /**
  * Engagement rates all come from the one shared calculation in
- * `engagement-rates.ts`: unique people divided by reachable emails
- * (sent minus confirmed bounces). Admin uses the exact same helpers.
+ * `engagement-rates.ts`: unique people divided by reachable PEOPLE
+ * (contacted minus confirmed bounces). The base is people, not emails,
+ * so a multi-step sequence never dilutes the rate. Admin uses the exact
+ * same helpers. Rows without a contacted count (e.g. a single sequence
+ * step, where one email = one person) fall back to their send count.
  */
-export const openRate = (r: RateBase & { opens: number; deliveryComplete?: boolean }) => r.deliveryComplete ? rate(r.opens, r.delivered) : openRatePercent(r.opens, r);
-export const clickRate = (r: RateBase & { clicks: number }) => clickRatePercent(r.clicks, r);
-export const replyRate = (r: RateBase & { replies: number; deliveryComplete?: boolean }) => r.deliveryComplete ? rate(r.replies, r.delivered) : replyRatePercent(r.replies, r);
+const peopleBase = (r: RateBase) => ({ contacted: r.contacted ?? r.sent, bounced: r.bounced });
+export const openRate = (r: RateBase & { opens: number }) => openRatePercent(r.opens, peopleBase(r));
+export const clickRate = (r: RateBase & { clicks: number }) => clickRatePercent(r.clicks, peopleBase(r));
+export const replyRate = (r: RateBase & { replies: number }) => replyRatePercent(r.replies, peopleBase(r));
 /** Bounce rate = bounces / sent: it measures the sends themselves. */
 export const bounceRate = (r: RateBase & { bounced: number }) => bounceRatePercent(r.bounced, r.sent);
 export const unsubRate = (r: RateBase & { unsubscribed: number }) =>
-  unsubscribeRatePercent(r.unsubscribed, r);
+  unsubscribeRatePercent(r.unsubscribed, peopleBase(r));
 
 /** Formats an open-rate cell, distinguishing "disabled" from "no data". */
 export function formatOpenRate(row: {
   opens: number;
   sent: number;
+  contacted?: number;
   bounced?: number;
   openTracking?: boolean;
 }): string {
   if (row.openTracking === false) return "Disabled";
-  return formatPct(openRatePercent(row.opens, row));
+  return formatPct(openRatePercent(row.opens, peopleBase(row)));
 }
 
 export function formatPct(value: number): string {

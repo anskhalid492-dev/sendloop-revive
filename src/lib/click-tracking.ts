@@ -12,6 +12,7 @@
  */
 import {
   clickRatePercent as sharedClickRate,
+  type PeopleBase,
   type ReachableBase,
 } from "@/lib/engagement-rates";
 import { createHmac, timingSafeEqual } from "crypto";
@@ -208,7 +209,13 @@ export function rewriteLinksForClickTracking(
  */
 export function clickRatePercent(
   uniqueClicks: number,
-  base: ReachableBase | number,
+  base: ReachableBase | PeopleBase | number,
 ): number {
-  return sharedClickRate(uniqueClicks, typeof base === "number" ? { sent: base } : base);
+  // The shared helper is people-based: a bare send count is the people base
+  // for single-step scopes, where one email = one person.
+  const people =
+    typeof base === "number"
+      ? base
+      : { contacted: (base as PeopleBase).contacted ?? (base as ReachableBase).sent, bounced: base.bounced };
+  return sharedClickRate(uniqueClicks, people);
 }

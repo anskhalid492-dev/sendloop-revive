@@ -105,8 +105,11 @@ $function$
 
 GRANT EXECUTE ON FUNCTION public.campaign_eligible_leads(_campaign_id uuid, _after uuid, _limit integer) TO authenticated, service_role;
 
-CREATE OR REPLACE FUNCTION public.campaign_overview_rollup(_workspace_id uuid)
- RETURNS TABLE(campaign_id uuid, leads bigint, sent bigint, sent_today bigint, bounced bigint, failed bigint, replies bigint, positive_replies bigint, meetings bigint)
+-- The return type gains `contacted` (unique people emailed), which CREATE OR
+-- REPLACE cannot do in place, so the old function is dropped first.
+DROP FUNCTION IF EXISTS public.campaign_overview_rollup(uuid);
+CREATE FUNCTION public.campaign_overview_rollup(_workspace_id uuid)
+ RETURNS TABLE(campaign_id uuid, leads bigint, sent bigint, contacted bigint, sent_today bigint, bounced bigint, failed bigint, replies bigint, positive_replies bigint, meetings bigint)
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
@@ -117,6 +120,11 @@ AS $function$
   SELECT s.id,
     coalesce((SELECT count(*) FROM public.campaign_recipients r WHERE r.campaign_id = s.id), 0)::bigint,
     coalesce((SELECT count(*) FROM public.campaign_messages m WHERE m.campaign_id = s.id AND m.status::text = 'sent'), 0)::bigint,
+    -- Unique people emailed: the people-based rate base, so multi-step
+    -- sequences never dilute open/reply rates.
+    coalesce((SELECT count(DISTINCT coalesce(m.recipient_id::text, m.lead_id::text, m.id::text))
+      FROM public.campaign_messages m
+      WHERE m.campaign_id = s.id AND m.sent_at IS NOT NULL), 0)::bigint,
     coalesce((SELECT count(*) FROM public.campaign_messages m WHERE m.campaign_id = s.id AND m.status::text = 'sent' AND m.sent_at >= date_trunc('day', now())), 0)::bigint,
     coalesce((SELECT count(DISTINCT coalesce(m.recipient_id::text, m.lead_id::text, m.id::text))
       FROM public.campaign_messages m
@@ -263,8 +271,10 @@ SELECT jsonb_build_object(
       'sent', count(*) FILTER (WHERE sent_at IS NOT NULL)::bigint,
       'delivered', count(*) FILTER (WHERE delivered_at IS NOT NULL AND bounced_at IS NULL AND delivery_status IS DISTINCT FROM 'failed')::bigint,
       'delayed', count(*) FILTER (WHERE delayed_at IS NOT NULL AND delivered_at IS NULL AND bounced_at IS NULL)::bigint,
-      'opened', count(*) FILTER (WHERE opened_at IS NOT NULL)::bigint,
-      'clicked', count(*) FILTER (WHERE clicked_at IS NOT NULL)::bigint,
+      -- Opens and clicks count PEOPLE, like every other surface: one contact
+      -- opening three follow-ups is one open, never three.
+      'opened', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text)) FILTER (WHERE opened_at IS NOT NULL)::bigint,
+      'clicked', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text)) FILTER (WHERE clicked_at IS NOT NULL)::bigint,
       'replied', count(DISTINCT coalesce(lead_id::text, id::text)) FILTER (WHERE replied_at IS NOT NULL)::bigint,
       -- Counted per PERSON, and a recipient whose remaining mail was cancelled
       -- because of a bounce/unsubscribe/complaint still counts. Mirrors
@@ -286,8 +296,8 @@ SELECT jsonb_build_object(
     SELECT jsonb_build_object(
       'sent', count(*) FILTER (WHERE sent_at >= _day_start)::bigint,
       'delivered', count(*) FILTER (WHERE delivered_at >= _day_start AND bounced_at IS NULL AND delivery_status IS DISTINCT FROM 'failed')::bigint,
-      'opened', count(*) FILTER (WHERE opened_at >= _day_start)::bigint,
-      'clicked', count(*) FILTER (WHERE clicked_at >= _day_start)::bigint,
+      'opened', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text)) FILTER (WHERE opened_at >= _day_start)::bigint,
+      'clicked', count(DISTINCT coalesce(recipient_id::text, lead_id::text, id::text)) FILTER (WHERE clicked_at >= _day_start)::bigint,
       'replied', count(*) FILTER (WHERE replied_at >= _day_start)::bigint,
       'bounced', count(*) FILTER (WHERE bounced_at >= _day_start)::bigint,
       'failed', count(*) FILTER (WHERE failed_at >= _day_start AND bounced_at IS NULL)::bigint

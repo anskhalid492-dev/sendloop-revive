@@ -71,6 +71,8 @@ export function addClass(t: SendTotals, c: MessageClass): void {
 
 export type CampaignMetrics = SendTotals & {
   leads: number;
+  /** Unique people emailed; defaults to sent when unknown (single-step). */
+  contacted?: number;
   opens: number;
   clicks: number;
   replies: number;
@@ -90,6 +92,9 @@ export type DerivedRates = {
 /** Rates are null (shown as "—") when nothing was sent — never 0% invented. */
 export function deriveRates(m: CampaignMetrics): DerivedRates {
   const base = { sent: m.sent, bounced: m.bouncedAfterSend };
+  // People-based base for engagement rates: unique people emailed minus
+  // bounces, so multi-step sequences never dilute the rate.
+  const people = { contacted: m.contacted ?? m.sent, bounced: m.bouncedAfterSend };
   const delivered = deliveredCount(base);
   const attempted = m.sent + (m.bounced - m.bouncedAfterSend);
   if (m.sent <= 0) {
@@ -105,9 +110,9 @@ export function deriveRates(m: CampaignMetrics): DerivedRates {
   return {
     delivered,
     deliveryRate: ratePercent(delivered, m.sent),
-    openRate: openRatePercent(m.opens, base),
-    clickRate: clickRatePercent(m.clicks, base),
-    replyRate: replyRatePercent(m.replies, base),
+    openRate: openRatePercent(m.opens, people),
+    clickRate: clickRatePercent(m.clicks, people),
+    replyRate: replyRatePercent(m.replies, people),
     bounceRate: bounceRatePercent(m.bounced, attempted),
   };
 }
@@ -137,6 +142,7 @@ export function sumKpis(rows: readonly KpiRow[]): KpiTotals {
   let completed = 0;
   for (const r of rows) {
     m.sent += r.sent;
+    m.contacted = (m.contacted ?? 0) + (r.contacted ?? r.sent);
     m.bounced += r.bounced;
     m.bouncedAfterSend += r.bouncedAfterSend;
     m.failed += r.failed;

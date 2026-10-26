@@ -169,6 +169,7 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
       const total = { ...ZERO };
       for (const s of rows) {
         total.sent += s.sent;
+        total.contacted = (total.contacted ?? 0) + s.contacted;
         total.delivered += s.delivered;
         total.opens += s.opened;
         total.clicks += s.clicked;
@@ -274,6 +275,7 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
       name: s.name || "Untitled campaign",
       status: s.status,
       sent: s.sent,
+      contacted: s.contacted,
       delivered: s.delivered,
       opens: s.opened,
       clicks: s.clicked,

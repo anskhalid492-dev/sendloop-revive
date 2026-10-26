@@ -5,7 +5,7 @@
  * so the table never shows synthetic statistics.
  */
 
-import { deliveredCount, openRatePercent } from "@/lib/engagement-rates";
+import { deliveredCount, openRatePercent, replyRatePercent } from "@/lib/engagement-rates";
 
 export type CampaignOverviewAccount = {
   id: string;
@@ -31,11 +31,13 @@ export type CampaignOverviewRow = {
   accountCount: number;
   leads: number;
   sent: number;
+  /** Unique people emailed — the base for people-based rates. */
+  contacted: number;
   /** Emails accepted for sending minus confirmed bounces. */
   reached: number;
   /** Unique recipients/people with a real open signal. */
   opened: number;
-  /** Opened divided by reachable emails, using the shared engagement formula. */
+  /** Opened divided by reachable people, using the shared engagement formula. */
   openRate: number;
   /** Bounces (bounced_at set) — never included in `failed`. */
   bounced: number;
@@ -134,6 +136,13 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
         .filter((m) => m.opened_at != null)
         .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:open`),
     ).size;
+    // Unique people emailed: the rate base, so multi-step sequences never
+    // dilute open/reply rates (one person, three steps = one contact).
+    const contacted = new Set(
+      messages
+        .filter((m) => m.status === "sent" || m.sent_at)
+        .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:sent`),
+    ).size;
     const reached = deliveredCount({ sent, bounced, confirmedDelivered });
 
     const replyKeys = new Set(
@@ -168,13 +177,14 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       accountCount: (c.sending_account_ids ?? []).length,
       leads: recipients.length,
       sent,
+      contacted,
       reached,
       opened,
-      openRate: openRatePercent(opened, { sent, bounced }),
+      openRate: openRatePercent(opened, { contacted, bounced }),
       bounced,
       failed,
       replies: replyKeys.size,
-      replyRate: sent > 0 ? (replyKeys.size / sent) * 100 : 0,
+      replyRate: replyRatePercent(replyKeys.size, { contacted, bounced }),
       positiveReplies: positiveKeys.size,
       meetings: meetingKeys.size,
       dailyCap: Number(c.daily_cap ?? 0),
@@ -192,6 +202,8 @@ export type CampaignRollupRow = {
   campaign_id: string;
   leads?: number | null;
   sent?: number | null;
+  /** Unique people emailed; older rollups may not return it. */
+  contacted?: number | null;
   sent_today?: number | null;
   delivered?: number | null;
   reached?: number | null;
@@ -224,6 +236,7 @@ export function applyCampaignRollup(
     if (!hit) continue;
     if (hit.leads != null) row.leads = n(hit.leads);
     if (hit.sent != null) row.sent = n(hit.sent);
+    if (hit.contacted != null) row.contacted = n(hit.contacted);
     if (hit.sent_today != null) row.sentToday = n(hit.sent_today);
     if (hit.bounced != null) row.bounced = n(hit.bounced);
     if (hit.reached != null || hit.delivered != null) {
@@ -236,14 +249,20 @@ export function applyCampaignRollup(
       row.reached = deliveredCount({ sent: row.sent, bounced: row.bounced });
     }
     if (hit.opened != null) row.opened = n(hit.opened);
-    row.openRate = openRatePercent(row.opened, { sent: row.sent, bounced: row.bounced });
+    // People-based base; an older rollup without `contacted` falls back to
+    // its own authoritative send count, never a stale client-side number.
+    const base = {
+      contacted: hit.contacted != null ? n(hit.contacted) : row.sent,
+      bounced: row.bounced,
+    };
+    row.openRate = openRatePercent(row.opened, base);
     if (hit.failed != null) row.failed = n(hit.failed);
     if (hit.replies != null || hit.replied != null) row.replies = n(hit.replies ?? hit.replied);
     if (hit.positive_replies != null || hit.positive_replied != null) {
       row.positiveReplies = n(hit.positive_replies ?? hit.positive_replied);
     }
     if (hit.meetings != null) row.meetings = n(hit.meetings);
-    row.replyRate = row.sent > 0 ? (row.replies / row.sent) * 100 : 0;
+    row.replyRate = replyRatePercent(row.replies, base);
     row.displayStatus = displayStatus(row.status, row.sent, row.failed);
   }
   return rows;

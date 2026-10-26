@@ -168,7 +168,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
     fetchByIds<any>(ids, (chunk) =>
       db()
         .from("campaign_messages")
-        .select("id, campaign_id, status, sent_at, bounced_at")
+        .select("id, campaign_id, status, sent_at, bounced_at, recipient_id, lead_id")
         .in("campaign_id", chunk)
         .in("status", ["sent", "failed"]),
     ),
@@ -223,6 +223,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   }
 
   const totals: Dict<ReturnType<typeof emptyTotals>> = {};
+  const contactedPeople: Dict<Set<string>> = {};
   const lastActivity: Dict<string> = {};
   const sentDates: string[] = [];
   const bounceDates: string[] = [];
@@ -233,6 +234,11 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       bounceEvent: bounceEventMessages.has(String(m.id)),
     });
     addClass(t, cls);
+    if (m.sent_at) {
+      // Unique people emailed — the people-based rate base.
+      const who = String(m.recipient_id ?? m.lead_id ?? m.id);
+      (contactedPeople[m.campaign_id] ??= new Set<string>()).add(who);
+    }
     if (m.sent_at) {
       sentDates.push(m.sent_at);
       if (!lastActivity[m.campaign_id] || m.sent_at > lastActivity[m.campaign_id]!)
@@ -287,6 +293,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       bounced: t.bounced + extraBounces,
       bouncedAfterSend: t.bouncedAfterSend + extraBounces,
       leads: recipientCounts[c.id] ?? 0,
+      contacted: contactedPeople[c.id]?.size ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
       clicks: clickKeysByCampaign[c.id]?.size ?? 0,
       replies: replyCounts[c.id] ?? 0,
@@ -359,6 +366,7 @@ export async function getAdminCampaign(campaignId: string) {
     replies,
     engagementRows,
     statsRecipients,
+    statsContacted,
     statsQueued,
     statsSent,
     statsFailed,
@@ -404,6 +412,13 @@ export async function getAdminCampaign(campaignId: string) {
       ),
       exactCount(() =>
         db().from("campaign_recipients").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId),
+      ),
+      exactCount(() =>
+        db()
+          .from("campaign_recipients")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .not("last_sent_at", "is", null),
       ),
       exactCount(() =>
         db()
@@ -612,19 +627,19 @@ export async function getAdminCampaign(campaignId: string) {
       rawOpens,
       prefetchOpens,
       openRate: openRatePercent(Math.max(openKeys.size, uniqueOpeners.size), {
-        sent: statsSent,
+        contacted: statsContacted || statsSent,
         bounced: bounceKeys.size,
       }),
       clicks: Math.max(clickKeys.size, uniqueClickers.size),
       uniqueClicks: uniqueClickers.size,
       rawClicks,
       clickRate: clickRatePercent(Math.max(clickKeys.size, uniqueClickers.size), {
-        sent: statsSent,
+        contacted: statsContacted || statsSent,
         bounced: bounceKeys.size,
       }),
       unsubscribes: unsubscribedEmails.size,
       unsubscribeRate: clickRatePercent(unsubscribedEmails.size, {
-        sent: statsSent,
+        contacted: statsContacted || statsSent,
         bounced: bounceKeys.size,
       }),
 

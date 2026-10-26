@@ -228,13 +228,13 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           icon={MousePointerClick}
           label="Opened"
           value={opened}
-          rateLabel={sent ? `${openRatePercent(opened, { sent, bounced })}%` : "—"}
+          rateLabel={contacted ? `${openRatePercent(opened, { contacted, bounced })}%` : "—"}
         />
         <HeadlineCard
           icon={Reply}
           label="Replies"
           value={replied}
-          rateLabel={sent ? `${replyRatePercent(replied, { sent, bounced })}%` : "—"}
+          rateLabel={contacted ? `${replyRatePercent(replied, { contacted, bounced })}%` : "—"}
           tone={replied > 0 ? "text-emerald-600" : undefined}
         />
       </div>
@@ -245,7 +245,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <h2 className="text-sm font-semibold">Send outcomes</h2>
           <span className="text-xs text-muted-foreground">
             Bounce rate {pct(rate(bounced, sent))} · Unsubscribe rate{" "}
-            {sent ? `${unsubscribeRatePercent(unsubscribed, { sent, bounced })}%` : "—"}
+            {contacted ? `${unsubscribeRatePercent(unsubscribed, { contacted, bounced })}%` : "—"}
           </span>
         </div>
 
