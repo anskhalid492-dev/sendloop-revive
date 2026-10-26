@@ -12,6 +12,7 @@
  */
 import {
   clickRatePercent as sharedClickRate,
+  type PeopleBase,
   type ReachableBase,
 } from "@/lib/engagement-rates";
 import { createHmac, timingSafeEqual } from "crypto";
