@@ -67,13 +67,13 @@ export function openRatePercent(uniqueOpens: number, base: PeopleBase | number):
 }
 
 /** Click rate = unique clickers / reachable people. */
-export function clickRatePercent(uniqueClicks: number, base: PeopleBase): number {
-  return engagementRatePercent(uniqueClicks, base);
+export function clickRatePercent(uniqueClicks: number, base: PeopleBase | number): number {
+  return engagementRatePercent(uniqueClicks, typeof base === "number" ? { contacted: base } : base);
 }
 
 /** Reply rate = unique repliers / reachable people. */
-export function replyRatePercent(uniqueReplies: number, base: PeopleBase): number {
-  return engagementRatePercent(uniqueReplies, base);
+export function replyRatePercent(uniqueReplies: number, base: PeopleBase | number): number {
+  return engagementRatePercent(uniqueReplies, typeof base === "number" ? { contacted: base } : base);
 }
 
 /** Bounce rate stays over raw sent: it measures the sends themselves. */
@@ -82,8 +82,8 @@ export function bounceRatePercent(bounced: number, sent: number): number {
 }
 
 /** Unsubscribe rate = unsubscribes / reachable people. */
-export function unsubscribeRatePercent(unsubscribed: number, base: PeopleBase): number {
-  return engagementRatePercent(unsubscribed, base);
+export function unsubscribeRatePercent(unsubscribed: number, base: PeopleBase | number): number {
+  return engagementRatePercent(unsubscribed, typeof base === "number" ? { contacted: base } : base);
 }
 
 /**
