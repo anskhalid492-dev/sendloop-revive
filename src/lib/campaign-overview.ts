@@ -141,7 +141,7 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
     const contacted = new Set(
       messages
         .filter((m) => m.status === "sent" || m.sent_at)
-        .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? m.id),
+        .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:sent`),
     ).size;
     const reached = deliveredCount({ sent, bounced, confirmedDelivered });
 
@@ -177,13 +177,14 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
       accountCount: (c.sending_account_ids ?? []).length,
       leads: recipients.length,
       sent,
+      contacted,
       reached,
       opened,
-      openRate: openRatePercent(opened, { sent, bounced }),
+      openRate: openRatePercent(opened, { contacted, bounced }),
       bounced,
       failed,
       replies: replyKeys.size,
-      replyRate: sent > 0 ? (replyKeys.size / sent) * 100 : 0,
+      replyRate: replyRatePercent(replyKeys.size, { contacted, bounced }),
       positiveReplies: positiveKeys.size,
       meetings: meetingKeys.size,
       dailyCap: Number(c.daily_cap ?? 0),
