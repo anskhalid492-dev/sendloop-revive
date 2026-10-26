@@ -158,7 +158,8 @@ describe("campaign overview aggregation", () => {
     expect(row.replies).toBe(1);
     expect(row.positiveReplies).toBe(1);
     expect(row.meetings).toBe(1);
-    expect(row.replyRate).toBeCloseTo(50);
+    // People-based: the only reachable person (l2 bounced) replied = 100%.
+    expect(row.replyRate).toBeCloseTo(100);
     expect(row.account?.from_email).toBe("jake@acme.com");
   });
 

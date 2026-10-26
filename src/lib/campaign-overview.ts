@@ -250,8 +250,11 @@ export function applyCampaignRollup(
     }
     if (hit.opened != null) row.opened = n(hit.opened);
     // People-based base; an older rollup without `contacted` falls back to
-    // the send count rather than hiding the rate.
-    const base = { contacted: row.contacted || row.sent, bounced: row.bounced };
+    // its own authoritative send count, never a stale client-side number.
+    const base = {
+      contacted: hit.contacted != null ? n(hit.contacted) : row.sent,
+      bounced: row.bounced,
+    };
     row.openRate = openRatePercent(row.opened, base);
     if (hit.failed != null) row.failed = n(hit.failed);
     if (hit.replies != null || hit.replied != null) row.replies = n(hit.replies ?? hit.replied);
