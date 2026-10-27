@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Compact warmup dashboard
-- [ ] Remove summaries and extra columns; place four time filters above the mailbox table.
-- [ ] Preserve evidence-only rates and add warning-gated Safe status separately from percentages; verify isolated regressions.
+- [x] Remove summaries and extra columns; place four time filters above the mailbox table.
+- [x] Preserve evidence-only rates and add warning-gated Safe status separately from percentages; 132 isolated warmup regressions passed.
 - [ ] Signed-in table verification — blocked: externally managed backend has no named throwaway test-account session.
 
 ## Crypto-only affiliate payouts
