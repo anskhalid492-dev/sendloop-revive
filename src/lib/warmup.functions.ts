@@ -1256,3 +1256,52 @@ export const runWarmupNow = createServerFn({ method: "POST" })
       errors: result.errors,
     };
   });
+
+/**
+ * Observed warmup deliverability per mailbox and overall for one window.
+ * Reads individual warmup jobs (RLS-scoped to the caller) — never health score.
+ */
+export const getWarmupDeliverability = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ period: z.enum(["today", "last7", "last30", "all"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const { computeDeliverability, groupDeliverability, periodStart } = await import("@/lib/warmup-deliverability");
+    const { data: accounts, error } = await client.from("sending_accounts").select("id");
+    if (error) throw new Error(error.message);
+    const ids = ((accounts ?? []) as { id: string }[]).map((a) => a.id);
+    const since = periodStart(data.period);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jobs: any[] = [];
+    let truncated = false;
+    const PAGE = 1000, MAX = 100_000;
+    for (let i = 0; i < ids.length; i += 50) {
+      const chunk = ids.slice(i, i + 50);
+      for (let from = 0; ; from += PAGE) {
+        let q = client
+          .from("warmup_jobs")
+          .select("id, sending_account_id, role, status, delivery_state, placement, idempotency_key, processed_at")
+          .in("sending_account_id", chunk)
+          .not("processed_at", "is", null)
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (since) q = q.gte("processed_at", since);
+        const { data: page, error: jobsError } = await q;
+        if (jobsError) throw new Error(jobsError.message);
+        jobs.push(...(page ?? []));
+        if (!page || page.length < PAGE) break;
+        if (jobs.length >= MAX) { truncated = true; break; }
+      }
+      if (truncated) break;
+    }
+    const per = groupDeliverability(jobs);
+    return {
+      period: data.period,
+      since,
+      truncated,
+      overall: computeDeliverability(jobs),
+      mailboxes: Object.fromEntries(ids.map((id) => [id, per.get(id) ?? computeDeliverability([])])),
+    };
+  });

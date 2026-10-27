@@ -1,13 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Health guidance is not evidence of measured spam-folder placement. */
-export function warmupSpamLabel(spam: number, inbox: number, sent: number, health: number | null): string {
-  if (spam > 0 || inbox > 0) return String(spam);
-  if (health === 100) return "Safe";
-  if (health !== null && health < 80) return "Lower the sending volume";
-  return sent > 0 ? "Not available" : "—";
-}
-
 export function warmupActivityLabel(timestamp: string | null, now = Date.now()): string {
   if (!timestamp) return "Not available";
   const activity = new Date(timestamp);
