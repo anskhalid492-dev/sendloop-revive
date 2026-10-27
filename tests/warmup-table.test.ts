@@ -1,21 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestSuccessfulWarmupActivity, warmupActivityLabel, warmupSpamLabel } from "@/lib/warmup-table";
-
-describe("warmup table health guidance", () => {
-  it("uses Safe for unavailable placement at exactly 100 health", () => {
-    expect(warmupSpamLabel(0, 0, 3, 100)).toBe("Safe");
-    expect(warmupSpamLabel(0, 0, 3, 99)).toBe("Not available");
-  });
-  it("advises reducing volume strictly below 80 health", () => {
-    expect(warmupSpamLabel(0, 0, 3, 79)).toBe("Lower the sending volume");
-    expect(warmupSpamLabel(0, 0, 3, 80)).toBe("Not available");
-  });
-  it("preserves measured placement and unknown health", () => {
-    expect(warmupSpamLabel(2, 3, 5, 100)).toBe("2");
-    expect(warmupSpamLabel(0, 3, 5, 79)).toBe("0");
-    expect(warmupSpamLabel(0, 0, 5, null)).toBe("Not available");
-  });
-});
+import { latestSuccessfulWarmupActivity, warmupActivityLabel } from "@/lib/warmup-table";
 
 describe("warmup activity elapsed time", () => {
   const now = new Date(2026, 9, 17, 12, 0).getTime();

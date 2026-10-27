@@ -31,3 +31,4 @@
 - Immediate admin System Email tests pass a trusted, single-row delivery option to skip onboarding relevance and cooldown only; recipient preferences/suppression still apply and stored test flags never grant bypass, so testing cannot weaken automatic delivery safeguards.
 
 - Public warmup schedule descriptions derive from the client-safe DEFAULT_WARMUP_STAGES constant; configuration is labeled separately from performance evidence so marketing and engine defaults cannot drift.
+- Warmup inbox/spam/bounce/reply rates come only from per-job evidence in src/lib/warmup-deliverability.ts (deduped by job id, one window); health score and SMTP acceptance never imply placement, so unobserved sends stay Unverified.

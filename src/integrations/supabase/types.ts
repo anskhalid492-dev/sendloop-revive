@@ -10617,6 +10617,7 @@ export type Database = {
         Returns: {
           bounced: number
           campaign_id: string
+          contacted: number
           failed: number
           leads: number
           meetings: number
