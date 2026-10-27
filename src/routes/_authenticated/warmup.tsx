@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
-  Flame,
   Info,
   Pause,
   Play,
@@ -36,10 +35,11 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { usePlanGates } from "@/hooks/usePlanGates";
 import { Link } from "@tanstack/react-router";
 import { getWarmupDeliverability, listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
-import { DeliverabilityOverview, RateCell } from "@/components/warmup/WarmupDeliverability";
+import { PeriodPicker, RateCell } from "@/components/warmup/WarmupDeliverability";
 import type { DeliverabilityPeriod } from "@/lib/warmup-deliverability";
 import { cn } from "@/lib/utils";
 import { warmupActivityLabel } from "@/lib/warmup-table";
+import { showWarmupSafe } from "@/lib/warmup-display";
 
 
 export const Route = createFileRoute("/_authenticated/warmup")({
@@ -62,23 +62,6 @@ export const Route = createFileRoute("/_authenticated/warmup")({
   }),
   component: WarmupPage,
 });
-
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone?: string | undefined;
-}) {
-  return (
-    <div className="surface-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-1.5 text-2xl font-semibold tabular-nums", tone)}>{value}</p>
-    </div>
-  );
-}
 
 /**
  * Placement is only known when a warmup mailbox actually reports arrival. With
@@ -162,30 +145,11 @@ function WarmupPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const totals = useMemo(() => {
-    const active = rows.filter((r) => r.warmup_enabled && !r.paused_by_system).length;
-    const sent = rows.reduce((sum, r) => sum + r.sent_today, 0);
-    const target = rows.reduce((sum, r) => sum + r.target_today, 0);
-    const scored = rows.filter((r) => r.health_score !== null);
-    const avg = scored.length
-      ? Math.round(scored.reduce((sum, r) => sum + (r.health_score ?? 0), 0) / scored.length)
-      : 0;
-    const paused = rows.filter((r) => r.paused_by_system).length;
-    const recovery = rows.filter(
-      (r) => r.warmup_enabled && !r.paused_by_system && r.ramp_stage === "recovery",
-    ).length;
-    const healthy = rows.filter(
-      (r) => r.warmup_enabled && !r.paused_by_system && (r.health_score ?? 0) >= 90,
-    ).length;
-    return { active, sent, target, avg, paused, recovery, healthy };
-  }, [rows]);
-
   const settingsAccount = rows.find((r) => r.id === settingsId) ?? null;
 
   return (
     <AppShell
       title="Inbox Warmup"
-      description="Real mailbox-to-mailbox warmup with automatic ramping, health scoring and safety pauses."
     >
       <TooltipProvider delayDuration={150}>
       <div className="space-y-5">
@@ -201,30 +165,6 @@ function WarmupPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-          <Stat label="Active warmups" value={totals.active} />
-          <Stat label="Healthy" value={totals.healthy} />
-          <Stat
-            label="In recovery"
-            value={totals.recovery}
-            tone={totals.recovery > 0 ? "text-amber-600" : undefined}
-          />
-          <Stat label="Warmup sent today" value={totals.sent} />
-          <Stat label="Average health" value={totals.avg || "—"} />
-          <Stat
-            label="Auto-paused"
-            value={totals.paused}
-            tone={totals.paused > 0 ? "text-destructive" : undefined}
-          />
-        </div>
-
-        <DeliverabilityOverview
-          metrics={deliverabilityQuery.data?.overall}
-          loading={deliverabilityQuery.isLoading}
-          period={period}
-          onPeriod={setPeriod}
-        />
-
         {rows.some((r) => r.paused_by_system) ? (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
@@ -233,13 +173,13 @@ function WarmupPage() {
                 Warmup paused automatically on {rows.filter((r) => r.paused_by_system).length}{" "}
                 mailbox(es)
               </p>
-              <p className="text-muted-foreground">
-                The safety guard stops sending when bounces, complaints, authentication or health
-                cross your thresholds. Fix the cause, then resume warmup below.
-              </p>
             </div>
           </div>
         ) : null}
+
+        <div className="flex justify-end">
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
 
         {accountsQuery.isLoading ? (
           <div className="h-56 animate-pulse rounded-xl bg-muted" />
@@ -264,7 +204,7 @@ function WarmupPage() {
         ) : (
 
           <div className="surface-card overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-collapse text-sm">
+            <table className="w-full min-w-[1000px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2.5 font-medium">Mailbox</th>
@@ -274,8 +214,6 @@ function WarmupPage() {
                   <th className="px-3 py-2.5 text-right font-medium">Inbox rate</th>
                   <th className="px-3 py-2.5 text-right font-medium">Spam rate</th>
                   <th className="px-3 py-2.5 text-right font-medium">Bounce rate</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Reply rate</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Unverified</th>
                   <th className="px-3 py-2.5 text-right font-medium">Last Activity</th>
                   <th className="px-3 py-2.5 text-right font-medium">Actions</th>
                 </tr>
@@ -285,16 +223,13 @@ function WarmupPage() {
                   <tr key={row.id} className="border-b border-border/50 hover:bg-muted/40">
                     <td className="px-3 py-2.5">
                       <p className="font-medium">{row.from_email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {row.domain} · Email Account
-                      </p>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <Badge
                           variant="outline"
                           className={cn(
                             "text-[11px] font-medium",
                             row.state === "on"
-                              ? "border-emerald-500/40 text-emerald-600"
+                              ? "border-success/40 text-success"
                               : row.state === "blocked"
                                 ? "border-destructive/40 text-destructive"
                                 : "text-muted-foreground",
@@ -420,11 +355,23 @@ function WarmupPage() {
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.inboxRate} unit="measured" /></td>
-                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.spamRate} unit="measured" /></td>
-                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.bounceRate} unit="sent" /></td>
-                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.replyRate} unit="delivered" /></td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{perMailbox[row.id] ? perMailbox[row.id]!.unverified.toLocaleString() : "—"}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={deliverabilityQuery.isError ? undefined : perMailbox[row.id]?.inboxRate} unit="measured" /></td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">
+                      <div className="flex flex-col items-end gap-1">
+                        <RateCell rate={deliverabilityQuery.isError ? undefined : perMailbox[row.id]?.spamRate} unit="measured" />
+                        {!deliverabilityQuery.isError && showWarmupSafe(row, perMailbox[row.id]) ? (
+                          <span className="text-[11px] font-medium text-success" title="Health 100/100; no detected warnings. Not confirmed inbox placement.">Safe</span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">
+                      <div className="flex flex-col items-end gap-1">
+                        <RateCell rate={deliverabilityQuery.isError ? undefined : perMailbox[row.id]?.bounceRate} unit="sent" />
+                        {!deliverabilityQuery.isError && showWarmupSafe(row, perMailbox[row.id]) ? (
+                          <span className="text-[11px] font-medium text-success" title="Health 100/100; no detected warnings. Not confirmed inbox placement.">Safe</span>
+                        ) : null}
+                      </div>
+                    </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">
                       {row.last_activity_at ? (
                         <time dateTime={row.last_activity_at} title={new Date(row.last_activity_at).toLocaleString()}>
