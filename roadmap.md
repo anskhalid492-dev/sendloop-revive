@@ -1,5 +1,10 @@
 # Roadmap
 
+## Compact warmup dashboard
+- [ ] Remove summaries and extra columns; place four time filters above the mailbox table.
+- [ ] Preserve evidence-only rates and add warning-gated Safe status separately from percentages; verify isolated regressions.
+- [ ] Signed-in table verification — blocked: externally managed backend has no named throwaway test-account session.
+
 ## Crypto-only affiliate payouts
 - [x] Inspect existing ledger, portals, development policies and private R2 integration; preserve historical records and Stripe behavior.
 - [x] Prepare owner-applied additive SQL for verified wallets, $100 requests, locked manual settlements, auditable adjustments and private proofs; no migrations executed.
