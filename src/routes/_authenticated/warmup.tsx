@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -41,6 +41,25 @@ import type { DeliverabilityPeriod } from "@/lib/warmup-deliverability";
 import { cn } from "@/lib/utils";
 import { warmupActivityLabel } from "@/lib/warmup-table";
 import { showWarmupSafe } from "@/lib/warmup-display";
+
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone?: string | undefined;
+}) {
+  return (
+    <div className="surface-card p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-1.5 text-2xl font-semibold tabular-nums", tone)}>{value}</p>
+    </div>
+  );
+}
+
+
 
 
 export const Route = createFileRoute("/_authenticated/warmup")({
@@ -146,6 +165,23 @@ function WarmupPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const totals = useMemo(() => {
+    const active = rows.filter((r) => r.warmup_enabled && !r.paused_by_system).length;
+    const sent = rows.reduce((sum, r) => sum + r.sent_today, 0);
+    const scored = rows.filter((r) => r.health_score !== null);
+    const avg = scored.length
+      ? Math.round(scored.reduce((sum, r) => sum + (r.health_score ?? 0), 0) / scored.length)
+      : 0;
+    const paused = rows.filter((r) => r.paused_by_system).length;
+    const recovery = rows.filter(
+      (r) => r.warmup_enabled && !r.paused_by_system && r.ramp_stage === "recovery",
+    ).length;
+    const healthy = rows.filter(
+      (r) => r.warmup_enabled && !r.paused_by_system && (r.health_score ?? 0) >= 90,
+    ).length;
+    return { active, sent, avg, paused, recovery, healthy };
+  }, [rows]);
+
   const settingsAccount = rows.find((r) => r.id === settingsId) ?? null;
 
   return (
@@ -165,6 +201,23 @@ function WarmupPage() {
             </Button>
           </div>
         ) : null}
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          <Stat label="Active warmups" value={totals.active} />
+          <Stat label="Healthy" value={totals.healthy} />
+          <Stat
+            label="In recovery"
+            value={totals.recovery}
+            tone={totals.recovery > 0 ? "text-amber-600" : undefined}
+          />
+          <Stat label="Warmup sent today" value={totals.sent} />
+          <Stat label="Average health" value={totals.avg || "—"} />
+          <Stat
+            label="Auto-paused"
+            value={totals.paused}
+            tone={totals.paused > 0 ? "text-destructive" : undefined}
+          />
+        </div>
 
         {rows.some((r) => r.paused_by_system) ? (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
