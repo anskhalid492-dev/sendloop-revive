@@ -35,9 +35,11 @@ import { useWarmupRealtime } from "@/hooks/useWarmupRealtime";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { usePlanGates } from "@/hooks/usePlanGates";
 import { Link } from "@tanstack/react-router";
-import { listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
+import { getWarmupDeliverability, listWarmupAccounts, runWarmupNow, saveWarmupSettings } from "@/lib/warmup.functions";
+import { DeliverabilityOverview, RateCell } from "@/components/warmup/WarmupDeliverability";
+import type { DeliverabilityPeriod } from "@/lib/warmup-deliverability";
 import { cn } from "@/lib/utils";
-import { warmupActivityLabel, warmupSpamLabel } from "@/lib/warmup-table";
+import { warmupActivityLabel } from "@/lib/warmup-table";
 
 
 export const Route = createFileRoute("/_authenticated/warmup")({
@@ -83,13 +85,6 @@ function Stat({
  * sends out but no placement signal yet we say so instead of showing a 0 that
  * looks like a real result.
  */
-function placement(value: number, counterpart: number, sent: number): string {
-  if (value > 0 || counterpart > 0) return String(value);
-  if (sent > 0) return "Not available";
-  return "—";
-}
-
-
 function WarmupPage() {
   const queryClient = useQueryClient();
   const fetchAccounts = useServerFn(listWarmupAccounts);
@@ -120,6 +115,14 @@ function WarmupPage() {
     retry: 1,
   });
   const rows = accountsQuery.data?.accounts ?? [];
+  const [period, setPeriod] = useState<DeliverabilityPeriod>("last7");
+  const fetchDeliverability = useServerFn(getWarmupDeliverability);
+  const deliverabilityQuery = useQuery({
+    queryKey: ["warmup-deliverability", period],
+    queryFn: () => fetchDeliverability({ data: { period } }),
+    refetchInterval: 60_000,
+  });
+  const perMailbox = deliverabilityQuery.data?.mailboxes ?? {};
 
 
   const invalidate = async () => {
@@ -215,6 +218,13 @@ function WarmupPage() {
           />
         </div>
 
+        <DeliverabilityOverview
+          metrics={deliverabilityQuery.data?.overall}
+          loading={deliverabilityQuery.isLoading}
+          period={period}
+          onPeriod={setPeriod}
+        />
+
         {rows.some((r) => r.paused_by_system) ? (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
@@ -254,16 +264,18 @@ function WarmupPage() {
         ) : (
 
           <div className="surface-card overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse text-sm">
+            <table className="w-full min-w-[1100px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2.5 font-medium">Mailbox</th>
                   <th className="px-3 py-2.5 font-medium">Health</th>
                   <th className="px-3 py-2.5 font-medium">Today</th>
                   <th className="px-3 py-2.5 font-medium">Ramp</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Inbox</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Spam</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Bounced</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Inbox rate</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Spam rate</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Bounce rate</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Reply rate</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Unverified</th>
                   <th className="px-3 py-2.5 text-right font-medium">Last Activity</th>
                   <th className="px-3 py-2.5 text-right font-medium">Actions</th>
                 </tr>
@@ -408,28 +420,11 @@ function WarmupPage() {
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-emerald-600">
-                      {placement(row.inbox_today, row.spam_today, row.sent_today)}
-                    </td>
-                    <td
-                      className={cn(
-                        "px-3 py-2.5 text-right tabular-nums",
-                        row.spam_today > 0 ? "text-amber-600" : "",
-                      )}
-                    >
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>{warmupSpamLabel(row.spam_today, row.inbox_today, row.sent_today, row.health_score)}</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs text-xs">
-                          {row.spam_today > 0 || row.inbox_today > 0
-                            ? "Measured spam-folder placement."
-                            : "Health-based guidance only; spam-folder placement has not been measured."}
-                        </TooltipContent>
-                      </Tooltip>
-                    </td>
-
-                    <td className="px-3 py-2.5 text-right tabular-nums">{row.bounced_today}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.inboxRate} unit="measured" /></td>
+                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.spamRate} unit="measured" /></td>
+                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.bounceRate} unit="sent" /></td>
+                    <td className="px-3 py-2.5 text-right tabular-nums"><RateCell rate={perMailbox[row.id]?.replyRate} unit="delivered" /></td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{perMailbox[row.id] ? perMailbox[row.id]!.unverified.toLocaleString() : "—"}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">
                       {row.last_activity_at ? (
                         <time dateTime={row.last_activity_at} title={new Date(row.last_activity_at).toLocaleString()}>
