@@ -277,6 +277,10 @@ export const adminSaveGuideArticle = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    if (data.id) {
+      const { data: help } = await (context.supabase as any).from("guide_articles").select("id").eq("id", data.id).eq("help_center", true).maybeSingle();
+      if (help) throw new Error("Manage this article in Help Center");
+    }
     const row = {
       category: data.category,
       slug: data.slug,
