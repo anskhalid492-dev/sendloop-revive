@@ -109,6 +109,9 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [thinkingLine, setThinkingLine] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(0);
+  const mood: MascotMood = celebrate ? "happy" : busy ? "thinking" : "idle";
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const active = threads.find((t) => t.id === activeId) ?? threads[0]!;
@@ -161,6 +164,7 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
       messages: history,
     }));
     setBusy(true);
+    setThinkingLine(Math.random() < 0.35 ? THINKING_LINES[Math.floor(Math.random() * THINKING_LINES.length)]! : null);
     try {
       const r = await chat({ data: { messages: history.map((m) => ({ role: m.role, content: m.content })) } });
       updateActive((t) => ({
@@ -176,6 +180,11 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
       setBusy(false);
     }
   }
+
+  const cheer = () => {
+    setCelebrate(Date.now());
+    window.setTimeout(() => setCelebrate(0), 1800);
+  };
 
   const startNew = () => {
     const t = newThread();
@@ -295,7 +304,7 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
                 ) : null}
                 {m.role === "assistant" ? (
                   <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                    <button type="button" aria-label="Helpful" aria-pressed={m.feedback === "up"} className={`rounded p-1 hover:text-foreground ${m.feedback === "up" ? "text-primary" : ""}`} onClick={() => updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "up" } : x)) }))}><ThumbsUp className="size-3.5" /></button>
+                    <button type="button" aria-label="Helpful" aria-pressed={m.feedback === "up"} className={`rounded p-1 hover:text-foreground ${m.feedback === "up" ? "text-primary" : ""}`} onClick={() => { if (m.feedback !== "up") cheer(); updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "up" } : x)) })); }}><ThumbsUp className="size-3.5" /></button>
                     <button type="button" aria-label="Not helpful" aria-pressed={m.feedback === "down"} className={`rounded p-1 hover:text-foreground ${m.feedback === "down" ? "text-destructive" : ""}`} onClick={() => updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "down", offerTicket: true } : x)) }))}><ThumbsDown className="size-3.5" /></button>
                     {m.offerTicket && !active.ticketRef ? (
                       <>
